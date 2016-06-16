@@ -1,0 +1,305 @@
+#define FUNCTION_TABLE_LIMIT  (100)
+
+EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
+EXTERN StrTable string_table;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * allocate.c
+ */
+extern FlonumCell *allocate_flonum(double);
+extern StringCell *allocate_string(int);
+extern JSValue allocate_string2(const char *, const char *);
+extern Object *allocate_object(void);
+extern ArrayCell *allocate_array(void);
+extern void allocate_array_data(ArrayCell *, int, int);
+extern FunctionCell *allocate_function(void);
+extern BuiltinCell *allocate_builtin(void);
+extern JSValue *allocate_prop_table(int size);
+extern IteratorCell *allocate_iterator(void);
+#ifdef USE_REGEXP
+extern RegexpCell *allocate_regexp(void);
+#endif
+extern BoxedCell *allocate_boxed(uint64_t);
+extern void init_string_table(unsigned int);
+
+/*
+ * builtin.c
+ */
+extern BUILTIN_FUNCTION(builtin_const_true);
+extern BUILTIN_FUNCTION(builtin_const_false);
+extern BUILTIN_FUNCTION(builtin_const_undefined);
+extern BUILTIN_FUNCTION(builtin_const_null);
+extern BUILTIN_FUNCTION(builtin_identity);
+extern BUILTIN_FUNCTION(builtin_printArgs);
+extern BUILTIN_FUNCTION(builtin_printStatus);
+extern BUILTIN_FUNCTION(builtin_address);
+extern BUILTIN_FUNCTION(builtin_hello);
+extern BUILTIN_FUNCTION(builtin_papi_get_real);
+extern BUILTIN_FUNCTION(object_constr);
+extern BUILTIN_FUNCTION(array_constr);
+extern BUILTIN_FUNCTION(string_constr);
+extern BUILTIN_FUNCTION(string_constr_nonew);
+extern BUILTIN_FUNCTION(number_constr);
+extern BUILTIN_FUNCTION(number_constr_nonew);
+extern BUILTIN_FUNCTION(boolean_constr);
+extern BUILTIN_FUNCTION(builtin_object_proto_to_string);
+extern BUILTIN_FUNCTION(builtin_fixnum_to_string);
+extern BUILTIN_FUNCTION(builtin_flonum_to_string);
+extern BUILTIN_FUNCTION(builtin_string_to_index);
+extern BUILTIN_FUNCTION(builtin_string_valueOf);
+extern BUILTIN_FUNCTION(builtin_number_valueOf);
+extern BUILTIN_FUNCTION(builtin_boolean_valueOf);
+extern BUILTIN_FUNCTION(builtin_is_nan);
+extern BUILTIN_FUNCTION(builtin_is_finite);
+extern BUILTIN_FUNCTION(builtin_parse_int);
+extern BUILTIN_FUNCTION(builtin_parse_float);
+extern BUILTIN_FUNCTION(array_proto_toString);
+extern BUILTIN_FUNCTION(array_proto_toLocaleString);
+extern BUILTIN_FUNCTION(arrayProtoJoin);
+extern BUILTIN_FUNCTION(arrayProtoConcat);
+extern BUILTIN_FUNCTION(arrayProtoPop);
+extern BUILTIN_FUNCTION(arrayProtoPush);
+extern BUILTIN_FUNCTION(arrayProtoReverse);
+extern BUILTIN_FUNCTION(arrayProtoShift);
+extern BUILTIN_FUNCTION(arrayProtoSlice);
+extern BUILTIN_FUNCTION(arrayProtoSort);
+extern BUILTIN_FUNCTION(dateProtoToString);
+extern BUILTIN_FUNCTION(dateProtoToDateString);
+extern BUILTIN_FUNCTION(dateProtoToTimeString);
+extern BUILTIN_FUNCTION(dateProtoToLocaleString);
+extern BUILTIN_FUNCTION(dateProtoToLocaleDateString);
+extern BUILTIN_FUNCTION(dateProtoToLocaleTimeString);
+extern BUILTIN_FUNCTION(dateProtoValueOf);
+extern BUILTIN_FUNCTION(dateProtoGetTime);
+extern BUILTIN_FUNCTION(dateProtoGetFullYear);
+extern BUILTIN_FUNCTION(dateProtoGetUTCFullYear);
+extern BUILTIN_FUNCTION(dateProtoGetMonth);
+extern BUILTIN_FUNCTION(dateProtoGetUTCMonth);
+extern BUILTIN_FUNCTION(dateProtoGetDate);
+extern BUILTIN_FUNCTION(dateProtoGetUTCDate);
+extern BUILTIN_FUNCTION(dateProtoGetDay);
+extern BUILTIN_FUNCTION(dateProtoGetUTCDay);
+extern BUILTIN_FUNCTION(dateProtoGetHours);
+extern BUILTIN_FUNCTION(dateProtoGetUTCHours);
+extern BUILTIN_FUNCTION(dateProtoGetMinutes);
+extern BUILTIN_FUNCTION(dateProtoGetUTCMinutes);
+extern BUILTIN_FUNCTION(dateProtoGetSeconds);
+extern BUILTIN_FUNCTION(dateProtoGetUTCSeconds);
+extern BUILTIN_FUNCTION(dateProtoGetMilliseconds);
+extern BUILTIN_FUNCTION(dateProtoGetUTCMilliseconds);
+extern BUILTIN_FUNCTION(dateProtoGetTimezoneOffset);
+extern BUILTIN_FUNCTION(dateProtoSetTime);
+extern BUILTIN_FUNCTION(dateProtoSetMillisecnods);
+extern BUILTIN_FUNCTION(dateProtoSetUTCMillisecnods);
+extern BUILTIN_FUNCTION(dateProtoSetSeconds);
+extern BUILTIN_FUNCTION(dateProtoSetUTCSeconds);
+extern BUILTIN_FUNCTION(dateProtoSetMinutes);
+extern BUILTIN_FUNCTION(dateProtoSetUTCMinutes);
+extern BUILTIN_FUNCTION(dateProtoSetHours);
+extern BUILTIN_FUNCTION(dateProtoSetUTCHours);
+extern BUILTIN_FUNCTION(dateProtoSetDate);
+extern BUILTIN_FUNCTION(dateProtoSetUTCDate);
+extern BUILTIN_FUNCTION(dateProtoSetMonth);
+extern BUILTIN_FUNCTION(dateProtoSetUTCMonth);
+extern BUILTIN_FUNCTION(dateProtoSetFullYear);
+extern BUILTIN_FUNCTION(dateProtoSetUTCFullYear);
+extern BUILTIN_FUNCTION(dateProtoToUTCString);
+extern BUILTIN_FUNCTION(math_abs);
+extern BUILTIN_FUNCTION(mathAcos);
+extern BUILTIN_FUNCTION(mathAsin);
+extern BUILTIN_FUNCTION(mathAtan);
+extern BUILTIN_FUNCTION(mathAtan2);
+extern BUILTIN_FUNCTION(mathCeil);
+extern BUILTIN_FUNCTION(mathCos);
+extern BUILTIN_FUNCTION(mathExp);
+extern BUILTIN_FUNCTION(mathFloor);
+extern BUILTIN_FUNCTION(mathLog);
+extern BUILTIN_FUNCTION(mathMax);
+extern BUILTIN_FUNCTION(mathMin);
+extern BUILTIN_FUNCTION(mathPow);
+extern BUILTIN_FUNCTION(mathRandom);
+extern BUILTIN_FUNCTION(mathRound);
+extern BUILTIN_FUNCTION(mathSin);
+extern BUILTIN_FUNCTION(mathSqrt);
+extern BUILTIN_FUNCTION(mathTan);
+extern BUILTIN_FUNCTION(stringFromCharCode);
+extern BUILTIN_FUNCTION(stringProtoCharAt);
+extern BUILTIN_FUNCTION(stringProtoCharCodeAt);
+extern BUILTIN_FUNCTION(stringProtoConcat);
+extern BUILTIN_FUNCTION(stringProtoIndexOf);
+extern BUILTIN_FUNCTION(stringProtoLastIndexOf);
+extern BUILTIN_FUNCTION(stringProtoLocaleCompare);
+extern BUILTIN_FUNCTION(stringProtoSlice);
+extern BUILTIN_FUNCTION(stringProtoSubstring);
+extern BUILTIN_FUNCTION(stringProtoToLowerCase);
+extern BUILTIN_FUNCTION(stringProtoToUpperCase);
+extern BUILTIN_FUNCTION(stringProtoMatch);
+extern BUILTIN_FUNCTION(number_proto_valueOf);
+extern BUILTIN_FUNCTION(number_proto_toString);
+extern BUILTIN_FUNCTION(regExpProtoToString);
+extern BUILTIN_FUNCTION(regExpProtoExec);
+extern BUILTIN_FUNCTION(regExpProtoTest);
+extern BUILTIN_FUNCTION(regexpConstructor);
+extern BUILTIN_FUNCTION(regexpConstructorNoNew);
+
+/*
+ * codeloader.c
+ */
+extern char *insn_nemonic(int);
+extern void init_code_loader(FILE *);
+extern void end_code_loader(void);
+extern int code_loader(FunctionTable *);
+extern void init_constant_cell(ConstantCell *);
+extern void end_constant_cell(ConstantCell *);
+extern int insn_load(ConstantCell *, Bytecode *, int);
+extern int update_function_table(FunctionTable *, int, ConstantCell *,
+                                 Bytecode *, int, int, int, int);
+
+extern JSValue specstr_to_jsvalue(const char *);
+
+extern int add_constant_number(ConstantCell *, double);
+extern int add_constant_string(ConstantCell *, char *);
+#ifdef USE_REGEXP
+extern int add_constant_regexp(ConstantCell *, char *, int);
+#endif
+
+/*
+ * context.c
+ */
+extern void pop_special_registers(Context *, int, JSValue *);
+extern void init_context(FunctionTable *, JSValue, Context **);
+
+/*
+ * conversion.c
+ */
+// JSValue special_to_string(JSValue v);
+JSValue special_to_number(JSValue v);
+// JSValue special_to_boolean(JSValue v);
+// JSValue special_to_object(JSValue v);
+JSValue string_to_number(JSValue v);
+// JSValue string_to_boolean(JSValue v);
+// JSValue string_to_object(JSValue v);
+extern JSValue fixnum_to_string(JSValue v);
+// JSValue flonum_to_string(JSValue v);
+// JSValue fixnum_to_boolean(JSValue v);
+// JSValue flonum_to_boolean(JSValue v);
+// JSValue fixnum_to_object(JSValue v);
+// JSValue flonum_to_object(JSValue v);
+extern JSValue object_to_string(Context *context, JSValue v);
+extern JSValue object_to_number(Context *context, JSValue v);
+// JSValue object_to_boolean(JSValue v);
+extern JSValue to_string(Context *, JSValue v);
+extern JSValue to_boolean(JSValue v);
+extern JSValue to_number(Context *, JSValue v);
+extern double to_double(Context *, JSValue v);
+
+/*
+ * hash.c
+ */
+
+extern HashTable *malloc_hashtable(void);
+extern int hash_create(HashTable *, unsigned int);
+extern int hash_get(HashTable *, HashKey, HashData *);
+extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
+
+// DELETE
+// int hashDelete(HashTable *table, HashKey key);
+
+extern  HashIterator createHashIterator(HashTable *table);
+// int hashNext(HashTable *table, HashIterator *Iter, HashData *data);
+// int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key);
+extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
+extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
+
+extern int rehash(HashTable *table);
+
+extern uint32_t calc_hash_len(const char *, uint32_t);
+extern uint32_t calc_hash(const char *);
+extern uint32_t calc_hash_len2(const char *, uint32_t, const char *, uint32_t);
+uint32_t calc_hash2(const char *, const char *);
+
+extern HashCell **__hashMalloc(int size);
+extern HashCell *__hashCellMalloc();
+
+extern void hashBodyFree(HashCell **body);
+extern void hashCellFree(HashCell *cell);
+// char* ststrdup(const char*);
+
+extern JSValue str_intern(const char* s, int len, uint32_t hash, int soft);
+extern JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
+                           uint32_t hash, int soft);
+
+/*
+ * init.c
+ */
+extern void init_global_constants(void);
+extern JSValue init_global(void);
+
+/*
+ * main.c
+ */
+extern void print_value_simple(Context *, JSValue);
+extern void print_value_verbose(Context *, JSValue);
+extern void print_value(Context *, JSValue, int);
+
+/*
+ * object.c
+ */
+extern int get_prop(JSValue, JSValue, JSValue *);
+extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
+extern int array_value(JSValue, int, JSValue *);
+
+extern JSValue new_object(void);
+extern JSValue new_array(void);
+extern JSValue new_array_with_size(int);
+extern JSValue new_function(Context *, int);
+extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, int);
+extern JSValue new_builtin(builtin_function_t, int);
+extern JSValue new_iterator(void);
+#ifdef USE_REGEXP
+extern JSValue new_regexp(void);
+#endif // USE_REGEXP
+extern JSValue new_number(JSValue);
+extern JSValue new_boolean(JSValue);
+extern JSValue new_string(JSValue);
+
+extern char *space_chomp(char *);
+extern double cstr_to_double(char *);
+extern inline JSValue object_to_primitive(JSValue, Context *);
+extern inline JSValue objectToPrimitiveHintNumber(JSValue, Context *);
+extern inline JSValue objectToPrimitiveHintString(JSValue, Context *);
+extern JSValue fixnum_to_string(JSValue n);
+extern JSValue flonum_to_string(JSValue v);
+extern JSValue array_to_string(Context *, JSValue, JSValue);
+extern JSValue primitive_to_string(JSValue);
+extern double primitive_to_double(JSValue);
+extern JSValue string_to_index(JSValue str);
+extern JSValue special_to_string(JSValue x);
+extern JSValue jsvalue_to_boolean(JSValue);
+
+extern JSValue call_method(JSValue, JSValue);
+
+/*
+ * operations.c
+ */
+extern JSValue slow_add(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_sub(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_mul(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_mod(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_bitand(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_bitor(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2);
+
+/*
+ * vmloop.c
+ */
+extern int vmrun_threaded(Context *, int);
+
+#ifdef __cplusplus
+}
+#endif
