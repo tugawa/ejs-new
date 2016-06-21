@@ -2,7 +2,13 @@ CC = clang
 CFLAGS = -std=gnu89 -Wall -g -DUSER_DEF
 LIBS = -lc -lm
 
-HFILES = prefix.h \
+GENERATED_HFILES = \
+         instructions-opcode.h \
+	 instructions-table.h \
+	 instructions-label.h
+
+HFILES = $(GENERATED_HFILES) \
+         prefix.h \
          context.h \
          header.h \
 	 builtin.h \
@@ -10,9 +16,7 @@ HFILES = prefix.h \
 	 instructions.h \
 	 types.h \
 	 globals.h \
-	 extern.h \
-         instructions-opcode.h \
-	 instructions-table.h
+	 extern.h
 
 OFILES = allocate.o \
 	 builtin.o \
@@ -48,4 +52,5 @@ instructions.h: instructions-opcode.h instructions-table.h
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
-
+clean:
+	rm $(OFILES) $(GENERATED_HFILES)

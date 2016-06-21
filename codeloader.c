@@ -195,7 +195,6 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     bytecodes[pc] = (Bytecode)(-1);
     return LOAD_FAIL;
   }
-
   switch (insn_info_table[oc].operand_type) {
   case SMALLPRIMITIVE:
     {
@@ -319,21 +318,23 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
 
   case GETVAR:
     {
-      Register op1, op2, op3;
-      op1 = atoi(NextToken());
-      op2 = atoi(NextToken());
-      op3 = atoi(NextToken());
-      bytecodes[pc] = makecode_getvar(oc, op2, op3, op1);
+      Index link, offset;
+      Register reg;
+      link = atoi(NextToken());
+      offset = atoi(NextToken());
+      reg = atoi(NextToken());
+      bytecodes[pc] = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
 
   case SETVAR:
     {
-      Register op1, op2, op3;
-      op1 = atoi(NextToken());
-      op2 = atoi(NextToken());
-      op3 = atoi(NextToken());
-      bytecodes[pc] = makecode_setvar(oc, op1, op2, op3);
+      Index link, offset;
+      Register reg;
+      link = atoi(NextToken());
+      offset = atoi(NextToken());
+      reg = atoi(NextToken());
+      bytecodes[pc] = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
 
@@ -353,7 +354,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
       uint16_t argc;
       closure = atoi(NextToken());
       argc = atoi(NextToken());
-      bytecodes[pc] = makecode_call(oc, closure, argsCount);
+printf("CALLOP: argc = %d\n", argc);
+      bytecodes[pc] = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }
 
@@ -531,7 +533,7 @@ int update_function_table(FunctionTable *ftable, int index,
     oc = get_opcode(bytecodes[i]);
     if (oc == STRING || oc == NUMBER || oc == REGEXP) {
       uint16_t disp, cindex;
-      cindex = get_const_index(bytecodes[i]);
+      cindex = get_big_index(bytecodes[i]);
       disp = calc_displacement(ninsns, i, cindex);
       bytecodes[i] = update_displacement(bytecodes[i], disp);
     }
@@ -635,7 +637,7 @@ void print_bytecode(Instruction *insns, int j) {
     {
       Register dst;
       int imm;
-      dst = get_first_operand(code);
+      dst = get_first_operand_reg(code);
       switch (oc) {
       case FIXNUM:
         imm = get_small_immediate(code);
@@ -657,8 +659,8 @@ void print_bytecode(Instruction *insns, int j) {
       uint16_t disp;
       JSValue o;
       int tag;
-      dst = get_first_operand(code);
-      disp = get_displacement(code);
+      dst = get_first_operand_reg(code);
+      disp = get_big_disp(code);
       o = (JSValue)(insns[j + disp].code);
       // printf("j = %d, disp = %d, o = %p\n", j, disp, (char *)o);
       tag = get_tag(o);
@@ -693,24 +695,24 @@ void print_bytecode(Instruction *insns, int j) {
   case THREEOP:
     {
       Register dst, r1, r2;
-      dst = get_first_operand(code);
-      r1 = get_second_operand(code);
-      r2 = get_third_operand(code);
+      dst = get_first_operand_reg(code);
+      r1 = get_second_operand_reg(code);
+      r2 = get_third_operand_reg(code);
       printf("%d %d %d", dst, r1, r2);
     }
     break;
   case TWOOP:
     {
       Register dst, r1;
-      dst = get_first_operand(code);
-      r1 = get_second_operand(code);
+      dst = get_first_operand_reg(code);
+      r1 = get_second_operand_reg(code);
       printf("%d %d", dst, r1);
     }
     break;
   case ONEOP:
     {
       Register dst;
-      dst = get_first_operand(code);
+      dst = get_first_operand_reg(code);
       printf("%d", dst);
     }
     break;
@@ -720,7 +722,7 @@ void print_bytecode(Instruction *insns, int j) {
   case TRYOP:
     {
       Displacement disp;
-      disp = get_uncondjump_displacement(code);
+      disp = get_first_operand_disp(code);
       printf("%d", j + disp);
     }
     break;
@@ -728,46 +730,46 @@ void print_bytecode(Instruction *insns, int j) {
     {
       Register r;
       Displacement disp;
-      r = get_first_operand(code);
-      disp = get_uncondjump_displacement(code);
+      r = get_first_operand_reg(code);
+      disp = get_second_operand_disp(code);
       printf("%d %d", r, j + disp);
     }
     break;
   case GETVAR:
     {
-      uint16_t link, index;
       Register dst;
-      link = get_first_operand(code);
-      index = get_second_operand(code);
-      dst = get_third_operand(code);
+      Index link, index;
+      link = get_first_operand_index(code);
+      index = get_second_operand_index(code);
+      dst = get_third_operand_reg(code);
       printf("%d %d %d", link, index, dst);
     }
     break;
   case SETVAR:
     {
-      uint16_t link, index;
       Register src;
-      link = get_first_operand(code);
-      index = get_second_operand(code);
-      src = get_third_operand(code);
+      Index link, index;
+      link = get_first_operand_index(code);
+      index = get_second_operand_index(code);
+      src = get_third_operand_reg(code);
       printf("%d %d %d", link, index, src);
     }
     break;
   case MAKECLOSUREOP:
     {
       Register dst;
-      uint16_t index;
-      dst = get_first_operand(code);
-      index = get_second_operand(code);
+      Index index;
+      dst = get_first_operand_reg(code);
+      index = get_second_operand_index(code);
       printf("%d %d", dst, index);
     }
     break;
   case CALLOP:
     {
-      int na;
       Register f;
-      f = get_first_operand(code);
-      na = get_second_operand(code);
+      int na;
+      f = get_first_operand_reg(code);
+      na = get_second_operand_int(code);
       printf("%d %d", f, na);
     }
     break;

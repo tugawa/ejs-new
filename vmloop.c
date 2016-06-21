@@ -130,9 +130,11 @@ do{                                                                  \
 #endif // PARALLEL
 
 #define load_regs(insn, dst, r1, r2, v1, v2) \
-  dst = get_first_operand(insn), \
-  r1 = get_second_operand(insn), r2 = get_third_operand(insn), \
-  v1 = regbase[r1], v2 = regbase[r2]
+  dst = get_first_operand_reg(insn), \
+  r1 = get_second_operand_reg(insn), \
+  r2 = get_third_operand_reg(insn), \
+  v1 = regbase[r1], \
+  v2 = regbase[r2]
 
 #define goto_pc_relative(d)   pc += (d), insn += (d), insn_ptr += (d)
 
@@ -179,7 +181,7 @@ I_FIXNUM:
 
   ENTER_INSN(__LINE__);
   {
-    Register reg = get_first_operand(insn);
+    Register reg = get_first_operand_reg(insn);
     regbase[reg] = cint_to_fixnum((cint)get_small_immediate(insn));
   }
   NEXT_INSN_INCPC();
@@ -192,7 +194,7 @@ I_SPECCONST:
 
   ENTER_INSN(__LINE__);
   {
-    Register reg = get_first_operand(insn);
+    Register reg = get_first_operand_reg(insn);
     regbase[reg] = get_small_immediate(insn);
   }
   NEXT_INSN_INCPC();
@@ -211,8 +213,8 @@ I_REGEXP:
   {
     Register dst;
     Displacement disp;
-    dst = get_first_operand(insn);
-    disp = get_const_index(insn);
+    dst = get_first_operand_reg(insn);
+    disp = get_big_disp(insn);
     regbase[dst] = insns[disp].code;
   }
 
@@ -802,7 +804,7 @@ I_MOVE:
   // $dst = $src
   ENTER_INSN(__LINE__);
   {
-    regbase[get_first_operand(insn)] = regbase[get_second_operand(insn)];
+    regbase[get_first_operand_reg(insn)] = regbase[get_second_operand_reg(insn)];
   }
   NEXT_INSN_INCPC();
 
@@ -846,7 +848,7 @@ I_SETA:
   //   src : source register
   // a = $src
   ENTER_INSN(__LINE__);
-  set_a(context, regbase[get_first_operand(insn)]);
+  set_a(context, regbase[get_first_operand_reg(insn)]);
   NEXT_INSN_INCPC();
 
 I_GETA:
@@ -854,7 +856,7 @@ I_GETA:
   //   dst : destination register
   // $dst = a
   ENTER_INSN(__LINE__);
-  regbase[get_first_operand(insn)] = get_a(context);
+  regbase[get_first_operand_reg(insn)] = get_a(context);
   NEXT_INSN_INCPC();
 
 I_GETERR:
@@ -896,7 +898,7 @@ I_JUMP:
   ENTER_INSN(__LINE__);
   {
     Displacement disp;
-    disp = (Displacement)get_first_operand(insn);
+    disp = get_first_operand_disp(insn);
     goto_pc_relative(disp);
   }
   NEXT_INSN_NOINCPC();
@@ -910,9 +912,9 @@ I_JUMPTRUE:
     Register src;
     Displacement disp;
 
-    src = get_first_operand(insn);
+    src = get_first_operand_reg(insn);
     if (is_true(regbase[src])) {
-      disp = (Displacement)get_second_operand(insn);
+      disp = get_second_operand_disp(insn);
       goto_pc_relative(disp);
     } else {
       // not implemented yet
@@ -930,10 +932,10 @@ I_JUMPFALSE:
     Displacement disp;
     JSValue v;
 
-    src = get_first_operand(insn);
+    src = get_first_operand_reg(insn);
     v = regbase[src];
     if (is_false(v) || is_undefined(v) || is_null(v)) {
-      disp = (Displacement)get_second_operand(insn);
+      disp = get_second_operand_disp(insn);
       goto_pc_relative(disp);
     } else {
       // not implemented yet
@@ -976,6 +978,8 @@ I_NEXTPROPNAME:
   NEXT_INSN_INCPC();
 
 I_CALL:
+  // call fn nargs
+  //
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();

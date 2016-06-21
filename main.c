@@ -49,9 +49,9 @@ void testtest(Context *cxt) {
 
   v = special_to_boolean(JS_UNDEFINED); printf("undefined -> boolean: "); pp(v);
   v = special_to_boolean(JS_NULL); printf("null -> boolean: "); pp(v);
-  v = string_to_boolean(cstr_to_boolean("")); printf("\"\" -> boolean: "); pp(v);
-  v = string_to_boolean(cstr_to_boolean("1.2")); printf("\"1.2\" -> boolean: "); pp(v);
-  v = string_to_boolean(cstr_to_boolean("one")); printf("\"one\" -> boolean: "); pp(v);
+  // v = string_to_boolean(cstr_to_boolean("")); printf("\"\" -> boolean: "); pp(v);
+  // v = string_to_boolean(cstr_to_boolean("1.2")); printf("\"1.2\" -> boolean: "); pp(v);
+  // v = string_to_boolean(cstr_to_boolean("one")); printf("\"one\" -> boolean: "); pp(v);
 }
 
 // main

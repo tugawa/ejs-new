@@ -178,7 +178,7 @@ extern void init_context(FunctionTable *, JSValue, Context **);
  */
 // JSValue special_to_string(JSValue v);
 JSValue special_to_number(JSValue v);
-// JSValue special_to_boolean(JSValue v);
+JSValue special_to_boolean(JSValue v);
 // JSValue special_to_object(JSValue v);
 JSValue string_to_number(JSValue v);
 // JSValue string_to_boolean(JSValue v);

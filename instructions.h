@@ -21,18 +21,109 @@ typedef enum {
 // Operand Type
 //
 typedef enum {
-  /*  0 */ SMALLPRIMITIVE,
-  /*  1 */ BIGPRIMITIVE,
-  /*  2 */ THREEOP,
-  /*  3 */ TWOOP,
-  /*  4 */ ONEOP,
-  /*  5 */ ZEROOP,
-  /*  6 */ UNCONDJUMP,
-  /*  7 */ CONDJUMP,
-  /*  8 */ GETVAR,
-  /*  9 */ SETVAR,
-  /* 10 */ MAKECLOSUREOP,
-  /* 11 */ CALLOP,
+  /*  0
+     ---------------------------------------------
+     |          |          |                     |
+     ---------------------------------------------
+       opcode     register     immediate value
+ 
+     Note that the immediate value has no tag for fixnum constant
+     but it has a tag for special constant.
+    */
+  SMALLPRIMITIVE,
+
+  /*  1
+     ---------------------------------------------
+     |          |          |                     |
+     ---------------------------------------------
+       opcode     register    index of the constant table /
+                              displacement to the constant
+   */
+  BIGPRIMITIVE,
+
+  /*  2
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     register   register   register
+   */
+  THREEOP,
+
+  /*  3
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     register   register   not used
+   */
+  TWOOP,
+
+  /*  4
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     register   not used   not used
+   */
+  ONEOP,
+
+  /*  5
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     not used   not used   not used
+   */
+  ZEROOP,
+
+  /*  6
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode   displacement not used   not used
+   */
+  UNCONDJUMP,
+
+  /*  7
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     src       displacement not used
+                  register
+   */
+  CONDJUMP,
+
+  /*  8
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode       link      offset    register
+   */
+  GETVAR,
+
+  /*  9
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode       link      offset    register
+   */
+  SETVAR,
+
+  /* 10
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     dst        index     not used
+                  register
+   */
+  MAKECLOSUREOP,
+
+  /* 11
+     ---------------------------------------------
+     |          |          |          |          |
+     ---------------------------------------------
+       opcode     func        nargs     not used
+                  register
+   */
+  CALLOP,
+
   /* 12 */ TRYOP,
   /* 13 */ UNKNOWNOP
 } OperandType;
@@ -66,10 +157,17 @@ typedef struct instruction {
 #define SECOND_OPERAND_OFFSET (16)
 #define CONSTINDEX_OFFSET     SECOND_OPERAND_OFFSET
 
-#define SMALLPRIMITIVE_IMMMASK  (0xffffffff)
-#define OPERAND_MASK            (0xffff)
 #define OPCODE_MASK             ((Bytecode)(0xffff000000000000))
+#define OPERAND_MASK            (0xffff)
+#define FIRST_OPERAND_MASK      ((Bytecode)(0x0000ffff00000000))
+#define SECOND_OPERAND_MASK     ((Bytecode)(0x00000000ffff0000))
+#define THIRD_OPERAND_MASK      ((Bytecode)(0x000000000000ffff))
+
+#define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x00000000ffffffff))
+#define BIGPRIMITIVE_INDEXMASK  ((Bytecode)(0x00000000ffffffff))
+
 #define CONSTINDEX_MASK         ((Bytecode)(0x00000000ffff0000))
+
 
 #define three_operands(op1, op2, op3) \
   (((Bytecode)(op1) << FIRST_OPERAND_OFFSET) | \
@@ -88,22 +186,32 @@ typedef struct instruction {
 #define makecode_no_operand(oc) \
   makecode_three_operands(oc, 0, 0, 0)
 
+#define makecode_smallprimitive(oc, op, imm) \
+  (((Bytecode)(oc) << OPCODE_OFFSET) | \
+   ((Bytecode)(op) << FIRST_OPERAND_OFFSET) | \
+   ((Bytecode)(imm)))
+
+#define makecode_bigprimitive(oc, op, index) \
+  (((Bytecode)(oc) << OPCODE_OFFSET) | \
+   ((Bytecode)(op) << FIRST_OPERAND_OFFSET) | \
+   ((Bytecode)(index)))
+
 // macros for making various instructions
 //
 #define makecode_fixnum(dst, imm) \
-  makecode_two_operands(FIXNUM, dst, imm)
+  makecode_smallprimitive(FIXNUM, dst, imm)
 
 #define makecode_specconst(dst, imm) \
-  makecode_two_operands(SPECCONST, dst, imm)
+  makecode_smallprimitive(SPECCONST, dst, imm)
 
 #define makecode_number(dst, index) \
-  makecode_two_operands(NUMBER, dst, index)
+  makecode_bigprimitive(NUMBER, dst, index)
 
 #define makecode_string(dst, index) \
-  makecode_two_operands(STRING, dst, index)
+  makecode_bigprimitive(STRING, dst, index)
 
 #define makecode_error(dst, index) \
-  makecode_two_operands(ERROR, dst, index)
+  makecode_bigprimitive(ERROR, dst, index)
 
 #define makecode_regexp(dst, index, flag) \
   makecode_three_operands(REGEXP, (dst), (index), (flag))
@@ -172,15 +280,41 @@ typedef void *InsnLabel;
   ((Opcode)(((Bytecode)(code) & OPCODE_MASK) >> OPCODE_OFFSET))
 
 #define get_first_operand(code) \
-  ((Register)(((Bytecode)(code) >> FIRST_OPERAND_OFFSET) & OPERAND_MASK))
+  (((Bytecode)(code) >> FIRST_OPERAND_OFFSET) & OPERAND_MASK)
 
 #define get_second_operand(code) \
-  ((Register)(((Bytecode)(code) >> SECOND_OPERAND_OFFSET) & OPERAND_MASK))
+  (((Bytecode)(code) >> SECOND_OPERAND_OFFSET) & OPERAND_MASK)
 
-#define get_third_operand(code) \
-  ((Register)(((Bytecode)(code)) & OPERAND_MASK))
+#define get_third_operand(code) (((Bytecode)(code)) & OPERAND_MASK)
 
-#define get_small_immediate(code) ((int)(get_second_operand(code)))
+#define get_first_operand_reg(code) ((Register)(get_first_operand(code)))
+
+#define get_second_operand_reg(code) ((Register)(get_second_operand(code)))
+
+#define get_third_operand_reg(code)  ((Register)(get_third_operand(code)))
+
+#define get_first_operand_disp(code) ((Displacement)(get_first_operand(code)))
+
+#define get_second_operand_disp(code) ((Displacement)(get_second_operand(code)))
+
+#define get_third_operand_disp(code)  ((Displacement)(get_third_operand(code)))
+
+#define get_first_operand_index(code) ((Index)(get_first_operand(code)))
+
+#define get_second_operand_index(code) ((Index)(get_second_operand(code)))
+
+#define get_third_operand_index(code)  ((Index)(get_third_operand(code)))
+
+#define get_small_immediate(code) (((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK)
+
+#define get_big_index(code) (((Bytecode)(code)) & BIGPRIMITIVE_INDEXMASK)
+
+#define get_big_disp(code) (((Bytecode)(code)) & BIGPRIMITIVE_INDEXMASK)
+
+// #define get_small_immediate(code) ((int)(get_second_operand(code)))
+
+#define get_second_operand_int(code) \
+  ((int)((int16_t)(get_second_operand(code))))
 
 /*
 #define calc_displacement(numOfInst, codeIndex, constIndex) \
@@ -190,21 +324,18 @@ typedef void *InsnLabel;
 #define calc_displacement(ninsns, code_index, const_index) \
   ((ninsns) - (code_index) + (const_index))
 
-#define get_const_index(code) \
-  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+// #define get_const_index(code) \
+//  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+
+// #define update_displacement(code, disp) \
+//   (((code) & ~CONSTINDEX_MASK) | \
+//   (((disp) & OPERAND_MASK) << CONSTINDEX_OFFSET))
 
 #define update_displacement(code, disp) \
-  (((code) & ~CONSTINDEX_MASK) | \
-   (((disp) & OPERAND_MASK) << CONSTINDEX_OFFSET))
+  makecode_bigprimitive(get_opcode(code), get_first_operand_reg(code), disp)
 
-#define get_displacement(code) \
-  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
-
-#define get_uncondjump_displacement(code) \
-   ((Displacement)(get_first_operand(code)))
-
-#define get_condjump_displacement(code) \
-   ((Displacement)(get_second_operand(code)))
+// #define get_displacement(code) \
+//   ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
 
 #define STRING_TABLE_LIMIT    (3000)
 #define NUMBER_TABLE_LIMIT    (3000)
