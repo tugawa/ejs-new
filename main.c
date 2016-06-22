@@ -146,7 +146,7 @@ int main(int argc, char* argv[]) {
   s = PAPI_get_real_usec();
 #endif // CALC_TIME
 
-  testtest(context);
+  // testtest(context);
 
   // enters the VM loop
   vmrun_threaded(context, 0);

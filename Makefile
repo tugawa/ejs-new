@@ -20,6 +20,7 @@ HFILES = $(GENERATED_HFILES) \
 
 OFILES = allocate.o \
 	 builtin.o \
+	 call.o \
          codeloader.o \
          context.o \
 	 conversion.o \

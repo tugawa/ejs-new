@@ -136,7 +136,7 @@ do{                                                                  \
   v1 = regbase[r1], \
   v2 = regbase[r2]
 
-#define goto_pc_relative(d)   pc += (d), insn += (d), insn_ptr += (d)
+#define goto_pc_relative(d) (pc += (d), insn += (d), insn_ptr += (d))
 
 // executes the main loop of the vm as a threaded code
 //
@@ -147,11 +147,9 @@ int vmrun_threaded(Context* context, int border) {
   int fp;
   Instruction *insns;
   JSValue *regbase;
-//  void **insn_ptr;
   InsnLabel *insn_ptr;
   Bytecode insn;
   // JSValue *locals = NULL;
-//  static void *const jump_table[] = {
   static InsnLabel jump_table[] = {
 #include "instructions-label.h"
   };
@@ -783,8 +781,25 @@ I_SETARRAY:
   NEXT_INSN_INCPC();
 
 I_GETGLOBAL:
+  // getglobal dst reg
+  //   dst : destination register
+  //   reg : register that has a pointer to a string object
+  // $dst = property value for the string in the global object
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue str, ret;
+
+    dst = get_first_operand_reg(insn);
+    str = regbase[get_second_operand_reg(insn)];
+#ifdef USE_FASTGLOBAL
+#else
+    if (get_prop(context->global, str, &ret) == FAIL)
+      LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
+    regbase[dst] = ret;
+#endif
+  }
   NEXT_INSN_INCPC();
 
 I_SETGLOBAL:
@@ -802,6 +817,7 @@ I_MOVE:
   //   dst : destination register
   //   src : source register
   // $dst = $src
+
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = regbase[get_second_operand_reg(insn)];
@@ -839,14 +855,27 @@ I_ISOBJECT:
   NEXT_INSN_INCPC();
 
 I_SETFL:
+  // setfl newfl
+  //   newfl : number of elements between fp and sp (after growing sp)
+  // sp = fp + newfl - 1
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    int newfl, oldfl;
+
+    newfl = get_first_operand_int(insn);
+    oldfl = get_sp(context) - fp + 1;
+    set_sp(context, fp + newfl - 1);
+    while (++oldfl <= newfl)
+      regbase[oldfl] = JS_UNDEFINED;
+  }
   NEXT_INSN_INCPC();
 
 I_SETA:
   // seta src
   //   src : source register
   // a = $src
+
   ENTER_INSN(__LINE__);
   set_a(context, regbase[get_first_operand_reg(insn)]);
   NEXT_INSN_INCPC();
@@ -855,8 +884,11 @@ I_GETA:
   // geta dst
   //   dst : destination register
   // $dst = a
+
   ENTER_INSN(__LINE__);
-  regbase[get_first_operand_reg(insn)] = get_a(context);
+  {
+    regbase[get_first_operand_reg(insn)] = get_a(context);
+  }
   NEXT_INSN_INCPC();
 
 I_GETERR:
@@ -865,8 +897,13 @@ I_GETERR:
   NEXT_INSN_INCPC();
 
 I_GETGLOBALOBJ:
+  // getglobalobj dst
+  // $dst <- globalobj
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    regbase[get_first_operand_reg(insn)] = context->global;
+  }
   NEXT_INSN_INCPC();
 
 I_NEWARGS:
@@ -877,18 +914,23 @@ I_NEWARGS:
 I_RET:
   // ret
   // returns from the function
+
   ENTER_INSN(__LINE__);
-  if (fp == border)
-    return 1;
-  pop_special_registers(context, fp, regbase);
-  update_context();
+  {
+    if (fp == border)
+      return 1;
+    pop_special_registers(context, fp, regbase);
+    update_context();
+  }
   NEXT_INSN_INCPC();
 
 I_NOP:
   // nop
   
   ENTER_INSN(__LINE__);
-  asm volatile("#NOP Instruction\n");
+  {
+    asm volatile("#NOP Instruction\n");
+  }
   NEXT_INSN_INCPC();
 
 I_JUMP:
@@ -981,7 +1023,68 @@ I_CALL:
   // call fn nargs
   //
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue fn;
+    int nargs;
+
+//printf("Entered I_CALL\n");
+    fn = regbase[get_first_operand_reg(insn)];
+//printf("is_function = %d\n", is_function(fn));
+//print_value_verbose(context, fn);
+    nargs = get_second_operand_int(insn);
+    set_fp(context, fp);
+    set_pc(context, pc);
+
+    if (is_function(fn)) {
+#ifdef CALC_CALL
+      callcount++;
+#endif
+      // function
+      call_function(context, fn, nargs);
+      update_context();
+      NEXT_INSN_NOINCPC();
+    } else if (is_builtin(fn)) {
+      // builtin function
+      call_builtin(context, fn, nargs, false);
+      NEXT_INSN_INCPC();
+#ifdef USE_FFI
+      if (isErr(context)) {
+        LOG_EXIT("CALL: exception by builtin");
+      }
+#endif
+    }
+#ifdef USE_FFI
+    else if (isForeign(funcv)) {
+      call_foreign(context, fn, nargs, false, false);
+      if (!isErr(context)) {
+        NEXT_INSTRUCTION_INCPC();
+      } else {
+        int catchPlace = getCatchFp(context);
+        int tempFp;
+        while(cfp > border && cfp > catchPlace){
+          tempFp = regBase[-FP_POS];
+          setFp(context, tempFp);
+          setLp(context, (FunctionFrame*)regBase[-LP_POS]);
+          setPc(context, (int)regBase[-PC_POS]);
+          setCf(context, (FunctionTableCell*)regBase[-CF_POS]);
+          setSp(context, cfp);
+          updateContext();
+        }
+
+        if(catchPlace < border){
+          return -1; }
+
+        setPc(context, getCatchPc(context));
+        updateContext();
+        catchStackPop(context);
+        NEXT_INSTRUCTION_NOINCPC();
+      }
+    }
+#endif
+    else{
+      LOG_EXIT("CALL");
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_SEND:

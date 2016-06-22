@@ -318,7 +318,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
 
   case GETVAR:
     {
-      Index link, offset;
+      Subscript link, offset;
       Register reg;
       link = atoi(NextToken());
       offset = atoi(NextToken());
@@ -329,7 +329,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
 
   case SETVAR:
     {
-      Index link, offset;
+      Subscript link, offset;
       Register reg;
       link = atoi(NextToken());
       offset = atoi(NextToken());
@@ -532,9 +532,10 @@ int update_function_table(FunctionTable *ftable, int index,
     insnptr[i] = NULL;
     oc = get_opcode(bytecodes[i]);
     if (oc == STRING || oc == NUMBER || oc == REGEXP) {
-      uint16_t disp, cindex;
-      cindex = get_big_index(bytecodes[i]);
-      disp = calc_displacement(ninsns, i, cindex);
+      Subscript ss;
+      Displacement disp;
+      ss = get_big_subscr(bytecodes[i]);
+      disp = calc_displacement(ninsns, i, ss);
       bytecodes[i] = update_displacement(bytecodes[i], disp);
     }
   }
@@ -738,30 +739,30 @@ void print_bytecode(Instruction *insns, int j) {
   case GETVAR:
     {
       Register dst;
-      Index link, index;
-      link = get_first_operand_index(code);
-      index = get_second_operand_index(code);
+      Subscript link, ss;
+      link = get_first_operand_subscr(code);
+      ss = get_second_operand_subscr(code);
       dst = get_third_operand_reg(code);
-      printf("%d %d %d", link, index, dst);
+      printf("%d %d %d", link, ss, dst);
     }
     break;
   case SETVAR:
     {
       Register src;
-      Index link, index;
-      link = get_first_operand_index(code);
-      index = get_second_operand_index(code);
+      Subscript link, ss;
+      link = get_first_operand_subscr(code);
+      ss = get_second_operand_subscr(code);
       src = get_third_operand_reg(code);
-      printf("%d %d %d", link, index, src);
+      printf("%d %d %d", link, ss, src);
     }
     break;
   case MAKECLOSUREOP:
     {
       Register dst;
-      Index index;
+      Subscript ss;
       dst = get_first_operand_reg(code);
-      index = get_second_operand_index(code);
-      printf("%d %d", dst, index);
+      ss = get_second_operand_subscr(code);
+      printf("%d %d", dst, ss);
     }
     break;
   case CALLOP:

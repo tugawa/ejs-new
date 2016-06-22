@@ -1,6 +1,6 @@
 // function table
 //
-volatile
+//volatile
 typedef struct function_table {
   int call_entry;             // entry of a function call
   int send_entry;             // entry of a method call
@@ -39,7 +39,7 @@ typedef struct function_frame {
 
 // special registers
 //
-volatile
+// volatile
 typedef struct special_registers {
   int fp;                // starting position of the stack
   FunctionTable* cf;     // current function
@@ -55,7 +55,7 @@ typedef struct special_registers {
 #define STACK_LIMIT      (50000)
 #define CATCHSTACK_LIMIT (100)
 
-volatile
+// volatile
 typedef struct context {
   SpecialRegisters spreg;
   JSValue stack[STACK_LIMIT];
@@ -75,7 +75,6 @@ typedef struct context {
 #endif
 } Context;
 
-// 現在の関数の長さ?? (Function Length)
 // #define currentFl(c)  (getSp(c) - getFp(c) + 1)
 #define set_fl(c, fl)  set_sp(c, (get_fp(c) + (fl) - 1))
 
@@ -133,7 +132,6 @@ typedef struct context {
 #define FP_POS     (0)
 
 // 配列
-// インデックスの MAX値 コンパイラと合わせる
 #define ARRAY_INDEX_MAX     (0x7fffffff)
 #define INITIAL_ARRAY_SIZE  (1000)
 

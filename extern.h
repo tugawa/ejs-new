@@ -34,7 +34,7 @@ extern BUILTIN_FUNCTION(builtin_const_false);
 extern BUILTIN_FUNCTION(builtin_const_undefined);
 extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
-extern BUILTIN_FUNCTION(builtin_printArgs);
+extern BUILTIN_FUNCTION(builtin_print);
 extern BUILTIN_FUNCTION(builtin_printStatus);
 extern BUILTIN_FUNCTION(builtin_address);
 extern BUILTIN_FUNCTION(builtin_hello);
@@ -145,6 +145,12 @@ extern BUILTIN_FUNCTION(regExpProtoExec);
 extern BUILTIN_FUNCTION(regExpProtoTest);
 extern BUILTIN_FUNCTION(regexpConstructor);
 extern BUILTIN_FUNCTION(regexpConstructorNoNew);
+
+/*
+ * call.c
+ */
+extern void call_function(Context *, JSValue, int);
+extern void call_builtin(Context *, JSValue, int, bool);
 
 /*
  * codeloader.c

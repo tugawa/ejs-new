@@ -110,7 +110,7 @@ typedef enum {
      ---------------------------------------------
      |          |          |          |          |
      ---------------------------------------------
-       opcode     dst        index     not used
+       opcode     dst       subscript   not used
                   register
    */
   MAKECLOSUREOP,
@@ -155,7 +155,7 @@ typedef struct instruction {
 #define OPCODE_OFFSET         (48)
 #define FIRST_OPERAND_OFFSET  (32)
 #define SECOND_OPERAND_OFFSET (16)
-#define CONSTINDEX_OFFSET     SECOND_OPERAND_OFFSET
+#define CONST_SUBSCR_OFFSET   SECOND_OPERAND_OFFSET
 
 #define OPCODE_MASK             ((Bytecode)(0xffff000000000000))
 #define OPERAND_MASK            (0xffff)
@@ -164,9 +164,9 @@ typedef struct instruction {
 #define THIRD_OPERAND_MASK      ((Bytecode)(0x000000000000ffff))
 
 #define SMALLPRIMITIVE_IMMMASK  ((Bytecode)(0x00000000ffffffff))
-#define BIGPRIMITIVE_INDEXMASK  ((Bytecode)(0x00000000ffffffff))
+#define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
 
-#define CONSTINDEX_MASK         ((Bytecode)(0x00000000ffff0000))
+#define CONST_SUBSCR_MASK         ((Bytecode)(0x00000000ffff0000))
 
 
 #define three_operands(op1, op2, op3) \
@@ -299,30 +299,31 @@ typedef void *InsnLabel;
 
 #define get_third_operand_disp(code)  ((Displacement)(get_third_operand(code)))
 
-#define get_first_operand_index(code) ((Index)(get_first_operand(code)))
+#define get_first_operand_subscr(code) ((Subscript)(get_first_operand(code)))
 
-#define get_second_operand_index(code) ((Index)(get_second_operand(code)))
+#define get_second_operand_subscr(code) ((Subscript)(get_second_operand(code)))
 
-#define get_third_operand_index(code)  ((Index)(get_third_operand(code)))
+#define get_third_operand_subscr(code)  ((Subscript)(get_third_operand(code)))
 
 #define get_small_immediate(code) (((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK)
 
-#define get_big_index(code) (((Bytecode)(code)) & BIGPRIMITIVE_INDEXMASK)
+#define get_big_subscr(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
 
-#define get_big_disp(code) (((Bytecode)(code)) & BIGPRIMITIVE_INDEXMASK)
+#define get_big_disp(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
 
 // #define get_small_immediate(code) ((int)(get_second_operand(code)))
 
-#define get_second_operand_int(code) \
-  ((int)((int16_t)(get_second_operand(code))))
+#define get_first_operand_int(code) ((int)((int16_t)(get_first_operand(code))))
+
+#define get_second_operand_int(code) ((int)((int16_t)(get_second_operand(code))))
 
 /*
 #define calc_displacement(numOfInst, codeIndex, constIndex) \
   (numOfInst - (codeIndex + 1) + constIndex)
 */
 
-#define calc_displacement(ninsns, code_index, const_index) \
-  ((ninsns) - (code_index) + (const_index))
+#define calc_displacement(ninsns, code_subscr, const_subscr) \
+  ((ninsns) - (code_subscr) + (const_subscr))
 
 // #define get_const_index(code) \
 //  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))

@@ -71,7 +71,7 @@
 
 typedef uint16_t Register;
 typedef int16_t  Displacement;
-typedef uint16_t  Index;
+typedef uint16_t  Subscript;
 typedef uint64_t QuickeningCounter;
 
 // Object

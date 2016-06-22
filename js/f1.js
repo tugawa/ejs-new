@@ -4,3 +4,4 @@ f = function () {
 g = function(x) {
   return x + 20;
 }
+print(g(300));

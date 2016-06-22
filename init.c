@@ -121,11 +121,11 @@ ObjBuiltinProp global_builtin_props[] = {
   { "isFinite",       builtin_is_finite,          1, ATTR_DE   },
 //  { "parseInt",       builtin_parseInt,           2, ATTR_DE   },
 //  { "parseFloat",     builtin_parseFloat,         1, ATTR_DE   },
+  { "print",          builtin_print,              0, ATTR_ALL  },
 // for debugging
-  { "printArgs",      builtin_printArgs,          0, ATTR_ALL  },
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },
   { "address",        builtin_address,            0, ATTR_ALL  },
-  { "vm_debug_hello", builtin_hello,              0, ATTR_ALL  },
+  { "hello",          builtin_hello,              0, ATTR_ALL  },
 #ifdef USE_PAPI
   { "papi_get_real",  builtin_papi_get_real,      0, ATTR_ALL  },
 #endif

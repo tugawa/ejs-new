@@ -2,15 +2,28 @@ funcLength 3
 callentry 0
 sendentry 0
 numberOfLocals 0
-numberOfInstruction 10
+numberOfInstruction 23
 getglobalobj 1
-setfl 12
+setfl 20
 makeclosure 2 0
 string 5 "f"
 setglobal 5 2
 makeclosure 2 1
 string 8 "g"
 setglobal 8 2
+string 11 "print"
+getglobal 9 11
+string 14 "g"
+getglobal 12 14
+fixnum 13 300
+move 20 13
+call 12 1
+setfl 20
+geta 10
+move 20 10
+call 9 1
+setfl 20
+geta 2
 seta 2
 ret
 callentry 0

@@ -43,13 +43,16 @@ BUILTIN_FUNCTION(builtin_identity)
 
 // displays its arguments
 //
-BUILTIN_FUNCTION(builtin_printArgs)
+BUILTIN_FUNCTION(builtin_print)
 {
   int i;
 
   builtin_prologue();
+  // printf("builtin_print: na = %d, args = %p\n", na, args);
+
   for (i = 1; i <= na; ++i) {
-    print_value_simple(context, args[i]);
+     //printf("args[%d] = %016lx\n", i, args[i]);
+     print_value_simple(context, args[i]);
     putchar(i < na ? ' ' : '\n');
   }
   set_a(context, JS_UNDEFINED);
