@@ -13,7 +13,7 @@ BUILTIN_FUNCTION(array_constr)
   builtin_prologue();
   rsv = new_array();
   p = (ArrayCell *)(remove_tag(rsv, T_OBJECT));
-  set_obj_prop(rsv, "__proto__", gobj.g_array_proto, ATTR_ALL);
+  set_obj_prop(rsv, "__proto__", gconsts.g_array_proto, ATTR_ALL);
 
   switch (na) {
   case 0:
@@ -72,7 +72,7 @@ BUILTIN_FUNCTION(array_toString)
   JSValue ret;
 
   builtin_prologue();  
-  ret = array_to_string(context, args[0], gobj.g_string_comma);
+  ret = array_to_string(context, args[0], gconsts.g_string_comma);
   set_a(context, ret);
   return;
 }
@@ -87,7 +87,7 @@ JSValue array_to_string(Context* context, JSValue array, JSValue separator)
   char *separatorCStr;
   char *retCStr, *addr;
 
-  ret = gobj.g_string_blank;
+  ret = gconsts.g_string_blank;
   length = array_length(array);
 
   if(length > 0){
@@ -120,7 +120,7 @@ JSValue array_to_string(Context* context, JSValue array, JSValue separator)
     return cstr_to_string(retCStr);
   }
 
-  return gobj.g_string_blank;
+  return gconsts.g_string_blank;
 }
 
 BUILTIN_FUNCTION(array_toLocaleString){
@@ -165,7 +165,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
     set_a(context, cstr_to_string(retCStr));
 
   }else{
-    set_a(context, gobj.g_string_blank);
+    set_a(context, gconsts.g_string_blank);
     return;
   }
 }
@@ -496,12 +496,13 @@ ObjBuiltinProp array_funcs[] = {
 
 void init_builtin_array(void)
 {
-  gobj.g_array_proto = new_object();
-  set_obj_prop(gobj.g_array, "prototype", gobj.g_array_proto, ATTR_ALL);
+  gconsts.g_array = new_builtin(array_constr, 0);
+  gconsts.g_array_proto = new_object();
+  set_obj_prop(gconsts.g_array, "prototype", gconsts.g_array_proto, ATTR_ALL);
   {
     ObjBuiltinProp *p = array_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gobj.g_array_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_prop(gconsts.g_array_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

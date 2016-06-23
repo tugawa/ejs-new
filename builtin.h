@@ -19,8 +19,8 @@ typedef struct obj_double_prop {
   Attribute attr;
 } ObjDoubleProp;
 
-typedef struct obj_gobj_prop {
+typedef struct obj_gconsts_prop {
   char *name;
   JSValue *addr;
   Attribute attr;
-} ObjGobjProp;
+} ObjGconstsProp;

@@ -60,7 +60,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
   if (!is_undefined(rad)) {
     irad = (int32_t)primitive_to_double(rad);
     if (irad < 2 || irad > 36) {
-      set_a(context, gobj.g_flonum_nan);
+      set_a(context, gconsts.g_flonum_nan);
       return;
     }
   } else
@@ -69,7 +69,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
   cstr = space_chomp(cstr);
   ret = strtol(cstr, &endPtr, irad);
   if (cstr == endPtr)
-    set_a(context, gobj.g_flonum_nan);
+    set_a(context, gconsts.g_flonum_nan);
   else
     set_a(context, int_to_fixnum(ret));
 }
@@ -186,14 +186,39 @@ ObjBuiltinProp global_funcs[] = {
   { NULL,             NULL,                       0, ATTR_DE   }
 };
 
+ObjGconstsProp global_gconsts_props[] = {
+  { "Object",    &gconsts.g_object,          ATTR_DE   },
+  { "Array",     &gconsts.g_array,           ATTR_DE   },
+  { "Number",    &gconsts.g_number,          ATTR_DE   },
+  { "String",    &gconsts.g_string,          ATTR_DE   },
+  { "Boolean",   &gconsts.g_boolean,         ATTR_DE   },
+  { "undefined", &gconsts.g_const_undefined, ATTR_DDDE },
+  { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
+  { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
+  { "Math",      &gconsts.g_math,            ATTR_DE   },
+#ifdef PARALLEL
+  { "VMTest",    &gconsts.g_vm_test,         ATTR_DE   },
+  { "Thread",    &gconsts.g_thread,          ATTR_DE   },
+  { "Tcp",       &gconsts.g_tcp,             ATTR_DE   },
+#endif
+  { NULL,        NULL,                       ATTR_DE   }
+};
+
 // sets the global object's properties
 //
-void init_builtin_global(JSValue g)
+void init_builtin_global(void)
 {
   {
     ObjBuiltinProp *p = global_funcs;
     while (p->name != NULL) {
-      set_obj_prop(g, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_prop(gconsts.g_global, p->name, new_builtin(p->fn, p->na), p->attr);
+      p++;
+    }
+  }
+  {
+    ObjGconstsProp *p = global_gconsts_props;
+    while (p->name != NULL) {
+      set_obj_prop(gconsts.g_global, p->name, *(p->addr), p->attr);
       p++;
     }
   }

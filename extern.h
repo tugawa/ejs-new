@@ -227,12 +227,13 @@ extern JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2);
  */
 extern int vmrun_threaded(Context *, int);
 
-extern void init_builtin_global(JSValue);
+extern void init_builtin_global(void);
+extern void init_builtin_object(void);
 extern void init_builtin_array(void);
 extern void init_builtin_number(void);
 extern void init_builtin_string(void);
 extern void init_builtin_boolean(void);
-extern void init_builtin_math(JSValue);
+extern void init_builtin_math(void);
 #ifdef USE_REGEXP
 extern void init_builtin_regexp(void);
 #endif

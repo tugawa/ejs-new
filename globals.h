@@ -3,9 +3,9 @@
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;
 
-// global objects
+// global constant objects
 //
-EXTERN struct global_objects {
+EXTERN struct global_constant_objects {
   JSValue g_const_true;
   JSValue g_const_false;
   JSValue g_const_undefined;
@@ -49,4 +49,12 @@ EXTERN struct global_objects {
   JSValue g_flonum_infinity;
   JSValue g_flonum_negative_infinity;
   JSValue g_flonum_nan;
-} gobj;
+
+  JSValue g_global;
+  JSValue g_math;
+#ifdef PARALLEL
+  JSValue g_vm_test;
+  JSValue g_thread;
+  JSValue g_tcp;
+#endif
+} gconsts;

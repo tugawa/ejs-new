@@ -10,7 +10,7 @@ BUILTIN_FUNCTION(number_constr)
 
   builtin_prologue();  
   rsv = new_number(FIXNUM_ZERO);
-  set_obj_prop(rsv, "__proto__", gobj.g_number_proto, ATTR_ALL);
+  set_obj_prop(rsv, "__proto__", gconsts.g_number_proto, ATTR_ALL);
   if (na > 0)
     number_object_value(rsv) = to_number(context, args[1]);
   set_a(context, rsv);
@@ -132,24 +132,26 @@ ObjDoubleProp number_values[] = {
 
 void init_builtin_number(void)
 {
-  gobj.g_number_proto = new_number(FIXNUM_ZERO);
-  set_obj_prop(gobj.g_number, "prototype", gobj.g_number_proto, ATTR_DE);
-  set_obj_prop(gobj.g_number, "INFINITY", gobj.g_flonum_infinity, ATTR_ALL);
-  set_obj_prop(gobj.g_number, "NEGATIVE_INFINITY",
-             gobj.g_flonum_negative_infinity, ATTR_ALL);
-  set_obj_prop(gobj.g_number, "NaN", gobj.g_flonum_nan, ATTR_ALL);
-  set_obj_prop(gobj.g_number_proto, "__proto__", gobj.g_object_proto, ATTR_ALL);
+  gconsts.g_number =
+    new_builtin_with_constr(number_constr_nonew, number_constr, 1);
+  gconsts.g_number_proto = new_number(FIXNUM_ZERO);
+  set_obj_prop(gconsts.g_number, "prototype", gconsts.g_number_proto, ATTR_DE);
+  set_obj_prop(gconsts.g_number, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
+  set_obj_prop(gconsts.g_number, "NEGATIVE_INFINITY",
+             gconsts.g_flonum_negative_infinity, ATTR_ALL);
+  set_obj_prop(gconsts.g_number, "NaN", gconsts.g_flonum_nan, ATTR_ALL);
+  set_obj_prop(gconsts.g_number_proto, "__proto__", gconsts.g_object_proto, ATTR_ALL);
   {
     ObjBuiltinProp *p = number_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gobj.g_number_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_prop(gconsts.g_number_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
   {
     ObjDoubleProp *p = number_values;
     while (p->name != NULL) {
-      set_obj_prop(gobj.g_number, p->name, double_to_flonum(p->value), p->attr);
+      set_obj_prop(gconsts.g_number, p->name, double_to_flonum(p->value), p->attr);
       p++;
     }
   }

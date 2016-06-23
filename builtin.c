@@ -7,22 +7,22 @@
 
 BUILTIN_FUNCTION(builtin_const_true)
 {
-  set_a(context, gobj.g_string_true);
+  set_a(context, gconsts.g_string_true);
 }
 
 BUILTIN_FUNCTION(builtin_const_false)
 {
-  set_a(context, gobj.g_string_false);
+  set_a(context, gconsts.g_string_false);
 }
 
 BUILTIN_FUNCTION(builtin_const_undefined)
 {
-  set_a(context, gobj.g_string_undefined);
+  set_a(context, gconsts.g_string_undefined);
 }
 
 BUILTIN_FUNCTION(builtin_const_null)
 {
-  set_a(context, gobj.g_string_null);
+  set_a(context, gconsts.g_string_null);
 }
 
 // identity function

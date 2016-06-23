@@ -3,7 +3,7 @@
 #include "header.h"
 
 #define set_a_number(x) \
-  (isnan((x))? gobj.g_flonum_nan: \
+  (isnan((x))? gconsts.g_flonum_nan: \
    (is_fixnum_range_double((x))? set_a(context, double_to_fixnum((x))): \
                                  set_a(context, double_to_flonum((x)))))
 
@@ -207,19 +207,19 @@ ObjDoubleProp math_values[] = {
   { NULL,        0.0,                   ATTR_ALL }
 };
 
-void init_builtin_math(JSValue math)
+void init_builtin_math(void)
 {
   {
     ObjDoubleProp *p = math_values;
     while (p->name != NULL) {
-      set_obj_prop(math, p->name, double_to_flonum(p->value), p->attr);
+      set_obj_prop(gconsts.g_math, p->name, double_to_flonum(p->value), p->attr);
       p++;
     }
   }
   {
     ObjBuiltinProp *p = math_funcs;
     while (p->name != NULL) {
-      set_obj_prop(math, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_prop(gconsts.g_math, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

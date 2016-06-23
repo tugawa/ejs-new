@@ -399,8 +399,8 @@ JSValue new_function(Context *context, Subscript subscr)
   set_object_members(&(p->o));
   func_table_entry(p) = &(context->function_table[subscr]);
   func_environment(p) = get_lp(context);
-  set_prop(ret, gobj.g_string_prototype, new_object());
-  set_prop(ret, gobj.g_string___proto__, gobj.g_function_proto);
+  set_prop(ret, gconsts.g_string_prototype, new_object());
+  set_prop(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
   return ret;
 }
 

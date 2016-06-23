@@ -311,13 +311,15 @@ ObjBuiltinProp regexp_funcs[] = {
 
 void init_builtin_regexp(void)
 {
-  gobj.g_regexp_proto = new_object();
-  set_obj_prop(gobj.g_regexp, "prototype", gobj.g_regexp_proto, ATTR_ALL);
+  gconsts.g_regexp
+    = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
+  gconsts.g_regexp_proto = new_object();
+  set_obj_prop(gconsts.g_regexp, "prototype", gconsts.g_regexp_proto, ATTR_ALL);
   set_obj_prop(gRegExpProto, "constructor", gRegExp, ATTR_DE);
   {
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gobj.g_regexp_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_prop(gconsts.g_regexp_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

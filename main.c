@@ -35,9 +35,9 @@ void testtest(Context *cxt) {
   v = special_to_string(JS_FALSE); printf("false -> string: "); pp(v);
   v = fixnum_to_string(FIXNUM_ZERO); printf("0 -> string: "); pp(v);
   v = fixnum_to_string(FIXNUM_ONE); printf("1 -> string: "); pp(v);
-  v = flonum_to_string(gobj.g_flonum_nan); printf("NaN -> string: "); pp(v);
-  v = flonum_to_string(gobj.g_flonum_infinity); printf("Infinity -> string: "); pp(v);
-  v = flonum_to_string(gobj.g_flonum_negative_infinity); printf("-Infinity -> string: "); pp(v);
+  v = flonum_to_string(gconsts.g_flonum_nan); printf("NaN -> string: "); pp(v);
+  v = flonum_to_string(gconsts.g_flonum_infinity); printf("Infinity -> string: "); pp(v);
+  v = flonum_to_string(gconsts.g_flonum_negative_infinity); printf("-Infinity -> string: "); pp(v);
 
   v = special_to_number(JS_UNDEFINED); printf("undefined -> number: "); pp(v);
   v = special_to_number(JS_NULL); printf("null -> number: "); pp(v);

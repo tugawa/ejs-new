@@ -463,7 +463,7 @@ I_MOD:
     case TP_FIXFIX:
       {
         if (v2 == FIXNUM_ZERO)
-          regbase[dst] = gobj.g_flonum_nan;
+          regbase[dst] = gconsts.g_flonum_nan;
         else {
           cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
           // mod value should be in the fixnum range.
@@ -496,7 +496,7 @@ I_MOD:
         quickening(insns, pc, MODFLOFLO);
     MOD_FLOFLO:
         if (isinf(x1) || x2 == 0.0f)
-          regbase[dst] = gobj.g_flonum_nan;
+          regbase[dst] = gconsts.g_flonum_nan;
         else {
           d = x1 / x2;
           d = d >= 0 ? floor(d) : ceil(d);

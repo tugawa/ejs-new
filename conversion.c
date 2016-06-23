@@ -72,13 +72,13 @@
 JSValue special_to_string(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
-    return gobj.g_string_undefined;
+    return gconsts.g_string_undefined;
   case JS_NULL:
-    return gobj.g_string_null;
+    return gconsts.g_string_null;
   case JS_TRUE:
-    return gobj.g_string_true;
+    return gconsts.g_string_true;
   case JS_FALSE:
-    return gobj.g_string_false;
+    return gconsts.g_string_false;
   default:
     LOG_ERR("Special expected in special_to_string");
     return JS_UNDEFINED;
@@ -90,7 +90,7 @@ JSValue special_to_string(JSValue v) {
 JSValue special_to_number(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
-    return gobj.g_flonum_nan;
+    return gconsts.g_flonum_nan;
   case JS_NULL:
   case JS_FALSE:
     return FIXNUM_ZERO;
@@ -168,7 +168,7 @@ JSValue string_to_number(JSValue v) {
     if (*q == '\0')
       return double_to_flonum(d);
   }
-  return gobj.g_flonum_nan;
+  return gconsts.g_flonum_nan;
 }
 
 // converts a string to a boolean
@@ -283,14 +283,14 @@ JSValue object_to_string(Context *context, JSValue v) {
 
   if (!is_object(v))
     return JS_UNDEFINED;
-  if (get_prop(v, gobj.g_string_tostring, &f) == SUCCESS && is_function(f)) {
+  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-  if (get_prop(v, gobj.g_string_valueof, &f) == SUCCESS && is_function(f)) {
+  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
@@ -298,7 +298,7 @@ JSValue object_to_string(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_string(f);
   }
   type_error();
-  return gobj.g_string_undefined;
+  return gconsts.g_string_undefined;
 }
 
 // converts an object to a number
@@ -308,13 +308,13 @@ JSValue object_to_number(Context *context, JSValue v) {
 
   if (!is_object(v))
     return JS_UNDEFINED;
-  if (get_prop(v, gobj.g_string_valueof, &f) == SUCCESS && is_function(f)) {
+  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
-  if (get_prop(v, gobj.g_string_tostring, &f) == SUCCESS && is_function(f)) {
+  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
@@ -334,7 +334,7 @@ JSValue object_to_number(Context *context, JSValue v) {
       if (is_number(v)) return v;
     }
   }
-  return gobj.g_flonum_nan;
+  return gconsts.g_flonum_nan;
   */
 }
 
@@ -355,7 +355,7 @@ JSValue to_string(Context *context, JSValue v) {
   if (is_special(v)) return special_to_string(v);
   if (is_object(v)) return object_to_string(context, v);
   LOG_ERR("This cannot happen in to_string");
-  return gobj.g_string_undefined;
+  return gconsts.g_string_undefined;
 }
 
 // converts to a boolean
@@ -378,7 +378,7 @@ JSValue to_number(Context *context, JSValue v) {
   if (is_special(v)) return special_to_number(v);
   if (is_object(v)) return object_to_number(context, v);
   LOG_ERR("This cannot happen in to_number");
-  return gobj.g_flonum_nan;
+  return gconsts.g_flonum_nan;
 }
 
 // converts to a C's double
@@ -392,6 +392,6 @@ double to_double(Context *context, JSValue v) {
   else if (is_flonum(num)) return flonum_to_double(num);
   else {
     LOG_ERR("This cannot happen in to_double");
-    return gobj.g_flonum_nan;
+    return gconsts.g_flonum_nan;
   }
 }
