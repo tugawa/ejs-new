@@ -803,8 +803,24 @@ I_GETGLOBAL:
   NEXT_INSN_INCPC();
 
 I_SETGLOBAL:
+  // setglobal reg src
+  //   reg : register that has a pointer to a string object
+  //   src : property value to be set
+  // property value for the string in the global object = $src
+  
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue str, src;
+
+    str = regbase[get_first_operand_reg(insn)];
+    src = regbase[get_second_operand_reg(insn)];
+
+#ifdef USE_FASTGLOBAL
+#else
+    if (set_prop(context->global, str, src) == FAIL)
+      LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
+#endif
+  }
   NEXT_INSN_INCPC();
 
 I_INSTANCEOF:
@@ -898,7 +914,7 @@ I_GETERR:
 
 I_GETGLOBALOBJ:
   // getglobalobj dst
-  // $dst <- globalobj
+  // $dst <- global object
 
   ENTER_INSN(__LINE__);
   {
@@ -907,8 +923,31 @@ I_GETGLOBALOBJ:
   NEXT_INSN_INCPC();
 
 I_NEWARGS:
+  // newargs
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    int na;
+    FunctionFrame *fr;
+    JSValue args;
+    ArrayCell *a;
+    int i;
+
+    na = get_ac(context);
+
+    // allocates a new function frame into which arguments array is stores
+    // However, is it correct?
+    // fr = new_frame(get_cf(context), fframe_prev(get_lp(context))); ???
+    fr = new_frame(get_cf(context), get_lp(context));
+    set_lp(context, fr);
+    args = new_array_with_size(na);
+    a = remove_array_tag(args);
+    // Note that the i-th arg is regbase[i + 2].
+    //   (regbase[1] is the receiver)
+    for (i = 0; i < na; i++)
+      array_body_index(a, i) = regbase[i + 2];
+    fframe_arguments(fr) = args;
+  }
   NEXT_INSN_INCPC();
 
 I_RET:
@@ -1006,8 +1045,23 @@ I_SETLOCAL:
   NEXT_INSN_INCPC();
 
 I_MAKECLOSURE:
+  // makeclosure dst subscr
+  //   dst : destination register
+  //   subscr : subscript of the function table
+  // $dst = new closure
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    Subscript ss;
+
+    // `subscr' is the subscript of the function table EXCEPT the
+    // main function.  Since the main function comes first in the
+    // function table, the subecript should be added by 1.
+    dst = get_first_operand_reg(insn);
+    ss = get_second_operand_subscr(insn) + 1;
+    regbase[dst] = new_function(context, ss);
+  }
   NEXT_INSN_INCPC();
 
 I_MAKEITERATOR:

@@ -50,15 +50,22 @@ ret
 callentry 0
 sendentry 1
 numberOfLocals 2
-numberOfInstruction 11
+numberOfInstruction 18
 getglobalobj 1
 newargs
-setfl 11
-getarg 4 0 0
-fixnum 5 20
-add 3 4 5
-seta 3
+setfl 16
+string 5 "print"
+getglobal 3 5
+string 4 "ggggggg"
+move 16 4
+call 3 1
+setfl 16
+geta 2
+getarg 7 0 0
+fixnum 8 20
+add 6 7 8
+seta 6
 ret
-specconst 7 undefined
-seta 7
+specconst 10 undefined
+seta 10
 ret

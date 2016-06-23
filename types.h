@@ -469,7 +469,7 @@ typedef uint64_t cuint;
 
 // Set a specified property to an object where property name is given
 // by a C string.
-#define set_prop(o, n, src) set_prop_with_attribute(o, n, src, ATTR_NONE);
+#define set_prop(o, n, src) set_prop_with_attribute(o, n, src, ATTR_NONE)
 #define set_obj_prop(o, s, g, attr) \
   set_prop_with_attribute(o, cstr_to_string(s), g, attr)
 #define set_obj_prop_none(o, s, g) set_obj_prop(o, s, g, ATTR_NONE)

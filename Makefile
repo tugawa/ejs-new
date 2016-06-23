@@ -20,6 +20,14 @@ HFILES = $(GENERATED_HFILES) \
 
 OFILES = allocate.o \
 	 builtin.o \
+	 builtin-array.o \
+	 builtin-boolean.o \
+	 builtin-global.o \
+	 builtin-math.o \
+	 builtin-number.o \
+	 builtin-object.o \
+	 builtin-regexp.o \
+	 builtin-string.o \
 	 call.o \
          codeloader.o \
          context.o \
@@ -29,7 +37,7 @@ OFILES = allocate.o \
 	 object.o \
 	 operations.o \
 	 vmloop.o \
-	 main.o 
+	 main.o
 
 SEDCOM_GEN_INSN_OPCODE = 's/^\([a-z][a-z]*\).*/\U\1,/'
 SEDCOM_GEN_INSN_TABLE  = 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/'

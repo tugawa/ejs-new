@@ -54,11 +54,11 @@ typedef uint64_t JSValue;
 #define SUCCESS  1
 #define FAIL     0
 
-#include "builtin.h"
 #include "instructions.h"
 #include "context.h"
 #include "hash.h"
 #include "types.h"
+#include "builtin.h"
 #include "globals.h"
 #include "extern.h"
 

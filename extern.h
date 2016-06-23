@@ -34,117 +34,37 @@ extern BUILTIN_FUNCTION(builtin_const_false);
 extern BUILTIN_FUNCTION(builtin_const_undefined);
 extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
-extern BUILTIN_FUNCTION(builtin_print);
-extern BUILTIN_FUNCTION(builtin_printStatus);
-extern BUILTIN_FUNCTION(builtin_address);
-extern BUILTIN_FUNCTION(builtin_hello);
-extern BUILTIN_FUNCTION(builtin_papi_get_real);
-extern BUILTIN_FUNCTION(object_constr);
-extern BUILTIN_FUNCTION(array_constr);
-extern BUILTIN_FUNCTION(string_constr);
-extern BUILTIN_FUNCTION(string_constr_nonew);
-extern BUILTIN_FUNCTION(number_constr);
-extern BUILTIN_FUNCTION(number_constr_nonew);
-extern BUILTIN_FUNCTION(boolean_constr);
-extern BUILTIN_FUNCTION(builtin_object_proto_to_string);
 extern BUILTIN_FUNCTION(builtin_fixnum_to_string);
 extern BUILTIN_FUNCTION(builtin_flonum_to_string);
 extern BUILTIN_FUNCTION(builtin_string_to_index);
-extern BUILTIN_FUNCTION(builtin_string_valueOf);
-extern BUILTIN_FUNCTION(builtin_number_valueOf);
-extern BUILTIN_FUNCTION(builtin_boolean_valueOf);
-extern BUILTIN_FUNCTION(builtin_is_nan);
-extern BUILTIN_FUNCTION(builtin_is_finite);
-extern BUILTIN_FUNCTION(builtin_parse_int);
-extern BUILTIN_FUNCTION(builtin_parse_float);
-extern BUILTIN_FUNCTION(array_proto_toString);
-extern BUILTIN_FUNCTION(array_proto_toLocaleString);
-extern BUILTIN_FUNCTION(arrayProtoJoin);
-extern BUILTIN_FUNCTION(arrayProtoConcat);
-extern BUILTIN_FUNCTION(arrayProtoPop);
-extern BUILTIN_FUNCTION(arrayProtoPush);
-extern BUILTIN_FUNCTION(arrayProtoReverse);
-extern BUILTIN_FUNCTION(arrayProtoShift);
-extern BUILTIN_FUNCTION(arrayProtoSlice);
-extern BUILTIN_FUNCTION(arrayProtoSort);
-extern BUILTIN_FUNCTION(dateProtoToString);
-extern BUILTIN_FUNCTION(dateProtoToDateString);
-extern BUILTIN_FUNCTION(dateProtoToTimeString);
-extern BUILTIN_FUNCTION(dateProtoToLocaleString);
-extern BUILTIN_FUNCTION(dateProtoToLocaleDateString);
-extern BUILTIN_FUNCTION(dateProtoToLocaleTimeString);
-extern BUILTIN_FUNCTION(dateProtoValueOf);
-extern BUILTIN_FUNCTION(dateProtoGetTime);
-extern BUILTIN_FUNCTION(dateProtoGetFullYear);
-extern BUILTIN_FUNCTION(dateProtoGetUTCFullYear);
-extern BUILTIN_FUNCTION(dateProtoGetMonth);
-extern BUILTIN_FUNCTION(dateProtoGetUTCMonth);
-extern BUILTIN_FUNCTION(dateProtoGetDate);
-extern BUILTIN_FUNCTION(dateProtoGetUTCDate);
-extern BUILTIN_FUNCTION(dateProtoGetDay);
-extern BUILTIN_FUNCTION(dateProtoGetUTCDay);
-extern BUILTIN_FUNCTION(dateProtoGetHours);
-extern BUILTIN_FUNCTION(dateProtoGetUTCHours);
-extern BUILTIN_FUNCTION(dateProtoGetMinutes);
-extern BUILTIN_FUNCTION(dateProtoGetUTCMinutes);
-extern BUILTIN_FUNCTION(dateProtoGetSeconds);
-extern BUILTIN_FUNCTION(dateProtoGetUTCSeconds);
-extern BUILTIN_FUNCTION(dateProtoGetMilliseconds);
-extern BUILTIN_FUNCTION(dateProtoGetUTCMilliseconds);
-extern BUILTIN_FUNCTION(dateProtoGetTimezoneOffset);
-extern BUILTIN_FUNCTION(dateProtoSetTime);
-extern BUILTIN_FUNCTION(dateProtoSetMillisecnods);
-extern BUILTIN_FUNCTION(dateProtoSetUTCMillisecnods);
-extern BUILTIN_FUNCTION(dateProtoSetSeconds);
-extern BUILTIN_FUNCTION(dateProtoSetUTCSeconds);
-extern BUILTIN_FUNCTION(dateProtoSetMinutes);
-extern BUILTIN_FUNCTION(dateProtoSetUTCMinutes);
-extern BUILTIN_FUNCTION(dateProtoSetHours);
-extern BUILTIN_FUNCTION(dateProtoSetUTCHours);
-extern BUILTIN_FUNCTION(dateProtoSetDate);
-extern BUILTIN_FUNCTION(dateProtoSetUTCDate);
-extern BUILTIN_FUNCTION(dateProtoSetMonth);
-extern BUILTIN_FUNCTION(dateProtoSetUTCMonth);
-extern BUILTIN_FUNCTION(dateProtoSetFullYear);
-extern BUILTIN_FUNCTION(dateProtoSetUTCFullYear);
-extern BUILTIN_FUNCTION(dateProtoToUTCString);
-extern BUILTIN_FUNCTION(math_abs);
-extern BUILTIN_FUNCTION(mathAcos);
-extern BUILTIN_FUNCTION(mathAsin);
-extern BUILTIN_FUNCTION(mathAtan);
-extern BUILTIN_FUNCTION(mathAtan2);
-extern BUILTIN_FUNCTION(mathCeil);
-extern BUILTIN_FUNCTION(mathCos);
-extern BUILTIN_FUNCTION(mathExp);
-extern BUILTIN_FUNCTION(mathFloor);
-extern BUILTIN_FUNCTION(mathLog);
-extern BUILTIN_FUNCTION(mathMax);
-extern BUILTIN_FUNCTION(mathMin);
-extern BUILTIN_FUNCTION(mathPow);
-extern BUILTIN_FUNCTION(mathRandom);
-extern BUILTIN_FUNCTION(mathRound);
-extern BUILTIN_FUNCTION(mathSin);
-extern BUILTIN_FUNCTION(mathSqrt);
-extern BUILTIN_FUNCTION(mathTan);
-extern BUILTIN_FUNCTION(stringFromCharCode);
-extern BUILTIN_FUNCTION(stringProtoCharAt);
-extern BUILTIN_FUNCTION(stringProtoCharCodeAt);
-extern BUILTIN_FUNCTION(stringProtoConcat);
-extern BUILTIN_FUNCTION(stringProtoIndexOf);
-extern BUILTIN_FUNCTION(stringProtoLastIndexOf);
-extern BUILTIN_FUNCTION(stringProtoLocaleCompare);
-extern BUILTIN_FUNCTION(stringProtoSlice);
-extern BUILTIN_FUNCTION(stringProtoSubstring);
-extern BUILTIN_FUNCTION(stringProtoToLowerCase);
-extern BUILTIN_FUNCTION(stringProtoToUpperCase);
-extern BUILTIN_FUNCTION(stringProtoMatch);
-extern BUILTIN_FUNCTION(number_proto_valueOf);
-extern BUILTIN_FUNCTION(number_proto_toString);
-extern BUILTIN_FUNCTION(regExpProtoToString);
-extern BUILTIN_FUNCTION(regExpProtoExec);
-extern BUILTIN_FUNCTION(regExpProtoTest);
-extern BUILTIN_FUNCTION(regexpConstructor);
-extern BUILTIN_FUNCTION(regexpConstructorNoNew);
+
+/*
+ * builtin-array.c
+ */
+extern BUILTIN_FUNCTION(array_constr);
+
+/*
+ * builtin-boolean.c
+ */
+extern BUILTIN_FUNCTION(boolean_constr);
+
+/*
+ * builtin-number.c
+ */
+extern BUILTIN_FUNCTION(number_constr);
+extern BUILTIN_FUNCTION(number_constr_nonew);
+
+/*
+ * builtin-string.c
+ */
+extern BUILTIN_FUNCTION(string_constr);
+extern BUILTIN_FUNCTION(string_constr_nonew);
+
+/*
+ * builtin-object.c
+ */
+extern BUILTIN_FUNCTION(object_constr);
+extern BUILTIN_FUNCTION(object_toString);
 
 /*
  * call.c
@@ -176,6 +96,7 @@ extern int add_constant_regexp(ConstantCell *, char *, int);
 /*
  * context.c
  */
+extern FunctionFrame *new_frame(FunctionTable *, FunctionFrame *);
 extern void pop_special_registers(Context *, int, JSValue *);
 extern void init_context(FunctionTable *, JSValue, Context **);
 
@@ -262,7 +183,7 @@ extern int array_value(JSValue, int, JSValue *);
 extern JSValue new_object(void);
 extern JSValue new_array(void);
 extern JSValue new_array_with_size(int);
-extern JSValue new_function(Context *, int);
+extern JSValue new_function(Context *, Subscript);
 extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, int);
 extern JSValue new_builtin(builtin_function_t, int);
 extern JSValue new_iterator(void);
@@ -305,6 +226,16 @@ extern JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2);
  * vmloop.c
  */
 extern int vmrun_threaded(Context *, int);
+
+extern void init_builtin_global(JSValue);
+extern void init_builtin_array(void);
+extern void init_builtin_number(void);
+extern void init_builtin_string(void);
+extern void init_builtin_boolean(void);
+extern void init_builtin_math(JSValue);
+#ifdef USE_REGEXP
+extern void init_builtin_regexp(void);
+#endif
 
 #ifdef __cplusplus
 }

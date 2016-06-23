@@ -10,15 +10,10 @@ typedef struct function_table {
   Instruction *parallelInsns; // array of instrumented instructions for
                               // parallel execution
 #endif
-//  void **insn_ptr;            // array of instruction labels for threaded code
-  InsnLabel *insn_ptr;            // array of instruction labels for threaded code
-  bool insn_ptr_created;      // flag wheter insn_ptr is generated or not
+  InsnLabel *insn_ptr;        // array of instruction labels for threaded code
+  bool insn_ptr_created;      // flag whether insn_ptr has been generated or not
   int body_size;
   int n_insns;                // number of instructions
-#ifdef USE_JIT
-  uint32_t jitCount;
-  JITCodeCell jitList;
-#endif
 } FunctionTable;
 
 #define ftab_call_entry(f)       ((f)->call_entry)
@@ -33,9 +28,14 @@ typedef struct function_frame {
 #ifdef PARALLEL
   pthread_mutex_t mutex;
 #endif
-  JSValue arguments; // This is an ArrayObject
+  JSValue arguments;
   JSValue locals[];
 } FunctionFrame;
+
+#define fframe_prev(fr)           ((fr)->prev_frame)
+#define fframe_arguments(fr)      ((fr)->arguments)
+#define fframe_locals(fr)         ((fr)->locals)
+#define fframe_locals_idx(fr, i)  ((fr)->locals[i])
 
 // special registers
 //

@@ -2,8 +2,6 @@
 #define EXTERN
 #include "header.h"
 
-#define SET_PROP_SUCCESS   (0)
-#define SET_PROP_FAILED    (1)
 #define PROP_REALLOC_THRESHOLD (0.75)
 
 #define prop_overflow(o) \
@@ -192,40 +190,29 @@ int setPropWithIndex(JSValue obj, JSValue name, JSValue v)
 }
 #endif
 
-// ------------------------------------------------------------------
-/**
- * @brief プロパティを属性付きでセットする
- * @param 対象のオブジェクト
- * @param プロパティ名の文字列オブジェクト (JAValue)
- * @param 値
- * @param 属性
- * @return 成功値
- */
 // sets an object's property value with its attribute
 //
 int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
   uint64_t retv;
 
-  // 1 : 取得に失敗した場合で新たにプロパティを作成する
   if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
     // The specified property is not registered in the hash table.
     if (prop_overflow(obj)) {
       LOG_ERR("proptable overflow\n");
-      return SET_PROP_FAILED;
+      return FAIL;
     }
     retv = ++(obj_n_props(obj));
-    if (hash_put_with_attribute(obj_map(obj), name, retv, attr) == HASH_PUT_SUCCESS) {
+    if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
+          == HASH_PUT_SUCCESS) {
       obj_prop_idx(obj, (int)retv) = v;
-      return SET_PROP_SUCCESS;
-    } else {
-      // HASH_PUT_FAILED is returned
-      return SET_PROP_FAILED;
-    }
+      return SUCCESS;
+    } else
+      return FAIL;
   } else {
     // returned value is HASH_GET_SUCCESS
-    // 0 : 既にプロパティが見つかっているので上書き
+    // There is already the property `name', overwrites its value.
     obj_prop_idx(obj, (int)retv) = v;
-    return SET_PROP_SUCCESS;
+    return SUCCESS;
   }
 }
 
@@ -401,20 +388,16 @@ JSValue new_function(void)
 
 // makes a function
 // The name of this function was formerly new_closure.
-// JSValue new_closure(Context *context, int index)
 //
-JSValue new_function(Context *context, int index)
+JSValue new_function(Context *context, Subscript subscr)
 {
   JSValue ret;
   FunctionCell *p;
 
-  //indexは一番外側の関数を考慮していない
-  index++;
-
   ret = make_function();
   p = remove_function_tag(ret);
   set_object_members(&(p->o));
-  func_table_entry(p) = &(context->function_table[index]);
+  func_table_entry(p) = &(context->function_table[subscr]);
   func_environment(p) = get_lp(context);
   set_prop(ret, gobj.g_string_prototype, new_object());
   set_prop(ret, gobj.g_string___proto__, gobj.g_function_proto);
