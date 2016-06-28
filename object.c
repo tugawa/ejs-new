@@ -48,7 +48,7 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret)
   index = prop_index(obj, name);
   if (index == -1) return FAIL;
 
-  *ret = obj_prop_idx(obj, index);
+  *ret = obj_prop_index(obj, index);
   return SUCCESS;
 }
 
@@ -204,14 +204,14 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
     retv = ++(obj_n_props(obj));
     if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
           == HASH_PUT_SUCCESS) {
-      obj_prop_idx(obj, (int)retv) = v;
+      obj_prop_index(obj, (int)retv) = v;
       return SUCCESS;
     } else
       return FAIL;
   } else {
     // returned value is HASH_GET_SUCCESS
     // There is already the property `name', overwrites its value.
-    obj_prop_idx(obj, (int)retv) = v;
+    obj_prop_index(obj, (int)retv) = v;
     return SUCCESS;
   }
 }

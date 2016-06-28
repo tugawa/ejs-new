@@ -88,12 +88,12 @@ typedef struct object_cell {
 #endif
 } Object;
 
-#define obj_header(p)      (((Object *)(p))->header)
-#define obj_n_props(p)     (((Object *)(p))->n_props)
-#define obj_limit_props(p) (((Object *)(p))->limit_props)
-#define obj_map(p)         (((Object *)(p))->map)
-#define obj_prop_idx(p,i)  (((Object *)(p))->prop[i])
-#define obj_prop(p)        (((Object *)(p))->prop)
+#define obj_header(p)       (((Object *)(p))->header)
+#define obj_n_props(p)      (((Object *)(p))->n_props)
+#define obj_limit_props(p)  (((Object *)(p))->limit_props)
+#define obj_map(p)          (((Object *)(p))->map)
+#define obj_prop_index(p,i) (((Object *)(p))->prop[i])
+#define obj_prop(p)         (((Object *)(p))->prop)
 
 #define is_object(p)       (equal_tag((p), T_OBJECT))
 #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))

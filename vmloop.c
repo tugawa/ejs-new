@@ -1025,23 +1025,82 @@ I_JUMPFALSE:
   NEXT_INSN_NOINCPC();
 
 I_GETARG:
+  // gerarg dst link index
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    int link;
+    Subscript index;
+    FunctionFrame *fr;
+    int i;
+
+    dst = get_first_operand_reg(insn);
+    link = get_second_operand_int(insn);
+    index = get_third_operand_subscr(insn);
+    fr = get_lp(context);
+    for (i = 0; i < link; i++) fr = fframe_prev(fr);
+    regbase[dst] = array_body_index(fframe_arguments(fr), index);
+  }
   NEXT_INSN_INCPC();
 
 I_GETLOCAL:
+  // getlocal dst link index
+  
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    int link;
+    Subscript index;
+    FunctionFrame *fr;
+    int i;
+
+    dst = get_first_operand_reg(insn);
+    link = get_second_operand_int(insn);
+    index = get_third_operand_subscr(insn);
+    fr = get_lp(context);
+    for (i = 0; i < link; i++) fr = fframe_prev(fr);
+    regbase[dst] = fframe_locals_idx(fr, index);
+  }
   NEXT_INSN_INCPC();
 
 I_SETARG:
+  // setarg link index src
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    int link;
+    Subscript index;
+    Register src;
+    FunctionFrame *fr;
+    int i;
+
+    link = get_first_operand_int(insn);
+    index = get_second_operand_subscr(insn);
+    src = get_third_operand_reg(insn);
+    fr = get_lp(context);
+    for (i = 0; i < link; i++) fr = fframe_prev(fr);
+    array_body_index(fframe_arguments(fr), index) = regbase[src];
+  }
   NEXT_INSN_INCPC();
 
 I_SETLOCAL:
+  // setlocal link index src
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    int link;
+    Subscript index;
+    Register src;
+    FunctionFrame *fr;
+    int i;
+
+    link = get_first_operand_int(insn);
+    index = get_second_operand_subscr(insn);
+    src = get_third_operand_reg(insn);
+    fr = get_lp(context);
+    for (i = 0; i < link; i++) fr = fframe_prev(fr);
+    fframe_locals_idx(fr, index) = regbase[src];
+  }
   NEXT_INSN_INCPC();
 
 I_MAKECLOSURE:
