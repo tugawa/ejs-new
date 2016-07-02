@@ -82,23 +82,24 @@ JSValue array_to_string(Context* context, JSValue array, JSValue separator)
   int i;
   uint64_t length, sumLength, separatorLength;
   JSValue ret, item;
-
   char **strs;
   char *separatorCStr;
   char *retCStr, *addr;
+  ArrayCell *ap;
 
   ret = gconsts.g_string_blank;
   length = array_length(array);
 
-  if(length > 0){
+  if (length > 0) {
     strs = (char**)malloc(sizeof(char*) * length);
     separatorCStr = string_to_cstr(separator);
     separatorLength = strlen(separatorCStr);
     sumLength = 0;
+    ap = remove_array_tag(array);
 
-    for(i=0; i<length; i++){
-      array_value(array, i, &item);
-      if(is_object(item)){
+    for (i = 0; i < length; i++) {
+      item = array_body_index(ap, i);
+      if (is_object(item)) {
         item = objectToPrimitiveHintString(item, context); }
       strs[i] = string_to_cstr(primitive_to_string(item));
       sumLength += strlen(strs[i]);
@@ -129,19 +130,20 @@ BUILTIN_FUNCTION(array_toLocaleString){
   JSValue array, item, prim;
   char **strs;
   char *retCStr, *addr;
+  ArrayCell *ap;
 
   builtin_prologue();  
   array = args[0];
   length = array_length(array);
 
-  if(length > 0){
+  if (length > 0) {
     strs = (char **)malloc(sizeof(char*)*length);
     sumLength = 0;
+    ap = remove_array_tag(array);
 
-    // 配列の中身の文字列を取得
-    for(i=0; i<length; i++){
-      array_value(array, i, &item);
-      if(is_object(item)){
+    for (i = 0; i < length; i++) {
+      item = array_body_index(ap, i);
+      if (is_object(item)) {
         // invokeToLocaleString(item, context, &prim);
         prim = item;   // kore wa tekitou
       }

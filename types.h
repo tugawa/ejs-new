@@ -125,6 +125,8 @@ typedef struct array_cell {
 #define make_array()        (put_array_tag(allocate_array()))
 // #define make_array()     ((ArrayCell *)(put_tag((allocate_array()), T_OBJECT)))
 
+#define MINIMUM_ARRAY_SIZE  100
+
 // Function
 //  tag == T_OBJECT
 //

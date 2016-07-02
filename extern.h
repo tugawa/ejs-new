@@ -119,6 +119,7 @@ extern JSValue fixnum_to_string(JSValue v);
 extern JSValue object_to_string(Context *context, JSValue v);
 extern JSValue object_to_number(Context *context, JSValue v);
 // JSValue object_to_boolean(JSValue v);
+extern JSValue to_object(Context *, JSValue v);
 extern JSValue to_string(Context *, JSValue v);
 extern JSValue to_boolean(JSValue v);
 extern JSValue to_number(Context *, JSValue v);
@@ -177,8 +178,9 @@ extern void print_value(Context *, JSValue, int);
  * object.c
  */
 extern int get_prop(JSValue, JSValue, JSValue *);
+extern JSValue get_object_prop(Context *, JSValue, JSValue);
+extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
-extern int array_value(JSValue, int, JSValue *);
 
 extern JSValue new_object(void);
 extern JSValue new_array(void);

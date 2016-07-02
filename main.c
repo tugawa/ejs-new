@@ -22,6 +22,11 @@ static uint64_t callcount = 0;
 #define pp(v) (print_value_verbose(cxt, (v)), putchar('\n'))
 void testtest(Context *cxt) {
   JSValue v;
+  v = new_object();
+  set_obj_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
+  set_obj_prop(gconsts.g_global, "soko", v, ATTR_DE);
+  set_obj_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
+#if 0
   v = JS_UNDEFINED; pp(v);
   v = JS_NULL; pp(v);
   v = JS_TRUE; pp(v);
@@ -52,6 +57,7 @@ void testtest(Context *cxt) {
   // v = string_to_boolean(cstr_to_boolean("")); printf("\"\" -> boolean: "); pp(v);
   // v = string_to_boolean(cstr_to_boolean("1.2")); printf("\"1.2\" -> boolean: "); pp(v);
   // v = string_to_boolean(cstr_to_boolean("one")); printf("\"one\" -> boolean: "); pp(v);
+#endif
 }
 
 // main
@@ -146,7 +152,7 @@ int main(int argc, char* argv[]) {
   s = PAPI_get_real_usec();
 #endif // CALC_TIME
 
-  // testtest(context);
+  testtest(context);
 
   // enters the VM loop
   vmrun_threaded(context, 0);

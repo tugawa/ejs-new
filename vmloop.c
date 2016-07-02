@@ -561,7 +561,7 @@ I_BITOR:
   // bitor dst r1 r2
   //   dst : destination register
   //   r1, r2 : source registers
-  // $dst = $r1 | r2
+  // $dst = $r1 | $r2
 
   ENTER_INSN(__LINE__);
   {
@@ -766,8 +766,30 @@ I_EQUAL:
   NEXT_INSN_INCPC();
 
 I_GETPROP:
+  // getprop dst obj idx
+  //   $dst = $obj[idx]
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue o, idx;
+
+    printf("getprop\n");
+    dst = get_first_operand_reg(insn);
+    o = regbase[get_second_operand_reg(insn)];
+    idx = regbase[get_third_operand_reg(insn)];
+    if (is_array(o))
+      regbase[dst] = get_array_prop(context, o, idx);
+    else if (is_object(o))
+      regbase[dst] = get_object_prop(context, o, idx);
+    else {
+      o = to_object(context, o);
+      if (!is_object(o))
+        regbase[dst] = JS_UNDEFINED;
+      else
+        regbase[dst] = get_object_prop(context, o, idx);
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_SETPROP:
@@ -861,13 +883,31 @@ I_GETIDX:
   NEXT_INSN_INCPC();
 
 I_ISUNDEF:
+  // isundef dst reg
+  //   $dst = $reg == undefined
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst, reg;
+
+    dst = get_first_operand_reg(insn);
+    reg = get_second_operand_reg(insn);
+    regbase[dst] = is_undefined(reg)? JS_TRUE: JS_FALSE;
+  }
   NEXT_INSN_INCPC();
 
 I_ISOBJECT:
+  // isobject dst reg
+  //   $dst = $reg is an Object or not
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst, reg;
+
+    dst = get_first_operand_reg(insn);
+    reg = get_second_operand_reg(insn);
+    regbase[dst] = is_object(reg)? JS_TRUE: JS_FALSE;
+  }
   NEXT_INSN_INCPC();
 
 I_SETFL:
@@ -893,7 +933,9 @@ I_SETA:
   // a = $src
 
   ENTER_INSN(__LINE__);
-  set_a(context, regbase[get_first_operand_reg(insn)]);
+  {
+    set_a(context, regbase[get_first_operand_reg(insn)]);
+  }
   NEXT_INSN_INCPC();
 
 I_GETA:
@@ -935,7 +977,7 @@ I_NEWARGS:
 
     na = get_ac(context);
 
-    // allocates a new function frame into which arguments array is stores
+    // allocates a new function frame into which arguments array is stored
     // However, is it correct?
     // fr = new_frame(get_cf(context), fframe_prev(get_lp(context))); ???
     fr = new_frame(get_cf(context), get_lp(context));
@@ -986,7 +1028,7 @@ I_JUMP:
 
 I_JUMPTRUE:
   // jumptrue src disp
-  //   if (%src) pc = pc + disp
+  //   if ($src) pc = pc + disp
 
   ENTER_INSN(__LINE__);
   {
@@ -1005,7 +1047,7 @@ I_JUMPTRUE:
 
 I_JUMPFALSE:
   // jumpfalse src disp
-  //   if (!%src) pc = pc + disp
+  //   if (!$src) pc = pc + disp
 
   ENTER_INSN(__LINE__);
   {
@@ -1026,7 +1068,7 @@ I_JUMPFALSE:
 
 I_GETARG:
   // gerarg dst link index
-
+  //   $dst = value of the index-th argument in the link-th function frame
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -1046,6 +1088,7 @@ I_GETARG:
 
 I_GETLOCAL:
   // getlocal dst link index
+  //   $dst = value of the index-th local variable in the link-th function frame
   
   ENTER_INSN(__LINE__);
   {
@@ -1086,6 +1129,7 @@ I_SETARG:
 
 I_SETLOCAL:
   // setlocal link index src
+
   ENTER_INSN(__LINE__);
   {
     int link;
@@ -1135,15 +1179,13 @@ I_NEXTPROPNAME:
 I_CALL:
   // call fn nargs
   //
+
   ENTER_INSN(__LINE__);
   {
     JSValue fn;
     int nargs;
 
-//printf("Entered I_CALL\n");
     fn = regbase[get_first_operand_reg(insn)];
-//printf("is_function = %d\n", is_function(fn));
-//print_value_verbose(context, fn);
     nargs = get_second_operand_int(insn);
     set_fp(context, fp);
     set_pc(context, pc);

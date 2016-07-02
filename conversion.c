@@ -3,6 +3,7 @@
 #include "header.h"
 
 #define type_error()  LOG_EXIT("Type error")
+
 /*
   Data conversion rule of JavaScript
 
@@ -118,7 +119,7 @@ JSValue special_to_boolean(JSValue v) {
   }
 }
 
-// convers a special value to an object
+// converts a special value to an object
 //
 JSValue special_to_object(JSValue v) {
   switch (v) {
@@ -297,7 +298,7 @@ JSValue object_to_string(Context *context, JSValue v) {
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-  type_error();
+  // type_error();
   return gconsts.g_string_undefined;
 }
 
@@ -345,6 +346,17 @@ JSValue object_to_boolean(JSValue v) {
 }
 
 // general functions
+
+// converts to an object
+JSValue to_object(Context *context, JSValue v) {
+  if (is_string(v)) return string_to_object(v);
+  if (is_fixnum(v)) return fixnum_to_object(v);
+  if (is_flonum(v)) return flonum_to_object(v);
+  if (is_special(v)) return special_to_object(v);
+  if (is_object(v)) return v;
+  LOG_ERR("This cannot happen in to_string");
+  return JS_UNDEFINED;
+}
 
 // converts to a string
 //

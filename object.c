@@ -4,25 +4,12 @@
 
 #define PROP_REALLOC_THRESHOLD (0.75)
 
+#define array_subscript_range(n) (0 < (n) && (n) < MINIMUM_ARRAY_SIZE)
+
 #define prop_overflow(o) \
   (obj_n_props(o) > (obj_limit_props(o) * PROP_REALLOC_THRESHOLD))
 
 #define sign(x) ((x) > 0? 1: -1)
-
-#if 0
-/**
- * @brief 配列の要素配列を拡張する
- * @param 対象の配列
- * @param 新たなサイズ
- */
-static inline void setArrayBody(JSValue array, int size)
-{
-  if(size < MINIMUM_ARRAY_SIZE)
-    size = MINIMUM_ARRAY_SIZE;
-  ((ArrayCell*)array)->body = allocateArrayData(size);
-  setArraySize(array, size);
-}
-#endif
 
 // obtains the index of a property of an Object
 // If the specified property does not exist, returns -1.
@@ -38,8 +25,9 @@ int prop_index(JSValue obj, JSValue name)
   else return (int)retv;
 }
 
-// obtains the property value of the key ``name'' and stores it to *ret
+// obtains the property value of the key ``name'', stores it to *ret
 // and returns SUCCESS or FAIL
+// This function does not follow the prototype chain.
 //
 int get_prop(JSValue obj, JSValue name, JSValue *ret)
 {
@@ -51,6 +39,112 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret)
   *ret = obj_prop_index(obj, index);
   return SUCCESS;
 }
+
+// obtains the property from an object by following the prototype chain
+// (if necessary)
+//   o: object
+//   p: property, which is a string
+//
+JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
+  JSValue ret;
+  extern JSValue prototype_object(JSValue);
+
+  do {
+    if (get_prop(o, p, &ret) == SUCCESS) return ret;
+  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
+  // is it necessary to search in the Object's prototype?
+  return JS_UNDEFINED;
+}
+
+// obtains object's property
+//   o: object (but not an array)
+//   p: property (number / string / other type)
+// It is not necessary to check the type of `a'.
+//
+JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
+  /*
+    if (p is not a string) p = to_string(p);
+      returns the value regsitered under the property p
+    }
+  */
+  printf("get_object_prop, o = %016lx, p = %016lx\n", o, p);
+  if (!is_string(p)) p = to_string(context, p);
+  return get_prop_prototype_chain(o, p);
+}
+
+// obtains array's property
+//   a: array
+//   p: property (number / string / other type)
+// It is not necessary to check the type of `a'.
+//
+JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
+  /*
+    if (p a number) {
+      if (p is within the range of an subscript of an array)
+        returns the p-th element of a
+      else {
+        p = number_to_string(idx);
+        returns the value regsitered under the property p
+      }
+    } else {
+      if (p is not a string) p = to_string(p);
+      s = string_to_number(p);
+      if (s is within the range of an subscript of an array)
+        returns the s-th element of a
+      else
+        returns the value regsitered under the property p
+    }
+  */
+  ArrayCell *ap;
+
+  switch (get_tag(p)) {
+  case T_FIXNUM:
+    {
+      cint n;
+      n = fixnum_to_cint(p);
+      if (array_subscript_range(n)) {
+        ap = remove_array_tag(a);
+        return (n < array_length(ap))? array_body_index(ap, n): JS_UNDEFINED;
+      }
+      p = fixnum_to_string(p);
+      return get_prop_prototype_chain(a, p);
+    }
+    break;
+  default:
+   p = to_string(context, p);
+   // fall through
+  case T_STRING:
+    {
+      JSValue num;
+      cint n;
+      num = string_to_number(p);
+      if (is_fixnum(num)) {
+        n = fixnum_to_cint(num);
+        if (array_subscript_range(n)) {
+          ap = remove_array_tag(a);
+          return (n < array_length(ap))? array_body_index(ap, n): JS_UNDEFINED;
+        }
+      }
+      return get_prop_prototype_chain(a, p);
+    }
+    break;
+  }
+}          
+
+#if 0
+/**
+ * @brief 配列の要素配列を拡張する
+ * @param 対象の配列
+ * @param 新たなサイズ
+ */
+static inline void setArrayBody(JSValue array, int size)
+{
+  if(size < MINIMUM_ARRAY_SIZE)
+    size = MINIMUM_ARRAY_SIZE;
+  ((ArrayCell*)array)->body = allocateArrayData(size);
+  setArraySize(array, size);
+}
+#endif
 
 #if 0
 // ------------------------------------------------------------------
@@ -213,22 +307,6 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
     // There is already the property `name', overwrites its value.
     obj_prop_index(obj, (int)retv) = v;
     return SUCCESS;
-  }
-}
-
-// retrieves the index-th value of an array
-//
-int array_value(JSValue obj, int index, JSValue *ret)
-{
-  uint64_t length;
-
-  length = array_length(obj);
-  if (index >= length) {
-    *ret = JS_UNDEFINED;
-    return true;
-  } else {
-    *ret = array_body_index(obj, index);
-    return true;
   }
 }
 
