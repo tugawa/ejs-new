@@ -424,12 +424,17 @@ typedef uint64_t cuint;
   ((ival ^ (ival << 1)) \
   & ((int64_t)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
 
-#define FIXNUM_ZERO (int_to_fixnum(0))
-#define FIXNUM_ONE  (int_to_fixnum(1))
-#define FIXNUM_TEN  (int_to_fixnum(10))
+#define half_fixnum_range(ival) \
+  (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
+
+#define FIXNUM_ZERO (cint_to_fixnum((cint)0))
+#define FIXNUM_ONE  (cint_to_fixnum((cint)1))
+#define FIXNUM_TEN  (cint_to_fixnum((cint)10))
 
 #define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
 #define MIN_FIXNUM_CINT ((cint)(-1) << (BITS_IN_JSVALUE - TAGOFFSET - 1))
+
+
 
 #define is_number(p) (is_fixnum((p)) || is_flonum((p)))
 

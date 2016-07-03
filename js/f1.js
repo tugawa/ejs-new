@@ -6,3 +6,4 @@ g = function(x) {
   return x + 20;
 }
 print(g(300));
+print(f());

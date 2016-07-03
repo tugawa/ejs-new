@@ -54,6 +54,9 @@ typedef uint64_t JSValue;
 #define SUCCESS  1
 #define FAIL     0
 
+#define TRUE     1
+#define FALSE    0
+
 #include "instructions.h"
 #include "context.h"
 #include "hash.h"

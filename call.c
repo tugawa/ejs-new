@@ -17,7 +17,22 @@
 
 // calls a function
 //
-void call_function(Context *context, JSValue fn, int nargs) {
+/*
+   When this function is called, the stack is:
+
+           ...
+   pos:    place where CF is saved
+           place where PC is saved
+           place where LP is saved
+           place where FP is saved
+           receiver                        <-- this place is new fp
+           arg1
+           arg2
+           ...
+   sp:     argN
+*/
+
+void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
   JSValue *stack;
@@ -39,7 +54,30 @@ void call_function(Context *context, JSValue fn, int nargs) {
   set_lp(context, func_environment(f));
   t = func_table_entry(f);
   set_cf(context, t);
-  set_pc(context, ftab_call_entry(t));
+  if (sendp == TRUE)
+    set_pc(context, ftab_call_entry(t));
+  else
+    set_pc(context, ftab_send_entry(t));
+}
+
+// call a function at the tail position
+
+void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
+  FunctionCell *f;
+  FunctionTable *t;
+  int fp;
+
+  f = remove_function_tag(fn);
+  fp = get_fp(context);
+  set_sp(context, fp + nargs);
+  set_ac(context, nargs);
+  set_lp(context, func_environment(f));
+  t = func_table_entry(f);
+  set_cf(context, t);
+  if (sendp == TRUE)
+    set_pc(context, ftab_call_entry(t));
+  else
+    set_pc(context, ftab_send_entry(t));
 }
 
 // calls a builtin function
@@ -59,7 +97,7 @@ void call_function(Context *context, JSValue fn, int nargs) {
    sp:     argN
 */
 
-void call_builtin(Context *context, JSValue fn, int nargs, bool sendp) {
+void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
   BuiltinCell *b;
   builtin_function_t body;
   JSValue *stack;
@@ -68,7 +106,7 @@ void call_builtin(Context *context, JSValue fn, int nargs, bool sendp) {
   int pos;
 
   b = remove_builtin_tag(fn);
-  body = builtin_body(fn);
+  body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
   na = builtin_n_args(b);
 
   sp = get_sp(context);
@@ -80,7 +118,7 @@ void call_builtin(Context *context, JSValue fn, int nargs, bool sendp) {
   save_special_registers(context, stack, pos);
 
   // sets the value of the receiver to the global object if it is not set yet
-  if (sendp == false)
+  if (sendp == FALSE)
     stack[sp - nargs] = context->global;
 
   while (nargs < na) {
@@ -105,4 +143,37 @@ void call_builtin(Context *context, JSValue fn, int nargs, bool sendp) {
   set_ac(context, nargs);
   (*body)(context, nargs);    // real-n-args?
   restore_special_registers(context, stack, pos);
+}
+
+// calls a builtin function at a tail position
+
+void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
+  BuiltinCell *b;
+  builtin_function_t body;
+  JSValue *stack;
+  int na;
+  int fp;
+
+  b = remove_builtin_tag(fn);
+  body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
+  na = builtin_n_args(b);
+
+  fp = get_fp(context);
+  stack = &get_stack(context, 0);
+
+  // sets the value of the receiver to the global object if it is not set yet
+  if (sendp == FALSE)
+    stack[0] = context->global;
+
+  while (nargs < na)
+    stack[++nargs + fp] = JS_UNDEFINED;
+
+  // sets special registers
+  set_sp(context, fp + nargs);
+  set_lp(context, NULL);    // it seems that these three lines are unnecessary
+  set_pc(context, -1);
+  set_cf(context, NULL);
+  set_ac(context, nargs);
+  (*body)(context, nargs);    // real-n-args?
+  restore_special_registers(context, stack, fp - 4);
 }

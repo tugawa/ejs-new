@@ -69,8 +69,10 @@ extern BUILTIN_FUNCTION(object_toString);
 /*
  * call.c
  */
-extern void call_function(Context *, JSValue, int);
-extern void call_builtin(Context *, JSValue, int, bool);
+extern void call_function(Context *, JSValue, int, int);
+extern void call_builtin(Context *, JSValue, int, int, int);
+extern void tailcall_function(Context *, JSValue, int, int);
+extern void tailcall_builtin(Context *, JSValue, int, int, int);
 
 /*
  * codeloader.c

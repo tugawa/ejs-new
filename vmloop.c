@@ -237,13 +237,15 @@ I_ADD:
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
         cint s = fixnum_to_int(v1) + fixnum_to_int(v2);
         regbase[dst] =
           is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
+#ifdef QUICKENING
         quickening(insns, pc, ADDFIXFIX);
+#endif
       }
       break;
 
@@ -251,7 +253,9 @@ I_ADD:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, ADDFIXFLO);
+#endif
         goto ADD_FLOFLO;
       }
 
@@ -259,7 +263,9 @@ I_ADD:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, ADDFLOFIX);
+#endif
         goto ADD_FLOFLO;
       }
 
@@ -267,7 +273,9 @@ I_ADD:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, ADDFLOFLO);
+#endif
     ADD_FLOFLO:
         d = x1 + x2;
         regbase[dst] =
@@ -288,7 +296,9 @@ I_ADD:
 #else
         regbase[dst] = cstr_to_string2(string_to_cstr(v1), string_to_cStr(v2));
 #endif
+#ifdef QUICKENING
         quickening(insns, pc, ADDSTRSTR);
+#endif
       }
       break;
 
@@ -296,7 +306,9 @@ I_ADD:
       {
         // For other cases, use slow_add function.
         regbase[dst] = slow_add(context, v1, v2);
+#ifdef QUICKENING
         quickening(insns, pc, fastAddOpcode(tag));
+#endif
       }
       break;
     }
@@ -318,13 +330,15 @@ I_SUB:
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
         cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
         regbase[dst] =
           is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
+#ifdef QUICKENING
         quickening(insns, pc, SUBFIXFIX);
+#endif
       }
       break;
 
@@ -332,7 +346,9 @@ I_SUB:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, SUBFIXFLO);
+#endif
         goto SUB_FLOFLO;
       }
 
@@ -340,7 +356,9 @@ I_SUB:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, SUBFLOFIX);
+#endif
         goto SUB_FLOFLO;
       }
 
@@ -348,7 +366,9 @@ I_SUB:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, SUBFLOFLO);
+#endif
     SUB_FLOFLO:
         d = x1 - x2;
         regbase[dst] =
@@ -359,7 +379,9 @@ I_SUB:
     default:
       {
         regbase[dst] = slow_sub(context, v1, v2);
+#ifdef QUICKENING
         quickening(insns, pc, fastSubOpcode(tag));
+#endif
       }
       break;
     }
@@ -381,21 +403,27 @@ I_MUL:
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+// printf("Entered MUL\n");
+// print_value_verbose(context, v1); printf("\n");
+// print_value_verbose(context, v2); printf("\n");
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
-        if ((v1 <= int_to_fixnum((long)0x7fffffff)) &&
-            (v1 >= int_to_fixnum(-0x80000000)) &&
-            (v2 <= int_to_fixnum((long)0x7fffffff)) &&
-            (v2 >= int_to_fixnum(-0x80000000))) {
-          cint s = fixnum_to_cint(v1) * fixnum_to_cint(v2);
-          regbase[dst] =
-            is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
+        cint n1, n2, p;
+        n1 = fixnum_to_cint(v1);
+        n2 = fixnum_to_cint(v2);
+        if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
+          p = n1 * n2;
+          regbase[dst] = cint_to_fixnum(p);
+#ifdef QUICKENING
           quickening(insns, pc, MULFIXFIXSMALL);
+#endif
         } else {
-          x1 = fixnum_to_double(v1);
-          x2 = fixnum_to_double(v2);
+          x1 = (double)n1;
+          x2 = (double)n2;
+#ifdef QUICKENING
           quickening(insns, pc, MULFIXFIX);
+#endif
           goto MUL_FLOFLO;
         }
       }
@@ -405,7 +433,9 @@ I_MUL:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MULFIXFLO);
+#endif
         goto MUL_FLOFLO;
       }
 
@@ -413,7 +443,9 @@ I_MUL:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MULFLOFIX);
+#endif
         goto MUL_FLOFLO;
       }
 
@@ -421,7 +453,9 @@ I_MUL:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MULFLOFLO);
+#endif
     MUL_FLOFLO:
         d = x1 * x2;
         regbase[dst] =
@@ -432,10 +466,14 @@ I_MUL:
     default:
       {
         regbase[dst] = slow_mul(context, v1, v2);
+#ifdef QUICKENING
         quickening(insns, pc, fastMulOpcode(tag));
+#endif
       }
       break;
     }
+// printf("End of MUL\n");
+// print_value_verbose(context, regbase[dst]); printf("\n");
   }
   NEXT_INSN_INCPC();
 
@@ -459,7 +497,7 @@ I_MOD:
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
         if (v2 == FIXNUM_ZERO)
@@ -469,7 +507,9 @@ I_MOD:
           // mod value should be in the fixnum range.
           regbase[dst] = cint_to_fixnum(s);
         }
+#ifdef QUICKENING
         quickening(insns, pc, MODFIXFIX);
+#endif
       }
       break;
 
@@ -477,7 +517,9 @@ I_MOD:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MODFIXFLO);
+#endif
         goto MOD_FLOFLO;
       }
 
@@ -485,7 +527,9 @@ I_MOD:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MODFLOFIX);
+#endif
         goto MOD_FLOFLO;
       }
 
@@ -493,7 +537,9 @@ I_MOD:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
+#ifdef QUICKENING
         quickening(insns, pc, MODFLOFLO);
+#endif
     MOD_FLOFLO:
         if (isinf(x1) || x2 == 0.0f)
           regbase[dst] = gconsts.g_flonum_nan;
@@ -510,7 +556,9 @@ I_MOD:
     default:
       {
         regbase[dst] = slow_mod(context, v1, v2);
+#ifdef QUICKENING
         quickening(insns, pc, fastModOpcode(tag));
+#endif
       }
       break;
     }
@@ -873,8 +921,18 @@ I_NOT:
   NEXT_INSN_INCPC();
 
 I_NEW:
+  // new dst con
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue con;
+
+    dst = get_first_operand_reg(insn);
+    con = regbase[get_second_operand_reg(insn)];
+    // The definition of NEW in the current ssjsvm seems to be incorrect.
+    NOT_IMPLEMENTED();
+  }
   NEXT_INSN_INCPC();
 
 I_GETIDX:
@@ -1177,14 +1235,17 @@ I_NEXTPROPNAME:
   NEXT_INSN_INCPC();
 
 I_CALL:
+I_SEND:
   // call fn nargs
-  //
+  // send fn nargs
 
   ENTER_INSN(__LINE__);
   {
     JSValue fn;
     int nargs;
+    int sendp;
 
+    sendp = (get_opcode(insn) == SEND)? TRUE: FALSE;
     fn = regbase[get_first_operand_reg(insn)];
     nargs = get_second_operand_int(insn);
     set_fp(context, fp);
@@ -1195,16 +1256,16 @@ I_CALL:
       callcount++;
 #endif
       // function
-      call_function(context, fn, nargs);
+      call_function(context, fn, nargs, sendp);
       update_context();
       NEXT_INSN_NOINCPC();
     } else if (is_builtin(fn)) {
       // builtin function
-      call_builtin(context, fn, nargs, false);
+      call_builtin(context, fn, nargs, sendp, FALSE);
       NEXT_INSN_INCPC();
 #ifdef USE_FFI
       if (isErr(context)) {
-        LOG_EXIT("CALL: exception by builtin");
+        LOG_EXIT("CALL/SEND: exception by builtin");
       }
 #endif
     }
@@ -1237,19 +1298,42 @@ I_CALL:
     }
 #endif
     else{
-      LOG_EXIT("CALL");
+      LOG_EXIT("CALL/SEND");
     }
   }
   NEXT_INSN_INCPC();
 
-I_SEND:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+// I_SEND:
+//   ENTER_INSN(__LINE__);
+//   NOT_IMPLEMENTED();
+//   NEXT_INSN_INCPC();
 
 I_TAILCALL:
+  // tailcall fn nargs
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue fn;
+    int nargs;
+    int sendp;
+
+    sendp = (get_opcode(insn) == TAILSEND)? TRUE: FALSE;
+    fn = regbase[get_first_operand_reg(insn)];
+    nargs = get_second_operand_int(insn);
+    set_fp(context, fp);
+    set_pc(context, pc);
+
+    if (is_function(fn)) {
+#ifdef CALC_CALL
+      callcount++;
+#endif
+      // function
+      tailcall_function(context, fn, nargs, sendp);
+      update_context();
+      NEXT_INSN_NOINCPC();
+    } else if (is_builtin(fn)) {
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_TAILSEND:
