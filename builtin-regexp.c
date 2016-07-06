@@ -218,20 +218,20 @@ inline JSValue regExpExec(Context* context, JSValue rsv, char *cstr)
       for(i = 0;i < length; i++){
         setArrayValue(arr, i, regExpMatchToString(cstr, region->beg[i], region->end[i]));
       }
-      set_obj_prop_none(arr, "index", intToFixnum(index));
+      set_obj_cstr_prop_none(arr, "index", intToFixnum(index));
       if(getRegExpGlobal(rsv)){
         setRegExpLastIndex(rsv, region->end[i-1]);
-        set_obj_prop(rsv, "lastIndex", intToFixnum(region->end[i-1]), ATTR_DDDE);
+        set_obj_cstr_prop(rsv, "lastIndex", intToFixnum(region->end[i-1]), ATTR_DDDE);
       }
       return arr;
     }else{
       setRegExpLastIndex(rsv, 0);
-      set_obj_prop(rsv, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
+      set_obj_cstr_prop(rsv, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
       return JS_NULL;
     }
   }else{
     setRegExpLastIndex(rsv, 0);
-    set_obj_prop(rsv, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
+    set_obj_cstr_prop(rsv, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
     return JS_NULL;
   }
 }
@@ -297,9 +297,9 @@ int regexpConstructorSub(const char* pattern, const char* cStrFlag, JSValue* dst
   if(!err == MAKE_REGEX_OBJECT_SUCCESS){
     return ERROR_REGEX_CONST;
   }
-  set_obj_prop(*dst, "source", cStrToString(pattern), ATTR_ALL);
+  set_obj_cstr_prop(*dst, "source", cStrToString(pattern), ATTR_ALL);
   setRegExpLastIndex(*dst, 0);
-  set_obj_prop(*dst, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
+  set_obj_cstr_prop(*dst, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
   return SUCCESS_REGEX_CONST;
 }
 
@@ -314,12 +314,12 @@ void init_builtin_regexp(void)
   gconsts.g_regexp
     = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
   gconsts.g_regexp_proto = new_object();
-  set_obj_prop(gconsts.g_regexp, "prototype", gconsts.g_regexp_proto, ATTR_ALL);
-  set_obj_prop(gRegExpProto, "constructor", gRegExp, ATTR_DE);
+  set_prop_all(gconsts.g_regexp, gconsts.g_string_prototype, gconsts.g_regexp_proto);
+  set_obj_cstr_prop(gRegExpProto, "constructor", gRegExp, ATTR_DE);
   {
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_regexp_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(gconsts.g_regexp_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

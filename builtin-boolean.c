@@ -10,7 +10,7 @@ BUILTIN_FUNCTION(boolean_constr)
 
   builtin_prologue();  
   rsv = new_boolean(JS_TRUE);
-  set_obj_prop(rsv, "__proto__", gconsts.g_boolean_proto, ATTR_ALL);
+  set_prop_all(rsv, gconsts.g_string___proto__, gconsts.g_boolean_proto);
   if (na > 0)
     boolean_object_value(rsv) = to_boolean(args[1]);
   set_a(context, rsv);
@@ -36,11 +36,11 @@ void init_builtin_boolean(void)
 {
   gconsts.g_boolean = new_builtin(boolean_constr, 1);
   gconsts.g_boolean_proto = new_object();
-  set_obj_prop(gconsts.g_boolean, "prototype", gconsts.g_boolean_proto, ATTR_ALL);
+  set_prop_all(gconsts.g_boolean, gconsts.g_string_prototype, gconsts.g_boolean_proto);
   {
     ObjBuiltinProp *p = boolean_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_boolean_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(gconsts.g_boolean_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

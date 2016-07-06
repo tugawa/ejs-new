@@ -166,7 +166,7 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
 //
 int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
   if (!is_string(p)) p = to_string(context, p);
-  return set_prop(o, p, v);
+  return set_prop_none(o, p, v);
 }
 
 // sets array's property
@@ -499,7 +499,7 @@ JSValue new_array(void) {
   array_body(p) = NULL;
   // array_size(p) = 0;
   array_length(p) = 0;
-  set_obj_prop_none(ret, "length", FIXNUM_ZERO);
+  set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
   return ret;
 }
 
@@ -514,7 +514,7 @@ JSValue new_array_with_size(int size)
   p = remove_array_tag(ret);
   set_object_members(&(p->o));
   allocate_array_data(p, size, size);
-  set_obj_prop_none(ret, "length", int_to_fixnum(size));
+  set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
   return ret;
 }
 
@@ -546,8 +546,8 @@ JSValue new_function(Context *context, Subscript subscr)
   set_object_members(&(p->o));
   func_table_entry(p) = &(context->function_table[subscr]);
   func_environment(p) = get_lp(context);
-  set_prop(ret, gconsts.g_string_prototype, new_object());
-  set_prop(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
+  set_prop_none(ret, gconsts.g_string_prototype, new_object());
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
   return ret;
 }
 
@@ -563,7 +563,7 @@ JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, i
   builtin_body(p) = f;
   builtin_constructor(p) = cons;
   builtin_n_args(p) = na;
-  set_obj_prop_none(ret, "prototype", new_object());
+  set_prop_none(ret, gconsts.g_string_prototype, new_object());
   return ret;
 }
 
@@ -638,8 +638,7 @@ JSValue new_string(JSValue v) {
 
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
-  set_obj_prop(ret, "length",
-               int_to_fixnum(strlen(string_to_cstr(v))), ATTR_ALL);
+  set_prop_all(ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
   return ret;
 }
 

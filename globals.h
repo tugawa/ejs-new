@@ -30,18 +30,19 @@ EXTERN struct global_constant_objects {
   JSValue g_flonum_to_string;
   JSValue g_string_to_index;
 
-  JSValue g_string_valueof;
-  JSValue g_string___proto__;
   JSValue g_string_prototype;
+  JSValue g_string___proto__;
   JSValue g_string_tostring;
+  JSValue g_string_valueof;
   JSValue g_string_boolean;
-  JSValue g_string_false;
-  JSValue g_string_null;
   JSValue g_string_number;
   JSValue g_string_object;
   JSValue g_string_string;
   JSValue g_string_true;
+  JSValue g_string_false;
+  JSValue g_string_null;
   JSValue g_string_undefined;
+  JSValue g_string_length;
   JSValue g_string_objtostr;
   JSValue g_string_blank;
   JSValue g_string_comma;

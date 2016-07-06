@@ -475,10 +475,14 @@ typedef uint64_t cuint;
 #define is_undefined(p)   ((p) == JS_UNDEFINED)
 
 // Set a specified property to an object where property name is given
-// by a C string.
-#define set_prop(o, n, src) set_prop_with_attribute(o, n, src, ATTR_NONE)
-#define set_obj_prop(o, s, g, attr) \
-  set_prop_with_attribute(o, cstr_to_string(s), g, attr)
-#define set_obj_prop_none(o, s, g) set_obj_prop(o, s, g, ATTR_NONE)
+// by a string object or a C string.
+
+#define set_prop_none(o, s, v) set_prop_with_attribute(o, s, v, ATTR_NONE)
+#define set_prop_all(o, s, v) set_prop_with_attribute(o, s, v, ATTR_ALL)
+#define set_prop_de(o, s, v) set_prop_with_attribute(o, s, v, ATTR_DE)
+
+#define set_obj_cstr_prop(o, s, v, attr) \
+  set_prop_with_attribute(o, cstr_to_string(s), v, attr)
+#define set_obj_cstr_prop_none(o, s, v) set_obj_cstr_prop(o, s, v, ATTR_NONE)
 
 #endif

@@ -26,25 +26,25 @@ BUILTIN_FUNCTION(object_constr)
     case T_FIXNUM:
     case T_FLONUM:
       ret = new_number(arg);
-      set_obj_prop(ret, "__proto__", gconsts.g_number_proto, ATTR_ALL);
+      set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
       break;
     case T_SPECIAL:
       if (is_true(arg) || is_false(arg)) {
         ret = new_boolean(arg);
-        set_obj_prop(ret, "__proto__", gconsts.g_boolean_proto, ATTR_ALL);
+        set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
       } else {
         ret = new_object();
-        set_obj_prop(ret, "__proto__", gconsts.g_object_proto, ATTR_ALL);
+        set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
       }
       break;
     case T_STRING:
       ret = new_string(arg);
-      set_obj_prop(ret, "__proto__", gconsts.g_string_proto, ATTR_ALL);
+      set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
       break;
     }
   } else {
     ret = new_object();
-    set_obj_prop(ret, "__proto__", gconsts.g_object_proto, ATTR_ALL);
+    set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   }
   set_a(context, ret);
 }
@@ -58,12 +58,12 @@ void init_builtin_object(void)
 {
   gconsts.g_object = new_builtin(object_constr, 0);
   gconsts.g_object_proto = new_object();
-  set_obj_prop(gconsts.g_object_proto, "prototype",
-               gconsts.g_object_proto, ATTR_ALL);
-  set_obj_prop(gconsts.g_object_proto, "toString",
-               new_builtin(object_toString, 0), ATTR_DE);
+  set_prop_all(gconsts.g_object_proto, gconsts.g_string_prototype,
+               gconsts.g_object_proto);
+  set_prop_de(gconsts.g_object_proto, gconsts.g_string_tostring,
+               new_builtin(object_toString, 0));
 #ifdef PARALLEL
-  set_obj_prop(gconsts.g_object_proto, "setShared",
+  set_obj_cstr_prop(gconsts.g_object_proto, "setShared",
                new_builtin(objectProtoSetShared, 0), ATTR_DE);
 
 #endif

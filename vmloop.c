@@ -823,7 +823,7 @@ I_GETPROP:
     Register dst;
     JSValue o, idx;
 
-    printf("getprop\n");
+    // printf("getprop\n");
     dst = get_first_operand_reg(insn);
     o = regbase[get_second_operand_reg(insn)];
     idx = regbase[get_third_operand_reg(insn)];
@@ -907,7 +907,7 @@ I_SETGLOBAL:
 
 #ifdef USE_FASTGLOBAL
 #else
-    if (set_prop(context->global, str, src) == FAIL)
+    if (set_prop_none(context->global, str, src) == FAIL)
       LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
 #endif
   }
@@ -967,10 +967,9 @@ I_NEW:
     o = new_object();
     if (get_prop(con, gconsts.g_string_prototype, &p) == SUCCESS &&
         is_object(p))
-      set_prop_with_attribute(o, gconsts.g_string___proto__, p, ATTR_ALL);
+      set_prop_all(o, gconsts.g_string___proto__, p);
     else
-      set_prop_with_attribute(o, gconsts.g_string___proto__,
-                              gconsts.g_object_proto, ATTR_ALL);
+      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
     regbase[dst] = o;
   }
   NEXT_INSN_INCPC();

@@ -6,64 +6,41 @@
 //
 BUILTIN_FUNCTION(array_constr)
 {
-  cint length = 0;
   JSValue rsv;
   ArrayCell *p;
 
   builtin_prologue();
   rsv = new_array();
-  p = (ArrayCell *)(remove_tag(rsv, T_OBJECT));
-  set_obj_prop(rsv, "__proto__", gconsts.g_array_proto, ATTR_ALL);
+  p = remove_array_tag(rsv);
+  set_prop_all(rsv, gconsts.g_string___proto__, gconsts.g_array_proto);
 
   switch (na) {
   case 0:
-    {
-      allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
-      /*
-      array_body(p) = allocate_array_data(INITIAL_ARRAY_SIZE);
-      array_size(p) = INITIAL_ARRAY_SIZE;
-      array_length(p) = 0;
-      */
-    }
+    allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
     break;
-
   case 1:
     {
-      JSValue num = args[1];
-      cint size = INITIAL_ARRAY_SIZE;
+      JSValue num;
+      cint size, length;
 
-      if (is_fixnum(num) && FIXNUM_ZERO <= num) {
-        length = fixnum_to_cint(num);
+      num = args[1];
+      size =INITIAL_ARRAY_SIZE;
+
+      if (is_fixnum(num) && 0 <= (length = fixnum_to_cint(num))) {
         while (size < length) size <<= 1;
         allocate_array_data(p, size, length);
-        /*
-        array_body(p) = allocate_array_data(size);
-        array_size(p) = size;
-        array_length(p) = length;
-        */
-        set_obj_prop_none(rsv, "length", cint_to_fixnum(length));
-      } else {
-        array_body(p) = NULL;
-        array_size(p) = 0;
-        array_length(p) = 0;
-      }
+        set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
+      } else
+        allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
     }
     break;
-
   default:
     {
       // not implemented yet
-      array_body(p) = NULL;
-      array_size(p) = 0;
-      array_length(p) = 0;
+      allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
     }
     break;
   }
-
-  /*
-  for (i = 0; i < length; i++)
-    array_body_index(p, i) = JS_UNDEFINED);
-  */
   set_a(context, rsv);
 }
 
@@ -216,7 +193,7 @@ BUILTIN_FUNCTION(arrayProtoConcat)
   args = (JSValue*)(&Stack(context, fp));
 
   ret = newArray();
-  set_obj_prop(ret, "__proto__", gArrayProto, ATTR_ALL);
+  set_prop_all(ret, gconsts.g_string___proto__, gArrayProto);
 
 
   for(i=0; i<=nArgs; i++){
@@ -257,7 +234,7 @@ BUILTIN_FUNCTION(arrayProtoPop)
 
   length = getArrayLength(rsv);
   getArrayValue(rsv, (int)(length-1), &ret);
-  set_obj_prop_none(rsv, "length", intToFixnum(length-1));
+  set_prop_none(rsv, gconsts.g_string_length, intToFixnum(length-1));
   setArrayLength(rsv, length-1);
   setA(context, ret);
   return;
@@ -338,7 +315,7 @@ BUILTIN_FUNCTION(arrayProtoShift)
       getArrayValue(rsv, i, &temp);
       setArrayValue(rsv, i-1, temp); }
 
-    set_obj_prop_none(rsv, "length", intToFixnum(length-1));
+    set_prop_none(rsv, gconsts.g_string_length, intToFixnum(length-1));
     setArrayLength(rsv, length-1);
     setA(context, ret);
     return;
@@ -406,7 +383,7 @@ BUILTIN_FUNCTION(arrayProtoSlice)
   // 新しい配列を作成する
   newLength = end - start;
   array = newArrayWithSize(newLength);
-  set_obj_prop(array, "__proto__", gArrayProto, ATTR_ALL);
+  set_prop_all(array, gconsts.g_string___proto__, gArrayProto);
 
   for(i = 0; i < newLength; i++){
     getArrayValue(rsv, i + start, &src);
@@ -500,11 +477,11 @@ void init_builtin_array(void)
 {
   gconsts.g_array = new_builtin(array_constr, 0);
   gconsts.g_array_proto = new_object();
-  set_obj_prop(gconsts.g_array, "prototype", gconsts.g_array_proto, ATTR_ALL);
+  set_prop_all(gconsts.g_array, gconsts.g_string_prototype, gconsts.g_array_proto);
   {
     ObjBuiltinProp *p = array_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_array_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(gconsts.g_array_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

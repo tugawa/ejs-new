@@ -23,9 +23,9 @@ static uint64_t callcount = 0;
 void testtest(Context *cxt) {
   JSValue v;
   v = new_object();
-  set_obj_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
-  set_obj_prop(gconsts.g_global, "soko", v, ATTR_DE);
-  set_obj_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
+  set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
+  set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
+  set_obj_cstr_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
 #if 0
   v = JS_UNDEFINED; pp(v);
   v = JS_NULL; pp(v);

@@ -211,14 +211,14 @@ void init_builtin_global(void)
   {
     ObjBuiltinProp *p = global_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_global, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(gconsts.g_global, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
   {
     ObjGconstsProp *p = global_gconsts_props;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_global, p->name, *(p->addr), p->attr);
+      set_obj_cstr_prop(gconsts.g_global, p->name, *(p->addr), p->attr);
       p++;
     }
   }

@@ -503,7 +503,7 @@ BUILTIN_FUNCTION(stringProtoMatch)
     str = JSValueToString(rsv, context);
     if(getRegExpGlobal(rsv)){
       setRegExpLastIndex(reg, 0);
-      set_obj_prop(reg, "lastIndex", FIXNUM_ZERO, ATTR_DDDE); }
+      set_obj_cstr_prop(reg, "lastIndex", FIXNUM_ZERO, ATTR_DDDE); }
     setA(context, regExpExec(context, reg, stringToCStr(str)));
     return;
   }else
@@ -548,12 +548,12 @@ void init_builtin_string(void)
   gconsts.g_string
     = new_builtin_with_constr(string_constr_nonew, string_constr, 1);
   gconsts.g_string_proto = new_string(gconsts.g_string_blank);
-  set_obj_prop(gconsts.g_string, "prototype", gconsts.g_string_proto, ATTR_ALL);
-  // set_obj_prop(gconsts.g_string, "fromCharCode", new_builtin(stringFromCharCode, 0), ATTR_DE);
+  set_prop_all(gconsts.g_string, gconsts.g_string_prototype, gconsts.g_string_proto);
+  // set_obj_cstr_prop(gconsts.g_string, "fromCharCode", new_builtin(stringFromCharCode, 0), ATTR_DE);
   {
     ObjBuiltinProp *p = string_funcs;
     while (p->name != NULL) {
-      set_obj_prop(gconsts.g_string_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(gconsts.g_string_proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

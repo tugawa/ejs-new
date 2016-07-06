@@ -89,22 +89,16 @@ Object *allocate_object(void) {
 ArrayCell *allocate_array(void) {
   ArrayCell *array = (ArrayCell *)malloc(sizeof(ArrayCell));
   array->o.header = HEADER_ARRAY;
-  // LOG("count %d\n", ++count);
   return array;
 }
 
-#if 0
-JSValue *allocate_array_data(int size)
-{
-  // LOG("count %d\n", ++count);
-  return (JSValue*)malloc(sizeof(JSValue) * size);
-}
-#endif
+// allocates an array body
+//   size : number of elements in the body (size >= len)
+//   len  : length of the array, i.e., subscripts under len are acrutally used
 void allocate_array_data(ArrayCell *p, int size, int len)
 {
   JSValue *a;
   int i;
-  // LOG("count %d\n", ++count);
   a = (JSValue *)malloc(sizeof(JSValue) * size);
   for (i = 0; i < len; i++) a[i] = JS_UNDEFINED; 
   array_body(p) = a;
