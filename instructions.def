@@ -50,9 +50,9 @@ makeiterator          TWOOP
 nextpropname          THREEOP
 call                  CALLOP
 send                  CALLOP
+newsend               CALLOP
 tailcall              CALLOP
 tailsend              CALLOP
-newsend               CALLOP
 try                   TRYOP
 throw                 ONEOP
 finally               ZEROOP

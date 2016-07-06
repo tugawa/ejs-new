@@ -59,15 +59,16 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
 // obtains object's property
 //   o: object (but not an array)
 //   p: property (number / string / other type)
-// It is not necessary to check the type of `a'.
+// It is not necessary to check the type of `o'.
 //
+
 JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
   /*
     if (p is not a string) p = to_string(p);
       returns the value regsitered under the property p
     }
   */
-  printf("get_object_prop, o = %016lx, p = %016lx\n", o, p);
+  // printf("get_object_prop, o = %016lx, p = %016lx\n", o, p);
   if (!is_string(p)) p = to_string(context, p);
   return get_prop_prototype_chain(o, p);
 }
@@ -130,6 +131,100 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
     break;
   }
 }          
+
+// sets an object's property value with its attribute
+//
+int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
+  uint64_t retv;
+
+  if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
+    // The specified property is not registered in the hash table.
+    if (prop_overflow(obj)) {
+      LOG_ERR("proptable overflow\n");
+      return FAIL;
+    }
+    retv = ++(obj_n_props(obj));
+    if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
+          == HASH_PUT_SUCCESS) {
+      obj_prop_index(obj, (int)retv) = v;
+      return SUCCESS;
+    } else
+      return FAIL;
+  } else {
+    // returned value is HASH_GET_SUCCESS
+    // There is already the property `name', overwrites its value.
+    obj_prop_index(obj, (int)retv) = v;
+    return SUCCESS;
+  }
+}
+
+// sets object's property
+//   o: object (but not an array)
+//   p: property (number / string / other type)
+//   v: value to be set
+// It is not necessary to check the type of `o'.
+//
+int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
+  if (!is_string(p)) p = to_string(context, p);
+  return set_prop(o, p, v);
+}
+
+// sets array's property
+//   a: array
+//   p: property (number / string / other type)
+//   v: value to be set
+// It is not necessary to check the type of `a'.
+//
+int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
+  ArrayCell *ap;
+
+  switch (get_tag(p)) {
+  case T_FIXNUM:
+    {
+      cint n;
+      n = fixnum_to_cint(p);
+      if (array_subscript_range(n)) {
+        ap = remove_array_tag(a);
+        if (n < array_length(ap)) {
+          array_body_index(ap, n) = v;
+          return SUCCESS;
+        } else {
+          // expand the array --- not implemented yet
+          return SUCCESS;
+        }
+      }
+      p = fixnum_to_string(p);
+      return set_object_prop(context, a, p, v);
+    }
+    break;
+  default:
+   p = to_string(context, p);
+   // fall through
+  case T_STRING:
+    {
+      JSValue num;
+      cint n;
+      num = string_to_number(p);
+      if (is_fixnum(num)) {
+        n = fixnum_to_cint(num);
+        if (array_subscript_range(n)) {
+          ap = remove_array_tag(a);
+          if (n < array_length(ap)) {
+            array_body_index(ap, n) = v;
+            return SUCCESS;
+          } else {
+            // expand the array --- not implemented yet
+            return SUCCESS;
+          }
+        }
+      }
+      // if the property name is "length", expand / shrink the array
+      // -- not implemented
+      return set_object_prop(context, a, p, v);
+    }
+    break;
+  }
+}
 
 #if 0
 /**
@@ -283,32 +378,6 @@ int setPropWithIndex(JSValue obj, JSValue name, JSValue v)
   return (int)retv;
 }
 #endif
-
-// sets an object's property value with its attribute
-//
-int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
-  uint64_t retv;
-
-  if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
-    // The specified property is not registered in the hash table.
-    if (prop_overflow(obj)) {
-      LOG_ERR("proptable overflow\n");
-      return FAIL;
-    }
-    retv = ++(obj_n_props(obj));
-    if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
-          == HASH_PUT_SUCCESS) {
-      obj_prop_index(obj, (int)retv) = v;
-      return SUCCESS;
-    } else
-      return FAIL;
-  } else {
-    // returned value is HASH_GET_SUCCESS
-    // There is already the property `name', overwrites its value.
-    obj_prop_index(obj, (int)retv) = v;
-    return SUCCESS;
-  }
-}
 
 #if 0
 // ------------------------------------------------------------------

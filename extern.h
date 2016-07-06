@@ -183,6 +183,8 @@ extern int get_prop(JSValue, JSValue, JSValue *);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
+int set_object_prop(Context *, JSValue, JSValue, JSValue);
+int set_array_prop(Context *, JSValue, JSValue, JSValue);
 
 extern JSValue new_object(void);
 extern JSValue new_array(void);

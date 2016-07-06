@@ -30,6 +30,7 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 #define INCEXECUTECOUNT() insns->executeCount++
 #define INSNLOAD()   insn = insns->code
+// #define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
 
 // defines ENTER_INSN(x)
 //
@@ -136,7 +137,7 @@ do{                                                                  \
   v1 = regbase[r1], \
   v2 = regbase[r2]
 
-#define goto_pc_relative(d) (pc += (d), insn += (d), insn_ptr += (d))
+#define set_pc_relative(d) (pc += (d), insns += (d), insn_ptr += (d))
 
 // executes the main loop of the vm as a threaded code
 //
@@ -841,8 +842,27 @@ I_GETPROP:
   NEXT_INSN_INCPC();
 
 I_SETPROP:
+  // setprop obj prop val
+  //   obj : object into which (prop,val) pair is set
+  //   prop : property name
+  //   val : value
+  // $obj[$prop] = $val
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue o, p, v;
+
+    o = regbase[get_first_operand_reg(insn)];
+    p = regbase[get_second_operand_reg(insn)];
+    v = regbase[get_third_operand_reg(insn)];
+    // print_value_verbose(context, o); putchar('\n');
+    if (is_array(o))
+      set_array_prop(context, o, p, v);
+    else if (is_object(o))
+      set_object_prop(context, o, p, v);
+    else
+      LOG_EXIT("setprop: first operand is not an object\n");
+  }
   NEXT_INSN_INCPC();
 
 I_SETARRAY:
@@ -894,8 +914,19 @@ I_SETGLOBAL:
   NEXT_INSN_INCPC();
 
 I_INSTANCEOF:
+  // instanceof dst r1 r2
+  //   $dst = $r1 instanceof $r2
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue v1, v2;
+
+    dst = get_first_operand_reg(insn);
+    v1 = regbase[get_second_operand_reg(insn)];
+    v2 = regbase[get_third_operand_reg(insn)];
+    regbase[dst] = JS_FALSE;
+  }
   NEXT_INSN_INCPC();
 
 I_MOVE:
@@ -926,12 +957,21 @@ I_NEW:
   ENTER_INSN(__LINE__);
   {
     Register dst;
-    JSValue con;
+    JSValue con, o, p;
 
     dst = get_first_operand_reg(insn);
     con = regbase[get_second_operand_reg(insn)];
-    // The definition of NEW in the current ssjsvm seems to be incorrect.
-    NOT_IMPLEMENTED();
+    // The following definition is based on the one of the old ssjsvm
+    // developed by Takada, but it seems to have a problem when the
+    // ``con'' is a built-in object such as Array.
+    o = new_object();
+    if (get_prop(con, gconsts.g_string_prototype, &p) == SUCCESS &&
+        is_object(p))
+      set_prop_with_attribute(o, gconsts.g_string___proto__, p, ATTR_ALL);
+    else
+      set_prop_with_attribute(o, gconsts.g_string___proto__,
+                              gconsts.g_object_proto, ATTR_ALL);
+    regbase[dst] = o;
   }
   NEXT_INSN_INCPC();
 
@@ -1080,7 +1120,7 @@ I_JUMP:
   {
     Displacement disp;
     disp = get_first_operand_disp(insn);
-    goto_pc_relative(disp);
+    set_pc_relative(disp);
   }
   NEXT_INSN_NOINCPC();
 
@@ -1090,18 +1130,17 @@ I_JUMPTRUE:
 
   ENTER_INSN(__LINE__);
   {
-    Register src;
+    JSValue v;
     Displacement disp;
 
-    src = get_first_operand_reg(insn);
-    if (is_true(regbase[src])) {
+    v = regbase[get_first_operand_reg(insn)];
+    if (to_boolean(v) == JS_TRUE) {
       disp = get_second_operand_disp(insn);
-      goto_pc_relative(disp);
-    } else {
-      // not implemented yet
+      set_pc_relative(disp);
+      NEXT_INSN_NOINCPC();
     }
   }
-  NEXT_INSN_NOINCPC();
+  NEXT_INSN_INCPC();
 
 I_JUMPFALSE:
   // jumpfalse src disp
@@ -1109,20 +1148,17 @@ I_JUMPFALSE:
 
   ENTER_INSN(__LINE__);
   {
-    Register src;
-    Displacement disp;
     JSValue v;
+    Displacement disp;
 
-    src = get_first_operand_reg(insn);
-    v = regbase[src];
-    if (is_false(v) || is_undefined(v) || is_null(v)) {
+    v = regbase[get_first_operand_reg(insn)];
+    if (to_boolean(v) == JS_FALSE) {
       disp = get_second_operand_disp(insn);
-      goto_pc_relative(disp);
-    } else {
-      // not implemented yet
+      set_pc_relative(disp);
+      NEXT_INSN_NOINCPC();
     }
   }
-  NEXT_INSN_NOINCPC();
+  NEXT_INSN_INCPC();
 
 I_GETARG:
   // gerarg dst link index
@@ -1236,16 +1272,21 @@ I_NEXTPROPNAME:
 
 I_CALL:
 I_SEND:
+I_NEWSEND:
   // call fn nargs
   // send fn nargs
+  // newsend fn nargs
 
   ENTER_INSN(__LINE__);
   {
     JSValue fn;
     int nargs;
-    int sendp;
+    Opcode op;
+    int sendp, newp;
 
-    sendp = (get_opcode(insn) == SEND)? TRUE: FALSE;
+    op = get_opcode(insn);
+    sendp = (op == SEND)? TRUE: FALSE;
+    newp = (op == NEWSEND)? TRUE: FALSE;
     fn = regbase[get_first_operand_reg(insn)];
     nargs = get_second_operand_int(insn);
     set_fp(context, fp);
@@ -1261,7 +1302,7 @@ I_SEND:
       NEXT_INSN_NOINCPC();
     } else if (is_builtin(fn)) {
       // builtin function
-      call_builtin(context, fn, nargs, sendp, FALSE);
+      call_builtin(context, fn, nargs, sendp, newp);
       NEXT_INSN_INCPC();
 #ifdef USE_FFI
       if (isErr(context)) {
@@ -1303,13 +1344,10 @@ I_SEND:
   }
   NEXT_INSN_INCPC();
 
-// I_SEND:
-//   ENTER_INSN(__LINE__);
-//   NOT_IMPLEMENTED();
-//   NEXT_INSN_INCPC();
-
 I_TAILCALL:
+I_TAILSEND:
   // tailcall fn nargs
+  // tailsend fn nargs
 
   ENTER_INSN(__LINE__);
   {
@@ -1332,18 +1370,11 @@ I_TAILCALL:
       update_context();
       NEXT_INSN_NOINCPC();
     } else if (is_builtin(fn)) {
+      call_builtin(context, fn, nargs, sendp, FALSE);
+      update_context();        // is this necessary?
+      NEXT_INSN_INCPC();
     }
   }
-  NEXT_INSN_INCPC();
-
-I_TAILSEND:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_NEWSEND:
-  NOT_IMPLEMENTED();
-  ENTER_INSN(__LINE__);
   NEXT_INSN_INCPC();
 
 I_TRY:
