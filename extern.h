@@ -36,7 +36,7 @@ extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
 extern BUILTIN_FUNCTION(builtin_fixnum_to_string);
 extern BUILTIN_FUNCTION(builtin_flonum_to_string);
-extern BUILTIN_FUNCTION(builtin_string_to_index);
+// extern BUILTIN_FUNCTION(builtin_string_to_index);
 
 /*
  * builtin-array.c
@@ -105,22 +105,24 @@ extern void init_context(FunctionTable *, JSValue, Context **);
 /*
  * conversion.c
  */
-// JSValue special_to_string(JSValue v);
-JSValue special_to_number(JSValue v);
-JSValue special_to_boolean(JSValue v);
+extern JSValue special_to_string(JSValue);
+extern JSValue special_to_number(JSValue);
+extern JSValue special_to_boolean(JSValue);
 // JSValue special_to_object(JSValue v);
-JSValue string_to_number(JSValue v);
+extern JSValue string_to_number(JSValue);
 // JSValue string_to_boolean(JSValue v);
 // JSValue string_to_object(JSValue v);
-extern JSValue fixnum_to_string(JSValue v);
-// JSValue flonum_to_string(JSValue v);
+extern JSValue fixnum_to_string(JSValue);
+extern JSValue flonum_to_string(JSValue);
 // JSValue fixnum_to_boolean(JSValue v);
 // JSValue flonum_to_boolean(JSValue v);
 // JSValue fixnum_to_object(JSValue v);
 // JSValue flonum_to_object(JSValue v);
-extern JSValue object_to_string(Context *context, JSValue v);
-extern JSValue object_to_number(Context *context, JSValue v);
-// JSValue object_to_boolean(JSValue v);
+extern double primitive_to_double(JSValue);
+extern JSValue primitive_to_string(JSValue);
+extern JSValue object_to_string(Context *, JSValue);
+extern JSValue object_to_number(Context *, JSValue);
+extern JSValue array_to_string(Context *, JSValue, JSValue);
 extern JSValue to_object(Context *, JSValue v);
 extern JSValue to_string(Context *, JSValue v);
 extern JSValue to_boolean(JSValue v);
@@ -201,19 +203,7 @@ extern JSValue new_boolean(JSValue);
 extern JSValue new_string(JSValue);
 
 extern char *space_chomp(char *);
-extern double cstr_to_double(char *);
-extern inline JSValue object_to_primitive(JSValue, Context *);
-extern inline JSValue objectToPrimitiveHintNumber(JSValue, Context *);
-extern inline JSValue objectToPrimitiveHintString(JSValue, Context *);
-extern JSValue fixnum_to_string(JSValue n);
-extern JSValue flonum_to_string(JSValue v);
-extern JSValue array_to_string(Context *, JSValue, JSValue);
-extern JSValue primitive_to_string(JSValue);
-extern double primitive_to_double(JSValue);
-extern JSValue string_to_index(JSValue str);
-extern JSValue special_to_string(JSValue x);
-extern JSValue jsvalue_to_boolean(JSValue);
-
+// extern double cstr_to_double(char *);
 extern JSValue call_method(JSValue, JSValue);
 
 /*

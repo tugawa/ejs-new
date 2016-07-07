@@ -679,28 +679,38 @@ I_LESSTHAN:
     switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
     case TP_FIXFIX:
       regbase[dst] = (cint)v1 < (cint)v2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANFIXFIX);
+#endif
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANFIXFLO);
+#endif
       break;
     case TP_FLOFIX:
       x1 = flonum_to_double(v1);
       x2 = fixnum_to_double(v2);
       regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANFLOFIX);
+#endif
       break;
     case TP_FLOFLO:
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANFLOFLO);
+#endif
       break;
     case TP_STRSTR:
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANSTRSTR);
+#endif
     default:
       regbase[dst] = slow_lessthan(context, v1, v2);
       break;
@@ -725,28 +735,38 @@ I_LESSTHANEQUAL:
     switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
     case TP_FIXFIX:
       regbase[dst] = (cint)v1 <= (cint)v2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANEQUALFIXFIX);
+#endif
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANEQUALFIXFLO);
+#endif
       break;
     case TP_FLOFIX:
       x1 = flonum_to_double(v1);
       x2 = fixnum_to_double(v2);
       regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANEQUALFLOFIX);
+#endif
       break;
     case TP_FLOFLO:
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANEQUALFLOFLO);
+#endif
       break;
     case TP_STRSTR:
+#ifdef QUICKENING
       quickening(insns, pc, LESSTHANEQUALSTRSTR);
+#endif
     default:
       regbase[dst] = slow_lessthanequal(context, v1, v2);
       break;
@@ -778,19 +798,25 @@ I_EQ:
       x1 = fixnum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, EQFIXFLO);
+#endif
       break;
     case TP_FLOFIX:
       x1 = flonum_to_double(v1);
       x2 = fixnum_to_double(v2);
       regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, EQFLOFIX);
+#endif
       break;
     case TP_FLOFLO:
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
+#ifdef QUICKENING
       quickening(insns, pc, EQFLOFLO);
+#endif
       break;
     case TP_STRSTR:
       {
@@ -798,7 +824,9 @@ I_EQ:
         s1 = string_to_cstr(v1);
         s2 = string_to_cstr(v2);
         regbase[dst] = strcmp(s1, s2)? JS_FALSE: JS_TRUE;
+#ifdef QUICKENING
         quickening(insns, pc, EQSTRSTR);
+#endif
       }
       break;
     default:
@@ -925,6 +953,7 @@ I_INSTANCEOF:
     dst = get_first_operand_reg(insn);
     v1 = regbase[get_second_operand_reg(insn)];
     v2 = regbase[get_third_operand_reg(insn)];
+    // not implemented yet
     regbase[dst] = JS_FALSE;
   }
   NEXT_INSN_INCPC();

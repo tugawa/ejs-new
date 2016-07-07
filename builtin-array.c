@@ -54,53 +54,6 @@ BUILTIN_FUNCTION(array_toString)
   return;
 }
 
-JSValue array_to_string(Context* context, JSValue array, JSValue separator)
-{
-  int i;
-  uint64_t length, sumLength, separatorLength;
-  JSValue ret, item;
-  char **strs;
-  char *separatorCStr;
-  char *retCStr, *addr;
-  ArrayCell *ap;
-
-  ret = gconsts.g_string_blank;
-  length = array_length(array);
-
-  if (length > 0) {
-    strs = (char**)malloc(sizeof(char*) * length);
-    separatorCStr = string_to_cstr(separator);
-    separatorLength = strlen(separatorCStr);
-    sumLength = 0;
-    ap = remove_array_tag(array);
-
-    for (i = 0; i < length; i++) {
-      item = array_body_index(ap, i);
-      if (is_object(item)) {
-        item = objectToPrimitiveHintString(item, context); }
-      strs[i] = string_to_cstr(primitive_to_string(item));
-      sumLength += strlen(strs[i]);
-    }
-
-    retCStr = (char*)malloc(sizeof(char) * (sumLength + (length - 1) * separatorLength + 1));
-    addr = retCStr;
-    strcpy(addr, strs[0]);
-    addr += strlen(strs[0]);
-
-    for(i=1; i<length; i++){
-      strcpy(addr, separatorCStr);
-      addr += separatorLength;
-      strcpy(addr, strs[i]);
-      addr += strlen(strs[i]);
-    }
-
-    *addr = '\0';
-    return cstr_to_string(retCStr);
-  }
-
-  return gconsts.g_string_blank;
-}
-
 BUILTIN_FUNCTION(array_toLocaleString){
   int i;
   uint64_t length, sumLength;
@@ -144,7 +97,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
     set_a(context, cstr_to_string(retCStr));
 
   }else{
-    set_a(context, gconsts.g_string_blank);
+    set_a(context, gconsts.g_string_empty);
     return;
   }
 }

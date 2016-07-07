@@ -28,7 +28,7 @@ EXTERN struct global_constant_objects {
   JSValue g_regexp_proto;
   JSValue g_fixnum_to_string;
   JSValue g_flonum_to_string;
-  JSValue g_string_to_index;
+//  JSValue g_string_to_index;
 
   JSValue g_string_prototype;
   JSValue g_string___proto__;
@@ -44,7 +44,7 @@ EXTERN struct global_constant_objects {
   JSValue g_string_undefined;
   JSValue g_string_length;
   JSValue g_string_objtostr;
-  JSValue g_string_blank;
+  JSValue g_string_empty;
   JSValue g_string_comma;
 
   JSValue g_flonum_infinity;

@@ -303,83 +303,6 @@ int getNextName(JSValue iter, JSValue *name)
   }
 }
 
-
-// ------------------------------------------------------------------
-/**
- * @brief プロパティーが存在するかを取得する
- * @param 対象オブジェクト
- * @param プロパティ名
- * @return 存在するかどうか
- */
-
-bool isExist(JSValue obj, JSValue name)
-{
-  int result;
-
-  if(!isObject(obj)) return false;
-  result = hasProp(objMap(obj), name);
-  if (result == HASH_GET_SUCCESS) return true;
-  else return false;
-}
-
-
-// ------------------------------------------------------------------
-/**
- * @brief プロパティをセットする
- * @param 対象のオブジェクト
- * @param プロパティ名
- * @param ソース
- */
-
-int setProp(JSValue obj, JSValue name, JSValue source)
-{
-  return setPropWithAttribute(obj, name, source, ATTR_NONE);
-}
-
-
-// ------------------------------------------------------------------
-// 2013/6/19 Akihiro Urushihara
-//   setPropWithAttribute を使用する手法に変更
-
-/**
- * @brief プロパティをセットする
- * @param 対象のオブジェクト
- * @param プロパティ名
- * @param ソース
- */
-
-#if 0
-int setPropSub(JSValue obj, JSValue name, JSValue source){
-  return setPropWithAttribute(obj, name, source, ATTR_NONE);
-}
-#endif
-
-// ------------------------------------------------------------------
-/**
- * @brief プロパティをセットする
- * @param 対象のオブジェクト
- * @param プロパティ名の文字列オブジェクト (JAValue)
- * @param 値
- * @return オブジェクトのインデックス
- */
-int setPropWithIndex(JSValue obj, JSValue name, JSValue v)
-{
-  uint64_t retv;
-
-  if (hashGet(objMap(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
-    if (prop_overflow(obj)) {
-      LOG_ERR("proptable overflow\n");
-      return -1;
-    }
-    retv = ++(objNumberOfProp(obj));
-    hashPut(((Object*)obj)->map, name, (HashData)retv);
-  }
-  objProp(obj, (int)retv) = v;
-  return (int)retv;
-}
-#endif
-
-#if 0
 // ------------------------------------------------------------------
 /**
  * @brief 配列の要素を格納する
@@ -423,12 +346,6 @@ void setArrayValue(JSValue obj, int index, JSValue src)
     }
   }
   getArrayBody(obj)[index] = src;
-}
-
-// ------------------------------------------------------------------
-// 使われていないので後まわし
-int getStringByIndex(JSValue obj, int index, JSValue* ret){
-  return true;
 }
 
 // makes an Oniguruma's regexp object of type regex_t
@@ -492,13 +409,7 @@ JSValue new_array(void) {
   ret = make_array();
   p = remove_array_tag(ret);
   set_object_members(&(p->o));
-  // 配列要素の追加
-  // 0 で指定しているが、実際は MINIMUM_ARRAY_SIZE
-  // で指定されたサイズに初期化される。
-
-  array_body(p) = NULL;
-  // array_size(p) = 0;
-  array_length(p) = 0;
+  allocate_array_data(p, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
   return ret;
 }
@@ -658,15 +569,6 @@ double cstr_to_double(char* cstr) {
   else return NAN;
 }
 
-inline JSValue object_to_primitive(JSValue obj, Context* context) {
-  JSValue prim;
-//  if(!invokeValueOf(obj, context, &prim) || isObject(prim)){
-//    if(!invokeToString(obj, context, &prim) || isObject(prim)){
-//      LOG_EXIT("can't convert primitive\n"); } }
-  prim = JS_UNDEFINED;
-  return prim;
-}
-
 inline JSValue objectToPrimitiveHintNumber(JSValue obj, Context* context)
 {
   JSValue prim;
@@ -687,6 +589,7 @@ inline JSValue objectToPrimitiveHintString(JSValue obj, Context* context)
   return prim;
 }
 
+#if 0
 JSValue string_to_index(JSValue str)
 {
   long index;
@@ -705,6 +608,7 @@ JSValue string_to_index(JSValue str)
   }
   return str;
 }
+#endif
 
 /*
 double cStrToDouble(char* cstr)
@@ -734,107 +638,6 @@ double special_to_double(JSValue x) {
   case JS_UNDEFINED:
   default:
     return NAN;
-  }
-}
-
-JSValue primitive_to_string(JSValue p) {
-  uint64_t tag;
-
-  tag = get_tag(p);
-  switch (tag) {
-  case T_FIXNUM:
-    return fixnum_to_string(p);
-  case T_FLONUM:
-    return flonum_to_string(p);
-  case T_SPECIAL:
-    return special_to_string(p);
-  case T_STRING:
-    return p;
-  default:
-    LOG_EXIT("cannot convert to string.");
-  }
-}
-
-double primitive_to_double(JSValue p) {
-  uint64_t tag;
-  double x;
-
-  tag = get_tag(p);
-  switch (tag) {
-  case T_FIXNUM:
-    return (double)fixnum_to_int(p);
-  case T_SPECIAL:
-    x = special_to_double(p);
-    goto TO_INT_FLO;
-  case T_STRING:
-    x = cstr_to_double(string_to_cstr(p));
-    goto TO_INT_FLO;
-  case T_FLONUM:
-    x = flonum_to_double(p);
-TO_INT_FLO:
-    if (isnan(x))
-      return (double)0.0;
-    else
-      return sign(x) * floor(fabs(x));
-  default:
-    LOG_EXIT("Argument is not a primitive.");
-  }
-}
-
-JSValue primitive_to_integer(JSValue p)
-{
-  uint64_t tag;
-  double x;
-
-  tag = get_tag(p);
-  switch (tag) {
-  case T_FIXNUM:
-    return p;
-  case T_SPECIAL:
-    x = special_to_double(p);
-    goto TO_INT_FLO;
-  case T_STRING:
-    x = cstr_to_double(string_to_cstr(p));
-    goto TO_INT_FLO;
-  case T_FLONUM:
-    x = flonum_to_double(p);
-TO_INT_FLO:
-    if (isnan(x))
-      return FIXNUM_ZERO;
-    else if (isinf(x))
-      return p;
-    else {
-      x = sign(x) * floor(abs(x));
-      if (is_fixnum_range_double(x))
-        return double_to_fixnum(x);
-      else
-        return double_to_flonum(x);
-    }
-  default:
-    LOG_EXIT("Argument is not a primitive.");
-  }
-}
-
-JSValue jsvalue_to_boolean(JSValue v)
-{
-  uint64_t tag;
-  double x;
-
-  tag = get_tag(v);
-  switch (tag) {
-  case T_OBJECT:
-    return JS_TRUE;
-  case T_STRING:
-    return *(string_to_cstr(v)) == '\0'? JS_FALSE: JS_TRUE;
-  case T_FIXNUM:
-    return v == FIXNUM_ZERO? JS_FALSE: JS_TRUE;
-  case T_FLONUM:
-    x = flonum_to_double(v);
-    return (x == 0 || isnan(x))? JS_FALSE: JS_TRUE;
-  case T_SPECIAL:
-    return is_true(v)? JS_TRUE: JS_FALSE;
-  default:
-    LOG_EXIT("Invalid argument type.");
   }
 }
 

@@ -9,10 +9,11 @@ BUILTIN_FUNCTION(builtin_isNaN)
   JSValue v;
 
   builtin_prologue();  
-  v = args[1];
-  if (is_object(v))
-    v = objectToPrimitiveHintNumber(v, context);
-  set_a(context, int_to_boolean(isnan(primitive_to_double(v))));
+  v = to_number(context, args[1]);
+  if (is_flonum(v) && isnan(flonum_to_double(v)))
+    set_a(context, JS_TRUE);
+  else
+    set_a(context, JS_FALSE);
 }
 
 // isFinite
@@ -20,23 +21,18 @@ BUILTIN_FUNCTION(builtin_isNaN)
 BUILTIN_FUNCTION(builtin_isFinite)
 {
   JSValue v;
-  double x;
 
   builtin_prologue();  
-  v = args[1];
-  if (is_object(v))
-    v = objectToPrimitiveHintNumber(v, context);
-  x = primitive_to_double(v);
-  set_a(context, int_to_boolean(!(isnan(x) || isinf(x))));
+  v = to_number(context, args[1]);
+  if (is_flonum(v) && isinf(flonum_to_double(v)))
+    set_a(context, JS_TRUE);
+  else
+    set_a(context, JS_FALSE);
 }
 
 // parseInt str rad
 // converts a string to a number
 
-/**
- * @brief 文字列を数値に書き換える
- * rad は何処まで丸めるか？
- */
 BUILTIN_FUNCTION(builtin_parse_int)
 {
   JSValue str, rad;
@@ -46,19 +42,14 @@ BUILTIN_FUNCTION(builtin_parse_int)
   long ret;
 
   builtin_prologue();  
-  str = args[1];
-  rad = args[2];
-
-  if (is_object(str))
-    str = objectToPrimitiveHintString(str, context);
-  if (is_object(rad))
-    rad = objectToPrimitiveHintNumber(rad, context);
-
-  str = primitive_to_string(str);
+  str = to_string(context, args[1]);
+  rad = to_number(context, args[2]);
   cstr = string_to_cstr(str);
 
   if (!is_undefined(rad)) {
-    irad = (int32_t)primitive_to_double(rad);
+    if (is_fixnum(rad)) irad = fixnum_to_cint(rad);
+    else if (is_flonum(rad)) irad = flonum_to_cint(rad);
+    else irad = 10;
     if (irad < 2 || irad > 36) {
       set_a(context, gconsts.g_flonum_nan);
       return;
@@ -74,12 +65,6 @@ BUILTIN_FUNCTION(builtin_parse_int)
     set_a(context, int_to_fixnum(ret));
 }
 
-// -------------------------------------------------------------------------------------
-// parseFloat str
-/**
- * @brief 文字列を数値に書き換える
- */
-
 BUILTIN_FUNCTION(builtin_parse_float)
 {
   JSValue str;
@@ -87,12 +72,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
   double x;
 
   builtin_prologue();  
-  str = args[1];
-
-  if(is_object(str)){
-    str = objectToPrimitiveHintString(str, context); }
-
-  str = primitive_to_string(str);
+  str = to_string(context, args[1]);
   cstr = string_to_cstr(str);
   cstr = space_chomp(cstr);
 

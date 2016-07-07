@@ -26,7 +26,7 @@ void init_global_constants(void) {
   gconsts.g_string_undefined = cstr_to_string("undefined");
   gconsts.g_string_length    = cstr_to_string("length");
   gconsts.g_string_objtostr  = cstr_to_string("[object Object]");
-  gconsts.g_string_blank     = cstr_to_string("");
+  gconsts.g_string_empty     = cstr_to_string("");
   gconsts.g_string_comma     = cstr_to_string(",");
 
   // numbers
@@ -59,7 +59,7 @@ void init_global_constants(void) {
 
   gconsts.g_fixnum_to_string = new_builtin(builtin_fixnum_to_string, 0);
   gconsts.g_flonum_to_string = new_builtin(builtin_flonum_to_string, 0);
-  gconsts.g_string_to_index = new_builtin(builtin_string_to_index, 0);
+//  gconsts.g_string_to_index = new_builtin(builtin_string_to_index, 0);
 }
 
 // initializes global objects

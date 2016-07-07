@@ -41,7 +41,7 @@
         if (v is a primitive value, i.e., either boolean, number, or string)
           return convert_to_string(v);
       }
-      // o does not have toString or toString does not retuen a basic value
+      // o does not have toString or toString does not return a basic value
       if (o has valueOf() method) {
         v = o.valueOf():
         if (v is a primitive value, i.e., either boolean, number, or string)
@@ -277,6 +277,52 @@ JSValue flonum_to_object(JSValue v) {
   return new_number(v);
 }
 
+#if 0
+double primitive_to_double(JSValue p) {
+  uint64_t tag;
+  double x;
+
+  tag = get_tag(p);
+  switch (tag) {
+  case T_FIXNUM:
+    return (double)fixnum_to_cint(p);
+  case T_SPECIAL:
+    x = special_to_double(p);
+    goto TO_INT_FLO;
+  case T_STRING:
+    x = cstr_to_double(string_to_cstr(p));
+    goto TO_INT_FLO;
+  case T_FLONUM:
+    x = flonum_to_double(p);
+TO_INT_FLO:
+    if (isnan(x))
+      return (double)0.0;
+    else
+      return sign(x) * floor(fabs(x));
+  default:
+    LOG_EXIT("Argument is not a primitive.");
+  }
+}
+#endif
+
+JSValue primitive_to_string(JSValue p) {
+  uint64_t tag;
+
+  tag = get_tag(p);
+  switch (tag) {
+  case T_FIXNUM:
+    return fixnum_to_string(p);
+  case T_FLONUM:
+    return flonum_to_string(p);
+  case T_SPECIAL:
+    return special_to_string(p);
+  case T_STRING:
+    return p;
+  default:
+    LOG_EXIT("cannot convert to string.");
+  }
+}
+
 // converts an object to a string
 //
 JSValue object_to_string(Context *context, JSValue v) {
@@ -337,6 +383,50 @@ JSValue object_to_number(Context *context, JSValue v) {
   }
   return gconsts.g_flonum_nan;
   */
+}
+
+// converts an array to a string
+//
+JSValue array_to_string(Context* context, JSValue array, JSValue separator)
+{
+  uint64_t length, seplen, sumlen;
+  JSValue ret, item;
+  char **strs;
+  char *sep, *cstr, *p;
+  ArrayCell *ap;
+  int i;
+
+  ret = gconsts.g_string_empty;
+  length = array_length(array);
+  if (length <= 0)
+    return ret;
+
+  // length > 0
+
+  strs = (char **)malloc(sizeof(char *) * length);
+  sep = string_to_cstr(separator);
+  seplen = strlen(sep);
+  sumlen = 0;
+  ap = remove_array_tag(array);
+
+  for (i = 0; i < length; i++) {
+    item = array_body_index(ap, i);
+    strs[i] = string_to_cstr(to_string(context, item));
+    sumlen += strlen(strs[i]);
+  }
+
+  cstr = (char *)malloc(sizeof(char) * (sumlen + (length - 1) * seplen + 1));
+
+  for (i = 0, p = cstr; i < length; i++) {
+    strcpy(p, strs[i]);
+    p += strlen(strs[i]);
+    if (i != length - 1) {
+      strcpy(p, sep);
+      p += seplen;
+    }
+  }
+  *p = '\0';
+  return cstr_to_string(cstr);
 }
 
 // converts an object to a boolean

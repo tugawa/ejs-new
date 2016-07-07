@@ -50,13 +50,13 @@ BUILTIN_FUNCTION(builtin_flonum_to_string)
   set_a(context, fixnum_to_string(args[0]));
 }
 
+#if 0
 BUILTIN_FUNCTION(builtin_string_to_index)
 {
   builtin_prologue();
   set_a(context, string_to_index(args[0]));
 }
 
-#if 0
 BUILTIN_FUNCTION(dateProtoToString){}
 BUILTIN_FUNCTION(dateProtoToDateString){}
 BUILTIN_FUNCTION(dateProtoToTimeString){}
@@ -99,6 +99,3 @@ BUILTIN_FUNCTION(dateProtoSetFullYear){}
 BUILTIN_FUNCTION(dateProtoSetUTCFullYear){}
 BUILTIN_FUNCTION(dateProtoToUTCString){}
 #endif
-
-// 正規表現関連
-

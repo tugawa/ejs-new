@@ -26,7 +26,7 @@ BUILTIN_FUNCTION(string_constr_nonew)
   if (na > 0)
     arg = to_string(context, args[1]);
   else
-    arg = gconsts.g_string_blank;
+    arg = gconsts.g_string_empty;
   set_a(context, arg);
 }
 
@@ -547,7 +547,7 @@ void init_builtin_string(void)
 {
   gconsts.g_string
     = new_builtin_with_constr(string_constr_nonew, string_constr, 1);
-  gconsts.g_string_proto = new_string(gconsts.g_string_blank);
+  gconsts.g_string_proto = new_string(gconsts.g_string_empty);
   set_prop_all(gconsts.g_string, gconsts.g_string_prototype, gconsts.g_string_proto);
   // set_obj_cstr_prop(gconsts.g_string, "fromCharCode", new_builtin(stringFromCharCode, 0), ATTR_DE);
   {
