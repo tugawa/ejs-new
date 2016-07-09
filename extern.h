@@ -114,6 +114,7 @@ extern JSValue string_to_number(JSValue);
 // JSValue string_to_object(JSValue v);
 extern JSValue fixnum_to_string(JSValue);
 extern JSValue flonum_to_string(JSValue);
+extern JSValue number_to_string(JSValue);
 // JSValue fixnum_to_boolean(JSValue v);
 // JSValue flonum_to_boolean(JSValue v);
 // JSValue fixnum_to_object(JSValue v);

@@ -6,7 +6,7 @@
 // For details, see sect. 4.8.1.
 //
 JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
-  uint64_t tag;
+  Tag tag;
 
   if (is_object(v1))
     v1 = object_to_string(context, v1);
@@ -46,7 +46,6 @@ STRSTR:
   default:
     {
       double x1, x2, sum;
-      // Is it true?  What happens if primitive_to_double is given a float?
       x1 = to_double(context, v1);
       x2 = to_double(context, v2);
       sum = x1 + x2;

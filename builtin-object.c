@@ -6,9 +6,8 @@
 //
 BUILTIN_FUNCTION(object_constr)
 {
-  JSValue rsv;
-  uint64_t tag;
-  JSValue ret;
+  JSValue rsv, ret, arg;
+  Tag tag;
 
   builtin_prologue();
   rsv = args[0];
@@ -16,7 +15,6 @@ BUILTIN_FUNCTION(object_constr)
   // If this is called with `new', which kind of object is allocated
   // depends on the type of the first argument.
   if (na > 0) {
-    JSValue arg;
     arg = args[1];
     tag = get_tag(arg);
     switch(tag){

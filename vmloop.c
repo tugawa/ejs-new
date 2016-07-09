@@ -234,7 +234,7 @@ I_ADD:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -327,7 +327,7 @@ I_SUB:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -400,7 +400,7 @@ I_MUL:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -494,7 +494,7 @@ I_MOD:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -576,7 +576,7 @@ I_BITAND:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     cint x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -616,7 +616,7 @@ I_BITOR:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     cint x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -672,7 +672,7 @@ I_LESSTHAN:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -728,7 +728,7 @@ I_LESSTHANEQUAL:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
@@ -785,7 +785,7 @@ I_EQ:
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    uint64_t tag;
+    Tag tag;
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);

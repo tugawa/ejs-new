@@ -160,7 +160,7 @@ BoxedCell *allocate_boxed(uint64_t b)
   BoxedCell *box = (BoxedCell *)malloc(sizeof(BoxedCell));
   switch(b){
   case HEADER_BOXED_STRING:
-  case HEADER_BOXED_FLONUM:
+  case HEADER_BOXED_NUMBER:
   case HEADER_BOXED_BOOLEAN:
     box->o.header = b;
     break;

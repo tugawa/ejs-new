@@ -172,8 +172,6 @@ JSValue string_to_number(JSValue v) {
 }
 
 // converts a string to a boolean
-
-
 //
 JSValue string_to_boolean(JSValue v) {
   char *p;
@@ -234,6 +232,13 @@ JSValue flonum_to_string(JSValue v) {
   return cstr_to_string(buf);
 }
 
+JSValue number_to_string(JSValue v) {
+  if (is_fixnum(v)) return fixnum_to_string(v);
+  if (is_flonum(v)) return flonum_to_string(v);
+  type_error("number expected in number_to_string");
+  return gconsts.g_string_empty;
+}
+
 // converts a fixnum to a boolean
 //
 JSValue fixnum_to_boolean(JSValue v) {
@@ -279,7 +284,7 @@ JSValue flonum_to_object(JSValue v) {
 
 #if 0
 double primitive_to_double(JSValue p) {
-  uint64_t tag;
+  Tag tag;
   double x;
 
   tag = get_tag(p);
@@ -304,24 +309,6 @@ TO_INT_FLO:
   }
 }
 #endif
-
-JSValue primitive_to_string(JSValue p) {
-  uint64_t tag;
-
-  tag = get_tag(p);
-  switch (tag) {
-  case T_FIXNUM:
-    return fixnum_to_string(p);
-  case T_FLONUM:
-    return flonum_to_string(p);
-  case T_SPECIAL:
-    return special_to_string(p);
-  case T_STRING:
-    return p;
-  default:
-    LOG_EXIT("cannot convert to string.");
-  }
-}
 
 // converts an object to a string
 //
@@ -496,17 +483,57 @@ JSValue to_object(Context *context, JSValue v) {
   return JS_UNDEFINED;
 }
 
+// conversion functions to C's data
+
 // converts to a C's double
-// FIXIT: This implementation is not efficient.
 //
 double to_double(Context *context, JSValue v) {
-  JSValue num;
+  Tag tag;
 
-  num = to_number(context, v);
-  if (is_fixnum(num)) return fixnum_to_double(num);
-  else if (is_flonum(num)) return flonum_to_double(num);
-  else {
-    LOG_ERR("This cannot happen in to_double");
-    return gconsts.g_flonum_nan;
+  switch (tag = get_tag(v)) {
+  case T_FIXNUM:
+    return (double)(fixnum_to_cint(v));
+    break;
+  case T_FLONUM:
+    return flonum_to_double(v);
+    break;
+  case T_SPECIAL:
+    {
+      switch (v) {
+      case JS_UNDEFINED:
+        return NAN;
+      case JS_NULL:
+      case JS_FALSE:
+        return (double)0.0;
+      case JS_TRUE:
+        return (double)1.0;
+       }
+    }
+    break;
+  case T_STRING:
+    {
+      char *p, *q;
+      int n;
+      double d;
+
+      p = string_value(v);
+      if (p[0] == '\0') return (double)0.0;
+      n = strtol(p, &q, 10);
+      if (p != q && *q == '\0') return (double)n;  // succeeded 
+      d = strtod(p, &q);
+      if (p != q && *q == '\0') return d;
+      return NAN;
+    }
+    break;
+  case T_OBJECT:
+   {
+     JSValue w;
+
+     w = object_to_number(context, v);
+     if (is_fixnum(w)) return fixnum_to_double(w);
+     if (is_flonum(w)) return flonum_to_double(w);
+   }
+   break;
   }
+  return NAN;                 // not reached
 }

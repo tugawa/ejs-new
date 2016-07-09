@@ -38,14 +38,8 @@ BUILTIN_FUNCTION(number_toString)
   builtin_prologue();
   rsv = args[0];
   if (is_number_object(rsv)) {
-    if (na == 0)
-      set_a(context, primitive_to_string(number_object_value(rsv)));
-
-    // 引数を取り、１０進数指定か、または正しくない場合の処理
-    else if (args[1] == JS_UNDEFINED || args[1] == FIXNUM_TEN)
-      set_a(context, primitive_to_string(number_object_value(rsv)));
-
-    // n進数文字列変換
+    if (na == 0 || args[1] == FIXNUM_TEN || args[1] == JS_UNDEFINED)
+      set_a(context, number_to_string(number_object_value(rsv)));
     else {
 
       if(!get_tag(args[1]) == T_FIXNUM){
@@ -96,10 +90,9 @@ BUILTIN_FUNCTION(number_toString)
       set_a(context, cstr_to_string(strdup(str)));
     }
 
-  }else if(is_number(rsv)){
-    set_a(context, primitive_to_string(rsv));
-
-  }else{
+  } else if (is_number(rsv))
+    set_a(context, number_to_string(rsv));
+  else {
 
     // Type Error 例外処理をする [FIXME]
     LOG_EXIT("Number Instance's valueOf received not Number Instance\n");

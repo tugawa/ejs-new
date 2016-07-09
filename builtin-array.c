@@ -77,7 +77,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
         // invokeToLocaleString(item, context, &prim);
         prim = item;   // kore wa tekitou
       }
-      strs[i] = string_to_cstr(primitive_to_string(prim));
+      strs[i] = string_to_cstr(to_string(context, prim));
       sumLength += strlen(strs[i]);
     }
 

@@ -23,7 +23,7 @@
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  // 111
 
-#define get_tag(p)      (((uint64_t)(p)) & TAGMASK)
+#define get_tag(p)      (((Tag)(p)) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
 #define remove_tag(p,t) ((uint64_t)(p) - (t))
 #define equal_tag(p,t)  (get_tag((p)) == (t))
@@ -41,6 +41,8 @@
 #define T_FIXNUM  (0x7)  // 111
 
 // Pair of two pointer tags
+// Note that Tag the result of TAG_PAIR is of type Tag
+//
 #define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
 
 #define TP_OBJOBJ TAG_PAIR(T_OBJECT, T_OBJECT)
@@ -71,8 +73,11 @@
 
 typedef uint16_t Register;
 typedef int16_t  Displacement;
-typedef uint16_t  Subscript;
+typedef uint16_t Subscript;
+typedef uint16_t Tag;
+#ifdef QUICKENING
 typedef uint64_t QuickeningCounter;
+#endif
 
 // Object
 //  tag == T_OBJECT
@@ -254,9 +259,9 @@ typedef struct boxed_cell {
 
 #define number_object_value(n)         boxed_value((n))
 #define set_number_object_value(n, v)  set_boxed_value((n), (v))
-#define is_number_object(p)            is_obj_header_tag((p), HTAG_BOXED_FLONUM)
+#define is_number_object(p)            is_obj_header_tag((p), HTAG_BOXED_NUMBER)
 
-#define make_number_object()           make_boxed(HEADER_BOXED_FLONUM)
+#define make_number_object()           make_boxed(HEADER_BOXED_NUMBER)
 
 #define boolean_object_value(b)        boxed_value((b))
 #define set_boolean_object_value(b, v) set_boxed_value((b), (v))
@@ -366,7 +371,7 @@ struct jit_code_cell {
 #define HTAG_ITERATOR      (0xa)
 #define HTAG_REGEXP        (0xb)
 #define HTAG_BOXED_STRING  (0xc)
-#define HTAG_BOXED_FLONUM  (0xd)
+#define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
 
 #define HEADER_COMMON(cell, htag) \
@@ -379,7 +384,7 @@ struct jit_code_cell {
 #define HEADER_ITERATOR       HEADER_COMMON(IteratorCell, HTAG_ITERATOR)
 #define HEADER_REGEXP         HEADER_COMMON(RegExpCell, HTAG_REGEXP)
 #define HEADER_BOXED_STRING   HEADER_COMMON(BoxedCell, HTAG_BOXED_STRING)
-#define HEADER_BOXED_FLONUM   HEADER_COMMON(BoxedCell, HTAG_BOXED_FLONUM)
+#define HEADER_BOXED_NUMBER   HEADER_COMMON(BoxedCell, HTAG_BOXED_NUMBER)
 #define HEADER_BOXED_BOOLEAN  HEADER_COMMON(BoxedCell, HTAG_BOXED_BOOLEAN)
 
 #define obj_header_tag(x)  (obj_header(x) & OBJECT_HEADER_MASK)
