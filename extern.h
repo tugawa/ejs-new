@@ -73,6 +73,7 @@ extern void call_function(Context *, JSValue, int, int);
 extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
+extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
 
 /*
  * codeloader.c
@@ -205,7 +206,7 @@ extern JSValue new_string(JSValue);
 
 extern char *space_chomp(char *);
 // extern double cstr_to_double(char *);
-extern JSValue call_method(JSValue, JSValue);
+extern JSValue call_method(Context *, JSValue, JSValue);
 
 /*
  * operations.c

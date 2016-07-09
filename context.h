@@ -121,25 +121,28 @@ typedef struct context {
 #define set_err(c,v)    ((c)->spreg.iserr = true, (c)->spreg.err = (v))
 #define is_err(c)       ((c)->spreg.iserr)
 
-#define setArguments(c, arg) \
-  ((getLp(c))->arguments = arg)
+#define save_special_registers(c, st, pos) \
+  (st[pos] = (JSValue)(get_cf(c)), \
+   st[(pos) + 1] = (JSValue)(get_pc(c)), \
+   st[(pos) + 2] = (JSValue)(get_lp(c)), \
+   st[(pos) + 3] = (JSValue)(get_fp(c)))
 
-// #define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
+#define restore_special_registers(c, st, pos) \
+  (set_cf(c, (FunctionTable *)(st[pos])), \
+   set_pc(c, st[(pos) + 1]), \
+   set_lp(c, (FunctionFrame *)(st[(pos) + 2])), \
+   set_fp(c, st[(pos) + 3]))
+
 #define INVOKE_POS (4)
 #define CF_POS     (3)
 #define PC_POS     (2)
 #define LP_POS     (1)
 #define FP_POS     (0)
 
-// 配列
 #define ARRAY_INDEX_MAX     (0x7fffffff)
 #define INITIAL_ARRAY_SIZE  (1000)
 
-
-// #define getConst(index)  (insns[index].code)
-
-// ################################################################################ //
-// Quickening 用マクロ
+#ifdef QUICKENING
 #define QUICKENING_COUNT_MASK      (0xffff)
 #define QUICKENING_TAGS_MASK       (0x3f)
 
@@ -159,12 +162,9 @@ typedef struct context {
 #define getSecondOperanType(count) \
   ((count) & QUICKENING_COUNT_MASK)
 
-
-#ifdef QUICKENING
 #ifdef USE_THRESHOLD
 #ifdef PRINT_QUICKENING_COUNT
 
-// 命令の書き換えまで行なっている
 #define quickening(body, pc, opcode) do{                             \
 insns->hitInst = updateHitCounter2(insns->hitInst, opcode, insns);   \
 if(insns->hitCount > QUICKENING_THRESHOLD){                          \
@@ -173,7 +173,6 @@ if(insns->hitCount > QUICKENING_THRESHOLD){                          \
   (((*instPtr)) = jumpTable[(opcode)]); }                            \
 }while(0)
 
-// 命令の書き戻しは行なっていない
 #define dequickening(body, pc, opcode) do{    \
 (((*instPtr)) = jumpTable[(opcode)]);         \
 insns->hitCount = 0;                          \
@@ -182,7 +181,6 @@ insns->hitCount = 0;                          \
 
 #else // NOT PRINT_QUICKENING_COUNT
 
-// 命令の書き換えは行わない
 #define quickening(body, pc, opcode) do{                             \
 insns->hitInst = updateHitCounter2(insns->hitInst, opcode, insns);   \
 if(insns->hitCount > QUICKENING_THRESHOLD){                          \
@@ -217,8 +215,6 @@ insns->hitCount = 0;                          \
 #define QUICKENING_THRESHOLD 5
 #define MISS_THRESHOLD 1
 
-
-// ################################################################################ //
 #define updateOpcode(inst, opcode) \
   ((((bytecode)inst) & ~((bytecode)OPCODE_MASK)) |\
    (((bytecode)(opcode)) << OPCODE_OFFSET))
@@ -296,7 +292,6 @@ insns->code = makeSlowSetGlobal(str, src, 0);        \
 #define FASTINDEX_LIMIT (65535)
 
 
-// ################################################################################ //
 #ifdef QUICKENING_DEBUG
 #define addDebug(ret) assert(numberToDouble(ret) == numberToDouble(slowAdd(v1, v2, c)))
 #define subDebug(ret) assert(numberToDouble(ret) == numberToDouble(slowSub(v1, v2, c)))

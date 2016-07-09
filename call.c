@@ -2,19 +2,6 @@
 #define EXTERN
 #include "header.h"
 
-#define save_special_registers(c, st, pos) \
-  (st[pos] = (JSValue)(get_cf(c)), \
-   st[(pos) + 1] = (JSValue)(get_pc(c)), \
-   st[(pos) + 2] = (JSValue)(get_lp(c)), \
-   st[(pos) + 3] = (JSValue)(get_fp(c)))
-
-
-#define restore_special_registers(c, st, pos) \
-  (set_cf(c, (FunctionTable *)(st[pos])), \
-   set_pc(c, st[(pos) + 1]), \
-   set_lp(c, (FunctionFrame *)(st[(pos) + 2])), \
-   set_fp(c, st[(pos) + 3]))
-
 // calls a function
 //
 /*
@@ -36,8 +23,7 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
   JSValue *stack;
-  int sp, fp;
-  int pos;
+  int sp, fp, pos;
 
   f = remove_function_tag(fn);
   sp = get_sp(context);
@@ -61,7 +47,7 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
 }
 
 // call a function at the tail position
-
+//
 void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
@@ -146,7 +132,7 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
 }
 
 // calls a builtin function at a tail position
-
+//
 void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
   BuiltinCell *b;
   builtin_function_t body;
@@ -176,4 +162,37 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int co
   set_ac(context, nargs);
   (*body)(context, nargs);    // real-n-args?
   restore_special_registers(context, stack, fp - 4);
+}
+
+// invokes a function with no arguments in a new vmloop
+//
+JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sendp) {
+  FunctionCell *f;
+  FunctionTable *t;
+  JSValue *stack, ret;
+  int sp, pos;
+
+  f = remove_function_tag(fn);
+  stack = &get_stack(context, 0);
+  sp = get_sp(context);
+  pos = sp + 1;          // place where cf register will be saved
+  sp += 5;               // makes room for cf, pc, lp, and fp
+  stack[sp] = receiver;
+  save_special_registers(context, stack, pos);
+
+  // sets special registers
+  set_fp(context, sp);
+  set_ac(context, 0);
+  set_lp(context, func_environment(f));
+  t = func_table_entry(f);
+  set_cf(context, t);
+  if (sendp == TRUE)
+    set_pc(context, ftab_call_entry(t));
+  else
+    set_pc(context, ftab_send_entry(t));
+  vmrun_threaded(context, sp);
+  ret = get_a(context);
+  restore_special_registers(context, stack, pos);
+  sp = pos - 1;
+  return ret;
 }

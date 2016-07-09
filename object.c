@@ -641,6 +641,8 @@ double special_to_double(JSValue x) {
   }
 }
 
-JSValue call_method(JSValue receiver, JSValue method) {
+// calls a method
+//
+JSValue call_method(Context *context, JSValue receiver, JSValue method) {
   return JS_UNDEFINED;
 }

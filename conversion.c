@@ -320,14 +320,16 @@ JSValue object_to_string(Context *context, JSValue v) {
     return gconsts.g_string_empty;
   }
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
-    f = call_method(v, f);
+printf("calling toString\n"); 
+    f = invoke_function0(context, v, f, TRUE);
+print_value_verbose(context, f); putchar('\n');
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
-    f = call_method(v, f);
+    f = invoke_function0(context, v, f, TRUE);
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
@@ -347,13 +349,13 @@ JSValue object_to_number(Context *context, JSValue v) {
     return gconsts.g_string_empty;
   }
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
-    f = call_method(v, f);
+    f = invoke_function0(context, v, f, TRUE);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
-    f = call_method(v, f);
+    f = invoke_function0(context, v, f, TRUE);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);

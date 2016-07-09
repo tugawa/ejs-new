@@ -44,13 +44,17 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->iserr = false;
 }
 
+#if 0
 void pop_special_registers(Context *context, int fp, JSValue *regbase) {
   set_fp(context, (int)regbase[-FP_POS]);
   set_lp(context, (FunctionFrame *)regbase[-LP_POS]);
   set_pc(context, (int)regbase[-PC_POS]);
   set_cf(context, (FunctionTable *)regbase[-CF_POS]);
+  printf("pop_special_registers, fp: %p, lp: %p, pc: %p, cf: %p\n",
+    &regbase[-FP_POS], &regbase[-LP_POS], &regbase[-PC_POS], &regbase[-CF_POS]);
   set_sp(context, fp);
 }
+#endif
 
 void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   Context *c;

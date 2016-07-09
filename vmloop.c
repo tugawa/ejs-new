@@ -1124,9 +1124,14 @@ I_RET:
 
   ENTER_INSN(__LINE__);
   {
+    JSValue *stack;
+
     if (fp == border)
       return 1;
-    pop_special_registers(context, fp, regbase);
+    stack = &get_stack(context, 0);
+    restore_special_registers(context, stack, fp - 4);
+    // printf("restore_special_registers, fp: %p, lp: %p, pc: %p, cf: %p\n",
+    //        &stack[fp-1], &stack[fp-2], &stack[fp-3], &stack[fp-4]);
     update_context();
   }
   NEXT_INSN_INCPC();
