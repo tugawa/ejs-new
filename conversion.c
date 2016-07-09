@@ -2,7 +2,8 @@
 #define EXTERN
 #include "header.h"
 
-#define type_error()  LOG_EXIT("Type error")
+#define type_error_exception(s)  LOG_EXIT("Type error exception: " s "\n")
+#define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
 /*
   Data conversion rule of JavaScript
@@ -81,8 +82,8 @@ JSValue special_to_string(JSValue v) {
   case JS_FALSE:
     return gconsts.g_string_false;
   default:
-    LOG_ERR("Special expected in special_to_string");
-    return JS_UNDEFINED;
+    type_error("special expected in special_to_string");
+    return gconsts.g_string_empty;
   }
 }
 
@@ -98,8 +99,8 @@ JSValue special_to_number(JSValue v) {
   case JS_TRUE:
     return FIXNUM_ONE;
   default:
-    LOG_ERR("Special expected in special_to_number");
-    return JS_UNDEFINED;
+    type_error("special expected in special_to_number");
+    return gconsts.g_flonum_nan;
   }
 }
 
@@ -114,8 +115,8 @@ JSValue special_to_boolean(JSValue v) {
   case JS_FALSE:
     return v;
   default:
-    LOG_ERR("Special expected in special_to_boolean");
-    return JS_UNDEFINED;
+    type_error("special expected in special_to_boolean");
+    return JS_FALSE;
   }
 }
 
@@ -125,13 +126,13 @@ JSValue special_to_object(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
   case JS_NULL:
-    type_error();
+    type_error_exception("trying to convert undefined/null to an object");
     return JS_UNDEFINED;
   case JS_TRUE:
   case JS_FALSE:
     return new_boolean(v);
   default:
-    LOG_ERR("Special expected in special_to_object");
+    type_error("special expected in special_to_object");
     return JS_UNDEFINED;
   }
 }
@@ -144,8 +145,8 @@ JSValue string_to_number(JSValue v) {
   double d;
 
   if (! is_string(v)) {
-    LOG_ERR("Not a string in strint_to_number");
-    return JS_UNDEFINED;
+    type_error("string expected in strint_to_number");
+    return gconsts.g_flonum_nan;
   }
   p = string_value(v);
   if (p[0] == '\0')    // empty string
@@ -156,12 +157,10 @@ JSValue string_to_number(JSValue v) {
   if (p != q) {
     if (*q == '\0') {
       // succeeded to convert to a long integer
-      if (MIN_FIXNUM_CINT <= n && n <= MAX_FIXNUM_CINT)
+      if (is_fixnum_range_cint(n))
         return cint_to_fixnum(n);
-      else {
-        d = (double)n;
-        return double_to_fixnum(d);
-      }
+      else
+        return double_to_flonum((double)n);
     }
   }
   d = strtod(p, &q);
@@ -173,13 +172,15 @@ JSValue string_to_number(JSValue v) {
 }
 
 // converts a string to a boolean
+
+
 //
 JSValue string_to_boolean(JSValue v) {
   char *p;
 
   if (! is_string(v)) {
-    LOG_ERR("Not a string in string_to_boolean");
-    return JS_UNDEFINED;
+    type_error("string expected in string_to_boolean");
+    return JS_FALSE;
   }
   p = string_value(v);
   return (p[0] == '\0')? JS_FALSE: JS_TRUE;
@@ -189,7 +190,7 @@ JSValue string_to_boolean(JSValue v) {
 //
 JSValue string_to_object(JSValue v) {
   if (! is_string(v)) {
-    LOG_ERR("Not a string in string_to_object");
+    type_error("string expected in string_to_object");
     return JS_UNDEFINED;
   }
   return new_string(v);
@@ -203,8 +204,8 @@ JSValue fixnum_to_string(JSValue v) {
   char buf[BUFSIZE];
 
   if (!is_fixnum(v)) {
-    LOG_ERR("Not a fixnum in fixnum_to_string");
-    return JS_UNDEFINED;
+    type_error("fixnum expected in fixnum_to_string");
+    return gconsts.g_string_empty;
   }
   snprintf(buf, BUFSIZE, "%"PRId64, fixnum_to_cint(v));
   return cstr_to_string(buf);
@@ -217,7 +218,7 @@ JSValue flonum_to_string(JSValue v) {
   char buf[BUFSIZE];
 
   if (!is_flonum(v)) {
-    LOG_ERR("Not a flonum in flonum_to_string");
+    type_error("flonum expected in flonum_to_string");
     return JS_UNDEFINED;
   }
   d = flonum_to_double(v);
@@ -237,11 +238,10 @@ JSValue flonum_to_string(JSValue v) {
 //
 JSValue fixnum_to_boolean(JSValue v) {
   if (!is_fixnum(v)) {
-    LOG_ERR("Not a fixnum in fixnum_to_boolean");
-    return JS_UNDEFINED;
+    type_error("fixnum expected in fixnum_to_boolean");
+    return JS_FALSE;
   }
-  if (v == FIXNUM_ZERO) return JS_FALSE;
-  else return JS_TRUE;
+  return (v == FIXNUM_ZERO)? JS_FALSE: JS_TRUE;
 }
 
 // converts a flonum to a boolean
@@ -250,8 +250,8 @@ JSValue flonum_to_boolean(JSValue v) {
   double d;
 
   if (!is_flonum(v)) {
-    LOG_ERR("Not a flonum in flonum_to_boolean");
-    return JS_UNDEFINED;
+    type_error("flonum expected in flonum_to_boolean");
+    return JS_FALSE;
   }
   d = flonum_to_double(v);
   return isnan(d)? JS_FALSE: JS_TRUE;
@@ -261,7 +261,7 @@ JSValue flonum_to_boolean(JSValue v) {
 //
 JSValue fixnum_to_object(JSValue v) {
   if (!is_fixnum(v)) {
-    LOG_ERR("Not a fixnum in fixnum_to_object");
+    type_error("fixnum expected in fixnum_to_object");
     return JS_UNDEFINED;
   }
   return new_number(v);
@@ -271,7 +271,7 @@ JSValue fixnum_to_object(JSValue v) {
 //
 JSValue flonum_to_object(JSValue v) {
   if (!is_flonum(v)) {
-    LOG_ERR("Not a flonum in flonum_to_object");
+    type_error("flonum expected in flonum_to_object");
     return JS_UNDEFINED;
   }
   return new_number(v);
@@ -328,8 +328,10 @@ JSValue primitive_to_string(JSValue p) {
 JSValue object_to_string(Context *context, JSValue v) {
   JSValue f;
 
-  if (!is_object(v))
-    return JS_UNDEFINED;
+  if (!is_object(v)) {
+    type_error("object expected in object_to_string");
+    return gconsts.g_string_empty;
+  }
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_string(f)) return f;
@@ -344,8 +346,8 @@ JSValue object_to_string(Context *context, JSValue v) {
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-  // type_error();
-  return gconsts.g_string_undefined;
+  type_error_exception("neither toString nor valueOf returned a string in object_to_string");
+  return gconsts.g_string_undefined;     // not reached
 }
 
 // converts an object to a number
@@ -353,8 +355,10 @@ JSValue object_to_string(Context *context, JSValue v) {
 JSValue object_to_number(Context *context, JSValue v) {
   JSValue f;
 
-  if (!is_object(v))
-    return JS_UNDEFINED;
+  if (!is_object(v)) {
+    type_error("object expected in object_to_number");
+    return gconsts.g_string_empty;
+  }
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
     f = call_method(v, f);
     if (is_number(f)) return f;
@@ -367,8 +371,8 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
-  type_error();
-  return FIXNUM_ZERO;
+  type_error_exception("neither valueOf nor toString returned a number in object_to_number");
+  return FIXNUM_ZERO;       // not reached
 
   // not completed yet
   /*
@@ -385,9 +389,19 @@ JSValue object_to_number(Context *context, JSValue v) {
   */
 }
 
+// converts an object to a boolean
+//
+JSValue object_to_boolean(JSValue v) {
+  if (!is_object(v)) {
+    type_error("object expected in object_to_boolean");
+    return JS_FALSE;
+  }
+  return JS_TRUE;
+}
+
 // converts an array to a string
 //
-JSValue array_to_string(Context* context, JSValue array, JSValue separator)
+JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 {
   uint64_t length, seplen, sumlen;
   JSValue ret, item;
@@ -396,6 +410,10 @@ JSValue array_to_string(Context* context, JSValue array, JSValue separator)
   ArrayCell *ap;
   int i;
 
+  if (!is_array(array)) {
+    type_error("array expected in array_to_string");
+    return gconsts.g_string_empty;
+  }
   ret = gconsts.g_string_empty;
   length = array_length(array);
   if (length <= 0)
@@ -429,24 +447,7 @@ JSValue array_to_string(Context* context, JSValue array, JSValue separator)
   return cstr_to_string(cstr);
 }
 
-// converts an object to a boolean
-//
-JSValue object_to_boolean(JSValue v) {
-  return JS_TRUE;
-}
-
 // general functions
-
-// converts to an object
-JSValue to_object(Context *context, JSValue v) {
-  if (is_string(v)) return string_to_object(v);
-  if (is_fixnum(v)) return fixnum_to_object(v);
-  if (is_flonum(v)) return flonum_to_object(v);
-  if (is_special(v)) return special_to_object(v);
-  if (is_object(v)) return v;
-  LOG_ERR("This cannot happen in to_string");
-  return JS_UNDEFINED;
-}
 
 // converts to a string
 //
@@ -455,6 +456,7 @@ JSValue to_string(Context *context, JSValue v) {
   if (is_fixnum(v)) return fixnum_to_string(v);
   if (is_flonum(v)) return flonum_to_string(v);
   if (is_special(v)) return special_to_string(v);
+  if (is_array(v)) return array_to_string(context, v, gconsts.g_string_comma);
   if (is_object(v)) return object_to_string(context, v);
   LOG_ERR("This cannot happen in to_string");
   return gconsts.g_string_undefined;
@@ -481,6 +483,17 @@ JSValue to_number(Context *context, JSValue v) {
   if (is_object(v)) return object_to_number(context, v);
   LOG_ERR("This cannot happen in to_number");
   return gconsts.g_flonum_nan;
+}
+
+// converts to an object
+JSValue to_object(Context *context, JSValue v) {
+  if (is_string(v)) return string_to_object(v);
+  if (is_fixnum(v)) return fixnum_to_object(v);
+  if (is_flonum(v)) return flonum_to_object(v);
+  if (is_special(v)) return special_to_object(v);
+  if (is_object(v)) return v;
+  LOG_ERR("This cannot happen in to_object");
+  return JS_UNDEFINED;
 }
 
 // converts to a C's double
