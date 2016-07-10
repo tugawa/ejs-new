@@ -180,6 +180,9 @@ typedef struct builtin_cell {
 #define put_builtin_tag(p)      (put_tag(p, T_OBJECT))
 #define make_builtin()          (put_builtin_tag(allocate_builtin()))
 
+#define is_function_or_builtin(p) \
+  (is_object((p)) && ((obj_header_tag((p)) == HTAG_FUNCTION) || (obj_header_tag((p)) == HTAG_BUILTIN))
+
 // #define make_builtin()  ((BuiltinCell *)(put_tag((allocate_builtin()), T_OBJECT)))
 
 // Iterator

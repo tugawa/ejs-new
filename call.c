@@ -88,7 +88,7 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   JSValue *stack;
   int na;
   int sp, fp;
-  int pos;
+  // int pos;
 
   b = remove_builtin_tag(fn);
   body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
@@ -199,4 +199,15 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
   restore_special_registers(context, stack, pos);
   sp = pos - 1;
   return ret;
+}
+
+// calls a builtin with no arguments
+//
+JSValue call_builtin0(Context *context, JSValue receiver, JSValue fn, int sendp) {
+  int sp;
+
+  sp = get_sp(context);
+  get_stack(context, sp) = receiver;
+  call_builtin(context, fn, 0, sendp, FALSE);
+  return get_a(context);
 }

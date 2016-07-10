@@ -319,22 +319,28 @@ JSValue object_to_string(Context *context, JSValue v) {
     type_error("object expected in object_to_string");
     return gconsts.g_string_empty;
   }
-  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
-printf("calling toString\n"); 
-    f = invoke_function0(context, v, f, TRUE);
-print_value_verbose(context, f); putchar('\n');
+  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
+    printf("calling toString\n"); 
+    print_value_verbose(context, f); putchar('\n');
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT0;
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
-    f = invoke_function0(context, v, f, TRUE);
+NEXT0:
+  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT1;
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
+NEXT1:
   type_error_exception("neither toString nor valueOf returned a string in object_to_string");
   return gconsts.g_string_undefined;     // not reached
 }
@@ -348,18 +354,24 @@ JSValue object_to_number(Context *context, JSValue v) {
     type_error("object expected in object_to_number");
     return gconsts.g_string_empty;
   }
-  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS && is_function(f)) {
-    f = invoke_function0(context, v, f, TRUE);
+  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT0;
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
-  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS && is_function(f)) {
-    f = invoke_function0(context, v, f, TRUE);
+NEXT0:
+  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT1;
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
+NEXT1:
   type_error_exception("neither valueOf nor toString returned a number in object_to_number");
   return FIXNUM_ZERO;       // not reached
 

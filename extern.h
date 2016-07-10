@@ -74,6 +74,8 @@ extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
 extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
+JSValue call_builtin0(Context *, JSValue, JSValue, int);
+
 
 /*
  * codeloader.c
