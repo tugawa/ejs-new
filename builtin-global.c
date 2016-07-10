@@ -102,10 +102,10 @@ BUILTIN_FUNCTION(builtin_print)
 //
 BUILTIN_FUNCTION(builtin_printStatus)
 {
-  int fp;
+  // int fp;
   JSValue *regBase;
 
-  fp = get_fp(context);
+  // fp = get_fp(context);
   regBase = (JSValue*)(&(get_stack(context, fp-1)));
   LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
           (FunctionCell *)regBase[-CF_POS],

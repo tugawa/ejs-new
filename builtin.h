@@ -1,10 +1,13 @@
-#define BUILTIN_FUNCTION(x) void x(Context* context, int na)
+#define BUILTIN_FUNCTION(x) void x(Context *context, int fp, int na)
+// #define BUILTIN_FUNCTION(x) void x(Context *context, int na)
 #define BUILTIN_FUNCTION_STATIC(x) static BUILTIN_FUNCTION(x)
 
 #define get_args()  ((JSValue *)(&(get_stack(context, fp))))
 
-#define builtin_prologue() \
-  int fp; JSValue *args; fp = get_fp(context); args = get_args()
+#define builtin_prologue() JSValue *args = get_args()
+
+// #define builtin_prologue() \
+//   int fp; JSValue *args; fp = get_fp(context); args = get_args()
 
 typedef struct obj_builtin_prop {
   char *name;

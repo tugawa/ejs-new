@@ -7,7 +7,7 @@
    (is_fixnum_range_double((x))? set_a(context, double_to_fixnum((x))): \
                                  set_a(context, double_to_flonum((x)))))
 
-void math_func(Context *context, double (*fn)(double)) {
+void math_func(Context *context, int fp, double (*fn)(double)) {
   JSValue v;
   double x;
 
@@ -24,7 +24,7 @@ void math_func(Context *context, double (*fn)(double)) {
   set_a_number(x);
 }
 
-void math_func2(Context *context, double (*fn)(double, double)) {
+void math_func2(Context *context, int fp, double (*fn)(double, double)) {
   JSValue v1, v2;
   double x1, x2;
 
@@ -52,74 +52,74 @@ void math_func2(Context *context, double (*fn)(double, double)) {
 
 BUILTIN_FUNCTION(math_abs)
 {
-  math_func(context, &fabs);
+  math_func(context, fp, &fabs);
 }
 
 BUILTIN_FUNCTION(math_sqrt)
 {
-  math_func(context, &sqrt);
+  math_func(context, fp, &sqrt);
 }
 
 BUILTIN_FUNCTION(math_sin)
 {
-  math_func(context, &sin);
+  math_func(context, fp, &sin);
 }
 
 BUILTIN_FUNCTION(math_cos)
 {
-  math_func(context, &cos);
+  math_func(context, fp, &cos);
 }
 
 BUILTIN_FUNCTION(math_tan)
 {
-  math_func(context, &tan);
+  math_func(context, fp, &tan);
 }
 
 BUILTIN_FUNCTION(math_asin)
 {
-  math_func(context, &asin);
+  math_func(context, fp, &asin);
 }
 
 BUILTIN_FUNCTION(math_acos)
 {
-  math_func(context, &asin);
+  math_func(context, fp, &asin);
 }
 
 BUILTIN_FUNCTION(math_atan)
 {
-  math_func(context, &atan);
+  math_func(context, fp, &atan);
 }
 
 // mathAtan2
 
 BUILTIN_FUNCTION(math_atan2)
 {
-  math_func2(context, &atan2);
+  math_func2(context, fp, &atan2);
 }
 
 BUILTIN_FUNCTION(math_exp)
 {
-  math_func(context, &exp);
+  math_func(context, fp, &exp);
 }
 
 BUILTIN_FUNCTION(math_log)
 {
-  math_func(context, &log);
+  math_func(context, fp, &log);
 }
 
 BUILTIN_FUNCTION(math_ceil)
 {
-  math_func(context, &ceil);
+  math_func(context, fp, &ceil);
 }
 
 BUILTIN_FUNCTION(math_floor)
 {
-  math_func(context, &floor);
+  math_func(context, fp, &floor);
 }
 
 BUILTIN_FUNCTION(math_round)
 {
-  math_func(context, &round);
+  math_func(context, fp, &round);
 }
 
 BUILTIN_FUNCTION(math_max)
@@ -162,7 +162,7 @@ BUILTIN_FUNCTION(math_min)
 
 BUILTIN_FUNCTION(math_pow)
 {
-  math_func2(context, pow);
+  math_func2(context, fp, pow);
 }
 
 BUILTIN_FUNCTION(math_random)

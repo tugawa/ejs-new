@@ -23,11 +23,10 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
   JSValue *stack;
-  int sp, fp, pos;
+  int sp, pos;
 
   f = remove_function_tag(fn);
   sp = get_sp(context);
-  fp = get_fp(context);
   stack = &get_stack(context, 0);
 
   // saves special registers into the stack
@@ -99,9 +98,14 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   fp = get_fp(context);
   stack = &get_stack(context, 0);
 
-  // saves special registers into the stack
-  pos = sp - nargs - 4;
-  save_special_registers(context, stack, pos);
+  // The original code called save_special_registers here, but this seems
+  // to be unnecessary because builtin function codes do not manipulate
+  // special registers.  However, since the compiler takes rooms from
+  // stack[pos] to stack[pos + 3] for saving the values of special registers,
+  // it may be necessary to fill them these rooms with harmless values
+  //  (e.g., FIXNUM_ZERO) to make the GC work correctly.
+  // pos = sp - nargs - 4;
+  // save_special_registers(context, stack, pos);
 
   // sets the value of the receiver to the global object if it is not set yet
   if (sendp == FALSE)
@@ -121,14 +125,14 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   */
 
   // sets special registers
-  set_fp(context, sp - nargs);
-  set_lp(context, NULL);    // it seems that these three lines are unnecessary
-  set_pc(context, -1);
-  set_cf(context, NULL);
-
-  set_ac(context, nargs);
-  (*body)(context, nargs);    // real-n-args?
-  restore_special_registers(context, stack, pos);
+  // set_fp(context, sp - nargs);
+  set_sp(context, sp);
+  // set_lp(context, NULL);    // it seems that these three lines are unnecessary
+  // set_pc(context, -1);
+  // set_cf(context, NULL);
+  // set_ac(context, nargs);
+  (*body)(context, sp - nargs, nargs);    // real-n-args?
+  // restore_special_registers(context, stack, pos);
 }
 
 // calls a builtin function at a tail position
@@ -156,11 +160,11 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int co
 
   // sets special registers
   set_sp(context, fp + nargs);
-  set_lp(context, NULL);    // it seems that these three lines are unnecessary
-  set_pc(context, -1);
-  set_cf(context, NULL);
-  set_ac(context, nargs);
-  (*body)(context, nargs);    // real-n-args?
+  // set_lp(context, NULL);    // it seems that these three lines are unnecessary
+  // set_pc(context, -1);
+  // set_cf(context, NULL);
+  // set_ac(context, nargs);
+  (*body)(context, fp, nargs);    // real-n-args?
   restore_special_registers(context, stack, fp - 4);
 }
 

@@ -19,7 +19,7 @@
 
 extern StrTable stringTable;
 
-typedef void (*builtin_function_t)(Context*, int);
+typedef void (*builtin_function_t)(Context*, int, int);
 
 //
 

@@ -162,7 +162,7 @@ typedef struct function_cell {
 //   o number of optional arguments
 //   etc.
 
-typedef void (*builtin_function_t)(Context*, int);
+typedef void (*builtin_function_t)(Context*, int, int);
 
 typedef struct builtin_cell {
   Object o;
