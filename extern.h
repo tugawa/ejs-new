@@ -186,6 +186,7 @@ extern void print_value(Context *, JSValue, int);
  * object.c
  */
 extern int get_prop(JSValue, JSValue, JSValue *);
+extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);

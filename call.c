@@ -176,6 +176,7 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
   JSValue *stack, ret;
   int sp, pos;
 
+  printf("Entering invoke_function0\n"); fflush(stdout);
   f = remove_function_tag(fn);
   stack = &get_stack(context, 0);
   sp = get_sp(context);
@@ -196,8 +197,8 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
     set_pc(context, ftab_send_entry(t));
   vmrun_threaded(context, sp);
   ret = get_a(context);
+  print_value_verbose(context, ret); putchar('\n');
   restore_special_registers(context, stack, pos);
-  sp = pos - 1;
   return ret;
 }
 

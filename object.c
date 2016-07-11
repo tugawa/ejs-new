@@ -33,6 +33,7 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret)
 {
   int index;
 
+printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
   index = prop_index(obj, name);
   if (index == -1) return FAIL;
 
@@ -49,6 +50,8 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
   extern JSValue prototype_object(JSValue);
 
+printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n", string_to_cstr(p), o);
+printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
   do {
     if (get_prop(o, p, &ret) == SUCCESS) return ret;
   } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);

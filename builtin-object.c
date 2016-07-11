@@ -12,6 +12,7 @@ BUILTIN_FUNCTION(object_constr)
   builtin_prologue();
   rsv = args[0];
 
+  printf("called object_constr, na = %d\n", na);
   // If this is called with `new', which kind of object is allocated
   // depends on the type of the first argument.
   if (na > 0) {
@@ -41,9 +42,23 @@ BUILTIN_FUNCTION(object_constr)
       break;
     }
   } else {
+    printf("object_constr: na == 0, calls new_object\n");
+    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
     ret = new_object();
+    printf("ret = %016lx\n", ret);
     set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   }
+  /*
+  {
+    JSValue p;
+    if (get_prop(ret, gconsts.g_string___proto__, &p) == SUCCESS) {
+      printf("get_prop succeeded, p = ");
+      print_value_verbose(context, p); putchar('\n');
+    } else {
+      printf("get_prop failed\n");
+    }
+  }
+  */
   set_a(context, ret);
 }
 
@@ -52,18 +67,26 @@ BUILTIN_FUNCTION(object_toString)
   set_a(context, gconsts.g_string_objtostr);
 }
 
+ObjBuiltinProp object_funcs[] = {
+  { "toString",       object_toString,       0, ATTR_DE },
+#ifdef PARALLEL
+  {  "setShared",     objectProtoSetShared,  0, ATTR_DE },
+#endif
+  { NULL,             NULL,                  0, ATTR_DE }
+};
+
 void init_builtin_object(void)
 {
-  gconsts.g_object = new_builtin(object_constr, 0);
-  gconsts.g_object_proto = new_object();
-  set_prop_all(gconsts.g_object_proto, gconsts.g_string_prototype,
-               gconsts.g_object_proto);
-  set_prop_de(gconsts.g_object_proto, gconsts.g_string_tostring,
-               new_builtin(object_toString, 0));
-#ifdef PARALLEL
-  set_obj_cstr_prop(gconsts.g_object_proto, "setShared",
-               new_builtin(objectProtoSetShared, 0), ATTR_DE);
-
-#endif
+  JSValue obj, proto;
+  gconsts.g_object = obj = new_builtin(object_constr, 0);
+  gconsts.g_object_proto = proto = new_object();
+  set_prop_de(obj, gconsts.g_string_prototype, proto);
+  {
+    ObjBuiltinProp *p = object_funcs;
+    while (p->name != NULL) {
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      p++;
+    }
+  }
 }
 

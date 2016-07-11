@@ -948,13 +948,21 @@ I_INSTANCEOF:
   ENTER_INSN(__LINE__);
   {
     Register dst;
-    JSValue v1, v2;
+    JSValue v1, v2, p, ret;
 
     dst = get_first_operand_reg(insn);
     v1 = regbase[get_second_operand_reg(insn)];
     v2 = regbase[get_third_operand_reg(insn)];
-    // not implemented yet
-    regbase[dst] = JS_FALSE;
+    ret = JS_FALSE;
+    if (is_object(v1) && is_object(v2) &&
+        get_prop(v2, gconsts.g_string_prototype, &p) == TRUE) {
+      while (get_prop(v1, gconsts.g_string___proto__, &v1) == TRUE)
+        if (v1 == p) {
+          ret = JS_TRUE;
+          break;
+        }
+    }
+    regbase[dst] = ret;
   }
   NEXT_INSN_INCPC();
 
@@ -999,6 +1007,13 @@ I_NEW:
       set_prop_all(o, gconsts.g_string___proto__, p);
     else
       set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
+    {
+      printf("NEW: o = %016lx, p = %016lx, g_object_proto = %016lx, ", o, p, gconsts.g_object_proto);
+      if (get_prop(o, gconsts.g_string___proto__, &p) == SUCCESS)
+        printf("NEW: o[__proto__] = %016lx\n", p);
+      else
+        printf("NEW: o[__proto__] not found\n");
+    }
     regbase[dst] = o;
   }
   NEXT_INSN_INCPC();

@@ -319,9 +319,12 @@ JSValue object_to_string(Context *context, JSValue v) {
     type_error("object expected in object_to_string");
     return gconsts.g_string_empty;
   }
-  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
-    printf("calling toString\n"); 
-    print_value_verbose(context, f); putchar('\n');
+  // if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring)) != JS_UNDEFINED) {
+    printf("calling toString\n" );
+    if (is_function(f)) printf("toString is a function\n");
+    else if (is_builtin(f)) printf("toString is a builtin\n");
+    else printf("toString is ???\n");
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
     else goto NEXT0;
@@ -331,7 +334,8 @@ JSValue object_to_string(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_string(f);
   }
 NEXT0:
-  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+  // if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof)) != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
     else goto NEXT1;

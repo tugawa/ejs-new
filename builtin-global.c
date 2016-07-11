@@ -141,6 +141,19 @@ BUILTIN_FUNCTION(builtin_hello)
   set_a(context, JS_UNDEFINED);
 }
 
+BUILTIN_FUNCTION(builtin_to_string)
+{
+  builtin_prologue();
+  set_a(context, to_string(context, args[1]));
+}
+
+BUILTIN_FUNCTION(builtin_to_number)
+{
+  builtin_prologue();
+  set_a(context, to_number(context, args[1]));
+}
+
+
 #ifdef USE_PAPI
 // obtains the real usec
 //
@@ -160,6 +173,8 @@ ObjBuiltinProp global_funcs[] = {
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },
   { "address",        builtin_address,            0, ATTR_ALL  },
   { "hello",          builtin_hello,              0, ATTR_ALL  },
+  { "to_string",      builtin_to_string,          1, ATTR_ALL  },
+  { "to_number",      builtin_to_number,          1, ATTR_ALL  },
 #ifdef USE_PAPI
   { "papi_get_real",  builtin_papi_get_real,      0, ATTR_ALL  },
 #endif

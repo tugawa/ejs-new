@@ -20,13 +20,27 @@ static uint64_t callcount = 0;
 // test
 //
 #define pp(v) (print_value_verbose(cxt, (v)), putchar('\n'))
+
 void testtest(Context *cxt) {
-  JSValue v;
+  JSValue v, p;
+  printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n", cxt->global, gconsts.g_global);
+  printf("Testtest: g_object = %016lx, g_object_proto = %016lx\n", gconsts.g_object, gconsts.g_object_proto);
+
+  if (get_prop(cxt->global, cstr_to_string("Object"), &v) == SUCCESS)
+    printf("Testtest: global[Object] = %016lx\n", v);
+  else
+    printf("Testtest: global[Object] = not found\n");
+
+  if (get_prop(v, cstr_to_string("prototype"), &p) == SUCCESS)
+    printf("Testtest: Object[prototype] = %016lx\n", p);
+  else
+    printf("Testtest: Object[prototype] = not found\n");
+
+#if 0
   v = new_object();
   set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
-#if 0
   v = JS_UNDEFINED; pp(v);
   v = JS_NULL; pp(v);
   v = JS_TRUE; pp(v);
@@ -227,7 +241,25 @@ void print_value(Context *context, JSValue v, int verbose) {
     printf("%016lx, tag = %d: ", v, get_tag(v));
   switch (get_tag(v)) {
   case T_OBJECT:
-    v = object_to_string(context, v);
+    // v = object_to_string(context, v);
+    {
+      Object *p;
+
+      p = remove_object_tag(v);
+      printf("tag = T_OBJECT, header tag = %ld\n", obj_header_tag(p));
+      switch (obj_header_tag(p)) {
+      case HTAG_OBJECT: v = gconsts.g_string_objtostr; break;
+      case HTAG_ARRAY:  v = cstr_to_string("array"); break;
+      case HTAG_FUNCTION: v = cstr_to_string("function"); break;
+      case HTAG_BUILTIN: v = cstr_to_string("builtin"); break;
+      case HTAG_ITERATOR: v = cstr_to_string("iterator"); break;
+      case HTAG_REGEXP: v = cstr_to_string("regexp"); break;
+      case HTAG_BOXED_STRING: v = cstr_to_string("boxed-string"); break;
+      case HTAG_BOXED_NUMBER: v = cstr_to_string("boxed-number"); break;
+      case HTAG_BOXED_BOOLEAN: v = cstr_to_string("boxed-boolean"); break;
+      default: v = cstr_to_string("???"); break;
+      }
+    }
     break;
   case T_STRING:
     break;

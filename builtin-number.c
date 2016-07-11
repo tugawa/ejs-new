@@ -125,26 +125,28 @@ ObjDoubleProp number_values[] = {
 
 void init_builtin_number(void)
 {
-  gconsts.g_number =
+  JSValue n, proto;
+
+  gconsts.g_number = n =
     new_builtin_with_constr(number_constr_nonew, number_constr, 1);
-  gconsts.g_number_proto = new_number(FIXNUM_ZERO);
-  set_prop_de(gconsts.g_number, gconsts.g_string_prototype, gconsts.g_number_proto);
-  set_obj_cstr_prop(gconsts.g_number, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
-  set_obj_cstr_prop(gconsts.g_number, "NEGATIVE_INFINITY",
-             gconsts.g_flonum_negative_infinity, ATTR_ALL);
-  set_obj_cstr_prop(gconsts.g_number, "NaN", gconsts.g_flonum_nan, ATTR_ALL);
-  set_prop_all(gconsts.g_number_proto, gconsts.g_string___proto__, gconsts.g_object_proto);
+  gconsts.g_number_proto = proto = new_number(FIXNUM_ZERO);
+  set_prop_de(n, gconsts.g_string_prototype, proto);
+  set_prop_all(proto, gconsts.g_string___proto__, gconsts.g_object_proto);
+  set_obj_cstr_prop(n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
+  set_obj_cstr_prop(n, "NEGATIVE_INFINITY",
+                    gconsts.g_flonum_negative_infinity, ATTR_ALL);
+  set_obj_cstr_prop(n, "NaN", gconsts.g_flonum_nan, ATTR_ALL);
   {
     ObjBuiltinProp *p = number_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_number_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
   {
     ObjDoubleProp *p = number_values;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_number, p->name, double_to_flonum(p->value), p->attr);
+      set_obj_cstr_prop(n, p->name, double_to_flonum(p->value), p->attr);
       p++;
     }
   }

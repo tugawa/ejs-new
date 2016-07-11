@@ -380,7 +380,7 @@ struct jit_code_cell {
 #define HEADER_COMMON(cell, htag) \
    (make_header((sizeof(cell) / BYTES_IN_JSVALUE), htag))
 #define HEADER_FLONUM         HEADER_COMMON(FlonumCell, HTAG_FLONUM)
-#define HEADER_OBJECT         HEADER_COMMON(Object, HTAG_FLONUM)
+#define HEADER_OBJECT         HEADER_COMMON(Object, HTAG_OBJECT)
 #define HEADER_ARRAY          HEADER_COMMON(ArrayCell, HTAG_ARRAY)
 #define HEADER_FUNCTION       HEADER_COMMON(FunctionCell, HTAG_FUNCTION)
 #define HEADER_BUILTIN        HEADER_COMMON(BuiltinCell, HTAG_BUILTIN)

@@ -545,15 +545,18 @@ ObjBuiltinProp string_funcs[] = {
 
 void init_builtin_string(void)
 {
-  gconsts.g_string
-    = new_builtin_with_constr(string_constr_nonew, string_constr, 1);
-  gconsts.g_string_proto = new_string(gconsts.g_string_empty);
-  set_prop_all(gconsts.g_string, gconsts.g_string_prototype, gconsts.g_string_proto);
+  JSValue str, proto;
+
+  gconsts.g_string = str =
+    new_builtin_with_constr(string_constr_nonew, string_constr, 1);
+  gconsts.g_string_proto = proto = new_string(gconsts.g_string_empty);
+  set_prop_de(str, gconsts.g_string_prototype, proto);
+  set_prop_all(proto, gconsts.g_string___proto__, gconsts.g_object_proto);
   // set_obj_cstr_prop(gconsts.g_string, "fromCharCode", new_builtin(stringFromCharCode, 0), ATTR_DE);
   {
     ObjBuiltinProp *p = string_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_string_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

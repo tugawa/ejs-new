@@ -34,13 +34,16 @@ ObjBuiltinProp boolean_funcs[] = {
 
 void init_builtin_boolean(void)
 {
-  gconsts.g_boolean = new_builtin(boolean_constr, 1);
-  gconsts.g_boolean_proto = new_object();
-  set_prop_all(gconsts.g_boolean, gconsts.g_string_prototype, gconsts.g_boolean_proto);
+  JSValue b, proto;
+
+  gconsts.g_boolean = b = new_builtin(boolean_constr, 1);
+  gconsts.g_boolean_proto = proto = new_boolean(JS_FALSE);
+  set_prop_de(b, gconsts.g_string_prototype, proto);
+  set_prop_all(proto, gconsts.g_string___proto__, gconsts.g_object_proto);
   {
     ObjBuiltinProp *p = boolean_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_boolean_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
