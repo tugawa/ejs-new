@@ -1,3 +1,16 @@
+/*
+   vmloop.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
@@ -990,6 +1003,7 @@ I_NOT:
 
 I_NEW:
   // new dst con
+  //   $dst = new object created by $con
 
   ENTER_INSN(__LINE__);
   {
@@ -998,6 +1012,22 @@ I_NEW:
 
     dst = get_first_operand_reg(insn);
     con = regbase[get_second_operand_reg(insn)];
+    if (con == gconsts.g_object ||
+        con == gconsts.g_array || con == gconsts.g_string ||
+        con == gconsts.g_number || con == gconsts.g_boolean)
+      o = JS_UNDEFINED;
+    else if (is_function(con))
+      o = new_object();
+    else
+      LOG_EXIT("NEW: not a constructor");
+    if (o != JS_UNDEFINED) {
+      get_prop(con, gconsts.g_string_prototype, &p);
+      if (!is_object(p)) p = gconsts.g_object_proto;
+      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
+    }
+    regbase[dst] = o;
+
+#if 0
     // The following definition is based on the one of the old ssjsvm
     // developed by Takada, but it seems to have a problem when the
     // ``con'' is a built-in object such as Array.
@@ -1015,6 +1045,7 @@ I_NEW:
         printf("NEW: o[__proto__] not found\n");
     }
     regbase[dst] = o;
+#endif
   }
   NEXT_INSN_INCPC();
 

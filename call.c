@@ -102,8 +102,8 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   // to be unnecessary because builtin function codes do not manipulate
   // special registers.  However, since the compiler takes rooms from
   // stack[pos] to stack[pos + 3] for saving the values of special registers,
-  // it may be necessary to fill them these rooms with harmless values
-  //  (e.g., FIXNUM_ZERO) to make the GC work correctly.
+  // it may be necessary to fill these rooms with harmless values, e.g.,
+  // FIXNUM_ZERO to make the GC work correctly.
   // pos = sp - nargs - 4;
   // save_special_registers(context, stack, pos);
 
