@@ -814,6 +814,107 @@ I_EQ:
 I_EQUAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
+#if 0
+  {
+    Register dst, r1, r2;
+    JSValue v1, v2;
+    Tag tag;
+
+    load_regs(insn, dst, r1, r2, v1, v2);
+    if (v1 == v2)
+      regbase[dst] = is_nan(v1)? JS_FALSE: JS_TRUE;
+    else {
+
+    while(true){
+      tag = TAG_PAIR(getTag(v1), getTag(v2));
+
+      switch(tag){
+        case TAG_PAIR(T_FIXNUM, T_FIXNUM):
+          regBase[dst] = intToBoolean(v1 == v2);
+          goto END_EQUAL;
+
+        case TAG_PAIR(T_FIXNUM, T_FLONUM):
+        case TAG_PAIR(T_FLONUM, T_FIXNUM):
+          regBase[dst] = JS_FALSE;
+          goto END_EQUAL;
+
+        case TAG_PAIR(T_FLONUM, T_FLONUM):
+          regBase[dst] = intToBoolean(flonumToDouble(v1) == flonumToDouble(v2));
+          goto END_EQUAL;
+
+        case TAG_PAIR(T_STRING, T_STRING):
+          regBase[dst] = intToBoolean(!strcmp(stringToCStr(v1), stringToCStr(v2)));
+          goto END_EQUAL;
+
+        case TAG_PAIR(T_SPECIAL, T_SPECIAL):
+          regBase[dst] = intToBoolean((v1 == v2)
+                                      || (isUndefined(v1) && isNull(v2))
+                                      || (isNull(v1) && isUndefined(v2)) );
+          goto END_EQUAL;
+
+        case TAG_PAIR(T_OBJECT, T_OBJECT):
+          regBase[dst] = intToBoolean(v1 == v2);
+          goto END_EQUAL;
+
+          // 以下型変換を生じる部分
+          // 文字列を変換
+        case TAG_PAIR(T_FIXNUM, T_STRING):
+        case TAG_PAIR(T_FLONUM, T_STRING):
+        {
+          double temp;
+          temp = cStrToDouble(stringToCStr(v2));
+          if(isInFixnumRange(temp)){
+            v2 = doubleToFixnum(temp);
+          }else{
+            v2 = doubleToFlonum(temp);
+          }
+        }
+          break;
+
+        case TAG_PAIR(T_STRING, T_FIXNUM):
+        case TAG_PAIR(T_STRING, T_FLONUM):
+        {
+          double temp;
+          temp = cStrToDouble(stringToCStr(v1));
+          if(isInFixnumRange(temp)){
+            v1 = doubleToFixnum(temp);
+          }else{
+            v1 = doubleToFlonum(temp);
+          }
+        }
+          break;
+
+        default:
+
+          // Boolean を変換
+          if(isBoolean(v1)){
+            v1 = isTrue(v1) ? FIXNUM_ONE : FIXNUM_ZERO;
+          }else if(isBoolean(v2)){
+            v2 = isTrue(v2) ? FIXNUM_ONE : FIXNUM_ZERO;
+          }
+
+          // Object を変換
+          else if(isObject(v1)){
+            setFp(context, cfp);
+            setPc(context, pc);
+            v1 = objectToPrimitive(v1, context);
+          }else if(isObject(v2)){
+            setFp(context, cfp);
+            setPc(context, pc);
+            v2 = objectToPrimitive(v2, context);
+          }
+
+          // 知らぬ存ぜぬ
+          else{
+            regBase[dst] = JS_FALSE;
+            goto END_EQUAL;
+          }
+          break;
+      }
+    }
+  END_EQUAL:;
+  }
+#endif
   NEXT_INSN_INCPC();
 
 I_GETPROP:
