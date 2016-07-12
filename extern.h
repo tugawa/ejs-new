@@ -49,6 +49,11 @@ extern BUILTIN_FUNCTION(array_constr);
 extern BUILTIN_FUNCTION(boolean_constr);
 
 /*
+ * builtin-global.c
+ */
+extern BUILTIN_FUNCTION(builtin_not_a_constructor);
+
+/*
  * builtin-number.c
  */
 extern BUILTIN_FUNCTION(number_constr);

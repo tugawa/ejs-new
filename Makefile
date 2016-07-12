@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -std=gnu89 -Wall -g -DUSER_DEF
+CFLAGS = -std=gnu89 -Wall -g -DUSER_DEF -Wno-format
 LIBS = -lc -lm
 
 GENERATED_HFILES = \

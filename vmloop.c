@@ -1012,19 +1012,27 @@ I_NEW:
 
     dst = get_first_operand_reg(insn);
     con = regbase[get_second_operand_reg(insn)];
-    if (con == gconsts.g_object ||
-        con == gconsts.g_array || con == gconsts.g_string ||
-        con == gconsts.g_number || con == gconsts.g_boolean)
-      o = JS_UNDEFINED;
-    else if (is_function(con))
+    if (is_function(con)) {
       o = new_object();
-    else
-      LOG_EXIT("NEW: not a constructor");
-    if (o != JS_UNDEFINED) {
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
       set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
-    }
+    } else
+      o = JS_UNDEFINED;
+#if 0
+    if (is_builtin(con))
+      //	con == gconsts.g_object ||
+      //        con == gconsts.g_array || con == gconsts.g_string ||
+      //        con == gconsts.g_number || con == gconsts.g_boolean)
+      o = JS_UNDEFINED;
+    else if (is_function(con)) {
+      o = new_object();
+      get_prop(con, gconsts.g_string_prototype, &p);
+      if (!is_object(p)) p = gconsts.g_object_proto;
+      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
+    } else
+      LOG_EXIT("NEW: not a constructor");
+#endif
     regbase[dst] = o;
 
 #if 0
@@ -1417,8 +1425,11 @@ I_NEWSEND:
       }
     }
 #endif
-    else{
-      LOG_EXIT("CALL/SEND");
+    else {
+      if (newp)
+	LOG_EXIT("Not a constructor");
+      else
+	LOG_EXIT("CALL/SEND");
     }
   }
   NEXT_INSN_INCPC();

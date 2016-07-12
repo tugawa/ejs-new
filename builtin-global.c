@@ -83,6 +83,13 @@ BUILTIN_FUNCTION(builtin_parse_float)
     set_a(context, double_to_flonum(x));
 }
 
+// throw Error because it is not a constructor
+BUILTIN_FUNCTION(builtin_not_a_constructor)
+{
+  LOG_EXIT("Not a constructor");
+}
+
+
 BUILTIN_FUNCTION(builtin_print)
 {
   int i;

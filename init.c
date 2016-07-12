@@ -83,7 +83,6 @@ JSValue init_global(void) {
 #endif
 
   init_builtin_object();
-  init_builtin_global();
   init_builtin_array();
   init_builtin_number();
   init_builtin_string();
@@ -98,6 +97,9 @@ JSValue init_global(void) {
   set_obj_cstr_prop(gconsts.thread, "init", new_builtin(threadInit, 1), ATTR_DE);
   set_obj_cstr_prop(gconsts.tcp, "init", new_builtin(tcpInit, 0), ATTR_DE);
 #endif
+
+  // call init_buitin_global after gconsts is properly set up
+  init_builtin_global();
 
   srand((unsigned)time(NULL));
   return gconsts.g_global;

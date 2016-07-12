@@ -478,13 +478,15 @@ JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, i
   builtin_constructor(p) = cons;
   builtin_n_args(p) = na;
   set_prop_none(ret, gconsts.g_string_prototype, new_object());
+  // TODO: g_object_proto should be g_builtin_proto
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   return ret;
 }
 
 // makes a new built-in function object
 //
 JSValue new_builtin(builtin_function_t f, int na) {
-  return new_builtin_with_constr(f, f, na);
+  return new_builtin_with_constr(f, builtin_not_a_constructor, na);
 }
 
 // makes an iterator object
@@ -523,6 +525,7 @@ JSValue new_number(JSValue v) {
   p = remove_boxed_tag(ret);
   set_object_members(&(p->o));
   set_number_object_value(p, v);
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
   return ret;
 }
 
@@ -536,6 +539,7 @@ JSValue new_boolean(JSValue v) {
   p = remove_boxed_tag(ret);
   set_object_members(&(p->o));
   set_boolean_object_value(p, v);
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
   return (JSValue)ret;
 }
 
@@ -553,6 +557,7 @@ JSValue new_string(JSValue v) {
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
   set_prop_all(ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
   return ret;
 }
 
