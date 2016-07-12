@@ -794,60 +794,21 @@ I_EQ:
   // $dst = $r1 === $r2
 
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
   {
     Register dst, r1, r2;
     JSValue v1, v2;
-    Tag tag;
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    if (v1 == v2) {
+    if (v1 == v2)
       regbase[dst] = is_nan(v1)? JS_FALSE: JS_TRUE;
-      goto EQ_END;
-    }
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
-    case TP_FIXFLO:
-      x1 = fixnum_to_double(v1);
-      x2 = flonum_to_double(v2);
-      regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
-#ifdef QUICKENING
-      quickening(insns, pc, EQFIXFLO);
-#endif
-      break;
-    case TP_FLOFIX:
-      x1 = flonum_to_double(v1);
-      x2 = fixnum_to_double(v2);
-      regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
-#ifdef QUICKENING
-      quickening(insns, pc, EQFLOFIX);
-#endif
-      break;
-    case TP_FLOFLO:
+    else if (is_flonum(v1) && is_flonum(v2)) {
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
       regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
-#ifdef QUICKENING
-      quickening(insns, pc, EQFLOFLO);
-#endif
-      break;
-    case TP_STRSTR:
-      {
-        char *s1, *s2;
-        s1 = string_to_cstr(v1);
-        s2 = string_to_cstr(v2);
-        regbase[dst] = strcmp(s1, s2)? JS_FALSE: JS_TRUE;
-#ifdef QUICKENING
-        quickening(insns, pc, EQSTRSTR);
-#endif
-      }
-      break;
-    default:
+    } else
       regbase[dst] = JS_FALSE;
-      break;
-    }
   }
-EQ_END:
   NEXT_INSN_INCPC();
 
 I_EQUAL:

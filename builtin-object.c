@@ -42,23 +42,12 @@ BUILTIN_FUNCTION(object_constr)
       break;
     }
   } else {
-    printf("object_constr: na == 0, calls new_object\n");
-    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
+    //    printf("object_constr: na == 0, calls new_object\n");
+    //    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
     ret = new_object();
-    printf("ret = %016lx\n", ret);
+    //    printf("ret = %016lx\n", ret);
     set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   }
-  /*
-  {
-    JSValue p;
-    if (get_prop(ret, gconsts.g_string___proto__, &p) == SUCCESS) {
-      printf("get_prop succeeded, p = ");
-      print_value_verbose(context, p); putchar('\n');
-    } else {
-      printf("get_prop failed\n");
-    }
-  }
-  */
   set_a(context, ret);
 }
 
@@ -78,7 +67,8 @@ ObjBuiltinProp object_funcs[] = {
 void init_builtin_object(void)
 {
   JSValue obj, proto;
-  gconsts.g_object = obj = new_builtin(object_constr, 0);
+  gconsts.g_object = obj =
+    new_builtin_with_constr(object_constr, object_constr, 0);
   gconsts.g_object_proto = proto = new_object();
   set_prop_de(obj, gconsts.g_string_prototype, proto);
   {
