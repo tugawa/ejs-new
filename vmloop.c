@@ -42,8 +42,8 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
 #define INCPC()      do { pc++; insn_ptr++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 #define INCEXECUTECOUNT() insns->executeCount++
-#define INSNLOAD()   insn = insns->code
-// #define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
+// #define INSNLOAD()   insn = insns->code
+#define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
 
 // defines ENTER_INSN(x)
 //
@@ -796,125 +796,169 @@ I_EQ:
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
-    JSValue v1, v2;
+    JSValue v1, v2, ret;
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
     if (v1 == v2)
-      regbase[dst] = is_nan(v1)? JS_FALSE: JS_TRUE;
+      ret = is_nan(v1)? JS_FALSE: JS_TRUE;
     else if (is_flonum(v1) && is_flonum(v2)) {
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
-      regbase[dst] = x1 == x2? JS_TRUE: JS_FALSE;
+      ret = x1 == x2? JS_TRUE: JS_FALSE;
     } else
-      regbase[dst] = JS_FALSE;
+      ret = JS_FALSE;
+    regbase[dst] = ret;
   }
   NEXT_INSN_INCPC();
 
 I_EQUAL:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-#if 0
   {
     Register dst, r1, r2;
-    JSValue v1, v2;
+    JSValue v1, v2, ret;
     Tag tag;
+    double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
     if (v1 == v2)
-      regbase[dst] = is_nan(v1)? JS_FALSE: JS_TRUE;
+      ret = is_nan(v1)? JS_FALSE: JS_TRUE;
     else {
-
-    while(true){
-      tag = TAG_PAIR(getTag(v1), getTag(v2));
-
-      switch(tag){
-        case TAG_PAIR(T_FIXNUM, T_FIXNUM):
-          regBase[dst] = intToBoolean(v1 == v2);
-          goto END_EQUAL;
-
-        case TAG_PAIR(T_FIXNUM, T_FLONUM):
-        case TAG_PAIR(T_FLONUM, T_FIXNUM):
-          regBase[dst] = JS_FALSE;
-          goto END_EQUAL;
-
-        case TAG_PAIR(T_FLONUM, T_FLONUM):
-          regBase[dst] = intToBoolean(flonumToDouble(v1) == flonumToDouble(v2));
-          goto END_EQUAL;
-
-        case TAG_PAIR(T_STRING, T_STRING):
-          regBase[dst] = intToBoolean(!strcmp(stringToCStr(v1), stringToCStr(v2)));
-          goto END_EQUAL;
-
-        case TAG_PAIR(T_SPECIAL, T_SPECIAL):
-          regBase[dst] = intToBoolean((v1 == v2)
-                                      || (isUndefined(v1) && isNull(v2))
-                                      || (isNull(v1) && isUndefined(v2)) );
-          goto END_EQUAL;
-
-        case TAG_PAIR(T_OBJECT, T_OBJECT):
-          regBase[dst] = intToBoolean(v1 == v2);
-          goto END_EQUAL;
-
-          // 以下型変換を生じる部分
-          // 文字列を変換
-        case TAG_PAIR(T_FIXNUM, T_STRING):
-        case TAG_PAIR(T_FLONUM, T_STRING):
-        {
-          double temp;
-          temp = cStrToDouble(stringToCStr(v2));
-          if(isInFixnumRange(temp)){
-            v2 = doubleToFixnum(temp);
-          }else{
-            v2 = doubleToFlonum(temp);
-          }
+      ret = JS_FALSE;
+      tag = TAG_PAIR(get_tag(v1), get_tag(v2));
+      switch (tag) {
+      case TP_FIXFIX:
+      case TP_FIXFLO:
+      case TP_FLOFIX:
+      case TP_STRSTR:
+      case TP_SPEFLO:
+      case TP_FLOSPE:
+      case TP_OBJOBJ:
+        ret = JS_FALSE;
+        break;
+      case TP_FLOFLO:
+FLOFLO:
+        x1 = flonum_to_double(v1);
+        x2 = flonum_to_double(v2);
+        ret = x1 == x2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_SPESPE:
+        ret = ((is_undefined(v1) && is_null(v2)) ||
+               (is_null(v1) && is_undefined(v2)))?
+              JS_TRUE: JS_FALSE;
+        break;
+      case TP_STRFIX:
+STRFIX:
+        v1 = string_to_number(v1);
+        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_STRFLO:
+STRFLO:
+        v1 = string_to_number(v1);
+        if (is_flonum(v1)) goto FLOFLO;
+        ret = JS_FALSE;
+        break;
+      case TP_FIXSTR:
+FIXSTR:
+        v2 = string_to_number(v2);
+        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_FLOSTR:
+FLOSTR:
+        v2 = string_to_number(v2);
+        if (is_flonum(v2)) goto FLOFLO;
+        ret = JS_FALSE;
+        break;
+      case TP_SPEFIX:
+        if (v1 == JS_UNDEFINED) ret = JS_FALSE;
+        else if (v1 == JS_NULL) ret = JS_FALSE;
+        else {
+          if (v1 == JS_TRUE) v1 = FIXNUM_ONE;
+          else if (v1 == JS_FALSE) v1 = FIXNUM_ZERO;
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
         }
-          break;
-
-        case TAG_PAIR(T_STRING, T_FIXNUM):
-        case TAG_PAIR(T_STRING, T_FLONUM):
-        {
-          double temp;
-          temp = cStrToDouble(stringToCStr(v1));
-          if(isInFixnumRange(temp)){
-            v1 = doubleToFixnum(temp);
-          }else{
-            v1 = doubleToFlonum(temp);
-          }
+        break;
+      case TP_FIXSPE:
+        if (v2 == JS_UNDEFINED) ret = JS_FALSE;
+        else if (v2 == JS_NULL) ret = JS_FALSE;
+        else {
+          if (v2 == JS_TRUE) v2 = FIXNUM_ONE;
+          else if (v2 == JS_FALSE) v2 = FIXNUM_ZERO;
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
         }
-          break;
-
-        default:
-
-          // Boolean を変換
-          if(isBoolean(v1)){
-            v1 = isTrue(v1) ? FIXNUM_ONE : FIXNUM_ZERO;
-          }else if(isBoolean(v2)){
-            v2 = isTrue(v2) ? FIXNUM_ONE : FIXNUM_ZERO;
-          }
-
-          // Object を変換
-          else if(isObject(v1)){
-            setFp(context, cfp);
-            setPc(context, pc);
-            v1 = objectToPrimitive(v1, context);
-          }else if(isObject(v2)){
-            setFp(context, cfp);
-            setPc(context, pc);
-            v2 = objectToPrimitive(v2, context);
-          }
-
-          // 知らぬ存ぜぬ
-          else{
-            regBase[dst] = JS_FALSE;
-            goto END_EQUAL;
-          }
-          break;
+        break;
+      case TP_SPESTR:
+        if (v1 == JS_UNDEFINED) ret = JS_FALSE;
+        else if (v1 == JS_NULL) ret = JS_FALSE;
+        else {
+SPESTR:
+          if (v1 == JS_TRUE) v1 = FIXNUM_ONE;
+          else if (v1 == JS_FALSE) v1 = FIXNUM_ZERO;
+          goto FIXSTR;
+        }
+        break;
+      case TP_STRSPE:
+        if (v2 == JS_UNDEFINED) ret = JS_FALSE;
+        else if (v2 == JS_NULL) ret = JS_FALSE;
+        else {
+STRSPE:
+          if (v2 == JS_TRUE) v2 = FIXNUM_ONE;
+          else if (v2 == JS_FALSE) v2 = FIXNUM_ZERO;
+          goto STRFIX;
+        }
+        break;
+      case TP_OBJFIX:
+        v1 = object_to_primitive(context, v1, HINT_NUMBER);
+        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_FIXOBJ:
+        v2 = object_to_primitive(context, v2, HINT_NUMBER);
+        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_OBJFLO:
+        v1 = object_to_primitive(context, v1, HINT_NUMBER);
+        if (is_flonum(v1)) goto FLOFLO;
+        ret = JS_FALSE;
+        break;
+      case TP_FLOOBJ:
+        v2 = object_to_primitive(context, v2, HINT_NUMBER);
+        if (is_flonum(v2)) goto FLOFLO;
+        ret = JS_FALSE;
+        break;
+      case TP_OBJSTR:
+        v1 = object_to_primitive(context, v1, HINT_NUMBER);
+        if (is_fixnum(v1)) goto FIXSTR;
+        else if (is_flonum(v1)) goto FLOSTR;
+        else if (is_string(v1))
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_boolean(v1)) goto SPESTR;
+        break;
+      case TP_STROBJ:
+        v2 = object_to_primitive(context, v2, HINT_NUMBER);
+        if (is_fixnum(v2)) goto STRFIX;
+        else if (is_flonum(v2)) goto STRFLO;
+        else if (is_string(v2))
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_boolean(v2)) goto STRSPE;
+        break;
+      case TP_OBJSPE:
+        v1 = object_to_primitive(context, v1, HINT_NUMBER);
+        if (is_number(v1)) ret = JS_FALSE;
+        else if (is_string(v1)) goto STRSPE;
+        else if (is_boolean(v1))
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
+      case TP_SPEOBJ:
+        v2 = object_to_primitive(context, v2, HINT_NUMBER);
+        if (is_number(v2)) ret = JS_FALSE;
+        else if (is_string(v2)) goto SPESTR;
+        else if (is_boolean(v2))
+          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        break;
       }
     }
-  END_EQUAL:;
+    regbase[dst] = ret;
   }
-#endif
   NEXT_INSN_INCPC();
 
 I_GETPROP:

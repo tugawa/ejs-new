@@ -1,3 +1,16 @@
+/*
+   conversion.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
@@ -319,7 +332,6 @@ JSValue object_to_string(Context *context, JSValue v) {
     type_error("object expected in object_to_string");
     return gconsts.g_string_empty;
   }
-  // if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
   if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring)) != JS_UNDEFINED) {
     printf("calling toString\n" );
     if (is_function(f)) printf("toString is a function\n");
@@ -334,7 +346,6 @@ JSValue object_to_string(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_string(f);
   }
 NEXT0:
-  // if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
   if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof)) != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
@@ -356,7 +367,7 @@ JSValue object_to_number(Context *context, JSValue v) {
 
   if (!is_object(v)) {
     type_error("object expected in object_to_number");
-    return gconsts.g_string_empty;
+    return FIXNUM_ZERO;
   }
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
@@ -392,6 +403,46 @@ NEXT1:
   }
   return gconsts.g_flonum_nan;
   */
+}
+
+// converts an object to a primitive
+//
+// The third argument specifies the order of applying toString and valueOf.
+// The difference between this function and convert_to_string /
+// convert_to_number is that when toString / valueOf returned a
+// primitive value, this function returns it without converting
+// them into a string / number.
+//
+JSValue object_to_primitive(Context *context, JSValue v, int hint) {
+  JSValue f, fst, snd;
+
+  if (!is_object(v)) {
+    type_error("object expected in object_to_primitive");
+    return JS_UNDEFINED;
+  }
+  if (hint == HINT_STRING) {
+    fst = gconsts.g_string_tostring;
+    snd = gconsts.g_string_valueof;
+  } else {                               // hint == HINT_NUMBER
+    fst = gconsts.g_string_valueof;
+    snd = gconsts.g_string_tostring;
+  }
+  if ((f = get_prop_prototype_chain(v, fst)) != JS_UNDEFINED) {
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT0;
+    if (is_primitive(f)) return f;
+  }
+NEXT0:
+  if ((f = get_prop_prototype_chain(v, snd)) != JS_UNDEFINED) {
+    if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else goto NEXT1;
+    if (is_primitive(f)) return f;
+  }
+NEXT1:
+  type_error_exception("neither toString nor valueOf returned a string in object_to_primitive");
+  return JS_UNDEFINED;     // not reached
 }
 
 // converts an object to a boolean

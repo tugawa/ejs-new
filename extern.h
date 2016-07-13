@@ -131,6 +131,7 @@ extern double primitive_to_double(JSValue);
 extern JSValue primitive_to_string(JSValue);
 extern JSValue object_to_string(Context *, JSValue);
 extern JSValue object_to_number(Context *, JSValue);
+extern JSValue object_to_primitive(Context *, JSValue, int);
 extern JSValue array_to_string(Context *, JSValue, JSValue);
 extern JSValue to_object(Context *, JSValue v);
 extern JSValue to_string(Context *, JSValue v);

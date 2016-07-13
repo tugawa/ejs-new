@@ -390,7 +390,7 @@ struct jit_code_cell {
 #define HEADER_BOXED_NUMBER   HEADER_COMMON(BoxedCell, HTAG_BOXED_NUMBER)
 #define HEADER_BOXED_BOOLEAN  HEADER_COMMON(BoxedCell, HTAG_BOXED_BOOLEAN)
 
-#define obj_header_tag(x)  (obj_header(x) & OBJECT_HEADER_MASK)
+#define obj_header_tag(x)  ((Tag)(obj_header(x) & OBJECT_HEADER_MASK))
 #define obj_size(x)        (obj_header(x) >> OBJECT_SIZE_OFFSET)
 
 // Fixnum
@@ -479,8 +479,12 @@ typedef uint64_t cuint;
 #define JS_NULL          make_special(0, T_OTHER)
 #define JS_UNDEFINED     make_special(1, T_OTHER)
 
+#define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)        ((p) == JS_NULL)
 #define is_undefined(p)   ((p) == JS_UNDEFINED)
+
+// Primitive is either number, boolean, or string.
+#define is_primitive(p)   (get_tag(p) != T_OBJECT && (!is_null_or_undefined(p)))
 
 // Set a specified property to an object where property name is given
 // by a string object or a C string.
