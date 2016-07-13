@@ -42,8 +42,8 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
 #define INCPC()      do { pc++; insn_ptr++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 #define INCEXECUTECOUNT() insns->executeCount++
-// #define INSNLOAD()   insn = insns->code
-#define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
+#define INSNLOAD()   insn = insns->code
+// #define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
 
 // defines ENTER_INSN(x)
 //

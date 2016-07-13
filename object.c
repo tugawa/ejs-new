@@ -1,3 +1,16 @@
+/*
+   object.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
@@ -11,9 +24,10 @@
 
 #define sign(x) ((x) > 0? 1: -1)
 
-// obtains the index of a property of an Object
-// If the specified property does not exist, returns -1.
-//
+/*
+   obtains the index of a property of an Object
+   If the specified property does not exist, returns -1.
+ */
 int prop_index(JSValue obj, JSValue name)
 {
   HashData retv;
@@ -25,15 +39,16 @@ int prop_index(JSValue obj, JSValue name)
   else return (int)retv;
 }
 
-// obtains the property value of the key ``name'', stores it to *ret
-// and returns SUCCESS or FAIL
-// This function does not follow the prototype chain.
-//
+/*
+   obtains the property value of the key ``name'', stores it to *ret
+   and returns SUCCESS or FAIL
+   This function does not follow the prototype chain.
+ */
 int get_prop(JSValue obj, JSValue name, JSValue *ret)
 {
   int index;
 
-printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
+  //printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
   index = prop_index(obj, name);
   if (index == -1) return FAIL;
 
@@ -41,17 +56,18 @@ printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
   return SUCCESS;
 }
 
-// obtains the property from an object by following the prototype chain
-// (if necessary)
-//   o: object
-//   p: property, which is a string
-//
+/*
+  obtains the property from an object by following the prototype chain
+  (if necessary)
+   o: object
+   p: property, which is a string
+ */
 JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
   extern JSValue prototype_object(JSValue);
 
-printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n", string_to_cstr(p), o);
-printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
+  // printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n", string_to_cstr(p), o);
+  // printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
   do {
     if (get_prop(o, p, &ret) == SUCCESS) return ret;
   } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
@@ -59,12 +75,12 @@ printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
   return JS_UNDEFINED;
 }
 
-// obtains object's property
-//   o: object (but not an array)
-//   p: property (number / string / other type)
-// It is not necessary to check the type of `o'.
-//
-
+/*
+   obtains object's property
+     o: object (but not an array)
+     p: property (number / string / other type)
+   It is not necessary to check the type of `o'.
+ */
 JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
   /*
     if (p is not a string) p = to_string(p);
@@ -76,11 +92,12 @@ JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
   return get_prop_prototype_chain(o, p);
 }
 
-// obtains array's property
-//   a: array
-//   p: property (number / string / other type)
-// It is not necessary to check the type of `a'.
-//
+/*
+   obtains array's property
+     a: array
+     p: property (number / string / other type)
+   It is not necessary to check the type of `a'.
+ */
 JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
   /*
     if (p a number) {
@@ -135,8 +152,9 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
   }
 }          
 
-// sets an object's property value with its attribute
-//
+/*
+   sets an object's property value with its attribute
+ */
 int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
   uint64_t retv;
 
@@ -161,23 +179,25 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
   }
 }
 
-// sets object's property
-//   o: object (but not an array)
-//   p: property (number / string / other type)
-//   v: value to be set
-// It is not necessary to check the type of `o'.
-//
+/*
+   sets object's property
+     o: object (but not an array)
+     p: property (number / string / other type)
+     v: value to be set
+   It is not necessary to check the type of `o'.
+ */
 int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
   if (!is_string(p)) p = to_string(context, p);
   return set_prop_none(o, p, v);
 }
 
-// sets array's property
-//   a: array
-//   p: property (number / string / other type)
-//   v: value to be set
-// It is not necessary to check the type of `a'.
-//
+/*
+   sets array's property
+     a: array
+     p: property (number / string / other type)
+     v: value to be set
+   It is not necessary to check the type of `a'.
+ */
 int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
   ArrayCell *ap;
 
@@ -370,6 +390,9 @@ int make_onig_regexp(JSValue r, OnigOptionType option)
 
 #endif
 
+/*
+   sets object's member values.
+ */
 void set_object_members(Object *p) {
   Map *a;
 
@@ -381,8 +404,9 @@ void set_object_members(Object *p) {
   obj_limit_props(p) = INITIAL_PROPTABLE_SIZE;
 }
 
-// makes a new object
-//
+/*
+  makes a new object
+ */
 JSValue new_object(void)
 {
   JSValue ret;
@@ -394,6 +418,7 @@ JSValue new_object(void)
   ret = make_object();
   p = remove_object_tag(ret);
   set_object_members(p);
+  set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
 #ifdef PARALLEL
   pthread_mutexattr_init(&attr);
   pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -403,8 +428,9 @@ JSValue new_object(void)
   return ret;
 }
 
-// makes a new array
-//
+/*
+   makes a new array
+ */
 JSValue new_array(void) {
   JSValue ret;
   ArrayCell *p;
@@ -417,8 +443,9 @@ JSValue new_array(void) {
   return ret;
 }
 
-// makes a new array with size
-//
+/*
+   makes a new array with size
+ */
 JSValue new_array_with_size(int size)
 {
   JSValue ret;
@@ -432,24 +459,10 @@ JSValue new_array_with_size(int size)
   return ret;
 }
 
-// makes a function object
-// Is it ok to delete this def?
-//
-#if 0
-JSValue new_function(void)
-{
-  FunctionCell *ret, *p;
-
-  ret = (FunctionCell *)make_function();
-  p = (FunctionCell *)(remove_tag(ret, T_OBJECT));
-  set_object_members(&(p->o));
-  return ret;
-}
-#endif
-
-// makes a function
-// The name of this function was formerly new_closure.
-//
+/*
+   makes a function
+   The name of this function was formerly new_closure.
+ */
 JSValue new_function(Context *context, Subscript subscr)
 {
   JSValue ret;
@@ -465,8 +478,9 @@ JSValue new_function(Context *context, Subscript subscr)
   return ret;
 }
 
-// makes a new built-in function object with constructor
-//
+/*
+   makes a new built-in function object with constructor
+ */
 JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, int na) {
   JSValue ret;
   BuiltinCell *p;
@@ -483,14 +497,16 @@ JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, i
   return ret;
 }
 
-// makes a new built-in function object
-//
+/*
+   makes a new built-in function object
+ */
 JSValue new_builtin(builtin_function_t f, int na) {
   return new_builtin_with_constr(f, builtin_not_a_constructor, na);
 }
 
-// makes an iterator object
-//
+/*
+   makes an iterator object
+ */
 JSValue new_iterator(void) {
   JSValue ret;
   IteratorCell *p;
@@ -501,8 +517,9 @@ JSValue new_iterator(void) {
   return ret;
 }
 
-// makes a new regexp
-//
+/*
+   makes a new regexp
+ */
 #ifdef USE_REGEXP
 JSValue new_regexp(void) {
   JSValue ret;
@@ -515,8 +532,9 @@ JSValue new_regexp(void) {
 }
 #endif // USE_REGEXP
 
-// makes a new boxed number
-//
+/*
+   makes a new boxed number
+ */
 JSValue new_number(JSValue v) {
   JSValue ret;
   BoxedCell *p;
@@ -529,8 +547,9 @@ JSValue new_number(JSValue v) {
   return ret;
 }
 
-// makes a new boxed boolean
-//
+/*
+   makes a new boxed boolean
+ */
 JSValue new_boolean(JSValue v) {
   JSValue ret;
   BoxedCell *p;
@@ -543,8 +562,9 @@ JSValue new_boolean(JSValue v) {
   return (JSValue)ret;
 }
 
-// makes a new boxed string
-//
+/*
+   makes a new boxed string
+ */
 JSValue new_string(JSValue v) {
   JSValue ret;
   BoxedCell *p;
@@ -575,82 +595,4 @@ double cstr_to_double(char* cstr) {
   while( isspace(*endPtr)) endPtr++;
   if (*endPtr == '\0') return ret;
   else return NAN;
-}
-
-inline JSValue objectToPrimitiveHintNumber(JSValue obj, Context* context)
-{
-  JSValue prim;
-//  if(!invokeValueOf(obj, context, &prim) || isObject(prim)){
-//    if(!invokeToString(obj, context, &prim) || isObject(prim)){
-//      LOG_EXIT("can't convert primitive\n"); } }
-  prim = JS_UNDEFINED;
-  return prim;
-}
-
-inline JSValue objectToPrimitiveHintString(JSValue obj, Context* context)
-{
-  JSValue prim;
-//  if(!invokeToString(obj, context, &prim) || isObject(prim)){
-//    if(!invokeValueOf(obj, context, &prim) || isObject(prim)){
-//      LOG_EXIT("can't convert primitive\n"); } }
-  prim = JS_UNDEFINED;
-  return prim;
-}
-
-#if 0
-JSValue string_to_index(JSValue str)
-{
-  long index;
-  if (is_string(str)) {
-    char* cstr = string_to_cstr(str);
-    char* endPtr;
-    if(cstr[0] == '0'){
-      if(cstr[1] == '\0'){
-        return FIXNUM_ZERO; }
-    }
-    else if(isdigit(cstr[0])){
-      index = strtol(cstr, &endPtr, 10);
-      if(endPtr[0] == '\0' && index < ARRAY_INDEX_MAX){
-        return int_to_fixnum(index); }
-    }
-  }
-  return str;
-}
-#endif
-
-/*
-double cStrToDouble(char* cstr)
-{
-  char* endPtr;
-  double ret;
-  ret = strtod(cstr, &endPtr);
-  while(isspace(*endPtr)){
-    endPtr++; }
-
-  // 終端文字から判別
-  if(*endPtr == '\0'){
-    return ret;
-  }else{
-    return NAN;
-  }
-}
-*/
-
-double special_to_double(JSValue x) {
-  switch (x) {
-  case JS_TRUE:
-    return 1.0;
-  case JS_FALSE:
-  case JS_NULL:
-    return 0.0;
-  case JS_UNDEFINED:
-  default:
-    return NAN;
-  }
-}
-
-// calls a method
-//
-JSValue call_method(Context *context, JSValue receiver, JSValue method) {
-  return JS_UNDEFINED;
 }

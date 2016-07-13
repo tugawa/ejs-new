@@ -11,8 +11,7 @@ BUILTIN_FUNCTION(object_constr)
 
   builtin_prologue();
   rsv = args[0];
-
-  printf("called object_constr, na = %d\n", na);
+  // printf("called object_constr, na = %d\n", na);
   // If this is called with `new', which kind of object is allocated
   // depends on the type of the first argument.
   if (na > 0) {
@@ -25,20 +24,20 @@ BUILTIN_FUNCTION(object_constr)
     case T_FIXNUM:
     case T_FLONUM:
       ret = new_number(arg);
-      set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
+      // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
       break;
     case T_SPECIAL:
       if (is_true(arg) || is_false(arg)) {
         ret = new_boolean(arg);
-        set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
+        // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
       } else {
         ret = new_object();
-        set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
+        // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
       }
       break;
     case T_STRING:
       ret = new_string(arg);
-      set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
+      // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
       break;
     }
   } else {
@@ -46,7 +45,7 @@ BUILTIN_FUNCTION(object_constr)
     //    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
     ret = new_object();
     //    printf("ret = %016lx\n", ret);
-    set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
+    // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   }
   set_a(context, ret);
 }

@@ -1,20 +1,23 @@
-//
-//  codeloader.c
-//  SSJSVM Project, iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura, 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Hideya Iwasaki, 2013-16
-//  Ryota Fujii, 2013-14
-//
+/*
+   codeloader.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// information of instructions
-//
+/*
+   information of instructions
+ */
 static InsnInfo insn_info_table[] = {
 #include "instructions-table.h"
 };
@@ -23,8 +26,9 @@ char *insn_nemonic(int opcode) {
   return insn_info_table[opcode].insn_name;
 }
 
-// instruction table
-//
+/*
+   instruction table
+ */
 typedef struct insn_cons {
   int opcode;
   struct insn_cons *next;  // pointer to the next instCons
@@ -40,36 +44,32 @@ extern uint32_t decode_escape_char(char *);
 extern int print_function_table(FunctionTable *, int);
 extern void print_bytecode(Instruction *, int);
 
-// int number_functions;
-FILE *filePointer;
+FILE *file_pointer;
 
-// reads the next line from the input stream
-//
-inline void step_load_code(char *buf) {
-  if (filePointer != NULL) {
-    fgets(buf, LOADBUFLEN, filePointer);
-  } else {
-    fgets(buf, LOADBUFLEN, stdin);
-  }
+/*
+   reads the next line from the input stream
+ */
+inline void step_load_code(char *buf, int buflen) {
+  fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
 }
 
 #define DELIM " \n\r"
 #define DELIM2 "\n\r"
-#define FirstToken(b) strtok(b, DELIM)
-#define NextToken()   strtok(NULL, DELIM)
-#define NextToken2()  strtok(NULL, DELIM2)
+#define first_token(b) strtok(b, DELIM)
+#define next_token()   strtok(NULL, DELIM)
+#define next_token2()  strtok(NULL, DELIM2)
 
 inline int check_read_token(char *buf, char *tok) {
   char *p;
-  p = FirstToken(buf);
-  if (strcmp(p, tok) != 0) {
+  p = first_token(buf);
+  if (strcmp(p, tok) != 0)
     LOG_EXIT("Error: %s is not defined", tok);
-  }
-  return atoi(NextToken());
+  return atoi(next_token());
 }
 
-// codeloader
-//
+/*
+   codeloader
+ */
 int code_loader(FunctionTable *ftable) {
   ConstantCell ctable;
   Bytecode* bytecodes;
@@ -78,7 +78,7 @@ int code_loader(FunctionTable *ftable) {
   int i, j, ret;
 
   // checks the funcLength and optain the number of functions
-  step_load_code(buf);
+  step_load_code(buf, LOADBUFLEN);
   nfuncs = check_read_token(buf, "funcLength");
 
   //LOG("numberOfFunc: %d\n",numberOfFunction);
@@ -86,19 +86,19 @@ int code_loader(FunctionTable *ftable) {
   // reads each function
   for (i = 0; i < nfuncs; i++) {
     // callentry
-    step_load_code(buf);
+    step_load_code(buf, LOADBUFLEN);
     callentry = check_read_token(buf, "callentry");
 
     // sendentry
-    step_load_code(buf);
+    step_load_code(buf, LOADBUFLEN);
     sendentry = check_read_token(buf, "sendentry");
 
     // numberOfLocals
-    step_load_code(buf);
+    step_load_code(buf, LOADBUFLEN);
     nlocals = check_read_token(buf, "numberOfLocals");
 
     // numberOfInstruction
-    step_load_code(buf);
+    step_load_code(buf, LOADBUFLEN);
     ninsns = check_read_token(buf, "numberOfInstruction");
 
     // initializes constant table
@@ -106,14 +106,12 @@ int code_loader(FunctionTable *ftable) {
 
     // initilaizes bytecode array
     bytecodes = (Bytecode*)malloc(sizeof(Bytecode) * ninsns);
-    if (bytecodes == NULL) {
+    if (bytecodes == NULL)
       LOG_EXIT("%dth func: cannnot malloc bytecode", i);
-    }
 
     // loads instructions for each function
-    for (j = 0; j < ninsns; j++) {
+    for (j = 0; j < ninsns; j++)
       ret = insn_load(&ctable, bytecodes, j);
-    }
 
     ret = update_function_table(ftable, i, &ctable, bytecodes,
                                callentry, sendentry, nlocals, ninsns);
@@ -126,8 +124,9 @@ int code_loader(FunctionTable *ftable) {
   return i;
 }
 
-// initializes the code loader
-//
+/*
+   initializes the code loader
+ */
 void init_code_loader(FILE *fp) {
   int i;
   int numinsts;
@@ -148,15 +147,15 @@ void init_code_loader(FILE *fp) {
     c->next = insn_hash_table[index];
     insn_hash_table[index] = c;
   }
-  filePointer = fp;
+  file_pointer = fp;
 }
 
-// finalizes the code loader
-//
+/*
+   finalizes the code loader
+ */
 void end_code_loader() {
-  if (filePointer != NULL) {
-    fclose(filePointer);
-  }
+  if (file_pointer != NULL)
+    fclose(file_pointer);
 }
 
 #define NOT_OPCODE ((Opcode)(-1))
@@ -179,19 +178,20 @@ static char *null_string = "";
 #define LOAD_OK     0
 #define LOAD_FAIL  (-1)
 
-// loads an instruction
-//
+/*
+   loads an instruction
+ */
 int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   char buf[LOADBUFLEN];
-  char *tokPointer;
+  char *tokp;
   Opcode oc;
 
-  step_load_code(buf);
-  tokPointer = FirstToken(buf);
-  oc = find_insn(tokPointer);
+  step_load_code(buf, LOADBUFLEN);
+  tokp = first_token(buf);
+  oc = find_insn(tokp);
   if (oc == NOT_OPCODE) {
     // instruction is not found in the instruction info table
-    LOG_ERR("Illegal instruction: %s", tokPointer);
+    LOG_ERR("Illegal instruction: %s", tokp);
     bytecodes[pc] = (Bytecode)(-1);
     return LOAD_FAIL;
   }
@@ -199,14 +199,14 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case SMALLPRIMITIVE:
     {
       Register dst;
-      dst = atoi(NextToken());
+      dst = atoi(next_token());
       switch (oc) {
       case FIXNUM:
-        bytecodes[pc] = makecode_fixnum(dst, atoi(NextToken()));
+        bytecodes[pc] = makecode_fixnum(dst, atoi(next_token()));
         break;
       case SPECCONST:
         bytecodes[pc] =
-          makecode_specconst(dst, specstr_to_jsvalue(NextToken()));
+          makecode_specconst(dst, specstr_to_jsvalue(next_token()));
         break;
       default:
         return LOAD_FAIL;
@@ -217,13 +217,13 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case BIGPRIMITIVE:
     {
       Register dst;
-      dst = atoi(NextToken());
+      dst = atoi(next_token());
       switch (oc) {
       case NUMBER:
         {
           double number;
           int index;
-          number = atof(NextToken());
+          number = atof(next_token());
           // writes the number into the constant table
           index = add_constant_number(constant, number);
           bytecodes[pc] = makecode_number(dst, index);
@@ -235,7 +235,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           char* str;
           int index;
           uint32_t len;
-          str = NextToken2();
+          str = next_token2();
           if (str == NULL) str = null_string;
           else len = decode_escape_char(str);
           // printf("  decoded string = %s\n", str);
@@ -252,8 +252,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           char* str;
           int index;
           unsigned int flag;
-          flag = atoi(NextToken());
-          str = NextToken();
+          flag = atoi(next_token());
+          str = next_token();
           index = add_constant_regexp(constant, str, flag);
           bytecodes[pc] = makecode_regexp(dst, index, flag);
         }
@@ -268,9 +268,9 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case THREEOP:
     {
       Register op1, op2, op3;
-      op1 = atoi(NextToken());
-      op2 = atoi(NextToken());
-      op3 = atoi(NextToken());
+      op1 = atoi(next_token());
+      op2 = atoi(next_token());
+      op3 = atoi(next_token());
       bytecodes[pc] = makecode_three_operands(oc, op1, op2, op3);
       return LOAD_OK;
     }
@@ -278,8 +278,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case TWOOP:
     {
       Register op1, op2;
-      op1 = atoi(NextToken());
-      op2 = atoi(NextToken());
+      op1 = atoi(next_token());
+      op2 = atoi(next_token());
       bytecodes[pc] = makecode_two_operands(oc, op1, op2);
       return LOAD_OK;
     }
@@ -287,7 +287,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case ONEOP:
     {
       Register op;
-      op = atoi(NextToken());
+      op = atoi(next_token());
       bytecodes[pc] = makecode_one_operand(oc, op);
       return LOAD_OK;
     }
@@ -301,7 +301,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
   case UNCONDJUMP:
     {
       Displacement disp;
-      disp = (Displacement)atoi(NextToken());
+      disp = (Displacement)atoi(next_token());
       bytecodes[pc] = makecode_jump(disp);
       return LOAD_OK;
     }
@@ -310,8 +310,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Displacement disp;
       Register src;
-      src = atoi(NextToken());
-      disp = (Displacement)atoi(NextToken());
+      src = atoi(next_token());
+      disp = (Displacement)atoi(next_token());
       bytecodes[pc] = makecode_cond_jump(oc, src, disp);
       return LOAD_OK;
     }
@@ -320,9 +320,9 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(NextToken());
-      offset = atoi(NextToken());
-      reg = atoi(NextToken());
+      link = atoi(next_token());
+      offset = atoi(next_token());
+      reg = atoi(next_token());
       bytecodes[pc] = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -331,9 +331,9 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(NextToken());
-      offset = atoi(NextToken());
-      reg = atoi(NextToken());
+      link = atoi(next_token());
+      offset = atoi(next_token());
+      reg = atoi(next_token());
       bytecodes[pc] = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -342,8 +342,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Register dst;
       uint16_t index;
-      dst = atoi(NextToken());
-      index = (uint16_t)atoi(NextToken());
+      dst = atoi(next_token());
+      index = (uint16_t)atoi(next_token());
       bytecodes[pc] = makecode_makeclosure(oc, dst, index);
       return LOAD_OK;
     }
@@ -352,8 +352,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Register closure;
       uint16_t argc;
-      closure = atoi(NextToken());
-      argc = atoi(NextToken());
+      closure = atoi(next_token());
+      argc = atoi(next_token());
 printf("CALLOP: argc = %d\n", argc);
       bytecodes[pc] = makecode_call(oc, closure, argc);
       return LOAD_OK;
@@ -362,21 +362,22 @@ printf("CALLOP: argc = %d\n", argc);
   case TRYOP:
     {
       Displacement disp;
-      disp = (Displacement)atoi(NextToken());
+      disp = (Displacement)atoi(next_token());
       bytecodes[pc] = makecode_try(disp);
       return LOAD_OK;
     }
 
   default:
     {
-      LOG_EXIT("Illegal instruction: %s\n", tokPointer);
+      LOG_EXIT("Illegal instruction: %s\n", tokp);
       return LOAD_FAIL;
     }
   }
 }
 
-// initilizes the contant table
-// 
+/*
+   initilizes the contant table
+ */ 
 void init_constant_cell(ConstantCell *constant)
 {
   constant->n_constant_values = 0;
@@ -384,27 +385,28 @@ void init_constant_cell(ConstantCell *constant)
     (JSValue*)malloc(sizeof(JSValue) * (CONSTANT_LIMIT));
 }
 
-// finlaizes the constant table
-//
-void end_constant_cell(ConstantCell *constant){
+/*
+   finlaizes the constant table
+ */
+void end_constant_cell(ConstantCell *constant) {
   // do nothing
 }
 
-// converts a special JS string (for a constant) into a JSValue
-//
+/*
+   converts a special JS string (for a constant) into a JSValue
+ */
 JSValue specstr_to_jsvalue(const char *str) {
-  if (strcmp(str, "true") == 0) {
+  if (strcmp(str, "true") == 0)
     return JS_TRUE;
-  } else if (strcmp(str, "false") == 0) {
+  else if (strcmp(str, "false") == 0)
     return JS_FALSE;
-  } else if (strcmp(str, "null") == 0) {
+  else if (strcmp(str, "null") == 0)
     return JS_NULL;
-  } else if (strcmp(str, "undefined") == 0) {
+  else if (strcmp(str, "undefined") == 0)
     return JS_UNDEFINED;
-  } else {
+  else
     // undefined name
     LOG_EXIT("%s is an undefined symbol.", str);
-  }
 }
 
 char *jsvalue_to_specstr(JSValue v) {
@@ -417,12 +419,12 @@ char *jsvalue_to_specstr(JSValue v) {
   return s;
 }
 
-// add_constant_number
-// adds a number into the constant table.
-// FIXME:
-// Currently, the same constant numbers might be added to the table
-// more than once.  It might be better to avoid such duplication.
-//
+/*
+   adds a number into the constant table.
+
+   Currently, the same constant numbers might be added to the table
+   more than once.  It might be better to avoid such duplication.
+ */
 int add_constant_number(ConstantCell *constant, double x) {
   int index;
 
@@ -431,9 +433,10 @@ int add_constant_number(ConstantCell *constant, double x) {
   return index;
 }
 
-// add_constant_string
-// adds a string into the constant table.
-//
+/*
+   add_constant_string
+   adds a string into the constant table.
+ */
 int add_constant_string(ConstantCell *constant, char *str) {
   JSValue a;
   int index;
@@ -446,10 +449,11 @@ int add_constant_string(ConstantCell *constant, char *str) {
   return index;
 }
 
-// add_constant_regexp
-// adds a regexp into the constant table.
-// FIXME: This code has also the ``duplication'' problem.
-//
+/*
+   add_constant_regexp
+   adds a regexp into the constant table.
+   FIXME: This code has also the ``duplication'' problem.
+ */
 #ifdef USE_REGEXP
 int add_constant_regexp(ConstantCell *constant, char *str, int flag) {
   JSValue a;
@@ -622,8 +626,9 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
   return 0;
 }
 
-// prints a bytecode instruction
-//
+/*
+   prints a bytecode instruction
+ */
 void print_bytecode(Instruction *insns, int j) {
   Bytecode code;
   Opcode oc;

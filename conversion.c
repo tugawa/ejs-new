@@ -80,10 +80,13 @@
 
  */
 
-// JSValue to JSValue conversion functions
+/*
+   JSValue to JSValue conversion functions
+ */
 
-// converts a special value to a string
-//
+/*
+   converts a special value to a string
+ */
 JSValue special_to_string(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -100,8 +103,9 @@ JSValue special_to_string(JSValue v) {
   }
 }
 
-// convers a special value to a number
-//
+/*
+   convers a special value to a number
+ */
 JSValue special_to_number(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -117,8 +121,9 @@ JSValue special_to_number(JSValue v) {
   }
 }
 
-// convers a special value to a boolean
-//
+/*
+   convers a special value to a boolean
+ */
 JSValue special_to_boolean(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -133,8 +138,9 @@ JSValue special_to_boolean(JSValue v) {
   }
 }
 
-// converts a special value to an object
-//
+/*
+   converts a special value to an object
+ */
 JSValue special_to_object(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -150,8 +156,9 @@ JSValue special_to_object(JSValue v) {
   }
 }
 
-// convers a string to a number
-//
+/*
+   convers a string to a number
+ */
 JSValue string_to_number(JSValue v) {
   char *p, *q;
   cint n;
@@ -184,8 +191,9 @@ JSValue string_to_number(JSValue v) {
   return gconsts.g_flonum_nan;
 }
 
-// converts a string to a boolean
-//
+/*
+   converts a string to a boolean
+ */
 JSValue string_to_boolean(JSValue v) {
   char *p;
 
@@ -197,8 +205,9 @@ JSValue string_to_boolean(JSValue v) {
   return (p[0] == '\0')? JS_FALSE: JS_TRUE;
 }
 
-// converts a string to an Object
-//
+/*
+   converts a string to an Object
+ */
 JSValue string_to_object(JSValue v) {
   if (! is_string(v)) {
     type_error("string expected in string_to_object");
@@ -209,8 +218,9 @@ JSValue string_to_object(JSValue v) {
 
 #define BUFSIZE 1000
 
-// converts a fixnum to a string
-//
+/*
+   converts a fixnum to a string
+ */
 JSValue fixnum_to_string(JSValue v) {
   char buf[BUFSIZE];
 
@@ -222,8 +232,9 @@ JSValue fixnum_to_string(JSValue v) {
   return cstr_to_string(buf);
 }
 
-// convers a flonum to a string
-//
+/*
+   convers a flonum to a string
+ */
 JSValue flonum_to_string(JSValue v) {
   double d;
   char buf[BUFSIZE];
@@ -245,6 +256,9 @@ JSValue flonum_to_string(JSValue v) {
   return cstr_to_string(buf);
 }
 
+/*
+   converts a numner to a string
+ */
 JSValue number_to_string(JSValue v) {
   if (is_fixnum(v)) return fixnum_to_string(v);
   if (is_flonum(v)) return flonum_to_string(v);
@@ -252,8 +266,9 @@ JSValue number_to_string(JSValue v) {
   return gconsts.g_string_empty;
 }
 
-// converts a fixnum to a boolean
-//
+/*
+   converts a fixnum to a boolean
+ */
 JSValue fixnum_to_boolean(JSValue v) {
   if (!is_fixnum(v)) {
     type_error("fixnum expected in fixnum_to_boolean");
@@ -262,8 +277,9 @@ JSValue fixnum_to_boolean(JSValue v) {
   return (v == FIXNUM_ZERO)? JS_FALSE: JS_TRUE;
 }
 
-// converts a flonum to a boolean
-//
+/*
+   converts a flonum to a boolean
+ */
 JSValue flonum_to_boolean(JSValue v) {
   double d;
 
@@ -275,8 +291,9 @@ JSValue flonum_to_boolean(JSValue v) {
   return isnan(d)? JS_FALSE: JS_TRUE;
 }
 
-// converts a fixnum to an object
-//
+/*
+   converts a fixnum to an object
+ */
 JSValue fixnum_to_object(JSValue v) {
   if (!is_fixnum(v)) {
     type_error("fixnum expected in fixnum_to_object");
@@ -285,8 +302,9 @@ JSValue fixnum_to_object(JSValue v) {
   return new_number(v);
 }
 
-// converts a flonum to an object
-//
+/*
+   converts a flonum to an object
+ */
 JSValue flonum_to_object(JSValue v) {
   if (!is_flonum(v)) {
     type_error("flonum expected in flonum_to_object");
@@ -323,8 +341,9 @@ TO_INT_FLO:
 }
 #endif
 
-// converts an object to a string
-//
+/*
+   converts an object to a string
+ */
 JSValue object_to_string(Context *context, JSValue v) {
   JSValue f;
 
@@ -360,8 +379,9 @@ NEXT1:
   return gconsts.g_string_undefined;     // not reached
 }
 
-// converts an object to a number
-//
+/*
+   converts an object to a number
+ */
 JSValue object_to_number(Context *context, JSValue v) {
   JSValue f;
 
@@ -405,14 +425,15 @@ NEXT1:
   */
 }
 
-// converts an object to a primitive
-//
-// The third argument specifies the order of applying toString and valueOf.
-// The difference between this function and convert_to_string /
-// convert_to_number is that when toString / valueOf returned a
-// primitive value, this function returns it without converting
-// them into a string / number.
-//
+/*
+   converts an object to a primitive
+
+   The third argument specifies the order of applying toString and valueOf.
+   The difference between this function and convert_to_string /
+   convert_to_number is that when toString / valueOf returned a
+   primitive value, this function returns it without converting
+   them into a string / number.
+ */
 JSValue object_to_primitive(Context *context, JSValue v, int hint) {
   JSValue f, fst, snd;
 
@@ -445,8 +466,9 @@ NEXT1:
   return JS_UNDEFINED;     // not reached
 }
 
-// converts an object to a boolean
-//
+/*
+   converts an object to a boolean
+ */
 JSValue object_to_boolean(JSValue v) {
   if (!is_object(v)) {
     type_error("object expected in object_to_boolean");
@@ -455,8 +477,9 @@ JSValue object_to_boolean(JSValue v) {
   return JS_TRUE;
 }
 
-// converts an array to a string
-//
+/*
+   converts an array to a string
+ */
 JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 {
   uint64_t length, seplen, sumlen;
@@ -503,10 +526,13 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   return cstr_to_string(cstr);
 }
 
-// general functions
+/*
+   general functions
+ */
 
-// converts to a string
-//
+/*
+   converts to a string
+ */
 JSValue to_string(Context *context, JSValue v) {
   if (is_string(v)) return v;
   if (is_fixnum(v)) return fixnum_to_string(v);
@@ -518,8 +544,9 @@ JSValue to_string(Context *context, JSValue v) {
   return gconsts.g_string_undefined;
 }
 
-// converts to a boolean
-//
+/*
+   converts to a boolean
+ */
 JSValue to_boolean(JSValue v) {
   if (is_string(v)) return string_to_boolean(v);
   if (is_fixnum(v)) return fixnum_to_string(v);
@@ -530,8 +557,9 @@ JSValue to_boolean(JSValue v) {
   return JS_FALSE;
 }
 
-// converts to a number
-//
+/*
+   converts to a number
+ */
 JSValue to_number(Context *context, JSValue v) {
   if (is_number(v)) return v;
   if (is_string(v)) return string_to_number(v);
@@ -541,7 +569,9 @@ JSValue to_number(Context *context, JSValue v) {
   return gconsts.g_flonum_nan;
 }
 
-// converts to an object
+/*
+   converts to an object
+ */
 JSValue to_object(Context *context, JSValue v) {
   if (is_string(v)) return string_to_object(v);
   if (is_fixnum(v)) return fixnum_to_object(v);
@@ -552,10 +582,25 @@ JSValue to_object(Context *context, JSValue v) {
   return JS_UNDEFINED;
 }
 
-// conversion functions to C's data
+/*
+   conversion functions to C's data
+ */
+double special_to_double(JSValue x) {
+  switch (x) {
+  case JS_TRUE:
+    return 1.0;
+  case JS_FALSE:
+  case JS_NULL:
+    return 0.0;
+  case JS_UNDEFINED:
+  default:
+    return NAN;
+  }
+}
 
-// converts to a C's double
-//
+/*
+   converts to a C's double
+ */
 double to_double(Context *context, JSValue v) {
   Tag tag;
 
@@ -567,17 +612,7 @@ double to_double(Context *context, JSValue v) {
     return flonum_to_double(v);
     break;
   case T_SPECIAL:
-    {
-      switch (v) {
-      case JS_UNDEFINED:
-        return NAN;
-      case JS_NULL:
-      case JS_FALSE:
-        return (double)0.0;
-      case JS_TRUE:
-        return (double)1.0;
-       }
-    }
+    return special_to_double(v);
     break;
   case T_STRING:
     {

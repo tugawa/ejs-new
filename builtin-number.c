@@ -10,24 +10,22 @@ BUILTIN_FUNCTION(number_constr)
 
   builtin_prologue();  
   rsv = new_number(FIXNUM_ZERO);
-  set_prop_all(rsv, gconsts.g_string___proto__, gconsts.g_number_proto);
+  // set_prop_all(rsv, gconsts.g_string___proto__, gconsts.g_number_proto);
   if (na > 0)
     number_object_value(rsv) = to_number(context, args[1]);
   set_a(context, rsv);
 }
 
-// constructor of a number (not OBJECT)
+// Number(arg)
+//   If this is called without `new', it acts as a type conversion
+//   function to a number.
 //
 BUILTIN_FUNCTION(number_constr_nonew)
 {
-  JSValue rsv, ret;
+  JSValue ret;
   
   builtin_prologue();
-  rsv = args[0];
-  if (na > 0)
-    ret = to_number(context, args[1]);
-  else
-    ret = FIXNUM_ZERO;
+  ret = (na > 0)? to_number(context, args[1]): FIXNUM_ZERO;
   set_a(context, ret);
 }
 

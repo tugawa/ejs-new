@@ -215,7 +215,6 @@ extern JSValue new_string(JSValue);
 
 extern char *space_chomp(char *);
 // extern double cstr_to_double(char *);
-extern JSValue call_method(Context *, JSValue, JSValue);
 
 /*
  * operations.c

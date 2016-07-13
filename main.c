@@ -1,13 +1,15 @@
-//
-//  main.c
-//  SSJSVM Project, iwasaki-lab, UEC,
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura, 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Ryota Fujii, 2013-14
-//  Hideya Iwasaki, 2013-16
-//
+/*
+   main.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #include "prefix.h"
 #define EXTERN
@@ -17,11 +19,13 @@
 static uint64_t callcount = 0;
 #endif
 
-// test
-//
 #define pp(v) (print_value_verbose(cxt, (v)), putchar('\n'))
 
+/*
+   Debug function
+ */
 void testtest(Context *cxt) {
+#if 0
   JSValue v, p;
   printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n", cxt->global, gconsts.g_global);
   printf("Testtest: g_object = %016lx, g_object_proto = %016lx\n", gconsts.g_object, gconsts.g_object_proto);
@@ -36,7 +40,6 @@ void testtest(Context *cxt) {
   else
     printf("Testtest: Object[prototype] = not found\n");
 
-#if 0
   v = new_object();
   set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
@@ -74,19 +77,10 @@ void testtest(Context *cxt) {
 #endif
 }
 
-// main
-//
+/*
+   main function
+ */
 int main(int argc, char* argv[]) {
-
-  // display arguments
-  /*
-  int i=0;
-  LOG("%d\n",argc);
-  for (i=0; i<argc; i++) {
-    LOG("%s\n",argv[i]);
-  }
-  */
-
   // If input program is given from a file, fp is set to NULL.
   FILE *fp = NULL;
 
@@ -96,9 +90,8 @@ int main(int argc, char* argv[]) {
 #else
   if (argc == 2) {
     fp = fopen(argv[1], "r");
-    if (fp == NULL) {
+    if (fp == NULL)
       LOG_EXIT("No such file.");
-    }
   }
 #endif // J5MODE
 
@@ -148,10 +141,6 @@ int main(int argc, char* argv[]) {
   init_context(function_table, init_global(), &context);
   // LOG("fp:%d\n", getFp(context));
   // LOG("sp:%d\n", getSp(context));
-
-#ifdef USE_JIT
-  initJITCompiler();
-#endif // USE_JIT
 
   // obtains the time before execution
 #ifdef USE_PAPI
@@ -226,8 +215,9 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
-// prints a JSValue
-//
+/*
+   prints a JSValue
+ */
 void print_value_simple(Context *context, JSValue v) {
   print_value(context, v, 0);
 }
