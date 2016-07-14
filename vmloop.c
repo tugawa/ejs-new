@@ -257,9 +257,6 @@ I_ADD:
         cint s = fixnum_to_int(v1) + fixnum_to_int(v2);
         regbase[dst] =
           is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
-#ifdef QUICKENING
-        quickening(insns, pc, ADDFIXFIX);
-#endif
       }
       break;
 
@@ -267,9 +264,6 @@ I_ADD:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
-#ifdef QUICKENING
-        quickening(insns, pc, ADDFIXFLO);
-#endif
         goto ADD_FLOFLO;
       }
 
@@ -277,9 +271,6 @@ I_ADD:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
-#ifdef QUICKENING
-        quickening(insns, pc, ADDFLOFIX);
-#endif
         goto ADD_FLOFLO;
       }
 
@@ -287,9 +278,6 @@ I_ADD:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
-#ifdef QUICKENING
-        quickening(insns, pc, ADDFLOFLO);
-#endif
     ADD_FLOFLO:
         d = x1 + x2;
         regbase[dst] =
@@ -310,9 +298,6 @@ I_ADD:
 #else
         regbase[dst] = cstr_to_string2(string_to_cstr(v1), string_to_cStr(v2));
 #endif
-#ifdef QUICKENING
-        quickening(insns, pc, ADDSTRSTR);
-#endif
       }
       break;
 
@@ -320,9 +305,11 @@ I_ADD:
       {
         // For other cases, use slow_add function.
         regbase[dst] = slow_add(context, v1, v2);
-#ifdef QUICKENING
-        quickening(insns, pc, fastAddOpcode(tag));
-#endif
+        /*
+        printf("result = %016lx\n", regbase[dst]);
+        if (is_string(regbase[dst]))
+          printf("str = %s\n", string_to_cstr(regbase[dst]));
+        */
       }
       break;
     }

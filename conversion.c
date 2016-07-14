@@ -352,13 +352,17 @@ JSValue object_to_string(Context *context, JSValue v) {
     return gconsts.g_string_empty;
   }
   if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring)) != JS_UNDEFINED) {
+    /*
     printf("calling toString\n" );
     if (is_function(f)) printf("toString is a function\n");
     else if (is_builtin(f)) printf("toString is a builtin\n");
     else printf("toString is ???\n");
+    printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
+    */
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
     else goto NEXT0;
+    // printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);

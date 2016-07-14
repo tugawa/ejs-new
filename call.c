@@ -1,10 +1,23 @@
+/*
+   call.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
 
-// calls a function
-//
 /*
+   calls a function
+
    When this function is called, the stack is:
 
            ...
@@ -18,7 +31,6 @@
            ...
    sp:     argN
 */
-
 void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
@@ -45,8 +57,9 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
     set_pc(context, ftab_send_entry(t));
 }
 
-// call a function at the tail position
-//
+/*
+   call a function at the tail position
+ */
 void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
@@ -65,9 +78,9 @@ void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
     set_pc(context, ftab_send_entry(t));
 }
 
-// calls a builtin function
-//
 /*
+   calls a builtin function
+
    When this function is called, the stack is:
 
            ...
@@ -81,7 +94,6 @@ void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
            ...
    sp:     argN
 */
-
 void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
   BuiltinCell *b;
   builtin_function_t body;
@@ -98,14 +110,16 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   fp = get_fp(context);
   stack = &get_stack(context, 0);
 
-  // The original code called save_special_registers here, but this seems
-  // to be unnecessary because builtin function codes do not manipulate
-  // special registers.  However, since the compiler takes rooms from
-  // stack[pos] to stack[pos + 3] for saving the values of special registers,
-  // it may be necessary to fill these rooms with harmless values, e.g.,
-  // FIXNUM_ZERO to make the GC work correctly.
-  // pos = sp - nargs - 4;
-  // save_special_registers(context, stack, pos);
+  /*
+     The original code called save_special_registers here, but this seems
+     to be unnecessary because builtin function codes do not manipulate
+     special registers.  However, since the compiler takes rooms from
+     stack[pos] to stack[pos + 3] for saving the values of special registers,
+     it may be necessary to fill these rooms with harmless values, e.g.,
+     FIXNUM_ZERO to make the GC work correctly.
+     pos = sp - nargs - 4;
+     save_special_registers(context, stack, pos);
+   */
 
   // sets the value of the receiver to the global object if it is not set yet
   if (sendp == FALSE)
@@ -135,8 +149,9 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   // restore_special_registers(context, stack, pos);
 }
 
-// calls a builtin function at a tail position
-//
+/*
+   calls a builtin function at a tail position
+ */
 void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
   BuiltinCell *b;
   builtin_function_t body;
@@ -168,22 +183,25 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int co
   restore_special_registers(context, stack, fp - 4);
 }
 
-// invokes a function with no arguments in a new vmloop
-//
+/*
+   invokes a function with no arguments in a new vmloop
+ */
 JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sendp) {
   FunctionCell *f;
   FunctionTable *t;
   JSValue *stack, ret;
-  int sp, pos;
+  int sp, pos, oldfp, oldsp;
 
-  printf("Entering invoke_function0\n"); fflush(stdout);
+  // printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
   f = remove_function_tag(fn);
   stack = &get_stack(context, 0);
-  sp = get_sp(context);
+  oldsp = sp = get_sp(context);
+  oldfp = get_fp(context);
   pos = sp + 1;          // place where cf register will be saved
   sp += 5;               // makes room for cf, pc, lp, and fp
   stack[sp] = receiver;
   save_special_registers(context, stack, pos);
+
 
   // sets special registers
   set_fp(context, sp);
@@ -197,13 +215,17 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
     set_pc(context, ftab_send_entry(t));
   vmrun_threaded(context, sp);
   ret = get_a(context);
-  print_value_verbose(context, ret); putchar('\n');
+  // printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
+  // print_value_verbose(context, ret); putchar('\n');
   restore_special_registers(context, stack, pos);
+  set_fp(context, oldfp);
+  set_sp(context, oldsp);
   return ret;
 }
 
-// calls a builtin with no arguments
-//
+/*
+   calls a builtin with no arguments
+ */
 JSValue call_builtin0(Context *context, JSValue receiver, JSValue fn, int sendp) {
   int sp;
 

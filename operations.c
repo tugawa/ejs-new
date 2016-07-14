@@ -12,6 +12,10 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
     v1 = object_to_string(context, v1);
   if (is_object(v2))
     v2 = object_to_string(context, v2);
+  /*
+  printf("slow_add, v1 = %016lx, v2 = %016lx\n", v1, v2);
+  if (is_string(v2)) printf("v2 = %s\n", string_to_cstr(v2));
+  */
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_STRFLO:
     v2 = flonum_to_string(v2);
@@ -24,6 +28,10 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
     goto STRSTR;
   case TP_SPESTR:
     v1 = special_to_string(v1);
+    /*
+    printf("slow_add SPESTR, v1 = %016lx, v2 = %016lx\n", v1, v2);
+    if (is_string(v1)) printf("v1 = %s\n", string_to_cstr(v1));
+    */
     goto STRSTR;
   case TP_STRFIX:
     v2 = fixnum_to_string(v2);
@@ -48,6 +56,7 @@ STRSTR:
       double x1, x2, sum;
       x1 = to_double(context, v1);
       x2 = to_double(context, v2);
+printf("slow_add, default: x1 = %lf, x2 = %lf\n", x1, x2);
       sum = x1 + x2;
       if (is_fixnum_range_double(sum))
         return double_to_fixnum(sum);

@@ -354,7 +354,6 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
       uint16_t argc;
       closure = atoi(next_token());
       argc = atoi(next_token());
-printf("CALLOP: argc = %d\n", argc);
       bytecodes[pc] = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }

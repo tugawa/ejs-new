@@ -1,38 +1,47 @@
+/*
+   builtin-global.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// isNAN
-//
+/*
+   isNAN
+ */
 BUILTIN_FUNCTION(builtin_isNaN)
 {
-  JSValue v;
+  double d;
 
   builtin_prologue();  
-  v = to_number(context, args[1]);
-  if (is_flonum(v) && isnan(flonum_to_double(v)))
-    set_a(context, JS_TRUE);
-  else
-    set_a(context, JS_FALSE);
+  d = to_double(context, args[1]);
+  set_a(context, isnan(d)? JS_TRUE: JS_FALSE);
 }
 
 // isFinite
 //
 BUILTIN_FUNCTION(builtin_isFinite)
 {
-  JSValue v;
+  double d;
 
   builtin_prologue();  
-  v = to_number(context, args[1]);
-  if (is_flonum(v) && isinf(flonum_to_double(v)))
-    set_a(context, JS_TRUE);
-  else
-    set_a(context, JS_FALSE);
+  d = to_double(context, args[1]);
+  set_a(context, isinf(d)? JS_TRUE: JS_FALSE);
 }
 
-// parseInt str rad
-// converts a string to a number
-
+/*
+   parseInt str rad
+   converts a string to a number
+ */
 BUILTIN_FUNCTION(builtin_parse_int)
 {
   JSValue str, rad;
@@ -83,30 +92,35 @@ BUILTIN_FUNCTION(builtin_parse_float)
     set_a(context, double_to_flonum(x));
 }
 
-// throw Error because it is not a constructor
+/*
+   throws Error because it is not a constructor
+ */
 BUILTIN_FUNCTION(builtin_not_a_constructor)
 {
   LOG_EXIT("Not a constructor");
 }
 
-
+/*
+   print
+ */
 BUILTIN_FUNCTION(builtin_print)
 {
   int i;
 
   builtin_prologue();
-  // printf("builtin_print: na = %d, args = %p\n", na, args);
+  // printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args);
 
   for (i = 1; i <= na; ++i) {
-     //printf("args[%d] = %016lx\n", i, args[i]);
-     print_value_simple(context, args[i]);
+    // printf("args[%d] = %016lx\n", i, args[i]);
+    print_value_simple(context, args[i]);
     putchar(i < na ? ' ' : '\n');
   }
   set_a(context, JS_UNDEFINED);
 }
 
-// displays the status
-//
+/*
+   displays the status
+ */
 BUILTIN_FUNCTION(builtin_printStatus)
 {
   // int fp;
@@ -128,8 +142,9 @@ BUILTIN_FUNCTION(builtin_printStatus)
           (void *)regBase[-LP_POS]);
 }
 
-// displays the address of an object
-//
+/*
+   displays the address of an object
+ */
 BUILTIN_FUNCTION(builtin_address)
 {
   JSValue obj;
@@ -140,8 +155,9 @@ BUILTIN_FUNCTION(builtin_address)
   set_a(context, JS_UNDEFINED);
 }
 
-// prints ``hello, world''
-//
+/*
+   prints ``hello, world''
+ */
 BUILTIN_FUNCTION(builtin_hello)
 {
   LOG("hello, world\n");
@@ -162,8 +178,9 @@ BUILTIN_FUNCTION(builtin_to_number)
 
 
 #ifdef USE_PAPI
-// obtains the real usec
-//
+/*
+   obtains the real usec
+ */
 BUILTIN_FUNCTION(builtin_papi_get_real)
 {
   long long now = PAPI_get_real_usec();
@@ -206,8 +223,9 @@ ObjGconstsProp global_gconsts_props[] = {
   { NULL,        NULL,                       ATTR_DE   }
 };
 
-// sets the global object's properties
-//
+/*
+   sets the global object's properties
+ */
 void init_builtin_global(void)
 {
   {
