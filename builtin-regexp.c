@@ -4,174 +4,163 @@
 
 #ifdef USE_REGEXP
 
-#if 0
-BUILTIN_FUNCTION(regexp_constr)
-{
+int cstr_to_regexp_flag(char *cstr, int *flag) {
+  bool global, ignorecase, multiline;
+  int c, f;
+
+  global = false;
+  ignorecase = false;
+  multiline = false;
+  f = 0;
+  while ((c = *cstr++) != '\0') {
+    switch (c) {
+    case 'g':
+      // if (global) return FAIL;
+      global = true;
+      break;
+    case 'i':
+      // if (ignorecase) return FAIL;
+      ignorecase = true;
+      break;
+    case 'm':
+      // if (multiline) return FAIL;
+      multiline = true;
+      break;
+    default:
+      return FAIL;
+    }
+  }
+  if (global) f |= F_REGEXP_GLOBAL;
+  if (ignorecase) f |= F_REGEXP_IGNORE;
+  if (multiline) f |= F_REGEXP_MULTILINE;
+  *flag = f;
+  return SUCCESS;
+}
+
+int regexp_constructor_sub(char *pat, char *flagstr, JSValue *dst) {
+  JSValue re;
+  int flag, err;
+
+  if ((err = cstr_to_regexp_flag(flagstr, &flag)) == FAIL)
+    return FAIL;
+  if ((re = new_regexp(pat, flag)) == JS_UNDEFINED)
+    return FAIL;
+  set_obj_cstr_prop(re, "source", cstr_to_string(pat), ATTR_ALL);
+  regexp_lastindex(remove_regexp_tag(re)) = 0;
+  set_obj_cstr_prop(re, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
+  *dst = re;
+  return SUCCESS;
+}
+
+void regexp_constr_general(Context *context, int fp, int na, int new) {
   JSValue res, pat, flag;
+  char *cstrflag;
 
   builtin_prologue();
   switch (na) {
   case 0:
-    regexpConstructorSub("", "", &result);
-    setA(context, result);
+    regexp_constructor_sub("", "", &res);
+    set_a(context, res);
     return;
   case 1:
-    pattern = args[1];
-    if(isRegExp(pattern)){
-        regexpConstructorSub(getRegExpPattern(pattern), "", &result);
-        setA(context, result); return; }
-
-      else{
-        if(isUndefined(pattern)){
-          regexpConstructorSub("", "", &result);
-          setA(context, result); return; }
-
-        else{
-          pattern = JSValueToString(pattern, context);
-          if(isString(pattern)){
-            regexpConstructorSub(stringToCStr(pattern), "", &result);
-            setA(context, result); return; } } }
-
-    case 2:
-      pattern = args[1];
-      flag = args[2];
-      if(isRegExp(pattern)){
-        if(isUndefined(flag)){
-          regexpConstructorSub(getRegExpPattern(pattern), "", &result);
-          setA(context, result); return; } }
-
-      else{
-        pattern = JSValueToString(pattern, context);
-        flag = JSValueToString(flag, context);
-        if(isString(pattern) && isString(flag)){
-          regexpConstructorSub(stringToCStr(pattern), stringToCStr(flag), &result);
-          setA(context, result); return; } }
-
-    default:
-      break;
+LAB0:
+    cstrflag = "";
+LAB1:
+    pat = args[1];
+    if (is_regexp(pat)) {
+      if (new == TRUE)
+        regexp_constructor_sub(regexp_pattern(remove_regexp_tag(pat)), cstrflag, &res);
+      else
+        res = pat;
+    } else if (pat == JS_UNDEFINED)
+      regexp_constructor_sub("", cstrflag, &res);
+    else {
+      pat = to_string(context, pat);
+      if (is_string(pat))
+        regexp_constructor_sub(string_value(pat), cstrflag, &res);
+      else
+        regexp_constructor_sub("", cstrflag, &res);
+    }
+    break;
+  default:
+    flag = args[2];
+    if (flag == JS_UNDEFINED) goto LAB0;
+    flag = to_string(context, flag);
+    goto LAB1;
   }
+  set_a(context, res);
+}
 
-  LOG_EXIT("pattern can't convert to String");
+JSValue regexp_exec(Context* context, JSValue rsv, char *cstr) {
+  return JS_NULL;
+}
+
+BUILTIN_FUNCTION(regexp_constr)
+{
+  regexp_constr_general(context, fp, na, TRUE);
 }
 
 BUILTIN_FUNCTION(regexp_constr_nonew)
 {
-  JSValue* args;
-  JSValue result, pattern, flag;
-  int fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-
-  switch(nArgs){
-    case 0:
-      regexpConstructorSub("", "", &result);
-      setA(context, result); return;
-
-    case 1:
-      pattern = args[1];
-      if(isRegExp(pattern)){
-        setA(context, pattern); return; }
-
-      else{
-        if(isUndefined(pattern)){
-          regexpConstructorSub("", "", &result);
-          setA(context, result); return; }
-
-        else{
-          pattern = JSValueToString(pattern, context);
-          if(isString(pattern)){
-            regexpConstructorSub(stringToCStr(pattern), "", &result);
-            setA(context, result); return; } } }
-    case 2:
-      pattern = args[1];
-      flag = args[2];
-      if(isRegExp(pattern)){
-        if(isUndefined(flag)){
-          setA(context, pattern ); return; } }
-
-      else{
-        pattern = JSValueToString(pattern, context);
-        flag = JSValueToString(flag, context);
-        if(isString(pattern) && isString(flag)){
-          regexpConstructorSub(stringToCStr(pattern), stringToCStr(flag), &result);
-          setA(context, result); return; } }
-
-    default:
-      ;
-  }
-
-  LOG_EXIT("regexpConstructor:pattern can't convert to String");
+  regexp_constr_general(context, fp, na, FALSE);
 }
 
 BUILTIN_FUNCTION(regexp_toString)
 {
   JSValue rsv;
+  RegexpCell *p;
+  char *pat, *ret;
+  uint64_t len;
 
   builtin_prologue();
   rsv = args[0];
-
-  if(isRegExp(rsv)){
-    char *pattern = getRegExpPattern(rsv);
-    uint64_t length = strlen(pattern);
-    char *retStr = malloc((sizeof(char)*length) +3);
-
-    // "/.../" のフォーマットに変換
-    *retStr = '/';
-    strcpy(retStr+1, pattern);
-    *(retStr + length + 1) = '/';
-    *(retStr + length + 2) = '\0';
-    setA(context, cStrToString(retStr));
-    return;
-
-  }else{
-    LOG_EXIT("RegExp.prototype.toString received not RegExpObject");
-  }
+  if (is_regexp(rsv)) {
+    p = remove_regexp_tag(rsv);
+    pat = regexp_pattern(p);
+    len = strlen(pat);
+    ret = malloc(sizeof(char) * len + 3);
+    ret[0] = '/';
+    strcpy(&ret[1], pat);
+    ret[len + 1] = '/';
+    ret[len + 2] = '\0';
+    set_a(context, cstr_to_string(ret));
+  } else
+    LOG_EXIT("RegExp.prototype.toString: receiver is not a regexp\n");
 }
 
-BUILTIN_FUNCTION(regexp_exec)
+BUILTIN_FUNCTION(builtin_regexp_exec)
 {
-  int fp;
-  char *cstr;
-  JSValue* args;
   JSValue rsv, str;
+  char *cstr;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
+  builtin_prologue();
   rsv = args[0];
-
-  if(isRegExp(rsv)){
-    str = JSValueToString(args[1], context);
-    cstr = stringToCStr(str);
-    setA(context, regExpExec(context, rsv, cstr));
-    return;
-
-  }else{
-    LOG_EXIT("RegExp.prototype.exec received not RegExp Object\n");
-  }
+  if (is_regexp(rsv)) {
+    str = to_string(context, args[1]);
+    cstr = string_to_cstr(str);
+    set_a(context, regexp_exec(context, rsv, cstr));
+  } else
+    LOG_EXIT("Regexp.prototype.exec: receiver is not a regexp\n");
 }
 
-BUILTIN_FUNCTION(regexp_test)
+BUILTIN_FUNCTION(builtin_regexp_test)
 {
-  int fp;
+  JSValue rsv, str, ret;
   char *cstr;
-  JSValue* args;
-  JSValue rsv, str;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
+  builtin_prologue();
   rsv = args[0];
-
-  if(isRegExp(rsv)){
-    str = JSValueToString(args[1], context);
-    cstr = stringToCStr(str);
-    setA(context, isNull(regExpExec(context, rsv, cstr))? JS_FALSE:JS_TRUE);
-    return;
-
-  }else{
-    LOG_EXIT("RegExp.prototype.exec received not RegExp Object\n");
-  }
+  if (is_regexp(rsv)) {
+    str = to_string(context, args[1]);
+    cstr = string_to_cstr(str);
+    ret = regexp_exec(context, rsv, cstr) == JS_NULL? JS_FALSE: JS_TRUE;
+    set_a(context, ret);
+  } else
+    LOG_EXIT("Regexp.prototype.test: receiver is not a regexp\n");
 }
 
 
+#if 0
 bool regExpProtoExecSub(regex_t* regex, const char* str, int startIndex, OnigRegion* region)
 {
   int res = onig_search
@@ -229,82 +218,23 @@ inline JSValue regExpExec(Context* context, JSValue rsv, char *cstr)
     return JS_NULL;
   }
 }
-
-int cstr_to_regexpflag(char *cstr, int *flag) {
-{
-  bool global, ignorecase, multiline;
-  int c, f;
-
-  global = false;
-  ignoreCase = false;
-  multiline = false;
-  f = 0;
-  while ((c = *cstr++) != '\0') {
-    switch (c) {
-    case 'g':
-      // if (global) return FAIL;
-      global = true;
-      break;
-    case 'i':
-      // if (ignorecase) return FAIL;
-      ignorecase = true;
-      break;
-    case 'm':
-      // if (multiline) return FAIL;
-      multiline = true;
-      break;
-    default:
-      return FAIL;
-    }
-  }
-  if (global) f |= F_REGEXP_GLOBAL;
-  if (ignoreCase) f |= F_REGEXP_IGNORE;
-  if (multiline) f |= F_REGEXP_MULTILINE;
-  *flag = f;
-  return SUCCESS;
-}
-
-int regexp_constructor_sub(char *pat, char *cstr, JSValue *dst) {
-  int flag, err;
-  OnigOptionType opt;
-  JSValue ret;
-  RegexpCell *p;
-
-  if ((err = cStrToRegExpFlag(cStrFlag, &flag)) == FAIL)
-    return FAIL;
-  }
-  ret = new_regexp();
-  p = remove_regexp_tag(ret);
-  regexp_pattern(p) = strdup(pat);   // The original code used ststrdup. Why?
-  opt = set_regexp_flag(p, flag);
-
-  err = makeRegExObject(*dst, option);
-  if(!err == MAKE_REGEX_OBJECT_SUCCESS){
-    return ERROR_REGEX_CONST;
-  }
-  set_obj_cstr_prop(*dst, "source", cStrToString(pattern), ATTR_ALL);
-  setRegExpLastIndex(*dst, 0);
-  set_obj_cstr_prop(*dst, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
-  return SUCCESS_REGEX_CONST;
-}
 #endif
 
 ObjBuiltinProp regexp_funcs[] = {
-  // { "exec",           regexp_exec,          1, ATTR_DE },
-  // { "test",           regexp_test,          1, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
+  { "exec",           builtin_regexp_exec,          1, ATTR_DE },
+  { "test",           builtin_regexp_test,          1, ATTR_DE },
+  { NULL,             NULL,                         0, ATTR_DE }
 };
 
 void init_builtin_regexp(void)
 {
-  /*
   JSValue r, proto;
 
   gconsts.g_regexp = r =
     new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
   gconsts.g_regexp_proto = proto = new_object();
   set_prop_all(r, gconsts.g_string_prototype, proto);
-  set_obj_cstr_prop(proto, "constructor", g_regexp, ATTR_DE);
+  set_obj_cstr_prop(proto, "constructor", r, ATTR_DE);
   {
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
@@ -312,7 +242,6 @@ void init_builtin_regexp(void)
       p++;
     }
   }
-  */
 }
 
 #endif // USE_REGEXP
