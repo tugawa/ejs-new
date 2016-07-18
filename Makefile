@@ -19,7 +19,6 @@ HFILES = $(GENERATED_HFILES) \
 	 extern.h
 
 OFILES = allocate.o \
-	 builtin.o \
 	 builtin-array.o \
 	 builtin-boolean.o \
 	 builtin-global.o \

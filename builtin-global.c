@@ -27,8 +27,9 @@ BUILTIN_FUNCTION(builtin_isNaN)
   set_a(context, isnan(d)? JS_TRUE: JS_FALSE);
 }
 
-// isFinite
-//
+/*
+   isFinite
+ */
 BUILTIN_FUNCTION(builtin_isFinite)
 {
   double d;
@@ -211,7 +212,7 @@ ObjGconstsProp global_gconsts_props[] = {
   { "Number",    &gconsts.g_number,          ATTR_DE   },
   { "String",    &gconsts.g_string,          ATTR_DE   },
   { "Boolean",   &gconsts.g_boolean,         ATTR_DE   },
-  { "undefined", &gconsts.g_const_undefined, ATTR_DDDE },
+//{ "undefined", &gconsts.g_const_undefined, ATTR_DDDE },
   { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
   { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
   { "Math",      &gconsts.g_math,            ATTR_DE   },
@@ -228,17 +229,24 @@ ObjGconstsProp global_gconsts_props[] = {
  */
 void init_builtin_global(void)
 {
+  JSValue g;
+
+  g = gconsts.g_global;
+  set_obj_cstr_prop(g, "true", JS_TRUE, ATTR_DE);
+  set_obj_cstr_prop(g, "false", JS_FALSE, ATTR_DE);
+  set_obj_cstr_prop(g, "null", JS_NULL, ATTR_DE);
+  set_obj_cstr_prop(g, "undefined", JS_UNDEFINED, ATTR_DE);
   {
     ObjBuiltinProp *p = global_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_global, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(g, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
   {
     ObjGconstsProp *p = global_gconsts_props;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_global, p->name, *(p->addr), p->attr);
+      set_obj_cstr_prop(g, p->name, *(p->addr), p->attr);
       p++;
     }
   }

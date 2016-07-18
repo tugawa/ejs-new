@@ -1,9 +1,23 @@
+/*
+   builtin-object.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// constructor for an object
-//
+/*
+   constructor for an object
+ */
 BUILTIN_FUNCTION(object_constr)
 {
   JSValue rsv, ret, arg;
@@ -12,8 +26,10 @@ BUILTIN_FUNCTION(object_constr)
   builtin_prologue();
   rsv = args[0];
   // printf("called object_constr, na = %d\n", na);
-  // If this is called with `new', which kind of object is allocated
-  // depends on the type of the first argument.
+  /*
+     If this is called with `new', which kind of object is allocated
+     depends on the type of the first argument.
+  */
   if (na > 0) {
     arg = args[1];
     tag = get_tag(arg);
@@ -70,6 +86,17 @@ void init_builtin_object(void)
     new_builtin_with_constr(object_constr, object_constr, 0);
   gconsts.g_object_proto = proto = new_object();
   set_prop_de(obj, gconsts.g_string_prototype, proto);
+
+  // not implemented yet
+  // set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
+  //            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
+
+  gconsts.g_function_proto = new_object();
+#ifdef PARALLEL
+  set_obj_cstr_prop(gconsts.g_function_proto, "setAtomic",
+                    new_builtin(functionProtoSetAtomic, 0), ATTR_DE);
+#endif
+
   {
     ObjBuiltinProp *p = object_funcs;
     while (p->name != NULL) {

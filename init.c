@@ -1,15 +1,29 @@
+/*
+   init.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// static JSValue global;
-// static JSValue math;
 #ifdef PARALLEL
 static JSValue vmTest;
 static JSValue thread;
 static JSValue tcp;
 #endif
 
+/*
+   initilaizes global constants
+ */
 void init_global_constants(void) {
   // string constants
   gconsts.g_string_prototype = cstr_to_string("prototype");
@@ -34,44 +48,23 @@ void init_global_constants(void) {
   gconsts.g_flonum_negative_infinity = double_to_flonum(-INFINITY);
   gconsts.g_flonum_nan       = double_to_flonum(NAN);
 
-  // constants
-  gconsts.g_const_true = new_builtin(builtin_const_true, 0);
-  gconsts.g_const_false = new_builtin(builtin_const_false, 0);
-  gconsts.g_const_undefined = new_builtin(builtin_const_undefined, 0);
-  gconsts.g_const_null = new_builtin(builtin_const_null, 0);
-  gconsts.g_identity = new_builtin(builtin_identity, 1);
-  // gconsts.g_object = new_builtin(object_constr, 0);
-  // gconsts.g_array = new_builtin(array_constr, 0);
-
-  // gconsts.g_object_proto = new_object();
-  // set_prop_all(gconsts.g_object_proto, gconsts.g_string_prototype, gconsts.g_object_proto);
-  // set_prop_de(gconsts.g_object_proto, gconsts.g_string_tostring,
-  //           new_builtin(object_toString, 0));
-
-  // not implemented yet
-  // set_obj_cstr_prop(gObjectProto, "hasOwnPropaty",
-  //            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
-
-  gconsts.g_function_proto = new_object();
-#ifdef PARALLEL
-  set_obj_cstr_prop(gconsts.g_function_proto, "setAtomic", new_builtin(functionProtoSetAtomic, 0), ATTR_DE);
-#endif
-
-  gconsts.g_fixnum_to_string = new_builtin(builtin_fixnum_to_string, 0);
-  gconsts.g_flonum_to_string = new_builtin(builtin_flonum_to_string, 0);
-//  gconsts.g_string_to_index = new_builtin(builtin_string_to_index, 0);
+  // Why the following constants are necessary?
+  // gconsts.g_const_true = new_builtin(builtin_const_true, 0);
+  // gconsts.g_const_false = new_builtin(builtin_const_false, 0);
+  // gconsts.g_const_undefined = new_builtin(builtin_const_undefined, 0);
+  // gconsts.g_const_null = new_builtin(builtin_const_null, 0);
+  // gconsts.g_identity = new_builtin(builtin_identity, 1);
+  // gconsts.g_fixnum_to_string = new_builtin(builtin_fixnum_to_string, 0);
+  // gconsts.g_flonum_to_string = new_builtin(builtin_flonum_to_string, 0);
+  // gconsts.g_string_to_index = new_builtin(builtin_string_to_index, 0);
 }
 
-// initializes global objects
-//
+/*
+   initializes global objects
+ */
 JSValue init_global(void) {
   gconsts.g_global = new_object();
   gconsts.g_math = new_object();
-  // gconsts.g_number
-  //  = new_builtin_with_constr(number_constr_nonew, number_constr, 1);
-  // gconsts.g_string
-  //  = new_builtin_with_constr(string_constr_nonew, string_constr, 1);
-  // gconsts.g_boolean = new_builtin(boolean_constr, 1);
 #ifdef USE_REGEXP
   // gconsts.g_regexp
   //   = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);

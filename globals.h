@@ -6,10 +6,10 @@ EXTERN StrTable string_table;
 // global constant objects
 //
 EXTERN struct global_constant_objects {
-  JSValue g_const_true;
-  JSValue g_const_false;
-  JSValue g_const_undefined;
-  JSValue g_const_null;
+  // JSValue g_const_true;
+  // JSValue g_const_false;
+  // JSValue g_const_undefined;
+  // JSValue g_const_null;
   JSValue g_identity;
   JSValue g_object;
   JSValue g_object_proto;
