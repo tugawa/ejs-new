@@ -570,11 +570,6 @@ int update_function_table(FunctionTable *ftable, int index,
   ftable[index].body_size = bodysize;
   ftable[index].n_insns = ninsns;
 
-#ifdef USE_JIT
-  ftable[indexOfFuncTbl].jitCount = 0;
-  ftable[indexOfFuncTbl].jitList = NULL;
-#endif
-
   return 0;
 }
 
