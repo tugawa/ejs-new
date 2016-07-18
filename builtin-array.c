@@ -1,45 +1,55 @@
+/*
+   builtin-array.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+ */
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// constructor for array
-//
+/*
+   constructor for array
+ */
 BUILTIN_FUNCTION(array_constr)
 {
   JSValue rsv;
   ArrayCell *p;
+  cint size, length;
 
   builtin_prologue();
-  rsv = new_array();
+  rsv = new_array();    // note that new_array sets the `length' property to 0
   p = remove_array_tag(rsv);
-  set_prop_all(rsv, gconsts.g_string___proto__, gconsts.g_array_proto);
 
-  switch (na) {
-  case 0:
+  if (na == 0)
     allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
-    break;
-  case 1:
-    {
-      JSValue num;
-      cint size, length;
+  else if (na == 1) {
+    JSValue n;
 
-      num = args[1];
-      size =INITIAL_ARRAY_SIZE;
-
-      if (is_fixnum(num) && 0 <= (length = fixnum_to_cint(num))) {
-        while (size < length) size <<= 1;
-        allocate_array_data(p, size, length);
-        set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
-      } else
-        allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
-    }
-    break;
-  default:
-    {
-      // not implemented yet
+    n = args[1];
+    size =INITIAL_ARRAY_SIZE;
+    if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
+      while (size < length) size *= 2;
+      allocate_array_data(p, size, length);
+      set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
+    } else
       allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
-    }
-    break;
+  } else {
+    int i;
+    size =INITIAL_ARRAY_SIZE;
+    length = na;
+    while (size < length) size *= 2;
+    allocate_array_data(p, size, length);
+    set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
+    for (i = 1; i <= length; i++)
+      array_body_index(p, i) = args[i];
   }
   set_a(context, rsv);
 }
@@ -428,13 +438,15 @@ ObjBuiltinProp array_funcs[] = {
 
 void init_builtin_array(void)
 {
-  gconsts.g_array = new_builtin(array_constr, 0);
-  gconsts.g_array_proto = new_object();
-  set_prop_all(gconsts.g_array, gconsts.g_string_prototype, gconsts.g_array_proto);
+  JSValue proto;
+
+  gconsts.g_array = new_builtin_with_constr(array_constr, array_constr, 0);
+  gconsts.g_array_proto = proto = new_object();
+  set_prop_all(gconsts.g_array, gconsts.g_string_prototype, proto);
   {
     ObjBuiltinProp *p = array_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_array_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

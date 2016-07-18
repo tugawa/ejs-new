@@ -438,6 +438,7 @@ JSValue new_array(void) {
   ret = make_array();
   p = remove_array_tag(ret);
   set_object_members(&(p->o));
+  set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
   allocate_array_data(p, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
   return ret;

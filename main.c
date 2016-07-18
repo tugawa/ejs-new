@@ -236,10 +236,11 @@ void print_value(Context *context, JSValue v, int verbose) {
       Object *p;
 
       p = remove_object_tag(v);
-      printf("tag = T_OBJECT, header tag = %ld\n", obj_header_tag(p));
+      // printf("tag = T_OBJECT, header tag = %ld\n", obj_header_tag(p));
       switch (obj_header_tag(p)) {
       case HTAG_OBJECT: v = gconsts.g_string_objtostr; break;
-      case HTAG_ARRAY:  v = cstr_to_string("array"); break;
+      // case HTAG_ARRAY:  v = cstr_to_string("array"); break;
+      case HTAG_ARRAY:  v = array_to_string(context, v, gconsts.g_string_comma); break;
       case HTAG_FUNCTION: v = cstr_to_string("function"); break;
       case HTAG_BUILTIN: v = cstr_to_string("builtin"); break;
       case HTAG_ITERATOR: v = cstr_to_string("iterator"); break;

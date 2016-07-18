@@ -43,7 +43,7 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 #define INCEXECUTECOUNT() insns->executeCount++
 #define INSNLOAD()   insn = insns->code
-// #define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
+//#define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
 
 // defines ENTER_INSN(x)
 //
@@ -1000,8 +1000,32 @@ I_SETPROP:
   NEXT_INSN_INCPC();
 
 I_SETARRAY:
+  // setarray dst subscript src
+  //   dst : register that holds an array
+  //   subscript : array's subscript
+  //   src : register that has the assigned value
+  // $dst[$reg] = $src
+
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue a, v;
+    Subscript s;
+    ArrayCell *p;
+
+    a = regbase[get_first_operand_reg(insn)];
+    s = get_second_operand_subscr(insn);
+    v = regbase[get_third_operand_reg(insn)];
+    p = remove_array_tag(a);
+    /*
+    printf("array = %016lx\n", array);
+    if (is_array(array)) {
+      a = remove_array_tag(array);
+      printf("array!!!, size = %ld, length = %ld\n", array_size(a), array_length(a));
+    } else printf("not array!!!\n");
+    */
+    // It is unnecessary to typecheck the values.
+    array_body_index(p, s) = v;
+  }
   NEXT_INSN_INCPC();
 
 I_GETGLOBAL:

@@ -1,15 +1,30 @@
+/*
+   allocate.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+ */
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// a counter for debugging
-//
+/*
+   a counter for debugging
+ */
 #ifdef DEBUG
 int count = 0;
 #endif // DEBUG
 
-// initializes the string table
-//
+/*
+   initializes the string table
+ */
 void init_string_table(unsigned int size) {
   StrCons **a;
 
@@ -20,9 +35,10 @@ void init_string_table(unsigned int size) {
   string_table.count = 0;
 }
 
-// allocates a flonum
-// Note that the return value does not have a pointer tag.
-//
+/*
+   allocates a flonum
+   Note that the return value does not have a pointer tag.
+ */
 FlonumCell *allocate_flonum(double d)
 {
   FlonumCell *n;
@@ -33,10 +49,11 @@ FlonumCell *allocate_flonum(double d)
   return n;
 }
 
-// allocates a string
-// It takes only the string length (except the last null character).
-// Note that the return value does not have a pointer tag.
-//
+/*
+   allocates a string
+   It takes only the string length (except the last null character).
+   Note that the return value does not have a pointer tag.
+ */
 StringCell *allocate_string(int length)
 {
   int size = (int)((length + BYTES_IN_JSVALUE) / BYTES_IN_JSVALUE
@@ -49,9 +66,10 @@ StringCell *allocate_string(int length)
   return v;
 }
 
-// allocates a string
-// This takes a pointer to a C string.
-//
+/*
+   allocates a string
+   This takes a pointer to a C string.
+ */
 JSValue allocate_string1(const char* str)
 {
   uint32_t len;
@@ -60,9 +78,10 @@ JSValue allocate_string1(const char* str)
   return str_intern(str, len, calc_hash_len(str, len), INTERN_HARD);
 }
 
-// allocates a string
-// This takes two C strings and concatenates them.
-//
+/*
+   allocates a string
+   This takes two C strings and concatenates them.
+ */
 JSValue allocate_string2(const char *str1, const char *str2)
 {
   uint32_t len1, len2;
@@ -73,9 +92,10 @@ JSValue allocate_string2(const char *str1, const char *str2)
                      calc_hash_len2(str1, len1, str2, len2), INTERN_HARD);
 }
 
-// allocates an object
-// Note that the return value does not have a pointer tag.
-//
+/*
+   allocates an object
+   Note that the return value does not have a pointer tag.
+ */
 Object *allocate_object(void) {
   Object *object = (Object *)malloc(sizeof(Object));
   object->header = HEADER_OBJECT;
@@ -83,18 +103,22 @@ Object *allocate_object(void) {
   return object;
 }
 
-// allocates an array
-// Note that the return value does not have a pointer tag.
-//
+/*
+   allocates an array
+   Note that the return value does not have a pointer tag.
+ */
 ArrayCell *allocate_array(void) {
   ArrayCell *array = (ArrayCell *)malloc(sizeof(ArrayCell));
   array->o.header = HEADER_ARRAY;
   return array;
 }
 
-// allocates an array body
-//   size : number of elements in the body (size >= len)
-//   len  : length of the array, i.e., subscripts under len are acrutally used
+/*
+   allocates an array body
+     size : number of elements in the body (size >= len)
+     len  : length of the array, i.e., subscripts that are less than len
+            are acrutally used
+ */
 void allocate_array_data(ArrayCell *p, int size, int len)
 {
   JSValue *a;
@@ -106,8 +130,9 @@ void allocate_array_data(ArrayCell *p, int size, int len)
   array_length(p) = len;
 }
 
-// allocates a function
-//
+/*
+   allocates a function
+ */
 FunctionCell *allocate_function(void) {
   FunctionCell *function = (FunctionCell *)malloc(sizeof(FunctionCell));
   function->o.header = HEADER_FUNCTION;
@@ -115,8 +140,9 @@ FunctionCell *allocate_function(void) {
   return function;
 }
 
-// allocates a builtin
-//
+/*
+   allocates a builtin
+ */
 BuiltinCell *allocate_builtin(void) {
   BuiltinCell *builtin = (BuiltinCell *)malloc(sizeof(BuiltinCell));
   builtin->o.header = HEADER_BUILTIN;
@@ -129,16 +155,18 @@ JSValue *allocate_prop_table(int size) {
   return (JSValue*)malloc(sizeof(JSValue) * size);
 }
 
-// allocates an iterator
-//
+/*
+   allocates an iterator
+ */
 IteratorCell *allocate_iterator(void) {
   IteratorCell *iter = (IteratorCell *)malloc(sizeof(IteratorCell));
   iter->o.header = HEADER_ITERATOR;
   return iter;
 }
 
-// allocates a regexp
-//
+/*
+   allocates a regexp
+ */
 #ifdef USE_REGEXP
 RegexpCell *allocate_regexp(void)
 {
@@ -153,8 +181,9 @@ RegexpCell *allocate_regexp(void)
 }
 #endif
 
-// allocates a boxed object
-//
+/*
+   allocates a boxed object
+ */
 BoxedCell *allocate_boxed(uint64_t b)
 {
   BoxedCell *box = (BoxedCell *)malloc(sizeof(BoxedCell));
