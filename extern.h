@@ -196,9 +196,11 @@ extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
-int set_object_prop(Context *, JSValue, JSValue, JSValue);
-int set_array_prop(Context *, JSValue, JSValue, JSValue);
-
+extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
+extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
+#ifdef USE_REGEXP
+extern int make_onig_regexp(JSValue, OnigOptionType);
+#endif
 extern JSValue new_object(void);
 extern JSValue new_array(void);
 extern JSValue new_array_with_size(int);
@@ -207,7 +209,7 @@ extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, i
 extern JSValue new_builtin(builtin_function_t, int);
 extern JSValue new_iterator(void);
 #ifdef USE_REGEXP
-extern JSValue new_regexp(void);
+extern JSValue new_regexp(char *, int);
 #endif // USE_REGEXP
 extern JSValue new_number(JSValue);
 extern JSValue new_boolean(JSValue);

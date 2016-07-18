@@ -170,14 +170,14 @@ IteratorCell *allocate_iterator(void) {
 #ifdef USE_REGEXP
 RegexpCell *allocate_regexp(void)
 {
-  RegExpCell *regexp = (RegExpCell *)malloc(sizeof(RegExpCell));
+  RegexpCell *regexp = (RegexpCell *)malloc(sizeof(RegexpCell));
   regexp->o.header = HEADER_REGEXP;
   regexp->pattern = NULL;
   regexp->reg = NULL;
   regexp->global = false;
-  regexp->ignoreCase = false;
+  regexp->ignorecase = false;
   regexp->multiline = false;
-  return (JSValue)regexp;
+  return regexp;
 }
 #endif
 

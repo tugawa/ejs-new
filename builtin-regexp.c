@@ -4,26 +4,20 @@
 
 #ifdef USE_REGEXP
 
+#if 0
 BUILTIN_FUNCTION(regexp_constr)
 {
-  JSValue* args;
-  JSValue result, pattern, flag;
-  int fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
+  JSValue res, pat, flag;
 
-  switch(nArgs){
-    case 0:
-
-      // 初期化パターン無し、オプション無し
-      regexpConstructorSub("", "", &result);
-      setA(context, result);
-      return;
-
-    case 1:
-
-      //
-      pattern = args[1];
-      if(isRegExp(pattern)){
+  builtin_prologue();
+  switch (na) {
+  case 0:
+    regexpConstructorSub("", "", &result);
+    setA(context, result);
+    return;
+  case 1:
+    pattern = args[1];
+    if(isRegExp(pattern)){
         regexpConstructorSub(getRegExpPattern(pattern), "", &result);
         setA(context, result); return; }
 
@@ -236,63 +230,54 @@ inline JSValue regExpExec(Context* context, JSValue rsv, char *cstr)
   }
 }
 
-int cStrToRegExpFlag(const char* cStrFlag, int* flag)
+int cstr_to_regexpflag(char *cstr, int *flag) {
 {
-  bool global, ignoreCase, multiline;
+  bool global, ignorecase, multiline;
+  int c, f;
+
   global = false;
   ignoreCase = false;
   multiline = false;
-  while(cStrFlag != '\0'){
-    switch(*cStrFlag){
-      case 'g':
-        if(global){
-          return ERROR_CSTR_TO_REGEXP_FLAG;
-        }else{
-          global = true;
-          break;
-        }
-      case 'i':
-        if(ignoreCase){
-          return ERROR_CSTR_TO_REGEXP_FLAG;
-        }else{
-          ignoreCase = true;
-          break;
-        }
-      case 'm':
-        if(multiline){
-          return ERROR_CSTR_TO_REGEXP_FLAG;
-        }else{
-          multiline = true;
-          break;
-        }
-      default:
-        return ERROR_CSTR_TO_REGEXP_FLAG;
+  f = 0;
+  while ((c = *cstr++) != '\0') {
+    switch (c) {
+    case 'g':
+      // if (global) return FAIL;
+      global = true;
+      break;
+    case 'i':
+      // if (ignorecase) return FAIL;
+      ignorecase = true;
+      break;
+    case 'm':
+      // if (multiline) return FAIL;
+      multiline = true;
+      break;
+    default:
+      return FAIL;
     }
-    cStrFlag++;
   }
-  if(global){
-    *flag |= F_REGEXP_GLOBAL;
-  }
-  if(ignoreCase){
-    *flag |= F_REGEXP_IGNORE;
-  }
-  if(multiline){
-    *flag |= F_REGEXP_MULTILINE;
-  }
-  return SUCCESS_CSTR_TO_REGEXP_FLAG;
+  if (global) f |= F_REGEXP_GLOBAL;
+  if (ignoreCase) f |= F_REGEXP_IGNORE;
+  if (multiline) f |= F_REGEXP_MULTILINE;
+  *flag = f;
+  return SUCCESS;
 }
 
-int regexpConstructorSub(const char* pattern, const char* cStrFlag, JSValue* dst)
-{
-  int flag = 0, err;
-  OnigOptionType option;
-  err = cStrToRegExpFlag(cStrFlag, &flag);
-  if(!err == SUCCESS_CSTR_TO_REGEXP_FLAG){
-    return ERROR_REGEX_CONST;
+int regexp_constructor_sub(char *pat, char *cstr, JSValue *dst) {
+  int flag, err;
+  OnigOptionType opt;
+  JSValue ret;
+  RegexpCell *p;
+
+  if ((err = cStrToRegExpFlag(cStrFlag, &flag)) == FAIL)
+    return FAIL;
   }
-  *dst = newRegExp();
-  setRegExpPattern(*dst, ststrdup(pattern));
-  option = setRegExpFlag(flag, *dst);
+  ret = new_regexp();
+  p = remove_regexp_tag(ret);
+  regexp_pattern(p) = strdup(pat);   // The original code used ststrdup. Why?
+  opt = set_regexp_flag(p, flag);
+
   err = makeRegExObject(*dst, option);
   if(!err == MAKE_REGEX_OBJECT_SUCCESS){
     return ERROR_REGEX_CONST;
@@ -302,27 +287,32 @@ int regexpConstructorSub(const char* pattern, const char* cStrFlag, JSValue* dst
   set_obj_cstr_prop(*dst, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
   return SUCCESS_REGEX_CONST;
 }
+#endif
 
 ObjBuiltinProp regexp_funcs[] = {
-  { "exec",           regexp_exec,          1, ATTR_DE },
-  { "test",           regexp_test,          1, ATTR_DE },
+  // { "exec",           regexp_exec,          1, ATTR_DE },
+  // { "test",           regexp_test,          1, ATTR_DE },
   { NULL,             NULL,                 0, ATTR_DE }
 };
 
 void init_builtin_regexp(void)
 {
-  gconsts.g_regexp
-    = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = new_object();
-  set_prop_all(gconsts.g_regexp, gconsts.g_string_prototype, gconsts.g_regexp_proto);
-  set_obj_cstr_prop(gRegExpProto, "constructor", gRegExp, ATTR_DE);
+  /*
+  JSValue r, proto;
+
+  gconsts.g_regexp = r =
+    new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
+  gconsts.g_regexp_proto = proto = new_object();
+  set_prop_all(r, gconsts.g_string_prototype, proto);
+  set_obj_cstr_prop(proto, "constructor", g_regexp, ATTR_DE);
   {
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_regexp_proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }
+  */
 }
 
 #endif // USE_REGEXP

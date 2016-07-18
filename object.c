@@ -370,24 +370,57 @@ void setArrayValue(JSValue obj, int index, JSValue src)
   }
   getArrayBody(obj)[index] = src;
 }
-
-// makes an Oniguruma's regexp object of type regex_t
-//
-#ifdef USE_REGEXP
-int make_onig_regexp(JSValue r, OnigOptionType option)
-{
-  OnigErrorInfo err;
-
-  char *ps = regexp_pattern(r);
-  char *pe = p + strlen(p);
-  if (onig_new(&(regexp_reg(r)), (OnigUChar*)ps, (OnigUChar*)pe, option,
-               ONIG_ENCODING_ASCII, ONIG_SYNTAX_DEFAULT, &err) == ONIG_NORMAL)
-    return MAKE_REGEX_OBJECT_SUCCESS;
-  else
-    return MAKE_REGEX_OBJECT_FAILED;
-}
 #endif
 
+#ifdef USE_REGEXP
+/*
+   sets a regexp's members and makes an Oniguruma's regexp object
+ */
+OnigOptionType set_regexp_members(JSValue re, char *pat, int flag) {
+  RegexpCell *p;
+  OnigOptionType opt;
+  OnigErrorInfo err;
+  char *e;
+
+  p = remove_regexp_tag(re);
+  /*
+     The original code in SSJSVM_codeloader.c used ststrdup function,
+     which is defined in hash.c.  But I don't know the reason why
+     it used ststrdup instead of the standard strdup function.
+
+     regexp_pattern(r) = ststrdup(str);
+  */
+  regexp_pattern(p) = strdup(pat);
+
+  opt = ONIG_OPTION_NONE;
+
+  if (flag & F_REGEXP_GLOBAL) {
+    regexp_global(p) = true;
+    set_obj_cstr_prop(re, "global", JS_TRUE, ATTR_ALL);
+  } else
+    set_obj_cstr_prop(re, "global", JS_FALSE, ATTR_ALL);
+
+  if (flag & F_REGEXP_IGNORE) {
+    opt |= ONIG_OPTION_IGNORECASE;
+    regexp_ignorecase(p) =  true;
+    set_obj_cstr_prop(re, "ignoreCase", JS_TRUE, ATTR_ALL);
+  } else
+    set_obj_cstr_prop(re, "ignoreCase", JS_FALSE, ATTR_ALL);
+
+  if (flag & F_REGEXP_MULTILINE) {
+    opt |= ONIG_OPTION_MULTILINE;
+    regexp_multiline(p) = true;
+    set_obj_cstr_prop(re, "multiline", JS_TRUE, ATTR_ALL);
+  } else
+    set_obj_cstr_prop(re, "multiline", JS_FALSE, ATTR_ALL);
+
+  e = pat + strlen(pat);
+  if (onig_new(&(regexp_reg(p)), (OnigUChar *)pat, (OnigUChar *)e, opt,
+               ONIG_ENCODING_ASCII, ONIG_SYNTAX_DEFAULT, &err) == ONIG_NORMAL)
+    return SUCCESS;
+  else
+    return FAIL;
+}
 #endif
 
 /*
@@ -518,18 +551,18 @@ JSValue new_iterator(void) {
   return ret;
 }
 
+#ifdef USE_REGEXP
 /*
    makes a new regexp
  */
-#ifdef USE_REGEXP
-JSValue new_regexp(void) {
-  JSValue ret;
+JSValue new_regexp(char *pat, int flag) {
+  JSValue re;
   RegexpCell *p;
 
-  ret = make_regexp();
-  p = remove_regexp_tag(ret);
+  re = make_regexp();
+  p = remove_regexp_tag(re);
   set_object_members(&(p->o));
-  return ret;
+  return (set_regexp_members(re, pat, flag) == SUCCESS)? re: JS_UNDEFINED;
 }
 #endif // USE_REGEXP
 

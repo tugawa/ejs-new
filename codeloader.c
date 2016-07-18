@@ -249,9 +249,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
 #ifdef USE_REGEXP
       case REGEXP:
         {
-          char* str;
-          int index;
-          unsigned int flag;
+          char *str;
+          int flag, index;
           flag = atoi(next_token());
           str = next_token();
           index = add_constant_regexp(constant, str, flag);
@@ -433,7 +432,6 @@ int add_constant_number(ConstantCell *constant, double x) {
 }
 
 /*
-   add_constant_string
    adds a string into the constant table.
  */
 int add_constant_string(ConstantCell *constant, char *str) {
@@ -448,56 +446,23 @@ int add_constant_string(ConstantCell *constant, char *str) {
   return index;
 }
 
-/*
-   add_constant_regexp
-   adds a regexp into the constant table.
-   FIXME: This code has also the ``duplication'' problem.
- */
 #ifdef USE_REGEXP
-int add_constant_regexp(ConstantCell *constant, char *str, int flag) {
-  JSValue a;
+/*
+   adds a regexp into the constant table.
+ */
+int add_constant_regexp(ConstantCell *constant, char *pat, int flag) {
+  JSValue re;
   int index;
-  OnigOptionType option;
 
   index = constant->n_constant_values++;
-  a = new_regexp();
-  get_regexp_pattern(a) = ststrdup(str);
-  option = set_regexp_flag(flag, a);
-  if (!make_onig_regexp(a, option) == MAKE_REGEX_OBJECT_SUCCESS) {
+  // re = new_regexp();
+  if ((re = new_regexp(pat, flag)) != JS_UNDEFINED) {
+    (constant->constant_values)[index] = re;
+    return index;
+  } else {
     LOG_ERR("an error occured in making regex.");
+    return -1;
   }
-  (constant->constant_values)[index] = a;
-  return index;
-}
-#endif
-
-#ifdef USE_REGEXP
-inline OnigOptionType setRegExpFlag(int flag, JSValue regex) {
-  OnigOptionType onigOption = ONIG_OPTION_NONE;
-
-  if (flag & F_REGEXP_GLOBAL) {
-    setRegExpGlobal(regex, true);
-    setObjProp(regex, "global", JS_TRUE, ATTR_ALL);
-  } else {
-    setObjProp(regex, "global", JS_FALSE, ATTR_ALL);
-  }
-
-  if (flag & F_REGEXP_IGNORE) {
-    onigOption |= ONIG_OPTION_IGNORECASE;
-    setRegExpIgnoreCase(regex, true);
-    setObjProp(regex, "ignoreCase", JS_TRUE, ATTR_ALL);
-  } else {
-    setObjProp(regex, "ignoreCase", JS_FALSE, ATTR_ALL);
-  }
-
-  if (flag & F_REGEXP_MULTILINE) {
-    onigOption |= ONIG_OPTION_MULTILINE;
-    setRegExpMultiline(regex, true);
-    setObjProp(regex, "multiline", JS_TRUE, ATTR_ALL);
-  } else {
-    setObjProp(regex, "multiline", JS_FALSE, ATTR_ALL);
-  }
-  return onigOption;
 }
 #endif
 
@@ -598,15 +563,12 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
       o = ftable[i].insns[j].code;
       tag = get_tag(o);
       if (tag == T_FLONUM)
-        printf("FLONUM %f\n",
-               ((FlonumCell *)remove_tag(o, T_FLONUM))->value);
+        printf("FLONUM %f\n", flonum_value(remove_flonum_tag(o)));
       else if (tag == T_STRING)
-        printf("STRING \"%s\"\n",
-               ((StringCell *)remove_tag(o, T_STRING))->value);
+        printf("STRING \"%s\"\n", string_value(remove_string_tag(o)));
 #ifdef USE_REGEXP
-      else if (tag == T_REGEXP)
-        printf("REGEXP \"%s\"\n",
-               ((RegexpCell *)remove_tag(o, T_REGEXP))->pattern);
+      else if (is_regexp(o))
+        printf("REGEXP \"%s\"\n", regexp_pattern(remove_regexp_tag(o)));
 #endif
       else
         printf("Unexpected JSValue\n");
@@ -669,21 +631,21 @@ void print_bytecode(Instruction *insns, int j) {
         if (tag == T_FLONUM)
           printf("%d %f", dst, ((FlonumCell *)remove_tag(o, T_FLONUM))->value);
         else
-          printf("Illegal_object_with_tag_%d", tag);
+          printf("Object type mismatched: tag = %d", tag);
         break;
       case STRING:
       case ERROR:
         if (tag == T_STRING)
           printf("%d \"%s\"", dst, ((StringCell *)remove_tag(o, T_STRING))->value);
         else
-          printf("Illegal_object_with_tag_%d", tag);
+          printf("Object type mismatched: tag = %d", tag);
         break;
 #ifdef USE_REGEXP
       case REGEXP:
-        if (tag == T_REGEXP)
-          printf("%d \"%s\"", dst, ((RegexpCell *)remove_tag(o, T_REGEXP))->pattern);
+        if (is_regexp(o))
+          printf("%d \"%s\"", dst, regexp_pattern(remove_regexp_tag(o)));
         else
-          printf("Illegal_object_with_tag_%d", tag);
+          printf("Object type mismatched: tag = %d", tag);
         break;
 #endif // USE_REGEXP
       default:

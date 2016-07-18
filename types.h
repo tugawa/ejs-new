@@ -1,25 +1,28 @@
-//
-//  types.h
-//  SSJSVM Project, Iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Ryota Fujii, 2013-14
-//  Hideya Iwasaki, 2013-16
-//
+/*
+   types.h
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #ifndef TYPES_H_
 #define TYPES_H_
 
-// First-class data in JavaScript is represented as a JSValue.
-// JSValue has 64 bits, where least sifnificat three bits is its tag.
-//
-//  ---------------------------------------------------
-//  |  pointer / immediate value                  |tag|
-//  ---------------------------------------------------
-//  63                                             210
-//
+/*
+   First-class data in JavaScript is represented as a JSValue.
+   JSValue has 64 bits, where least sifnificat three bits is its tag.
+
+    ---------------------------------------------------
+    |  pointer / immediate value                  |tag|
+    ---------------------------------------------------
+    63                                             210
+ */
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  // 111
 
@@ -28,21 +31,26 @@
 #define remove_tag(p,t) ((uint64_t)(p) - (t))
 #define equal_tag(p,t)  (get_tag((p)) == (t))
 
-// Objects
+/*
+   Objects
+ */
 #define T_OBJECT  (0x0)  // 000
 #define T_VARIANT (0x1)  // 001  This is used for type inference by Urushihara.
 #define T_UNUSED1 (0x2)  // 010
 #define T_UNUSED2 (0x3)  // 011
 
-// Constant
+/*
+   Constant
+ */
 #define T_STRING  (0x4)  // 100
 #define T_FLONUM  (0x5)  // 101
 #define T_SPECIAL (0x6)  // 110
 #define T_FIXNUM  (0x7)  // 111
 
-// Pair of two pointer tags
-// Note that Tag the result of TAG_PAIR is of type Tag
-//
+/*
+   Pair of two pointer tags
+   Note that Tag the result of TAG_PAIR is of type Tag
+ */
 #define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
 
 #define TP_OBJOBJ TAG_PAIR(T_OBJECT, T_OBJECT)
@@ -79,9 +87,10 @@ typedef uint16_t Tag;
 typedef uint64_t QuickeningCounter;
 #endif
 
-// Object
-//  tag == T_OBJECT
-//
+/*
+   Object
+   tag == T_OBJECT
+ */
 typedef struct object_cell {
   uint64_t header;        // header
   uint64_t n_props;       // number of properties
@@ -109,9 +118,10 @@ typedef struct object_cell {
 #define make_object()       (put_object_tag(allocate_object()))
 // #define make_object()       ((Object *)(put_tag((allocate_object()), T_OBJECT)))
 
-// Array
-//  tag == T_OBJECT
-//
+/*
+   Array
+   tag == T_OBJECT
+ */
 typedef struct array_cell {
   Object o;
   uint64_t size;        // 2^n
@@ -132,9 +142,10 @@ typedef struct array_cell {
 
 #define MINIMUM_ARRAY_SIZE  100
 
-// Function
-//  tag == T_OBJECT
-//
+/*
+   Function
+   tag == T_OBJECT
+ */
 
 typedef struct function_cell {
   Object o;
@@ -152,15 +163,19 @@ typedef struct function_cell {
 
 // #define make_function()  ((FunctionCell *)(put_tag((allocate_function()), T_OBJECT)))
 
-// Builtin
-//  tag == T_OBJECT
+/*
+   Builtin
+   tag == T_OBJECT
+ */
 
-// [FIXIT]
-// If variable number of arguments is allowed, the following information
-// is necessary.
-//   o number of required arguments
-//   o number of optional arguments
-//   etc.
+/*
+   [FIXIT]
+   If variable number of arguments is allowed, the following information
+   is necessary.
+     o number of required arguments
+     o number of optional arguments
+     etc.
+ */
 
 typedef void (*builtin_function_t)(Context*, int, int);
 
@@ -185,9 +200,10 @@ typedef struct builtin_cell {
 
 // #define make_builtin()  ((BuiltinCell *)(put_tag((allocate_builtin()), T_OBJECT)))
 
-// Iterator
-//  tag == T_OBJECT
-//
+/*
+   Iterator
+   tag == T_OBJECT
+ */
 typedef struct iterator_cell {
   Object o;
   HashIterator iter;
@@ -202,9 +218,10 @@ typedef struct iterator_cell {
 
 // #define make_iterator()  ((IteratorCell *)(put_tag((allocate_iterator()), T_OBJECT)))
 
-// Regexp
-//  tag == T_OBJECT
-//
+/*
+   Regexp
+   tag == T_OBJECT
+ */
 #ifdef USE_REGEXP
 typedef struct regexp_cell {
   Object o;
@@ -221,7 +238,7 @@ typedef struct regexp_cell {
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
 
-#define is_regexp(p)       is_obj_header_tagr((p), HTAG_REGEXP)
+#define is_regexp(p)       is_obj_header_tag((p), HTAG_REGEXP)
 #define regexp_pattern(r)           (((RegexpCell *)(r))->pattern)
 #define regexp_reg(r)               (((RegexpCell *)(r))->reg)
 #define regexp_global(r)            (((RegexpCell *)(r))->global)
@@ -243,9 +260,10 @@ typedef struct regexp_cell {
 // #define make_regexp()  ((RegexpCell*)(put_tag((allocate_regexp()), T_OBJECT)))
 #endif
 
-// Boxed Object
-//  tag == T_OBJECT
-//
+/*
+   Boxed Object
+   tag == T_OBJECT
+ */
 typedef struct boxed_cell {
   Object o;
   JSValue value;   // boxed value; it is number, boolean, or string
@@ -278,9 +296,10 @@ typedef struct boxed_cell {
 
 #define make_string_object()           make_boxed(HEADER_BOXED_STRING)
 
-// FlonumCell
-//  tag == T_FLONUM
-//
+/*
+   FlonumCell
+   tag == T_FLONUM
+ */
 typedef struct flonum_cell {
   uint64_t header;
   double value;
@@ -300,9 +319,10 @@ typedef struct flonum_cell {
 
 #define is_nan(p) (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
-// StringCell
-//  tag == T_STRING
-//
+/*
+   StringCell
+   tag == T_STRING
+ */
 typedef struct string_cell {
   uint64_t header;
 #ifdef STROBJ_HAS_HASH
@@ -332,29 +352,14 @@ typedef struct string_cell {
 
 #define cstr_to_string2(str1, str2) (allocate_string2(str1, str2))
 
-// JITCodeCell
-// It contains various information for JIT compilation.
-#ifdef USE_JIT
-typedef struct jitCodeCell* JITCodeCell;
-struct jit_code_cell {
-  uint16_t rettype_tag;   // tag of return value
-  uint64_t argtype_tag;   // tag of argument
-  void *functioPointer;   // 
-
-  struct typeNode **localType;
-  struct typeNode **argType;
-  struct typeNode *retType;
-
-  JITCodeCell next;       // next JITCodeCell
-};
-#endif // USE_JIT
-
-// Object header
-//
-//  ---------------------------------------------------
-//  |  object size in bytes  |    header tag          |
-//  ---------------------------------------------------
-//  63                     32 31                     0
+/*
+   Object header
+  
+    ---------------------------------------------------
+    |  object size in bytes  |    header tag          |
+    ---------------------------------------------------
+    63                     32 31                     0
+ */
 
 #define OBJECT_SIZE_OFFSET   (32)
 #define OBJECT_HEADER_MASK   ((uint64_t)0x3fffffff)
@@ -363,8 +368,9 @@ struct jit_code_cell {
 
 #define make_header(s, t) (((uint64_t)(s) << OBJECT_SIZE_OFFSET) | (t))
 
-// header tags
-//
+/*
+   header tags
+ */
 #define HTAG_STRING        (0x4)
 #define HTAG_FLONUM        (0x5)
 #define HTAG_OBJECT        (0x6)
@@ -385,7 +391,7 @@ struct jit_code_cell {
 #define HEADER_FUNCTION       HEADER_COMMON(FunctionCell, HTAG_FUNCTION)
 #define HEADER_BUILTIN        HEADER_COMMON(BuiltinCell, HTAG_BUILTIN)
 #define HEADER_ITERATOR       HEADER_COMMON(IteratorCell, HTAG_ITERATOR)
-#define HEADER_REGEXP         HEADER_COMMON(RegExpCell, HTAG_REGEXP)
+#define HEADER_REGEXP         HEADER_COMMON(RegexpCell, HTAG_REGEXP)
 #define HEADER_BOXED_STRING   HEADER_COMMON(BoxedCell, HTAG_BOXED_STRING)
 #define HEADER_BOXED_NUMBER   HEADER_COMMON(BoxedCell, HTAG_BOXED_NUMBER)
 #define HEADER_BOXED_BOOLEAN  HEADER_COMMON(BoxedCell, HTAG_BOXED_BOOLEAN)
@@ -393,13 +399,14 @@ struct jit_code_cell {
 #define obj_header_tag(x)  ((Tag)(obj_header(x) & OBJECT_HEADER_MASK))
 #define obj_size(x)        (obj_header(x) >> OBJECT_SIZE_OFFSET)
 
-// Fixnum
-//  tag == T_FIXNUM
-//
+/*
+   Fixnum
+   tag == T_FIXNUM
 
-// In 64-bits environment, C's `int' is a 32-bits integer.
-// A fixnum value (61-bits signed integer) cannot be represented in an int. 
-// So we use `cint' to represent a fixnum value.
+   In 64-bits environment, C's `int' is a 32-bits integer.
+   A fixnum value (61-bits signed integer) cannot be represented in an int. 
+   So we use `cint' to represent a fixnum value.
+*/
 
 typedef int64_t cint;
 typedef uint64_t cuint;
@@ -442,8 +449,6 @@ typedef uint64_t cuint;
 #define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
 #define MIN_FIXNUM_CINT ((cint)(-1) << (BITS_IN_JSVALUE - TAGOFFSET - 1))
 
-
-
 #define is_number(p) (is_fixnum((p)) || is_flonum((p)))
 
 #define number_to_double(p) \
@@ -451,9 +456,10 @@ typedef uint64_t cuint;
 #define double_to_number(d) \
   ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(d))
 
-// Special
-//  tag == T_SPECIAL
-//
+/*
+   Special
+   tag == T_SPECIAL
+ */
 #define SPECIALOFFSET         (TAGOFFSET + 1)
 #define SPECIALMASK           ((uint64_t)(1 << SPECIALOFFSET) - 1)
 
@@ -464,7 +470,9 @@ typedef uint64_t cuint;
 
 #define make_special(spe,t)    ((JSValue)((spe) << SPECIALOFFSET | (t)))
 
-// Special - Boolean
+/*
+   Special - Boolean
+ */
 #define T_BOOLEAN         ((0x1 << TAGOFFSET) | T_SPECIAL)
 #define JS_TRUE           make_special(1, T_BOOLEAN)
 #define JS_FALSE          make_special(0, T_BOOLEAN)
@@ -474,7 +482,9 @@ typedef uint64_t cuint;
 #define is_false(p)       ((p) == JS_FALSE)
 #define int_to_boolean(e) ((e) ? JS_TRUE : JS_FALSE)
 
-// Special - Others
+/*
+   Special - Others
+ */
 #define T_OTHER          ((0x0 << TAGOFFSET) | T_SPECIAL)
 #define JS_NULL          make_special(0, T_OTHER)
 #define JS_UNDEFINED     make_special(1, T_OTHER)
@@ -483,11 +493,15 @@ typedef uint64_t cuint;
 #define is_null(p)        ((p) == JS_NULL)
 #define is_undefined(p)   ((p) == JS_UNDEFINED)
 
-// Primitive is either number, boolean, or string.
+/*
+   Primitive is either number, boolean, or string.
+ */
 #define is_primitive(p)   (get_tag(p) != T_OBJECT && (!is_null_or_undefined(p)))
 
-// Set a specified property to an object where property name is given
-// by a string object or a C string.
+/*
+   Set a specified property to an object where property name is given
+   by a string object or a C string.
+ */
 
 #define set_prop_none(o, s, v) set_prop_with_attribute(o, s, v, ATTR_NONE)
 #define set_prop_all(o, s, v) set_prop_with_attribute(o, s, v, ATTR_ALL)
