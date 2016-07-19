@@ -451,6 +451,9 @@ typedef uint64_t cuint;
 
 #define is_number(p) (is_fixnum((p)) || is_flonum((p)))
 
+#define cint_to_number(n) \
+  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
+
 #define number_to_double(p) \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
 #define double_to_number(d) \

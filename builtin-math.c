@@ -209,17 +209,20 @@ ObjDoubleProp math_values[] = {
 
 void init_builtin_math(void)
 {
+  JSValue math;
+
+  math = gconsts.g_math;
   {
     ObjDoubleProp *p = math_values;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_math, p->name, double_to_flonum(p->value), p->attr);
+      set_obj_cstr_prop(math, p->name, double_to_flonum(p->value), p->attr);
       p++;
     }
   }
   {
     ObjBuiltinProp *p = math_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(gconsts.g_math, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(math, p->name, new_builtin(p->fn, p->na), p->attr);
       p++;
     }
   }

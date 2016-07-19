@@ -1,10 +1,24 @@
+/*
+   operations.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// adds two values slowly
-// For details, see sect. 4.8.1.
-//
+/*
+   adds two values slowly
+   For details, see sect. 4.8.1.
+ */
 JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
   Tag tag;
 
@@ -12,10 +26,6 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
     v1 = object_to_string(context, v1);
   if (is_object(v2))
     v2 = object_to_string(context, v2);
-  /*
-  printf("slow_add, v1 = %016lx, v2 = %016lx\n", v1, v2);
-  if (is_string(v2)) printf("v2 = %s\n", string_to_cstr(v2));
-  */
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_STRFLO:
     v2 = flonum_to_string(v2);
@@ -28,10 +38,6 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
     goto STRSTR;
   case TP_SPESTR:
     v1 = special_to_string(v1);
-    /*
-    printf("slow_add SPESTR, v1 = %016lx, v2 = %016lx\n", v1, v2);
-    if (is_string(v1)) printf("v1 = %s\n", string_to_cstr(v1));
-    */
     goto STRSTR;
   case TP_STRFIX:
     v2 = fixnum_to_string(v2);
@@ -43,25 +49,16 @@ STRSTR:
     return cstr_to_string2(string_to_cstr(v1), string_to_cstr(v2));
   case TP_FIXFIX:
     {
-      cint sum;
-
-      sum = fixnum_to_cint(v1) + fixnum_to_cint(v2);
-      if (in_flonum_range(sum))
-        return cint_to_flonum(sum);
-      else
-        return cint_to_fixnum(sum);
+      cint sum = fixnum_to_cint(v1) + fixnum_to_cint(v2);
+      return cint_to_number(sum);
     }
   default:
     {
       double x1, x2, sum;
       x1 = to_double(context, v1);
       x2 = to_double(context, v2);
-printf("slow_add, default: x1 = %lf, x2 = %lf\n", x1, x2);
       sum = x1 + x2;
-      if (is_fixnum_range_double(sum))
-        return double_to_fixnum(sum);
-      else
-        return double_to_flonum(sum);
+      return double_to_number(sum);
     }
   }
 }

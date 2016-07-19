@@ -186,11 +186,12 @@ int vmrun_threaded(Context* context, int border) {
 #endif
 
 I_FIXNUM:
-  // fixnum dst imm
-  //   dst : destination register
-  //   imm : immediate value of the fixnum
-  // $dst = imm
-
+  /*
+     fixnum dst imm
+       dst : destination register
+       imm : immediate value of the fixnum
+     $dst = imm
+   */
   ENTER_INSN(__LINE__);
   {
     Register reg = get_first_operand_reg(insn);
@@ -199,11 +200,12 @@ I_FIXNUM:
   NEXT_INSN_INCPC();
 
 I_SPECCONST:
-  // specconst dst specimm
-  //   dst : destination register
-  //   specimm : immediate value of the special constant
-  // $dst = specimm
-
+  /*
+     specconst dst specimm
+      dst : destination register
+       specimm : immediate value of the special constant
+     $dst = specimm
+   */
   ENTER_INSN(__LINE__);
   {
     Register reg = get_first_operand_reg(insn);
@@ -214,13 +216,14 @@ I_SPECCONST:
 I_NUMBER:
 I_STRING:
 I_REGEXP:
-  // number dst disp
-  // string dst disp
-  // regexp dst disp
-  //   dst : destination register
-  //   disp : displacement of the constant position from the pc
-  // $dst = insns[pc + disp]
-
+  /*
+     number dst disp
+     string dst disp
+     regexp dst disp
+       dst : destination register
+       disp : displacement of the constant position from the pc
+     $dst = insns[pc + disp]
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -229,20 +232,16 @@ I_REGEXP:
     disp = get_big_disp(insn);
     regbase[dst] = insns[disp].code;
   }
-
-  /*
-  reg = getConst(index);
-  setObjProp(reg, "__proto__", gRegExpProto, ATTR_ALL);
-  */
   NEXT_INSN_INCPC();
 
 I_ADD:
-  // add dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 + $r2
-  // If necessary, this instruction does type conversions.
-
+  /*
+     add dst r1 r2
+      dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 + $r2
+     If necessary, this instruction does type conversions.
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -255,36 +254,30 @@ I_ADD:
     case TP_FIXFIX:
       {
         cint s = fixnum_to_int(v1) + fixnum_to_int(v2);
-        regbase[dst] =
-          is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
+        regbase[dst] = cint_to_number(s);
       }
       break;
-
     case TP_FIXFLO:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
         goto ADD_FLOFLO;
       }
-
     case TP_FLOFIX:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
         goto ADD_FLOFLO;
       }
-
     case TP_FLOFLO:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
     ADD_FLOFLO:
         d = x1 + x2;
-        regbase[dst] =
-          is_fixnum_range_double(d)? double_to_fixnum(d): double_to_flonum(d);
+        regbase[dst] = double_to_number(d);
       }
       break;
-   
     case TP_STRSTR:
       {
 #ifdef STROBJ_HAS_HASH
@@ -303,13 +296,7 @@ I_ADD:
 
     default:
       {
-        // For other cases, use slow_add function.
         regbase[dst] = slow_add(context, v1, v2);
-        /*
-        printf("result = %016lx\n", regbase[dst]);
-        if (is_string(regbase[dst]))
-          printf("str = %s\n", string_to_cstr(regbase[dst]));
-        */
       }
       break;
     }
@@ -317,12 +304,13 @@ I_ADD:
   NEXT_INSN_INCPC();
 
 I_SUB:
-  // sub dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 - $r2
-  // If necessary, this instruction does type conversions.
-
+  /*
+     sub dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 - $r2
+     If necessary, this instruction does type conversions.
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -335,36 +323,30 @@ I_SUB:
     case TP_FIXFIX:
       {
         cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
-        regbase[dst] =
-          is_fixnum_range_cint(s)? cint_to_fixnum(s): cint_to_flonum(s);
+        regbase[dst] = cint_to_number(s);
       }
       break;
-
     case TP_FIXFLO:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
         goto SUB_FLOFLO;
       }
-
     case TP_FLOFIX:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
         goto SUB_FLOFLO;
       }
-
     case TP_FLOFLO:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
     SUB_FLOFLO:
         d = x1 - x2;
-        regbase[dst] =
-          is_fixnum_range_double(d)? double_to_fixnum(d): double_to_flonum(d);
+        regbase[dst] = double_to_number(d);
       }
       break;
-
     default:
       {
         regbase[dst] = slow_sub(context, v1, v2);
@@ -375,12 +357,13 @@ I_SUB:
   NEXT_INSN_INCPC();
 
 I_MUL:
-  // mul dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 * $r2
-  // If necessary, this instruction does type conversions.
-
+  /*
+      mul dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 * $r2
+     If necessary, this instruction does type conversions.
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -389,9 +372,6 @@ I_MUL:
     double x1, x2, d;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-// printf("Entered MUL\n");
-// print_value_verbose(context, v1); printf("\n");
-// print_value_verbose(context, v2); printf("\n");
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
@@ -408,40 +388,33 @@ I_MUL:
         }
       }
       break;
-
     case TP_FIXFLO:
       {
         x1 = fixnum_to_double(v1);
         x2 = flonum_to_double(v2);
         goto MUL_FLOFLO;
       }
-
     case TP_FLOFIX:
       {
         x1 = flonum_to_double(v1);
         x2 = fixnum_to_double(v2);
         goto MUL_FLOFLO;
       }
-
     case TP_FLOFLO:
       {
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
     MUL_FLOFLO:
         d = x1 * x2;
-        regbase[dst] =
-          is_fixnum_range_double(d)? double_to_fixnum(d): double_to_flonum(d);
+        regbase[dst] = double_to_number(d);
       }
       break;
-
     default:
       {
         regbase[dst] = slow_mul(context, v1, v2);
       }
       break;
     }
-// printf("End of MUL\n");
-// print_value_verbose(context, regbase[dst]); printf("\n");
   }
   NEXT_INSN_INCPC();
 
@@ -451,12 +424,13 @@ I_DIV:
   NEXT_INSN_INCPC();
 
 I_MOD:
-  // mod dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 % $r2
-  // If necessary, this instruction does type conversions.
-
+  /*
+     mod dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 % $r2
+     If necessary, this instruction does type conversions.
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -467,63 +441,48 @@ I_MOD:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
-      {
-        if (v2 == FIXNUM_ZERO)
-          regbase[dst] = gconsts.g_flonum_nan;
-        else {
-          cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
-          // mod value should be in the fixnum range.
-          regbase[dst] = cint_to_fixnum(s);
-        }
+      if (v2 == FIXNUM_ZERO)
+        regbase[dst] = gconsts.g_flonum_nan;
+      else {
+        cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
+        regbase[dst] = cint_to_fixnum(s);
       }
       break;
-
     case TP_FIXFLO:
-      {
-        x1 = fixnum_to_double(v1);
-        x2 = flonum_to_double(v2);
-        goto MOD_FLOFLO;
-      }
-
+      x1 = fixnum_to_double(v1);
+      x2 = flonum_to_double(v2);
+      goto MOD_FLOFLO;
     case TP_FLOFIX:
-      {
-        x1 = flonum_to_double(v1);
-        x2 = fixnum_to_double(v2);
-        goto MOD_FLOFLO;
-      }
-
+      x1 = flonum_to_double(v1);
+      x2 = fixnum_to_double(v2);
+      goto MOD_FLOFLO;
     case TP_FLOFLO:
-      {
-        x1 = flonum_to_double(v1);
-        x2 = flonum_to_double(v2);
+      x1 = flonum_to_double(v1);
+      x2 = flonum_to_double(v2);
     MOD_FLOFLO:
-        if (isinf(x1) || x2 == 0.0f)
-          regbase[dst] = gconsts.g_flonum_nan;
-        else {
-          d = x1 / x2;
-          d = d >= 0 ? floor(d) : ceil(d);
-          d = x1 - (d * x2);
-          regbase[dst] =
-            is_fixnum_range_double(d)? double_to_fixnum(d): double_to_flonum(d);
-        }
+      if (isinf(x1) || x2 == 0.0f)
+        regbase[dst] = gconsts.g_flonum_nan;
+      else {
+        d = x1 / x2;
+        d = d >= 0 ? floor(d) : ceil(d);
+        d = x1 - (d * x2);
+        regbase[dst] = double_to_number(d);
       }
       break;
-
     default:
-      {
-        regbase[dst] = slow_mod(context, v1, v2);
-      }
+      regbase[dst] = slow_mod(context, v1, v2);
       break;
     }
   }
   NEXT_INSN_INCPC();
 
 I_BITAND:
-  // bitand dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 & r2
-
+  /*
+     bitand dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 & $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -559,11 +518,12 @@ I_BITAND:
   NEXT_INSN_INCPC();
 
 I_BITOR:
-  // bitor dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 | $r2
-
+  /*
+     bitor dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 | $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -614,12 +574,13 @@ I_UNSIGNEDRIGHTSHIFT:
   NEXT_INSN_INCPC();
 
 I_LESSTHAN:
-  // lessthan dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 < $r2
-  // Note that `greaterthan' instruction is not supported.
-
+  /*
+     lessthan dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 < $r2
+     Note that `greaterthan' instruction is not supported.
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -630,7 +591,7 @@ I_LESSTHAN:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
     case TP_FIXFIX:
-      regbase[dst] = (cint)v1 < (cint)v2? JS_TRUE: JS_FALSE;
+      regbase[dst] = (int)v1 < (int)v2? JS_TRUE: JS_FALSE;
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
@@ -648,6 +609,9 @@ I_LESSTHAN:
       regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
       break;
     case TP_STRSTR:
+      regbase[dst] = (strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0)?
+                     JS_TRUE: JS_FALSE;
+      break;
     default:
       regbase[dst] = slow_lessthan(context, v1, v2);
       break;
@@ -656,11 +620,12 @@ I_LESSTHAN:
   NEXT_INSN_INCPC();
 
 I_LESSTHANEQUAL:
-  // lessthan dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 <= $r2
-
+  /*
+     lessthan dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 <= $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -689,6 +654,9 @@ I_LESSTHANEQUAL:
       regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
       break;
     case TP_STRSTR:
+      regbase[dst] = (strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0)?
+                     JS_TRUE: JS_FALSE;
+      break;
     default:
       regbase[dst] = slow_lessthanequal(context, v1, v2);
       break;
@@ -697,11 +665,12 @@ I_LESSTHANEQUAL:
   NEXT_INSN_INCPC();
 
 I_EQ:
-  // eq dst r1 r2
-  //   dst : destination register
-  //   r1, r2 : source registers
-  // $dst = $r1 === $r2
-
+  /*
+     eq dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 === $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -722,6 +691,12 @@ I_EQ:
   NEXT_INSN_INCPC();
 
 I_EQUAL:
+  /*
+     equal dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 == $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, r1, r2;
@@ -871,15 +846,15 @@ STRSPE:
   NEXT_INSN_INCPC();
 
 I_GETPROP:
-  // getprop dst obj idx
-  //   $dst = $obj[idx]
-
+  /*
+     getprop dst obj idx
+       $dst = $obj[$idx]
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
     JSValue o, idx;
 
-    // printf("getprop\n");
     dst = get_first_operand_reg(insn);
     o = regbase[get_second_operand_reg(insn)];
     idx = regbase[get_third_operand_reg(insn)];
@@ -898,12 +873,13 @@ I_GETPROP:
   NEXT_INSN_INCPC();
 
 I_SETPROP:
-  // setprop obj prop val
-  //   obj : object into which (prop,val) pair is set
-  //   prop : property name
-  //   val : value
-  // $obj[$prop] = $val
-
+  /*
+     setprop obj prop val
+       obj : object into which (prop,val) pair is set
+       prop : property name
+       val : value
+     $obj[$prop] = $val
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue o, p, v;
@@ -922,12 +898,13 @@ I_SETPROP:
   NEXT_INSN_INCPC();
 
 I_SETARRAY:
-  // setarray dst subscript src
-  //   dst : register that holds an array
-  //   subscript : array's subscript
-  //   src : register that has the assigned value
-  // $dst[$reg] = $src
-
+  /*
+     setarray dst subscript src
+       dst : register that holds an array
+       subscript : array's subscript
+       src : register that has the assigned value
+     $dst[$reg] = $src
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue a, v;
@@ -938,24 +915,18 @@ I_SETARRAY:
     s = get_second_operand_subscr(insn);
     v = regbase[get_third_operand_reg(insn)];
     p = remove_array_tag(a);
-    /*
-    printf("array = %016lx\n", array);
-    if (is_array(array)) {
-      a = remove_array_tag(array);
-      printf("array!!!, size = %ld, length = %ld\n", array_size(a), array_length(a));
-    } else printf("not array!!!\n");
-    */
     // It is unnecessary to typecheck the values.
     array_body_index(p, s) = v;
   }
   NEXT_INSN_INCPC();
 
 I_GETGLOBAL:
-  // getglobal dst reg
-  //   dst : destination register
-  //   reg : register that has a pointer to a string object
-  // $dst = property value for the string in the global object
-
+  /*
+     getglobal dst reg
+       dst : destination register
+       reg : register that has a pointer to a string object
+     $dst = property value for the string in the global object
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -963,40 +934,35 @@ I_GETGLOBAL:
 
     dst = get_first_operand_reg(insn);
     str = regbase[get_second_operand_reg(insn)];
-#ifdef USE_FASTGLOBAL
-#else
     if (get_prop(context->global, str, &ret) == FAIL)
       LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
     regbase[dst] = ret;
-#endif
   }
   NEXT_INSN_INCPC();
 
 I_SETGLOBAL:
-  // setglobal reg src
-  //   reg : register that has a pointer to a string object
-  //   src : property value to be set
-  // property value for the string in the global object = $src
-  
+  /*
+     setglobal reg src
+       reg : register that has a pointer to a string object
+       src : property value to be set
+     property value for the string in the global object = $src
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue str, src;
 
     str = regbase[get_first_operand_reg(insn)];
     src = regbase[get_second_operand_reg(insn)];
-
-#ifdef USE_FASTGLOBAL
-#else
     if (set_prop_none(context->global, str, src) == FAIL)
       LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
-#endif
   }
   NEXT_INSN_INCPC();
 
 I_INSTANCEOF:
-  // instanceof dst r1 r2
-  //   $dst = $r1 instanceof $r2
-
+  /*
+     instanceof dst r1 r2
+       $dst = $r1 instanceof $r2
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -1019,11 +985,12 @@ I_INSTANCEOF:
   NEXT_INSN_INCPC();
 
 I_MOVE:
-  // move dst src
-  //   dst : destination register
-  //   src : source register
-  // $dst = $src
-
+  /*
+     move dst src
+       dst : destination register
+       src : source register
+     $dst = $src
+   */
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = regbase[get_second_operand_reg(insn)];
@@ -1041,9 +1008,10 @@ I_NOT:
   NEXT_INSN_INCPC();
 
 I_NEW:
-  // new dst con
-  //   $dst = new object created by $con
-
+  /*
+     new dst con
+       $dst = new object created by $con
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -1075,9 +1043,11 @@ I_NEW:
     regbase[dst] = o;
 
 #if 0
-    // The following definition is based on the one of the old ssjsvm
-    // developed by Takada, but it seems to have a problem when the
-    // ``con'' is a built-in object such as Array.
+    /*
+       The following definition is based on the one of the old ssjsvm
+       developed by Takada, but it seems to have a problem when the
+       ``con'' is a built-in object such as Array.
+     */
     o = new_object();
     if (get_prop(con, gconsts.g_string_prototype, &p) == SUCCESS &&
         is_object(p))
@@ -1102,9 +1072,10 @@ I_GETIDX:
   NEXT_INSN_INCPC();
 
 I_ISUNDEF:
-  // isundef dst reg
-  //   $dst = $reg == undefined
-
+  /*
+     isundef dst reg
+       $dst = $reg == undefined
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, reg;
@@ -1116,9 +1087,10 @@ I_ISUNDEF:
   NEXT_INSN_INCPC();
 
 I_ISOBJECT:
-  // isobject dst reg
-  //   $dst = $reg is an Object or not
-
+  /*
+     isobject dst reg
+       $dst = $reg is an Object or not
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst, reg;
@@ -1130,10 +1102,11 @@ I_ISOBJECT:
   NEXT_INSN_INCPC();
 
 I_SETFL:
-  // setfl newfl
-  //   newfl : number of elements between fp and sp (after growing sp)
-  // sp = fp + newfl - 1
-
+  /*
+     setfl newfl
+       newfl : number of elements between fp and sp (after growing sp)
+     sp = fp + newfl - 1
+   */
   ENTER_INSN(__LINE__);
   {
     int newfl, oldfl;
@@ -1147,10 +1120,11 @@ I_SETFL:
   NEXT_INSN_INCPC();
 
 I_SETA:
-  // seta src
-  //   src : source register
-  // a = $src
-
+  /*
+     seta src
+       src : source register
+     a = $src
+   */
   ENTER_INSN(__LINE__);
   {
     set_a(context, regbase[get_first_operand_reg(insn)]);
@@ -1158,10 +1132,11 @@ I_SETA:
   NEXT_INSN_INCPC();
 
 I_GETA:
-  // geta dst
-  //   dst : destination register
-  // $dst = a
-
+  /*
+     geta dst
+       dst : destination register
+     $dst = a
+   */
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = get_a(context);
@@ -1174,9 +1149,10 @@ I_GETERR:
   NEXT_INSN_INCPC();
 
 I_GETGLOBALOBJ:
-  // getglobalobj dst
-  // $dst <- global object
-
+  /*
+     getglobalobj dst
+     $dst = global object
+   */
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = context->global;
@@ -1184,8 +1160,9 @@ I_GETGLOBALOBJ:
   NEXT_INSN_INCPC();
 
 I_NEWARGS:
-  // newargs
-
+  /*
+     newargs
+   */
   ENTER_INSN(__LINE__);
   {
     int na;
@@ -1196,15 +1173,19 @@ I_NEWARGS:
 
     na = get_ac(context);
 
-    // allocates a new function frame into which arguments array is stored
+    /*
+       allocates a new function frame into which arguments array is stored
+     */
     // However, is it correct?
     // fr = new_frame(get_cf(context), fframe_prev(get_lp(context))); ???
     fr = new_frame(get_cf(context), get_lp(context));
     set_lp(context, fr);
     args = new_array_with_size(na);
     a = remove_array_tag(args);
-    // Note that the i-th arg is regbase[i + 2].
-    //   (regbase[1] is the receiver)
+    /*
+       Note that the i-th arg is regbase[i + 2].
+       (regbase[1] is the receiver)
+     */
     for (i = 0; i < na; i++)
       array_body_index(a, i) = regbase[i + 2];
     fframe_arguments(fr) = args;
@@ -1212,9 +1193,10 @@ I_NEWARGS:
   NEXT_INSN_INCPC();
 
 I_RET:
-  // ret
-  // returns from the function
-
+  /*
+     ret
+     returns from the function
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue *stack;
@@ -1223,15 +1205,14 @@ I_RET:
       return 1;
     stack = &get_stack(context, 0);
     restore_special_registers(context, stack, fp - 4);
-    // printf("restore_special_registers, fp: %p, lp: %p, pc: %p, cf: %p\n",
-    //        &stack[fp-1], &stack[fp-2], &stack[fp-3], &stack[fp-4]);
     update_context();
   }
   NEXT_INSN_INCPC();
 
 I_NOP:
-  // nop
-  
+  /*
+     nop
+   */
   ENTER_INSN(__LINE__);
   {
     asm volatile("#NOP Instruction\n");
@@ -1239,9 +1220,10 @@ I_NOP:
   NEXT_INSN_INCPC();
 
 I_JUMP:
-  // jump disp
-  //   pc = pc + disp
-
+  /*
+     jump disp
+     pc = pc + $disp
+   */
   ENTER_INSN(__LINE__);
   {
     Displacement disp;
@@ -1251,9 +1233,10 @@ I_JUMP:
   NEXT_INSN_NOINCPC();
 
 I_JUMPTRUE:
-  // jumptrue src disp
-  //   if ($src) pc = pc + disp
-
+  /*
+     jumptrue src disp
+     if ($src) pc = pc + $disp
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue v;
@@ -1269,9 +1252,10 @@ I_JUMPTRUE:
   NEXT_INSN_INCPC();
 
 I_JUMPFALSE:
-  // jumpfalse src disp
-  //   if (!$src) pc = pc + disp
-
+  /*
+     jumpfalse src disp
+     if (!$src) pc = pc + $disp
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue v;
@@ -1287,8 +1271,10 @@ I_JUMPFALSE:
   NEXT_INSN_INCPC();
 
 I_GETARG:
-  // gerarg dst link index
-  //   $dst = value of the index-th argument in the link-th function frame
+  /*
+     gerarg dst link index
+     $dst = value of the index-th argument in the link-th function frame
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -1307,9 +1293,10 @@ I_GETARG:
   NEXT_INSN_INCPC();
 
 I_GETLOCAL:
-  // getlocal dst link index
-  //   $dst = value of the index-th local variable in the link-th function frame
-  
+  /*
+     getlocal dst link index
+     $dst = value of the index-th local variable in the link-th function frame
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
@@ -1328,8 +1315,9 @@ I_GETLOCAL:
   NEXT_INSN_INCPC();
 
 I_SETARG:
-  // setarg link index src
-
+  /*
+     setarg link index src
+   */
   ENTER_INSN(__LINE__);
   {
     int link;
@@ -1348,8 +1336,9 @@ I_SETARG:
   NEXT_INSN_INCPC();
 
 I_SETLOCAL:
-  // setlocal link index src
-
+  /*
+     setlocal link index src
+   */
   ENTER_INSN(__LINE__);
   {
     int link;
@@ -1368,19 +1357,22 @@ I_SETLOCAL:
   NEXT_INSN_INCPC();
 
 I_MAKECLOSURE:
-  // makeclosure dst subscr
-  //   dst : destination register
-  //   subscr : subscript of the function table
-  // $dst = new closure
-
+  /*
+     makeclosure dst subscr
+       dst : destination register
+       subscr : subscript of the function table
+     $dst = new closure
+   */
   ENTER_INSN(__LINE__);
   {
     Register dst;
     Subscript ss;
 
-    // `subscr' is the subscript of the function table EXCEPT the
-    // main function.  Since the main function comes first in the
-    // function table, the subecript should be added by 1.
+    /*
+       `subscr' is the subscript of the function table EXCEPT the
+       main function.  Since the main function comes first in the
+       function table, the subecript should be added by 1.
+     */
     dst = get_first_operand_reg(insn);
     ss = get_second_operand_subscr(insn) + 1;
     regbase[dst] = new_function(context, ss);
@@ -1399,10 +1391,11 @@ I_NEXTPROPNAME:
 I_CALL:
 I_SEND:
 I_NEWSEND:
-  // call fn nargs
-  // send fn nargs
-  // newsend fn nargs
-
+  /*
+     call fn nargs
+     send fn nargs
+     newsend fn nargs
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue fn;
@@ -1475,9 +1468,10 @@ I_NEWSEND:
 
 I_TAILCALL:
 I_TAILSEND:
-  // tailcall fn nargs
-  // tailsend fn nargs
-
+  /*
+     tailcall fn nargs
+     tailsend fn nargs
+   */
   ENTER_INSN(__LINE__);
   {
     JSValue fn;
