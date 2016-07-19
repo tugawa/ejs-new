@@ -1,5 +1,6 @@
 CC = clang
 CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -DUSE_REGEXP
+# LIBS = -L/usr/local/lib -lc -lm -lonig
 LIBS = -L/usr/local/lib -lc -lm -lonig
 
 GENERATED_HFILES = \

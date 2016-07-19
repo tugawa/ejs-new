@@ -173,8 +173,6 @@ Opcode find_insn(char* s) {
   return NOT_OPCODE;
 }
 
-static char *null_string = "";
-
 #define LOAD_OK     0
 #define LOAD_FAIL  (-1)
 
@@ -232,13 +230,13 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
       case STRING:
       case ERROR:
         {
-          char* str;
+          char *str;
           int index;
           uint32_t len;
-          str = next_token2();
-          if (str == NULL) str = null_string;
+          // str = next_token2();
+          str = next_token();
+          if (str == NULL) str = "";
           else len = decode_escape_char(str);
-          // printf("  decoded string = %s\n", str);
           index = add_constant_string(constant, str);
           if (oc == STRING)
             bytecodes[pc] = makecode_string(dst, index);
@@ -251,10 +249,13 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
         {
           char *str;
           int flag, index;
+          uint32_t len;
           flag = atoi(next_token());
           str = next_token();
+          if (str == NULL) str = "";
+          else len = decode_escape_char(str);
           index = add_constant_regexp(constant, str, flag);
-          bytecodes[pc] = makecode_regexp(dst, index, flag);
+          bytecodes[pc] = makecode_regexp(dst, index);
         }
         break;
 #endif
@@ -499,7 +500,11 @@ int update_function_table(FunctionTable *ftable, int index,
   for (i = 0; i < loopnum; i++) {
     insnptr[i] = NULL;
     oc = get_opcode(bytecodes[i]);
-    if (oc == STRING || oc == NUMBER || oc == REGEXP) {
+    if (oc == STRING || oc == NUMBER
+#ifdef USE_REGEXP
+        || oc == REGEXP
+#endif
+        ) {
       Subscript ss;
       Displacement disp;
       ss = get_big_subscr(bytecodes[i]);
@@ -559,13 +564,13 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     for (; j < ftable[i].body_size; j++) {
       JSValue o;
       int tag;
-      printf("%03d: %016lx --- ", j, ftable[i].insns[j].code);
       o = ftable[i].insns[j].code;
+      printf("%03d: %016lx --- ", j, o);
       tag = get_tag(o);
       if (tag == T_FLONUM)
-        printf("FLONUM %f\n", flonum_value(remove_flonum_tag(o)));
+        printf("FLONUM %lf\n", flonum_value(o));
       else if (tag == T_STRING)
-        printf("STRING \"%s\"\n", string_value(remove_string_tag(o)));
+        printf("STRING \"%s\"\n", string_value(o));
 #ifdef USE_REGEXP
       else if (is_regexp(o))
         printf("REGEXP \"%s\"\n", regexp_pattern(remove_regexp_tag(o)));
@@ -618,7 +623,7 @@ void print_bytecode(Instruction *insns, int j) {
   case BIGPRIMITIVE:
     {
       Register dst;
-      uint16_t disp;
+      Displacement disp;
       JSValue o;
       int tag;
       dst = get_first_operand_reg(code);
@@ -643,7 +648,8 @@ void print_bytecode(Instruction *insns, int j) {
 #ifdef USE_REGEXP
       case REGEXP:
         if (is_regexp(o))
-          printf("%d \"%s\"", dst, regexp_pattern(remove_regexp_tag(o)));
+          printf("%d %d \"%s\"", dst, regexp_flag(o),
+                 regexp_pattern(remove_regexp_tag(o)));
         else
           printf("Object type mismatched: tag = %d", tag);
         break;

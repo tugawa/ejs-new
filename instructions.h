@@ -213,8 +213,8 @@ typedef struct instruction {
 #define makecode_error(dst, index) \
   makecode_bigprimitive(ERROR, dst, index)
 
-#define makecode_regexp(dst, index, flag) \
-  makecode_three_operands(REGEXP, (dst), (index), (flag))
+#define makecode_regexp(dst, index) \
+  makecode_bigprimitive(REGEXP, dst, index)
 
 #define makecode_arith(nemonic, op1, op2, op3) \
   makecode_three_operands(nemonic, op1, op2, op3)

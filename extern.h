@@ -199,7 +199,7 @@ extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 #ifdef USE_REGEXP
-extern int make_onig_regexp(JSValue, OnigOptionType);
+extern int regexp_flag(JSValue);
 #endif
 extern JSValue new_object(void);
 extern JSValue new_array(void);

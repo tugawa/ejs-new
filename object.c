@@ -376,7 +376,7 @@ void setArrayValue(JSValue obj, int index, JSValue src)
 /*
    sets a regexp's members and makes an Oniguruma's regexp object
  */
-OnigOptionType set_regexp_members(JSValue re, char *pat, int flag) {
+int set_regexp_members(JSValue re, char *pat, int flag) {
   RegexpCell *p;
   OnigOptionType opt;
   OnigErrorInfo err;
@@ -420,6 +420,21 @@ OnigOptionType set_regexp_members(JSValue re, char *pat, int flag) {
     return SUCCESS;
   else
     return FAIL;
+}
+
+/*
+   returns a flag value from a ragexp objext
+ */
+int regexp_flag(JSValue re) {
+  RegexpCell *p;
+  int flag;
+
+  flag = 0;
+  p = remove_regexp_tag(re);
+  if (regexp_global(p)) flag |= F_REGEXP_GLOBAL;
+  if (regexp_ignorecase(p)) flag |= F_REGEXP_IGNORE;
+  if (regexp_multiline(p)) flag |= F_REGEXP_MULTILINE;
+  return flag;
 }
 #endif
 
