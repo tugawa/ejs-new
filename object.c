@@ -453,6 +453,19 @@ void set_object_members(Object *p) {
 }
 
 /*
+  makes an object whose __proto__ property is not set yet
+ */
+JSValue new_object_without_prototype(void) {
+  JSValue ret;
+  Object *p;
+
+  ret = make_object();
+  p = remove_object_tag(ret);
+  set_object_members(p);
+  return ret;
+}
+  
+/*
   makes a new object
  */
 JSValue new_object(void)
@@ -571,13 +584,14 @@ JSValue new_iterator(void) {
    makes a new regexp
  */
 JSValue new_regexp(char *pat, int flag) {
-  JSValue re;
+  JSValue ret;
   RegexpCell *p;
 
-  re = make_regexp();
-  p = remove_regexp_tag(re);
+  ret = make_regexp();
+  p = remove_regexp_tag(ret);
   set_object_members(&(p->o));
-  return (set_regexp_members(re, pat, flag) == SUCCESS)? re: JS_UNDEFINED;
+  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_regexp_proto);
+  return (set_regexp_members(ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
 #endif // USE_REGEXP
 

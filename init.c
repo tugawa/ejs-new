@@ -63,6 +63,14 @@ void init_global_constants(void) {
    initializes global objects
  */
 JSValue init_global(void) {
+  /*
+     First, it is necessary to make the object that will be set as
+     Object.prototype, because this object is referred to in new_object.
+     Its __proto__ property is null.
+  */
+  gconsts.g_object_proto = new_object_without_prototype();
+  set_prop_de(gconsts.g_object_proto, gconsts.g_string_prototype, JS_NULL);
+
   gconsts.g_global = new_object();
   gconsts.g_math = new_object();
 #ifdef USE_REGEXP

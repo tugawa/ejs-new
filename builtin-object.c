@@ -82,9 +82,10 @@ ObjBuiltinProp object_funcs[] = {
 void init_builtin_object(void)
 {
   JSValue obj, proto;
+
   gconsts.g_object = obj =
     new_builtin_with_constr(object_constr, object_constr, 0);
-  gconsts.g_object_proto = proto = new_object();
+  proto = gconsts.g_object_proto;
   set_prop_de(obj, gconsts.g_string_prototype, proto);
 
   // not implemented yet

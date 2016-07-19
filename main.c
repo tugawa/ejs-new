@@ -127,6 +127,9 @@ int main(int argc, char* argv[]) {
 #endif // USE_BOHEMGC
 
   init_string_table(STRING_TABLE_SIZE);
+  init_global_constants();
+  init_context(function_table, init_global(), &context);
+
   init_code_loader(fp);
   n = code_loader(function_table);
   end_code_loader();
@@ -136,11 +139,6 @@ int main(int argc, char* argv[]) {
   generateParallelCode(function_table, n);
   //printFuncTbl(functionTable, n);
 #endif // PARALLEL
-
-  init_global_constants();
-  init_context(function_table, init_global(), &context);
-  // LOG("fp:%d\n", getFp(context));
-  // LOG("sp:%d\n", getSp(context));
 
   // obtains the time before execution
 #ifdef USE_PAPI

@@ -153,7 +153,10 @@ BUILTIN_FUNCTION(builtin_regexp_test)
   if (is_regexp(rsv)) {
     str = to_string(context, args[1]);
     cstr = string_to_cstr(str);
-    ret = regexp_exec(context, rsv, cstr) == JS_NULL? JS_FALSE: JS_TRUE;
+    print_value_verbose(context, rsv); printf(", cstr = %s\n", cstr);
+    ret = regexp_exec(context, rsv, cstr);
+    print_value_verbose(context, ret); putchar('\n');
+    ret = (ret == JS_NULL)? JS_FALSE: JS_TRUE;
     set_a(context, ret);
   } else
     LOG_EXIT("Regexp.prototype.test: receiver is not a regexp\n");
