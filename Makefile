@@ -1,7 +1,8 @@
 CC = clang
-CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -DUSE_REGEXP
+CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF
+# CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -DUSE_REGEXP
 # LIBS = -L/usr/local/lib -lc -lm -lonig
-LIBS = -L/usr/local/lib -lc -lm -lonig
+LIBS = -L/usr/local/lib -lc -lm -lonig -lgc
 
 GENERATED_HFILES = \
          instructions-opcode.h \

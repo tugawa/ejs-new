@@ -1,13 +1,15 @@
-//
-//  include.h
-//  SSJSVM Project, Iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Ryota Fujii, 2013-14
-//  Hideya Iwasaki, 2013-16
-//
+/*
+   header.h
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #ifndef HEADER_H_
 #define HEADER_H_

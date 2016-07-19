@@ -77,11 +77,9 @@ int code_loader(FunctionTable *ftable) {
   int nfuncs, callentry, sendentry, nlocals, ninsns;
   int i, j, ret;
 
-  // checks the funcLength and optain the number of functions
+  // checks the funclength and obtain the number of functions
   step_load_code(buf, LOADBUFLEN);
   nfuncs = check_read_token(buf, "funcLength");
-
-  //LOG("numberOfFunc: %d\n",numberOfFunction);
 
   // reads each function
   for (i = 0; i < nfuncs; i++) {
@@ -519,10 +517,6 @@ int update_function_table(FunctionTable *ftable, int index,
 #ifdef USE_THRESHOLD
     insns[i].hitCount = 0;
     insns[i].missCount = 0;
-#endif
-#ifdef PRINT_QUICKENING_COUNT
-    insns[i].quickeningCount = 0;
-    insns[i].executeCount = 0;
 #endif
   }
 

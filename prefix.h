@@ -1,48 +1,42 @@
-//
-//  prefix.h
-//  SSJSVM Project, Iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Ryota Fujii, 2013-14
-//  Hideya Iwasaki, 2013-16
-//
+/*
+   prefix.h
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #ifndef PREFIX_H_
 #define PREFIX_H_
 
-// compilation options
-//
+/*
+   compilation options
+ */
 
 #define DEBUG 1
 #define DEBUG_PRINT
 
 #define STROBJ_HAS_HASH
 
-//#define QUICKENING
 #define USE_THRESHOLD
-//#define PRINT_QUICKENING_COUNT
 //#define CALC_TIME
 //#define USE_PAPI
 //#define USE_FASTGLOBAL
 //#define USE_ASM2
 //#define CALC_CALL
-// #define USE_REGEXP
-// #define USE_BOEHMGC
+#define USE_REGEXP
+//#define USE_BOEHMGC
 
 //#define LASTEXPR_PRINT
 
-#ifndef USER_DEF
-
-#define USE_JIT
-#define USE_JIT_DEBUG
-//#define USE_JIT_PROP_TYPEMAP
-#define LLVMIR_PASS ("/Users/Akihiro/output.s")
-
-#endif
-
-// If you want to compile for J5MODE, define this.
+/*
+   If you want to compile for J5MODE, define this.
+ */
 // #define J5MODE
 
 #ifdef J5MODE
@@ -52,9 +46,6 @@
 #ifdef USE_BOEHMGC
 #undef USE_BOEHMGC
 #endif // USE_HOEHMGC
-#ifdef USE_JIT
-#undef USE_JIT
-#endif // USE_JIT
 #endif // J5MODE
 
 #ifdef DEBUG_PRINT

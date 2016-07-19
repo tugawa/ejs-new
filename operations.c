@@ -63,8 +63,46 @@ STRSTR:
   }
 }
 
+/*
+   subtracts two values slowly
+ */
 JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
-  return FIXNUM_ZERO;
+  Tag tag;
+  double x1, x2, d;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  tag = TAG_PAIR(get_tag(v1), get_tag(v2));
+  switch (tag) {
+  case TP_FIXFIX:
+    {
+      cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
+      return cint_to_number(s);
+    }
+  case TP_FIXFLO:
+    {
+      x1 = fixnum_to_double(v1);
+      x2 = flonum_to_double(v2);
+      goto SUB_FLOFLO;
+    }
+  case TP_FLOFIX:
+    {
+      x1 = flonum_to_double(v1);
+      x2 = fixnum_to_double(v2);
+      goto SUB_FLOFLO;
+    }
+  case TP_FLOFLO:
+    {
+      x1 = flonum_to_double(v1);
+      x2 = flonum_to_double(v2);
+    SUB_FLOFLO:
+      d = x1 - x2;
+      return double_to_number(d);
+    }
+    break;
+  default:
+    return gconsts.g_flonum_nan;
+  }
 }
 
 JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {

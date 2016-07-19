@@ -1,15 +1,21 @@
-//
-//  instructions.h
-//  SSJSVM Project, Iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Hideya Iwasaki, 2013-16
-//  Ryota Fujii, 2013-14
-//
-// Both instructions-opcode.h and instructions-tables.h are generated
-// from the file instructions.def by the gsed (gnu sed) command.
+/*
+   instructions.h
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+
+ */
+
+/*
+   Both instructions-opcode.h and instructions-tables.h are generated
+   from the file instructions.def by the gsed (gnu sed) command.
+ */
 
 #ifndef INSTRUCTIONS_H_
 #define INSTRUCTIONS_H_
@@ -18,8 +24,9 @@ typedef enum {
 #include "instructions-opcode.h"
 } Opcode;
 
-// Operand Type
-//
+/*
+   Operand Type
+ */
 typedef enum {
   /*  0
      ---------------------------------------------
@@ -133,22 +140,21 @@ typedef struct insn_info {
   OperandType operand_type; // type
 } InsnInfo;
 
-// bytecode
+/*
+   bytecode
+ */
 typedef uint64_t Bytecode;
 typedef uint32_t Counter;
 
-// instruction
-//
+/*
+   instruction
+ */
 typedef struct instruction {
   Bytecode code;
 #ifdef USE_THRESHOLD
   Opcode hitInst;
   Counter hitCount;
   Counter missCount;
-#endif
-#ifdef PRINT_QUICKENING_COUNT
-  Counter quickeningCount;
-  Counter executeCount;
 #endif
 } Instruction;
 
@@ -167,7 +173,6 @@ typedef struct instruction {
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
 
 #define CONST_SUBSCR_MASK         ((Bytecode)(0x00000000ffff0000))
-
 
 #define three_operands(op1, op2, op3) \
   (((Bytecode)(op1) << FIRST_OPERAND_OFFSET) | \
@@ -347,17 +352,13 @@ typedef void *InsnLabel;
 
 #define SMALLNUM_OPCODE 0
 
-// extern HashTable *instNameTable;
-extern int numberOfFunctions;
-
-// constant table
-// This has the number of constants and the pointer to the constant table.
-//
+/*
+   constant table
+   This has the number of constants and the pointer to the constant table.
+ */
 typedef struct constant_cell {
   int n_constant_values;        // number of constant values
   JSValue *constant_values;     // pointer to the array of constant values
 } ConstantCell;
-
-// typedef void (*builtin_function_t)(Context*, int);
 
 #endif // INSTRUCTIONS_H_

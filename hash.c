@@ -1,13 +1,15 @@
-//
-//  hash.c
-//  SSJSVM Project, Iwasaki-lab, UEC
-//
-//  Sho Takada, 2012-13
-//  Akira Tanimura 2012-13
-//  Akihiro Urushihara, 2013-14
-//  Ryota Fujii, 2013-14
-//  Hideya Iwasaki, 2013-16
-//
+/*
+   hash.c
+
+   SSJS Project at the University of Electro-communications
+
+   Sho Takada, 2012-13
+   Akira Tanimura, 2012-13
+   Akihiro Urushihara, 2013-14
+   Ryota Fujii, 2013-14
+   Tomoharu Ugawa, 2013-16
+   Hideya Iwasaki, 2013-16
+*/
 
 #include "prefix.h"
 #define EXTERN extern
@@ -19,14 +21,16 @@
 #define NO_MORE_CELL -1
 #define MORE_CELL 1
 
-// allocates a hash table
-//
+/*
+   allocates a hash table
+ */
 HashTable *malloc_hashtable(void) {
   return (HashTable*)malloc(sizeof(HashTable));
 }
 
-// initializes a hash table with the specified size
-//
+/*
+   initializes a hash table with the specified size
+ */
 int hash_create(HashTable *table, unsigned int size) {
   int i;
 
@@ -43,8 +47,9 @@ int hash_create(HashTable *table, unsigned int size) {
   return 0;
 }
 
-// obtains the value associated with a given key
-//
+/*
+   obtains the value associated with a given key
+ */
 int hash_get(HashTable *table, HashKey key, HashData *data) {
   uint32_t hval;
   HashCell *cell;
@@ -60,8 +65,9 @@ int hash_get(HashTable *table, HashKey key, HashData *data) {
   return HASH_GET_FAILED;
 }
 
-// registers a value to a hash table under a given key with an attribute
-//
+/*
+   registers a value to a hash table under a given key with an attribute
+ */
 int hash_put_with_attribute(HashTable* table, HashKey key, HashData data,
                             Attribute attr) {
   HashCell* cell;
@@ -97,8 +103,9 @@ int hash_put_with_attribute(HashTable* table, HashKey key, HashData data,
   return HASH_PUT_SUCCESS;
 }
 
-// deletes the hash data
-//
+/*
+   deletes the hash data
+ */
 int hash_delete(HashTable *table, HashKey key) {
   HashCell *cell, *prev;
   uint32_t index;
@@ -121,8 +128,9 @@ int hash_delete(HashTable *table, HashKey key) {
   return HASH_GET_FAILED;
 }
 
-// calculates the hash value
-//
+/*
+   calculates the hash value
+ */
 uint32_t calc_hash_len(const char* s, uint32_t len) {
   uint32_t value = 0;
   int i;
@@ -142,8 +150,9 @@ uint32_t calc_hash(const char* s) {
   return calc_hash_len(s, strlen(s));
 }
 
-// calculates the hash value (for two strings)
-//
+/*
+   calculates the hash value (for two strings)
+ */
 uint32_t calc_hash_len2(const char* s1, uint32_t len1, const char* s2, uint32_t len2) {
   uint32_t value = 0;
   int i;

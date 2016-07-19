@@ -83,9 +83,6 @@ typedef uint16_t Register;
 typedef int16_t  Displacement;
 typedef uint16_t Subscript;
 typedef uint16_t Tag;
-#ifdef QUICKENING
-typedef uint64_t QuickeningCounter;
-#endif
 
 /*
    Object
