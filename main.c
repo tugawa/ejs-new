@@ -122,9 +122,9 @@ int main(int argc, char* argv[]) {
   int n;
   Context *context;
 
-#ifdef USE_BOHEMGC
+#ifdef USE_BOEHMGC
   GC_INIT();
-#endif // USE_BOHEMGC
+#endif // USE_BOEHMGC
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();

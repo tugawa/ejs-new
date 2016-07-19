@@ -30,6 +30,10 @@
 #include <oniguruma.h>
 #endif // USE_REGEXP
 
+#ifdef USE_BOEHMGC
+#include <gc.h>
+#endif
+
 #ifdef PARALLEL
 #include <pthread.h>
 #include "SSJSVM_parallel.h"
@@ -48,6 +52,7 @@ typedef uint64_t JSValue;
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
 
 #ifdef USE_BOEHMGC
+// #define malloc(n) GC_malloc(n)
 #define malloc(n) GC_MALLOC(n)
 #define realloc(p, size) do { memcpy(malloc((size)), (p), (size));} while (0)
 #define free GC_FREE

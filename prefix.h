@@ -30,7 +30,7 @@
 //#define USE_ASM2
 //#define CALC_CALL
 #define USE_REGEXP
-//#define USE_BOEHMGC
+#define USE_BOEHMGC
 
 //#define LASTEXPR_PRINT
 
