@@ -420,7 +420,70 @@ I_MUL:
 
 I_DIV:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  /*
+     div dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 / $r2
+     If necessary, this instruction does type conversions.
+   */
+  ENTER_INSN(__LINE__);
+  {
+    Register dst, r1, r2;
+    JSValue v1, v2;
+    Tag tag;
+    double x1, x2, d;
+
+    load_regs(insn, dst, r1, r2, v1, v2);
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+    case TP_FIXFIX:
+      {
+        int n1, n2, s;
+        n1 = fixnum_to_cint(v1);
+        if (v2 == FIXNUM_ZERO) {
+          if (n1 > 0) regbase[dst] = gconsts.g_flonum_infinity;
+          else if (n1 == 0) regbase[dst] = gconsts.g_flonum_nan;
+          else regbase[dst] = gconsts.g_flonum_negative_infinity;
+        } else {
+          n2 = fixnum_to_cint(v2);
+          s = n1 / n2;
+          regbase[dst] =
+            (n1 == n2 * s)? cint_to_fixnum(s):
+                            double_to_flonum((double)n1 / (double)n2);
+        }
+      }
+      break;
+    case TP_FIXFLO:
+      {
+        x1 = fixnum_to_double(v1);
+        x2 = flonum_to_double(v2);
+        goto DIV_FLOFLO;
+      }
+    case TP_FLOFIX:
+      {
+        x1 = flonum_to_double(v1);
+        x2 = fixnum_to_double(v2);
+        goto DIV_FLOFLO;
+      }
+    case TP_FLOFLO:
+      {
+        x1 = flonum_to_double(v1);
+        x2 = flonum_to_double(v2);
+    DIV_FLOFLO:
+        d = x1 / x2;
+        if (isinf(d)) regbase[dst] = d > 0? gconsts.g_flonum_infinity:
+                                            gconsts.g_flonum_negative_infinity;
+        else if (isnan(d)) regbase[dst] = gconsts.g_flonum_nan;
+        else regbase[dst] = double_to_number(d);
+      }
+      break;
+    default:
+      {
+        regbase[dst] = slow_div(context, v1, v2);
+      }
+      break;
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_MOD:
@@ -441,36 +504,46 @@ I_MOD:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
-      if (v2 == FIXNUM_ZERO)
-        regbase[dst] = gconsts.g_flonum_nan;
-      else {
-        cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
-        regbase[dst] = cint_to_fixnum(s);
+      {
+        if (v2 == FIXNUM_ZERO)
+          regbase[dst] = gconsts.g_flonum_nan;
+        else {
+          cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
+          regbase[dst] = cint_to_fixnum(s);
+        }
       }
       break;
     case TP_FIXFLO:
-      x1 = fixnum_to_double(v1);
-      x2 = flonum_to_double(v2);
+      {
+        x1 = fixnum_to_double(v1);
+        x2 = flonum_to_double(v2);
+      }
       goto MOD_FLOFLO;
     case TP_FLOFIX:
-      x1 = flonum_to_double(v1);
-      x2 = fixnum_to_double(v2);
-      goto MOD_FLOFLO;
+      {
+        x1 = flonum_to_double(v1);
+        x2 = fixnum_to_double(v2);
+        goto MOD_FLOFLO;
+      }
     case TP_FLOFLO:
-      x1 = flonum_to_double(v1);
-      x2 = flonum_to_double(v2);
+      {
+        x1 = flonum_to_double(v1);
+        x2 = flonum_to_double(v2);
     MOD_FLOFLO:
-      if (isinf(x1) || x2 == 0.0f)
-        regbase[dst] = gconsts.g_flonum_nan;
-      else {
-        d = x1 / x2;
-        d = d >= 0 ? floor(d) : ceil(d);
-        d = x1 - (d * x2);
-        regbase[dst] = double_to_number(d);
+        if (isinf(x1) || x2 == 0.0f)
+          regbase[dst] = gconsts.g_flonum_nan;
+        else {
+          d = x1 / x2;
+          d = d >= 0 ? floor(d) : ceil(d);
+          d = x1 - (d * x2);
+          regbase[dst] = double_to_number(d);
+        }
       }
       break;
     default:
-      regbase[dst] = slow_mod(context, v1, v2);
+      {
+        regbase[dst] = slow_mod(context, v1, v2);
+      }
       break;
     }
   }
@@ -591,26 +664,26 @@ I_LESSTHAN:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
     case TP_FIXFIX:
-      regbase[dst] = (int)v1 < (int)v2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false((int)v1 < (int)v2);
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
       x2 = flonum_to_double(v2);
-      regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 < x2);
       break;
     case TP_FLOFIX:
       x1 = flonum_to_double(v1);
       x2 = fixnum_to_double(v2);
-      regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 < x2);
       break;
     case TP_FLOFLO:
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
-      regbase[dst] = x1 < x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 < x2);
       break;
     case TP_STRSTR:
-      regbase[dst] = (strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0)?
-                     JS_TRUE: JS_FALSE;
+      regbase[dst] =
+        true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0);
       break;
     default:
       regbase[dst] = slow_lessthan(context, v1, v2);
@@ -621,7 +694,7 @@ I_LESSTHAN:
 
 I_LESSTHANEQUAL:
   /*
-     lessthan dst r1 r2
+     lessthanequal dst r1 r2
        dst : destination register
        r1, r2 : source registers
      $dst = $r1 <= $r2
@@ -636,26 +709,26 @@ I_LESSTHANEQUAL:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
     case TP_FIXFIX:
-      regbase[dst] = (cint)v1 <= (cint)v2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false((cint)v1 <= (cint)v2);
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
       x2 = flonum_to_double(v2);
-      regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 <= x2);
       break;
     case TP_FLOFIX:
       x1 = flonum_to_double(v1);
       x2 = fixnum_to_double(v2);
-      regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 <= x2);
       break;
     case TP_FLOFLO:
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
-      regbase[dst] = x1 <= x2? JS_TRUE: JS_FALSE;
+      regbase[dst] = true_false(x1 <= x2);
       break;
     case TP_STRSTR:
-      regbase[dst] = (strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0)?
-                     JS_TRUE: JS_FALSE;
+      regbase[dst] =
+        true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) <= 0);
       break;
     default:
       regbase[dst] = slow_lessthanequal(context, v1, v2);
@@ -679,11 +752,11 @@ I_EQ:
 
     load_regs(insn, dst, r1, r2, v1, v2);
     if (v1 == v2)
-      ret = is_nan(v1)? JS_FALSE: JS_TRUE;
+      ret = false_true(is_nan(v1));
     else if (is_flonum(v1) && is_flonum(v2)) {
       x1 = flonum_to_double(v1);
       x2 = flonum_to_double(v2);
-      ret = x1 == x2? JS_TRUE: JS_FALSE;
+      ret = true_false(x1 == x2);
     } else
       ret = JS_FALSE;
     regbase[dst] = ret;
@@ -706,7 +779,7 @@ I_EQUAL:
 
     load_regs(insn, dst, r1, r2, v1, v2);
     if (v1 == v2)
-      ret = is_nan(v1)? JS_FALSE: JS_TRUE;
+      ret = false_true(is_nan(v1));
     else {
       ret = JS_FALSE;
       tag = TAG_PAIR(get_tag(v1), get_tag(v2));
@@ -724,17 +797,16 @@ I_EQUAL:
 FLOFLO:
         x1 = flonum_to_double(v1);
         x2 = flonum_to_double(v2);
-        ret = x1 == x2? JS_TRUE: JS_FALSE;
+        ret = true_false(x1 == x2);
         break;
       case TP_SPESPE:
-        ret = ((is_undefined(v1) && is_null(v2)) ||
-               (is_null(v1) && is_undefined(v2)))?
-              JS_TRUE: JS_FALSE;
+        ret = true_false((is_undefined(v1) && is_null(v2)) ||
+                         (is_null(v1) && is_undefined(v2)));
         break;
       case TP_STRFIX:
 STRFIX:
         v1 = string_to_number(v1);
-        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        ret = true_false(v1 == v2);
         break;
       case TP_STRFLO:
 STRFLO:
@@ -745,7 +817,7 @@ STRFLO:
       case TP_FIXSTR:
 FIXSTR:
         v2 = string_to_number(v2);
-        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        ret = true_false(v1 == v2);
         break;
       case TP_FLOSTR:
 FLOSTR:
@@ -759,7 +831,7 @@ FLOSTR:
         else {
           if (v1 == JS_TRUE) v1 = FIXNUM_ONE;
           else if (v1 == JS_FALSE) v1 = FIXNUM_ZERO;
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+          ret = true_false(v1 == v2);
         }
         break;
       case TP_FIXSPE:
@@ -768,7 +840,7 @@ FLOSTR:
         else {
           if (v2 == JS_TRUE) v2 = FIXNUM_ONE;
           else if (v2 == JS_FALSE) v2 = FIXNUM_ZERO;
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+          ret = true_false(v1 == v2);
         }
         break;
       case TP_SPESTR:
@@ -793,11 +865,11 @@ STRSPE:
         break;
       case TP_OBJFIX:
         v1 = object_to_primitive(context, v1, HINT_NUMBER);
-        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        ret = true_false(v1 == v2);
         break;
       case TP_FIXOBJ:
         v2 = object_to_primitive(context, v2, HINT_NUMBER);
-        ret = v1 == v2? JS_TRUE: JS_FALSE;
+        ret = true_false(v1 == v2);
         break;
       case TP_OBJFLO:
         v1 = object_to_primitive(context, v1, HINT_NUMBER);
@@ -813,31 +885,28 @@ STRSPE:
         v1 = object_to_primitive(context, v1, HINT_NUMBER);
         if (is_fixnum(v1)) goto FIXSTR;
         else if (is_flonum(v1)) goto FLOSTR;
-        else if (is_string(v1))
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_string(v1)) ret = true_false(v1 == v2);
         else if (is_boolean(v1)) goto SPESTR;
         break;
       case TP_STROBJ:
         v2 = object_to_primitive(context, v2, HINT_NUMBER);
         if (is_fixnum(v2)) goto STRFIX;
         else if (is_flonum(v2)) goto STRFLO;
-        else if (is_string(v2))
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_string(v2)) ret = true_false(v1 == v2);
         else if (is_boolean(v2)) goto STRSPE;
         break;
       case TP_OBJSPE:
         v1 = object_to_primitive(context, v1, HINT_NUMBER);
         if (is_number(v1)) ret = JS_FALSE;
         else if (is_string(v1)) goto STRSPE;
-        else if (is_boolean(v1))
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_boolean(v1)) ret = true_false(v1 == v2);
+          ret = true_false(v1 == v2);
         break;
       case TP_SPEOBJ:
         v2 = object_to_primitive(context, v2, HINT_NUMBER);
         if (is_number(v2)) ret = JS_FALSE;
         else if (is_string(v2)) goto SPESTR;
-        else if (is_boolean(v2))
-          ret = v1 == v2? JS_TRUE: JS_FALSE;
+        else if (is_boolean(v2)) ret = true_false(v1 == v2);
         break;
       }
     }
@@ -1095,7 +1164,7 @@ I_ISOBJECT:
 
     dst = get_first_operand_reg(insn);
     reg = get_second_operand_reg(insn);
-    regbase[dst] = is_object(reg)? JS_TRUE: JS_FALSE;
+    regbase[dst] = true_false(is_object(reg));
   }
   NEXT_INSN_INCPC();
 

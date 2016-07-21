@@ -11,7 +11,7 @@ setglobal 5 2
 makeclosure 2 1
 string 8 "g"
 setglobal 8 2
-string 11 "print"
+string 11 "printv"
 getglobal 9 11
 string 14 "g"
 getglobal 12 14
@@ -24,7 +24,7 @@ move 25 10
 call 9 1
 setfl 25
 geta 2
-string 17 "print"
+string 17 "printv"
 getglobal 15 17
 string 19 "f"
 getglobal 18 19

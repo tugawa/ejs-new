@@ -460,6 +460,8 @@ typedef uint64_t cuint;
 #define is_false(p)       ((p) == JS_FALSE)
 #define int_to_boolean(e) ((e) ? JS_TRUE : JS_FALSE)
 
+#define true_false(e)     ((e) ? JS_TRUE : JS_FALSE)
+#define false_true(e)     ((e) ? JS_FALSE : JS_TRUE)
 /*
    Special - Others
  */

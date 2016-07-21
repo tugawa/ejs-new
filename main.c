@@ -226,7 +226,7 @@ void print_value_verbose(Context *context, JSValue v) {
 
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
-    printf("%016lx, tag = %d: ", v, get_tag(v));
+    printf("%016lx (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
   switch (get_tag(v)) {
   case T_OBJECT:
     // v = object_to_string(context, v);

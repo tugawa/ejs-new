@@ -24,7 +24,7 @@ BUILTIN_FUNCTION(builtin_isNaN)
 
   builtin_prologue();  
   d = to_double(context, args[1]);
-  set_a(context, isnan(d)? JS_TRUE: JS_FALSE);
+  set_a(context, true_false(isnan(d)));
 }
 
 /*
@@ -36,7 +36,7 @@ BUILTIN_FUNCTION(builtin_isFinite)
 
   builtin_prologue();  
   d = to_double(context, args[1]);
-  set_a(context, isinf(d)? JS_TRUE: JS_FALSE);
+  set_a(context, true_false(isinf(d)));
 }
 
 /*
@@ -120,6 +120,24 @@ BUILTIN_FUNCTION(builtin_print)
 }
 
 /*
+   printv
+ */
+BUILTIN_FUNCTION(builtin_printv)
+{
+  int i;
+
+  builtin_prologue();
+  // printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args);
+
+  for (i = 1; i <= na; ++i) {
+    // printf("args[%d] = %016lx\n", i, args[i]);
+    print_value_verbose(context, args[i]);
+    putchar(i < na ? ' ' : '\n');
+  }
+  set_a(context, JS_UNDEFINED);
+}
+
+/*
    displays the status
  */
 BUILTIN_FUNCTION(builtin_printStatus)
@@ -195,6 +213,7 @@ ObjBuiltinProp global_funcs[] = {
 //  { "parseInt",       builtin_parseInt,           2, ATTR_DE   },
 //  { "parseFloat",     builtin_parseFloat,         1, ATTR_DE   },
   { "print",          builtin_print,              0, ATTR_ALL  },
+  { "printv",         builtin_printv,             0, ATTR_ALL  },
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },
   { "address",        builtin_address,            0, ATTR_ALL  },
   { "hello",          builtin_hello,              0, ATTR_ALL  },

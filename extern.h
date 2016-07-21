@@ -138,6 +138,7 @@ extern JSValue to_string(Context *, JSValue v);
 extern JSValue to_boolean(JSValue v);
 extern JSValue to_number(Context *, JSValue v);
 extern double to_double(Context *, JSValue v);
+extern char *type_name(JSValue v);
 
 /*
  * hash.c
@@ -222,10 +223,11 @@ extern char *space_chomp(char *);
 /*
  * operations.c
  */
-extern JSValue slow_add(Context *context, JSValue v1, JSValue v2);
-extern JSValue slow_sub(Context *context, JSValue v1, JSValue v2);
-extern JSValue slow_mul(Context *context, JSValue v1, JSValue v2);
-extern JSValue slow_mod(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_add(Context *, JSValue, JSValue);
+extern JSValue slow_sub(Context *, JSValue, JSValue);
+extern JSValue slow_mul(Context *, JSValue, JSValue);
+extern JSValue slow_div(Context *, JSValue, JSValue);
+extern JSValue slow_mod(Context *, JSValue, JSValue);
 extern JSValue slow_bitand(Context *context, JSValue v1, JSValue v2);
 extern JSValue slow_bitor(Context *context, JSValue v1, JSValue v2);
 extern JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2);

@@ -5,5 +5,5 @@ g = function(x) {
   print("ggggggg");
   return x + 20;
 }
-print(g(300));
-print(f());
+printv(g(300));
+printv(f());

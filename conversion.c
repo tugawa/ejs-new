@@ -202,7 +202,7 @@ JSValue string_to_boolean(JSValue v) {
     return JS_FALSE;
   }
   p = string_value(v);
-  return (p[0] == '\0')? JS_FALSE: JS_TRUE;
+  return false_true(p[0] == '\0');
 }
 
 /*
@@ -274,7 +274,7 @@ JSValue fixnum_to_boolean(JSValue v) {
     type_error("fixnum expected in fixnum_to_boolean");
     return JS_FALSE;
   }
-  return (v == FIXNUM_ZERO)? JS_FALSE: JS_TRUE;
+  return false_true(v == FIXNUM_ZERO);
 }
 
 /*
@@ -288,7 +288,7 @@ JSValue flonum_to_boolean(JSValue v) {
     return JS_FALSE;
   }
   d = flonum_to_double(v);
-  return isnan(d)? JS_FALSE: JS_TRUE;
+  return false_true(isnan(d));
 }
 
 /*
@@ -643,4 +643,23 @@ double to_double(Context *context, JSValue v) {
    break;
   }
   return NAN;                 // not reached
+}
+
+char *type_name(JSValue v) {
+  if (is_string(v)) return "String";
+  if (is_fixnum(v)) return "Fixnum";
+  if (is_flonum(v)) return "Flonum";
+  if (is_special(v)) return "Special";
+  if (is_array(v)) return "Array";
+  if (is_function(v)) return "Function";
+  if (is_builtin(v)) return "Builtin";
+  if (is_iterator(v)) return "Iterator";
+  if (is_number_object(v)) return "NumberObject";
+  if (is_boolean_object(v)) return "BooleanObject";
+  if (is_string_object(v)) return "StringObject";
+#ifdef USE_REGEXP
+  if (is_regexp(v)) return "Regexp";
+#endif
+  if (is_object(v)) return "Object";
+  return "???";
 }
