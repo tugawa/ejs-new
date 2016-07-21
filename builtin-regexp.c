@@ -46,7 +46,7 @@ int regexp_constructor_sub(char *pat, char *flagstr, JSValue *dst) {
   if ((re = new_regexp(pat, flag)) == JS_UNDEFINED)
     return FAIL;
   set_obj_cstr_prop(re, "source", cstr_to_string(pat), ATTR_ALL);
-  regexp_lastindex(remove_regexp_tag(re)) = 0;
+  regexp_lastindex(re) = 0;
   set_obj_cstr_prop(re, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
   *dst = re;
   return SUCCESS;
@@ -69,7 +69,7 @@ LAB1:
     pat = args[1];
     if (is_regexp(pat)) {
       if (new == TRUE)
-        regexp_constructor_sub(regexp_pattern(remove_regexp_tag(pat)), cstrflag, &res);
+        regexp_constructor_sub(regexp_pattern(pat), cstrflag, &res);
       else
         res = pat;
     } else if (pat == JS_UNDEFINED)
@@ -108,15 +108,13 @@ BUILTIN_FUNCTION(regexp_constr_nonew)
 BUILTIN_FUNCTION(regexp_toString)
 {
   JSValue rsv;
-  RegexpCell *p;
   char *pat, *ret;
   uint64_t len;
 
   builtin_prologue();
   rsv = args[0];
   if (is_regexp(rsv)) {
-    p = remove_regexp_tag(rsv);
-    pat = regexp_pattern(p);
+    pat = regexp_pattern(rsv);
     len = strlen(pat);
     ret = malloc(sizeof(char) * len + 3);
     ret[0] = '/';

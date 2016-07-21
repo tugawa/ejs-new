@@ -417,11 +417,10 @@ NEXT1:
   // not completed yet
   /*
   if (is_array(v)) {
-    ArrayCell *p = remove_array_tag(v);
-    if (array_size(p) == 0)    // empty array
+    if (array_size(v) == 0)    // empty array
       return FIXNUM_ZERO;
-    if (array_size(p) == 1) {
-      v = array_body_index(p, 0);
+    if (array_size(v) == 1) {
+      v = array_body_index(v, 0);
       if (is_number(v)) return v;
     }
   }
@@ -511,7 +510,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   ap = remove_array_tag(array);
 
   for (i = 0; i < length; i++) {
-    item = array_body_index(ap, i);
+    item = array_body_index(array, i);
     strs[i] = string_to_cstr(to_string(context, item));
     sumlen += strlen(strs[i]);
   }

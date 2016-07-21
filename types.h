@@ -99,21 +99,24 @@ typedef struct object_cell {
 #endif
 } Object;
 
-#define obj_header(p)       (((Object *)(p))->header)
-#define obj_n_props(p)      (((Object *)(p))->n_props)
-#define obj_limit_props(p)  (((Object *)(p))->limit_props)
-#define obj_map(p)          (((Object *)(p))->map)
-#define obj_prop_index(p,i) (((Object *)(p))->prop[i])
-#define obj_prop(p)         (((Object *)(p))->prop)
+#define is_object(p)           (equal_tag((p), T_OBJECT))
+#define put_object_tag(p)      (put_tag(p, T_OBJECT))
+#define remove_object_tag(p)   ((Object *)(remove_tag((p), T_OBJECT)))
+#define make_object()          (put_object_tag(allocate_object()))
 
-#define is_object(p)       (equal_tag((p), T_OBJECT))
+#define obj_header(p)          ((remove_object_tag(p))->header)
+#define obj_n_props(p)         ((remove_object_tag(p))->n_props)
+#define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
+#define obj_map(p)             ((remove_object_tag(p))->map)
+#define obj_prop(p)            ((remove_object_tag(p))->prop)
+#define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
+
 #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
+#define obj_header_tag(x)      ((Tag)(obj_header(x) & OBJECT_HEADER_MASK))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
+#define obj_size(x)            (obj_header(x) >> OBJECT_SIZE_OFFSET)
 
-#define remove_object_tag(p)((Object *)(remove_tag((p), T_OBJECT)))
-#define put_object_tag(p)   (put_tag(p, T_OBJECT))
-#define make_object()       (put_object_tag(allocate_object()))
-// #define make_object()       ((Object *)(put_tag((allocate_object()), T_OBJECT)))
+
 
 /*
    Array
@@ -126,16 +129,16 @@ typedef struct array_cell {
   JSValue* body;
 } ArrayCell;
 
-#define is_array(p)      is_obj_header_tag((p), HTAG_ARRAY)
-#define array_body(a)    (((ArrayCell *)(a))->body)
-#define array_body_index(a,i) (((ArrayCell *)(a))->body[i])
-#define array_size(a)    (((ArrayCell *)(a))->size)
-#define array_length(a)  (((ArrayCell *)(a))->length)
+#define is_array(p)           is_obj_header_tag((p), HTAG_ARRAY)
+#define put_array_tag(p)      (put_tag(p, T_OBJECT))
+#define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_OBJECT)))
+#define make_array()          (put_array_tag(allocate_array()))
 
-#define remove_array_tag(p) ((ArrayCell *)(remove_tag((p), T_OBJECT)))
-#define put_array_tag(p)    (put_tag(p, T_OBJECT))
-#define make_array()        (put_array_tag(allocate_array()))
-// #define make_array()     ((ArrayCell *)(put_tag((allocate_array()), T_OBJECT)))
+#define array_body(a)         ((remove_array_tag(a))->body)
+#define array_body_index(a,i) ((remove_array_tag(a))->body[i])
+#define array_size(a)         ((remove_array_tag(a))->size)
+#define array_length(a)       ((remove_array_tag(a))->length)
+
 
 #define MINIMUM_ARRAY_SIZE  100
 
@@ -150,15 +153,13 @@ typedef struct function_cell {
   FunctionFrame *environment;
 } FunctionCell;
 
-#define is_function(p)       is_obj_header_tag((p), HTAG_FUNCTION)
-#define func_table_entry(f)  (((FunctionCell *)(f))->func_table_entry)
-#define func_environment(f)  (((FunctionCell *)(f))->environment)
-
-#define remove_function_tag(p) ((FunctionCell *)(remove_tag((p), T_OBJECT)))
+#define is_function(p)         is_obj_header_tag((p), HTAG_FUNCTION)
 #define put_function_tag(p)    (put_tag(p, T_OBJECT))
+#define remove_function_tag(p) ((FunctionCell *)(remove_tag((p), T_OBJECT)))
 #define make_function()        (put_function_tag(allocate_function()))
 
-// #define make_function()  ((FunctionCell *)(put_tag((allocate_function()), T_OBJECT)))
+#define func_table_entry(f)    ((remove_function_tag(f))->func_table_entry)
+#define func_environment(f)    ((remove_function_tag(f))->environment)
 
 /*
    Builtin
@@ -184,18 +185,18 @@ typedef struct builtin_cell {
 } BuiltinCell;
 
 #define is_builtin(p)           is_obj_header_tag((p), HTAG_BUILTIN)
-#define builtin_body(f)         (((BuiltinCell *)(f))->body)
-#define builtin_constructor(f)  (((BuiltinCell *)(f))->constructor)
-#define builtin_n_args(f)       (((BuiltinCell *)(f))->n_args)
-
-#define remove_builtin_tag(p)   ((BuiltinCell *)remove_tag((p), T_OBJECT))
 #define put_builtin_tag(p)      (put_tag(p, T_OBJECT))
+#define remove_builtin_tag(p)   ((BuiltinCell *)remove_tag((p), T_OBJECT))
 #define make_builtin()          (put_builtin_tag(allocate_builtin()))
 
-#define is_function_or_builtin(p) \
-  (is_object((p)) && ((obj_header_tag((p)) == HTAG_FUNCTION) || (obj_header_tag((p)) == HTAG_BUILTIN))
+#define builtin_body(f)         ((remove_builtin_tag(f))->body)
+#define builtin_constructor(f)  ((remove_builtin_tag(f))->constructor)
+#define builtin_n_args(f)       ((remove_builtin_tag(f))->n_args)
 
-// #define make_builtin()  ((BuiltinCell *)(put_tag((allocate_builtin()), T_OBJECT)))
+#define is_function_or_builtin(p) \
+  (is_object((p)) && \
+   ((obj_header_tag((p)) == HTAG_FUNCTION) || \
+    (obj_header_tag((p)) == HTAG_BUILTIN))
 
 /*
    Iterator
@@ -206,20 +207,18 @@ typedef struct iterator_cell {
   HashIterator iter;
 } IteratorCell;
 
-#define is_iterator(p)   is_obj_header_tag((p), HTAG_ITERATOR)
-#define iterator_iter(i) (((IteratorCell *)(i))->iter)
-
+#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
 #define remove_iterator_tag(p)   ((IteratorCell *)remove_tag((p), T_OBJECT))
 #define put_iterator_tag(p)      (put_tag(p, T_OBJECT))
 #define make_iterator()          (put_iterator_tag(allocate_iterator()))
 
-// #define make_iterator()  ((IteratorCell *)(put_tag((allocate_iterator()), T_OBJECT)))
+#define iterator_iter(i)         ((remove_iterator_tag(i))->iter)
 
+#ifdef USE_REGEXP
 /*
    Regexp
    tag == T_OBJECT
  */
-#ifdef USE_REGEXP
 typedef struct regexp_cell {
   Object o;
   char *pattern;
@@ -235,26 +234,18 @@ typedef struct regexp_cell {
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
 
-#define is_regexp(p)       is_obj_header_tag((p), HTAG_REGEXP)
-#define regexp_pattern(r)           (((RegexpCell *)(r))->pattern)
-#define regexp_reg(r)               (((RegexpCell *)(r))->reg)
-#define regexp_global(r)            (((RegexpCell *)(r))->global)
-#define regexp_ignorecase(r)        (((RegexpCell *)(r))->ignorecase)
-#define regexp_multiline(r)         (((RegexpCell *)(r))->multiline)
-#define regexp_lastindex(r)         (((RegexpCell *)(r))->lastindex)
-/*
-#define set_regexp_pattern(r, p)    ((((RegexpCell *)(r))->pattern) = (p))
-#define set_regexp_Global(r, f)     ((((RegexpCell *)(r))->global) = (f))
-#define set_regexp_ignorecase(r, f) ((((RegexpCell *)(r))->ignorecase) = (f))
-#define set_regexp_multiline(r, f)  ((((RegexpCell *)(r))->multiline) = (f))
-#define set_regexp_lastindex(r, i)  ((((RegexpCell *)(r))->lastindex) = (i))
-*/
-
-#define remove_regexp_tag(p)   ((RegexpCell *)remove_tag((p), T_OBJECT))
+#define is_regexp(r)           is_obj_header_tag((r), HTAG_REGEXP)
 #define put_regexp_tag(p)      (put_tag(p, T_OBJECT))
+#define remove_regexp_tag(p)   ((RegexpCell *)remove_tag((p), T_OBJECT))
 #define make_regexp()          (put_regexp_tag(allocate_regexp()))
 
-// #define make_regexp()  ((RegexpCell*)(put_tag((allocate_regexp()), T_OBJECT)))
+#define regexp_pattern(r)      ((remove_regexp_tag(r))->pattern)
+#define regexp_reg(r)          ((remove_regexp_tag(r))->reg)
+#define regexp_global(r)       ((remove_regexp_tag(r))->global)
+#define regexp_ignorecase(r)   ((remove_regexp_tag(r))->ignorecase)
+#define regexp_multiline(r)    ((remove_regexp_tag(r))->multiline)
+#define regexp_lastindex(r)    ((remove_regexp_tag(r))->lastindex)
+
 #endif
 
 /*
@@ -266,32 +257,22 @@ typedef struct boxed_cell {
   JSValue value;   // boxed value; it is number, boolean, or string
 } BoxedCell;
 
-#define boxed_value(b)         (((BoxedCell *)(b))->value)
-#define set_boxed_value(b, v)  ((((BoxedCell *)(b))->value) = (v))
+#define remove_boxed_tag(p)      ((BoxedCell *)(remove_tag((p), T_OBJECT)))
+#define put_boxed_tag(p)         (put_tag(p, T_OBJECT))
+#define make_boxed(t)            (put_boxed_tag(allocate_boxed((t))))
+#define boxed_value(b)           ((remove_boxed_tag(b))->value)
 
-#define remove_boxed_tag(p)    ((BoxedCell *)(remove_tag((p), T_OBJECT)))
-#define put_boxed_tag(p)       (put_tag(p, T_OBJECT))
-#define make_boxed(t)          (put_boxed_tag(allocate_boxed((t))))
+#define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
+#define make_number_object()     make_boxed(HEADER_BOXED_NUMBER)
+#define number_object_value(n)   boxed_value((n))
 
-// #define make_boxed(t) ((BoxedCell *)(put_tag((allocate_boxed((t))), T_OBJECT)))
+#define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
+#define make_boolean_object()    make_boxed(HEADER_BOXED_BOOLEAN)
+#define boolean_object_value(b)  boxed_value((b))
 
-#define number_object_value(n)         boxed_value((n))
-#define set_number_object_value(n, v)  set_boxed_value((n), (v))
-#define is_number_object(p)            is_obj_header_tag((p), HTAG_BOXED_NUMBER)
-
-#define make_number_object()           make_boxed(HEADER_BOXED_NUMBER)
-
-#define boolean_object_value(b)        boxed_value((b))
-#define set_boolean_object_value(b, v) set_boxed_value((b), (v))
-#define is_boolean_object(p)           is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
-
-#define make_boolean_object()          make_boxed(HEADER_BOXED_BOOLEAN)
-
-#define string_object_value(s)         boxed_value((s))
-#define set_string_object_value(s,v)   set_boxed_value((s), (v))
-#define is_string_object(p)            is_obj_header_tag((p), HTAG_BOXED_STRING)
-
-#define make_string_object()           make_boxed(HEADER_BOXED_STRING)
+#define is_string_object(p)      is_obj_header_tag((p), HTAG_BOXED_STRING)
+#define make_string_object()     make_boxed(HEADER_BOXED_STRING)
+#define string_object_value(s)   boxed_value((s))
 
 /*
    FlonumCell
@@ -302,11 +283,12 @@ typedef struct flonum_cell {
   double value;
 } FlonumCell;
 
-#define is_flonum(p) (equal_tag((p), T_FLONUM))
-#define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_FLONUM))
+#define is_flonum(p)         (equal_tag((p), T_FLONUM))
 #define put_flonum_tag(p)    (put_tag(p, T_FLONUM))
+#define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_FLONUM))
 
 #define flonum_value(p)      ((remove_flonum_tag(p))->value)
+
 #define double_to_flonum(n)  (put_flonum_tag(allocate_flonum(n)))
 #define int_to_flonum(i)     cint_to_flonum(i)
 #define cint_to_flonum(i)    double_to_flonum((double)(i))
@@ -330,15 +312,15 @@ typedef struct string_cell {
 } StringCell;
 
 #define is_string(p)         (equal_tag((p), T_STRING))
-#define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
 #define put_string_tag(p)    (put_tag(p, T_STRING))
+#define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
 
 #define string_value(p)      ((remove_string_tag(p))->value)
 #define string_to_cstr(p)    string_value(p)
 
 #ifdef STROBJ_HAS_HASH
 #define string_hash(p)       ((remove_string_tag(p))->hash)
-#define string_length(p)      ((remove_string_tag(p))->length)
+#define string_length(p)     ((remove_string_tag(p))->length)
 #else
 #define string_hash(p)       (calc_hash(string_value(p)))
 #define string_length(p)     (strlen(string_value(p)))
@@ -392,9 +374,6 @@ typedef struct string_cell {
 #define HEADER_BOXED_STRING   HEADER_COMMON(BoxedCell, HTAG_BOXED_STRING)
 #define HEADER_BOXED_NUMBER   HEADER_COMMON(BoxedCell, HTAG_BOXED_NUMBER)
 #define HEADER_BOXED_BOOLEAN  HEADER_COMMON(BoxedCell, HTAG_BOXED_BOOLEAN)
-
-#define obj_header_tag(x)  ((Tag)(obj_header(x) & OBJECT_HEADER_MASK))
-#define obj_size(x)        (obj_header(x) >> OBJECT_SIZE_OFFSET)
 
 /*
    Fixnum
@@ -460,15 +439,14 @@ typedef uint64_t cuint;
    Special
    tag == T_SPECIAL
  */
-#define SPECIALOFFSET         (TAGOFFSET + 1)
-#define SPECIALMASK           ((uint64_t)(1 << SPECIALOFFSET) - 1)
+#define SPECIALOFFSET           (TAGOFFSET + 1)
+#define SPECIALMASK             ((uint64_t)(1 << SPECIALOFFSET) - 1)
 
-#define is_special(p)          (equal_tag((p), T_SPECIAL))
-#define remove_special_tag(p)  (remove_tag((p), T_SPECIAL))
-#define special_tag(p)         ((uint64_t)(p) & SPECIALMASK)
+#define is_special(p)           (equal_tag((p), T_SPECIAL))
+#define remove_special_tag(p)   (remove_tag((p), T_SPECIAL))
+#define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
+#define special_tag(p)          ((uint64_t)(p) & SPECIALMASK)
 #define special_equal_tag(p,t)  (special_tag((p)) == (t))
-
-#define make_special(spe,t)    ((JSValue)((spe) << SPECIALOFFSET | (t)))
 
 /*
    Special - Boolean
@@ -485,18 +463,18 @@ typedef uint64_t cuint;
 /*
    Special - Others
  */
-#define T_OTHER          ((0x0 << TAGOFFSET) | T_SPECIAL)
-#define JS_NULL          make_special(0, T_OTHER)
-#define JS_UNDEFINED     make_special(1, T_OTHER)
+#define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
+#define JS_NULL           make_special(0, T_OTHER)
+#define JS_UNDEFINED      make_special(1, T_OTHER)
 
 #define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
-#define is_null(p)        ((p) == JS_NULL)
-#define is_undefined(p)   ((p) == JS_UNDEFINED)
+#define is_null(p)               ((p) == JS_NULL)
+#define is_undefined(p)          ((p) == JS_UNDEFINED)
 
 /*
    Primitive is either number, boolean, or string.
  */
-#define is_primitive(p)   (get_tag(p) != T_OBJECT && (!is_null_or_undefined(p)))
+#define is_primitive(p) (get_tag(p) != T_OBJECT && (!is_null_or_undefined(p)))
 
 /*
    Set a specified property to an object where property name is given

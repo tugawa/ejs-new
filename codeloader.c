@@ -567,7 +567,7 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
         printf("STRING \"%s\"\n", string_value(o));
 #ifdef USE_REGEXP
       else if (is_regexp(o))
-        printf("REGEXP \"%s\"\n", regexp_pattern(remove_regexp_tag(o)));
+        printf("REGEXP \"%s\"\n", regexp_pattern(o));
 #endif
       else
         printf("Unexpected JSValue\n");
@@ -642,8 +642,7 @@ void print_bytecode(Instruction *insns, int j) {
 #ifdef USE_REGEXP
       case REGEXP:
         if (is_regexp(o))
-          printf("%d %d \"%s\"", dst, regexp_flag(o),
-                 regexp_pattern(remove_regexp_tag(o)));
+          printf("%d %d \"%s\"", dst, regexp_flag(o), regexp_pattern(o));
         else
           printf("Object type mismatched: tag = %d", tag);
         break;

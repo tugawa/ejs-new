@@ -909,14 +909,12 @@ I_SETARRAY:
   {
     JSValue a, v;
     Subscript s;
-    ArrayCell *p;
 
     a = regbase[get_first_operand_reg(insn)];
     s = get_second_operand_subscr(insn);
     v = regbase[get_third_operand_reg(insn)];
-    p = remove_array_tag(a);
     // It is unnecessary to typecheck the values.
-    array_body_index(p, s) = v;
+    array_body_index(a, s) = v;
   }
   NEXT_INSN_INCPC();
 
@@ -1168,7 +1166,6 @@ I_NEWARGS:
     int na;
     FunctionFrame *fr;
     JSValue args;
-    ArrayCell *a;
     int i;
 
     na = get_ac(context);
@@ -1181,13 +1178,12 @@ I_NEWARGS:
     fr = new_frame(get_cf(context), get_lp(context));
     set_lp(context, fr);
     args = new_array_with_size(na);
-    a = remove_array_tag(args);
     /*
        Note that the i-th arg is regbase[i + 2].
        (regbase[1] is the receiver)
      */
     for (i = 0; i < na; i++)
-      array_body_index(a, i) = regbase[i + 2];
+      array_body_index(args, i) = regbase[i + 2];
     fframe_arguments(fr) = args;
   }
   NEXT_INSN_INCPC();

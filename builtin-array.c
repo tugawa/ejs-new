@@ -29,7 +29,7 @@ BUILTIN_FUNCTION(array_constr)
   p = remove_array_tag(rsv);
 
   if (na == 0)
-    allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
+    allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
   else if (na == 1) {
     JSValue n;
 
@@ -37,19 +37,19 @@ BUILTIN_FUNCTION(array_constr)
     size =INITIAL_ARRAY_SIZE;
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
       while (size < length) size *= 2;
-      allocate_array_data(p, size, length);
+      allocate_array_data(rsv, size, length);
       set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     } else
-      allocate_array_data(p, INITIAL_ARRAY_SIZE, 0);
+      allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
   } else {
     int i;
     size =INITIAL_ARRAY_SIZE;
     length = na;
     while (size < length) size *= 2;
-    allocate_array_data(p, size, length);
+    allocate_array_data(rsv, size, length);
     set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     for (i = 1; i <= length; i++)
-      array_body_index(p, i) = args[i];
+      array_body_index(rsv, i) = args[i];
   }
   set_a(context, rsv);
 }
@@ -82,7 +82,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
     ap = remove_array_tag(array);
 
     for (i = 0; i < length; i++) {
-      item = array_body_index(ap, i);
+      item = array_body_index(array, i);
       if (is_object(item)) {
         // invokeToLocaleString(item, context, &prim);
         prim = item;   // kore wa tekitou

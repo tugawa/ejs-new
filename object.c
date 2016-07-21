@@ -116,7 +116,6 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
         returns the value regsitered under the property p
     }
   */
-  ArrayCell *ap;
 
   switch (get_tag(p)) {
   case T_FIXNUM:
@@ -124,8 +123,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       cint n;
       n = fixnum_to_cint(p);
       if (array_subscript_range(n)) {
-        ap = remove_array_tag(a);
-        return (n < array_length(ap))? array_body_index(ap, n): JS_UNDEFINED;
+        return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
       p = fixnum_to_string(p);
       return get_prop_prototype_chain(a, p);
@@ -142,8 +140,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
         if (array_subscript_range(n)) {
-          ap = remove_array_tag(a);
-          return (n < array_length(ap))? array_body_index(ap, n): JS_UNDEFINED;
+          return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
         }
       }
       return get_prop_prototype_chain(a, p);
@@ -199,17 +196,14 @@ int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
    It is not necessary to check the type of `a'.
  */
 int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
-  ArrayCell *ap;
-
   switch (get_tag(p)) {
   case T_FIXNUM:
     {
       cint n;
       n = fixnum_to_cint(p);
       if (array_subscript_range(n)) {
-        ap = remove_array_tag(a);
-        if (n < array_length(ap)) {
-          array_body_index(ap, n) = v;
+        if (n < array_length(a)) {
+          array_body_index(a, n) = v;
           return SUCCESS;
         } else {
           // expand the array --- not implemented yet
@@ -231,9 +225,8 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
         if (array_subscript_range(n)) {
-          ap = remove_array_tag(a);
-          if (n < array_length(ap)) {
-            array_body_index(ap, n) = v;
+          if (n < array_length(a)) {
+            array_body_index(a, n) = v;
             return SUCCESS;
           } else {
             // expand the array --- not implemented yet
@@ -377,45 +370,43 @@ void setArrayValue(JSValue obj, int index, JSValue src)
    sets a regexp's members and makes an Oniguruma's regexp object
  */
 int set_regexp_members(JSValue re, char *pat, int flag) {
-  RegexpCell *p;
   OnigOptionType opt;
   OnigErrorInfo err;
   char *e;
 
-  p = remove_regexp_tag(re);
   /*
      The original code in SSJSVM_codeloader.c used ststrdup function,
      which is defined in hash.c.  But I don't know the reason why
      it used ststrdup instead of the standard strdup function.
 
-     regexp_pattern(r) = ststrdup(str);
+     regexp_pattern(re) = ststrdup(str);
   */
-  regexp_pattern(p) = strdup(pat);
+  regexp_pattern(re) = strdup(pat);
 
   opt = ONIG_OPTION_NONE;
 
   if (flag & F_REGEXP_GLOBAL) {
-    regexp_global(p) = true;
+    regexp_global(re) = true;
     set_obj_cstr_prop(re, "global", JS_TRUE, ATTR_ALL);
   } else
     set_obj_cstr_prop(re, "global", JS_FALSE, ATTR_ALL);
 
   if (flag & F_REGEXP_IGNORE) {
     opt |= ONIG_OPTION_IGNORECASE;
-    regexp_ignorecase(p) =  true;
+    regexp_ignorecase(re) =  true;
     set_obj_cstr_prop(re, "ignoreCase", JS_TRUE, ATTR_ALL);
   } else
     set_obj_cstr_prop(re, "ignoreCase", JS_FALSE, ATTR_ALL);
 
   if (flag & F_REGEXP_MULTILINE) {
     opt |= ONIG_OPTION_MULTILINE;
-    regexp_multiline(p) = true;
+    regexp_multiline(re) = true;
     set_obj_cstr_prop(re, "multiline", JS_TRUE, ATTR_ALL);
   } else
     set_obj_cstr_prop(re, "multiline", JS_FALSE, ATTR_ALL);
 
   e = pat + strlen(pat);
-  if (onig_new(&(regexp_reg(p)), (OnigUChar *)pat, (OnigUChar *)e, opt,
+  if (onig_new(&(regexp_reg(re)), (OnigUChar *)pat, (OnigUChar *)e, opt,
                ONIG_ENCODING_ASCII, ONIG_SYNTAX_DEFAULT, &err) == ONIG_NORMAL)
     return SUCCESS;
   else
@@ -426,14 +417,12 @@ int set_regexp_members(JSValue re, char *pat, int flag) {
    returns a flag value from a ragexp objext
  */
 int regexp_flag(JSValue re) {
-  RegexpCell *p;
   int flag;
 
   flag = 0;
-  p = remove_regexp_tag(re);
-  if (regexp_global(p)) flag |= F_REGEXP_GLOBAL;
-  if (regexp_ignorecase(p)) flag |= F_REGEXP_IGNORE;
-  if (regexp_multiline(p)) flag |= F_REGEXP_MULTILINE;
+  if (regexp_global(re)) flag |= F_REGEXP_GLOBAL;
+  if (regexp_ignorecase(re)) flag |= F_REGEXP_IGNORE;
+  if (regexp_multiline(re)) flag |= F_REGEXP_MULTILINE;
   return flag;
 }
 #endif
@@ -446,10 +435,10 @@ void set_object_members(Object *p) {
 
   a = malloc_hashtable();
   hash_create(a, INITIAL_HASH_SIZE);
-  obj_map(p) = a;
-  obj_prop(p) = allocate_prop_table(INITIAL_PROPTABLE_SIZE);
-  obj_n_props(p) = 0;
-  obj_limit_props(p) = INITIAL_PROPTABLE_SIZE;
+  p->map = a;
+  p->prop = allocate_prop_table(INITIAL_PROPTABLE_SIZE);
+  p->n_props = 0;
+  p->limit_props = INITIAL_PROPTABLE_SIZE;
 }
 
 /*
@@ -500,7 +489,7 @@ JSValue new_array(void) {
   p = remove_array_tag(ret);
   set_object_members(&(p->o));
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
-  allocate_array_data(p, 0, 0);
+  allocate_array_data(ret, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
   return ret;
 }
@@ -516,7 +505,7 @@ JSValue new_array_with_size(int size)
   ret = make_array();
   p = remove_array_tag(ret);
   set_object_members(&(p->o));
-  allocate_array_data(p, size, size);
+  allocate_array_data(ret, size, size);
   set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
   return ret;
 }
@@ -533,8 +522,8 @@ JSValue new_function(Context *context, Subscript subscr)
   ret = make_function();
   p = remove_function_tag(ret);
   set_object_members(&(p->o));
-  func_table_entry(p) = &(context->function_table[subscr]);
-  func_environment(p) = get_lp(context);
+  func_table_entry(ret) = &(context->function_table[subscr]);
+  func_environment(ret) = get_lp(context);
   set_prop_none(ret, gconsts.g_string_prototype, new_object());
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
   return ret;
@@ -550,9 +539,9 @@ JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, i
   ret = make_builtin();
   p = remove_builtin_tag(ret);
   set_object_members(&(p->o));
-  builtin_body(p) = f;
-  builtin_constructor(p) = cons;
-  builtin_n_args(p) = na;
+  builtin_body(ret) = f;
+  builtin_constructor(ret) = cons;
+  builtin_n_args(ret) = na;
   set_prop_none(ret, gconsts.g_string_prototype, new_object());
   // TODO: g_object_proto should be g_builtin_proto
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
@@ -605,7 +594,7 @@ JSValue new_number(JSValue v) {
   ret = make_number_object();
   p = remove_boxed_tag(ret);
   set_object_members(&(p->o));
-  set_number_object_value(p, v);
+  number_object_value(ret) = v;
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
   return ret;
 }
@@ -620,7 +609,7 @@ JSValue new_boolean(JSValue v) {
   ret = make_boolean_object();
   p = remove_boxed_tag(ret);
   set_object_members(&(p->o));
-  set_boolean_object_value(p, v);
+  boolean_object_value(p) = v;
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
   return (JSValue)ret;
 }
@@ -635,7 +624,7 @@ JSValue new_string(JSValue v) {
   ret = make_string_object();
   p = remove_boxed_tag(ret);
   set_object_members(&(p->o));
-  set_string_object_value(p, v);
+  string_object_value(p) = v;
 
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.

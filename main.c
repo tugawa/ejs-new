@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
   if (argc == 2) {
     fp = fopen(argv[1], "r");
     if (fp == NULL)
-      LOG_EXIT("No such file.");
+      LOG_EXIT("%s: No such file.\n", argv[1]);
   }
 #endif // J5MODE
 
@@ -243,7 +243,7 @@ void print_value(Context *context, JSValue v, int verbose) {
       case HTAG_BUILTIN: v = cstr_to_string("builtin"); break;
       case HTAG_ITERATOR: v = cstr_to_string("iterator"); break;
       case HTAG_REGEXP:
-        printf("/%s/", regexp_pattern(remove_regexp_tag(v)));
+        printf("/%s/", regexp_pattern(v));
         return;
       case HTAG_BOXED_STRING: v = cstr_to_string("boxed-string"); break;
       case HTAG_BOXED_NUMBER: v = cstr_to_string("boxed-number"); break;
@@ -264,7 +264,7 @@ void print_value(Context *context, JSValue v, int verbose) {
     v = special_to_string(v);
     break;
   default:
-    LOG_ERR("Type Error");
+    LOG_ERR("Type Error\n");
     break;
   }
   printf("%s", string_to_cstr(v));

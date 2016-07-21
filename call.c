@@ -32,12 +32,10 @@
    sp:     argN
 */
 void call_function(Context *context, JSValue fn, int nargs, int sendp) {
-  FunctionCell *f;
   FunctionTable *t;
   JSValue *stack;
   int sp, pos;
 
-  f = remove_function_tag(fn);
   sp = get_sp(context);
   stack = &get_stack(context, 0);
 
@@ -48,8 +46,8 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   // sets special registers
   set_fp(context, sp - nargs);
   set_ac(context, nargs);
-  set_lp(context, func_environment(f));
-  t = func_table_entry(f);
+  set_lp(context, func_environment(fn));
+  t = func_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_call_entry(t));
@@ -61,16 +59,14 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
    call a function at the tail position
  */
 void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
-  FunctionCell *f;
   FunctionTable *t;
   int fp;
 
-  f = remove_function_tag(fn);
   fp = get_fp(context);
   set_sp(context, fp + nargs);
   set_ac(context, nargs);
-  set_lp(context, func_environment(f));
-  t = func_table_entry(f);
+  set_lp(context, func_environment(fn));
+  t = func_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_call_entry(t));
@@ -95,16 +91,14 @@ void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
    sp:     argN
 */
 void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
-  BuiltinCell *b;
   builtin_function_t body;
   JSValue *stack;
   int na;
   int sp, fp;
   // int pos;
 
-  b = remove_builtin_tag(fn);
   body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
-  na = builtin_n_args(b);
+  na = builtin_n_args(fn);
 
   sp = get_sp(context);
   fp = get_fp(context);
@@ -153,15 +147,13 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
    calls a builtin function at a tail position
  */
 void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int constrp) {
-  BuiltinCell *b;
   builtin_function_t body;
   JSValue *stack;
   int na;
   int fp;
 
-  b = remove_builtin_tag(fn);
   body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
-  na = builtin_n_args(b);
+  na = builtin_n_args(fn);
 
   fp = get_fp(context);
   stack = &get_stack(context, 0);
@@ -187,13 +179,11 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int co
    invokes a function with no arguments in a new vmloop
  */
 JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sendp) {
-  FunctionCell *f;
   FunctionTable *t;
   JSValue *stack, ret;
   int sp, pos, oldfp, oldsp;
 
   // printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
-  f = remove_function_tag(fn);
   stack = &get_stack(context, 0);
   oldsp = sp = get_sp(context);
   oldfp = get_fp(context);
@@ -206,8 +196,8 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
   // sets special registers
   set_fp(context, sp);
   set_ac(context, 0);
-  set_lp(context, func_environment(f));
-  t = func_table_entry(f);
+  set_lp(context, func_environment(fn));
+  t = func_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_call_entry(t));
