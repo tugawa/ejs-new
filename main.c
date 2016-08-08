@@ -175,14 +175,13 @@ int main(int argc, char* argv[]) {
 #ifdef LASTEXPR_PRINT
 // outputs the results of the last expression
 #ifdef USE_FFI
-  if(isErr(context)){
+  if (isErr(context)) {
     printf("Exception!\n");
     printJSValue(getErr(context));
-  }else{
-    debugPrint(context, n);
-  }
+  } else
+    debug_print(context, n);
 #else
-  debugPrint(context, n);
+  debug_print(context, n);
 #endif  // USE_FFI
 #endif  // LASTEXPR_PRINT
 
@@ -268,4 +267,48 @@ void print_value(Context *context, JSValue v, int verbose) {
     break;
   }
   printf("%s", string_to_cstr(v));
+}
+
+/*
+  debug_print
+  This function is defined for the sake of the compatibility with the old VM.
+ */
+void debug_print(Context *context, int n) {
+  // int topsize;
+  JSValue res;
+  Tag tag;
+
+  // topsize = context->function_table[0].n_insns;
+  res = get_a(context);
+  switch (tag = get_tag(res)) {
+  case T_FIXNUM:
+  case T_FLONUM:
+    printf("number:%le\n", number_to_double(res));
+    break;
+  case T_STRING:
+    printf("string:%s\n", string_to_cstr(res));
+    break;
+  case T_SPECIAL:
+    switch (res) {
+    case JS_TRUE:
+      printf("boolean:true\n");
+      break;
+    case JS_FALSE:
+      printf("boolean:false\n");
+      break;
+    case JS_UNDEFINED:
+      printf("undefined:undefined\n");
+      break;
+    case JS_NULL:
+      printf("object:null\n");
+      break;
+    }
+    break;
+  case T_OBJECT:
+    printf("object:object\n");
+    break;
+  default:
+    printf("unknown value\n");
+    break;
+  }
 }
