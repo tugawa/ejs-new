@@ -32,8 +32,6 @@
 #define USE_REGEXP
 #define USE_BOEHMGC
 
-#define LASTEXPR_PRINT
-
 /*
    If you want to compile for J5MODE, define this.
  */

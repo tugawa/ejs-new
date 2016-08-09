@@ -15,6 +15,13 @@
 #define EXTERN
 #include "header.h"
 
+/*
+  flags
+ */
+int ftable_flag;       // prints the function table
+int trace_flag;        // prints every excuted instruction
+int lastprint_flag;    // prints the result of the last expression
+
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
 #endif
@@ -78,22 +85,71 @@ void testtest(Context *cxt) {
 }
 
 /*
+   processes command line options
+ */
+struct commandline_option {
+  char *str;
+  int arg;
+  int *flagvar;
+};
+
+struct commandline_option  options_table[] = {
+  { "-l", 0, &lastprint_flag },
+  { "-f", 0, &ftable_flag    },
+  { "-t", 0, &trace_flag     },
+  { (char *)NULL, 0, (int *)NULL }
+};
+
+int process_options(int ac, char *av[]) {
+  int k;
+  char *p;
+  struct commandline_option *o;
+
+  k = 1;
+  p = av[1];
+  while (k < ac) {
+    if (p[0] == '-') {
+      o = &options_table[0];
+      while (o->str != (char *)NULL) {
+        if (strcmp(p, o->str) == 0) {
+          if (o->arg == 0) *(o->flagvar) = TRUE;
+          else {
+            k++;
+            p++;
+            *(o->flagvar) = atoi(p);
+          }
+          break;
+        } else
+          o++;
+      }
+      if (o->str == (char *)NULL)
+        printf("unknown option: %s\n", p);
+      k++;
+      p = av[k];
+    } else
+      return k;
+  }
+  return 0;
+}
+
+/*
    main function
  */
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   // If input program is given from a file, fp is set to NULL.
   FILE *fp = NULL;
+  int k;
 
-#ifdef J5MODE
-  gArgc = argc;
-  gArgv = argv;
-#else
-  if (argc == 2) {
-    fp = fopen(argv[1], "r");
-    if (fp == NULL)
-      LOG_EXIT("%s: No such file.\n", argv[1]);
+  lastprint_flag = FALSE;
+  ftable_flag = FALSE;
+  trace_flag = FALSE;
+  k = process_options(argc, argv);
+  // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
+  //        lastprint_flag, ftable_flag, trace_flag, k);
+  if (k > 0) {
+    if ((fp = fopen(argv[k], "r")) == NULL)
+      LOG_EXIT("%s: No such file.\n", argv[k]);
   }
-#endif // J5MODE
 
 #ifdef CALC_CALL
   callcount = 0;
@@ -172,18 +228,17 @@ int main(int argc, char* argv[]) {
 #ifndef CALC_TIME
 #ifndef CALC_CALL
 
-#ifdef LASTEXPR_PRINT
-// outputs the results of the last expression
+  if (lastprint_flag == TRUE) {
 #ifdef USE_FFI
-  if (isErr(context)) {
-    printf("Exception!\n");
-    printJSValue(getErr(context));
-  } else
-    debug_print(context, n);
+    if (isErr(context)) {
+      printf("Exception!\n");
+      printJSValue(getErr(context));
+    } else
+      debug_print(context, n);
 #else
-  debug_print(context, n);
+    debug_print(context, n);
 #endif  // USE_FFI
-#endif  // LASTEXPR_PRINT
+  }
 
 #endif // CALC_CALL
 #endif // CALC_TIME

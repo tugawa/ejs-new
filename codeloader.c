@@ -116,9 +116,8 @@ int code_loader(FunctionTable *ftable) {
     end_constant_cell(&ctable);
   }
   // number_functions = i;
-
-  print_function_table(ftable, i);
-
+  if (ftable_flag == TRUE)
+    print_function_table(ftable, i);
   return i;
 }
 

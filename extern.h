@@ -3,6 +3,10 @@
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;
 
+extern int ftable_flag;
+extern int trace_flag;
+extern int lastprint_flag;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
