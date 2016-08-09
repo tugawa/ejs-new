@@ -570,7 +570,7 @@ I_BITAND:
     cint x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       regbase[dst] = v1 & v2;
       break;
@@ -611,7 +611,7 @@ I_BITOR:
     cint x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       regbase[dst] = v1 | v2;
       break;
@@ -668,7 +668,7 @@ I_LESSTHAN:
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       regbase[dst] = true_false((int)v1 < (int)v2);
       break;
@@ -713,7 +713,7 @@ I_LESSTHANEQUAL:
     double x1, x2;
 
     load_regs(insn, dst, r1, r2, v1, v2);
-    switch (tag = TAG_PAIR(get_tag(r1), get_tag(r2))) {
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       regbase[dst] = true_false((cint)v1 <= (cint)v2);
       break;

@@ -15,6 +15,8 @@
 #define EXTERN extern
 #include "header.h"
 
+#define not_implemented(s)  (printf("%s is not implemented yet\n", (s)), set_a(context, JS_UNDEFINED))
+
 /*
    constructor for array
  */
@@ -112,14 +114,14 @@ BUILTIN_FUNCTION(array_toLocaleString){
   }
 }
 
-#if 0
-// ProtoJoin
-
-// セパレータを指定して JOIN する。
-// 指定されてなかった場合は、コンマで JOIN する。
-
-BUILTIN_FUNCTION(arrayProtoJoin)
+/*
+  joins the elements of an array by using a specified separator,
+  where default separator is ','
+ */
+BUILTIN_FUNCTION(array_join)
 {
+  not_implemented("join");
+#if 0
   int fp;
   JSValue* args;
   JSValue ret, separator;
@@ -137,14 +139,13 @@ BUILTIN_FUNCTION(arrayProtoJoin)
   }
   setA(context, ret);
   return;
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoConcat
-// 引数で与えられたものを配列に確保していく
-
-BUILTIN_FUNCTION(arrayProtoConcat)
+BUILTIN_FUNCTION(array_concat)
 {
+  not_implemented("concat");
+#if 0
   int fp, i, j;
   int putPoint;
   JSValue *args;
@@ -163,7 +164,6 @@ BUILTIN_FUNCTION(arrayProtoConcat)
     item = args[i];
     if(is_object(item) && isArray(item)){
 
-      // 配列だった場合は配列の中身を全て格納
       length = getArrayLength(item);
       for(j=0; j<length; j++){
         getArrayValue(item, j, &v);
@@ -171,21 +171,19 @@ BUILTIN_FUNCTION(arrayProtoConcat)
 
     }else{
 
-      // 配列以外だったらそのまま格納
       setArrayValue(ret, putPoint++, item);
     }
   }
 
   setA(context, ret);
   return;
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoPop
-// 配列から一番後ろの要素から取る
-
-BUILTIN_FUNCTION(arrayProtoPop)
+BUILTIN_FUNCTION(array_pop)
 {
+  not_implemented("pop");
+#if 0
   int fp;
   JSValue* args;
   JSValue rsv, ret;
@@ -201,14 +199,13 @@ BUILTIN_FUNCTION(arrayProtoPop)
   setArrayLength(rsv, length-1);
   setA(context, ret);
   return;
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoPush
-// 配列にデータを格納する
-
-BUILTIN_FUNCTION(arrayProtoPush)
+BUILTIN_FUNCTION(array_push)
 {
+  not_implemented("push");
+#if 0
   JSValue* args;
   JSValue rsv;
   int i, fp;
@@ -225,14 +222,13 @@ BUILTIN_FUNCTION(arrayProtoPush)
   setArrayLength(rsv, length);
   setA(context, intToFixnum(i));
   return;
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoReverse
-// 配列のデータをひっくり返す
-
-BUILTIN_FUNCTION(arrayProtoReverse)
+BUILTIN_FUNCTION(array_reverse)
 {
+  not_implemented("reverse");
+#if 0
   int fp, i;
   uint64_t length;
   JSValue* args;
@@ -251,17 +247,13 @@ BUILTIN_FUNCTION(arrayProtoReverse)
   }
   setA(context, rsv);
   return;
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoShift
-
-// 配列の先頭の要素を削除する
-// 返り値として先頭の要素を与える
-// 配列の長さが間違っていたのを修正
-
-BUILTIN_FUNCTION(arrayProtoShift)
+BUILTIN_FUNCTION(array_shift)
 {
+  not_implemented("shift");
+#if 0
   int fp, i;
   uint64_t length;
   JSValue* args;
@@ -286,24 +278,23 @@ BUILTIN_FUNCTION(arrayProtoShift)
     setA(context, JS_UNDEFINED);
     return;
   }
+#endif
 }
 
 
 // -------------------------------------------------------------------------------------
 // ProtoUnShift
 // http://www.tohoho-web.com/js/array.htm#unshift
-// 未実装
 
 // -------------------------------------------------------------------------------------
 // ProtoSplice
 // http://www.tohoho-web.com/js/array.htm#splice
-// 未実装
 
-// -------------------------------------------------------------------------------------
-// ProtoSlice
 
-BUILTIN_FUNCTION(arrayProtoSlice)
+BUILTIN_FUNCTION(array_slice)
 {
+  not_implemented("slice");
+#if 0
   JSValue* args;
   JSValue startv, endv, src, array, rsv;
   int fp, start, end, i, newLength;
@@ -319,7 +310,6 @@ BUILTIN_FUNCTION(arrayProtoSlice)
   startv = args[1];
   endv = args[2];
 
-  // スタートの位置を測定
   if(is_object(startv)){
     startv = objectToPrimitive(startv, context); }
   dstart = PrimitiveToIntegralDouble(PrimitiveToDouble(startv));
@@ -328,8 +318,6 @@ BUILTIN_FUNCTION(arrayProtoSlice)
     start = (int)max(dstart + ((double)length), 0);
   }else{ start = (int)min(dstart, length); }
 
-  // エンドの位置を測定
-  // Undef の場合は最後まで
   if(isUndefined(endv)){
     end = (int)length; }
 
@@ -343,7 +331,6 @@ BUILTIN_FUNCTION(arrayProtoSlice)
     }else{ end = (int)min(dend, length); }
   }
 
-  // 新しい配列を作成する
   newLength = end - start;
   array = newArrayWithSize(newLength);
   set_prop_all(array, gconsts.g_string___proto__, gArrayProto);
@@ -353,14 +340,13 @@ BUILTIN_FUNCTION(arrayProtoSlice)
     setArrayValue(array, i, src); }
   setA(context, array);
   return;
-
+#endif
 }
 
-// -------------------------------------------------------------------------------------
-// ProtoSort
-
-BUILTIN_FUNCTION(arrayProtoSort)
+BUILTIN_FUNCTION(array_sort)
 {
+  not_implemented("sort");
+#if 0
   JSValue* args;
   JSValue rsv, comp, lenv, iv, jv, temp;
   int i, j, index, fp, length;
@@ -373,11 +359,8 @@ BUILTIN_FUNCTION(arrayProtoSort)
   getProp(rsv, cStrToString("length"), &lenv);
   length = (int)fixnumToInt(PrimitiveToInteger(lenv));
 
-  // 選択ソートでソートを行う
-  // ソートアルゴリズムだれか改良して
   if(isArray(rsv)){
 
-    // 比較関数を受け取っていない場合
     if(isUndefined(comp)){
       for(i=0; i<length; i++){
         index = i;
@@ -395,7 +378,6 @@ BUILTIN_FUNCTION(arrayProtoSort)
       return;
     }
 
-    // 比較関数を受け取った場合
     else if(isCallable(comp)){
       JSValue compret;
       for(i=0; i<length; i++){
@@ -416,24 +398,22 @@ BUILTIN_FUNCTION(arrayProtoSort)
     }
   }
 
-  // レシーバが配列じゃない場合は強制終了
   LOG_EXIT("receiver is not array\n");
-}
-
 #endif
+}
 
 ObjBuiltinProp array_funcs[] = {
   { "toString",       array_toString,       0, ATTR_DE },
   { "toLocateString", array_toLocaleString, 0, ATTR_DE },
-//  { "join",           array_join,           1, ATTR_DE },
-//  { "concat",         array_concat,         1, ATTR_DE },
-//  { "pop",            array_pop,            0, ATTR_DE },
-//  { "push",           array_push,           1, ATTR_DE },
-//  { "reverse",        array_reverse,        0, ATTR_DE },
-//  { "shift",          array_shift,          1, ATTR_DE },
-//  { "slice",          array_slice,          2, ATTR_DE },
-//  { "sort",           array_sort,           1, ATTR_DE },
-  { NULL,             NULL,                  0, ATTR_DE }
+  { "join",           array_join,           1, ATTR_DE },
+  { "concat",         array_concat,         1, ATTR_DE },
+  { "pop",            array_pop,            0, ATTR_DE },
+  { "push",           array_push,           1, ATTR_DE },
+  { "reverse",        array_reverse,        0, ATTR_DE },
+  { "shift",          array_shift,          1, ATTR_DE },
+  { "slice",          array_slice,          2, ATTR_DE },
+  { "sort",           array_sort,           1, ATTR_DE },
+  { NULL,             NULL,                 0, ATTR_DE }
 };
 
 void init_builtin_array(void)
