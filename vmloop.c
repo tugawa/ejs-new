@@ -1193,8 +1193,23 @@ I_TYPEOF:
   NEXT_INSN_INCPC();
 
 I_NOT:
+  /*
+     not dst reg
+       dst : destination register
+       reg  : source register
+     $dst = ! $reg
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue v;
+
+    dst = get_first_operand_reg(insn);
+    v = regbase[get_second_operand_reg(insn)];
+    regbase[dst] =
+      true_false(v == JS_FALSE || v == FIXNUM_ZERO ||
+                 v == gconsts.g_flonum_nan || v == gconsts.g_string_empty);
+  }
   NEXT_INSN_INCPC();
 
 I_NEW:
@@ -1336,8 +1351,16 @@ I_GETA:
   NEXT_INSN_INCPC();
 
 I_GETERR:
+  /*
+     geterr dst
+       dst : destination register
+     $dst = err
+     I don't know in which situation this instruction is necessary.
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    regbase[get_first_operand_reg(insn)] = get_err(context);
+  }
   NEXT_INSN_INCPC();
 
 I_GETGLOBALOBJ:
@@ -1576,6 +1599,7 @@ I_MAKEITERATOR:
 
 I_NEXTPROPNAME:
   ENTER_INSN(__LINE__);
+  NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
 I_CALL:
@@ -1620,7 +1644,7 @@ I_NEWSEND:
 #endif
     }
 #ifdef USE_FFI
-    else if (isForeign(funcv)) {
+    else if (isForeign(fn)) {
       call_foreign(context, fn, nargs, false, false);
       if (!isErr(context)) {
         NEXT_INSTRUCTION_INCPC();
@@ -1648,10 +1672,15 @@ I_NEWSEND:
     }
 #endif
     else {
+      print_value_simple(context, fn);
+      printf(" is called in CALL/SEND instruction\n");
+      return -1;
+      /*
       if (newp)
-	LOG_EXIT("Not a constructor");
+	LOG_EXIT("Not a constructor\n");
       else
-	LOG_EXIT("CALL/SEND");
+	LOG_EXIT("CALL/SEND\n");
+      */
     }
   }
   NEXT_INSN_INCPC();
@@ -2415,18 +2444,16 @@ I_NEWLINE:
   NEXT_INSN_INCPC();
 
 #endif // J5MODE
+
 I_ERROR:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  return -1;
 
 I_UNKNOWN:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  return -1;
 
 I_END:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  return 1;
 }

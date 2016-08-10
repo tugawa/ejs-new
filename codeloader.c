@@ -492,12 +492,12 @@ int update_function_table(FunctionTable *ftable, int index,
   loopnum += (index == 0)? -1: 0;
 #endif
 
-  // rewrites the operand of STRING/NUMBER/REGEXP instraction
+  // rewrites the operand of STRING/NUMBER/ERROR/REGEXP instraction
   // as a relative displacement
   for (i = 0; i < loopnum; i++) {
     insnptr[i] = NULL;
     oc = get_opcode(bytecodes[i]);
-    if (oc == STRING || oc == NUMBER
+    if (oc == STRING || oc == NUMBER || oc == ERROR
 #ifdef USE_REGEXP
         || oc == REGEXP
 #endif

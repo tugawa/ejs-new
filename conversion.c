@@ -144,8 +144,10 @@ JSValue special_to_boolean(JSValue v) {
 JSValue special_to_object(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
+    type_error_exception("trying to convert undefined to an object");
+    return JS_UNDEFINED;
   case JS_NULL:
-    type_error_exception("trying to convert undefined/null to an object");
+    type_error_exception("trying to convert null to an object");
     return JS_UNDEFINED;
   case JS_TRUE:
   case JS_FALSE:
