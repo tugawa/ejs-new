@@ -250,17 +250,152 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
-  return FIXNUM_ZERO;
+  Tag tag;
+  cint x1, x2;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    return v1 & v2;
+  case TP_FIXFLO:
+    x1 = fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum(x1 & x2);
+  case TP_FLOFIX:
+    x1 = flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum(x1 & x2);
+  case TP_FLOFLO:
+    x1 = flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum(x1 & x2);
+    break;
+  default:
+    return gconsts.g_flonum_nan;
+  }
 }
 
 JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
-  return FIXNUM_ZERO;
+  Tag tag;
+  cint x1, x2;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    return v1 | v2;
+  case TP_FIXFLO:
+    x1 = fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum(x1 | x2);
+  case TP_FLOFIX:
+    x1 = flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum(x1 | x2);
+  case TP_FLOFLO:
+    x1 = flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum(x1 | x2);
+    break;
+  default:
+    return gconsts.g_flonum_nan;
+  }
+}
+
+JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
+  Tag tag;
+  int32_t x1;
+  cint x2;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    x1 = (int32_t)fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 << x2));
+  case TP_FIXFLO:
+    x1 = (int32_t)fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 << x2));
+  case TP_FLOFIX:
+    x1 = (int32_t)flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 << x2));
+  case TP_FLOFLO:
+    x1 = (int32_t)flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 << x2));
+  default:
+    return gconsts.g_flonum_nan;
+  }
+}
+
+JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2) {
+  Tag tag;
+  int32_t x1;
+  cint x2;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    x1 = (int32_t)fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FIXFLO:
+    x1 = (int32_t)fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FLOFIX:
+    x1 = (int32_t)flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FLOFLO:
+    x1 = (int32_t)flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  default:
+    return gconsts.g_flonum_nan;
+  }
+}
+
+JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2) {
+  Tag tag;
+  uint32_t x1;
+  cint x2;
+
+  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v2)) v2 = to_number(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    x1 = (uint32_t)fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FIXFLO:
+    x1 = (uint32_t)fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FLOFIX:
+    x1 = (uint32_t)flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  case TP_FLOFLO:
+    x1 = (uint32_t)flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2);
+    return cint_to_fixnum((cint)(x1 >> x2));
+  default:
+    return gconsts.g_flonum_nan;
+  }
 }
 
 JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
-  return FIXNUM_ZERO;
+  printf("slow_lessthan is not implemented yet\n");
+  return JS_TRUE;
 }
 
 JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
-  return FIXNUM_ZERO;
+  printf("slow_lessthanequal is not implemented yet\n");
+  return JS_TRUE;
 }

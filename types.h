@@ -29,6 +29,7 @@
 #define get_tag(p)      (((Tag)(p)) & TAGMASK)
 #define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
 #define remove_tag(p,t) ((uint64_t)(p) - (t))
+#define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
 #define equal_tag(p,t)  (get_tag((p)) == (t))
 
 /*

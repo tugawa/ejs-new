@@ -235,6 +235,9 @@ extern JSValue slow_div(Context *, JSValue, JSValue);
 extern JSValue slow_mod(Context *, JSValue, JSValue);
 extern JSValue slow_bitand(Context *context, JSValue v1, JSValue v2);
 extern JSValue slow_bitor(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2);
+extern JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2);
 extern JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2);
 extern JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2);
 

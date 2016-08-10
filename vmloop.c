@@ -638,18 +638,135 @@ I_BITOR:
   NEXT_INSN_INCPC();
 
 I_LEFTSHIFT:
+  /*
+     leftshift dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 << $r2
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst, r1, r2;
+    JSValue v1, v2;
+    Tag tag;
+    int32_t x1;
+    cint x2;
+
+    load_regs(insn, dst, r1, r2, v1, v2);
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+    case TP_FIXFIX:
+      x1 = (int32_t)fixnum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 << x2));
+      break;
+    case TP_FIXFLO:
+      x1 = (int32_t)fixnum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 << x2));
+      break;
+    case TP_FLOFIX:
+      x1 = (int32_t)flonum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 << x2));
+      break;
+    case TP_FLOFLO:
+      x1 = (int32_t)flonum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 << x2));
+      break;
+    default:
+      regbase[dst] = slow_leftshift(context, v1, v2);
+      break;
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_RIGHTSHIFT:
+  /*
+     rightshift dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 >> $r2
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst, r1, r2;
+    JSValue v1, v2;
+    Tag tag;
+    int32_t x1;
+    cint x2;
+
+    load_regs(insn, dst, r1, r2, v1, v2);
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+    case TP_FIXFIX:
+      x1 = (int32_t)fixnum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FIXFLO:
+      x1 = (int32_t)fixnum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FLOFIX:
+      x1 = (int32_t)flonum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FLOFLO:
+      x1 = (int32_t)flonum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    default:
+      regbase[dst] = slow_rightshift(context, v1, v2);
+      break;
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_UNSIGNEDRIGHTSHIFT:
+  /*
+     unsingedrightshift dst r1 r2
+       dst : destination register
+       r1, r2 : source registers
+     $dst = $r1 >>> $r2
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst, r1, r2;
+    JSValue v1, v2;
+    Tag tag;
+    uint32_t x1;
+    cint x2;
+
+    load_regs(insn, dst, r1, r2, v1, v2);
+    switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+    case TP_FIXFIX:
+      x1 = (uint32_t)fixnum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FIXFLO:
+      x1 = (uint32_t)fixnum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FLOFIX:
+      x1 = (uint32_t)flonum_to_cint(v1);
+      x2 = fixnum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    case TP_FLOFLO:
+      x1 = (uint32_t)flonum_to_cint(v1);
+      x2 = flonum_to_cint(v2);
+      regbase[dst] = cint_to_fixnum((cint)(x1 >> x2));
+      break;
+    default:
+      regbase[dst] = slow_unsignedrightshift(context, v1, v2);
+      break;
+    }
+  }
   NEXT_INSN_INCPC();
 
 I_LESSTHAN:
@@ -1141,7 +1258,9 @@ I_NEW:
 
 I_GETIDX:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    printf("getidx instruction is now obsolete\n");
+  }
   NEXT_INSN_INCPC();
 
 I_ISUNDEF:

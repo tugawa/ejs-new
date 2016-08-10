@@ -194,12 +194,12 @@ typedef struct instruction {
 #define makecode_smallprimitive(oc, op, imm) \
   (((Bytecode)(oc) << OPCODE_OFFSET) | \
    ((Bytecode)(op) << FIRST_OPERAND_OFFSET) | \
-   ((Bytecode)(imm)))
+   ((Bytecode)((imm) & SMALLPRIMITIVE_IMMMASK)))
 
 #define makecode_bigprimitive(oc, op, index) \
   (((Bytecode)(oc) << OPCODE_OFFSET) | \
    ((Bytecode)(op) << FIRST_OPERAND_OFFSET) | \
-   ((Bytecode)(index)))
+   ((Bytecode)((index) & BIGPRIMITIVE_SUBSCRMASK)))
 
 // macros for making various instructions
 //
@@ -310,11 +310,15 @@ typedef void *InsnLabel;
 
 #define get_third_operand_subscr(code)  ((Subscript)(get_third_operand(code)))
 
-#define get_small_immediate(code) (((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK)
+// #define get_small_immediate(code) (((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK)
+
+#define get_small_immediate(code) \
+  (Bytecode)((int32_t)(((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK))
 
 #define get_big_subscr(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
 
-#define get_big_disp(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
+#define get_big_disp(code) \
+  (Bytecode)((int32_t)(((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK))
 
 // #define get_small_immediate(code) ((int)(get_second_operand(code)))
 
