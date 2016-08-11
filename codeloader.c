@@ -230,8 +230,8 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           char *str;
           int index;
           uint32_t len;
-          // str = next_token2();
-          str = next_token();
+          str = next_token2();
+          // str = next_token();
           if (str == NULL) str = "";
           else len = decode_escape_char(str);
           index = add_constant_string(constant, str);

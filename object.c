@@ -158,10 +158,18 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
   if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
     // The specified property is not registered in the hash table.
     if (prop_overflow(obj)) {
-      LOG_ERR("proptable overflow\n");
+      printf("obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
+             obj_n_props(obj), obj_limit_props(obj));
+      LOG_EXIT("proptable overflow\n");
       return FAIL;
     }
     retv = ++(obj_n_props(obj));
+    /*
+    printf("obj = %lx, obj_n_props(obj) = %d, name = %s, value = ",
+            obj, obj_n_props(obj), string_to_cstr(name));
+    simple_print(v);
+    */
+
     if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
           == HASH_PUT_SUCCESS) {
       obj_prop_index(obj, (int)retv) = v;
@@ -199,14 +207,25 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
   switch (get_tag(p)) {
   case T_FIXNUM:
     {
-      cint n;
+      cint n, len;
+      int i;
+
       n = fixnum_to_cint(p);
-      if (array_subscript_range(n)) {
-        if (n < array_length(a)) {
+      len = array_length(a);
+      // printf("set_array_prop: n = %d\n", n);
+      if (0 <= n) {
+        if (n < len) {
           array_body_index(a, n) = v;
           return SUCCESS;
+        } else if (n < array_size(a)) {
+          for (i = len + 1; i < n; i++)
+            array_body_index(a, i) = JS_UNDEFINED;
+          array_body_index(a, n) = v;
+          array_length(a) = n + 1;
+          set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
         } else {
           // expand the array --- not implemented yet
+          printf("set_array_prop: expansion of an array is not implemented yet\n");
           return SUCCESS;
         }
       }

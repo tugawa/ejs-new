@@ -22,35 +22,39 @@
  */
 BUILTIN_FUNCTION(array_constr)
 {
-  JSValue rsv;
-  ArrayCell *p;
+  JSValue rsv, n;
   cint size, length;
 
   builtin_prologue();
   rsv = new_array();    // note that new_array sets the `length' property to 0
-  p = remove_array_tag(rsv);
-
-  if (na == 0)
+  if (na == 0) {
     allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
-  else if (na == 1) {
-    JSValue n;
-
+    set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
+  } else if (na == 1) {
     n = args[1];
     size =INITIAL_ARRAY_SIZE;
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
       while (size < length) size *= 2;
       allocate_array_data(rsv, size, length);
+      // printf("array_constr: length = %ld, size = %ld, rsv = %lx\n", length, size, rsv);
       set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
-    } else
+    } else {
       allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
+      set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
+    }
   } else {
+    /*
+       na >= 2, e.g., Array(2,4,5,1)
+       This means that the array's size is four whose elements are
+       2, 4, 5, and 1.
+     */
     int i;
     size =INITIAL_ARRAY_SIZE;
     length = na;
     while (size < length) size *= 2;
     allocate_array_data(rsv, size, length);
     set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
-    for (i = 1; i <= length; i++)
+    for (i = 0; i < length; i++)
       array_body_index(rsv, i) = args[i];
   }
   set_a(context, rsv);

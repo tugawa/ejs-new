@@ -21,6 +21,7 @@
 int ftable_flag;       // prints the function table
 int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
+int all_flag;          // all flag values are true
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -97,6 +98,7 @@ struct commandline_option  options_table[] = {
   { "-l", 0, &lastprint_flag },
   { "-f", 0, &ftable_flag    },
   { "-t", 0, &trace_flag     },
+  { "-a", 0, &all_flag     },
   { (char *)NULL, 0, (int *)NULL }
 };
 
@@ -140,10 +142,11 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   int k;
 
-  lastprint_flag = FALSE;
-  ftable_flag = FALSE;
-  trace_flag = FALSE;
+  lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
   k = process_options(argc, argv);
+  if (all_flag == TRUE)
+    lastprint_flag = ftable_flag = trace_flag = TRUE;
+
   // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
   //        lastprint_flag, ftable_flag, trace_flag, k);
   if (k > 0) {
@@ -324,27 +327,19 @@ void print_value(Context *context, JSValue v, int verbose) {
   printf("%s", string_to_cstr(v));
 }
 
-/*
-  debug_print
-  This function is defined for the sake of the compatibility with the old VM.
- */
-void debug_print(Context *context, int n) {
-  // int topsize;
-  JSValue res;
+void simple_print(JSValue v) {
   Tag tag;
 
-  // topsize = context->function_table[0].n_insns;
-  res = get_a(context);
-  switch (tag = get_tag(res)) {
+  switch (tag = get_tag(v)) {
   case T_FIXNUM:
   case T_FLONUM:
-    printf("number:%le\n", number_to_double(res));
+    printf("number:%le\n", number_to_double(v));
     break;
   case T_STRING:
-    printf("string:%s\n", string_to_cstr(res));
+    printf("string:%s\n", string_to_cstr(v));
     break;
   case T_SPECIAL:
-    switch (res) {
+    switch (v) {
     case JS_TRUE:
       printf("boolean:true\n");
       break;
@@ -366,4 +361,17 @@ void debug_print(Context *context, int n) {
     printf("unknown value\n");
     break;
   }
+}
+
+/*
+  debug_print
+  This function is defined for the sake of the compatibility with the old VM.
+ */
+void debug_print(Context *context, int n) {
+  // int topsize;
+  JSValue res;
+
+  // topsize = context->function_table[0].n_insns;
+  res = get_a(context);
+  simple_print(res);
 }

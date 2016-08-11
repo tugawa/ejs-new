@@ -1061,6 +1061,11 @@ I_GETPROP:
       else
         regbase[dst] = get_object_prop(context, o, idx);
     }
+    /*
+    printf("getprop: idx = "); print_value_simple(context, idx);
+    printf(" ; result = "); print_value_simple(context, regbase[dst]);
+    printf("\n");
+    */
   }
   NEXT_INSN_INCPC();
 
@@ -1079,7 +1084,6 @@ I_SETPROP:
     o = regbase[get_first_operand_reg(insn)];
     p = regbase[get_second_operand_reg(insn)];
     v = regbase[get_third_operand_reg(insn)];
-    // print_value_verbose(context, o); putchar('\n');
     if (is_array(o))
       set_array_prop(context, o, p, v);
     else if (is_object(o))
@@ -1228,7 +1232,7 @@ I_NEW:
       o = new_object();
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
-      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
+      set_prop_all(o, gconsts.g_string___proto__, p);
     } else
       o = JS_UNDEFINED;
 #if 0
@@ -1673,14 +1677,11 @@ I_NEWSEND:
 #endif
     else {
       print_value_simple(context, fn);
-      printf(" is called in CALL/SEND instruction\n");
-      return -1;
-      /*
+      printf(" is called in CALL/SEND/NEWSEND instruction\n");
       if (newp)
 	LOG_EXIT("Not a constructor\n");
       else
 	LOG_EXIT("CALL/SEND\n");
-      */
     }
   }
   NEXT_INSN_INCPC();

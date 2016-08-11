@@ -192,6 +192,7 @@ extern JSValue init_global(void);
 extern void print_value_simple(Context *, JSValue);
 extern void print_value_verbose(Context *, JSValue);
 extern void print_value(Context *, JSValue, int);
+extern void simple_print(JSValue);
 extern void debug_print(Context *, int);
 
 /*
