@@ -413,6 +413,8 @@ NEXT0:
     if (is_boolean(f)) return special_to_number(f);
   }
 NEXT1:
+  print_value_simple(context, v); putchar('\n');
+  print_value_simple(context, f); putchar('\n');
   type_error_exception("neither valueOf nor toString returned a number in object_to_number");
   return FIXNUM_ZERO;       // not reached
 

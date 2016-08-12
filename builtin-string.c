@@ -43,40 +43,204 @@ BUILTIN_FUNCTION(string_valueOf)
   set_a(context, arg);
 }
 
-#if 0
-BUILTIN_FUNCTION(stringFromCharCode)
+BUILTIN_FUNCTION(string_concat)
 {
-  int i, fp;
-  char *str;
-  JSValue ret;
-  JSValue* args;
+  printf("string_concat is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
+
+#if 0
+  JSValue ret, s;
+  JSValue *args;
+  int fp, i;
 
   fp = getFp(context);
   args = (JSValue*)(&Stack(context, fp));
-  str = (char*)malloc(sizeof(char) * (nArgs+1));
+  ret = args[0];
+
+  if(is_object(ret)){
+    ret = objectToPrimitiveHintString(ret, context); }
+  ret = PrimitiveToString(ret);
 
   for(i=1; i<=nArgs; i++){
-    JSValue ch;
-    uint16_t code;
-    ch = args[i];
-    if(is_object(ch)){
-      ch = objectToPrimitiveHintNumber(ch, context); }
-    code = doubleToUInt16(PrimitiveToDouble(ch));
-    str[i-1] = (char)code; }
+    s = args[i];
+    if(is_object(s)){
+      s = objectToPrimitiveHintString(s, context); }
+    ret = cStrToString2(stringToCStr(ret), stringToCStr(s));
+  }
 
-  str[i] = '\0';
-  ret = cStrToString(str);
   setA(context, ret);
   return;
-}
 #endif
+}
 
-// stringProtoCharAt
-// 引数で与えられた番号の文字を取得する
+BUILTIN_FUNCTION(string_toLowerCase)
+{
+  printf("string_toLowerCase is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
 
 #if 0
-BUILTIN_FUNCTION(stringProtoCharAt)
+  int i, fp;
+  uint64_t len;
+  JSValue *args;
+  char *rsvcs, *result;
+
+  fp = getFp(context);
+  args = (JSValue*)(&Stack(context, fp));
+  rsvcs = stringToCStr(JSValueToString(args[0], context));
+  len = strlen(rsvcs);
+
+  result = (char*)malloc(sizeof(char) * (len+1));
+  for(i=0; i<=len; i++){
+    result[i] = tolower(rsvcs[i]); }
+  setA(context, cStrToString(result));
+  return;
+#endif
+}
+
+BUILTIN_FUNCTION(string_toUpperCase)
 {
+  printf("string_toUpperCase is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
+
+#if 0
+  int i, fp;
+  uint64_t len;
+  JSValue *args;
+  char *rsvcs, *result;
+
+  fp = getFp(context);
+  args = (JSValue*)(&Stack(context, fp));
+  rsvcs = stringToCStr(JSValueToString(args[0], context));
+  len = strlen(rsvcs);
+
+  result = (char*)malloc(sizeof(char) * (len + 1));
+  for(i=0; i<=len; i++){
+    result[i] = toupper(rsvcs[i]); }
+  setA(context, cStrToString(result));
+  return;
+#endif
+}
+
+BUILTIN_FUNCTION(string_substring)
+{
+  printf("string_substring is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
+
+#if 0
+  JSValue endv;
+  JSValue* args;
+  int start, end;
+  int fp, resultLen;
+  char *rsvcs, *result;
+  double dstart, dend;
+  uint64_t len;
+
+  fp = getFp(context);
+  args = (JSValue*)(&Stack(context, fp));
+  rsvcs = stringToCStr(JSValueToString(args[0], context));
+
+  len = strlen(rsvcs);
+  dstart = JSValueToIntegralDouble(args[1], context);
+
+  endv = args[2];
+  if(isUndefined(endv)){
+    dend = (double)len;
+  }else{
+    dend = JSValueToIntegralDouble(endv, context);
+  }
+
+  start = (int)min(max(dstart, 0), (double)len);
+  end = (int)min(max(dend, 0), (double)len);
+
+  if(start == end){
+    setA(context, gStringBlank);
+    return;
+
+  }else if(start > end){
+    resultLen = start - end;
+    result = (char*)malloc(sizeof(char) * (resultLen+1));
+    strncpy(result, rsvcs + end, resultLen);
+    result[resultLen] = '\0';
+    setA(context, cStrToString(result));
+    return;
+
+  }else{
+    resultLen = end - start;
+    result = (char*)malloc(sizeof(char) * (resultLen+1));
+    strncpy(result, rsvcs + start, resultLen);
+    result[resultLen] = '\0';
+    setA(context, cStrToString(result));
+    return;
+  }
+#endif
+}
+
+BUILTIN_FUNCTION(string_slice)
+{
+  printf("string_slice is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
+
+#if 0
+  JSValue rsv, startv, endv;
+  JSValue* args;
+  int fp;
+  char *rsvcs, *result;
+  int start, end, resultLen;
+  double dstart, dend;
+  uint64_t len;
+
+  fp = getFp(context);
+  args = (JSValue*)(&Stack(context, fp));
+  rsv = args[0];
+
+  if(is_object(rsv)){
+    rsv = objectToPrimitiveHintString(rsv, context); }
+  rsv = PrimitiveToString(rsv);
+  rsvcs = stringToCStr(rsv);
+  len = strlen(rsvcs);
+
+  startv = args[1];
+  endv = args[2];
+
+  if(is_object(startv)){
+    startv = objectToPrimitiveHintNumber(startv, context); }
+  dstart = PrimitiveToIntegralDouble(startv);
+
+  if(dstart < 0){
+    start = (int)max(((double)len) + dstart, 0);
+  }else{
+    start = (int)min((double)len, dstart);
+  }
+
+  if(is_object(endv)){
+    endv = objectToPrimitiveHintNumber(endv, context); }
+  dend = PrimitiveToIntegralDouble(endv);
+
+  if(dend < 0){
+    end = (int)max(((double)len) + dend, 0);
+  }else{
+    end = (int)min((double)len, dend);
+  }
+
+  resultLen = end - start;
+
+  if(resultLen > 0){
+    result = (char*)malloc(sizeof(char) * (resultLen+1));
+    strncpy(result, rsvcs + start, resultLen);
+    result[resultLen] = '\0';
+    setA(context, cStrToString(result));
+  }else{
+    setA(context, gStringBlank);
+  }
+#endif
+}
+
+BUILTIN_FUNCTION(string_charAt)
+{
+  printf("string_charAt is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
+
+#if 0
   JSValue rsv, arg;
   JSValue* args;
   char *rsvstr;
@@ -107,14 +271,15 @@ BUILTIN_FUNCTION(stringProtoCharAt)
     setA(context, cStrToString(rets));
     return;
   }
-}
 #endif
+}
 
-// stringProtoCharCodeAt
+BUILTIN_FUNCTION(string_charCodeAt)
+{
+  printf("string_charCodeAt is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
 
 #if 0
-BUILTIN_FUNCTION(stringProtoCharCodeAt)
-{
   JSValue rsv, arg;
   JSValue* args;
   char *rsvstr;
@@ -142,45 +307,15 @@ BUILTIN_FUNCTION(stringProtoCharCodeAt)
     setA(context, intToFixnum(rsvstr[(int64_t)x]));
     return;
   }
-}
 #endif
+}
 
-// stringProtoConcat
-#if 0
-BUILTIN_FUNCTION(stringProtoConcat)
+BUILTIN_FUNCTION(string_indexOf)
 {
-  JSValue ret, s;
-  JSValue *args;
-  int fp, i;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  ret = args[0];
-
-  if(is_object(ret)){
-    ret = objectToPrimitiveHintString(ret, context); }
-  ret = PrimitiveToString(ret);
-
-  for(i=1; i<=nArgs; i++){
-    s = args[i];
-    if(is_object(s)){
-      s = objectToPrimitiveHintString(s, context); }
-    ret = cStrToString2(stringToCStr(ret), stringToCStr(s));
-  }
-
-  setA(context, ret);
-  return;
-}
-#endif
-
-// stringProtoIndexOf
-
-// レシーバの文字列から、検索文字列を検索する
-// 検索結果のインデックスを返却する
+  printf("string_indexOf is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
 
 #if 0
-BUILTIN_FUNCTION(stringProtoIndexOf)
-{
   JSValue sch, position, rsv;
   JSValue *args;
   char *rsvcs;
@@ -233,18 +368,15 @@ BUILTIN_FUNCTION(stringProtoIndexOf)
     setA(context, intToFixnum(adr - rsvcs));
     return;
   }
-}
 #endif
+}
 
-// stringProtoIndexOf
-
-// レシーバの文字列から、検索文字列を検索する
-// 検索結果のインデックスを返却する
-// この関数は最後の場所を見付ける
+BUILTIN_FUNCTION(string_lastIndexOf)
+{
+  printf("string_lastIndexOf is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
 
 #if 0
-BUILTIN_FUNCTION(stringProtoLastIndexOf)
-{
   JSValue sch, position, rsv;
   JSValue *args;
   char *rsvcs, *schcs;
@@ -299,14 +431,15 @@ BUILTIN_FUNCTION(stringProtoLastIndexOf)
     setA(context, intToFixnum(ret - rsvcs));
     return;
   }
-}
 #endif
+}
 
-// stringProtoLocalCompare
+BUILTIN_FUNCTION(string_localeCompare)
+{
+  printf("string_localeCompare is not implemented yet\n");
+  set_a(context, gconsts.g_string_empty);
 
 #if 0
-BUILTIN_FUNCTION(stringProtoLocaleCompare)
-{
   JSValue rsv, that;
   JSValue* args;
   int fp;
@@ -318,170 +451,44 @@ BUILTIN_FUNCTION(stringProtoLocaleCompare)
   that = JSValueToString(args[1], context);
   setA(context, intToFixnum(strcmp(stringToCStr(rsv), stringToCStr(that))));
   return;
-}
 #endif
+}
 
-// -------------------------------------------------------------------------------------
-// stringProtoSlice
 
 #if 0
-BUILTIN_FUNCTION(stringProtoSlice)
-{
-  JSValue rsv, startv, endv;
-  JSValue* args;
-  int fp;
-  char *rsvcs, *result;
-  int start, end, resultLen;
-  double dstart, dend;
-  uint64_t len;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-
-  if(is_object(rsv)){
-    rsv = objectToPrimitiveHintString(rsv, context); }
-  rsv = PrimitiveToString(rsv);
-  rsvcs = stringToCStr(rsv);
-  len = strlen(rsvcs);
-
-  startv = args[1];
-  endv = args[2];
-
-  if(is_object(startv)){
-    startv = objectToPrimitiveHintNumber(startv, context); }
-  dstart = PrimitiveToIntegralDouble(startv);
-
-  if(dstart < 0){
-    start = (int)max(((double)len) + dstart, 0);
-  }else{
-    start = (int)min((double)len, dstart);
-  }
-
-  if(is_object(endv)){
-    endv = objectToPrimitiveHintNumber(endv, context); }
-  dend = PrimitiveToIntegralDouble(endv);
-
-  if(dend < 0){
-    end = (int)max(((double)len) + dend, 0);
-  }else{
-    end = (int)min((double)len, dend);
-  }
-
-  resultLen = end - start;
-
-  if(resultLen > 0){
-    result = (char*)malloc(sizeof(char) * (resultLen+1));
-    strncpy(result, rsvcs + start, resultLen);
-    result[resultLen] = '\0';
-    setA(context, cStrToString(result));
-  }else{
-    setA(context, gStringBlank);
-  }
-}
-#endif
-
-// -------------------------------------------------------------------------------------
-// stringProtoSubstring
-
-#if 0
-BUILTIN_FUNCTION(stringProtoSubstring)
-{
-  JSValue endv;
-  JSValue* args;
-  int start, end;
-  int fp, resultLen;
-  char *rsvcs, *result;
-  double dstart, dend;
-  uint64_t len;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsvcs = stringToCStr(JSValueToString(args[0], context));
-
-  len = strlen(rsvcs);
-  dstart = JSValueToIntegralDouble(args[1], context);
-
-  endv = args[2];
-  if(isUndefined(endv)){
-    dend = (double)len;
-  }else{
-    dend = JSValueToIntegralDouble(endv, context);
-  }
-
-  start = (int)min(max(dstart, 0), (double)len);
-  end = (int)min(max(dend, 0), (double)len);
-
-  if(start == end){
-    setA(context, gStringBlank);
-    return;
-
-  }else if(start > end){
-    resultLen = start - end;
-    result = (char*)malloc(sizeof(char) * (resultLen+1));
-    strncpy(result, rsvcs + end, resultLen);
-    result[resultLen] = '\0';
-    setA(context, cStrToString(result));
-    return;
-
-  }else{
-    resultLen = end - start;
-    result = (char*)malloc(sizeof(char) * (resultLen+1));
-    strncpy(result, rsvcs + start, resultLen);
-    result[resultLen] = '\0';
-    setA(context, cStrToString(result));
-    return;
-  }
-}
-#endif
-
-// -------------------------------------------------------------------------------------
-// stringProtoLowerCase
-#if 0
-BUILTIN_FUNCTION(stringProtoToLowerCase)
+BUILTIN_FUNCTION(stringFromCharCode)
 {
   int i, fp;
-  uint64_t len;
-  JSValue *args;
-  char *rsvcs, *result;
+  char *str;
+  JSValue ret;
+  JSValue* args;
 
   fp = getFp(context);
   args = (JSValue*)(&Stack(context, fp));
-  rsvcs = stringToCStr(JSValueToString(args[0], context));
-  len = strlen(rsvcs);
+  str = (char*)malloc(sizeof(char) * (nArgs+1));
 
-  result = (char*)malloc(sizeof(char) * (len+1));
-  for(i=0; i<=len; i++){
-    result[i] = tolower(rsvcs[i]); }
-  setA(context, cStrToString(result));
+  for(i=1; i<=nArgs; i++){
+    JSValue ch;
+    uint16_t code;
+    ch = args[i];
+    if(is_object(ch)){
+      ch = objectToPrimitiveHintNumber(ch, context); }
+    code = doubleToUInt16(PrimitiveToDouble(ch));
+    str[i-1] = (char)code; }
+
+  str[i] = '\0';
+  ret = cStrToString(str);
+  setA(context, ret);
   return;
 }
 #endif
 
-// -------------------------------------------------------------------------------------
-// stringProtoUpperCase
 
-#if 0
-BUILTIN_FUNCTION(stringProtoToUpperCase)
-{
-  int i, fp;
-  uint64_t len;
-  JSValue *args;
-  char *rsvcs, *result;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsvcs = stringToCStr(JSValueToString(args[0], context));
-  len = strlen(rsvcs);
 
-  result = (char*)malloc(sizeof(char) * (len + 1));
-  for(i=0; i<=len; i++){
-    result[i] = toupper(rsvcs[i]); }
-  setA(context, cStrToString(result));
-  return;
-}
 
-#endif
+
+
 // -------------------------------------------------------------------------------------
 // stringProtoMatch
 
@@ -528,19 +535,19 @@ BUILTIN_FUNCTION(stringProtoMatch)
 #endif
 
 ObjBuiltinProp string_funcs[] = {
-  { "valueOf",        string_valueOf,     0, ATTR_DE },
-//  { "toString",     string_toString     0, ATTR_DE },
-//  { "concat",         string_concat,        1, ATTR_DE },
-//  { "toLowerCase",    string_toLowerCase,   0, ATTR_DE },
-//  { "toUpperCase",    string_toUpperCase,   0, ATTR_DE },
-//  { "substring",      string_substring,     2, ATTR_DE },
-//  { "slice",          string_slice,         2, ATTR_DE },
-//  { "charAt",         string_charAt,        0, ATTR_DE },
-//  { "charCodeAt",     string_charCodeAt,    0, ATTR_DE },
-//  { "indexOf",        string_indexOf,       1, ATTR_DE },
-//  { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
-//  { "localeCompare",  string_localeCompare, 0, ATTR_DE },
-  { NULL,             NULL,                       0, ATTR_DE }
+  { "valueOf",        string_valueOf,       0, ATTR_DE },
+  { "toString",       string_valueOf,       0, ATTR_DE },
+  { "concat",         string_concat,        1, ATTR_DE },
+  { "toLowerCase",    string_toLowerCase,   0, ATTR_DE },
+  { "toUpperCase",    string_toUpperCase,   0, ATTR_DE },
+  { "substring",      string_substring,     2, ATTR_DE },
+  { "slice",          string_slice,         2, ATTR_DE },
+  { "charAt",         string_charAt,        0, ATTR_DE },
+  { "charCodeAt",     string_charCodeAt,    0, ATTR_DE },
+  { "indexOf",        string_indexOf,       1, ATTR_DE },
+  { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
+  { "localeCompare",  string_localeCompare, 0, ATTR_DE },
+  { NULL,             NULL,                 0, ATTR_DE }
 };
 
 void init_builtin_string(void)

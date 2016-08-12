@@ -17,8 +17,6 @@
 
 #define PROP_REALLOC_THRESHOLD (0.75)
 
-#define array_subscript_range(n) (0 < (n) && (n) < MINIMUM_ARRAY_SIZE)
-
 #define prop_overflow(o) \
   (obj_n_props(o) > (obj_limit_props(o) * PROP_REALLOC_THRESHOLD))
 
@@ -122,7 +120,9 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
     {
       cint n;
       n = fixnum_to_cint(p);
-      if (array_subscript_range(n)) {
+      // printf("get_array_prop: n = %ld, array_length(a) = %d\n", n, array_length(a));
+      if (0 <= n) {
+      // printf("array_body_index(a,n) = "); print_value_simple(context, array_body_index(a,n)); printf("\n");
         return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
       p = fixnum_to_string(p);
@@ -139,7 +139,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       num = string_to_number(p);
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
-        if (array_subscript_range(n)) {
+        if (0 <= n) {
           return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
         }
       }
@@ -239,16 +239,25 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
   case T_STRING:
     {
       JSValue num;
-      cint n;
+      cint n, len;
+      int i;
+
       num = string_to_number(p);
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
-        if (array_subscript_range(n)) {
-          if (n < array_length(a)) {
+        len = array_length(a);
+        if (0 <= n) {
+          if (n < len) {
             array_body_index(a, n) = v;
             return SUCCESS;
+          } else if (n < array_size(a)) {
+            for (i = len + 1; i < n; i++)
+              array_body_index(a, i) = JS_UNDEFINED;
+            array_body_index(a, n) = v;
+            array_length(a) = n + 1;
+            set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
           } else {
-            // expand the array --- not implemented yet
+            printf("set_array_prop: expansion of an array is not implemented yet\n");
             return SUCCESS;
           }
         }

@@ -1713,7 +1713,7 @@ I_TAILSEND:
       update_context();
       NEXT_INSN_NOINCPC();
     } else if (is_builtin(fn)) {
-      call_builtin(context, fn, nargs, sendp, FALSE);
+      tailcall_builtin(context, fn, nargs, sendp, FALSE);
       update_context();        // is this necessary?
       NEXT_INSN_INCPC();
     }
