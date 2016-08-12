@@ -46,6 +46,7 @@ EXTERN struct global_constant_objects {
   JSValue g_string_objtostr;
   JSValue g_string_empty;
   JSValue g_string_comma;
+  JSValue g_string_blank;
 
   JSValue g_flonum_infinity;
   JSValue g_flonum_negative_infinity;

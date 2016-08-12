@@ -2,22 +2,22 @@
 #define EXTERN extern
 #include "header.h"
 
-// constrcutor of a string
-//
+/*
+  constrcutor of a string
+ */
 BUILTIN_FUNCTION(string_constr)
 {
   JSValue rsv;
 
   builtin_prologue();
-  rsv = args[0];
-  // Why it is not necessary to allocate a string object here?
-  if (na > 0)
-    string_object_value(rsv) = to_string(context, args[1]);
+  // printf("In string_constr\n");
+  rsv = new_string(na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
 
-// constrcutor of a string (not Object)
-//
+/*
+   constrcutor of a string (not Object)
+ */
 BUILTIN_FUNCTION(string_constr_nonew)
 {
   JSValue arg;
@@ -235,79 +235,50 @@ BUILTIN_FUNCTION(string_slice)
 #endif
 }
 
+int char_code_at(Context *context, JSValue str, JSValue a) {
+  char *s;
+  int n;
+
+  if (!is_string(str)) str = to_string(context, str);
+  if (is_fixnum(a)) n = fixnum_to_int(a);
+  else if (is_flonum(a)) n = flonum_to_int(a);
+  else {
+    a = to_number(context, a);
+    if (is_fixnum(a)) n = fixnum_to_int(a);
+    else if (is_flonum(a)) n = flonum_to_int(a);
+    else {
+      printf("cannot convert to a number\n");
+      n = 0;
+    }
+  }
+  s = string_to_cstr(str);
+  return (0 <= n && n < string_length(str))? s[n]: -1;
+}
+
 BUILTIN_FUNCTION(string_charAt)
 {
-  printf("string_charAt is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  JSValue ret;
+  int r;
+  char s[2];
 
-#if 0
-  JSValue rsv, arg;
-  JSValue* args;
-  char *rsvstr;
-  char rets[2];
-  int fp, len;
-  double x;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-  arg = args[1];
-
-  if(is_object(rsv)){
-    rsv = objectToPrimitiveHintString(rsv, context); }
-  rsvstr = stringToCStr(PrimitiveToString(rsv));
-
-  if(is_object(arg)){
-    arg = objectToPrimitiveHintNumber(arg, context); }
-  x = PrimitiveToIntegralDouble(arg);
-
-  len = (int)strlen(rsvstr);
-  if((len < 0) || (len < x)){
-    setA(context, gStringBlank);
-    return;
-  }else{
-    rets[1] = '\0';
-    rets[0] = rsvstr[(int64_t) x];
-    setA(context, cStrToString(rets));
-    return;
-  }
-#endif
+  builtin_prologue();
+  r = char_code_at(context, args[0], args[1]);
+  if (r >= 0) {
+    s[0] = r;
+    s[1] = '\0';
+    ret = cstr_to_string(s);
+  } else
+    ret = gconsts.g_string_blank;
+  set_a(context, ret);
 }
 
 BUILTIN_FUNCTION(string_charCodeAt)
 {
-  printf("string_charCodeAt is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  int r;
 
-#if 0
-  JSValue rsv, arg;
-  JSValue* args;
-  char *rsvstr;
-  int fp, len;
-  double x;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-  arg = args[1];
-
-  if(is_object(rsv)){
-    rsv = objectToPrimitiveHintString(rsv, context); }
-  rsvstr = stringToCStr(PrimitiveToString(rsv));
-
-  if(is_object(arg)){
-    arg = objectToPrimitiveHintNumber(arg, context); }
-  x = PrimitiveToIntegralDouble(arg);
-
-  len = (int)strlen(rsvstr);
-  if((len < 0) || (len < x)){
-    setA(context, gFlonum_NaN);
-    return;
-  }else{
-    setA(context, intToFixnum(rsvstr[(int64_t)x]));
-    return;
-  }
-#endif
+  builtin_prologue();
+  r = char_code_at(context, args[0], args[1]);
+  set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
 }
 
 BUILTIN_FUNCTION(string_indexOf)
@@ -434,6 +405,35 @@ BUILTIN_FUNCTION(string_lastIndexOf)
 #endif
 }
 
+BUILTIN_FUNCTION(string_fromCharCode)
+{
+  JSValue a, ret;
+  char *s;
+  int c, i;
+
+  builtin_prologue();
+  s = (char *)malloc(sizeof(char) * (na + 1));
+  for (i = 1; i <= na; i++) {
+    a = args[i];
+    if (is_fixnum(a)) c = fixnum_to_int(a);
+    else if (is_flonum(a)) c = flonum_to_int(a);
+    else {
+      a = to_number(context, a);
+      if (is_fixnum(a)) c = fixnum_to_int(a);
+      else if (is_flonum(a)) c = flonum_to_int(a);
+      else {
+        printf("fromCharCode: cannot convert to a number\n");
+        c = ' ';
+      }
+    }
+    s[i - 1] = c;
+  }
+  s[na] = '\0';
+  ret = cstr_to_string(s);
+  set_a(context, ret);
+}
+
+
 BUILTIN_FUNCTION(string_localeCompare)
 {
   printf("string_localeCompare is not implemented yet\n");
@@ -453,41 +453,6 @@ BUILTIN_FUNCTION(string_localeCompare)
   return;
 #endif
 }
-
-
-#if 0
-BUILTIN_FUNCTION(stringFromCharCode)
-{
-  int i, fp;
-  char *str;
-  JSValue ret;
-  JSValue* args;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  str = (char*)malloc(sizeof(char) * (nArgs+1));
-
-  for(i=1; i<=nArgs; i++){
-    JSValue ch;
-    uint16_t code;
-    ch = args[i];
-    if(is_object(ch)){
-      ch = objectToPrimitiveHintNumber(ch, context); }
-    code = doubleToUInt16(PrimitiveToDouble(ch));
-    str[i-1] = (char)code; }
-
-  str[i] = '\0';
-  ret = cStrToString(str);
-  setA(context, ret);
-  return;
-}
-#endif
-
-
-
-
-
-
 
 // -------------------------------------------------------------------------------------
 // stringProtoMatch
@@ -546,6 +511,7 @@ ObjBuiltinProp string_funcs[] = {
   { "charCodeAt",     string_charCodeAt,    0, ATTR_DE },
   { "indexOf",        string_indexOf,       1, ATTR_DE },
   { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
+  // { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
   { "localeCompare",  string_localeCompare, 0, ATTR_DE },
   { NULL,             NULL,                 0, ATTR_DE }
 };
@@ -558,8 +524,8 @@ void init_builtin_string(void)
     new_builtin_with_constr(string_constr_nonew, string_constr, 1);
   gconsts.g_string_proto = proto = new_string(gconsts.g_string_empty);
   set_prop_de(str, gconsts.g_string_prototype, proto);
+  set_prop_de(str, cstr_to_string("fromCharCode"), new_builtin(string_fromCharCode, 0));
   set_prop_all(proto, gconsts.g_string___proto__, gconsts.g_object_proto);
-  // set_obj_cstr_prop(gconsts.g_string, "fromCharCode", new_builtin(stringFromCharCode, 0), ATTR_DE);
   {
     ObjBuiltinProp *p = string_funcs;
     while (p->name != NULL) {

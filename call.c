@@ -50,9 +50,9 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
   t = func_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
-    set_pc(context, ftab_call_entry(t));
-  else
     set_pc(context, ftab_send_entry(t));
+  else
+    set_pc(context, ftab_call_entry(t));
 }
 
 /*

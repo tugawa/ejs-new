@@ -48,7 +48,8 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
   do {                                                               \
     insn = insns->code;                                              \
     if (trace_flag == TRUE)                                          \
-      printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))); \
+      printf("pc = %d, insn = %s, fp = %d\n",                        \
+             pc, insn_nemonic(get_opcode(insn)), fp);                \
   } while (0)
 
 // defines ENTER_INSN(x)
@@ -1055,6 +1056,7 @@ I_GETPROP:
     else if (is_object(o))
       regbase[dst] = get_object_prop(context, o, idx);
     else {
+if (o == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
       o = to_object(context, o);
       if (!is_object(o))
         regbase[dst] = JS_UNDEFINED;
@@ -1230,6 +1232,7 @@ I_NEW:
     con = regbase[get_second_operand_reg(insn)];
     if (is_function(con)) {
       o = new_object();
+      // printf("NEW: is_function, o = %lx\n", o);
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
       set_prop_all(o, gconsts.g_string___proto__, p);
@@ -1324,6 +1327,9 @@ I_SETFL:
 
     newfl = get_first_operand_int(insn);
     oldfl = get_sp(context) - fp + 1;
+    // printf("fp = %d, newfl = %d, fp + newfl = %d\n", fp, newfl, fp + newfl);
+    if (fp + newfl > STACK_LIMIT)
+      LOG_EXIT("register stack overflow\n");
     set_sp(context, fp + newfl - 1);
     while (++oldfl <= newfl)
       regbase[oldfl] = JS_UNDEFINED;
@@ -1375,6 +1381,7 @@ I_GETGLOBALOBJ:
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = context->global;
+if (context->global == JS_UNDEFINED) printf("GETGLOBALOBJ: !!!!\n");
   }
   NEXT_INSN_INCPC();
 
@@ -1622,7 +1629,7 @@ I_NEWSEND:
     int sendp, newp;
 
     op = get_opcode(insn);
-    sendp = (op == SEND)? TRUE: FALSE;
+    sendp = (op != CALL)? TRUE: FALSE;
     newp = (op == NEWSEND)? TRUE: FALSE;
     fn = regbase[get_first_operand_reg(insn)];
     nargs = get_second_operand_int(insn);

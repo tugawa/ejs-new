@@ -296,6 +296,7 @@ typedef struct flonum_cell {
 
 #define flonum_to_double(p)  flonum_value(p)
 #define flonum_to_cint(p)    ((cint)(flonum_value(p)))
+#define flonum_to_int(p)     ((int)(flonum_value(p)))
 
 #define is_nan(p) (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
@@ -390,8 +391,9 @@ typedef uint64_t cuint;
 
 #define is_fixnum(p) (equal_tag((p), T_FIXNUM))
 
-#define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET)
+// #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET)
 #define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
+#define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
 #define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
 
 #define int_to_fixnum(f) ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))

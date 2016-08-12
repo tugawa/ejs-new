@@ -73,11 +73,11 @@ typedef struct special_registers {
 
 // volatile
 typedef struct context {
-  SpecialRegisters spreg;
-  JSValue stack[STACK_LIMIT];
-  FunctionTable* function_table;
-  int tablesize;
   JSValue global;
+  FunctionTable *function_table;
+  SpecialRegisters spreg;
+  int tablesize;
+  JSValue stack[STACK_LIMIT];
   int catch_fp[CATCHSTACK_LIMIT];
   int catch_pc[CATCHSTACK_LIMIT];
   int catch_stacktop;

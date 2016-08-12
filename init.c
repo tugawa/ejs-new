@@ -42,6 +42,7 @@ void init_global_constants(void) {
   gconsts.g_string_objtostr  = cstr_to_string("[object Object]");
   gconsts.g_string_empty     = cstr_to_string("");
   gconsts.g_string_comma     = cstr_to_string(",");
+  gconsts.g_string_blank     = cstr_to_string(" ");
 
   // numbers
   gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);
