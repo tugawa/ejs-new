@@ -173,11 +173,6 @@ RegexpCell *allocate_regexp(void)
 {
   RegexpCell *regexp = (RegexpCell *)malloc(sizeof(RegexpCell));
   regexp->o.header = HEADER_REGEXP;
-  regexp->pattern = NULL;
-  regexp->reg = NULL;
-  regexp->global = false;
-  regexp->ignorecase = false;
-  regexp->multiline = false;
   return regexp;
 }
 #endif

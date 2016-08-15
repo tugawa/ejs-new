@@ -135,10 +135,11 @@ typedef struct array_cell {
 #define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_OBJECT)))
 #define make_array()          (put_array_tag(allocate_array()))
 
-#define array_body(a)         ((remove_array_tag(a))->body)
-#define array_body_index(a,i) ((remove_array_tag(a))->body[i])
+#define array_object_p(a)     (&((remove_array_tag(a))->o))
 #define array_size(a)         ((remove_array_tag(a))->size)
 #define array_length(a)       ((remove_array_tag(a))->length)
+#define array_body(a)         ((remove_array_tag(a))->body)
+#define array_body_index(a,i) ((remove_array_tag(a))->body[i])
 
 
 #define MINIMUM_ARRAY_SIZE  100
@@ -159,6 +160,7 @@ typedef struct function_cell {
 #define remove_function_tag(p) ((FunctionCell *)(remove_tag((p), T_OBJECT)))
 #define make_function()        (put_function_tag(allocate_function()))
 
+#define func_object_p(f)       (&((remove_function_tag(f))->o))
 #define func_table_entry(f)    ((remove_function_tag(f))->func_table_entry)
 #define func_environment(f)    ((remove_function_tag(f))->environment)
 
@@ -190,6 +192,7 @@ typedef struct builtin_cell {
 #define remove_builtin_tag(p)   ((BuiltinCell *)remove_tag((p), T_OBJECT))
 #define make_builtin()          (put_builtin_tag(allocate_builtin()))
 
+#define builtin_object_p(f)     (&((remove_builtin_tag(f))->o))
 #define builtin_body(f)         ((remove_builtin_tag(f))->body)
 #define builtin_constructor(f)  ((remove_builtin_tag(f))->constructor)
 #define builtin_n_args(f)       ((remove_builtin_tag(f))->n_args)
@@ -213,6 +216,7 @@ typedef struct iterator_cell {
 #define put_iterator_tag(p)      (put_tag(p, T_OBJECT))
 #define make_iterator()          (put_iterator_tag(allocate_iterator()))
 
+#define iterator_object_p(i)     (&((remove_iterator_tag(i))->o))
 #define iterator_iter(i)         ((remove_iterator_tag(i))->iter)
 
 #ifdef USE_REGEXP
@@ -240,6 +244,7 @@ typedef struct regexp_cell {
 #define remove_regexp_tag(p)   ((RegexpCell *)remove_tag((p), T_OBJECT))
 #define make_regexp()          (put_regexp_tag(allocate_regexp()))
 
+#define regexp_object_p(r)     (&((remove_regexp_tag(r))->o))
 #define regexp_pattern(r)      ((remove_regexp_tag(r))->pattern)
 #define regexp_reg(r)          ((remove_regexp_tag(r))->reg)
 #define regexp_global(r)       ((remove_regexp_tag(r))->global)
@@ -261,6 +266,8 @@ typedef struct boxed_cell {
 #define remove_boxed_tag(p)      ((BoxedCell *)(remove_tag((p), T_OBJECT)))
 #define put_boxed_tag(p)         (put_tag(p, T_OBJECT))
 #define make_boxed(t)            (put_boxed_tag(allocate_boxed((t))))
+
+#define boxed_object_p(b)        (&((remove_boxed_tag(b))->o))
 #define boxed_value(b)           ((remove_boxed_tag(b))->value)
 
 #define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)

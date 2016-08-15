@@ -11,6 +11,25 @@
    Hideya Iwasaki, 2013-16
 */
 
+/*
+   There are two functions and a macro that are used in allocating an
+   object of a specified type, namely allocate_xxx, make_xxx, and new_xxx.
+   For example, in allocating a function, allocate_function, make_function,
+   and new_function are used.  Each of them has the following role.
+
+   allocate_xxx : (function)
+     This allocates a memory for an xxx and sets an appropriate object tag
+     in its header.
+
+   make_xxx : (macro)
+     This only calls allocate_xxx, puts pointer tag (T_OBJECT), and
+     returns a JSValue data.
+
+   new_xxx : (function)
+     This first calls make_xxx and sets various values within the returned
+     object.  set_object_members is called in this function.
+ */
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
@@ -511,11 +530,9 @@ JSValue new_object(void)
  */
 JSValue new_array(void) {
   JSValue ret;
-  ArrayCell *p;
 
   ret = make_array();
-  p = remove_array_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(array_object_p(ret));
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
   allocate_array_data(ret, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
@@ -528,11 +545,9 @@ JSValue new_array(void) {
 JSValue new_array_with_size(int size)
 {
   JSValue ret;
-  ArrayCell *p;
 
   ret = make_array();
-  p = remove_array_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(array_object_p(ret));
   allocate_array_data(ret, size, size);
   set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
   return ret;
@@ -545,11 +560,9 @@ JSValue new_array_with_size(int size)
 JSValue new_function(Context *context, Subscript subscr)
 {
   JSValue ret;
-  FunctionCell *p;
 
   ret = make_function();
-  p = remove_function_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(func_object_p(ret));
   func_table_entry(ret) = &(context->function_table[subscr]);
   func_environment(ret) = get_lp(context);
   set_prop_none(ret, gconsts.g_string_prototype, new_object());
@@ -562,11 +575,9 @@ JSValue new_function(Context *context, Subscript subscr)
  */
 JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, int na) {
   JSValue ret;
-  BuiltinCell *p;
 
   ret = make_builtin();
-  p = remove_builtin_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(builtin_object_p(ret));
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
@@ -588,11 +599,9 @@ JSValue new_builtin(builtin_function_t f, int na) {
  */
 JSValue new_iterator(void) {
   JSValue ret;
-  IteratorCell *p;
 
   ret = make_iterator();
-  p = remove_iterator_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(iterator_object_p(ret));
   return ret;
 }
 
@@ -602,11 +611,16 @@ JSValue new_iterator(void) {
  */
 JSValue new_regexp(char *pat, int flag) {
   JSValue ret;
-  RegexpCell *p;
 
   ret = make_regexp();
-  p = remove_regexp_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(regexp_object_p(ret));
+  // pattern field is set in set_regexp_members
+  // regexp_pattern(ret) = NULL;
+  regexp_reg(ret) = NULL;
+  regexp_global(ret) = false;
+  regexp_ignorecase(ret) = false;
+  regexp_multiline(ret) = false;
+  regexp_lastindex(ret) = 0;
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_regexp_proto);
   return (set_regexp_members(ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
@@ -617,11 +631,9 @@ JSValue new_regexp(char *pat, int flag) {
  */
 JSValue new_number(JSValue v) {
   JSValue ret;
-  BoxedCell *p;
 
   ret = make_number_object();
-  p = remove_boxed_tag(ret);
-  set_object_members(&(p->o));
+  set_object_members(boxed_object_p(ret));
   number_object_value(ret) = v;
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
   return ret;
@@ -632,12 +644,10 @@ JSValue new_number(JSValue v) {
  */
 JSValue new_boolean(JSValue v) {
   JSValue ret;
-  BoxedCell *p;
 
   ret = make_boolean_object();
-  p = remove_boxed_tag(ret);
-  set_object_members(&(p->o));
-  boolean_object_value(p) = v;
+  set_object_members(boxed_object_p(ret));
+  boolean_object_value(ret) = v;
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
   return (JSValue)ret;
 }
@@ -647,12 +657,10 @@ JSValue new_boolean(JSValue v) {
  */
 JSValue new_string(JSValue v) {
   JSValue ret;
-  BoxedCell *p;
 
   ret = make_string_object();
-  p = remove_boxed_tag(ret);
-  set_object_members(&(p->o));
-  string_object_value(p) = v;
+  set_object_members(boxed_object_p(ret));
+  string_object_value(ret) = v;
 
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
