@@ -15,7 +15,8 @@
 #define EXTERN extern
 #include "header.h"
 
-#define not_implemented(s)  (printf("%s is not implemented yet\n", (s)), set_a(context, JS_UNDEFINED))
+#define not_implemented(s) \
+  LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
 /*
    constructor for array

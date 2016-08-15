@@ -106,7 +106,7 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
 
   /*
      The original code called save_special_registers here, but this seems
-     to be unnecessary because builtin function codes do not manipulate
+     to be unnecessary because builtin function code does not manipulate
      special registers.  However, since the compiler takes rooms from
      stack[pos] to stack[pos + 3] for saving the values of special registers,
      it may be necessary to fill these rooms with harmless values, e.g.,
@@ -125,10 +125,14 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   }
 
   /*
-  {
+  if (sendp == TRUE && constrp == FALSE) {
     int i;
-    for (i = 1; i <= nargs + 1; i++)
-      printf("i = %d, addr = %p, %016lx\n", i, &stack[sp - nargs - 1 + i], stack[sp - nargs - 1 + i]);
+    printf("in call_builtin: nargs = %d\n", nargs);
+    for (i = 1; i <= nargs + 1; i++) {
+      printf("i = %d, addr = %p, %016lx:",
+             i, &stack[sp - nargs - 1 + i], stack[sp - nargs - 1 + i]);
+      simple_print(stack[sp - nargs - 1 + i]);
+    }
   }
   */
 
@@ -219,8 +223,9 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
 JSValue call_builtin0(Context *context, JSValue receiver, JSValue fn, int sendp) {
   int sp;
 
-  sp = get_sp(context);
+  sp = get_sp(context) + 1;
   get_stack(context, sp) = receiver;
+  set_sp(context, sp);
   call_builtin(context, fn, 0, sendp, FALSE);
   return get_a(context);
 }

@@ -2,6 +2,11 @@
 #define EXTERN extern
 #include "header.h"
 
+#define not_implemented(s) \
+  LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
+
+#define mallocstr(n) ((char *)malloc(sizeof(char) * ((n) + 1)))
+
 /*
   constrcutor of a string
  */
@@ -43,88 +48,89 @@ BUILTIN_FUNCTION(string_valueOf)
   set_a(context, arg);
 }
 
+#define MAXSTRS 100
+
 BUILTIN_FUNCTION(string_concat)
 {
-  printf("string_concat is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  JSValue v, ret;
+  char *strs[MAXSTRS];
+  char *s, *p;
+  int i, len;
 
-#if 0
-  JSValue ret, s;
-  JSValue *args;
-  int fp, i;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  ret = args[0];
-
-  if(is_object(ret)){
-    ret = objectToPrimitiveHintString(ret, context); }
-  ret = PrimitiveToString(ret);
-
-  for(i=1; i<=nArgs; i++){
-    s = args[i];
-    if(is_object(s)){
-      s = objectToPrimitiveHintString(s, context); }
-    ret = cStrToString2(stringToCStr(ret), stringToCStr(s));
+  builtin_prologue();
+  /*
+  printf("------\n");
+  printf("In string_concat: na = %d\n", na);
+  for (i = 0; i <= na; i++) {
+    v = args[i];
+    printf("string_concat: before to_string: i = %d: ", i);
+    print_value_simple(context, v); printf("\n");
   }
+  printf("-----\n");
+  */
+  for (i = 0, len = 0; i <= na; i++) {
+    v = args[i];
+    /*
+    printf("string_concat: i = %d: ", i);
+    print_value_simple(context, v); printf("\n");
+    */
+    if (!is_string(v)) v = to_string(context, v);
+    len += string_length(v);
+    strs[i] = string_to_cstr(v);
+    // printf("strs[%d] = %s\n", i, strs[i]);
+  }
+  s = mallocstr(len);
+  for (i = 0, p = s, len = 0; i <= na; i++)
+    p = stpcpy(p, strs[i]);
+  // printf("s = %s\n", s);
+  ret = cstr_to_string(s);
+  free(s);
+  set_a(context, ret);
+}
 
-  setA(context, ret);
-  return;
-#endif
+JSValue to_upper_lower(Context *context, JSValue str, int upper) {
+  JSValue ret;
+  int len, i;
+  char *s, *r;
+
+  if (!is_string(str)) str = to_string(context, str);
+  s = string_to_cstr(str);
+  len = string_length(str);
+  r = mallocstr(len);
+  if (upper == TRUE) {
+    for (i = 0; i < len; i++)
+      r[i] = toupper(s[i]);
+  } else {
+    for (i = 0; i < len; i++)
+      r[i] = tolower(s[i]);
+  }
+  r[len] = '\0';
+  ret = cstr_to_string(r);
+  free(r);
+  return ret;
 }
 
 BUILTIN_FUNCTION(string_toLowerCase)
 {
-  printf("string_toLowerCase is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  JSValue ret;
 
-#if 0
-  int i, fp;
-  uint64_t len;
-  JSValue *args;
-  char *rsvcs, *result;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsvcs = stringToCStr(JSValueToString(args[0], context));
-  len = strlen(rsvcs);
-
-  result = (char*)malloc(sizeof(char) * (len+1));
-  for(i=0; i<=len; i++){
-    result[i] = tolower(rsvcs[i]); }
-  setA(context, cStrToString(result));
-  return;
-#endif
+  builtin_prologue();
+  ret = to_upper_lower(context, args[0], FALSE);
+  set_a(context, ret);
 }
 
 BUILTIN_FUNCTION(string_toUpperCase)
 {
-  printf("string_toUpperCase is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  JSValue ret;
 
-#if 0
-  int i, fp;
-  uint64_t len;
-  JSValue *args;
-  char *rsvcs, *result;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsvcs = stringToCStr(JSValueToString(args[0], context));
-  len = strlen(rsvcs);
-
-  result = (char*)malloc(sizeof(char) * (len + 1));
-  for(i=0; i<=len; i++){
-    result[i] = toupper(rsvcs[i]); }
-  setA(context, cStrToString(result));
-  return;
-#endif
+  builtin_prologue();
+  ret = to_upper_lower(context, args[0], TRUE);
+  set_a(context, ret);
 }
 
 BUILTIN_FUNCTION(string_substring)
 {
-  printf("string_substring is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  not_implemented("string_substring is not implemented yet\n");
 
 #if 0
   JSValue endv;
@@ -177,8 +183,7 @@ BUILTIN_FUNCTION(string_substring)
 
 BUILTIN_FUNCTION(string_slice)
 {
-  printf("string_slice is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  not_implemented("string_slice is not implemented yet\n");
 
 #if 0
   JSValue rsv, startv, endv;
@@ -283,8 +288,7 @@ BUILTIN_FUNCTION(string_charCodeAt)
 
 BUILTIN_FUNCTION(string_indexOf)
 {
-  printf("string_indexOf is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  not_implemented("string_indexOf is not implemented yet\n");
 
 #if 0
   JSValue sch, position, rsv;
@@ -344,8 +348,7 @@ BUILTIN_FUNCTION(string_indexOf)
 
 BUILTIN_FUNCTION(string_lastIndexOf)
 {
-  printf("string_lastIndexOf is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  not_implemented("string_lastIndexOf is not implemented yet\n");
 
 #if 0
   JSValue sch, position, rsv;
@@ -430,14 +433,14 @@ BUILTIN_FUNCTION(string_fromCharCode)
   }
   s[na] = '\0';
   ret = cstr_to_string(s);
+  free(s);
   set_a(context, ret);
 }
 
 
 BUILTIN_FUNCTION(string_localeCompare)
 {
-  printf("string_localeCompare is not implemented yet\n");
-  set_a(context, gconsts.g_string_empty);
+  not_implemented("string_localeCompare is not implemented yet\n");
 
 #if 0
   JSValue rsv, that;
@@ -502,7 +505,7 @@ BUILTIN_FUNCTION(stringProtoMatch)
 ObjBuiltinProp string_funcs[] = {
   { "valueOf",        string_valueOf,       0, ATTR_DE },
   { "toString",       string_valueOf,       0, ATTR_DE },
-  { "concat",         string_concat,        1, ATTR_DE },
+  { "concat",         string_concat,        0, ATTR_DE },
   { "toLowerCase",    string_toLowerCase,   0, ATTR_DE },
   { "toUpperCase",    string_toUpperCase,   0, ATTR_DE },
   { "substring",      string_substring,     2, ATTR_DE },

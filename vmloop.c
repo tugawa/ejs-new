@@ -16,7 +16,7 @@
 #include "header.h"
 
 #define NOT_IMPLEMENTED() \
-  printf("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
+  LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
 
 inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
 #ifdef PARALLEL

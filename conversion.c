@@ -556,8 +556,8 @@ JSValue to_string(Context *context, JSValue v) {
  */
 JSValue to_boolean(JSValue v) {
   if (is_string(v)) return string_to_boolean(v);
-  if (is_fixnum(v)) return fixnum_to_string(v);
-  if (is_flonum(v)) return flonum_to_string(v);
+  if (is_fixnum(v)) return fixnum_to_boolean(v);
+  if (is_flonum(v)) return flonum_to_boolean(v);
   if (is_special(v)) return special_to_boolean(v);
   if (is_object(v)) return object_to_boolean(v);
   LOG_ERR("This cannot happen in to_boolean");
