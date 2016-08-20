@@ -1169,8 +1169,8 @@ I_INSTANCEOF:
     v2 = regbase[get_third_operand_reg(insn)];
     ret = JS_FALSE;
     if (is_object(v1) && is_object(v2) &&
-        get_prop(v2, gconsts.g_string_prototype, &p) == TRUE) {
-      while (get_prop(v1, gconsts.g_string___proto__, &v1) == TRUE)
+        get_prop(v2, gconsts.g_string_prototype, &p) == SUCCESS) {
+      while (get_prop(v1, gconsts.g_string___proto__, &v1) == SUCCESS)
         if (v1 == p) {
           ret = JS_TRUE;
           break;
@@ -1292,11 +1292,12 @@ I_ISUNDEF:
    */
   ENTER_INSN(__LINE__);
   {
-    Register dst, reg;
+    JSValue v;
+    Register dst;
 
     dst = get_first_operand_reg(insn);
-    reg = get_second_operand_reg(insn);
-    regbase[dst] = is_undefined(reg)? JS_TRUE: JS_FALSE;
+    v = regbase[get_second_operand_reg(insn)];
+    regbase[dst] = is_undefined(v)? JS_TRUE: JS_FALSE;
   }
   NEXT_INSN_INCPC();
 
@@ -1604,13 +1605,63 @@ I_MAKECLOSURE:
   NEXT_INSN_INCPC();
 
 I_MAKEITERATOR:
+  /*
+     makeiterator obj dst
+       dst : destination register
+     $dst = iterator object for iterating $obj
+   */ 
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    Register dst;
+    JSValue obj;
+
+    obj = regbase[get_first_operand_reg(insn)];
+    dst = get_second_operand_reg(insn);
+    if (!is_object(obj))
+      LOG_EXIT("makeiterator: not an object\n");
+    regbase[dst] = new_iterator(obj);
+    // printf("makeiterator: iter = %016lx ", regbase[dst]); simple_print(regbase[dst]); printf("\n");
+  }
   NEXT_INSN_INCPC();
 
 I_NEXTPROPNAME:
+  /*
+     nextpropname obj itr dst
+       obj : object
+       itr : iterator for enumerating properties in obj
+       dst : destination
+     $dst = the next property name of $obj in $itr
+   */
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
+  {
+    JSValue obj, itr, res, val;
+    Register dst;
+
+    obj = regbase[get_first_operand_reg(insn)];
+    itr = regbase[get_second_operand_reg(insn)];
+    dst = get_third_operand_reg(insn);
+    res = JS_UNDEFINED;
+    // printf("nextpropname: itr = %016lx ", itr); simple_print(itr); printf("\n");
+    while (1) {
+      int r;
+      // printf("nextpropname: before get_next_propname res = "); simple_print(res); printf("\n");
+      r = get_next_propname(itr, &res);
+      // printf("  nextpropname: after get_next_propname, r = %d, res = ", r); simple_print(res); printf(" "); printf("\n");
+      if (r != SUCCESS) break;
+      if ((val = get_prop_prototype_chain(obj, res)) != JS_UNDEFINED) break;
+    }
+    /*
+    while ((get_next_propname(itr, &res) == SUCCESS) &&
+           (get_prop_prototype_chain(obj, res) != JS_UNDEFINED)) {
+      printf("in while\n");
+    }
+    */
+    /*
+    printf("nextpropname: res = "); simple_print(res);
+    printf(", val = "); simple_print(val); printf("\n");
+    */
+    regbase[dst] = res;
+  }
   NEXT_INSN_INCPC();
 
 I_CALL:

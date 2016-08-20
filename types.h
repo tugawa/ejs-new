@@ -217,6 +217,8 @@ typedef struct iterator_cell {
 #define make_iterator()          (put_iterator_tag(allocate_iterator()))
 
 #define iterator_object_p(i)     (&((remove_iterator_tag(i))->o))
+#define iterator_object_map(i)   ((remove_iterator_tag(i))->o.map)
+#define iterator_object_prop_index(i,k) ((remove_iterator_tag(i))->o.prop[k])
 #define iterator_iter(i)         ((remove_iterator_tag(i))->iter)
 
 #ifdef USE_REGEXP

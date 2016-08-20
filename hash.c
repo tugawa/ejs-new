@@ -18,8 +18,6 @@
 #define HASH_SKIP (27)
 
 #define REHASH_THRESHOLD (0.5)
-#define NO_MORE_CELL -1
-#define MORE_CELL 1
 
 /*
    allocates a hash table
@@ -202,7 +200,7 @@ int rehash(HashTable *table) {
   HashCell** oldhash = table->body;
 
   iter = createHashIterator(table);
-  while (___hashNext(table, &iter, &p) != NO_MORE_CELL) {
+  while (___hashNext(table, &iter, &p) != FAIL) {
     uint32_t index = string_hash(p->entry.key) % newsize;
     p->next = newhash[index];
     newhash[index] = p;
@@ -213,7 +211,21 @@ int rehash(HashTable *table) {
   return 0;
 }
 
-//
+int init_hash_iterator(HashTable *t, HashIterator *h) {
+  int i, size;
+
+  size = t->size;
+  for (i = 0; i < size; i++) {
+    if (t->body[i] != NULL) {
+      h->p = t->body[i];
+      h->index = i;
+      return TRUE;
+    }
+  }
+  h->p = NULL;
+  return FALSE;
+}
+
 HashIterator createHashIterator(HashTable *table) {
   int i, size = table->size;
   HashIterator iter;
@@ -230,63 +242,67 @@ HashIterator createHashIterator(HashTable *table) {
 }
 
 //
-int hashNext(HashTable *table, HashIterator *Iter, HashData *data) {
+int hash_next(HashTable *table, HashIterator *iter, HashData *data) {
   HashEntry e;
-  int r = __hashNext(table, Iter, &e);
+  int r;
 
-  *data = e.data;
+  if ((r = __hashNext(table, iter, &e)) == SUCCESS) {
+    // printf("hash next: %016lx ", e.data); simple_print(e.data); printf("\n");
+    *data = e.data;
+  }
   return r;
 }
 
 //
-int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key) {
+int hash_next_key(HashTable *table, HashIterator *Iter, HashKey *key) {
   HashEntry e;
-  int r = __hashNext(table, Iter, &e);
+  int r;
 
-  *key = e.key;
+  if ((r = __hashNext(table, Iter, &e)) == SUCCESS)
+    *key = e.key;
   return r;
 }
 
 //
-int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p) {
+int ___hashNext(HashTable *table, HashIterator *iter, HashCell **p) {
   int i;
 
-  if (iter->p == NULL) return NO_MORE_CELL;
+  if (iter->p == NULL) return FAIL;
   *p = iter->p;
   if (iter->p->next != NULL) {
     iter->p = iter->p->next;
-    return MORE_CELL;
+    return SUCCESS;
   }
   for (i = iter->index + 1; i < table->size; i++) {
     if (table->body[i] != NULL) {
       iter->index = i;
       iter->p = table->body[i];
-      return MORE_CELL;
+      return SUCCESS;
     }
   }
   iter->p = NULL;
-  return MORE_CELL;
+  return SUCCESS;
 }
 
 //
 int __hashNext(HashTable *table, HashIterator *iter, HashEntry *ep) {
   int i;
 
-  if (iter->p == NULL) return NO_MORE_CELL;
+  if (iter->p == NULL) return FAIL;
   *ep = iter->p->entry;
   if (iter->p->next != NULL) {
     iter->p = iter->p->next;
-    return MORE_CELL;
+    return SUCCESS;
   }
   for(i = iter->index + 1; i < table->size; i++) {
     if(table->body[i] != NULL) {
       iter->index = i;
       iter->p = table->body[i];
-      return MORE_CELL;
+      return SUCCESS;
     }
   }
   iter->p = NULL;
-  return MORE_CELL;
+  return SUCCESS;
 }
 
 //
@@ -297,6 +313,58 @@ void hashBodyFree(HashCell** body) {
 //
 void hashCellFree(HashCell* cell) {
   free(cell);
+}
+
+/*
+   prints a hash table (for debugging)
+ */
+void print_hash_table(HashTable *tab) {
+  HashCell *p;
+  unsigned int i, ec;
+
+  printf("HashTable %p: ", tab);
+  ec = 0;
+  for (i = 0; i < tab->size; i++) {
+    if ((p = tab->body[i]) == NULL) continue;
+    do {
+      ec++;
+      printf(" (%d: (", i);
+      printf("%016lx = ", p->entry.key); simple_print(p->entry.key);
+      printf(", ");
+      printf("%016lx = ", p->entry.data); simple_print(p->entry.data);
+      printf("))");
+    } while ((p = p->next) != NULL);
+    if (ec >= tab->entry_count) break;
+  }
+  printf("\n");
+}
+
+void print_object_properties(JSValue o) {
+  HashCell *p;
+  HashTable *tab;
+  JSValue v;
+  unsigned int i, ec;
+
+  tab = obj_map(o);
+  printf("Object %016lx: (header = %ld, n_props = %ld, map = %p)\n",
+         o, obj_header(o), obj_n_props(o), tab);
+  ec = 0;
+  for (i = 0; i < tab->size; i++) {
+    if ((p = tab->body[i]) == NULL) continue;
+    do {
+      ec++;
+      printf(" (%d: (", i);
+      printf("%016lx = ", p->entry.key); simple_print(p->entry.key);
+      printf(", ");
+      printf("%016lx = ", p->entry.data); simple_print(p->entry.data);
+      printf(", ");
+      v = obj_prop_index(o, (int)p->entry.data);
+      printf("%016lx = ", v); simple_print(v);
+      printf("))");
+    } while ((p = p->next) != NULL);
+    if (ec >= tab->entry_count) break;
+  }
+  printf("\n");
 }
 
 //

@@ -152,12 +152,15 @@ extern HashTable *malloc_hashtable(void);
 extern int hash_create(HashTable *, unsigned int);
 extern int hash_get(HashTable *, HashKey, HashData *);
 extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
+extern int init_hash_iterator(HashTable *, HashIterator *);
+extern void print_hash_table(HashTable *);
+extern void print_object_properties(JSValue);
 
 // DELETE
 // int hashDelete(HashTable *table, HashKey key);
 
-extern  HashIterator createHashIterator(HashTable *table);
-// int hashNext(HashTable *table, HashIterator *Iter, HashData *data);
+extern  HashIterator createHashIterator(HashTable *);
+extern int hash_next(HashTable *, HashIterator *, HashData *);
 // int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key);
 extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
 extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
@@ -205,6 +208,7 @@ extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
+extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
 #endif
@@ -215,7 +219,7 @@ extern JSValue new_array_with_size(int);
 extern JSValue new_function(Context *, Subscript);
 extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, int);
 extern JSValue new_builtin(builtin_function_t, int);
-extern JSValue new_iterator(void);
+extern JSValue new_iterator(JSValue);
 #ifdef USE_REGEXP
 extern JSValue new_regexp(char *, int);
 #endif // USE_REGEXP

@@ -83,6 +83,8 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
   extern JSValue prototype_object(JSValue);
 
+  // printf("get_prop_prototype_chain: o = "); simple_print(o); printf("\n");
+  // printf("get_prop_prototype_chain: p = "); simple_print(p); printf("\n");
   // printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n", string_to_cstr(p), o);
   // printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
   do {
@@ -186,7 +188,7 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
     /*
     printf("obj = %lx, obj_n_props(obj) = %d, name = %s, value = ",
             obj, obj_n_props(obj), string_to_cstr(name));
-    simple_print(v);
+    simple_print(v); printf("\n");
     */
 
     if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
@@ -290,11 +292,6 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
 }
 
 #if 0
-/**
- * @brief 配列の要素配列を拡張する
- * @param 対象の配列
- * @param 新たなサイズ
- */
 static inline void setArrayBody(JSValue array, int size)
 {
   if(size < MINIMUM_ARRAY_SIZE)
@@ -304,32 +301,22 @@ static inline void setArrayBody(JSValue array, int size)
 }
 #endif
 
-#if 0
-// ------------------------------------------------------------------
-/**
- * @brief 次のイテレータのキーを取得する
- * @param 対象オブジェクト
- * @param 対応するイテレータ
- * @param 格納する変数
- * @return 成功値
- * @retval 1 成功
- * @retval 0 失敗：これ以上存在しない
+/*
+   obtains the next key of the property
  */
-
-int nextPropName(JSValue obj, HashIterator *iter, HashKey *key)
+int next_propname(JSValue obj, HashIterator *iter, HashKey *key)
 {
-  Entry e;
+  HashEntry e;
   int r;
-  while((r = __hashNext(objectMap(obj), iter, &e)) != NO_MORE_CELL && e.attr & ATTR_DE){
-  }
-  if(r == NO_MORE_CELL){
-    return 0;
-  }else{
-    *key = e.key;
-    return 1;
-  }
+
+  while ((r = __hashNext(obj_map(obj), iter, &e)) != FAIL &&
+         (e.attr & ATTR_DE));
+  if (r == FAIL) return FAIL;
+  *key = e.key;
+  return SUCCESS;
 }
 
+#if 0
 // ------------------------------------------------------------------
 /**
  * @brief イテレータに数値を追加
@@ -344,28 +331,23 @@ void putIndexToIterator(JSValue iter, uint64_t index)
   snprintf(str, 1000 - 1, "%llu", (long long unsigned int)index);
   putCStrToIterator(iter, str);
 }
+#endif
 
-
-// ------------------------------------------------------------------
-/**
- * @brief 次のイテレータの名前を取得する
- * @param 対象イテレータ
- * @param 格納する変数
+/*
+   obtains the next property name in an iterator
  */
-
-int getNextName(JSValue iter, JSValue *name)
-{
-  HashData retv;
-  int result;
-  result = hashNext(objectMap(iter), &(getIteratorHashIterator(iter)), &retv);
-  if(result == NO_MORE_CELL){
-    return 0;
-  }else{
-    *name = objectProp(iter)[(int)retv];
-    return 1;
+int get_next_propname(JSValue iter, JSValue *name) {
+  if (hash_next(iterator_object_map(iter), &(iterator_iter(iter)), name) == SUCCESS) {
+    // printf("in get_next_propname 0: name = %016lx: ", *name); simple_print(*name); printf("\n");
+    *name = iterator_object_prop_index(iter, (int)(*name));
+    // printf("in get_next_propname 1: name = %016lx: ", *name); simple_print(*name); printf("\n");
+    return SUCCESS;
   }
+  *name = JS_UNDEFINED;
+  return FAIL;
 }
 
+#if 0
 // ------------------------------------------------------------------
 /**
  * @brief 配列の要素を格納する
@@ -424,7 +406,7 @@ int set_regexp_members(JSValue re, char *pat, int flag) {
   /*
      The original code in SSJSVM_codeloader.c used ststrdup function,
      which is defined in hash.c.  But I don't know the reason why
-     it used ststrdup instead of the standard strdup function.
+     ststrdup is used instead of the standard strdup function.
 
      regexp_pattern(re) = ststrdup(str);
   */
@@ -597,11 +579,35 @@ JSValue new_builtin(builtin_function_t f, int na) {
 /*
    makes an iterator object
  */
-JSValue new_iterator(void) {
+JSValue new_iterator(JSValue obj) {
   JSValue ret;
+  HashIterator *hi;
+  HashKey key;
 
   ret = make_iterator();
   set_object_members(iterator_object_p(ret));
+  hi = &(iterator_iter(ret));
+  do {
+    init_hash_iterator(obj_map(obj), hi);
+    while (next_propname(obj, hi, &key)) {
+      // printf("In new_iterator: key = "); simple_print(key); printf("\n");
+      set_prop_none(ret, key, key);
+    }
+    /*
+    if (is_array(obj)) {
+      int len, i;
+#define N 100;
+      char ind[N];
+      len = array_length(obj);
+      for (i = 0; i < len; i++) {
+        snprintf(&ind[0], N - 1, "%d", i);
+      }
+#undef N
+    }
+    */
+  } while (get_prop(obj, gconsts.g_string___proto__, &obj) == SUCCESS);
+  init_hash_iterator(iterator_object_p(ret)->map, hi);
+  // print_object_properties(ret);
   return ret;
 }
 
