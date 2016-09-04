@@ -372,6 +372,7 @@ typedef struct string_cell {
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
+/* HTAG_MALLOC, HTAG_FREE are defined in gc.c */
 
 #define HEADER_COMMON(cell, htag) \
    (make_header((sizeof(cell) / BYTES_IN_JSVALUE), htag))
