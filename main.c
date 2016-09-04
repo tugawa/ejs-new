@@ -14,6 +14,7 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
+#include "gc.h"
 
 /*
   flags
@@ -184,6 +185,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif // USE_BOEHMGC
+  init_memory();
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();

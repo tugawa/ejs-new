@@ -61,8 +61,6 @@ malloc-space に置くデータ型
 [hash.h]
 - struct hash_cell / HashCell
   struct hash_cell *next -- malloc-space
-- struct hash_iterator / HashIterator
-  HashCell *p -- malloc-space
 - struct hash_table / HashTable
   HashCell **body -- malloc-space
 - struct str_cons / StrCons
@@ -86,6 +84,8 @@ embedded struct
 
 [hash.h] 
 - struct hash_entry / HashEntry : HashCell
+- struct hash_iterator / HashIterator
+  HashCell *p -- malloc-space
 
 
 

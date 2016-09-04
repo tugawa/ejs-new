@@ -113,9 +113,9 @@ typedef struct object_cell {
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
 #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
-#define obj_header_tag(x)      ((Tag)(obj_header(x) & OBJECT_HEADER_MASK))
+#define obj_header_tag(x)      ((Tag)(obj_header(x) & HEADER_TYPE_MASK))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-#define obj_size(x)            (obj_header(x) >> OBJECT_SIZE_OFFSET)
+#define obj_size(x)            (obj_header(x) >> HEADER_SIZE_OFFSET)
 
 
 
@@ -351,12 +351,13 @@ typedef struct string_cell {
     63                     32 31                     0
  */
 
-#define OBJECT_SIZE_OFFSET   (32)
-#define OBJECT_HEADER_MASK   ((uint64_t)0x3fffffff)
-#define OBJECT_SHARED_MASK   ((uint64_t)0x80000000)
+/* change name: OBJECT_xxx -> HEADER_xxx (ugawa) */
+#define HEADER_SIZE_OFFSET   (32)
+#define HEADER_TYPE_MASK     ((uint64_t)0x000000ff)
+#define HEADER_SHARED_MASK   ((uint64_t)0x80000000)
 #define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000)
 
-#define make_header(s, t) (((uint64_t)(s) << OBJECT_SIZE_OFFSET) | (t))
+#define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
 
 /*
    header tags

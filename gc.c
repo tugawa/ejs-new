@@ -1,11 +1,15 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include "prefix.h"
+#define EXTERN extern
+#include "header.h"
 
 /*
  * defined in header.h
  */
-typedef uint64_t JSValue;
+//typedef uint64_t JSValue;
 #define LOG_BYTES_IN_JSVALUE   3
-#define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE)
+//#define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE)
 
 /*
  * naming convention
@@ -16,6 +20,8 @@ typedef uint64_t JSValue;
 
 #define JS_SPACE_BYTES     (1024 * 1024)
 #define MALLOC_SPACE_BYTES (1024 * 1024)
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -93,13 +99,42 @@ struct free_chunk {
  */
 
 struct space {
-  void* addr;
+  uintptr_t addr;
   uintptr_t bytes;
+  uintptr_t free_bytes;
   struct free_chunk* freelist;
 };
 
-struct space js_space;
-struct space malloc_space;
+/*
+ * GC
+ */
+#define GC_MARK_BIT (1 << HEADER0_GC_OFFSET)
+
+
+/*
+ * prototype
+ */
+static void create_space(struct space *space, uintptr_t bytes);
+static void* do_malloc(uintptr_t request_bytes);
+static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type);
+static int check_gc_request(void);
+
+static void garbage_collect(void);
+static void trace_JSValue_array(JSValue **, uint32_t);
+static void trace_slot(JSValue* ptr);
+static void scan_roots(void);
+
+static void print_memory_status(void);
+
+/*
+ * variables
+ */
+
+static struct space js_space;
+static struct space debug_js_shadow;
+static struct space malloc_space;
+static struct space debug_malloc_shadow;
+static int gc_disabled = 1;
 
 static void create_space(struct space *space, uintptr_t bytes)
 {
@@ -107,15 +142,19 @@ static void create_space(struct space *space, uintptr_t bytes)
   p = (struct free_chunk *) malloc(bytes);
   p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
   p->next = NULL;
-  space->addr = p;
+  space->addr = (uintptr_t) p;
   space->bytes = bytes;
+  space->free_bytes = bytes;
   space->freelist = p;
 }
 
-void memory_init()
+void init_memory()
 {
   create_space(&js_space, JS_SPACE_BYTES);
   create_space(&malloc_space, MALLOC_SPACE_BYTES);
+  create_space(&debug_js_shadow, JS_SPACE_BYTES);
+  create_space(&debug_malloc_shadow, MALLOC_SPACE_BYTES);
+  gc_disabled = 0;
 }
 
 /*
@@ -130,7 +169,8 @@ static void* do_malloc(uintptr_t request_bytes)
   uint32_t  alloc_jsvalues;
   struct free_chunk **p;
   
-  alloc_jsvalues = (request_bytes + BYTES_IN_JSVALUE) >> LOG_BYTES_IN_JSVALUE;
+  alloc_jsvalues =
+    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
   alloc_jsvalues += HEADER_JSVALUES;
 
   /* allocate from freelist */
@@ -145,22 +185,19 @@ static void* do_malloc(uintptr_t request_bytes)
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
 	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0);
+	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (addr + HEADER_BYTES);
       } else {
 	/* This chunk is too small to split. */
 	*p = (*p)->next;
 	chunk->header = HEADER0_COMPOSE(chunk_jsvalues, 0);
+	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
       }
     }
   }
 
   return NULL;
-}
-
-void* gc_malloc(uintptr_t request_bytes)
-{
-  return do_malloc(request_bytes);
 }
 
 /*
@@ -171,7 +208,8 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
   struct free_chunk **p;
   uint32_t alloc_jsvalues;
 
-  alloc_jsvalues = (request_bytes + BYTES_IN_JSVALUE) >> LOG_BYTES_IN_JSVALUE;
+  alloc_jsvalues =
+    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
 
   for (p = &js_space.freelist; *p != NULL; p = &(*p)->next) {
     struct free_chunk *chunk = *p;
@@ -184,20 +222,279 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
 	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, type);
+	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) addr;
       } else {
 	/* This chunk is too small to split. */
 	*p = (*p)->next;
 	chunk->header &= HEADER0_COMPOSE(chunk_jsvalues, type);
+	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) chunk;
       }
     }
   }
 
+  LOG_EXIT("run out of memory for JS object");
   return NULL;
+}
+
+static int check_gc_request(void)
+{
+  if (gc_disabled)
+    return 0;
+  if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
+    return 1;
+  if (malloc_space.free_bytes < MALLOC_SPACE_GC_THREASHOLD)
+    return 1;
+  return 0;
+}
+
+void* gc_malloc(uintptr_t request_bytes)
+{
+  void * addr;
+  if (check_gc_request())
+    garbage_collect();
+  addr = do_malloc(request_bytes);
+  {
+    uintptr_t a = (uintptr_t) addr;
+    uintptr_t off = a - malloc_space.addr - HEADER_BYTES;
+    uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
+    *shadow = 0x1;
+  }
+  printf("gc_malloc: req %x bytes => %p\n", request_bytes, addr);
+  return addr;
 }
 
 JSValue* gc_jsalloc(uintptr_t request_bytes, uint32_t type)
 {
-  return do_jsalloc(request_bytes, type);
+  JSValue *addr;
+  if (check_gc_request())
+    garbage_collect();
+  addr = do_jsalloc(request_bytes, type);
+  {
+    uintptr_t a = (uintptr_t) addr;
+    uintptr_t off = a - js_space.addr;
+    uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
+    *shadow = 0x1;
+  }
+  printf("gc_jsalloc: req %x bytes type %d => %p\n", request_bytes, type, addr);
+  return addr;
+}
+
+void disable_gc(void)
+{
+  gc_disabled = 1;
+}
+
+void enable_gc(void)
+{
+  gc_disabled = 0;
+}
+
+static int in_js_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (js_space.addr <= addr && addr <= js_space.addr + js_space.bytes);
+}
+
+static int in_malloc_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (malloc_space.addr <= addr &&
+	  addr <= malloc_space.addr + malloc_space.bytes);
+}
+
+static void garbage_collect(void)
+{
+  printf("GC: Not Implemented\n");
+  print_memory_status();
+
+  scan_roots();
+}
+
+static uint64_t *get_shadow(void *ptr)
+{
+  if (in_js_space(ptr)) {
+    uintptr_t a = (uintptr_t) ptr;
+    uintptr_t off = a - js_space.addr;
+    return (uint64_t *) (debug_js_shadow.addr + off);
+  } else if (in_malloc_space(ptr)) {
+    uintptr_t a = (uintptr_t) ptr;
+    uintptr_t off = a - malloc_space.addr;
+    return (uint64_t *) (debug_malloc_shadow.addr + off);
+  } else
+    return NULL;
+}
+
+static void mark_object(Object *obj)
+{
+  {
+    if (in_js_space(obj)) {
+      uintptr_t a = (uintptr_t) obj;
+      uintptr_t off = a - js_space.addr;
+      uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
+      assert((*shadow & 1) == 1);
+    } else if (in_malloc_space(obj)) {
+      uintptr_t a = (uintptr_t) obj;
+      uintptr_t off = a - malloc_space.addr;
+      uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
+      assert((*shadow & 1) == 1);
+    }
+  }
+  obj->header |= GC_MARK_BIT;
+}
+
+static void unmark_object(Object *obj)
+{
+  obj->header &= ~GC_MARK_BIT;
+}
+
+static int is_marked_object(Object *obj)
+{
+#if HEADER0_GC_OFFSET <= 4 * 8  /* BITS_IN_INT */
+  return obj->header & GC_MARK_BIT;
+#else
+  return !!(obj->header & GC_MARK_BIT);
+#endif
+}
+
+static void trace_leaf_object_pointer(uintptr_t *ptrp)
+{
+  uintptr_t ptr = *ptrp;
+  /* TODO: make a type for leaf object. */
+  if (in_js_space((void *) ptr))
+    mark_object((Object *) ptr);
+  else if (in_malloc_space((void *) ptr))
+    mark_object((Object *) (ptr - HEADER_BYTES));
+}
+
+static void trace_HashTable(HashTable **ptrp)
+{
+  printf("Not Implemented: trace_HashTable\n");
+}
+
+static void trace_HashCell(HashCell **ptrp)
+{
+  printf("Not Implemented: trace_HashCell\n");
+}
+
+static void trace_FunctionTable(FunctionTable **ptrp)
+{
+  printf("Not Implemented: trace_FunctionTable\n");
+}
+
+static void trace_FunctionFrame(FunctionFrame **ptrp)
+{
+  printf("Not Implemented: trace_FunctionFrame\n");
+}
+
+static void trace_object_pointer(uintptr_t *ptrp)
+{
+  uintptr_t ptr = *ptrp;
+  Object *obj;
+  /* TODO: specialise.  If obj is pointed at through JSValue, we do not
+   *       need to check it's space.  It should be in js_space */
+  if (ptr == 0)
+    return;
+  if (in_malloc_space((void *) ptr))
+    obj = (Object *) (ptr - HEADER_BYTES);
+  else if (in_js_space((void *) ptr))
+    obj = (Object *) ptr;
+  else {
+    /* default: JS object */
+    obj = (Object *) ptr;
+    goto SCAN;
+  }
+
+  if (is_marked_object(obj))
+    return;
+  mark_object(obj);
+
+ SCAN:
+  /* common header */
+  trace_HashTable(&obj->map);
+  trace_JSValue_array(&obj->prop, obj->n_props);
+
+  switch (HEADER0_GET_TYPE(obj->header)) {
+  case HTAG_OBJECT:
+    break;
+  case HTAG_ARRAY:
+    trace_JSValue_array(&((ArrayCell *) obj)->body,
+			((ArrayCell *) obj)->length);
+    break;
+  case HTAG_FUNCTION:
+    trace_FunctionTable(&((FunctionCell *) obj)->func_table_entry);
+    trace_FunctionFrame(&((FunctionCell *) obj)->environment);
+    break;
+  case HTAG_BUILTIN:
+    break;
+  case HTAG_ITERATOR:
+    /* TODO: call scanHashIterator */
+    trace_HashCell(&((IteratorCell *) obj)->iter.p);
+    break;
+#ifdef USE_REGEXP
+  case HTAG_REGEXP:
+    trace_leaf_object_pointer((uintptr_t *)&((RegexpCell *)obj)->pattern);
+    break;
+#endif /* USE_REGEXP */
+  case HTAG_BOXED_STRING:
+  case HTAG_BOXED_NUMBER:
+  case HTAG_BOXED_BOOLEAN:
+    trace_slot(&((BoxedCell *) obj)->value);
+    break;
+  }
+}
+
+static void trace_JSValue_array(JSValue **ptrp, uint32_t length)
+{
+  JSValue *ptr = *ptrp;
+  int i;
+
+  /* never be JS object */
+  if (in_js_space(ptr))
+    LOG_EXIT("GC: found an array of JSValue in js_space\n");
+
+  if (in_malloc_space(ptr)) {
+    Object *header = (Object *) (ptr - HEADER_JSVALUES);
+    if (is_marked_object(header))
+      return;
+    mark_object(header);
+  }
+
+  /* SCAN */
+  for (i = 0; i < length; i++, ptr++)
+    trace_slot(ptr);
+}
+
+static void trace_slot(JSValue* ptr)
+{
+  JSValue jsv = *ptr;
+  /* TODO: use macro */
+  if ((jsv & 0x2) != 0) /* not a pointer */
+    return;
+  if ((jsv & 0x4) != 0) {
+    uint8_t tag = jsv & TAGMASK;
+    jsv &= ~TAGMASK;
+    trace_leaf_object_pointer((uintptr_t *) &jsv);
+    *ptr = jsv | tag;
+  }
+  else
+    trace_object_pointer((uintptr_t *) ptr);
+}
+
+static void scan_roots(void)
+{
+  struct global_constant_objects *gconstsp = &gconsts;
+  JSValue* p;
+  /* global variables */
+  for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++) {
+    trace_slot(p);
+  }
+}
+
+static void print_memory_status(void)
+{
+  printf("  gc_disabled = %d\n", gc_disabled);
+  printf("  js_space.free_bytes = %d\n", js_space.free_bytes);
+  printf("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
 }
