@@ -379,6 +379,19 @@ char* ststrdup(const char* str) {
 //----------------------------------------------------------------------------
 // string table
 
+/*
+   initializes the string table
+ */
+void init_string_table(unsigned int size) {
+  StrCons **a;
+
+  a = (StrCons **)malloc(sizeof(StrCons*) * size);
+  memset(a, 0, sizeof(StrCons*) * size);
+  string_table.obvector = a;
+  string_table.size = size;
+  string_table.count = 0;
+}
+
 JSValue str_intern(const char* s, int len, uint32_t hash, int mode) {
   int index;
   StrCons *c;

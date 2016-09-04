@@ -23,19 +23,6 @@ int count = 0;
 #endif // DEBUG
 
 /*
-   initializes the string table
- */
-void init_string_table(unsigned int size) {
-  StrCons **a;
-
-  a = (StrCons **)malloc(sizeof(StrCons*) * size);
-  memset(a, 0, sizeof(StrCons*) * size);
-  string_table.obvector = a;
-  string_table.size = size;
-  string_table.count = 0;
-}
-
-/*
    allocates a flonum
    Note that the return value does not have a pointer tag.
  */
