@@ -28,7 +28,6 @@ extern IteratorCell *allocate_iterator(void);
 extern RegexpCell *allocate_regexp(void);
 #endif
 extern BoxedCell *allocate_boxed(uint64_t);
-extern void init_string_table(unsigned int);
 
 /*
  * builtin.c
@@ -179,6 +178,7 @@ extern void hashBodyFree(HashCell **body);
 extern void hashCellFree(HashCell *cell);
 // char* ststrdup(const char*);
 
+extern void init_string_table(unsigned int);
 extern JSValue str_intern(const char* s, int len, uint32_t hash, int soft);
 extern JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
                            uint32_t hash, int soft);
