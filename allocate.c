@@ -14,6 +14,7 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include "gc.h"
 
 /*
    a counter for debugging
@@ -28,24 +29,23 @@ int count = 0;
  */
 FlonumCell *allocate_flonum(double d)
 {
-  FlonumCell *n;
-  n = (FlonumCell *)malloc(sizeof(FlonumCell));
+  FlonumCell *n = (FlonumCell *) gc_jsalloc(sizeof(FlonumCell), HTAG_FLONUM);
   n->value = d;
-  n->header = HEADER_FLONUM;
-  //LOG("count %d\n", ++count);
   return n;
 }
 
 /*
    allocates a string
-   It takes only the string length (except the last null character).
+   It takes only the string length (excluding the last null character).
    Note that the return value does not have a pointer tag.
  */
-StringCell *allocate_string(int length)
+StringCell *allocate_string(uint32_t length)
 {
-  int size = (int)((length + BYTES_IN_JSVALUE) / BYTES_IN_JSVALUE
-                   + sizeof(StringCell) - 1);
-  StringCell *v = (StringCell *)malloc(size * BYTES_IN_JSVALUE);
+  /* plus 1 for the null terminater,
+   * minus BYTES_IN_JSVALUE becasue StringCell has payload of
+   * BYTES_IN_JSVALUE for placeholder */
+  uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
+  StringCell *v = (StringCell *) gc_jsalloc(size, HTAG_STRING);
   v->header = make_header(size, HTAG_STRING);
 #ifdef STROBJ_HAS_HASH
   v->length = length;
@@ -84,9 +84,7 @@ JSValue allocate_string2(const char *str1, const char *str2)
    Note that the return value does not have a pointer tag.
  */
 Object *allocate_object(void) {
-  Object *object = (Object *)malloc(sizeof(Object));
-  object->header = HEADER_OBJECT;
-  // LOG("count %d\n", ++count);
+  Object *object = (Object *) gc_jsalloc(sizeof(Object), HTAG_OBJECT);
   return object;
 }
 
@@ -95,8 +93,7 @@ Object *allocate_object(void) {
    Note that the return value does not have a pointer tag.
  */
 ArrayCell *allocate_array(void) {
-  ArrayCell *array = (ArrayCell *)malloc(sizeof(ArrayCell));
-  array->o.header = HEADER_ARRAY;
+  ArrayCell *array = (ArrayCell *) gc_jsalloc(sizeof(ArrayCell), HTAG_ARRAY);
   return array;
 }
 
@@ -111,7 +108,7 @@ void allocate_array_data(JSValue a, int size, int len)
   JSValue *body;
   int i;
 
-  body = (JSValue *)malloc(sizeof(JSValue) * size);
+  body = (JSValue *) gc_malloc(sizeof(JSValue) * size);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
@@ -122,9 +119,8 @@ void allocate_array_data(JSValue a, int size, int len)
    allocates a function
  */
 FunctionCell *allocate_function(void) {
-  FunctionCell *function = (FunctionCell *)malloc(sizeof(FunctionCell));
-  function->o.header = HEADER_FUNCTION;
-  // LOG("count %d\n", ++count);
+  FunctionCell *function =
+    (FunctionCell *) gc_jsalloc(sizeof(FunctionCell), HTAG_FUNCTION);
   return function;
 }
 
@@ -132,23 +128,21 @@ FunctionCell *allocate_function(void) {
    allocates a builtin
  */
 BuiltinCell *allocate_builtin(void) {
-  BuiltinCell *builtin = (BuiltinCell *)malloc(sizeof(BuiltinCell));
-  builtin->o.header = HEADER_BUILTIN;
-  // LOG("count %d\n", ++count);
+  BuiltinCell *builtin =
+    (BuiltinCell *) gc_jsalloc(sizeof(BuiltinCell), HTAG_BUILTIN);
   return builtin;
 }
 
 JSValue *allocate_prop_table(int size) {
-  // LOG("count %d\n", ++count);
-  return (JSValue*)malloc(sizeof(JSValue) * size);
+  return (JSValue*) gc_malloc(sizeof(JSValue) * size);
 }
 
 /*
    allocates an iterator
  */
 IteratorCell *allocate_iterator(void) {
-  IteratorCell *iter = (IteratorCell *)malloc(sizeof(IteratorCell));
-  iter->o.header = HEADER_ITERATOR;
+  IteratorCell *iter =
+    (IteratorCell *) gc_jsalloc(sizeof(IteratorCell), HTAG_ITERATOR);
   return iter;
 }
 
@@ -158,8 +152,8 @@ IteratorCell *allocate_iterator(void) {
 #ifdef USE_REGEXP
 RegexpCell *allocate_regexp(void)
 {
-  RegexpCell *regexp = (RegexpCell *)malloc(sizeof(RegexpCell));
-  regexp->o.header = HEADER_REGEXP;
+  RegexpCell *regexp =
+    (RegexpCell *) gc_jsalloc(sizeof(RegexpCell), HTAG_REGEXP);
   return regexp;
 }
 #endif
@@ -167,17 +161,8 @@ RegexpCell *allocate_regexp(void)
 /*
    allocates a boxed object
  */
-BoxedCell *allocate_boxed(uint64_t b)
+BoxedCell *allocate_boxed(uint32_t type)
 {
-  BoxedCell *box = (BoxedCell *)malloc(sizeof(BoxedCell));
-  switch(b){
-  case HEADER_BOXED_STRING:
-  case HEADER_BOXED_NUMBER:
-  case HEADER_BOXED_BOOLEAN:
-    box->o.header = b;
-    break;
-  default:
-    assert(false);
-  }
+  BoxedCell *box = (BoxedCell *) gc_jsalloc(sizeof(BoxedCell), type);
   return box;
 }

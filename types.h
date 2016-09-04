@@ -273,15 +273,15 @@ typedef struct boxed_cell {
 #define boxed_value(b)           ((remove_boxed_tag(b))->value)
 
 #define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
-#define make_number_object()     make_boxed(HEADER_BOXED_NUMBER)
+#define make_number_object()     make_boxed(HTAG_BOXED_NUMBER)
 #define number_object_value(n)   boxed_value((n))
 
 #define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
-#define make_boolean_object()    make_boxed(HEADER_BOXED_BOOLEAN)
+#define make_boolean_object()    make_boxed(HTAG_BOXED_BOOLEAN)
 #define boolean_object_value(b)  boxed_value((b))
 
 #define is_string_object(p)      is_obj_header_tag((p), HTAG_BOXED_STRING)
-#define make_string_object()     make_boxed(HEADER_BOXED_STRING)
+#define make_string_object()     make_boxed(HTAG_BOXED_STRING)
 #define string_object_value(s)   boxed_value((s))
 
 /*
@@ -374,6 +374,7 @@ typedef struct string_cell {
 #define HTAG_BOXED_BOOLEAN (0xe)
 /* HTAG_MALLOC, HTAG_FREE are defined in gc.c */
 
+/* HEADER_xxx are obsolete */
 #define HEADER_COMMON(cell, htag) \
    (make_header((sizeof(cell) / BYTES_IN_JSVALUE), htag))
 #define HEADER_FLONUM         HEADER_COMMON(FlonumCell, HTAG_FLONUM)

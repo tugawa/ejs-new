@@ -15,7 +15,7 @@ extern "C" {
  * allocate.c
  */
 extern FlonumCell *allocate_flonum(double);
-extern StringCell *allocate_string(int);
+extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(const char *, const char *);
 extern Object *allocate_object(void);
 extern ArrayCell *allocate_array(void);
@@ -27,7 +27,7 @@ extern IteratorCell *allocate_iterator(void);
 #ifdef USE_REGEXP
 extern RegexpCell *allocate_regexp(void);
 #endif
-extern BoxedCell *allocate_boxed(uint64_t);
+extern BoxedCell *allocate_boxed(uint32_t);
 
 /*
  * builtin.c

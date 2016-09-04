@@ -18,7 +18,8 @@ HFILES = $(GENERATED_HFILES) \
 	 instructions.h \
 	 types.h \
 	 globals.h \
-	 extern.h
+	 extern.h \
+	 gc.h
 
 OFILES = allocate.o \
 	 builtin-array.o \
@@ -38,6 +39,7 @@ OFILES = allocate.o \
 	 object.o \
 	 operations.o \
 	 vmloop.o \
+	 gc.o \
 	 main.o
 
 SEDCOM_GEN_INSN_OPCODE = 's/^\([a-z][a-z]*\).*/\U\1,/'
