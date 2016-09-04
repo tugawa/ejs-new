@@ -120,6 +120,8 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type);
 static int check_gc_request(void);
 
 static void garbage_collect(void);
+static void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
+static void trace_HashCell(HashCell **ptrp);
 static void trace_JSValue_array(JSValue **, uint32_t);
 static void trace_slot(JSValue* ptr);
 static void scan_roots(void);
@@ -358,6 +360,20 @@ static int is_marked_object(Object *obj)
 #endif
 }
 
+static int test_and_mark_no_js_object(void *ptr)
+{
+  /* never be JS object */
+  assert(!in_js_space(ptr));
+
+  if (in_malloc_space(ptr)) {
+    Object *header = (Object *) (((JSValue *) ptr) - HEADER_JSVALUES);
+    if (is_marked_object(header))
+      return 1;
+    mark_object(header);
+  }
+  return 0;
+}
+
 static void trace_leaf_object_pointer(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
@@ -370,12 +386,36 @@ static void trace_leaf_object_pointer(uintptr_t *ptrp)
 
 static void trace_HashTable(HashTable **ptrp)
 {
-  printf("Not Implemented: trace_HashTable\n");
+  HashTable *ptr = *ptrp;
+
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  trace_HashCell_array(&ptr->body, ptr->size);
+}
+
+static void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
+{
+  HashCell **ptr = *ptrp;
+  int i;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  for (i = 0; i < length; i++) {
+    if (ptr[i] != NULL)
+      trace_HashCell(ptr + i);
+  }
 }
 
 static void trace_HashCell(HashCell **ptrp)
 {
-  printf("Not Implemented: trace_HashCell\n");
+  HashCell *ptr = *ptrp;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  trace_slot(&ptr->entry.key);
+  if (ptr->next != NULL)
+    trace_HashCell(&ptr->next);
 }
 
 static void trace_FunctionTable(FunctionTable **ptrp)
@@ -451,8 +491,7 @@ static void trace_JSValue_array(JSValue **ptrp, uint32_t length)
   int i;
 
   /* never be JS object */
-  if (in_js_space(ptr))
-    LOG_EXIT("GC: found an array of JSValue in js_space\n");
+  assert(!in_js_space(ptr));
 
   if (in_malloc_space(ptr)) {
     Object *header = (Object *) (ptr - HEADER_JSVALUES);

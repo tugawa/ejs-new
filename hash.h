@@ -12,7 +12,7 @@
 */
 
 typedef JSValue HashKey;
-typedef JSValue HashData;
+typedef uint64_t HashData;
 typedef uint16_t Attribute;
 
 // Attributes
