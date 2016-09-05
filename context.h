@@ -19,14 +19,14 @@ typedef struct function_table {
   int call_entry;             // entry of a function call
   int send_entry;             // entry of a method call
   int n_locals;               // number of locals
-  Instruction *insns;         // array of instructions
+  Instruction *insns;         // array of instructions followed by constant pool
 #ifdef PARALLEL
   Instruction *parallelInsns; // array of instrumented instructions for
                               // parallel execution
 #endif
   InsnLabel *insn_ptr;        // array of instruction labels for threaded code
   bool insn_ptr_created;      // flag whether insn_ptr has been generated or not
-  int body_size;
+  int body_size;              // number of elements in insns
   int n_insns;                // number of instructions
 } FunctionTable;
 

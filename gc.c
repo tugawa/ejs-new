@@ -42,6 +42,7 @@
  *                    15     : malloced memory (HTAG_MALLOC)
  *                    16     : free (HTAG_FREE)
  *    bit 8      : mark bit
+ *    bit 9 - 11 : extra jsvalues
  *    bit 32 - 63: size (in number of JSValue's)
  */
 #define HEADER_JSVALUES       1
@@ -50,12 +51,16 @@
 #define HEADER0_BITS          64
 #define HEADER0_TYPE_OFFSET   0
 #define HEADER0_TYPE_BITS     8
+#define HEADER0_EXTRA_OFFSET  9
+#define HEADER0_EXTRA_BITS    3
 #define HEADER0_GC_OFFSET     8
 #define HEADER0_GC_BITS       1
 #define HEADER0_SIZE_OFFSET   32
 #define HEADER0_SIZE_BITS     32
 #define HEADER0_TYPE_MASK \
   MKMASK(HEADER0_BITS, HEADER0_TYPE_OFFSET, HEADER0_TYPE_BITS)
+#define HEADER0_EXTRA_MASK \
+  MKMASK(HEADER0_BITS, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_BITS)
 #define HEADER0_GC_MASK \
   MKMASK(HEADER0_BITS, HEADER0_GC_OFFSET, HEADER0_GC_BITS)
 #define HEADER0_SIZE_MASK					\
@@ -71,6 +76,10 @@
   HEADER0_SET(hdr, val, HEADER0_TYPE_OFFSET, HEADER0_TYPE_MASK)
 #define HEADER0_GET_TYPE(hdr) \
   HEADER0_GET(hdr, HEADER0_TYPE_OFFSET, HEADER0_TYPE_MASK)
+#define HEADER0_SET_EXTRA(hdr, val) \
+  HEADER0_SET(hdr, val, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
+#define HEADER0_GET_EXTRA(hdr) \
+  HEADER0_GET(hdr, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
 #define HEADER0_SET_GC(hdr, val) \
   HEADER0_SET(hdr, val, HEADER0_GC_OFFSET, HEADER0_GC_MASK)
 #define HEADER0_GET_GC(hdr) \
@@ -79,9 +88,10 @@
   HEADER0_SET(hdr, val, HEADER0_SIZE_OFFSET, HEADER0_SIZE_MASK)
 #define HEADER0_GET_SIZE(hdr) \
   HEADER0_GET(hdr, HEADER0_SIZE_OFFSET, HEADER0_SIZE_MASK)
-#define HEADER0_COMPOSE(size, type) \
-  ((((uint64_t)(size)) << HEADER0_SIZE_OFFSET) | \
-   ((uint64_t)(type)) << HEADER0_TYPE_OFFSET)
+#define HEADER0_COMPOSE(size, extra, type) \
+  ((((uint64_t) (size)) << HEADER0_SIZE_OFFSET) | \
+   ((uint64_t) (extra)) << HEADER0_EXTRA_OFFSET |	\
+   ((uint64_t) (type)) << HEADER0_TYPE_OFFSET)
 
 /* 
  * header tag
@@ -142,7 +152,7 @@ static void create_space(struct space *space, uintptr_t bytes)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
-  p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, HTAG_FREE);
+  p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
   p->next = NULL;
   space->addr = (uintptr_t) p;
   space->bytes = bytes;
@@ -186,13 +196,14 @@ static void* do_malloc(uintptr_t request_bytes)
 	uintptr_t addr =
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0);
+	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, 0);
 	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (addr + HEADER_BYTES);
       } else {
 	/* This chunk is too small to split. */
 	*p = (*p)->next;
-	chunk->header = HEADER0_COMPOSE(chunk_jsvalues, 0);
+	chunk->header =
+	  HEADER0_COMPOSE(chunk_jsvalues, chunk_jsvalues - alloc_jsvalues, 0);
 	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
       }
@@ -223,13 +234,14 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 	uintptr_t addr =
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, type);
+	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
 	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) addr;
       } else {
 	/* This chunk is too small to split. */
 	*p = (*p)->next;
-	chunk->header &= HEADER0_COMPOSE(chunk_jsvalues, type);
+	chunk->header = HEADER0_COMPOSE(chunk_jsvalues,
+					chunk_jsvalues - alloc_jsvalues, type);
 	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) chunk;
       }
@@ -418,9 +430,28 @@ static void trace_HashCell(HashCell **ptrp)
     trace_HashCell(&ptr->next);
 }
 
+static void trace_Instruction_array_part(Instruction **ptrp,
+					 uint32_t start, uint32_t end)
+{
+  JSValue *ptr = (JSValue *) *ptrp;
+  uint32_t i;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  for (i = start; i < end; i++)
+    trace_slot(ptr + i);
+}
+
 static void trace_FunctionTable(FunctionTable **ptrp)
 {
-  printf("Not Implemented: trace_FunctionTable\n");
+  /* TODO: see calling site */
+  FunctionTable *ptr = *ptrp;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  /* trace constant pool */
+  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->body_size);
+  trace_leaf_object_pointer((uintptr_t *) &ptr->insn_ptr);
 }
 
 static void trace_FunctionFrame(FunctionFrame **ptrp)
@@ -463,6 +494,7 @@ static void trace_object_pointer(uintptr_t *ptrp)
 			((ArrayCell *) obj)->length);
     break;
   case HTAG_FUNCTION:
+    /* TODO: func_table_entry holds an inner pointer */
     trace_FunctionTable(&((FunctionCell *) obj)->func_table_entry);
     trace_FunctionFrame(&((FunctionCell *) obj)->environment);
     break;

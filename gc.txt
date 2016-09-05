@@ -16,7 +16,8 @@ B -> |      payload      |
 オブジェクトヘッダ
 
 bit 63-32 : size (including the header, in words)
-bit 16,15 : parallel?
+bit 31,30 : parallel?
+bit 11- 9 : extra jsvalues (size of trailing unused area)
 bit 8:      markbit
 bit 7-0   : type (HTAG)
   4 - 14 : JS データ型
@@ -50,9 +51,6 @@ malloc-space に置くデータ型
   struct insn_cons *next  -- malloc-space
 
 [context.h]
-- struct function_tabe / FunctionTable
-  Instruction *insns    -- malloc-space
-  InsnLabel   *insn_ptr -- malloc-space
 - struct function_frame / FunctionFrame
   struct functionframe *prev_frame -- malloc-space
 - struct context / Context
@@ -72,12 +70,16 @@ malloc-space に置くデータ型
 - struct insn_info / InsnInfo
   char * insn_name    -- malloc-space
 - struct instruction / Instruction
+  constant pool -- JSValue
 - struct constant_cell / ConstantCell
   JSValue *constant_value  -- malloc-space
 
 embedded struct
 
 [context.h]
+- struct function_tabe / FunctionTable : global variable function_table[]
+  Instruction *insns    -- malloc-space
+  InsnLabel   *insn_ptr -- malloc-space
 - struct special_registers / SpecialRegisters : Context
   FunctionTable *cf -- malloc-space
   FunctionFrame *lp -- malloc-space
@@ -89,4 +91,10 @@ embedded struct
 
 
 
-Inner pointer は uninterraptible な関数でしか扱えないようにしたい
+- Inner pointer は uninterraptible な関数でしか扱えないようにしたい
+- FunctionTable へのポインタは inner pointer なので注意 => TODO: objectにばらす
+- trace_TYPE -> mark (手動inline) -> scan_TYPE (手動inline)
+- とりあえず C stack を使って再帰的にマークする
+- trace_TYPE のインタフェースは moving collector に対応させる (slotのアドレスを渡す)
+- HTAG_FUNCTION の func_table_entry は inner ポインタ => moving GC では注意
+
