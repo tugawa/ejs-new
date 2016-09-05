@@ -6,6 +6,9 @@ EXTERN StrTable string_table;
 extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
+extern int regstack_limit;
+
+extern FILE *log_stream;
 
 #ifdef __cplusplus
 extern "C" {

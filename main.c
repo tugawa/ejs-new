@@ -28,6 +28,8 @@ int all_flag;          // all flag values are true
  */
 int regstack_limit = STACK_LIMIT;   // size of register stack (not used yet)
 
+FILE *log_stream;
+
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
 #endif
@@ -148,6 +150,7 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   int k;
 
+  log_stream = stderr;
   lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
   k = process_options(argc, argv);
   if (all_flag == TRUE)
