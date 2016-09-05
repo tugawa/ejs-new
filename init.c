@@ -69,11 +69,11 @@ JSValue init_global(void) {
      Object.prototype, because this object is referred to in new_object.
      Its __proto__ property is null.
   */
-  gconsts.g_object_proto = new_object_without_prototype();
+  gconsts.g_object_proto = new_object_without_prototype(NULL);
   set_prop_de(gconsts.g_object_proto, gconsts.g_string_prototype, JS_NULL);
 
-  gconsts.g_global = new_object();
-  gconsts.g_math = new_object();
+  gconsts.g_global = new_object(NULL);
+  gconsts.g_math = new_object(NULL);
 #ifdef USE_REGEXP
   // gconsts.g_regexp
   //   = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);

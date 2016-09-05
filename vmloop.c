@@ -1231,7 +1231,8 @@ I_NEW:
     dst = get_first_operand_reg(insn);
     con = regbase[get_second_operand_reg(insn)];
     if (is_function(con)) {
-      o = new_object();
+      o = new_object(context);
+      update_context(); // GC
       // printf("NEW: is_function, o = %lx\n", o);
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
@@ -1601,6 +1602,7 @@ I_MAKECLOSURE:
     dst = get_first_operand_reg(insn);
     ss = get_second_operand_subscr(insn) + 1;
     regbase[dst] = new_function(context, ss);
+    update_context();  // GC
   }
   NEXT_INSN_INCPC();
 
@@ -1698,6 +1700,7 @@ I_NEWSEND:
     } else if (is_builtin(fn)) {
       // builtin function
       call_builtin(context, fn, nargs, sendp, newp);
+      update_context();  // GC
       NEXT_INSN_INCPC();
 #ifdef USE_FFI
       if (isErr(context)) {
@@ -1772,7 +1775,7 @@ I_TAILSEND:
       NEXT_INSN_NOINCPC();
     } else if (is_builtin(fn)) {
       tailcall_builtin(context, fn, nargs, sendp, FALSE);
-      update_context();        // is this necessary?
+      update_context();        // is this necessary? => yes. moving GC
       NEXT_INSN_INCPC();
     }
   }

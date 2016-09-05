@@ -426,7 +426,7 @@ void init_builtin_array(void)
   JSValue proto;
 
   gconsts.g_array = new_builtin_with_constr(array_constr, array_constr, 0);
-  gconsts.g_array_proto = proto = new_object();
+  gconsts.g_array_proto = proto = new_object(NULL);
   set_prop_all(gconsts.g_array, gconsts.g_string_prototype, proto);
   {
     ObjBuiltinProp *p = array_funcs;

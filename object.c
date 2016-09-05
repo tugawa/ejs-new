@@ -473,11 +473,11 @@ void set_object_members(Object *p) {
 /*
   makes an object whose __proto__ property is not set yet
  */
-JSValue new_object_without_prototype(void) {
+JSValue new_object_without_prototype(Context *ctx) {
   JSValue ret;
   Object *p;
 
-  ret = make_object();
+  ret = make_object(ctx);
   p = remove_object_tag(ret);
   set_object_members(p);
   return ret;
@@ -486,7 +486,7 @@ JSValue new_object_without_prototype(void) {
 /*
   makes a new object
  */
-JSValue new_object(void)
+JSValue new_object(Context *ctx)
 {
   JSValue ret;
   Object *p;
@@ -494,7 +494,7 @@ JSValue new_object(void)
   pthread_mutexattr_t attr;
 #endif
 
-  ret = make_object();
+  ret = make_object(ctx);
   p = remove_object_tag(ret);
   set_object_members(p);
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
@@ -547,7 +547,7 @@ JSValue new_function(Context *context, Subscript subscr)
   set_object_members(func_object_p(ret));
   func_table_entry(ret) = &(context->function_table[subscr]);
   func_environment(ret) = get_lp(context);
-  set_prop_none(ret, gconsts.g_string_prototype, new_object());
+  set_prop_none(ret, gconsts.g_string_prototype, new_object(context));
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
   return ret;
 }
@@ -563,7 +563,8 @@ JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, i
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
-  set_prop_none(ret, gconsts.g_string_prototype, new_object());
+  // we do not have a proper context during initialisation
+  set_prop_none(ret, gconsts.g_string_prototype, new_object(NULL));
   // TODO: g_object_proto should be g_builtin_proto
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   return ret;

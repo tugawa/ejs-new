@@ -103,7 +103,7 @@ typedef struct object_cell {
 #define is_object(p)           (equal_tag((p), T_OBJECT))
 #define put_object_tag(p)      (put_tag(p, T_OBJECT))
 #define remove_object_tag(p)   ((Object *)(remove_tag((p), T_OBJECT)))
-#define make_object()          (put_object_tag(allocate_object()))
+#define make_object(ctx)       (put_object_tag(allocate_object(ctx)))
 
 #define obj_header(p)          ((remove_object_tag(p))->header)
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)

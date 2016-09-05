@@ -1,6 +1,7 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
+#include "gc.h"
 
 #define allocate_context()  ((Context *)malloc(sizeof(Context)))
 
@@ -15,7 +16,8 @@ FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env) {
 #endif
 
   nl = ftab_n_locals(ft);
-  frame = (FunctionFrame *)malloc(sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl);
+  frame = (FunctionFrame *)
+    gc_malloc_critical(sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl);
   frame->prev_frame = env;
   locals = frame->locals;
   for (i = 0; i < nl; i++)
@@ -39,8 +41,8 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->lp = NULL;
   spreg->sp = 0;
   spreg->pc = 0;
-  spreg->a = 0;
-  spreg->err = 0;
+  spreg->a = JS_UNDEFINED;
+  spreg->err = JS_UNDEFINED;
   spreg->iserr = false;
 }
 

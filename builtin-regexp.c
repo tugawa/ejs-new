@@ -233,7 +233,7 @@ void init_builtin_regexp(void)
 
   gconsts.g_regexp = r =
     new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = proto = new_object();
+  gconsts.g_regexp_proto = proto = new_object(NULL);
   set_prop_all(r, gconsts.g_string_prototype, proto);
   set_obj_cstr_prop(proto, "constructor", r, ATTR_DE);
   {

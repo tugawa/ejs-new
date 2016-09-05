@@ -47,7 +47,7 @@ BUILTIN_FUNCTION(object_constr)
         ret = new_boolean(arg);
         // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
       } else {
-        ret = new_object();
+        ret = new_object(context);
         // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
       }
       break;
@@ -59,7 +59,7 @@ BUILTIN_FUNCTION(object_constr)
   } else {
     //    printf("object_constr: na == 0, calls new_object\n");
     //    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
-    ret = new_object();
+    ret = new_object(context);
     //    printf("ret = %016lx\n", ret);
     // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
   }
@@ -92,7 +92,7 @@ void init_builtin_object(void)
   // set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
   //            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
 
-  gconsts.g_function_proto = new_object();
+  gconsts.g_function_proto = new_object(NULL);
 #ifdef PARALLEL
   set_obj_cstr_prop(gconsts.g_function_proto, "setAtomic",
                     new_builtin(functionProtoSetAtomic, 0), ATTR_DE);

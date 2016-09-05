@@ -176,6 +176,7 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp, int co
   // set_cf(context, NULL);
   // set_ac(context, nargs);
   (*body)(context, fp, nargs);    // real-n-args?
+  stack = &get_stack(context, 0); // stack may be moved by GC
   restore_special_registers(context, stack, fp - 4);
 }
 

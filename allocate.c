@@ -29,7 +29,8 @@ int count = 0;
  */
 FlonumCell *allocate_flonum(double d)
 {
-  FlonumCell *n = (FlonumCell *) gc_jsalloc(sizeof(FlonumCell), HTAG_FLONUM);
+  FlonumCell *n =
+    (FlonumCell *) gc_jsalloc_critical(sizeof(FlonumCell), HTAG_FLONUM);
   n->value = d;
   return n;
 }
@@ -45,7 +46,8 @@ StringCell *allocate_string(uint32_t length)
    * minus BYTES_IN_JSVALUE becasue StringCell has payload of
    * BYTES_IN_JSVALUE for placeholder */
   uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
-  StringCell *v = (StringCell *) gc_jsalloc(size, HTAG_STRING);
+  StringCell *v =
+    (StringCell *) gc_jsalloc_critical(size, HTAG_STRING);
   v->header = make_header(size, HTAG_STRING);
 #ifdef STROBJ_HAS_HASH
   v->length = length;
@@ -83,8 +85,9 @@ JSValue allocate_string2(const char *str1, const char *str2)
    allocates an object
    Note that the return value does not have a pointer tag.
  */
-Object *allocate_object(void) {
-  Object *object = (Object *) gc_jsalloc(sizeof(Object), HTAG_OBJECT);
+Object *allocate_object(Context *ctx)
+{
+  Object *object = (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_OBJECT);
   return object;
 }
 
@@ -93,7 +96,8 @@ Object *allocate_object(void) {
    Note that the return value does not have a pointer tag.
  */
 ArrayCell *allocate_array(void) {
-  ArrayCell *array = (ArrayCell *) gc_jsalloc(sizeof(ArrayCell), HTAG_ARRAY);
+  ArrayCell *array =
+    (ArrayCell *) gc_jsalloc_critical(sizeof(ArrayCell), HTAG_ARRAY);
   return array;
 }
 
@@ -108,7 +112,7 @@ void allocate_array_data(JSValue a, int size, int len)
   JSValue *body;
   int i;
 
-  body = (JSValue *) gc_malloc(sizeof(JSValue) * size);
+  body = (JSValue *) gc_malloc_critical(sizeof(JSValue) * size);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
@@ -120,7 +124,7 @@ void allocate_array_data(JSValue a, int size, int len)
  */
 FunctionCell *allocate_function(void) {
   FunctionCell *function =
-    (FunctionCell *) gc_jsalloc(sizeof(FunctionCell), HTAG_FUNCTION);
+    (FunctionCell *) gc_jsalloc_critical(sizeof(FunctionCell), HTAG_FUNCTION);
   return function;
 }
 
@@ -129,12 +133,12 @@ FunctionCell *allocate_function(void) {
  */
 BuiltinCell *allocate_builtin(void) {
   BuiltinCell *builtin =
-    (BuiltinCell *) gc_jsalloc(sizeof(BuiltinCell), HTAG_BUILTIN);
+    (BuiltinCell *) gc_jsalloc_critical(sizeof(BuiltinCell), HTAG_BUILTIN);
   return builtin;
 }
 
 JSValue *allocate_prop_table(int size) {
-  return (JSValue*) gc_malloc(sizeof(JSValue) * size);
+  return (JSValue*) gc_malloc_critical(sizeof(JSValue) * size);
 }
 
 /*
@@ -142,7 +146,7 @@ JSValue *allocate_prop_table(int size) {
  */
 IteratorCell *allocate_iterator(void) {
   IteratorCell *iter =
-    (IteratorCell *) gc_jsalloc(sizeof(IteratorCell), HTAG_ITERATOR);
+    (IteratorCell *) gc_jsalloc_critical(sizeof(IteratorCell), HTAG_ITERATOR);
   return iter;
 }
 
@@ -153,7 +157,7 @@ IteratorCell *allocate_iterator(void) {
 RegexpCell *allocate_regexp(void)
 {
   RegexpCell *regexp =
-    (RegexpCell *) gc_jsalloc(sizeof(RegexpCell), HTAG_REGEXP);
+    (RegexpCell *) gc_jsalloc_critical(sizeof(RegexpCell), HTAG_REGEXP);
   return regexp;
 }
 #endif
@@ -163,6 +167,6 @@ RegexpCell *allocate_regexp(void)
  */
 BoxedCell *allocate_boxed(uint32_t type)
 {
-  BoxedCell *box = (BoxedCell *) gc_jsalloc(sizeof(BoxedCell), type);
+  BoxedCell *box = (BoxedCell *) gc_jsalloc_critical(sizeof(BoxedCell), type);
   return box;
 }

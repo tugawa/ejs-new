@@ -17,7 +17,7 @@ extern "C" {
 extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(const char *, const char *);
-extern Object *allocate_object(void);
+extern Object *allocate_object(Context *ctx);
 extern ArrayCell *allocate_array(void);
 extern void allocate_array_data(JSValue, int, int);
 extern FunctionCell *allocate_function(void);
@@ -212,8 +212,8 @@ extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
 #endif
-extern JSValue new_object_without_prototype(void);
-extern JSValue new_object(void);
+extern JSValue new_object_without_prototype(Context *);
+extern JSValue new_object(Context *);
 extern JSValue new_array(void);
 extern JSValue new_array_with_size(int);
 extern JSValue new_function(Context *, Subscript);
