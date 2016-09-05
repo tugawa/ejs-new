@@ -67,6 +67,7 @@ typedef uint64_t JSValue;
 #define HINT_NUMBER 1
 #define HINT_STRING 0
 
+#include "log.h"
 #include "instructions.h"
 #include "context.h"
 #include "hash.h"

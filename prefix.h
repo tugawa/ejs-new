@@ -46,6 +46,7 @@
 #endif // USE_HOEHMGC
 #endif // J5MODE
 
+#if 0
 #ifdef DEBUG_PRINT
 
 #define LOG(...) fprintf(stderr, __VA_ARGS__)
@@ -60,6 +61,7 @@
 #define LOG_EXIT(...) exit(1)
 
 #endif // DEBUG
+#endif
 
 #ifdef CALC_CALL
 #define CALLCOUNT_UP() callcount++

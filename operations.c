@@ -391,11 +391,58 @@ JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
-  printf("slow_lessthan is not implemented yet\n");
-  return JS_TRUE;
+  Tag tag;
+  double x1, x2;
+
+  if (is_object(v1))
+    v1 = object_to_string(context, v1);
+  if (is_object(v2))
+    v2 = object_to_string(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    return true_false((int)v1 < (int)v2);
+  case TP_FIXFLO:
+    x1 = fixnum_to_double(v1);
+    x2 = flonum_to_double(v2);
+    return true_false(x1 < x2);
+  case TP_FLOFIX:
+    x1 = flonum_to_double(v1);
+    x2 = fixnum_to_double(v2);
+    return true_false(x1 < x2);
+  case TP_FLOFLO:
+    x1 = flonum_to_double(v1);
+    x2 = flonum_to_double(v2);
+    return true_false(x1 < x2);
+  default:
+    return JS_FALSE;
+  }
 }
 
 JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
-  printf("slow_lessthanequal is not implemented yet\n");
-  return JS_TRUE;
+  Tag tag;
+  double x1, x2;
+
+  if (is_object(v1))
+    v1 = object_to_string(context, v1);
+  if (is_object(v2))
+    v2 = object_to_string(context, v2);
+  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  case TP_FIXFIX:
+    return true_false((int)v1 <= (int)v2);
+  case TP_FIXFLO:
+    x1 = fixnum_to_double(v1);
+    x2 = flonum_to_double(v2);
+    return true_false(x1 <= x2);
+  case TP_FLOFIX:
+    x1 = flonum_to_double(v1);
+    x2 = fixnum_to_double(v2);
+    return true_false(x1 <= x2);
+  case TP_FLOFLO:
+    x1 = flonum_to_double(v1);
+    x2 = flonum_to_double(v2);
+    return true_false(x1 <= x2);
+  default:
+    return JS_FALSE;
+  }
 }
+
