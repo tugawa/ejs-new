@@ -514,7 +514,7 @@ static void trace_FunctionFrame(FunctionFrame **ptrp)
 static void trace_StrCons(StrCons **ptrp)
 {
   StrCons *ptr = *ptrp;
-  
+
   if (test_and_mark_no_js_object(ptr))
     return;
 
@@ -533,7 +533,7 @@ static void trace_StrCons_ptr_array(StrCons ***ptrp, int length)
   for (i = 0; i < length; i++)
     if (ptr[i] != NULL)
       trace_StrCons(ptr + i);
-}  
+}
 
 /*
  * we do not move context
