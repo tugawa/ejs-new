@@ -69,6 +69,7 @@ typedef struct special_registers {
 } SpecialRegisters;
 
 #define STACK_LIMIT      (50000)
+// #define STACK_LIMIT      (500000)
 #define CATCHSTACK_LIMIT (100)
 
 // volatile

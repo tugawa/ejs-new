@@ -23,6 +23,11 @@ int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
 int all_flag;          // all flag values are true
 
+/*
+  parameter
+ */
+int regstack_limit = STACK_LIMIT;   // size of register stack (not used yet)
+
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
 #endif
@@ -95,10 +100,11 @@ struct commandline_option {
 };
 
 struct commandline_option  options_table[] = {
-  { "-l", 0, &lastprint_flag },
-  { "-f", 0, &ftable_flag    },
-  { "-t", 0, &trace_flag     },
-  { "-a", 0, &all_flag     },
+  { "-l", 0, &lastprint_flag     },
+  { "-f", 0, &ftable_flag        },
+  { "-t", 0, &trace_flag         },
+  { "-a", 0, &all_flag           },
+  { "-s", 1, &regstack_limit     },      // not used yet
   { (char *)NULL, 0, (int *)NULL }
 };
 
@@ -117,7 +123,7 @@ int process_options(int ac, char *av[]) {
           if (o->arg == 0) *(o->flagvar) = TRUE;
           else {
             k++;
-            p++;
+            p = av[k];
             *(o->flagvar) = atoi(p);
           }
           break;
@@ -147,6 +153,7 @@ int main(int argc, char *argv[]) {
   if (all_flag == TRUE)
     lastprint_flag = ftable_flag = trace_flag = TRUE;
 
+  // printf("regstack_limit = %d\n", regstack_limit);
   // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
   //        lastprint_flag, ftable_flag, trace_flag, k);
   if (k > 0) {
