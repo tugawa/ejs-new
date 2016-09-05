@@ -456,8 +456,47 @@ static void trace_FunctionTable(FunctionTable **ptrp)
 
 static void trace_FunctionFrame(FunctionFrame **ptrp)
 {
-  printf("Not Implemented: trace_FunctionFrame\n");
+  FunctionFrame *ptr = *ptrp;
+  uint64_t header;
+  uint64_t length;
+  size_t   i;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  if (ptr->prev_frame != NULL)
+    trace_FunctionFrame(&ptr->prev_frame);
+  trace_slot(&ptr->arguments);
+  /* locals */
+  header = *(((uint64_t *) ptr) - HEADER_JSVALUES);
+  length = HEADER0_GET_SIZE(header) - HEADER_JSVALUES;
+  length -= HEADER0_GET_EXTRA(header);
+  for (i = ((JSValue *) &ptr->locals) - ((JSValue *) ptr); i < length; i++)
+    trace_slot(ptr->locals + i);
 }
+
+static void trace_StrCons(StrCons **ptrp)
+{
+  StrCons *ptr = *ptrp;
+  
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  trace_slot(&ptr->str);
+  if (ptr->next != NULL)
+    trace_StrCons(&ptr->next);
+}
+
+static void trace_StrCons_ptr_array(StrCons ***ptrp, int length)
+{
+  StrCons **ptr = *ptrp;
+  size_t i;
+  if (test_and_mark_no_js_object(ptr))
+    return;
+
+  for (i = 0; i < length; i++)
+    if (ptr[i] != NULL)
+      trace_StrCons(ptr + i);
+}  
 
 static void trace_object_pointer(uintptr_t *ptrp)
 {
@@ -557,10 +596,16 @@ static void scan_roots(void)
 {
   struct global_constant_objects *gconstsp = &gconsts;
   JSValue* p;
+
   /* global variables */
   for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++) {
     trace_slot(p);
   }
+  /* function table: do not trace.
+   *                 Used slots should be traced through Function objects
+   */
+  /* string table */
+  trace_StrCons_ptr_array(&string_table.obvector, string_table.size);
 }
 
 static void print_memory_status(void)
