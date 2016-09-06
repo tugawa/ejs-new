@@ -70,16 +70,20 @@
 #define HEADER0_BITS          64
 #define HEADER0_TYPE_OFFSET   0
 #define HEADER0_TYPE_BITS     8
-#define HEADER0_EXTRA_OFFSET  9
-#define HEADER0_EXTRA_BITS    3
-#define HEADER0_GEN_OFFSET  12
-#define HEADER0_GEN_BITS    4
 #define HEADER0_GC_OFFSET     8
 #define HEADER0_GC_BITS       1
+#define HEADER0_EXTRA_OFFSET  9
+#define HEADER0_EXTRA_BITS    3
+#define HEADER0_GEN_OFFSET    12
+#define HEADER0_GEN_BITS      4
+#define HEADER0_MAGIC_OFFSET  16
+#define HEADER0_MAGIC_BITS    8
 #define HEADER0_SIZE_OFFSET   32
 #define HEADER0_SIZE_BITS     32
 #define HEADER0_TYPE_MASK \
   MKMASK(HEADER0_BITS, HEADER0_TYPE_OFFSET, HEADER0_TYPE_BITS)
+#define HEADER0_MAGIC_MASK \
+  MKMASK(HEADER0_BITS, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_BITS)
 #define HEADER0_GEN_MASK \
   MKMASK(HEADER0_BITS, HEADER0_GEN_OFFSET, HEADER0_GEN_BITS)
 #define HEADER0_EXTRA_MASK \
@@ -89,6 +93,8 @@
 #define HEADER0_SIZE_MASK					\
   MKMASK(HEADER0_BITS, HEADER0_SIZE_OFFSET, HEADER0_SIZE_BITS)
 //#define HEADER0_SIZE_MASK 0xffffffff00000000LLU
+
+#define HEADER0_MAGIC  (24)
 
 /* accessor to HEADER0 */
 #define HEADER0_SET(hdr, val, off, msk)			\
@@ -103,6 +109,10 @@
   HEADER0_SET(hdr, val, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
 #define HEADER0_GET_EXTRA(hdr) \
   HEADER0_GET(hdr, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
+#define HEADER0_SET_MAGIC(hdr, val) \
+  HEADER0_SET(hdr, val, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_MASK)
+#define HEADER0_GET_MAGIC(hdr) \
+  HEADER0_GET(hdr, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_MASK)
 #define HEADER0_SET_GEN(hdr, val) \
   HEADER0_SET(hdr, val, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
 #define HEADER0_GET_GEN(hdr) \
@@ -117,8 +127,10 @@
   HEADER0_GET(hdr, HEADER0_SIZE_OFFSET, HEADER0_SIZE_MASK)
 #define HEADER0_COMPOSE(size, extra, type) \
   ((((uint64_t) (size)) << HEADER0_SIZE_OFFSET) | \
-   ((uint64_t) (extra)) << HEADER0_EXTRA_OFFSET |	\
-   ((uint64_t) (type)) << HEADER0_TYPE_OFFSET)
+   (((uint64_t) (extra)) << HEADER0_EXTRA_OFFSET) | \
+   (((uint64_t) (type)) << HEADER0_TYPE_OFFSET) | \
+   (((uint64_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
+
 
 /* 
  * header tag
@@ -342,7 +354,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes)
     uintptr_t a = (uintptr_t) addr;
     uintptr_t off = a - malloc_space.addr - HEADER_BYTES;
     uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
-    *shadow = 0x1;
+    *shadow = *(((uint64_t *)addr) - 1);
   }
   return addr;
 }
@@ -364,7 +376,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
     uintptr_t a = (uintptr_t) addr;
     uintptr_t off = a - js_space.addr;
     uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
-    *shadow = 0x1;
+    *shadow = *(uint64_t *) addr;
   }
   return addr;
 }
@@ -426,12 +438,12 @@ static void mark_object(Object *obj)
       uintptr_t a = (uintptr_t) obj;
       uintptr_t off = a - js_space.addr;
       uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
-      assert((*shadow & 1) == 1);
+      assert(*shadow == (obj->header & ~GC_MARK_BIT));
     } else if (in_malloc_space(obj)) {
       uintptr_t a = (uintptr_t) obj;
       uintptr_t off = a - malloc_space.addr;
       uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
-      assert((*shadow & 1) == 1);
+      assert(*shadow == (obj->header & ~GC_MARK_BIT));
     }
   }
   //  *get_shadow(obj) = 1;
@@ -775,6 +787,7 @@ static void sweep_space(struct space *space)
 	   is_marked_object((Object *) scan)) {
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
+      assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;
     }
@@ -783,6 +796,7 @@ static void sweep_space(struct space *space)
 	   !is_marked_object((Object *) scan)) {
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
+      assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
       scan += size << LOG_BYTES_IN_JSVALUE;
     }
     if (free_start < scan) {
@@ -804,6 +818,13 @@ static void sweep_space(struct space *space)
 	*p = chunk;
 	p = &chunk->next;
 	free_bytes += scan - free_start;
+      } else  {
+	printf("too small chunk %x - %x (%d)\n",
+	       free_start - space->addr, scan - space->addr,
+	       scan - free_start);
+	* (int64_t *) free_start =
+	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
+			  0, HTAG_FREE);
       }
     }
   }
