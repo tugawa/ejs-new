@@ -356,6 +356,8 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes)
     uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
     *shadow = *(((uint64_t *)addr) - 1);
   }
+  memset(addr, generation,
+	 (HEADER0_GET_SIZE(((uint64_t *)addr)[-1]) - HEADER_JSVALUES) * 8);
   return addr;
 }
 
@@ -788,6 +790,7 @@ static void sweep_space(struct space *space)
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
+      unmark_object((Object *) scan);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;
     }
@@ -803,7 +806,11 @@ static void sweep_space(struct space *space)
       if (last_used != 0) {
 	uint64_t last_header = *(uint64_t *) last_used;
 	uint32_t extra = HEADER0_GET_EXTRA(last_header);
+	uint32_t size = HEADER0_GET_SIZE(last_header);
 	free_start -= extra << LOG_BYTES_IN_JSVALUE;
+	size -= extra;
+	HEADER0_SET_SIZE(*(uint64_t *) last_used, size);
+	HEADER0_SET_EXTRA(*(uint64_t *) last_used, 0);
       }
       if (scan - free_start >=
 	  MINIMUM_FREE_CHUNK_JSVALUES << LOG_BYTES_IN_JSVALUE) {
@@ -819,10 +826,7 @@ static void sweep_space(struct space *space)
 	p = &chunk->next;
 	free_bytes += scan - free_start;
       } else  {
-	printf("too small chunk %x - %x (%d)\n",
-	       free_start - space->addr, scan - space->addr,
-	       scan - free_start);
-	* (int64_t *) free_start =
+	*(int64_t *) free_start =
 	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
 			  0, HTAG_FREE);
       }
