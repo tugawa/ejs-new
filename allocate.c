@@ -48,7 +48,6 @@ StringCell *allocate_string(uint32_t length)
   uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
   StringCell *v =
     (StringCell *) gc_jsalloc_critical(size, HTAG_STRING);
-  v->header = make_header(size, HTAG_STRING);
 #ifdef STROBJ_HAS_HASH
   v->length = length;
 #endif
