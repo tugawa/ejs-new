@@ -22,7 +22,7 @@ extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(const char *, const char *);
 extern Object *allocate_object(Context *ctx);
 extern ArrayCell *allocate_array(void);
-extern void allocate_array_data(JSValue, int, int);
+extern void allocate_array_data(Context *, JSValue, int, int);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int size);
@@ -32,6 +32,8 @@ extern RegexpCell *allocate_regexp(void);
 #endif
 extern BoxedCell *allocate_boxed(uint32_t);
 
+#define allocate_array_data_critical(a,s,l)	\
+  allocate_array_data(NULL,(a),(s),(l))
 /*
  * builtin.c
  */
@@ -217,8 +219,8 @@ extern int regexp_flag(JSValue);
 #endif
 extern JSValue new_object_without_prototype(Context *);
 extern JSValue new_object(Context *);
-extern JSValue new_array(void);
-extern JSValue new_array_with_size(int);
+extern JSValue new_array(Context *);
+extern JSValue new_array_with_size(Context *, int size);
 extern JSValue new_function(Context *, Subscript);
 extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, int);
 extern JSValue new_builtin(builtin_function_t, int);

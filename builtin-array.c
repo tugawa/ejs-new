@@ -14,6 +14,7 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include "gc.h"
 
 #define not_implemented(s) \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
@@ -23,24 +24,25 @@
  */
 BUILTIN_FUNCTION(array_constr)
 {
-  JSValue rsv, n;
+  JSValue rsv;
   cint size, length;
 
   builtin_prologue();
-  rsv = new_array();    // note that new_array sets the `length' property to 0
+  rsv = new_array(context);  // note: new_array sets the `length' property to 0
+  gc_push_tmp_root(&rsv);
   if (na == 0) {
-    allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
+    allocate_array_data(context, rsv, INITIAL_ARRAY_SIZE, 0);
     set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
   } else if (na == 1) {
-    n = args[1];
+    JSValue n = args[1];  // GC: n is used in uninterraptible section
     size =INITIAL_ARRAY_SIZE;
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
       while (size < length) size *= 2;
-      allocate_array_data(rsv, size, length);
+      allocate_array_data(context, rsv, size, length);
       // printf("array_constr: length = %ld, size = %ld, rsv = %lx\n", length, size, rsv);
       set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     } else {
-      allocate_array_data(rsv, INITIAL_ARRAY_SIZE, 0);
+      allocate_array_data(context, rsv, INITIAL_ARRAY_SIZE, 0);
       set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
     }
   } else {
@@ -53,12 +55,13 @@ BUILTIN_FUNCTION(array_constr)
     size =INITIAL_ARRAY_SIZE;
     length = na;
     while (size < length) size *= 2;
-    allocate_array_data(rsv, size, length);
+    allocate_array_data(context, rsv, size, length);
     set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     for (i = 0; i < length; i++)
       array_body_index(rsv, i) = args[i];
   }
   set_a(context, rsv);
+  gc_pop_tmp_root(1);
 }
 
 BUILTIN_FUNCTION(array_toString)

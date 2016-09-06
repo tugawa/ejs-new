@@ -107,16 +107,18 @@ ArrayCell *allocate_array(void) {
      len  : length of the array, i.e., subscripts that are less than len
             are acrutally used
  */
-void allocate_array_data(JSValue a, int size, int len)
+void allocate_array_data(Context *ctx, JSValue a, int size, int len)
 {
   JSValue *body;
   int i;
 
-  body = (JSValue *) gc_malloc_critical(sizeof(JSValue) * size);
+  gc_push_tmp_root(&a);
+  body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
   array_length(a) = len;
+  gc_pop_tmp_root(1);
 }
 
 /*

@@ -1,8 +1,27 @@
+/*
+ * gc.h
+ *
+ *   eJS Project
+ *
+ *   Hideya Iwaski, 2016
+ *   Tomoharu Ugawa, 2016
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include "log.h"
+
+#define GCLOG(...) LOG(__VA_ARGS__)
+//#define GCLOG(...)
+#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+//#define GCLOG_TRIGGER(...)
+//#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+#define GCLOG_ALLOC(...)
+//#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+#define GCLOG_SWEEP(...)
 
 /*
  * defined in header.h
@@ -53,12 +72,16 @@
 #define HEADER0_TYPE_BITS     8
 #define HEADER0_EXTRA_OFFSET  9
 #define HEADER0_EXTRA_BITS    3
+#define HEADER0_GEN_OFFSET  12
+#define HEADER0_GEN_BITS    4
 #define HEADER0_GC_OFFSET     8
 #define HEADER0_GC_BITS       1
 #define HEADER0_SIZE_OFFSET   32
 #define HEADER0_SIZE_BITS     32
 #define HEADER0_TYPE_MASK \
   MKMASK(HEADER0_BITS, HEADER0_TYPE_OFFSET, HEADER0_TYPE_BITS)
+#define HEADER0_GEN_MASK \
+  MKMASK(HEADER0_BITS, HEADER0_GEN_OFFSET, HEADER0_GEN_BITS)
 #define HEADER0_EXTRA_MASK \
   MKMASK(HEADER0_BITS, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_BITS)
 #define HEADER0_GC_MASK \
@@ -80,6 +103,10 @@
   HEADER0_SET(hdr, val, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
 #define HEADER0_GET_EXTRA(hdr) \
   HEADER0_GET(hdr, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
+#define HEADER0_SET_GEN(hdr, val) \
+  HEADER0_SET(hdr, val, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
+#define HEADER0_GET_GEN(hdr) \
+  HEADER0_GET(hdr, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
 #define HEADER0_SET_GC(hdr, val) \
   HEADER0_SET(hdr, val, HEADER0_GC_OFFSET, HEADER0_GC_MASK)
 #define HEADER0_GET_GC(hdr) \
@@ -116,11 +143,11 @@ struct space {
   char *name;
 };
 
+
 /*
  * GC
  */
 #define GC_MARK_BIT (1 << HEADER0_GC_OFFSET)
-
 
 /*
  * prototype
@@ -148,7 +175,11 @@ static struct space js_space;
 static struct space debug_js_shadow;
 static struct space malloc_space;
 static struct space debug_malloc_shadow;
+#define MAX_TMP_ROOTS 1000
+static void *tmp_roots[MAX_TMP_ROOTS];
+static int tmp_roots_sp;
 static int gc_disabled = 1;
+static int generation = 0;
 
 static void create_space(struct space *space, uintptr_t bytes, char *name)
 {
@@ -169,7 +200,19 @@ void init_memory()
   create_space(&malloc_space, MALLOC_SPACE_BYTES, "malloc_space");
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
   create_space(&debug_malloc_shadow, MALLOC_SPACE_BYTES, "debug_malloc_shadow");
+  tmp_roots_sp = -1;
   gc_disabled = 0;
+  generation = 1;
+}
+
+void gc_push_tmp_root(void *loc)
+{
+  tmp_roots[++tmp_roots_sp] = loc;
+}
+
+void gc_pop_tmp_root(int n)
+{
+  tmp_roots_sp -= n;
 }
 
 /*
@@ -199,14 +242,17 @@ static void* do_malloc(uintptr_t request_bytes)
 	uintptr_t addr =
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, 0);
+	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, HTAG_MALLOC);
+	HEADER0_SET_GEN(*(uint64_t *) addr, generation);
 	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (addr + HEADER_BYTES);
       } else {
 	/* This chunk is too small to split. */
 	*p = (*p)->next;
 	chunk->header =
-	  HEADER0_COMPOSE(chunk_jsvalues, chunk_jsvalues - alloc_jsvalues, 0);
+	  HEADER0_COMPOSE(chunk_jsvalues,
+			  chunk_jsvalues - alloc_jsvalues, HTAG_MALLOC);
+	HEADER0_SET_GEN(chunk->header, generation);
 	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
       }
@@ -238,6 +284,7 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
 	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
+	HEADER0_SET_GEN(*(uint64_t *) addr, generation);
 	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) addr;
       } else {
@@ -245,6 +292,7 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 	*p = (*p)->next;
 	chunk->header = HEADER0_COMPOSE(chunk_jsvalues,
 					chunk_jsvalues - alloc_jsvalues, type);
+	HEADER0_SET_GEN(chunk->header, generation);
 	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (JSValue *) chunk;
       }
@@ -257,38 +305,39 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 
 static int check_gc_request(Context *ctx)
 {
-  printf("check_gc_request\n");
   if (ctx == NULL) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      printf("Needed gc for js_space -- cancelled: ctx == NULL\n");
+      GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
     if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      printf("Needed gc for malloc_space -- cancelled: ctx == NULL\n");
+      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: ctx == NULL\n");
     return 0;
   }
   if (gc_disabled) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      printf("Needed gc for js_space -- cancelled: GC disabled\n");
+      GCLOG_TRIGGER("Needed gc for js_space -- cancelled: GC disabled\n");
     if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      printf("Needed gc for malloc_space -- cancelled: GC disabled\n");
+      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: GC disabled\n");
     return 0;
   }
   if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
     return 1;
   if (malloc_space.free_bytes < MALLOC_SPACE_GC_THREASHOLD)
     return 1;
-  printf("no GC needed js %d malloc %d\n",
-	 js_space.free_bytes, malloc_space.free_bytes);
+  GCLOG_TRIGGER("no GC needed js %d malloc %d\n",
+		js_space.free_bytes, malloc_space.free_bytes);
   return 0;
 }
 
 void* gc_malloc(Context *ctx, uintptr_t request_bytes)
 {
   void * addr;
+  //  return malloc(request_bytes);
+
   if (check_gc_request(ctx))
     garbage_collect(ctx);
   addr = do_malloc(request_bytes);
-  printf("gc_malloc: req %x bytes => %p (%x)\n",
-	 request_bytes, addr, addr - malloc_space.addr);
+  GCLOG_ALLOC("gc_malloc: req %x bytes => %p (%x)\n",
+	      request_bytes, addr, addr - malloc_space.addr);
   {
     uintptr_t a = (uintptr_t) addr;
     uintptr_t off = a - malloc_space.addr - HEADER_BYTES;
@@ -301,16 +350,22 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes)
 JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   JSValue *addr;
+  //  request_bytes = (request_bytes + 7) & ~7;
+  //  addr = (JSValue *) malloc(request_bytes);
+  //  *addr = HEADER0_COMPOSE(request_bytes >> 3, 0, type);
+  //  return addr;
+
   if (check_gc_request(ctx))
     garbage_collect(ctx);
   addr = do_jsalloc(request_bytes, type);
+  GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
+	      request_bytes, type, addr);
   {
     uintptr_t a = (uintptr_t) addr;
     uintptr_t off = a - js_space.addr;
     uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
     *shadow = 0x1;
   }
-  printf("gc_jsalloc: req %x bytes type %d => %p\n", request_bytes, type, addr);
   return addr;
 }
 
@@ -339,11 +394,15 @@ static int in_malloc_space(void *addr_)
 
 static void garbage_collect(Context *ctx)
 {
-  printf("GC: Not Implemented\n");
+  GCLOG("Before Garbage Collection\n");
   print_memory_status();
 
   scan_roots(ctx);
   sweep();
+
+  GCLOG("After Garbage Collection\n");
+  print_memory_status();
+  generation++;
 }
 
 static uint64_t *get_shadow(void *ptr)
@@ -499,6 +558,7 @@ static void trace_FunctionFrame(FunctionFrame **ptrp)
   size_t   i;
   if (test_and_mark_no_js_object(ptr))
     return;
+  assert(in_malloc_space(ptr));
 
   if (ptr->prev_frame != NULL)
     trace_FunctionFrame(&ptr->prev_frame);
@@ -545,6 +605,7 @@ static void trace_Context(Context **contextp)
   if (test_and_mark_no_js_object(context))
     return;
 
+  trace_slot(&context->global);
   trace_FunctionTable_array(&context->function_table, FUNCTION_TABLE_LIMIT);
   /* TODO: update spregs.cf which is an inner pointer to function_table */
   trace_FunctionFrame(&context->spreg.lp);
@@ -651,6 +712,7 @@ static void scan_roots(Context *ctx)
 {
   struct global_constant_objects *gconstsp = &gconsts;
   JSValue* p;
+  int i;
 
   /*
    * global variables
@@ -669,6 +731,12 @@ static void scan_roots(Context *ctx)
    * Context
    */
   trace_Context(&ctx);
+
+  /*
+   * tmp root
+   */
+  for (i = 0; i <= tmp_roots_sp; i++)
+    trace_slot((JSValue *) tmp_roots[i]);
 }
 
 static void scan_stack(JSValue* stack, int sp, int fp)
@@ -695,7 +763,7 @@ static void sweep_space(struct space *space)
   uintptr_t scan = space->addr;
   uintptr_t free_bytes = 0;
 
-  printf("sweep %s\n", space->name);
+  GCLOG_SWEEP("sweep %s\n", space->name);
 
   space->freelist = NULL;
   p = &space->freelist;
@@ -726,9 +794,10 @@ static void sweep_space(struct space *space)
       if (scan - free_start >=
 	  MINIMUM_FREE_CHUNK_JSVALUES << LOG_BYTES_IN_JSVALUE) {
 	struct free_chunk *chunk = (struct free_chunk *) free_start;
-	printf("add_cunk %x - %x (%d)\n",
-	       free_start - space->addr, scan - space->addr,
-	       scan - free_start);
+	GCLOG_SWEEP("add_cunk %x - %x (%d)\n",
+		    free_start - space->addr, scan - space->addr,
+		    scan - free_start);
+	memset(chunk, 0xcc, scan - free_start);
 	chunk->header =
 	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
 			  0, HTAG_FREE);
@@ -751,7 +820,7 @@ static void sweep(void)
 
 static void print_memory_status(void)
 {
-  printf("  gc_disabled = %d\n", gc_disabled);
-  printf("  js_space.free_bytes = %d\n", js_space.free_bytes);
-  printf("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
+  GCLOG("  gc_disabled = %d\n", gc_disabled);
+  GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
+  GCLOG("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
 }

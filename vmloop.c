@@ -136,6 +136,13 @@ do{                                                                  \
 
 #else
 
+#define save_context() do			\
+{						\
+  set_cf(context, curfn);			\
+  set_pc(context, pc);				\
+  set_fp(context,fp);				\
+} while(0)
+
 #define update_context() do {                       \
   curfn = get_cf(context);                          \
   codesize = ftab_n_insns(curfn);                   \
@@ -1231,6 +1238,7 @@ I_NEW:
     dst = get_first_operand_reg(insn);
     con = regbase[get_second_operand_reg(insn)];
     if (is_function(con)) {
+      save_context(); // GC
       o = new_object(context);
       update_context(); // GC
       // printf("NEW: is_function, o = %lx\n", o);
@@ -1407,7 +1415,9 @@ I_NEWARGS:
     // fr = new_frame(get_cf(context), fframe_prev(get_lp(context))); ???
     fr = new_frame(get_cf(context), get_lp(context));
     set_lp(context, fr);
-    args = new_array_with_size(na);
+    save_context(); // GC
+    args = new_array_with_size(context, na);
+    update_context(); // GC
     /*
        Note that the i-th arg is regbase[i + 2].
        (regbase[1] is the receiver)
@@ -1601,6 +1611,7 @@ I_MAKECLOSURE:
      */
     dst = get_first_operand_reg(insn);
     ss = get_second_operand_subscr(insn) + 1;
+    save_context(); // GC
     regbase[dst] = new_function(context, ss);
     update_context();  // GC
   }

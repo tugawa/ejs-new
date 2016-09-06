@@ -33,6 +33,7 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
+#include "gc.h"
 
 #define PROP_REALLOC_THRESHOLD (0.75)
 
@@ -510,28 +511,32 @@ JSValue new_object(Context *ctx)
 /*
    makes a new array
  */
-JSValue new_array(void) {
+JSValue new_array(Context *ctx) {
   JSValue ret;
 
   ret = make_array();
+  disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret));
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
-  allocate_array_data(ret, 0, 0);
+  allocate_array_data_critical(ret, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
+  enable_gc();
   return ret;
 }
 
 /*
    makes a new array with size
  */
-JSValue new_array_with_size(int size)
+JSValue new_array_with_size(Context *ctx, int size)
 {
   JSValue ret;
 
   ret = make_array();
+  disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret));
-  allocate_array_data(ret, size, size);
+  allocate_array_data_critical(ret, size, size);
   set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
+  enable_gc();
   return ret;
 }
 
