@@ -579,10 +579,14 @@ static void trace_FunctionFrame(FunctionFrame **ptrp)
   trace_slot(&ptr->arguments);
   /* locals */
   header = *(((uint64_t *) ptr) - HEADER_JSVALUES);
-  length = HEADER0_GET_SIZE(header) - HEADER_JSVALUES;
+  length = HEADER0_GET_SIZE(header);
+  length -= HEADER_JSVALUES;
+  length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
   length -= HEADER0_GET_EXTRA(header);
-  for (i = ((JSValue *) &ptr->locals) - ((JSValue *) ptr); i < length; i++)
+  for (i = 0; i < length; i++)
     trace_slot(ptr->locals + i);
+
+  assert(ptr->locals[length - 1] == JS_UNDEFINED);  // GC_DEBUG (cacary)
 }
 
 static void trace_StrCons(StrCons **ptrp)
