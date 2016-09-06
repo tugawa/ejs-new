@@ -19,6 +19,7 @@ FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env) {
   frame = (FunctionFrame *)
     gc_malloc_critical(sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl);
   frame->prev_frame = env;
+  frame->arguments = JS_UNDEFINED;
   locals = frame->locals;
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;

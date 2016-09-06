@@ -139,7 +139,11 @@ BuiltinCell *allocate_builtin(void) {
 }
 
 JSValue *allocate_prop_table(int size) {
-  return (JSValue*) gc_malloc_critical(sizeof(JSValue) * size);
+  JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size);
+  size_t i;
+  for (i = 0; i < size; i++)  // initialise for GC
+    table[i] = JS_UNDEFINED;
+  return table;
 }
 
 /*
