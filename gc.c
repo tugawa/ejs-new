@@ -23,6 +23,8 @@
 //#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
 #define GCLOG_SWEEP(...)
 
+#define STATIC
+
 /*
  * defined in header.h
  */
@@ -164,36 +166,36 @@ struct space {
 /*
  * prototype
  */
-static void create_space(struct space *space, uintptr_t bytes, char*);
-static void* do_malloc(uintptr_t request_bytes);
-static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type);
-static int check_gc_request(Context *);
+STATIC void create_space(struct space *space, uintptr_t bytes, char*);
+STATIC void* do_malloc(uintptr_t request_bytes);
+STATIC JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type);
+STATIC int check_gc_request(Context *);
 
-static void garbage_collect(Context *ctx);
-static void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
-static void trace_HashCell(HashCell **ptrp);
-static void trace_JSValue_array(JSValue **, uint32_t);
-static void trace_slot(JSValue* ptr);
-static void scan_roots(Context *ctx);
-static void scan_stack(JSValue* stack, int sp, int fp);
-static void sweep(void);
-static void print_memory_status(void);
+STATIC void garbage_collect(Context *ctx);
+STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
+STATIC void trace_HashCell(HashCell **ptrp);
+STATIC void trace_JSValue_array(JSValue **, uint32_t);
+STATIC void trace_slot(JSValue* ptr);
+STATIC void scan_roots(Context *ctx);
+STATIC void scan_stack(JSValue* stack, int sp, int fp);
+STATIC void sweep(void);
+STATIC void print_memory_status(void);
 
 /*
  * variables
  */
 
-static struct space js_space;
-static struct space debug_js_shadow;
-static struct space malloc_space;
-static struct space debug_malloc_shadow;
+STATIC struct space js_space;
+STATIC struct space debug_js_shadow;
+STATIC struct space malloc_space;
+STATIC struct space debug_malloc_shadow;
 #define MAX_TMP_ROOTS 1000
-static void *tmp_roots[MAX_TMP_ROOTS];
-static int tmp_roots_sp;
-static int gc_disabled = 1;
-static int generation = 0;
+STATIC void *tmp_roots[MAX_TMP_ROOTS];
+STATIC int tmp_roots_sp;
+STATIC int gc_disabled = 1;
+STATIC int generation = 0;
 
-static void create_space(struct space *space, uintptr_t bytes, char *name)
+STATIC void create_space(struct space *space, uintptr_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
@@ -234,7 +236,7 @@ void gc_pop_tmp_root(int n)
  * the area available to the VM, and extra bytes if any.
  * Other header bits are zero
  */
-static void* do_malloc(uintptr_t request_bytes)
+STATIC void* do_malloc(uintptr_t request_bytes)
 {
   uint32_t  alloc_jsvalues;
   struct free_chunk **p;
@@ -277,7 +279,7 @@ static void* do_malloc(uintptr_t request_bytes)
 /*
  * request_jsvalues: the number of JSValue's including the object header.
  */
-static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
+STATIC JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
 {
   struct free_chunk **p;
   uint32_t alloc_jsvalues;
@@ -315,7 +317,7 @@ static JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
   return NULL;
 }
 
-static int check_gc_request(Context *ctx)
+STATIC int check_gc_request(Context *ctx)
 {
   if (ctx == NULL) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
@@ -393,20 +395,20 @@ void enable_gc(void)
   gc_disabled = 0;
 }
 
-static int in_js_space(void *addr_)
+STATIC int in_js_space(void *addr_)
 {
   uintptr_t addr = (uintptr_t) addr_;
   return (js_space.addr <= addr && addr <= js_space.addr + js_space.bytes);
 }
 
-static int in_malloc_space(void *addr_)
+STATIC int in_malloc_space(void *addr_)
 {
   uintptr_t addr = (uintptr_t) addr_;
   return (malloc_space.addr <= addr &&
 	  addr <= malloc_space.addr + malloc_space.bytes);
 }
 
-static void garbage_collect(Context *ctx)
+STATIC void garbage_collect(Context *ctx)
 {
   GCLOG("Before Garbage Collection\n");
   print_memory_status();
@@ -419,7 +421,7 @@ static void garbage_collect(Context *ctx)
   generation++;
 }
 
-static uint64_t *get_shadow(void *ptr)
+STATIC uint64_t *get_shadow(void *ptr)
 {
   if (in_js_space(ptr)) {
     uintptr_t a = (uintptr_t) ptr;
@@ -433,7 +435,7 @@ static uint64_t *get_shadow(void *ptr)
     return NULL;
 }
 
-static void mark_object(Object *obj)
+STATIC void mark_object(Object *obj)
 {
   {
     if (in_js_space(obj)) {
@@ -452,12 +454,12 @@ static void mark_object(Object *obj)
   obj->header |= GC_MARK_BIT;
 }
 
-static void unmark_object(Object *obj)
+STATIC void unmark_object(Object *obj)
 {
   obj->header &= ~GC_MARK_BIT;
 }
 
-static int is_marked_object(Object *obj)
+STATIC int is_marked_object(Object *obj)
 {
   //  if (*get_shadow(obj))
   //    return 1;
@@ -468,7 +470,7 @@ static int is_marked_object(Object *obj)
 #endif
 }
 
-static int test_and_mark_no_js_object(void *ptr)
+STATIC int test_and_mark_no_js_object(void *ptr)
 {
   /* never be JS object */
   assert(!in_js_space(ptr));
@@ -482,7 +484,7 @@ static int test_and_mark_no_js_object(void *ptr)
   return 0;
 }
 
-static void trace_leaf_object_pointer(uintptr_t *ptrp)
+STATIC void trace_leaf_object_pointer(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
   /* TODO: make a type for leaf object. */
@@ -492,7 +494,7 @@ static void trace_leaf_object_pointer(uintptr_t *ptrp)
     mark_object((Object *) (ptr - HEADER_BYTES));
 }
 
-static void trace_HashTable(HashTable **ptrp)
+STATIC void trace_HashTable(HashTable **ptrp)
 {
   HashTable *ptr = *ptrp;
 
@@ -502,7 +504,7 @@ static void trace_HashTable(HashTable **ptrp)
   trace_HashCell_array(&ptr->body, ptr->size);
 }
 
-static void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
+STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
 {
   HashCell **ptr = *ptrp;
   int i;
@@ -515,7 +517,7 @@ static void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
   }
 }
 
-static void trace_HashCell(HashCell **ptrp)
+STATIC void trace_HashCell(HashCell **ptrp)
 {
   HashCell *ptr = *ptrp;
   if (test_and_mark_no_js_object(ptr))
@@ -526,7 +528,7 @@ static void trace_HashCell(HashCell **ptrp)
     trace_HashCell(&ptr->next);
 }
 
-static void trace_Instruction_array_part(Instruction **ptrp,
+STATIC void trace_Instruction_array_part(Instruction **ptrp,
 					 uint32_t start, uint32_t end)
 {
   Instruction *ptr = (Instruction *) *ptrp;
@@ -538,14 +540,14 @@ static void trace_Instruction_array_part(Instruction **ptrp,
     trace_slot((JSValue *) (ptr + i));
 }
 
-static void scan_FunctionTable(FunctionTable *ptr)
+STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
   trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->body_size);
   trace_leaf_object_pointer((uintptr_t *) &ptr->insn_ptr);
 }
 
-static void trace_FunctionTable(FunctionTable **ptrp)
+STATIC void trace_FunctionTable(FunctionTable **ptrp)
 {
   /* TODO: see calling site */
   FunctionTable *ptr = *ptrp;
@@ -554,7 +556,7 @@ static void trace_FunctionTable(FunctionTable **ptrp)
   scan_FunctionTable(ptr);
 }
 
-static void trace_FunctionTable_array(FunctionTable **ptrp, uint64_t length)
+STATIC void trace_FunctionTable_array(FunctionTable **ptrp, uint64_t length)
 {
   FunctionTable *ptr = *ptrp;
   size_t i;
@@ -564,7 +566,7 @@ static void trace_FunctionTable_array(FunctionTable **ptrp, uint64_t length)
     scan_FunctionTable(ptr + i);
 }
 
-static void trace_FunctionFrame(FunctionFrame **ptrp)
+STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
 {
   FunctionFrame *ptr = *ptrp;
   uint64_t header;
@@ -589,7 +591,7 @@ static void trace_FunctionFrame(FunctionFrame **ptrp)
   assert(ptr->locals[length - 1] == JS_UNDEFINED);  // GC_DEBUG (cacary)
 }
 
-static void trace_StrCons(StrCons **ptrp)
+STATIC void trace_StrCons(StrCons **ptrp)
 {
   StrCons *ptr = *ptrp;
 
@@ -601,7 +603,7 @@ static void trace_StrCons(StrCons **ptrp)
     trace_StrCons(&ptr->next);
 }
 
-static void trace_StrCons_ptr_array(StrCons ***ptrp, int length)
+STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, int length)
 {
   StrCons **ptr = *ptrp;
   size_t i;
@@ -616,7 +618,7 @@ static void trace_StrCons_ptr_array(StrCons ***ptrp, int length)
 /*
  * we do not move context
  */
-static void trace_Context(Context **contextp)
+STATIC void trace_Context(Context **contextp)
 {
   Context *context = *contextp;
 
@@ -632,7 +634,7 @@ static void trace_Context(Context **contextp)
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
-static void trace_object_pointer(uintptr_t *ptrp)
+STATIC void trace_object_pointer(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
   Object *obj;
@@ -690,7 +692,7 @@ static void trace_object_pointer(uintptr_t *ptrp)
   }
 }
 
-static void trace_JSValue_array(JSValue **ptrp, uint32_t length)
+STATIC void trace_JSValue_array(JSValue **ptrp, uint32_t length)
 {
   JSValue *ptr = *ptrp;
   int i;
@@ -710,7 +712,7 @@ static void trace_JSValue_array(JSValue **ptrp, uint32_t length)
     trace_slot(ptr);
 }
 
-static void trace_slot(JSValue* ptr)
+STATIC void trace_slot(JSValue* ptr)
 {
   JSValue jsv = *ptr;
   /* TODO: use macro */
@@ -726,7 +728,7 @@ static void trace_slot(JSValue* ptr)
     trace_object_pointer((uintptr_t *) ptr);
 }
 
-static void scan_roots(Context *ctx)
+STATIC void scan_roots(Context *ctx)
 {
   struct global_constant_objects *gconstsp = &gconsts;
   JSValue* p;
@@ -757,7 +759,7 @@ static void scan_roots(Context *ctx)
     trace_slot((JSValue *) tmp_roots[i]);
 }
 
-static void scan_stack(JSValue* stack, int sp, int fp)
+STATIC void scan_stack(JSValue* stack, int sp, int fp)
 {
   while (1) {
     while (sp >= fp) {
@@ -775,7 +777,7 @@ static void scan_stack(JSValue* stack, int sp, int fp)
   }
 }
 
-static void sweep_space(struct space *space)
+STATIC void sweep_space(struct space *space)
 {
   struct free_chunk **p;
   uintptr_t scan = space->addr;
@@ -841,13 +843,13 @@ static void sweep_space(struct space *space)
 }
 
 
-static void sweep(void)
+STATIC void sweep(void)
 {
   sweep_space(&malloc_space);
   sweep_space(&js_space);
 }
 
-static void print_memory_status(void)
+STATIC void print_memory_status(void)
 {
   GCLOG("  gc_disabled = %d\n", gc_disabled);
   GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
