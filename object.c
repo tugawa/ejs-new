@@ -549,11 +549,15 @@ JSValue new_function(Context *context, Subscript subscr)
   JSValue ret;
 
   ret = make_function();
+  disable_gc();
   set_object_members(func_object_p(ret));
   func_table_entry(ret) = &(context->function_table[subscr]);
   func_environment(ret) = get_lp(context);
+  enable_gc();
+  gc_push_tmp_root(&ret);
   set_prop_none(ret, gconsts.g_string_prototype, new_object(context));
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
+  gc_pop_tmp_root(1);
   return ret;
 }
 
