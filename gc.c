@@ -39,8 +39,8 @@
  *                    jsvalues: in the numberof JSValue's
  */
 
-#define JS_SPACE_BYTES     (1024 * 1024)
-#define MALLOC_SPACE_BYTES (1024 * 1024)
+#define JS_SPACE_BYTES     (10 * 1024 * 1024)
+#define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
 #define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
 
@@ -443,21 +443,14 @@ STATIC uint64_t *get_shadow(void *ptr)
 STATIC void mark_object(Object *obj)
 {
   {
-    if (in_js_space(obj)) {
-      uintptr_t a = (uintptr_t) obj;
-      uintptr_t off = a - js_space.addr;
-      uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
-      assert(((*shadow & ~HEADER0_MAGIC_MASK) |
-	      (((header_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
-	     == (obj->header & ~GC_MARK_BIT));
-    } else if (in_malloc_space(obj)) {
-      uintptr_t a = (uintptr_t) obj;
-      uintptr_t off = a - malloc_space.addr;
-      uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
-      assert(((*shadow & ~HEADER0_MAGIC_MASK) |
-	      (((header_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
-	     == (obj->header & ~GC_MARK_BIT));
-    }
+    header_t header  = obj->header;
+    header_t *shadow = get_shadow(obj);
+    header_t sheader = *shadow;
+    assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
+    assert(HEADER0_GET_TYPE(header) == HEADER0_GET_TYPE(sheader));
+    assert(HEADER0_GET_SIZE(header) - HEADER0_GET_EXTRA(header) ==
+	   HEADER0_GET_SIZE(sheader) - HEADER0_GET_EXTRA(sheader));
+    assert(HEADER0_GET_GEN(header) == HEADER0_GET_GEN(sheader));
   }
   //  *get_shadow(obj) = 1;
   obj->header |= GC_MARK_BIT;
