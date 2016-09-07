@@ -42,7 +42,7 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->fp = 0;
   spreg->cf = NULL;
   spreg->lp = NULL;
-  spreg->sp = 0;
+  spreg->sp = -1;
   spreg->pc = 0;
   spreg->a = JS_UNDEFINED;
   spreg->err = JS_UNDEFINED;
@@ -84,4 +84,60 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   c->threadId = 0;
   c->eventQueue = newEventQueue();
 #endif
+}
+
+/*
+ * TODO: tidyup debug fuctions
+ */
+int in_js_space(void *addr_);
+int in_malloc_space(void *addr_);
+
+int is_valid_JSValue(JSValue x)
+{
+  switch(get_tag(x)) {
+  case T_OBJECT:
+    return in_js_space((void *) x);
+  case T_STRING:
+    if (!in_js_space((void *) x))
+      return 0;
+    return ((*(uint64_t *) (x & ~7)) & 0xff) == HTAG_STRING;
+  case T_FLONUM:
+    if (!in_js_space((void *) x))
+      return 0;
+    return ((*(uint64_t *) (x & ~7)) & 0xff) == HTAG_FLONUM;
+  case T_SPECIAL:
+    return (x == JS_TRUE ||
+	    x == JS_FALSE ||
+	    x == JS_NULL ||
+	    x == JS_UNDEFINED);
+  case T_FIXNUM:
+    return 1;
+  default:
+    return 0;
+  }
+}
+
+void check_stack_invariant(Context *ctx)
+{
+  int sp = ctx->spreg.sp;
+  int fp = ctx->spreg.fp;
+  int pc = ctx->spreg.pc;
+  FunctionTable *cf = ctx->spreg.cf;
+  FunctionFrame *lp = ctx->spreg.lp;
+  int i;
+
+  assert(is_valid_JSValue(ctx->global));
+  assert(is_valid_JSValue(ctx->spreg.a));
+  assert(is_valid_JSValue(ctx->spreg.err));
+  while (1) {
+    for (i = sp; i >= fp; i--)
+      assert(is_valid_JSValue(ctx->stack[i]));
+    if (fp == 0)
+      break;
+    sp = fp - 1;
+    fp = ctx->stack[sp--];
+    lp = (FunctionFrame *) ctx->stack[sp--];
+    pc = ctx->stack[sp--];
+    cf = (FunctionTable *) ctx->stack[sp--];
+  }
 }

@@ -204,3 +204,5 @@ instPtr = currentFunction->instPtr + pc;                \
 }while(0)
 
 #endif // PARALLEL
+
+void check_stack_invariant(Context *ctx);
