@@ -94,9 +94,9 @@ Object *allocate_object(Context *ctx)
    allocates an array
    Note that the return value does not have a pointer tag.
  */
-ArrayCell *allocate_array(void) {
+ArrayCell *allocate_array(Context *ctx) {
   ArrayCell *array =
-    (ArrayCell *) gc_jsalloc_critical(sizeof(ArrayCell), HTAG_ARRAY);
+    (ArrayCell *) gc_jsalloc(ctx, sizeof(ArrayCell), HTAG_ARRAY);
   return array;
 }
 

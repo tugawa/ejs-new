@@ -16,8 +16,8 @@
 
 #define GCLOG(...) LOG(__VA_ARGS__)
 //#define GCLOG(...)
-#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
-//#define GCLOG_TRIGGER(...)
+//#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+#define GCLOG_TRIGGER(...)
 //#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
 #define GCLOG_ALLOC(...)
 //#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
@@ -41,8 +41,10 @@
 
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
-#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
-#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
+#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 1)
+//#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+//#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
 
 /*
  * If the remaining room is smaller than a certain size,

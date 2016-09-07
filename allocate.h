@@ -35,7 +35,7 @@ StringCell* allocateString(int);
 JSValue  allocateString1(const char*);
 JSValue  allocateString2(const char*, const char*);
 JSValue  allocateObject();
-JSValue  allocateArray();
+JSValue  allocateArray(Context *);
 JSValue* allocateArrayData(int);
 JSValue  allocateFunction();
 JSValue  allocateIterator();

@@ -21,7 +21,7 @@ extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(const char *, const char *);
 extern Object *allocate_object(Context *ctx);
-extern ArrayCell *allocate_array(void);
+extern ArrayCell *allocate_array(Context *ctx);
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);

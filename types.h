@@ -133,7 +133,7 @@ typedef struct array_cell {
 #define is_array(p)           is_obj_header_tag((p), HTAG_ARRAY)
 #define put_array_tag(p)      (put_tag(p, T_OBJECT))
 #define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_OBJECT)))
-#define make_array()          (put_array_tag(allocate_array()))
+#define make_array(ctx)       (put_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)     (&((remove_array_tag(a))->o))
 #define array_size(a)         ((remove_array_tag(a))->size)

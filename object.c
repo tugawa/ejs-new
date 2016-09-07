@@ -514,7 +514,7 @@ JSValue new_object(Context *ctx)
 JSValue new_array(Context *ctx) {
   JSValue ret;
 
-  ret = make_array();
+  ret = make_array(ctx);
   disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret));
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
@@ -531,7 +531,7 @@ JSValue new_array_with_size(Context *ctx, int size)
 {
   JSValue ret;
 
-  ret = make_array();
+  ret = make_array(ctx);
   disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret));
   allocate_array_data_critical(ret, size, size);
