@@ -14,6 +14,7 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include "gc.h"
 
 #define HASH_SKIP (27)
 
@@ -178,7 +179,8 @@ uint32_t calc_hash2(const char* s1, const char* s2) {
 
 //
 HashCell** __hashMalloc(int size) {
-  HashCell** ret = (HashCell**)malloc(sizeof(HashCell*) * size);
+  HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
+						  MATYPE_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }

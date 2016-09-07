@@ -52,7 +52,9 @@
  */
 #define MINIMUM_FREE_CHUNK_JSVALUES 4
 
-#define MKMASK(l, o, b) \
+typedef uint64_t header_t;
+
+#define MKMASK(l, o, b)						\
   ((((uint64_t) -1) << ((l) - (b))) >> ((l) - (o) - (b)))
 
 /*
@@ -116,7 +118,8 @@
 #define HEADER0_GET_MAGIC(hdr) \
   HEADER0_GET(hdr, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_MASK)
 #define HEADER0_SET_GEN(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
+  HEADER0_SET(hdr, (val) & (HEADER0_GEN_MASK >> HEADER0_GEN_OFFSET),	\
+	      HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
 #define HEADER0_GET_GEN(hdr) \
   HEADER0_GET(hdr, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
 #define HEADER0_SET_GC(hdr, val) \
@@ -179,6 +182,7 @@ STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void sweep(void);
+STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 
 /*
@@ -342,7 +346,7 @@ STATIC int check_gc_request(Context *ctx)
   return 0;
 }
 
-void* gc_malloc(Context *ctx, uintptr_t request_bytes)
+void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   void * addr;
   //  return malloc(request_bytes);
@@ -357,6 +361,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes)
     uintptr_t off = a - malloc_space.addr - HEADER_BYTES;
     uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
     *shadow = *(((uint64_t *)addr) - 1);
+    HEADER0_SET_MAGIC(*shadow, type);
   }
   memset(addr, generation,
 	 (HEADER0_GET_SIZE(((uint64_t *)addr)[-1]) - HEADER_JSVALUES) * 8);
@@ -442,12 +447,16 @@ STATIC void mark_object(Object *obj)
       uintptr_t a = (uintptr_t) obj;
       uintptr_t off = a - js_space.addr;
       uint64_t *shadow = (uint64_t *) (debug_js_shadow.addr + off);
-      assert(*shadow == (obj->header & ~GC_MARK_BIT));
+      assert(((*shadow & ~HEADER0_MAGIC_MASK) |
+	      (((header_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
+	     == (obj->header & ~GC_MARK_BIT));
     } else if (in_malloc_space(obj)) {
       uintptr_t a = (uintptr_t) obj;
       uintptr_t off = a - malloc_space.addr;
       uint64_t *shadow = (uint64_t *) (debug_malloc_shadow.addr + off);
-      assert(*shadow == (obj->header & ~GC_MARK_BIT));
+      assert(((*shadow & ~HEADER0_MAGIC_MASK) |
+	      (((header_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
+	     == (obj->header & ~GC_MARK_BIT));
     }
   }
   //  *get_shadow(obj) = 1;
@@ -659,7 +668,7 @@ STATIC void trace_object_pointer(uintptr_t *ptrp)
  SCAN:
   /* common header */
   trace_HashTable(&obj->map);
-  trace_JSValue_array(&obj->prop, obj->n_props);
+  trace_JSValue_array(&obj->prop, obj->n_props + 1);
 
   switch (HEADER0_GET_TYPE(obj->header)) {
   case HTAG_OBJECT:
@@ -845,9 +854,49 @@ STATIC void sweep_space(struct space *space)
 
 STATIC void sweep(void)
 {
+  check_invariant();
   sweep_space(&malloc_space);
   sweep_space(&js_space);
 }
+
+STATIC void check_invariant_nobw_space(struct space *space)
+{
+  uintptr_t scan = space->addr;
+
+  while (scan < space->addr + space->bytes) {
+    Object *obj = (Object *) scan;
+    header_t header = *(header_t *) obj;
+    if (HEADER0_GET_TYPE(header) == HTAG_STRING)
+      ;
+    else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
+      ;
+    else if (is_marked_object(obj)) {
+      /* this object is black; should not contain a pointer to white */
+      size_t payload_jsvalues =	HEADER0_GET_SIZE(header);
+      size_t i;
+      payload_jsvalues -= HEADER_JSVALUES;
+      payload_jsvalues -= HEADER0_GET_EXTRA(header);
+      for (i = 0; i < payload_jsvalues; i++) {
+	uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
+	if (in_js_space((void *)(x & ~7))) {
+	  Object *xobj = (Object *)(x & ~7);
+	  assert(is_marked_object(xobj));
+	} else if (in_malloc_space((void *) x)) {
+	  Object *xobj = (Object *)(x - HEADER_BYTES);
+	  assert(is_marked_object(xobj));
+	}
+      }
+    }
+    scan += HEADER0_GET_SIZE(header) << LOG_BYTES_IN_JSVALUE;
+  }
+}
+
+STATIC void check_invariant(void)
+{
+  check_invariant_nobw_space(&malloc_space);
+  check_invariant_nobw_space(&js_space);
+}
+
 
 STATIC void print_memory_status(void)
 {
