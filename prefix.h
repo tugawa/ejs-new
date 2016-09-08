@@ -31,6 +31,7 @@
 //#define CALC_CALL
 #define USE_REGEXP
 //#define USE_BOEHMGC
+#define USE_NATIVEGC
 
 /*
    If you want to compile for J5MODE, define this.

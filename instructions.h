@@ -351,8 +351,8 @@ typedef void *InsnLabel;
 #define NUMBER_TABLE_LIMIT    (3000)
 #define CONSTANT_LIMIT        (10000)
 
-#define INITIAL_HASH_SIZE       (1000)
-#define INITIAL_PROPTABLE_SIZE  (1000)
+#define INITIAL_HASH_SIZE       (100)
+#define INITIAL_PROPTABLE_SIZE  (100)
 
 #define SMALLNUM_OPCODE 0
 

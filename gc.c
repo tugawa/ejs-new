@@ -14,8 +14,8 @@
 #include "header.h"
 #include "log.h"
 
-#define GCLOG(...) LOG(__VA_ARGS__)
-//#define GCLOG(...)
+//#define GCLOG(...) LOG(__VA_ARGS__)
+#define GCLOG(...)
 //#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
 #define GCLOG_TRIGGER(...)
 //#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
