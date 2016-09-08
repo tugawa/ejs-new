@@ -185,7 +185,8 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
       LOG_EXIT("proptable overflow\n");
       return FAIL;
     }
-    retv = ++(obj_n_props(obj));
+    retv = (obj_n_props(obj))++;
+    // retv = ++(obj_n_props(obj));
     /*
     printf("obj = %lx, obj_n_props(obj) = %d, name = %s, value = ",
             obj, obj_n_props(obj), string_to_cstr(name));
