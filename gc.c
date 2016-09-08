@@ -663,7 +663,7 @@ STATIC void trace_object_pointer(uintptr_t *ptrp)
  SCAN:
   /* common header */
   trace_HashTable(&obj->map);
-  trace_JSValue_array(&obj->prop, obj->n_props + 1);
+  trace_JSValue_array(&obj->prop, obj->n_props);
 
   switch (HEADER0_GET_TYPE(obj->header)) {
   case HTAG_OBJECT:
