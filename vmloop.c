@@ -1518,6 +1518,7 @@ I_GETARG:
     int link;
     Subscript index;
     FunctionFrame *fr;
+    JSValue arguments;
     int i;
 
     dst = get_first_operand_reg(insn);
@@ -1525,7 +1526,10 @@ I_GETARG:
     index = get_third_operand_subscr(insn);
     fr = get_lp(context);
     for (i = 0; i < link; i++) fr = fframe_prev(fr);
-    regbase[dst] = array_body_index(fframe_arguments(fr), index);
+    //regbase[dst] = array_body_index(fframe_arguments(fr), index);
+    arguments = fframe_arguments(fr);
+    // TODO: optimise
+    regbase[dst] = get_array_prop(context, arguments, int_to_fixnum(index));
   }
   NEXT_INSN_INCPC();
 
@@ -1561,6 +1565,7 @@ I_SETARG:
     Subscript index;
     Register src;
     FunctionFrame *fr;
+    JSValue arguments;
     int i;
 
     link = get_first_operand_int(insn);
@@ -1568,7 +1573,12 @@ I_SETARG:
     src = get_third_operand_reg(insn);
     fr = get_lp(context);
     for (i = 0; i < link; i++) fr = fframe_prev(fr);
-    array_body_index(fframe_arguments(fr), index) = regbase[src];
+
+    // assert(index < array_size(fframe_arguments(fr)));
+    // array_body_index(fframe_arguments(fr), index) = regbase[src];
+    // TODO: optimise
+    arguments = fframe_arguments(fr);
+    set_array_prop(context, arguments, int_to_fixnum(index), regbase[src]);
   }
   NEXT_INSN_INCPC();
 
