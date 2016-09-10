@@ -4,6 +4,9 @@ CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -O3
 # LIBS = -L/usr/local/lib -lc -lm -lonig
 LIBS = -L/usr/local/lib -lc -lm -lonig -lgc
 
+CFLAGS += -I/opt/local/include
+LIBS   += -L/opt/local/lib
+
 GENERATED_HFILES = \
          instructions-opcode.h \
 	 instructions-table.h \
@@ -19,7 +22,8 @@ HFILES = $(GENERATED_HFILES) \
 	 types.h \
 	 globals.h \
 	 extern.h \
-	 gc.h
+	 gc.h \
+	 cell_header.h
 
 OFILES = allocate.o \
 	 builtin-array.o \
@@ -46,6 +50,7 @@ SEDCOM_GEN_INSN_OPCODE = 's/^\([a-z][a-z]*\).*/\U\1,/'
 SEDCOM_GEN_INSN_TABLE  = 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/'
 SEDCOM_GEN_INSN_LABEL  = 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/'
 SED = gsed
+RUBY = ruby
 
 ssjsvm :: $(OFILES)
 	$(CC) -o $@ $^ $(LIBS)
@@ -60,6 +65,9 @@ instructions-label.h: instructions.def
 	$(SED) -e $(SEDCOM_GEN_INSN_LABEL) instructions.def > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
+
+cell_header.h: cell_header.def
+	$(RUBY) $< > $@
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
