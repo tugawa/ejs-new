@@ -11,7 +11,8 @@ header_def = [
   [ 9, 11, "EXTRA",  :param, "number of unused words attached at the bottom"+
                              " of this chunk"],
   [12, 15, "GEN",    nil,    "generation"],
-  [16, 23, "MAGIC",  "HEADER0_MAGIC", "magic"],
+#  [16, 23, "MAGIC",  "HEADER0_MAGIC",    "magic"],
+  [16, 23, "MAGIC",  nil,    "magic"],
   [32, 63, "SIZE",   :param, "number of words of this chunk includeing header"]
 ];
 

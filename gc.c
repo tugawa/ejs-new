@@ -14,6 +14,8 @@
 #include "header.h"
 #include "log.h"
 
+#define GC_DEBUG 1
+
 //#define GCLOG(...) LOG(__VA_ARGS__)
 #define GCLOG(...)
 //#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
@@ -54,6 +56,9 @@
  */
 #define MINIMUM_FREE_CHUNK_JSVALUES 4
 
+#if 1
+#include "cell_header.h"
+#else
 typedef uint64_t header_t;
 
 #define MKMASK(l, o, b)						\
@@ -137,11 +142,13 @@ typedef uint64_t header_t;
    (((uint64_t) (extra)) << HEADER0_EXTRA_OFFSET) | \
    (((uint64_t) (type)) << HEADER0_TYPE_OFFSET) | \
    (((uint64_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
+#endif
 
-
-/* 
- * header tag
+/*
+ *  Types
  */
+
+typedef uint32_t cell_type_t;
 #define HTAG_MALLOC        (0x0f)
 #define HTAG_FREE          (0x10)
 
@@ -150,42 +157,13 @@ struct free_chunk {
   struct free_chunk *next;
 };
 
-/*
- *  Space
- */
-
 struct space {
   uintptr_t addr;
-  uintptr_t bytes;
-  uintptr_t free_bytes;
+  size_t bytes;
+  size_t free_bytes;
   struct free_chunk* freelist;
   char *name;
 };
-
-
-/*
- * GC
- */
-#define GC_MARK_BIT (1 << HEADER0_GC_OFFSET)
-
-/*
- * prototype
- */
-STATIC void create_space(struct space *space, uintptr_t bytes, char*);
-STATIC void* do_malloc(uintptr_t request_bytes);
-STATIC JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type);
-STATIC int check_gc_request(Context *);
-
-STATIC void garbage_collect(Context *ctx);
-STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
-STATIC void trace_HashCell(HashCell **ptrp);
-STATIC void trace_JSValue_array(JSValue **, uint32_t);
-STATIC void trace_slot(JSValue* ptr);
-STATIC void scan_roots(Context *ctx);
-STATIC void scan_stack(JSValue* stack, int sp, int fp);
-STATIC void sweep(void);
-STATIC void check_invariant(void);
-STATIC void print_memory_status(void);
 
 /*
  * variables
@@ -201,11 +179,25 @@ STATIC int tmp_roots_sp;
 STATIC int gc_disabled = 1;
 STATIC int generation = 0;
 
-STATIC void create_space(struct space *space, uintptr_t bytes, char *name)
+STATIC void create_space(struct space *space, size_t bytes, char* name);
+STATIC int in_js_space(void *addr_);
+STATIC int in_malloc_space(void *addr_);
+STATIC uint64_t *get_shadow(void *ptr);
+STATIC void* do_malloc(size_t request_bytes);
+STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type);
+
+/*
+ *  Space
+ */
+
+STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
   p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+#ifdef GC_DEBUG
+  HEADER0_SET_MAGIC(p->header, HEADER0_MAGIC);
+#endif /* GC_DEBUG */
   p->next = NULL;
   space->addr = (uintptr_t) p;
   space->bytes = bytes;
@@ -213,6 +205,154 @@ STATIC void create_space(struct space *space, uintptr_t bytes, char *name)
   space->freelist = p;
   space->name = name;
 }
+
+STATIC int in_js_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (js_space.addr <= addr && addr <= js_space.addr + js_space.bytes);
+}
+
+STATIC int in_malloc_space(void *addr_)
+{
+  uintptr_t addr = (uintptr_t) addr_;
+  return (malloc_space.addr <= addr &&
+	  addr <= malloc_space.addr + malloc_space.bytes);
+}
+
+STATIC uint64_t *get_shadow(void *ptr)
+{
+  if (in_js_space(ptr)) {
+    uintptr_t a = (uintptr_t) ptr;
+    uintptr_t off = a - js_space.addr;
+    return (uint64_t *) (debug_js_shadow.addr + off);
+  } else if (in_malloc_space(ptr)) {
+    uintptr_t a = (uintptr_t) ptr;
+    uintptr_t off = a - malloc_space.addr;
+    return (uint64_t *) (debug_malloc_shadow.addr + off);
+  } else
+    return NULL;
+}
+
+/*
+ * Returns a pointer to the first address of the memory area
+ * available to the VM.  The header precedes the area.
+ * The header has the size of the chunk including the header,
+ * the area available to the VM, and extra bytes if any.
+ * Other header bits are zero
+ */
+STATIC void* do_malloc(size_t request_bytes)
+{
+  size_t  alloc_jsvalues;
+  struct free_chunk **p;
+  
+  alloc_jsvalues =
+    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
+  alloc_jsvalues += HEADER_JSVALUES;
+
+  /* allocate from freelist */
+  for (p = &malloc_space.freelist; *p != NULL; p = &(*p)->next) {
+    struct free_chunk *chunk = *p;
+    size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
+    if (chunk_jsvalues >= alloc_jsvalues) {
+      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
+	/* This chunk is large enough to leave a part unused.  Split it */
+	size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
+	uintptr_t addr =
+	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
+	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
+	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, HTAG_MALLOC);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
+	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
+#endif /* GC_DEBUG */
+	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+	return (void *) (addr + HEADER_BYTES);
+      } else {
+	/* This chunk is too small to split. */
+	*p = (*p)->next;
+	chunk->header =
+	  HEADER0_COMPOSE(chunk_jsvalues,
+			  chunk_jsvalues - alloc_jsvalues, HTAG_MALLOC);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
+	HEADER0_SET_GEN_MASK(chunk->header, generation);
+#endif /* GC_DEBUG */
+	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
+	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
+      }
+    }
+  }
+
+  return NULL;
+}
+
+/*
+ * request_jsvalues: the number of JSValue's including the object header.
+ */
+STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type)
+{
+  struct free_chunk **p;
+  size_t alloc_jsvalues;
+
+  alloc_jsvalues =
+    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
+
+  for (p = &js_space.freelist; *p != NULL; p = &(*p)->next) {
+    struct free_chunk *chunk = *p;
+    size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
+    if (chunk_jsvalues >= alloc_jsvalues) {
+      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
+	/* This chunk is large enough to leave a part unused.  Split it */
+	size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
+	uintptr_t addr =
+	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
+	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
+	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
+	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
+#endif /* GC_DEBUG */
+	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+	return (JSValue *) addr;
+      } else {
+	/* This chunk is too small to split. */
+	*p = (*p)->next;
+	chunk->header = HEADER0_COMPOSE(chunk_jsvalues,
+					chunk_jsvalues - alloc_jsvalues, type);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
+	HEADER0_SET_GEN_MASK(chunk->header, generation);
+#endif /* GC_DEBUG */
+	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
+	return (JSValue *) chunk;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+/*
+ * GC
+ */
+#define GC_MARK_BIT (1 << HEADER0_GC_OFFSET)
+
+/*
+ * prototype
+ */
+STATIC int check_gc_request(Context *);
+
+STATIC void garbage_collect(Context *ctx);
+STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
+STATIC void trace_HashCell(HashCell **ptrp);
+STATIC void trace_JSValue_array(JSValue **, uint32_t);
+STATIC void trace_slot(JSValue* ptr);
+STATIC void scan_roots(Context *ctx);
+STATIC void scan_stack(JSValue* stack, int sp, int fp);
+STATIC void sweep(void);
+STATIC void check_invariant(void);
+STATIC void print_memory_status(void);
 
 void init_memory()
 {
@@ -233,94 +373,6 @@ void gc_push_tmp_root(void *loc)
 void gc_pop_tmp_root(int n)
 {
   tmp_roots_sp -= n;
-}
-
-/*
- * Returns a pointer to the first address of the memory area
- * available to the VM.  The header precedes the area.
- * The header has the size of the chunk including the header,
- * the area available to the VM, and extra bytes if any.
- * Other header bits are zero
- */
-STATIC void* do_malloc(uintptr_t request_bytes)
-{
-  uint32_t  alloc_jsvalues;
-  struct free_chunk **p;
-  
-  alloc_jsvalues =
-    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
-  alloc_jsvalues += HEADER_JSVALUES;
-
-  /* allocate from freelist */
-  for (p = &malloc_space.freelist; *p != NULL; p = &(*p)->next) {
-    struct free_chunk *chunk = *p;
-    uint32_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
-    if (chunk_jsvalues >= alloc_jsvalues) {
-      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
-	/* This chunk is large enough to leave a part unused.  Split it */
-	uint32_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-	uintptr_t addr =
-	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, HTAG_MALLOC);
-	HEADER0_SET_GEN(*(uint64_t *) addr, generation);
-	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (void *) (addr + HEADER_BYTES);
-      } else {
-	/* This chunk is too small to split. */
-	*p = (*p)->next;
-	chunk->header =
-	  HEADER0_COMPOSE(chunk_jsvalues,
-			  chunk_jsvalues - alloc_jsvalues, HTAG_MALLOC);
-	HEADER0_SET_GEN(chunk->header, generation);
-	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
-      }
-    }
-  }
-
-  return NULL;
-}
-
-/*
- * request_jsvalues: the number of JSValue's including the object header.
- */
-STATIC JSValue* do_jsalloc(uintptr_t request_bytes, uint32_t type)
-{
-  struct free_chunk **p;
-  uint32_t alloc_jsvalues;
-
-  alloc_jsvalues =
-    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
-
-  for (p = &js_space.freelist; *p != NULL; p = &(*p)->next) {
-    struct free_chunk *chunk = *p;
-    uint32_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
-    if (chunk_jsvalues >= alloc_jsvalues) {
-      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
-	/* This chunk is large enough to leave a part unused.  Split it */
-	uint32_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-	uintptr_t addr =
-	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(uint64_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
-	HEADER0_SET_GEN(*(uint64_t *) addr, generation);
-	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (JSValue *) addr;
-      } else {
-	/* This chunk is too small to split. */
-	*p = (*p)->next;
-	chunk->header = HEADER0_COMPOSE(chunk_jsvalues,
-					chunk_jsvalues - alloc_jsvalues, type);
-	HEADER0_SET_GEN(chunk->header, generation);
-	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (JSValue *) chunk;
-      }
-    }
-  }
-
-  LOG_EXIT("run out of memory for JS object");
-  return NULL;
 }
 
 STATIC int check_gc_request(Context *ctx)
@@ -402,19 +454,6 @@ void enable_gc(void)
   gc_disabled = 0;
 }
 
-STATIC int in_js_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return (js_space.addr <= addr && addr <= js_space.addr + js_space.bytes);
-}
-
-STATIC int in_malloc_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return (malloc_space.addr <= addr &&
-	  addr <= malloc_space.addr + malloc_space.bytes);
-}
-
 STATIC void garbage_collect(Context *ctx)
 {
   GCLOG("Before Garbage Collection\n");
@@ -426,20 +465,6 @@ STATIC void garbage_collect(Context *ctx)
   GCLOG("After Garbage Collection\n");
   print_memory_status();
   generation++;
-}
-
-STATIC uint64_t *get_shadow(void *ptr)
-{
-  if (in_js_space(ptr)) {
-    uintptr_t a = (uintptr_t) ptr;
-    uintptr_t off = a - js_space.addr;
-    return (uint64_t *) (debug_js_shadow.addr + off);
-  } else if (in_malloc_space(ptr)) {
-    uintptr_t a = (uintptr_t) ptr;
-    uintptr_t off = a - malloc_space.addr;
-    return (uint64_t *) (debug_malloc_shadow.addr + off);
-  } else
-    return NULL;
 }
 
 STATIC void mark_object(Object *obj)
@@ -832,13 +857,19 @@ STATIC void sweep_space(struct space *space)
 	chunk->header =
 	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
 			  0, HTAG_FREE);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
+#endif /* GC_DEBUG */
 	*p = chunk;
 	p = &chunk->next;
 	free_bytes += scan - free_start;
       } else  {
-	*(int64_t *) free_start =
+	*(header_t *) free_start =
 	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
 			  0, HTAG_FREE);
+#ifdef GC_DEBUG
+	HEADER0_SET_MAGIC(*(header_t *) free_start, HEADER0_MAGIC);
+#endif /* GC_DEBUG */
       }
     }
   }
