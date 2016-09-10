@@ -795,7 +795,7 @@ I_LESSTHAN:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
-      regbase[dst] = true_false((int)v1 < (int)v2);
+      regbase[dst] = true_false((int64_t)v1 < (int64_t)v2);
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
@@ -840,7 +840,7 @@ I_LESSTHANEQUAL:
     load_regs(insn, dst, r1, r2, v1, v2);
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
-      regbase[dst] = true_false((cint)v1 <= (cint)v2);
+      regbase[dst] = true_false((int64_t)v1 <= (int64_t)v2);
       break;
     case TP_FIXFLO:
       x1 = fixnum_to_double(v1);
@@ -1196,6 +1196,9 @@ I_MOVE:
    */
   ENTER_INSN(__LINE__);
   {
+/*
+printf("MOVE: &regbase[%d] = %p, value = ", get_first_operand_reg(insn), &regbase[get_first_operand_reg(insn)]); print_value_simple(context, regbase[get_second_operand_reg(insn)]); printf("\n");
+*/
     regbase[get_first_operand_reg(insn)] = regbase[get_second_operand_reg(insn)];
   }
   NEXT_INSN_INCPC();
@@ -1710,7 +1713,6 @@ I_NEWSEND:
     nargs = get_second_operand_int(insn);
     set_fp(context, fp);
     set_pc(context, pc);
-
     if (is_function(fn)) {
 #ifdef CALC_CALL
       callcount++;

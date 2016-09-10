@@ -105,6 +105,11 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   stack = &get_stack(context, 0);
 
   /*
+    printf("call_builtin: sp = %d, fp = %d, stack = %p, nargs = %d, sendp = %d, constrp = %d\n",
+    sp, fp, stack, nargs, sendp, constrp);
+   */
+
+  /*
      The original code called save_special_registers here, but this seems
      to be unnecessary because builtin function code does not manipulate
      special registers.  However, since the compiler takes rooms from
@@ -125,13 +130,14 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
   }
 
   /*
-  if (sendp == TRUE && constrp == FALSE) {
+  {
     int i;
     printf("in call_builtin: nargs = %d\n", nargs);
     for (i = 1; i <= nargs + 1; i++) {
       printf("i = %d, addr = %p, %016lx:",
              i, &stack[sp - nargs - 1 + i], stack[sp - nargs - 1 + i]);
       simple_print(stack[sp - nargs - 1 + i]);
+      printf("\n");
     }
   }
   */
@@ -228,5 +234,6 @@ JSValue call_builtin0(Context *context, JSValue receiver, JSValue fn, int sendp)
   get_stack(context, sp) = receiver;
   set_sp(context, sp);
   call_builtin(context, fn, 0, sendp, FALSE);
+  set_sp(context, sp - 1);
   return get_a(context);
 }
