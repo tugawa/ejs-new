@@ -300,7 +300,7 @@ I_ADD:
 
         s1 = string_value(v1); len1 = string_length(v1);
         s2 = string_value(v2); len2 = string_length(v2);
-        regbase[dst] = str_intern2(s1, len1, s2, len2,
+        regbase[dst] = str_intern2(context, s1, len1, s2, len2,
                                    calc_hash2(s1, s2), INTERN_HARD);
 #else
         regbase[dst] = cstr_to_string2(string_to_cstr(v1), string_to_cStr(v2));

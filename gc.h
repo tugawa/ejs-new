@@ -15,7 +15,7 @@ extern JSValue *gc_jsalloc(Context *, uintptr_t, uint32_t);
 extern void gc_push_tmp_root(void *loc);
 extern void gc_pop_tmp_root(int n);
 
-extern void enable_gc(void);
+extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
 
 #else
@@ -47,4 +47,4 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
 #define MATYPE_ARRAY_DATA     2
 #define MATYPE_FUNCTION_FRAME 3
 #define MATYPE_HASH_BODY      4
-
+#define MATYPE_STR_CONS       5

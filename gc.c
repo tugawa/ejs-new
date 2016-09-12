@@ -41,8 +41,8 @@
  *                    jsvalues: in the numberof JSValue's
  */
 
-#define JS_SPACE_BYTES     (1000 * 1024 * 1024)
-#define MALLOC_SPACE_BYTES (1000 * 1024 * 1024)
+#define JS_SPACE_BYTES     (10 * 1024 * 1024)
+#define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
 #define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 1)
 //#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
@@ -159,7 +159,7 @@ typedef uint32_t cell_type_t;
 #define HTAG_FREE          (0x10)
 
 struct free_chunk {
-  uint64_t header;
+  header_t header;
   struct free_chunk *next;
 };
 
@@ -207,6 +207,7 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void sweep(void);
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
+STATIC void print_heap_stat(void);
 
 /*
  *  Space
@@ -351,6 +352,7 @@ STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type)
     }
   }
 
+  print_heap_stat();
   return NULL;
 }
 
@@ -449,12 +451,15 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 
 void disable_gc(void)
 {
-  gc_disabled = 1;
+  gc_disabled++;
 }
 
-void enable_gc(void)
+void enable_gc(Context *ctx)
 {
-  gc_disabled = 0;
+  if (--gc_disabled == 0) {
+    if (check_gc_request(ctx))
+      garbage_collect(ctx);
+  }
 }
 
 STATIC void garbage_collect(Context *ctx)
@@ -937,4 +942,26 @@ STATIC void print_memory_status(void)
   GCLOG("  gc_disabled = %d\n", gc_disabled);
   GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
   GCLOG("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
+}
+
+STATIC void print_heap_stat(void)
+{
+  size_t jsvalues[17] = {0, };
+  size_t number[17] = {0, };
+  uintptr_t scan = js_space.addr;
+
+  while (scan < js_space.addr + js_space.bytes) {
+    header_t header = *(header_t *) scan;
+    cell_type_t type = HEADER0_GET_TYPE(header);
+    size_t size = HEADER0_GET_SIZE(header);
+    if (type != HTAG_FREE) {
+      jsvalues[type] += size;
+      number[type] ++;
+    }
+    scan += (size << LOG_BYTES_IN_JSVALUE);
+  }
+
+  for (size_t i = 0; i < 17; i++) {
+    printf("type %02d: num = %08d volume = %08d\n", i, number[i], jsvalues[i]);
+  }
 }

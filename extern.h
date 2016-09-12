@@ -185,8 +185,11 @@ extern void hashCellFree(HashCell *cell);
 
 extern void init_string_table(unsigned int);
 extern JSValue str_intern(const char* s, int len, uint32_t hash, int soft);
-extern JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
+extern JSValue str_intern2(Context *ctx,
+			   const char* s1, int len1, const char* s2, int len2,
                            uint32_t hash, int soft);
+#define str_intern2_critical(s1, len1, s2, len2, hash, soft) \
+  str_intern2(NULL, (s1), (len1), (s2), (len2), (hash), (soft))
 
 /*
  * init.c

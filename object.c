@@ -521,7 +521,9 @@ JSValue new_array(Context *ctx) {
   set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
   set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
-  enable_gc();
+  gc_push_tmp_root(&ret);
+  enable_gc(ctx);
+  gc_pop_tmp_root(1);
   return ret;
 }
 
@@ -537,7 +539,9 @@ JSValue new_array_with_size(Context *ctx, int size)
   set_object_members(array_object_p(ret));
   allocate_array_data_critical(ret, size, size);
   set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
-  enable_gc();
+  gc_push_tmp_root(&ret);
+  enable_gc(ctx);
+  gc_pop_tmp_root(1);
   return ret;
 }
 
@@ -545,18 +549,18 @@ JSValue new_array_with_size(Context *ctx, int size)
    makes a function
    The name of this function was formerly new_closure.
  */
-JSValue new_function(Context *context, Subscript subscr)
+JSValue new_function(Context *ctx, Subscript subscr)
 {
   JSValue ret;
 
   ret = make_function();
   disable_gc();
   set_object_members(func_object_p(ret));
-  func_table_entry(ret) = &(context->function_table[subscr]);
-  func_environment(ret) = get_lp(context);
-  enable_gc();
+  func_table_entry(ret) = &(ctx->function_table[subscr]);
+  func_environment(ret) = get_lp(ctx);
   gc_push_tmp_root(&ret);
-  set_prop_none(ret, gconsts.g_string_prototype, new_object(context));
+  enable_gc(ctx);
+  set_prop_none(ret, gconsts.g_string_prototype, new_object(ctx));
   set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
   gc_pop_tmp_root(1);
   return ret;

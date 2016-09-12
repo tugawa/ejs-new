@@ -76,8 +76,9 @@ JSValue allocate_string2(const char *str1, const char *str2)
 
   len1 = strlen(str1);
   len2 = strlen(str2);
-  return str_intern2(str1, len1, str2, len2,
-                     calc_hash_len2(str1, len1, str2, len2), INTERN_HARD);
+  return str_intern2_critical(str1, len1, str2, len2,
+			      calc_hash_len2(str1, len1, str2, len2),
+			      INTERN_HARD);
 }
 
 /*

@@ -433,7 +433,8 @@ JSValue str_intern(const char* s, int len, uint32_t hash, int mode) {
   return v;
 }
 
-JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
+JSValue str_intern2(Context *ctx,
+		    const char* s1, int len1, const char* s2, int len2,
                     uint32_t hash, int mode) {
   int index;
   StrCons *c;
@@ -451,6 +452,7 @@ JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
       return c->str;
   }
   if (mode == INTERN_SOFT) return JS_NULL;
+  disable_gc();
   p = allocate_string(len1 + len2);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
@@ -458,10 +460,13 @@ JSValue str_intern2(const char* s1, int len1, const char* s2, int len2,
   memcpy(p->value, s1, len1);
   memcpy(p->value + len1, s2, len2 + 1);
   v = put_string_tag(p);
-  c = (StrCons*)malloc(sizeof(StrCons));
+  c = (StrCons*)gc_malloc_critical(sizeof(StrCons), MATYPE_STR_CONS);
   c->str = v;
   if ((c->next = string_table.obvector[index]) == NULL)
     string_table.count++;
   string_table.obvector[index] = c;
+  gc_push_tmp_root(&v);
+  enable_gc(ctx);
+  gc_pop_tmp_root(1);
   return v;
 }
