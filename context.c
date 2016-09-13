@@ -19,7 +19,7 @@ FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env) {
   nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
   frame = (FunctionFrame *)
     gc_malloc_critical(sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
-		       MATYPE_FUNCTION_FRAME);
+		       HTAG_FUNCTION_FRAME);
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
   locals = frame->locals;

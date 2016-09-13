@@ -373,7 +373,12 @@ typedef struct string_cell {
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
-/* HTAG_MALLOC, HTAG_FREE are defined in gc.c */
+/* HTAG_FREE are defined in gc.c */
+#define HTAG_PROP           (0x11)
+#define HTAG_ARRAY_DATA     (0x12)
+#define HTAG_FUNCTION_FRAME (0x13)
+#define HTAG_HASH_BODY      (0x14)
+#define HTAG_STR_CONS       (0x15)
 
 /* HEADER_xxx are obsolete */
 #define HEADER_COMMON(cell, htag) \

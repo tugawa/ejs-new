@@ -155,8 +155,7 @@ typedef uint64_t header_t;
  */
 
 typedef uint32_t cell_type_t;
-#define HTAG_MALLOC        (0x0f)
-#define HTAG_FREE          (0x10)
+#define HTAG_FREE          (0xff)
 
 struct free_chunk {
   header_t header;
@@ -193,7 +192,7 @@ STATIC void create_space(struct space *space, size_t bytes, char* name);
 STATIC int in_js_space(void *addr_);
 STATIC int in_malloc_space(void *addr_);
 STATIC header_t *get_shadow(void *ptr);
-STATIC void* do_malloc(size_t request_bytes);
+STATIC void* do_malloc(size_t request_bytes, cell_type_t type);
 STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type);
 /* GC */
 STATIC int check_gc_request(Context *);
@@ -204,6 +203,8 @@ STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
 STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
+STATIC void weak_clear_StrTable(StrTable *table);
+STATIC void weak_clear(void);
 STATIC void sweep(void);
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
@@ -263,7 +264,7 @@ STATIC header_t *get_shadow(void *ptr)
  * the area available to the VM, and extra bytes if any.
  * Other header bits are zero
  */
-STATIC void* do_malloc(size_t request_bytes)
+STATIC void* do_malloc(size_t request_bytes, cell_type_t type)
 {
   size_t  alloc_jsvalues;
   struct free_chunk **p;
@@ -283,7 +284,7 @@ STATIC void* do_malloc(size_t request_bytes)
 	uintptr_t addr =
 	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
 	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, HTAG_MALLOC);
+	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
 #ifdef GC_DEBUG
 	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
 	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
@@ -295,7 +296,7 @@ STATIC void* do_malloc(size_t request_bytes)
 	*p = (*p)->next;
 	chunk->header =
 	  HEADER0_COMPOSE(chunk_jsvalues,
-			  chunk_jsvalues - alloc_jsvalues, HTAG_MALLOC);
+			  chunk_jsvalues - alloc_jsvalues, type);
 #ifdef GC_DEBUG
 	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
 	HEADER0_SET_GEN_MASK(chunk->header, generation);
@@ -414,7 +415,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 
   if (check_gc_request(ctx))
     garbage_collect(ctx);
-  addr = do_malloc(request_bytes);
+  addr = do_malloc(request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes => %p (%x)\n",
 	      request_bytes, addr, addr - malloc_space.addr);
 #ifdef GC_DEBUG
@@ -422,7 +423,6 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
     header_t *hdrp = (header_t *) (addr - HEADER_BYTES);
     header_t *shadow = get_shadow(hdrp);
     *shadow = *hdrp;
-    HEADER0_SET_MAGIC(*shadow, type);
   }
   memset(addr, generation,
 	 (HEADER0_GET_SIZE(((uint64_t *)addr)[-1]) - HEADER_JSVALUES) * 8);
@@ -468,10 +468,13 @@ STATIC void garbage_collect(Context *ctx)
   print_memory_status();
 
   scan_roots(ctx);
+  weak_clear();
   sweep();
 
   GCLOG("After Garbage Collection\n");
   print_memory_status();
+  // print_heap_stat();
+
   generation++;
 }
 
@@ -638,7 +641,7 @@ STATIC void trace_StrCons(StrCons **ptrp)
   if (test_and_mark_no_js_object(ptr))
     return;
 
-  trace_slot(&ptr->str);
+  //trace_slot(&ptr->str);  /* weak pointer */
   if (ptr->next != NULL)
     trace_StrCons(&ptr->next);
 }
@@ -817,6 +820,33 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
   }
 }
 
+
+/*
+ * Clear pointer field to StringCell whose mark bit is not set.
+ * Unlink the StrCons from the string table.  These StrCons's
+ * are collected in the next collection cycle.
+ */
+STATIC void weak_clear_StrTable(StrTable *table)
+{
+  size_t i;
+  for (i = 0; i < table->size; i++) {
+    StrCons ** p = table->obvector + i;
+    while (*p != NULL) {
+      StringCell *cell = remove_string_tag((*p)->str);
+      if (!is_marked_object((Object *) cell)) {
+	(*p)->str = JS_UNDEFINED;
+	*p = (*p)->next;
+      } else
+	p = &(*p)->next;
+    }
+  }
+}
+
+STATIC void weak_clear(void)
+{
+  weak_clear_StrTable(&string_table);
+}
+
 STATIC void sweep_space(struct space *space)
 {
   struct free_chunk **p;
@@ -917,6 +947,11 @@ STATIC void check_invariant_nobw_space(struct space *space)
       payload_jsvalues -= HEADER0_GET_EXTRA(header);
       for (i = 0; i < payload_jsvalues; i++) {
 	uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
+	if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
+	  if (i ==
+	      (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
+	    continue;
+	}
 	if (in_js_space((void *)(x & ~7))) {
 	  Object *xobj = (Object *)(x & ~7);
 	  assert(is_marked_object(xobj));

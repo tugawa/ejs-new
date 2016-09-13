@@ -43,8 +43,3 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
 #define gc_malloc_critical(s,t) (gc_malloc(NULL,(s),(t)))
 #define gc_jsalloc_critical(s,t) (gc_jsalloc(NULL,(s),(t)))
 
-#define MATYPE_PROP           1
-#define MATYPE_ARRAY_DATA     2
-#define MATYPE_FUNCTION_FRAME 3
-#define MATYPE_HASH_BODY      4
-#define MATYPE_STR_CONS       5

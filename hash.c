@@ -180,7 +180,7 @@ uint32_t calc_hash2(const char* s1, const char* s2) {
 //
 HashCell** __hashMalloc(int size) {
   HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-						  MATYPE_HASH_BODY);
+						  HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
@@ -460,7 +460,7 @@ JSValue str_intern2(Context *ctx,
   memcpy(p->value, s1, len1);
   memcpy(p->value + len1, s2, len2 + 1);
   v = put_string_tag(p);
-  c = (StrCons*)gc_malloc_critical(sizeof(StrCons), MATYPE_STR_CONS);
+  c = (StrCons*)gc_malloc_critical(sizeof(StrCons), HTAG_STR_CONS);
   c->str = v;
   if ((c->next = string_table.obvector[index]) == NULL)
     string_table.count++;

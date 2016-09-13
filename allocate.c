@@ -114,7 +114,7 @@ void allocate_array_data(Context *ctx, JSValue a, int size, int len)
 
   gc_push_tmp_root(&a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-			       MATYPE_ARRAY_DATA);
+			       HTAG_ARRAY_DATA);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
@@ -142,7 +142,7 @@ BuiltinCell *allocate_builtin(void) {
 
 JSValue *allocate_prop_table(int size) {
   JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
-						 MATYPE_PROP);
+						 HTAG_PROP);
   size_t i;
   for (i = 0; i < size; i++)  // initialise for GC
     table[i] = JS_UNDEFINED;
