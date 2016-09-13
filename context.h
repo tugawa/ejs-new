@@ -122,6 +122,7 @@ typedef struct context {
  */
 #define get_sp(c)        ((c)->spreg.sp)
 #define set_sp(c,v)      ((c)->spreg.sp = (v))
+// #define set_sp(c,v)      (printf("set_sp: %d\n", (v)), (c)->spreg.sp = (v))
 
 /*
    fp: frame pointer

@@ -394,13 +394,14 @@ JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
   Tag tag;
   double x1, x2;
 
-  if (is_object(v1))
-    v1 = object_to_string(context, v1);
-  if (is_object(v2))
-    v2 = object_to_string(context, v2);
+  if (is_object(v1)) v1 = object_to_primitive(context, v1, HINT_NUMBER);
+  if (is_special(v1)) v1 = special_to_number(v1);
+  if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
+  if (is_special(v2)) v2 = special_to_number(v2);
+LTAGAIN:
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
-    return true_false((int)v1 < (int)v2);
+    return true_false((int64_t)v1 < (int64_t)v2);
   case TP_FIXFLO:
     x1 = fixnum_to_double(v1);
     x2 = flonum_to_double(v2);
@@ -413,8 +414,12 @@ JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
     x1 = flonum_to_double(v1);
     x2 = flonum_to_double(v2);
     return true_false(x1 < x2);
+  case TP_STRSTR:
+    return true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0);
   default:
-    return JS_FALSE;
+    if (is_string(v1)) v1 = string_to_number(v1);
+    if (is_string(v2)) v2 = string_to_number(v2);
+    goto LTAGAIN;
   }
 }
 
@@ -422,13 +427,14 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
   Tag tag;
   double x1, x2;
 
-  if (is_object(v1))
-    v1 = object_to_string(context, v1);
-  if (is_object(v2))
-    v2 = object_to_string(context, v2);
+  if (is_object(v1)) v1 = object_to_primitive(context, v1, HINT_NUMBER);
+  if (is_special(v1)) v1 = special_to_number(v1);
+  if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
+  if (is_special(v2)) v2 = special_to_number(v2);
+LEAGAIN:
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
-    return true_false((int)v1 <= (int)v2);
+    return true_false((int64_t)v1 <= (int64_t)v2);
   case TP_FIXFLO:
     x1 = fixnum_to_double(v1);
     x2 = flonum_to_double(v2);
@@ -441,8 +447,11 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
     x1 = flonum_to_double(v1);
     x2 = flonum_to_double(v2);
     return true_false(x1 <= x2);
+  case TP_STRSTR:
+    return true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) <= 0);
   default:
-    return JS_FALSE;
+    if (is_string(v1)) v1 = string_to_number(v1);
+    if (is_string(v2)) v2 = string_to_number(v2);
+    goto LEAGAIN;
   }
 }
-
