@@ -160,7 +160,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       num = string_to_number(p);
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
-        if (0 <= n) {
+        if (0 <= n && n < array_size(a)) {
           return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
         }
       }
