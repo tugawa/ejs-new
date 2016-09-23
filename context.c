@@ -1,7 +1,6 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
-#include "gc.h"
 
 #define allocate_context()  ((Context *)malloc(sizeof(Context)))
 

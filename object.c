@@ -33,7 +33,6 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
-#include "gc.h"
 
 #define PROP_REALLOC_THRESHOLD (0.75)
 

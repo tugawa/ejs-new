@@ -14,7 +14,6 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
-#include "gc.h"
 
 /*
    a counter for debugging

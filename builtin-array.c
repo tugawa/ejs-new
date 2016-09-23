@@ -14,7 +14,6 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
-#include "gc.h"
 
 #define not_implemented(s) \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)

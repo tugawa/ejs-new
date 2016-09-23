@@ -72,6 +72,7 @@ typedef uint64_t JSValue;
 #include "context.h"
 #include "hash.h"
 #include "types.h"
+#include "gc.h"
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
