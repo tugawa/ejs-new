@@ -56,93 +56,7 @@
  */
 #define MINIMUM_FREE_CHUNK_JSVALUES 4
 
-#if 1
 #include "cell_header.h"
-#else
-typedef uint64_t header_t;
-
-#define MKMASK(l, o, b)						\
-  ((((uint64_t) -1) << ((l) - (b))) >> ((l) - (o) - (b)))
-
-/*
- * Chunk header layout
- *  HEADER0
- *    bit 0 - 7  :  type (HTAG_xxx)
- *                    4 - 14 : JSValue types
- *                    15     : malloced memory (HTAG_MALLOC)
- *                    16     : free (HTAG_FREE)
- *    bit 8      : mark bit
- *    bit 9 - 11 : extra jsvalues
- *    bit 32 - 63: size (in number of JSValue's)
- */
-#define HEADER_JSVALUES       1
-#define HEADER_BYTES (HEADER_JSVALUES << LOG_BYTES_IN_JSVALUE)
-
-#define HEADER0_BITS          64
-#define HEADER0_TYPE_OFFSET   0
-#define HEADER0_TYPE_BITS     8
-#define HEADER0_GC_OFFSET     8
-#define HEADER0_GC_BITS       1
-#define HEADER0_EXTRA_OFFSET  9
-#define HEADER0_EXTRA_BITS    3
-#define HEADER0_GEN_OFFSET    12
-#define HEADER0_GEN_BITS      4
-#define HEADER0_MAGIC_OFFSET  16
-#define HEADER0_MAGIC_BITS    8
-#define HEADER0_SIZE_OFFSET   32
-#define HEADER0_SIZE_BITS     32
-#define HEADER0_TYPE_MASK \
-  MKMASK(HEADER0_BITS, HEADER0_TYPE_OFFSET, HEADER0_TYPE_BITS)
-#define HEADER0_MAGIC_MASK \
-  MKMASK(HEADER0_BITS, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_BITS)
-#define HEADER0_GEN_MASK \
-  MKMASK(HEADER0_BITS, HEADER0_GEN_OFFSET, HEADER0_GEN_BITS)
-#define HEADER0_EXTRA_MASK \
-  MKMASK(HEADER0_BITS, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_BITS)
-#define HEADER0_GC_MASK \
-  MKMASK(HEADER0_BITS, HEADER0_GC_OFFSET, HEADER0_GC_BITS)
-#define HEADER0_SIZE_MASK					\
-  MKMASK(HEADER0_BITS, HEADER0_SIZE_OFFSET, HEADER0_SIZE_BITS)
-//#define HEADER0_SIZE_MASK 0xffffffff00000000LLU
-
-#define HEADER0_MAGIC  (24)
-
-/* accessor to HEADER0 */
-#define HEADER0_SET(hdr, val, off, msk)			\
-  ((hdr) = ((((uint64_t) (val)) << (off)) | ((hdr) & ~(msk))))
-#define HEADER0_GET(hdr, off, msk) \
-  (((uint64_t) ((hdr) & (msk))) >> (off))
-#define HEADER0_SET_TYPE(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_TYPE_OFFSET, HEADER0_TYPE_MASK)
-#define HEADER0_GET_TYPE(hdr) \
-  HEADER0_GET(hdr, HEADER0_TYPE_OFFSET, HEADER0_TYPE_MASK)
-#define HEADER0_SET_EXTRA(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
-#define HEADER0_GET_EXTRA(hdr) \
-  HEADER0_GET(hdr, HEADER0_EXTRA_OFFSET, HEADER0_EXTRA_MASK)
-#define HEADER0_SET_MAGIC(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_MASK)
-#define HEADER0_GET_MAGIC(hdr) \
-  HEADER0_GET(hdr, HEADER0_MAGIC_OFFSET, HEADER0_MAGIC_MASK)
-#define HEADER0_SET_GEN(hdr, val) \
-  HEADER0_SET(hdr, (val) & (HEADER0_GEN_MASK >> HEADER0_GEN_OFFSET),	\
-	      HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
-#define HEADER0_GET_GEN(hdr) \
-  HEADER0_GET(hdr, HEADER0_GEN_OFFSET, HEADER0_GEN_MASK)
-#define HEADER0_SET_GC(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_GC_OFFSET, HEADER0_GC_MASK)
-#define HEADER0_GET_GC(hdr) \
-  HEADER0_GET(hdr, HEADER0_GC_OFFSET, HEADER0_GC_MASK)
-#define HEADER0_SET_SIZE(hdr, val) \
-  HEADER0_SET(hdr, val, HEADER0_SIZE_OFFSET, HEADER0_SIZE_MASK)
-#define HEADER0_GET_SIZE(hdr) \
-  HEADER0_GET(hdr, HEADER0_SIZE_OFFSET, HEADER0_SIZE_MASK)
-#define HEADER0_COMPOSE(size, extra, type) \
-  ((((uint64_t) (size)) << HEADER0_SIZE_OFFSET) | \
-   (((uint64_t) (extra)) << HEADER0_EXTRA_OFFSET) | \
-   (((uint64_t) (type)) << HEADER0_TYPE_OFFSET) | \
-   (((uint64_t) HEADER0_MAGIC) << HEADER0_MAGIC_OFFSET))
-#endif
 
 /*
  *  Macro
@@ -154,7 +68,6 @@ typedef uint64_t header_t;
  *  Types
  */
 
-typedef uint32_t cell_type_t;
 #define HTAG_FREE          (0xff)
 
 struct free_chunk {
@@ -264,7 +177,8 @@ STATIC header_t *get_shadow(void *ptr)
  * the area available to the VM, and extra bytes if any.
  * Other header bits are zero
  */
-STATIC void* do_malloc(size_t request_bytes, cell_type_t type)
+STATIC void* space_alloc(struct space *space,
+			 size_t request_bytes, cell_type_t type)
 {
   size_t  alloc_jsvalues;
   struct free_chunk **p;
@@ -274,7 +188,7 @@ STATIC void* do_malloc(size_t request_bytes, cell_type_t type)
   alloc_jsvalues += HEADER_JSVALUES;
 
   /* allocate from freelist */
-  for (p = &malloc_space.freelist; *p != NULL; p = &(*p)->next) {
+  for (p = &space->freelist; *p != NULL; p = &(*p)->next) {
     struct free_chunk *chunk = *p;
     size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
     if (chunk_jsvalues >= alloc_jsvalues) {
@@ -289,7 +203,7 @@ STATIC void* do_malloc(size_t request_bytes, cell_type_t type)
 	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
 	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
 #endif /* GC_DEBUG */
-	malloc_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+	space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (addr + HEADER_BYTES);
       } else {
 	/* This chunk is too small to split. */
@@ -301,59 +215,12 @@ STATIC void* do_malloc(size_t request_bytes, cell_type_t type)
 	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
 	HEADER0_SET_GEN_MASK(chunk->header, generation);
 #endif /* GC_DEBUG */
-	malloc_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
+	space->free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
 	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
       }
     }
   }
 
-  return NULL;
-}
-
-/*
- * request_jsvalues: the number of JSValue's including the object header.
- */
-STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type)
-{
-  struct free_chunk **p;
-  size_t alloc_jsvalues;
-
-  alloc_jsvalues =
-    (request_bytes + BYTES_IN_JSVALUE - 1) >> LOG_BYTES_IN_JSVALUE;
-
-  for (p = &js_space.freelist; *p != NULL; p = &(*p)->next) {
-    struct free_chunk *chunk = *p;
-    size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
-    if (chunk_jsvalues >= alloc_jsvalues) {
-      if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
-	/* This chunk is large enough to leave a part unused.  Split it */
-	size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-	uintptr_t addr =
-	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
-#ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
-	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
-#endif /* GC_DEBUG */
-	js_space.free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (JSValue *) addr;
-      } else {
-	/* This chunk is too small to split. */
-	*p = (*p)->next;
-	chunk->header = HEADER0_COMPOSE(chunk_jsvalues,
-					chunk_jsvalues - alloc_jsvalues, type);
-#ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
-	HEADER0_SET_GEN_MASK(chunk->header, generation);
-#endif /* GC_DEBUG */
-	js_space.free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (JSValue *) chunk;
-      }
-    }
-  }
-
-  print_heap_stat();
   return NULL;
 }
 
@@ -381,6 +248,12 @@ void gc_push_tmp_root(JSValue *loc)
 void gc_pop_tmp_root(int n)
 {
   tmp_roots_sp -= n;
+}
+
+cell_type_t gc_obj_header_type(void *p)
+{
+  header_t *hdrp = ((header_t *) p) - 1;
+  return HEADER0_GET_TYPE(*hdrp);
 }
 
 STATIC int check_gc_request(Context *ctx)
@@ -415,7 +288,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 
   if (check_gc_request(ctx))
     garbage_collect(ctx);
-  addr = do_malloc(request_bytes, type);
+  addr = space_alloc(&malloc_space, request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes => %p (%x)\n",
 	      request_bytes, addr, addr - malloc_space.addr);
 #ifdef GC_DEBUG
@@ -436,12 +309,12 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 
   if (check_gc_request(ctx))
     garbage_collect(ctx);
-  addr = do_jsalloc(request_bytes, type);
+  addr = space_alloc(&js_space, request_bytes, type);
   GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
 	      request_bytes, type, addr);
 #ifdef GC_DEBUG
   {
-    header_t *hdrp = (header_t *) addr;
+    header_t *hdrp = (header_t *) (addr - HEADER_JSVALUES);
     header_t *shadow = get_shadow(hdrp);
     *shadow = *hdrp;
   }
@@ -478,12 +351,15 @@ STATIC void garbage_collect(Context *ctx)
   generation++;
 }
 
-STATIC void mark_object(Object *obj)
+/*
+ * Mark the header
+ */
+STATIC void mark_cell_header(header_t *hdrp)
 {
 #ifdef GC_DEBUG
   {
-    header_t header  = obj->header;
-    header_t *shadow = get_shadow(obj);
+    header_t header  = *hdrp;
+    header_t *shadow = get_shadow(hdrp);
     header_t sheader = *shadow;
     assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
     assert(HEADER0_GET_TYPE(header) == HEADER0_GET_TYPE(sheader));
@@ -492,33 +368,48 @@ STATIC void mark_object(Object *obj)
     assert(HEADER0_GET_GEN(header) == HEADER0_GET_GEN(sheader));
   }
 #endif /* GC_DEBUG */
-  obj->header |= GC_MARK_BIT;
+  *hdrp |= GC_MARK_BIT;
 }
 
-STATIC void unmark_object(Object *obj)
+STATIC void mark_cell(void *ref)
 {
-  obj->header &= ~GC_MARK_BIT;
+  header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
+  mark_cell_header(hdrp);
 }
 
-STATIC int is_marked_object(Object *obj)
+STATIC void unmark_cell_header(header_t *hdrp)
+{
+  *hdrp &= ~GC_MARK_BIT;
+}
+
+STATIC void unmark_cell(void *ref)
+{
+  header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
+  unmark_cell_header(hdrp);
+}
+
+STATIC int is_marked_cell_header(header_t *hdrp)
 {
 #if HEADER0_GC_OFFSET <= 4 * 8  /* BITS_IN_INT */
-  return obj->header & GC_MARK_BIT;
+  return *hdrp & GC_MARK_BIT;
 #else
-  return !!(obj->header & GC_MARK_BIT);
+  return !!(*hdrp & GC_MARK_BIT);
 #endif
 }
 
-STATIC int test_and_mark_no_js_object(void *ptr)
+STATIC int is_marked_cell(void *ref)
 {
-  /* never be JS object */
-  assert(!in_js_space(ptr));
+  header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
+  return is_marked_cell_header(hdrp);
+}
 
-  if (in_malloc_space(ptr)) {
-    Object *header = (Object *) (((JSValue *) ptr) - HEADER_JSVALUES);
-    if (is_marked_object(header))
+STATIC int test_and_mark_cell(void *ref)
+{
+  if (in_js_space(ref) || in_malloc_space(ref)) {
+    header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
+    if (is_marked_cell_header(hdrp))
       return 1;
-    mark_object(header);
+    mark_cell_header(hdrp);
   }
   return 0;
 }
@@ -527,21 +418,18 @@ STATIC int test_and_mark_no_js_object(void *ptr)
  * Tracer
  */
 
-STATIC void trace_leaf_object_pointer(uintptr_t *ptrp)
+STATIC void trace_leaf_object(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
-  /* TODO: make a type for leaf object. */
-  if (in_js_space((void *) ptr))
-    mark_object((Object *) ptr);
-  else if (in_malloc_space((void *) ptr))
-    mark_object((Object *) (ptr - HEADER_BYTES));
+  if (in_js_space((void *) ptr) || in_malloc_space((void *) ptr))
+    mark_cell((void *) ptr);
 }
 
 STATIC void trace_HashTable(HashTable **ptrp)
 {
   HashTable *ptr = *ptrp;
 
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   trace_HashCell_array(&ptr->body, ptr->size);
@@ -551,7 +439,7 @@ STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
 {
   HashCell **ptr = *ptrp;
   int i;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   for (i = 0; i < length; i++) {
@@ -563,7 +451,7 @@ STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
 STATIC void trace_HashCell(HashCell **ptrp)
 {
   HashCell *ptr = *ptrp;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   trace_slot(&ptr->entry.key);
@@ -576,7 +464,7 @@ STATIC void trace_Instruction_array_part(Instruction **ptrp,
 {
   Instruction *ptr = (Instruction *) *ptrp;
   size_t i;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   for (i = start; i < end; i++)
@@ -587,14 +475,14 @@ STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
   trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->body_size);
-  trace_leaf_object_pointer((uintptr_t *) &ptr->insn_ptr);
+  trace_leaf_object((uintptr_t *) &ptr->insn_ptr);
 }
 
 STATIC void trace_FunctionTable(FunctionTable **ptrp)
 {
   /* TODO: see calling site */
   FunctionTable *ptr = *ptrp;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
   scan_FunctionTable(ptr);
 }
@@ -603,7 +491,7 @@ STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
 {
   FunctionTable *ptr = *ptrp;
   size_t i;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
   for (i = 0; i < length; i++)
     scan_FunctionTable(ptr + i);
@@ -615,7 +503,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   header_t header;
   size_t length;
   size_t   i;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
   assert(in_malloc_space(ptr));
 
@@ -638,7 +526,7 @@ STATIC void trace_StrCons(StrCons **ptrp)
 {
   StrCons *ptr = *ptrp;
 
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   //trace_slot(&ptr->str);  /* weak pointer */
@@ -650,7 +538,7 @@ STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
 {
   StrCons **ptr = *ptrp;
   size_t i;
-  if (test_and_mark_no_js_object(ptr))
+  if (test_and_mark_cell(ptr))
     return;
 
   for (i = 0; i < length; i++)
@@ -665,7 +553,7 @@ STATIC void trace_Context(Context **contextp)
 {
   Context *context = *contextp;
 
-  if (test_and_mark_no_js_object(context))
+  if (test_and_mark_cell(context))
     return;
 
   trace_slot(&context->global);
@@ -677,34 +565,26 @@ STATIC void trace_Context(Context **contextp)
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
-STATIC void trace_object_pointer(uintptr_t *ptrp)
+STATIC void trace_js_object(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
-  Object *obj;
+  Object *obj = (Object *) ptr;
   /* TODO: specialise.  If obj is pointed at through JSValue, we do not
    *       need to check it's space.  It should be in js_space */
   if (ptr == 0)
     return;
-  if (in_malloc_space((void *) ptr))
-    obj = (Object *) (ptr - HEADER_BYTES);
-  else if (in_js_space((void *) ptr))
-    obj = (Object *) ptr;
-  else {
-    /* default: JS object */
-    obj = (Object *) ptr;
-    goto SCAN;
+  assert(in_js_space((void *) ptr));
+  if (in_malloc_space((void *) ptr) || in_js_space((void *) ptr)) {
+    if (is_marked_cell((void *) ptr))
+      return;
+    mark_cell((void *) ptr);
   }
 
-  if (is_marked_object(obj))
-    return;
-  mark_object(obj);
-
- SCAN:
   /* common header */
   trace_HashTable(&obj->map);
   trace_JSValue_array(&obj->prop, obj->n_props);
 
-  switch (HEADER0_GET_TYPE(obj->header)) {
+  switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
   case HTAG_OBJECT:
     break;
   case HTAG_ARRAY:
@@ -724,7 +604,7 @@ STATIC void trace_object_pointer(uintptr_t *ptrp)
     break;
 #ifdef USE_REGEXP
   case HTAG_REGEXP:
-    trace_leaf_object_pointer((uintptr_t *)&((RegexpCell *)obj)->pattern);
+    trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
     break;
 #endif /* USE_REGEXP */
   case HTAG_BOXED_STRING:
@@ -732,6 +612,8 @@ STATIC void trace_object_pointer(uintptr_t *ptrp)
   case HTAG_BOXED_BOOLEAN:
     trace_slot(&((BoxedCell *) obj)->value);
     break;
+  default:
+    assert(0);
   }
 }
 
@@ -744,10 +626,8 @@ STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
   assert(!in_js_space(ptr));
 
   if (in_malloc_space(ptr)) {
-    Object *header = (Object *) (ptr - HEADER_JSVALUES);
-    if (is_marked_object(header))
+    if (test_and_mark_cell(ptr))
       return;
-    mark_object(header);
   }
 
   /* SCAN */
@@ -764,11 +644,11 @@ STATIC void trace_slot(JSValue* ptr)
   if ((jsv & 0x4) != 0) {
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
-    trace_leaf_object_pointer((uintptr_t *) &jsv);
+    trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
   }
   else
-    trace_object_pointer((uintptr_t *) ptr);
+    trace_js_object((uintptr_t *) ptr);
 }
 
 STATIC void scan_roots(Context *ctx)
@@ -833,7 +713,7 @@ STATIC void weak_clear_StrTable(StrTable *table)
     StrCons ** p = table->obvector + i;
     while (*p != NULL) {
       StringCell *cell = remove_string_tag((*p)->str);
-      if (!is_marked_object((Object *) cell)) {
+      if (!is_marked_cell(cell)) {
 	(*p)->str = JS_UNDEFINED;
 	*p = (*p)->next;
       } else
@@ -862,17 +742,17 @@ STATIC void sweep_space(struct space *space)
     uintptr_t free_start;
     /* scan used area */
     while (scan < space->addr + space->bytes &&
-	   is_marked_object((Object *) scan)) {
-      uint64_t header = *(uint64_t *) scan;
-      uint32_t size = HEADER0_GET_SIZE(header);
+	   is_marked_cell_header((void *) scan)) {
+      header_t header = *(header_t *) scan;
+      size_t size = HEADER0_GET_SIZE(header);
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
-      unmark_object((Object *) scan);
+      unmark_cell_header((void *) scan);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;
     }
     free_start = scan;
     while (scan < space->addr + space->bytes &&
-	   !is_marked_object((Object *) scan)) {
+	   !is_marked_cell_header((void *) scan)) {
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
@@ -894,7 +774,9 @@ STATIC void sweep_space(struct space *space)
 	GCLOG_SWEEP("add_cunk %x - %x (%d)\n",
 		    free_start - space->addr, scan - space->addr,
 		    scan - free_start);
+#ifdef GC_DEBUG
 	memset(chunk, 0xcc, scan - free_start);
+#endif /* GC_DEBUG */
 	chunk->header =
 	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
 			  0, HTAG_FREE);
@@ -933,13 +815,13 @@ STATIC void check_invariant_nobw_space(struct space *space)
   uintptr_t scan = space->addr;
 
   while (scan < space->addr + space->bytes) {
-    Object *obj = (Object *) scan;
-    header_t header = *(header_t *) obj;
+    header_t *hdrp = (header_t *) scan;
+    header_t header = *hdrp;
     if (HEADER0_GET_TYPE(header) == HTAG_STRING)
       ;
     else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
       ;
-    else if (is_marked_object(obj)) {
+    else if (is_marked_cell_header(hdrp)) {
       /* this object is black; should not contain a pointer to white */
       size_t payload_jsvalues =	HEADER0_GET_SIZE(header);
       size_t i;
@@ -953,11 +835,9 @@ STATIC void check_invariant_nobw_space(struct space *space)
 	    continue;
 	}
 	if (in_js_space((void *)(x & ~7))) {
-	  Object *xobj = (Object *)(x & ~7);
-	  assert(is_marked_object(xobj));
+	  assert(is_marked_cell((void *) (x & ~7)));
 	} else if (in_malloc_space((void *) x)) {
-	  Object *xobj = (Object *)(x - HEADER_BYTES);
-	  assert(is_marked_object(xobj));
+	  assert(is_marked_cell((void *) x));
 	}
       }
     }

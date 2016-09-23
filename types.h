@@ -90,7 +90,7 @@ typedef uint16_t Tag;
    tag == T_OBJECT
  */
 typedef struct object_cell {
-  uint64_t header;        // header
+  //  uint64_t header;        // header
   uint64_t n_props;       // number of properties
   uint64_t limit_props;   //
   HashTable *map;         // map from property name to the index within prop
@@ -113,7 +113,8 @@ typedef struct object_cell {
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
 #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
-#define obj_header_tag(x)      ((Tag)(obj_header(x) & HEADER_TYPE_MASK))
+//#define obj_header_tag(x)    ((Tag)(obj_header(x) & HEADER_TYPE_MASK))
+#define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 #define obj_size(x)            (obj_header(x) >> HEADER_SIZE_OFFSET)
 

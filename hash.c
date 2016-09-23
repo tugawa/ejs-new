@@ -14,7 +14,6 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
-#include "gc.h"
 
 #define HASH_SKIP (27)
 
@@ -348,8 +347,8 @@ void print_object_properties(JSValue o) {
   unsigned int i, ec;
 
   tab = obj_map(o);
-  printf("Object %016lx: (header = %ld, n_props = %ld, map = %p)\n",
-         o, obj_header(o), obj_n_props(o), tab);
+  printf("Object %016lx: (type = %ld, n_props = %ld, map = %p)\n",
+         o, obj_header_tag(o), obj_n_props(o), tab);
   ec = 0;
   for (i = 0; i < tab->size; i++) {
     if ((p = tab->body[i]) == NULL) continue;
