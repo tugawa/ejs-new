@@ -143,8 +143,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       cint n;
       n = fixnum_to_cint(p);
       // printf("get_array_prop: n = %ld, array_length(a) = %d\n", n, array_length(a));
-      if (0 <= n) {
-      // printf("array_body_index(a,n) = "); print_value_simple(context, array_body_index(a,n)); printf("\n");
+      if (0 <= n && n < array_size(a)) {
         return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
       p = fixnum_to_string(p);
@@ -216,7 +215,78 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
  */
 int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
   if (!is_string(p)) p = to_string(context, p);
+  // printf("set_object_prop: "); print_value_verbose(context, p); printf("\n");
   return set_prop_none(o, p, v);
+}
+
+/*
+    a[n] <- v
+      a is an array and n >= 0
+      if setlength is true, a.length is set to some value, where
+      it is necessary to shrink the array if appropriate, and
+      it is not necessary to do a[n] <- v.
+    returns
+      SUCCESS: the above assignment is performed
+      FAIL   : the above assignment has not been done yet because n is
+               outside, but expanding array has been done if necessary
+ */
+int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int setlength) {
+  cint len, size;
+  int i;
+
+  len = array_length(a);
+  size = array_size(a);
+  // printf("set_array_index_value: n = %d\n", n);
+  if (n < size) {
+    if (len <= n) {
+      /* grows the length of the array, but it is not necessary to
+         expand the array data */
+      for (i = len; i < n; i++)
+        array_body_index(a, i) = JS_UNDEFINED;
+      array_length(a) = n + 1;
+      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    } else if (n < len && setlength == TRUE) {
+      /* shrinks the length of the array */
+      array_length(a) = n + 1;
+      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    }
+    if (setlength == FALSE) array_body_index(a, n) = v;
+    return SUCCESS;
+  } else if (n < ASIZE_LIMIT) {
+    /* 
+       since n is less than ASIZE_LIMIT, it is possible to expand
+       the array data.
+    */
+    cint newsize;
+    while ((newsize = increase_asize(size)) <= n) size = newsize;
+    reallocate_array_data(context, a, newsize);
+    for (i = len; i < n; i++)
+      array_body_index(a, i) = JS_UNDEFINED;
+    array_length(a) = n + 1;
+    set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    if (setlength == FALSE) array_body_index(a, n) = v;
+    return SUCCESS;
+  } else {
+    /*
+      Since n is outside of the range of array data, stores the
+      value into the hash table of the array.
+    */
+    if (len <= n && n < MAX_ARRAY_LENGTH) {
+      array_length(a) = n + 1;
+      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+      if (size < ASIZE_LIMIT)
+        /* the array data is not fully expanded, so we expands it */
+        reallocate_array_data(context, a, ASIZE_LIMIT);
+      for (i = len; i < ASIZE_LIMIT; i++)
+        array_body_index(a, i) = JS_UNDEFINED;
+    } else if (n < len && setlength == TRUE) {
+      /* it is necessary to remove the value associates with the subscript
+         greater than n + 1, but how to do this? */
+      array_length(a) = n + 1;
+      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    }
+    return setlength == TRUE? TRUE: FALSE;
+  }
 }
 
 /*
@@ -230,27 +300,12 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
   switch (get_tag(p)) {
   case T_FIXNUM:
     {
-      cint n, len;
-      int i;
+      cint n;
 
       n = fixnum_to_cint(p);
-      len = array_length(a);
-      // printf("set_array_prop: n = %d\n", n);
       if (0 <= n) {
-        if (n < len) {
-          array_body_index(a, n) = v;
+        if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
           return SUCCESS;
-        } else if (n < array_size(a)) {
-          for (i = len + 1; i < n; i++)
-            array_body_index(a, i) = JS_UNDEFINED;
-          array_body_index(a, n) = v;
-          array_length(a) = n + 1;
-          set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
-        } else {
-          // expand the array --- not implemented yet
-          printf("set_array_prop: expansion of an array is not implemented yet\n");
-          return SUCCESS;
-        }
       }
       p = fixnum_to_string(p);
       return set_object_prop(context, a, p, v);
@@ -262,31 +317,26 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
   case T_STRING:
     {
       JSValue num;
-      cint n, len;
-      int i;
+      cint n;
 
       num = string_to_number(p);
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
-        len = array_length(a);
         if (0 <= n) {
-          if (n < len) {
-            array_body_index(a, n) = v;
+          if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
             return SUCCESS;
-          } else if (n < array_size(a)) {
-            for (i = len + 1; i < n; i++)
-              array_body_index(a, i) = JS_UNDEFINED;
-            array_body_index(a, n) = v;
-            array_length(a) = n + 1;
-            set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
-          } else {
-            printf("set_array_prop: expansion of an array is not implemented yet\n");
-            return SUCCESS;
-          }
         }
+        return set_object_prop(context, a, p, v);
       }
-      // if the property name is "length", expand / shrink the array
-      // -- not implemented
+      if (p == gconsts.g_string_length && is_fixnum(v)) {
+        /*
+           if the property name is "length" and the given value is a fixnum,
+           expand / shrink the array
+         */
+        if (set_array_index_value(context, a, fixnum_to_cint(v) - 1, JS_UNDEFINED, TRUE)
+            == SUCCESS)
+          return SUCCESS;
+      }
       return set_object_prop(context, a, p, v);
     }
     break;

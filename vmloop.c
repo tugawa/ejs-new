@@ -1394,7 +1394,7 @@ I_GETGLOBALOBJ:
   ENTER_INSN(__LINE__);
   {
     regbase[get_first_operand_reg(insn)] = context->global;
-if (context->global == JS_UNDEFINED) printf("GETGLOBALOBJ: !!!!\n");
+    if (context->global == JS_UNDEFINED) printf("GETGLOBALOBJ: !!!!\n");
   }
   NEXT_INSN_INCPC();
 

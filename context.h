@@ -174,7 +174,7 @@ typedef struct context {
 #define FP_POS     (0)
 
 #define ARRAY_INDEX_MAX     (0x7fffffff)
-#define INITIAL_ARRAY_SIZE  (1000)
+// #define INITIAL_ARRAY_SIZE  (1000)
 
 #ifdef PARALLEL
 

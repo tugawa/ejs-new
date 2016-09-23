@@ -23,6 +23,7 @@ extern JSValue allocate_string2(const char *, const char *);
 extern Object *allocate_object(Context *ctx);
 extern ArrayCell *allocate_array(Context *ctx);
 extern void allocate_array_data(Context *, JSValue, int, int);
+extern void reallocate_array_data(Context *, JSValue, int);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int size);

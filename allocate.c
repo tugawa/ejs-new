@@ -123,6 +123,25 @@ void allocate_array_data(Context *ctx, JSValue a, int size, int len)
 }
 
 /*
+   re-allocates an array body
+     newsize : new size of the array body
+ */
+void reallocate_array_data(Context *ctx, JSValue a, int newsize)
+{
+  JSValue *body, *oldbody;
+  int i;
+
+  gc_push_tmp_root(&a);
+  body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
+			       HTAG_ARRAY_DATA);
+  oldbody = array_body(a);
+  for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
+  array_body(a) = body;
+  array_size(a) = newsize;
+  gc_pop_tmp_root(1);
+}
+
+/*
    allocates a function
  */
 FunctionCell *allocate_function(void) {

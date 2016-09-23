@@ -125,10 +125,17 @@ typedef struct object_cell {
  */
 typedef struct array_cell {
   Object o;
-  uint64_t size;        // 2^n
-  uint64_t length;      // user-spefified size of the array
-  JSValue* body;
+  uint64_t size;        // size of the C array pointed from `body' field
+  uint64_t length;      // length of the array, i.e., max subscript - 1
+  JSValue *body;        // pointer to a C array
 } ArrayCell;
+
+#define ASIZE_LIMIT  100
+#define ASIZE_INIT   10
+#define ASIZE_DELTA  10
+#define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
+
+#define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 
 #define is_array(p)           is_obj_header_tag((p), HTAG_ARRAY)
 #define put_array_tag(p)      (put_tag(p, T_OBJECT))

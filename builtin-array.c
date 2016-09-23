@@ -20,6 +20,21 @@
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
 /*
+   computes the asize for a given n
+ */
+cint compute_asize(cint n) {
+  cint s, news;
+
+  s = ASIZE_INIT;
+  while (s < n) {
+    news = increase_asize(s);
+    if (s == news) return n;
+    s = news;
+  }
+  return s;
+}
+
+/*
    constructor for array
  */
 BUILTIN_FUNCTION(array_constr)
@@ -31,30 +46,28 @@ BUILTIN_FUNCTION(array_constr)
   rsv = new_array(context);  // note: new_array sets the `length' property to 0
   gc_push_tmp_root(&rsv);
   if (na == 0) {
-    allocate_array_data(context, rsv, INITIAL_ARRAY_SIZE, 0);
+    allocate_array_data(context, rsv, ASIZE_INIT, 0);
     set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
   } else if (na == 1) {
     JSValue n = args[1];  // GC: n is used in uninterraptible section
-    size =INITIAL_ARRAY_SIZE;
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
-      while (size < length) size *= 2;
+      size = compute_asize(length);
       allocate_array_data(context, rsv, size, length);
       // printf("array_constr: length = %ld, size = %ld, rsv = %lx\n", length, size, rsv);
       set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     } else {
-      allocate_array_data(context, rsv, INITIAL_ARRAY_SIZE, 0);
+      allocate_array_data(context, rsv, ASIZE_INIT, 0);
       set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
     }
   } else {
     /*
        na >= 2, e.g., Array(2,4,5,1)
-       This means that the array's size is four whose elements are
+       This means that the array's length is four whose elements are
        2, 4, 5, and 1.
      */
     int i;
-    size =INITIAL_ARRAY_SIZE;
     length = na;
-    while (size < length) size *= 2;
+    size = compute_asize(length);
     allocate_array_data(context, rsv, size, length);
     set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
     for (i = 0; i < length; i++)
@@ -410,6 +423,27 @@ BUILTIN_FUNCTION(array_sort)
 #endif
 }
 
+BUILTIN_FUNCTION(array_debugarray)
+{
+  JSValue a;
+  cint size, length, to;
+  int i;
+
+  builtin_prologue();
+  a = args[0];
+  size = array_size(a);
+  length = array_length(a);
+  to = length < size? length: size;
+  printf("debugarray: size = %ld, length = %ld, to = %ld\n", size, length, to);
+  for (i = 0; i < to; i++) {
+    printf("i = %d: ", i);
+    print_value_simple(context, array_body_index(a, i));
+    printf("\n");
+  }
+  set_a(context, JS_UNDEFINED);
+  return;
+}
+
 ObjBuiltinProp array_funcs[] = {
   { "toString",       array_toString,       0, ATTR_DE },
   { "toLocateString", array_toLocaleString, 0, ATTR_DE },
@@ -421,6 +455,7 @@ ObjBuiltinProp array_funcs[] = {
   { "shift",          array_shift,          1, ATTR_DE },
   { "slice",          array_slice,          2, ATTR_DE },
   { "sort",           array_sort,           1, ATTR_DE },
+  { "debugarray",     array_debugarray,     0, ATTR_DE },
   { NULL,             NULL,                 0, ATTR_DE }
 };
 
