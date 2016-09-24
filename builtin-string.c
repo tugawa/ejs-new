@@ -130,7 +130,7 @@ BUILTIN_FUNCTION(string_toUpperCase)
 
 BUILTIN_FUNCTION(string_substring)
 {
-  not_implemented("string_substring is not implemented yet\n");
+  not_implemented("string_substring");
 
 #if 0
   JSValue endv;
@@ -183,7 +183,7 @@ BUILTIN_FUNCTION(string_substring)
 
 BUILTIN_FUNCTION(string_slice)
 {
-  not_implemented("string_slice is not implemented yet\n");
+  not_implemented("string_slice");
 
 #if 0
   JSValue rsv, startv, endv;
@@ -288,7 +288,7 @@ BUILTIN_FUNCTION(string_charCodeAt)
 
 BUILTIN_FUNCTION(string_indexOf)
 {
-  not_implemented("string_indexOf is not implemented yet\n");
+  not_implemented("string_indexOf");
 
 #if 0
   JSValue sch, position, rsv;
@@ -348,7 +348,7 @@ BUILTIN_FUNCTION(string_indexOf)
 
 BUILTIN_FUNCTION(string_lastIndexOf)
 {
-  not_implemented("string_lastIndexOf is not implemented yet\n");
+  not_implemented("string_lastIndexOf");
 
 #if 0
   JSValue sch, position, rsv;
@@ -440,7 +440,7 @@ BUILTIN_FUNCTION(string_fromCharCode)
 
 BUILTIN_FUNCTION(string_localeCompare)
 {
-  not_implemented("string_localeCompare is not implemented yet\n");
+  not_implemented("string_localeCompare");
 
 #if 0
   JSValue rsv, that;

@@ -167,6 +167,17 @@ JSValue *allocate_prop_table(int size) {
   return table;
 }
 
+JSValue *reallocate_prop_table(JSValue *oldtab, int oldsize, int newsize) {
+  JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * newsize,
+                                                 HTAG_PROP);
+  size_t i;
+  for (i = 0; i < oldsize; i++)
+    table[i] = oldtab[i];
+  for (; i < newsize; i++)
+    table[i] = JS_UNDEFINED;
+  return table;
+}
+
 /*
    allocates an iterator
  */

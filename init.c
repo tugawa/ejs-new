@@ -79,9 +79,9 @@ JSValue init_global(void) {
   //   = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
 #endif
 #ifdef PARALLEL
-  vmTest = new_object();
-  thread = new_object();
-  tcp = new_object();
+  vmTest = new_object(NULL);
+  thread = new_object(NULL);
+  tcp = new_object(NULL);
 #endif
 
   init_builtin_object();

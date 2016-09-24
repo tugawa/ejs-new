@@ -8,6 +8,8 @@ extern int trace_flag;
 extern int lastprint_flag;
 extern int regstack_limit;
 
+EXTERN int run_phase;
+
 extern FILE *log_stream;
 
 #ifdef __cplusplus
@@ -26,7 +28,8 @@ extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
-extern JSValue *allocate_prop_table(int size);
+extern JSValue *allocate_prop_table(int);
+extern JSValue *reallocate_prop_table(JSValue *, int, int);
 extern IteratorCell *allocate_iterator(void);
 #ifdef USE_REGEXP
 extern RegexpCell *allocate_regexp(void);
