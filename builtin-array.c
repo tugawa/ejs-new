@@ -140,26 +140,20 @@ BUILTIN_FUNCTION(array_toLocaleString){
  */
 BUILTIN_FUNCTION(array_join)
 {
-  not_implemented("join");
-#if 0
-  int fp;
-  JSValue* args;
-  JSValue ret, separator;
+  JSValue sep, ret;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-
-  if(nArgs > 0){
-    separator = args[1];
-    if(is_object(separator)){
-      separator = objectToPrimitiveHintString(separator, context); }
-    ret = arrayToString(context, args[0], PrimitiveToString(separator));
-  }else{
-    ret = arrayToString(context, args[0], gStringComma);
+  builtin_prologue();
+  if (na == 0)
+    sep = gconsts.g_string_comma;
+  else {
+    sep = to_string(context, args[1]);
+    if (!is_string(sep))
+      /* Could it happen? */
+      sep = gconsts.g_string_comma;
   }
-  setA(context, ret);
+  ret = array_to_string(context, args[0], sep);
+  set_a(context, ret);
   return;
-#endif
 }
 
 BUILTIN_FUNCTION(array_concat)
@@ -202,24 +196,21 @@ BUILTIN_FUNCTION(array_concat)
 
 BUILTIN_FUNCTION(array_pop)
 {
-  not_implemented("pop");
-#if 0
-  int fp;
-  JSValue* args;
-  JSValue rsv, ret;
-  uint64_t length;
+  JSValue a, ret, flen;
+  cint len;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-
-  length = getArrayLength(rsv);
-  getArrayValue(rsv, (int)(length-1), &ret);
-  set_prop_none(rsv, gconsts.g_string_length, intToFixnum(length-1));
-  setArrayLength(rsv, length-1);
-  setA(context, ret);
+  builtin_prologue();
+  a = args[0];
+  len = array_length(a) - 1;    // len >= 0
+  flen = cint_to_fixnum(len);
+  if (len < array_size(a))
+    ret = array_body_index(a, len);
+  else
+    ret = get_prop_prototype_chain(a, flen);
+  array_length(a) = len;
+  set_prop_none(a, gconsts.g_string_length, flen);
+  set_a(context, ret);
   return;
-#endif
 }
 
 BUILTIN_FUNCTION(array_push)
