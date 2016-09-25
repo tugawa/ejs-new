@@ -145,12 +145,13 @@ extern JSValue object_to_string(Context *, JSValue);
 extern JSValue object_to_number(Context *, JSValue);
 extern JSValue object_to_primitive(Context *, JSValue, int);
 extern JSValue array_to_string(Context *, JSValue, JSValue);
-extern JSValue to_object(Context *, JSValue v);
-extern JSValue to_string(Context *, JSValue v);
+extern JSValue to_object(Context *, JSValue);
+extern JSValue to_string(Context *, JSValue);
 extern JSValue to_boolean(JSValue v);
-extern JSValue to_number(Context *, JSValue v);
-extern double to_double(Context *, JSValue v);
-extern char *type_name(JSValue v);
+extern JSValue to_number(Context *, JSValue);
+extern double to_double(Context *, JSValue);
+extern char *type_name(JSValue);
+extern JSValue cint_to_string(cint);
 
 /*
  * hash.c
@@ -219,6 +220,7 @@ extern JSValue get_object_prop(Context *, JSValue, JSValue);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
+extern int set_array_index_value(Context *, JSValue, cint, JSValue, int);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
