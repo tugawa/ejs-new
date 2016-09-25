@@ -215,25 +215,23 @@ BUILTIN_FUNCTION(array_pop)
 
 BUILTIN_FUNCTION(array_push)
 {
-  not_implemented("push");
-#if 0
-  JSValue* args;
-  JSValue rsv;
-  int i, fp;
-  uint64_t length;
+  JSValue a, ret;
+  cint len;
+  int i;
 
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-
-  length = getArrayLength(rsv);
-  for(i=1; i<=nArgs; i++){
-    setArrayValue(rsv, (int)(length++), args[i]); }
-
-  setArrayLength(rsv, length);
-  setA(context, intToFixnum(i));
+  builtin_prologue();
+  a = args[0];
+  len = array_length(a);
+  /*
+     The following for-loop is very inefficient.
+     This is for simplicity of implementation.
+   */
+  for (i = 1; i <= na; i++)
+    set_array_index_value(context, a, len++, args[i], FALSE);
+  ret = (len <= MAX_ARRAY_LENGTH)?
+          cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
+  set_a(context, ret);
   return;
-#endif
 }
 
 BUILTIN_FUNCTION(array_reverse)
