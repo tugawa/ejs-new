@@ -308,12 +308,16 @@ int __hashNext(HashTable *table, HashIterator *iter, HashEntry *ep) {
 
 //
 void hashBodyFree(HashCell** body) {
+#if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
   free(body);
+#endif
 }
 
 //
 void hashCellFree(HashCell* cell) {
+#if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
   free(cell);
+#endif
 }
 
 /*
