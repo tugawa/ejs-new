@@ -393,6 +393,8 @@ typedef struct string_cell {
 #define HTAG_FUNCTION_FRAME (0x13)
 #define HTAG_HASH_BODY      (0x14)
 #define HTAG_STR_CONS       (0x15)
+#define HTAG_CONTEXT        (0x16)
+#define HTAG_STACK          (0x17)
 
 /* HEADER_xxx are obsolete */
 #define HEADER_COMMON(cell, htag) \

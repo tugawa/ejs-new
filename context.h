@@ -78,7 +78,7 @@ typedef struct context {
   FunctionTable *function_table;
   SpecialRegisters spreg;
   int tablesize;
-  JSValue stack[STACK_LIMIT];
+  JSValue *stack;
   int catch_fp[CATCHSTACK_LIMIT];
   int catch_pc[CATCHSTACK_LIMIT];
   int catch_stacktop;

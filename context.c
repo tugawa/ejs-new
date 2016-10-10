@@ -2,7 +2,7 @@
 #define EXTERN
 #include "header.h"
 
-#define allocate_context()  ((Context *)malloc(sizeof(Context)))
+static Context *allocate_context(size_t);
 
 // creates a new function frame
 //
@@ -63,7 +63,7 @@ void pop_special_registers(Context *context, int fp, JSValue *regbase) {
 void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   Context *c;
 
-  c = allocate_context();
+  c = allocate_context(STACK_LIMIT);
   *context = c;
 
   init_special_registers(&(c->spreg));
@@ -84,6 +84,15 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   c->eventQueue = newEventQueue();
 #endif
 }
+
+static Context *allocate_context(size_t stack_size)
+{
+  Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
+  ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
+					       HTAG_STACK);
+  return ctx;
+}
+
 
 /*
  * TODO: tidyup debug fuctions
@@ -118,25 +127,25 @@ int is_valid_JSValue(JSValue x)
 
 void check_stack_invariant(Context *ctx)
 {
-  int sp = ctx->spreg.sp;
-  int fp = ctx->spreg.fp;
-  int pc = ctx->spreg.pc;
-  FunctionTable *cf = ctx->spreg.cf;
-  FunctionFrame *lp = ctx->spreg.lp;
+  int sp = get_sp(ctx);
+  int fp = get_fp(ctx);
+  int pc = get_pc(ctx);
+  FunctionTable *cf = get_cf(ctx);
+  FunctionFrame *lp = get_lp(ctx);
   int i;
 
-  assert(is_valid_JSValue(ctx->global));
-  assert(is_valid_JSValue(ctx->spreg.a));
-  assert(is_valid_JSValue(ctx->spreg.err));
+  assert(is_valid_JSValue(get_global(ctx)));
+  assert(is_valid_JSValue(get_a(ctx)));
+  assert(!is_err(ctx) || is_valid_JSValue(ctx->spreg.err));
   while (1) {
     for (i = sp; i >= fp; i--)
-      assert(is_valid_JSValue(ctx->stack[i]));
+      assert(is_valid_JSValue(get_stack(ctx,i)));
     if (fp == 0)
       break;
     sp = fp - 1;
-    fp = ctx->stack[sp--];
-    lp = (FunctionFrame *) ctx->stack[sp--];
-    pc = ctx->stack[sp--];
-    cf = (FunctionTable *) ctx->stack[sp--];
+    fp = get_stack(ctx, sp); sp--;
+    lp = (FunctionFrame *) get_stack(ctx, sp); sp--;
+    pc = get_stack(ctx, sp); sp--;
+    cf = (FunctionTable *) get_stack(ctx, sp); sp--;
   }
 }

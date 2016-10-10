@@ -562,6 +562,10 @@ STATIC void trace_Context(Context **contextp)
   trace_FunctionFrame(&context->spreg.lp);
   trace_slot(&context->spreg.a);
   trace_slot(&context->spreg.err);
+
+  /* process stack */
+  assert(!is_marked_cell(context->stack));
+  mark_cell(context->stack);
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
@@ -820,6 +824,10 @@ STATIC void check_invariant_nobw_space(struct space *space)
     if (HEADER0_GET_TYPE(header) == HTAG_STRING)
       ;
     else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
+      ;
+    else if (HEADER0_GET_TYPE(header) == HTAG_CONTEXT)
+      ;
+    else if (HEADER0_GET_TYPE(header) == HTAG_STACK)
       ;
     else if (is_marked_cell_header(hdrp)) {
       /* this object is black; should not contain a pointer to white */
