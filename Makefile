@@ -1,11 +1,44 @@
-CC = clang
-CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -O3
-# CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -DUSE_REGEXP
-# LIBS = -L/usr/local/lib -lc -lm -lonig
-LIBS = -L/usr/local/lib -lc -lm -lonig -lgc
+## Uncomment after editing options and paths
+#
+# all: ssjsvm
+#
 
-CFLAGS += -I/opt/local/include
-LIBS   += -L/opt/local/lib
+CC = clang
+
+###
+### Options
+###
+
+# GC=native|boehmgc|none
+OPT_GC=native
+
+# REGEXP=oniguruma|none
+OPT_REGEXP=oniguruma
+
+###
+### Paths
+###
+
+INCLUDES=-I/usr/local/include
+LIBS=-L/usr/local/lib
+
+
+CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -O3 $(INCLUDES)
+LIBS += -lm
+
+ifeq ($(OPT_GC),native)
+	CFLAGS+=-DUSE_NATIVEGC=1
+endif
+ifeq ($(OPT_GC),boehmgc)
+	CFLAGS+=-DUSE_BOEHMGC=1
+	LIBS+=-lgc
+endif
+
+ifeq ($(OPT_REGEXP),oniguruma)
+	CFLAGS+=-DUSE_REGEXP=1
+	LIBS+=-lonig
+endif
+
 
 GENERATED_HFILES = \
          instructions-opcode.h \
@@ -51,6 +84,13 @@ SEDCOM_GEN_INSN_TABLE  = 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },
 SEDCOM_GEN_INSN_LABEL  = 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/'
 SED = gsed
 RUBY = ruby
+
+
+message:
+	@echo "This is a template of Makefile.  Copy Makefile to your own"
+	@echo "Makefile such as Makefile.mine, edit it, and make with your"
+	@echo "own Makefile."
+	@echo "   make -f Makefile.mine"
 
 ssjsvm :: $(OFILES)
 	$(CC) -o $@ $^ $(LIBS)

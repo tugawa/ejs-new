@@ -29,23 +29,7 @@
 //#define USE_FASTGLOBAL
 //#define USE_ASM2
 //#define CALC_CALL
-#define USE_REGEXP
-#define USE_BOEHMGC
-//#define USE_NATIVEGC
 
-/*
-   If you want to compile for J5MODE, define this.
- */
-// #define J5MODE
-
-#ifdef J5MODE
-#ifdef USE_REGEXP
-#undef USE_REGEXP
-#endif // USE_REGEXP
-#ifdef USE_BOEHMGC
-#undef USE_BOEHMGC
-#endif // USE_HOEHMGC
-#endif // J5MODE
 
 #if 0
 #ifdef DEBUG_PRINT
