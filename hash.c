@@ -17,7 +17,8 @@
 
 #define HASH_SKIP (27)
 
-#define REHASH_THRESHOLD (0.5)
+// #define REHASH_THRESHOLD (0.5)
+#define REHASH_THRESHOLD (0.9)
 
 /*
    allocates a hash table

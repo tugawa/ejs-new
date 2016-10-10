@@ -55,7 +55,7 @@ void testtest(Context *cxt) {
   else
     printf("Testtest: Object[prototype] = not found\n");
 
-  v = new_object();
+  v = new_object(cxt);
   set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
@@ -191,6 +191,8 @@ int main(int argc, char *argv[]) {
   int n;
   Context *context;
 
+  run_phase = PHASE_INIT;
+
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif // USE_BOEHMGC
@@ -226,6 +228,7 @@ int main(int argc, char *argv[]) {
   testtest(context);
 
   // enters the VM loop
+  run_phase = PHASE_VMLOOP;
   vmrun_threaded(context, 0);
 
   // obtains the time after execution

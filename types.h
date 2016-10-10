@@ -112,13 +112,20 @@ typedef struct object_cell {
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
-#define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
+// #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
 //#define obj_header_tag(x)    ((Tag)(obj_header(x) & HEADER_TYPE_MASK))
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 #define obj_size(x)            (obj_header(x) >> HEADER_SIZE_OFFSET)
 
+#define PSIZE_INIT   20       // default initial size of the property array
+#define PSIZE_DELTA  20       // delta when expanding the property array
+#define PSIZE_LIMIT  500      // limit size of the property array
+#define HSIZE_INIT   30       // default initial size of the map (hash table)
+#define PSIZE_BUILTIN_INIT 100  // PSIZE_INIT for built-in objects
+#define HSIZE_BUILTIN_INIT 100  // HSIZE_INIT for built-in objects
 
+#define increase_psize(n)     (((n) >= PSIZE_LIMIT)? (n): ((n) + PSIZE_DELTA))
 
 /*
    Array
@@ -131,13 +138,6 @@ typedef struct array_cell {
   JSValue *body;        // pointer to a C array
 } ArrayCell;
 
-#define ASIZE_LIMIT  100
-#define ASIZE_INIT   10
-#define ASIZE_DELTA  10
-#define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
-
-#define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
-
 #define is_array(p)           is_obj_header_tag((p), HTAG_ARRAY)
 #define put_array_tag(p)      (put_tag(p, T_OBJECT))
 #define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_OBJECT)))
@@ -149,6 +149,12 @@ typedef struct array_cell {
 #define array_body(a)         ((remove_array_tag(a))->body)
 #define array_body_index(a,i) ((remove_array_tag(a))->body[i])
 
+#define ASIZE_INIT   10       // default initial size of the C array
+#define ASIZE_DELTA  10       // delta when expanding the C array
+#define ASIZE_LIMIT  100      // limit size of the C array
+#define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
+
+#define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 
 #define MINIMUM_ARRAY_SIZE  100
 

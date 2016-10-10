@@ -173,18 +173,26 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
    sets an object's property value with its attribute
  */
 int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
-  uint64_t retv;
+  uint64_t retv, newsize;
 
   if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
     // The specified property is not registered in the hash table.
-    if (prop_overflow(obj)) {
-      printf("obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
+    retv = obj_n_props(obj);
+    if (retv >= obj_limit_props(obj)) {
+      // The property array is full
+      printf("proptable full: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
              obj_n_props(obj), obj_limit_props(obj));
-      LOG_EXIT("proptable overflow\n");
-      return FAIL;
+      if ((newsize = increase_psize(retv)) == retv) {
+        LOG_EXIT("proptable overflow\n");
+        return FAIL;
+      }
+      obj_prop(obj) = reallocate_prop_table(obj_prop(obj), retv, newsize);
+      obj_limit_props(obj) = newsize;
+      printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
+             obj_n_props(obj), obj_limit_props(obj));
     }
-    retv = (obj_n_props(obj))++;
-    // retv = ++(obj_n_props(obj));
+    // retv = (obj_n_props(obj))++;
+    (obj_n_props(obj))++;
     /*
     printf("obj = %lx, obj_n_props(obj) = %d, name = %s, value = ",
             obj, obj_n_props(obj), string_to_cstr(name));
@@ -509,7 +517,28 @@ int regexp_flag(JSValue re) {
 
 /*
    sets object's member values.
+     The sizes of the map and the property table of Takada VM are
+     INITIAL_HASH_SIZE (100) and INITIAL_PROPTABLE_SIZE (100), respectively.
+     But these sizes seems to be too large for a normal object (e.g.,
+     non-builtin object).
+     Thus, we changed the definition of set_object_members so that their
+     sizes are large for a builtin object and small for another object.
  */
+
+/*
+   The following arrays are sizes of map (hash) and property table.
+   The subscript given to these arrays is either PHASE_INIT (0) or
+   PHASE_VMLOOP (1).  The current phase number is stored in the global
+   variable `run_phase'.
+ */
+static int hsize_table[] = { HSIZE_BUILTIN_INIT, HSIZE_INIT };
+static int psize_table[] = { PSIZE_BUILTIN_INIT, PSIZE_INIT };
+// static int hsize_table[] = { HSIZE_BUILTIN_INIT, HSIZE_BUILTIN_INIT };
+// static int psize_table[] = { PSIZE_BUILTIN_INIT, PSIZE_BUILTIN_INIT };
+// static int hsize_table[] = { HSIZE_BUILTIN_INIT, 30};
+// static int psize_table[] = { PSIZE_BUILTIN_INIT, 30};
+
+/*
 void set_object_members(Object *p) {
   Map *a;
 
@@ -519,6 +548,20 @@ void set_object_members(Object *p) {
   p->prop = allocate_prop_table(INITIAL_PROPTABLE_SIZE);
   p->n_props = 0;
   p->limit_props = INITIAL_PROPTABLE_SIZE;
+}
+*/
+
+void set_object_members(Object *p) {
+  Map *a;
+  int psize;
+
+  a = malloc_hashtable();
+  hash_create(a, hsize_table[run_phase]);
+  p->map = a;
+  psize = psize_table[run_phase];
+  p->prop = allocate_prop_table(psize);
+  p->n_props = 0;
+  p->limit_props = psize;
 }
 
 /*
@@ -537,8 +580,7 @@ JSValue new_object_without_prototype(Context *ctx) {
 /*
   makes a new object
  */
-JSValue new_object(Context *ctx)
-{
+JSValue new_object(Context *ctx) {
   JSValue ret;
   Object *p;
 #ifdef PARALLEL

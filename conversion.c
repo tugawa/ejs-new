@@ -219,19 +219,17 @@ JSValue string_to_object(JSValue v) {
 }
 
 #define BUFSIZE 1000
+static char buf[BUFSIZE];
 
 /*
    converts a fixnum to a string
  */
 JSValue fixnum_to_string(JSValue v) {
-  char buf[BUFSIZE];
-
   if (!is_fixnum(v)) {
     type_error("fixnum expected in fixnum_to_string");
     return gconsts.g_string_empty;
   }
-  snprintf(buf, BUFSIZE, "%"PRId64, fixnum_to_cint(v));
-  return cstr_to_string(buf);
+  return cint_to_string(fixnum_to_cint(v));
 }
 
 /*
@@ -666,4 +664,9 @@ char *type_name(JSValue v) {
 #endif
   if (is_object(v)) return "Object";
   return "???";
+}
+
+JSValue cint_to_string(cint n) {
+  snprintf(buf, BUFSIZE, "%"PRId64, n);
+  return cstr_to_string(buf);
 }

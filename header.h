@@ -67,6 +67,9 @@ typedef uint64_t JSValue;
 #define HINT_NUMBER 1
 #define HINT_STRING 0
 
+#define PHASE_INIT   0
+#define PHASE_VMLOOP 1
+
 #include "log.h"
 #include "instructions.h"
 #include "context.h"
