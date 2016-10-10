@@ -7,9 +7,9 @@
  *   Tomoharu Ugawa, 2016
  */
 
-#ifdef USE_NATIVEGC
-
 typedef uint32_t cell_type_t;
+
+#ifdef USE_NATIVEGC
 
 extern void init_memory(void);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
