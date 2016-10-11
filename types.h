@@ -383,7 +383,9 @@ typedef struct string_cell {
 #define HTAG_FUNCTION      (0x8)
 #define HTAG_BUILTIN       (0x9)
 #define HTAG_ITERATOR      (0xa)
+#ifdef USE_REGEXP
 #define HTAG_REGEXP        (0xb)
+#endif
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)

@@ -313,9 +313,11 @@ void print_value(Context *context, JSValue v, int verbose) {
       case HTAG_FUNCTION: v = cstr_to_string("function"); break;
       case HTAG_BUILTIN: v = cstr_to_string("builtin"); break;
       case HTAG_ITERATOR: v = cstr_to_string("iterator"); break;
+#ifdef USE_REGEXP
       case HTAG_REGEXP:
         printf("/%s/", regexp_pattern(v));
         return;
+#endif
       case HTAG_BOXED_STRING: v = cstr_to_string("boxed-string"); break;
       case HTAG_BOXED_NUMBER: v = cstr_to_string("boxed-number"); break;
       case HTAG_BOXED_BOOLEAN: v = cstr_to_string("boxed-boolean"); break;
