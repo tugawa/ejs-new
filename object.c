@@ -227,73 +227,68 @@ int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
 }
 
 /*
-    a[n] <- v
-      a is an array and n >= 0
-      if setlength is true, a.length is set to some value, where
-      it is necessary to shrink the array if appropriate, and
-      it is not necessary to do a[n] <- v.
+    set_array_index_value
+    a is an array and n is a subscript where n >= 0.
+    This function is called when
+      a[n] <-v (in this case, setlength is False)
+      or
+      a.length <- n + 1 (in this case, setlength is True)
+    
+    In the latter case, it is not necessary to do a[n] <- v, but
+    it may be necessary to shrink the array.
+
     returns
       SUCCESS: the above assignment is performed
       FAIL   : the above assignment has not been done yet because n is
                outside, but expanding array has been done if necessary
  */
 int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int setlength) {
-  cint len, size;
+  cint len, size, adatamax;
   int i;
 
   len = array_length(a);
   size = array_size(a);
+  adatamax = (size <= ASIZE_LIMIT)? ASIZE_LIMIT: size;
   // printf("set_array_index_value: n = %d\n", n);
-  if (n < size) {
-    if (len <= n) {
-      /* grows the length of the array, but it is not necessary to
-         expand the array data */
-      for (i = len; i < n; i++)
-        array_body_index(a, i) = JS_UNDEFINED;
-      array_length(a) = n + 1;
-      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
-    } else if (n < len && setlength == TRUE) {
-      /* shrinks the length of the array */
-      array_length(a) = n + 1;
-      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+  if (n < adatamax) {
+    if (size <= n) {
+      /*
+        It is necessary to expand the array, but since n is less than
+        ASIZE_LIMIT, it is possible to expand the array data.
+       */
+      cint newsize;
+      while ((newsize = increase_asize(size)) <= n) size = newsize;
+      reallocate_array_data(context, a, newsize);
     }
-    if (setlength == FALSE) array_body_index(a, n) = v;
-    return SUCCESS;
-  } else if (n < ASIZE_LIMIT) {
-    /* 
-       since n is less than ASIZE_LIMIT, it is possible to expand
-       the array data.
-    */
-    cint newsize;
-    while ((newsize = increase_asize(size)) <= n) size = newsize;
-    reallocate_array_data(context, a, newsize);
+    /* If len < n, expands the array.  It should be noted that
+       if len >= n, this for loop does nothing */
     for (i = len; i < n; i++)
       array_body_index(a, i) = JS_UNDEFINED;
-    array_length(a) = n + 1;
-    set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
-    if (setlength == FALSE) array_body_index(a, n) = v;
-    return SUCCESS;
   } else {
     /*
       Since n is outside of the range of array data, stores the
       value into the hash table of the array.
     */
-    if (len <= n && n < MAX_ARRAY_LENGTH) {
-      array_length(a) = n + 1;
-      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
-      if (size < ASIZE_LIMIT)
-        /* the array data is not fully expanded, so we expands it */
-        reallocate_array_data(context, a, ASIZE_LIMIT);
+    if (size < ASIZE_LIMIT) {
+      /* The array data is not fully expanded, so we expand it */
+      reallocate_array_data(context, a, ASIZE_LIMIT);
       for (i = len; i < ASIZE_LIMIT; i++)
         array_body_index(a, i) = JS_UNDEFINED;
-    } else if (n < len && setlength == TRUE) {
-      /* it is necessary to remove the value associates with the subscript
-         greater than n + 1, but how to do this? */
-      array_length(a) = n + 1;
-      set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+      adatamax = ASIZE_LIMIT;
     }
-    return setlength == TRUE? TRUE: FALSE;
   }
+  if (len <= n || setlength == TRUE) {
+    array_length(a) = n + 1;
+    set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+  }
+  if (setlength == TRUE && n < len && adatamax <= len) {
+    remove_array_props(a, adatamax, len);
+  }
+  if (n < adatamax && setlength == FALSE) {
+    array_body_index(a, n) = v;
+    return SUCCESS;
+  } 
+  return FAIL;
 }
 
 /*
@@ -310,7 +305,7 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
       cint n;
 
       n = fixnum_to_cint(p);
-      if (0 <= n) {
+      if (0 <= n && n < MAX_ARRAY_LENGTH) {
         if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
           return SUCCESS;
       }
@@ -329,26 +324,38 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
       num = string_to_number(p);
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
-        if (0 <= n) {
+        if (0 <= n && n < MAX_ARRAY_LENGTH) {
           if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
             return SUCCESS;
         }
         return set_object_prop(context, a, p, v);
       }
       if (p == gconsts.g_string_length && is_fixnum(v)) {
-        /*
-           if the property name is "length" and the given value is a fixnum,
-           expand / shrink the array
-         */
-        if (set_array_index_value(context, a, fixnum_to_cint(v) - 1, JS_UNDEFINED, TRUE)
-            == SUCCESS)
-          return SUCCESS;
+        cint n;
+        n = fixnum_to_cint(v);
+        if (0 <= n && n < MAX_ARRAY_LENGTH) {
+          /*
+            The property name is "length" and the given value is a fixnum.
+            Thus, expands / shrinks the array.
+           */
+          if (set_array_index_value(context, a, n - 1, JS_UNDEFINED, TRUE)
+                == SUCCESS)
+            return SUCCESS;
+        }
       }
       return set_object_prop(context, a, p, v);
     }
     break;
   }
 }
+
+/*
+   removes array data whose subscript is between `from' and `tp'
+   that are stored in the property table.
+ */
+void remove_array_props(JSValue a, cint from, cint to) {
+}
+
 
 #if 0
 static inline void setArrayBody(JSValue array, int size)

@@ -222,6 +222,7 @@ extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_index_value(Context *, JSValue, cint, JSValue, int);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
+extern void remove_array_props(JSValue, cint, cint);
 extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
