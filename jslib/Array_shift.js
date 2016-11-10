@@ -1,3 +1,7 @@
+/*
+*  ECMA-262 5.1 Edition
+*  15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
+*/
 Array.prototype.shift = function() {
     var a = this[0];
     for (var i=0; i<this.length; i++)

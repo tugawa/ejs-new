@@ -1,4 +1,5 @@
 /*
+*  ECMA-262 5.1 Edition
 *	15.4.4.4 Array.prototype.concat ( [ item1 [ , item2 [ , … ] ] ] )
 */
 Array.prototype.concat = function(){

@@ -1,3 +1,7 @@
+/*
+*  ECMA-262 5.1 Edition
+*  15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
+*/
 Array.prototype.slice2 = function(begin, end) {
   if (begin === undefined)
     begin = 0;

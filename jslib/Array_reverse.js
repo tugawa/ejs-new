@@ -1,4 +1,8 @@
-Array.prototype.reverse2 = function() {
+/*
+*  ECMA-262 5.1 Edition
+*  15.4.4.7 Array.prototype.push ( [ item1 [ , item2 [ , … ] ] ] )
+*/
+Array.prototype.reverse = function() {
   var
     a = this,
     count = 1;
@@ -12,6 +16,6 @@ Array.prototype.reverse2 = function() {
 }
  
 var a = [2, "a"];
-a.reverse2();
+a.reverse();
 console.log(a)
 
