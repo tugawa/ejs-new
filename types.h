@@ -36,7 +36,7 @@
    Objects
  */
 #define T_OBJECT  (0x0)  // 000
-#define T_VARIANT (0x1)  // 001  This is used for type inference by Urushihara.
+#define T_UNUSED0 (0x1)  // 001
 #define T_UNUSED1 (0x2)  // 010
 #define T_UNUSED2 (0x3)  // 011
 
@@ -431,10 +431,12 @@ typedef uint64_t cuint;
 #define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
 #define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
 
-#define int_to_fixnum(f) ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
+// #define int_to_fixnum(f) ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
+#define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
 #define cint_to_fixnum(f)   put_tag(((f) << TAGOFFSET), T_FIXNUM)
 
-#define double_to_fixnum(f) int_to_fixnum((int64_t)(f))
+// #define double_to_fixnum(f) int_to_fixnum((int64_t)(f))
+#define double_to_fixnum(f) cint_to_fixnum((cint)(f))
 
 #define is_fixnum_range_cint(n) \
   ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
@@ -500,6 +502,7 @@ typedef uint64_t cuint;
 
 #define true_false(e)     ((e) ? JS_TRUE : JS_FALSE)
 #define false_true(e)     ((e) ? JS_FALSE : JS_TRUE)
+
 /*
    Special - Others
  */
