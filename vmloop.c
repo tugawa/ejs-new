@@ -267,7 +267,7 @@ I_ADD:
     switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
     case TP_FIXFIX:
       {
-        cint s = fixnum_to_int(v1) + fixnum_to_int(v2);
+        cint s = fixnum_to_cint(v1) + fixnum_to_cint(v2);
         regbase[dst] = cint_to_number(s);
       }
       break;
