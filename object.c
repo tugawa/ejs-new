@@ -119,7 +119,7 @@ JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
  */
 JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
   /*
-    if (p a number) {
+    if (p is a number) {
       if (p is within the range of an subscript of an array)
         returns the p-th element of a
       else {
@@ -134,6 +134,20 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
       else
         returns the value regsitered under the property p
     }
+
+    I am afraid that the above definition is incorrect.
+
+    } else if (p is a string) {
+      s = string_to_number(p);
+      if (s is within the range of an subscript of an array)
+        returns the s-th element of a
+      else
+        returns the value regsitered under the property p
+    } else {
+      p = to_string(p);
+      returns the value regsitered under the property p
+    }
+
   */
 
   switch (get_tag(p)) {
@@ -230,7 +244,7 @@ int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
     set_array_index_value
     a is an array and n is a subscript where n >= 0.
     This function is called when
-      a[n] <-v (in this case, setlength is False)
+      a[n] <- v (in this case, setlength is False)
       or
       a.length <- n + 1 (in this case, setlength is True)
     
