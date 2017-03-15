@@ -116,6 +116,9 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp, int constr
      stack[pos] to stack[pos + 3] for saving the values of special registers,
      it may be necessary to fill these rooms with harmless values, e.g.,
      FIXNUM_ZERO to make the GC work correctly.
+     2017/03/15:  It seems to be unnecessary bacause setfl instruction
+     stores JS_UNDEFINEDs into the stack area.
+
      pos = sp - nargs - 4;
      save_special_registers(context, stack, pos);
    */
