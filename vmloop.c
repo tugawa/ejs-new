@@ -1512,7 +1512,7 @@ I_JUMPFALSE:
 
 I_GETARG:
   /*
-     gerarg dst link index
+     getarg dst link index
      $dst = value of the index-th argument in the link-th function frame
    */
   ENTER_INSN(__LINE__);
@@ -1801,7 +1801,8 @@ I_TAILSEND:
       tailcall_builtin(context, fn, nargs, sendp, FALSE);
       update_context();        // is this necessary? => yes. moving GC
       NEXT_INSN_INCPC();
-    }
+    } else
+      LOG_EXIT("TAILCALL/TAILSEND: not a function\n");
   }
   NEXT_INSN_INCPC();
 
