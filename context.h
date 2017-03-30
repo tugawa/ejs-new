@@ -79,9 +79,11 @@ typedef struct context {
   SpecialRegisters spreg;
   int tablesize;
   JSValue *stack;
-  int catch_fp[CATCHSTACK_LIMIT];
-  int catch_pc[CATCHSTACK_LIMIT];
-  int catch_stacktop;
+  /* try-catch-finally */
+  JSValue exhandler_stack;    // exception handler stack
+  int exhandler_stack_ptr;
+  JSValue lcall_stack;        // local call stack
+  int lcall_stack_ptr;
 #ifdef USE_FFI
   struct foreign_env_cell *fenv;
 #endif

@@ -69,7 +69,6 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   init_special_registers(&(c->spreg));
   c->function_table = ftab;
   c->global = glob;
-  c->catch_stacktop = -1;
 
   set_cf(c, ftab);
   set_lp(c, new_frame(ftab, NULL));
@@ -87,9 +86,14 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
 
 static Context *allocate_context(size_t stack_size)
 {
+  /* GC is not allowed */
   Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
 					       HTAG_STACK);
+  ctx->exhandler_stack = new_array(NULL);
+  ctx->exhandler_stack_ptr = 0;
+  ctx->lcall_stack = new_array(NULL);
+  ctx->lcall_stack_ptr = 0;
   return ctx;
 }
 

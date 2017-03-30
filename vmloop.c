@@ -15,7 +15,12 @@
 #define EXTERN
 #include "header.h"
 
-#define NOT_IMPLEMENTED() \
+static void exhandler_stack_push(Context* context, int pc, int fp);
+static int exhandler_stack_pop(Context* context, int *pc, int *fp);
+static void lcall_stack_push(Context* context, int pc);
+static int lcall_stack_pop(Context* context, int *pc);
+
+#define NOT_IMPLEMENTED()						\
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
 
 inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
@@ -1805,20 +1810,71 @@ I_TAILSEND:
   }
   NEXT_INSN_INCPC();
 
-I_TRY:
+I_PUSHHANDLER:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  {
+    Displacement disp;
+    disp = get_first_operand_disp(insn);
+    exhandler_stack_push(context, pc + disp, fp);
+    NEXT_INSN_INCPC();
+  }
+
+I_POPHANDLER:
+  ENTER_INSN(__LINE__);
+  {
+    int newpc;
+    int handler_fp;
+    exhandler_stack_pop(context, &newpc, &handler_fp);
+    NEXT_INSN_INCPC();
+  }
 
 I_THROW:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  {
+    Displacement disp;
+    int newpc;
+    int handler_fp;
+    exhandler_stack_pop(context, &newpc, &handler_fp);
+    while (handler_fp != fp) {
+      JSValue *stack;
+      stack = &get_stack(context, 0);
+      restore_special_registers(context, stack, fp - 4);
+      set_sp(context, fp - 5);
+      update_context();      /* TODO: optimise */
+    }
+    disp = (Displacement) (newpc - pc);
+    set_pc_relative(disp);
+    NEXT_INSN_NOINCPC();
+  }
 
-I_FINALLY:
+I_LOCALCALL:
   ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
+  {
+    Displacement disp;
+    disp = get_first_operand_disp(insn);
+    lcall_stack_push(context, pc);
+    set_pc_relative(disp);
+    NEXT_INSN_NOINCPC();
+  }
+
+I_LOCALRET:
+  ENTER_INSN(__LINE__);
+  {
+    Displacement disp;
+    int newpc;
+    lcall_stack_pop(context, &newpc);
+    disp = (Displacement) (newpc - pc);
+    set_pc_relative(disp);
+    NEXT_INSN_INCPC();   /* need INCPC; local_call_stack has the address of local call */
+  }
+
+I_POPLOCAL:
+  ENTER_INSN(__LINE__);
+  {
+    int newpc;
+    lcall_stack_pop(context, &newpc);
+    NEXT_INSN_INCPC();
+  }
 
 I_LIGHTCALL:
   ENTER_INSN(__LINE__);
@@ -2543,3 +2599,58 @@ I_END:
   ENTER_INSN(__LINE__);
   return 1;
 }
+
+JSValue number_to_cint(JSValue n)
+{
+  if (is_fixnum(n))
+    return fixnum_to_cint(n);
+  else
+    return (int) flonum_to_double(n);
+}
+
+static void exhandler_stack_push(Context* context, int pc, int fp)
+{
+  int sp = context->exhandler_stack_ptr;
+
+  set_array_index_value(context, context->exhandler_stack, sp++,
+			cint_to_number(pc), FALSE);
+  set_array_index_value(context, context->exhandler_stack, sp++,
+			cint_to_number(fp), FALSE);
+  context->exhandler_stack_ptr = sp;
+}
+
+static int exhandler_stack_pop(Context* context, int *pc, int *fp)
+{
+  int sp = context->exhandler_stack_ptr;
+  JSValue v;
+  if (sp < 2)
+    return -1;
+  sp--;
+  v = get_array_prop(context, context->exhandler_stack, cint_to_number(sp));
+  *fp = number_to_cint(v);
+  sp--;
+  v = get_array_prop(context, context->exhandler_stack, cint_to_number(sp));
+  *pc = number_to_cint(v);
+  context->exhandler_stack_ptr = sp;
+  return 0;
+}
+
+static void lcall_stack_push(Context* context, int pc)
+{
+  set_array_index_value(context, context->lcall_stack,
+			context->lcall_stack_ptr++,
+			cint_to_number(pc), FALSE);
+}
+
+static int lcall_stack_pop(Context* context, int *pc)
+{
+  JSValue v;
+  if (context->lcall_stack < 1)
+    return -1;
+  context->lcall_stack_ptr--;
+  v = get_array_prop(context, context->lcall_stack,
+		     cint_to_number(context->lcall_stack_ptr));
+  *pc = number_to_cint(v);
+  return 0;
+}
+

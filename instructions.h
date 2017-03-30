@@ -254,8 +254,8 @@ typedef struct instruction {
 #define makecode_slowsetglobal(op1, op2, op3) \
   makecode_three_operands(SLOWSETGLOBAL, op1, op2, op3)
 
-#define makecode_jump(disp) \
-  makecode_one_operand(JUMP, ((int16_t)(disp) & OPERAND_MASK))
+#define makecode_jump(opcode, disp)				\
+  makecode_one_operand(opcode, ((int16_t)(disp) & OPERAND_MASK))
 
 #define makecode_cond_jump(opcode, src, disp) \
   makecode_two_operands(opcode, src, ((int16_t)(disp) & OPERAND_MASK))
@@ -271,9 +271,6 @@ typedef struct instruction {
 
 #define makecode_call(opcode, closure, argsc) \
   makecode_two_operands(opcode, closure, argc)
-
-#define makecode_try(disp) \
-  makecode_one_operand(TRY, ((int16_t)(disp) & OPERAND_MASK))
 
 // adderss of a label for an instruction
 //

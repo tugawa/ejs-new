@@ -563,6 +563,9 @@ STATIC void trace_Context(Context **contextp)
   trace_slot(&context->spreg.a);
   trace_slot(&context->spreg.err);
 
+  trace_slot(&context->exhandler_stack);
+  trace_slot(&context->lcall_stack);
+
   /* process stack */
   assert(!is_marked_cell(context->stack));
   mark_cell(context->stack);

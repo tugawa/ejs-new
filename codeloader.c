@@ -299,7 +299,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
     {
       Displacement disp;
       disp = (Displacement)atoi(next_token());
-      bytecodes[pc] = makecode_jump(disp);
+      bytecodes[pc] = makecode_jump(oc, disp);
       return LOAD_OK;
     }
 
@@ -352,14 +352,6 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
       closure = atoi(next_token());
       argc = atoi(next_token());
       bytecodes[pc] = makecode_call(oc, closure, argc);
-      return LOAD_OK;
-    }
-
-  case TRYOP:
-    {
-      Displacement disp;
-      disp = (Displacement)atoi(next_token());
-      bytecodes[pc] = makecode_try(disp);
       return LOAD_OK;
     }
 
