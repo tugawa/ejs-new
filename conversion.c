@@ -512,7 +512,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   ap = remove_array_tag(array);
 
   for (i = 0; i < length; i++) {
-    item = array_body_index(array, i);
+    item = get_array_prop(context, array, cint_to_fixnum(i));
     strs[i] = string_to_cstr(to_string(context, item));
     sumlen += strlen(strs[i]);
   }
