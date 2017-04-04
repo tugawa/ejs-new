@@ -7,6 +7,9 @@
 
 #define mallocstr(n) ((char *)malloc(sizeof(char) * ((n) + 1)))
 
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 /*
   constrcutor of a string
  */
@@ -128,9 +131,56 @@ BUILTIN_FUNCTION(string_toUpperCase)
   set_a(context, ret);
 }
 
+// Cut and paste from char_code_at()
+// Add "else if (is_nan(a)) n = 0;"
+// Should add "else if (is_undefined(a)) n = 0;"?
+int toInteger(Context *context, JSValue a) {
+  int n;
+
+  if (is_fixnum(a)) n = fixnum_to_int(a);
+  else if (is_nan(a)) n = 0;
+  else if (is_flonum(a)) n = flonum_to_int(a);
+  else {
+    a = to_number(context, a);
+    if (is_fixnum(a)) n = fixnum_to_int(a);
+    else if (is_nan(a)) n = 0;
+    else if (is_flonum(a)) n = flonum_to_int(a);
+    else {
+      printf("cannot convert to a number\n");
+      n = 0;
+    }
+  }
+  return n;
+}
+
 BUILTIN_FUNCTION(string_substring)
 {
-  not_implemented("string_substring");
+  JSValue ret;
+  int len, intStart, intEnd;
+  int finalStart, finalEnd, from, to;
+  char *s, *r;
+
+  builtin_prologue();
+
+  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s = string_to_cstr(ret);
+  len = string_length(ret);
+
+  intStart = is_undefined(args[1]) ? 0 : toInteger(context, args[1]);
+  intEnd = is_undefined(args[2]) ? len : toInteger(context, args[2]);
+  finalStart = min(max(intStart, 0), len);
+  finalEnd = min(max(intEnd, 0), len);
+  from = min(finalStart, finalEnd);
+  to = max(finalStart, finalEnd);
+  len = to - from;
+
+  r = mallocstr(len);
+  strncpy(r, s+from, len);
+  r[len] = '\0';
+  ret = cstr_to_string(r);
+  free(r);
+
+  set_a(context, ret);
 
 #if 0
   JSValue endv;
@@ -183,7 +233,30 @@ BUILTIN_FUNCTION(string_substring)
 
 BUILTIN_FUNCTION(string_slice)
 {
-  not_implemented("string_slice");
+  JSValue ret;
+  int len, intStart, intEnd;
+  int from, to;
+  char *s, *r;
+
+  builtin_prologue();
+
+  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s = string_to_cstr(ret);
+  len = string_length(ret);
+
+  intStart = is_undefined(args[1]) ? 0 : toInteger(context, args[1]);
+  intEnd = is_undefined(args[2]) ? len : toInteger(context, args[2]);
+  from = intStart < 0 ? max(len + intStart, 0) : min(intStart, len);
+  to = intEnd < 0 ? max(len + intEnd, 0) : min(intEnd, len);
+  len = max(to - from, 0);
+
+  r = mallocstr(len);
+  strncpy(r, s+from, len);
+  r[len] = '\0';
+  ret = cstr_to_string(r);
+  free(r);
+
+  set_a(context, ret);
 
 #if 0
   JSValue rsv, startv, endv;
@@ -288,7 +361,27 @@ BUILTIN_FUNCTION(string_charCodeAt)
 
 BUILTIN_FUNCTION(string_indexOf)
 {
-  not_implemented("string_indexOf");
+  JSValue ret;
+  char *s, *searchStr;
+  int pos, len, start, searchLen;
+  char *r;
+
+  builtin_prologue();
+
+  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s = string_to_cstr(ret);
+  ret = is_string(args[1]) ? args[1] : to_string(context, args[1]);
+  searchStr = string_to_cstr(ret);
+
+  if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context,args[2]);
+  else pos = 0;
+
+  len = strlen(s);
+  start = min(max(pos, 0), len);
+  searchLen = strlen(searchStr);
+  if ((r = strstr(s+start, searchStr)) == NULL ) ret = double_to_fixnum(-1);
+  else ret = double_to_fixnum(r - s);
+  set_a(context, ret);
 
 #if 0
   JSValue sch, position, rsv;
