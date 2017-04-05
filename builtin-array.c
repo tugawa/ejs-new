@@ -340,7 +340,43 @@ BUILTIN_FUNCTION(array_shift)
 
 BUILTIN_FUNCTION(array_slice)
 {
-  not_implemented("slice");
+  JSValue o, a;
+  cint len, relativeStart, relativeEnd, k, n, final, count;
+  JSValue start, end, kValue;
+
+  builtin_prologue();
+
+  o = args[0];
+  start = (na >= 1)? args[1]: 0;
+  end = (na >= 2)? args[2]: JS_UNDEFINED;
+
+  len = array_length(args[0]);
+  relativeStart = toInteger(context, start);
+
+  if (relativeStart < 0) k = max((len + relativeStart), 0);
+  else k = min(relativeStart, len);
+
+  if (is_undefined(end)) relativeEnd = len;
+  else relativeEnd = toInteger(context, end);
+
+  if (relativeEnd < 0) final = max((len + relativeEnd), 0);
+  else final = min(relativeEnd, len);
+
+  count = max(final - k, 0);
+  a = new_array_with_size(context, count);
+  set_prop_all(a, gconsts.g_string___proto__, gconsts.g_array_proto);
+
+  n = 0;
+  while (k < final) {
+    if (has_array_element(o,k)) {
+      kValue = get_array_prop(context, o, cint_to_fixnum(k));
+      set_array_prop(context, a, cint_to_fixnum(n), kValue);
+    }
+    k++;
+    n++;
+  }
+  set_a(context, a);
+
 #if 0
   JSValue* args;
   JSValue startv, endv, src, array, rsv;

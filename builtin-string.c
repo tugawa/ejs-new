@@ -7,9 +7,6 @@
 
 #define mallocstr(n) ((char *)malloc(sizeof(char) * ((n) + 1)))
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-#define min(a, b) ((a) < (b) ? (a) : (b))
-
 /*
   constrcutor of a string
  */
@@ -131,33 +128,11 @@ BUILTIN_FUNCTION(string_toUpperCase)
   set_a(context, ret);
 }
 
-// Cut and paste from char_code_at()
-// Add "else if (is_nan(a)) n = 0;"
-// Should add "else if (is_undefined(a)) n = 0;"?
-int toInteger(Context *context, JSValue a) {
-  int n;
-
-  if (is_fixnum(a)) n = fixnum_to_int(a);
-  else if (is_nan(a)) n = 0;
-  else if (is_flonum(a)) n = flonum_to_int(a);
-  else {
-    a = to_number(context, a);
-    if (is_fixnum(a)) n = fixnum_to_int(a);
-    else if (is_nan(a)) n = 0;
-    else if (is_flonum(a)) n = flonum_to_int(a);
-    else {
-      printf("cannot convert to a number\n");
-      n = 0;
-    }
-  }
-  return n;
-}
-
 BUILTIN_FUNCTION(string_substring)
 {
   JSValue ret;
-  int len, intStart, intEnd;
-  int finalStart, finalEnd, from, to;
+  cint len, intStart, intEnd;
+  cint finalStart, finalEnd, from, to;
   char *s, *r;
 
   builtin_prologue();
@@ -234,8 +209,8 @@ BUILTIN_FUNCTION(string_substring)
 BUILTIN_FUNCTION(string_slice)
 {
   JSValue ret;
-  int len, intStart, intEnd;
-  int from, to;
+  cint len, intStart, intEnd;
+  cint from, to;
   char *s, *r;
 
   builtin_prologue();

@@ -647,6 +647,25 @@ double to_double(Context *context, JSValue v) {
   return NAN;                 // not reached
 }
 
+cint toInteger(Context *context, JSValue a) {
+  cint n;
+
+  if (is_fixnum(a)) n = fixnum_to_int(a);
+  else if (is_nan(a)) n = 0;
+  else if (is_flonum(a)) n = flonum_to_int(a);
+  else {
+    a = to_number(context, a);
+    if (is_fixnum(a)) n = fixnum_to_int(a);
+    else if (is_nan(a)) n = 0;
+    else if (is_flonum(a)) n = flonum_to_int(a);
+    else {
+      //printf("cannot convert to a integer\n");
+      n = 0;
+    }
+  }
+  return n;
+}
+
 char *type_name(JSValue v) {
   if (is_string(v)) return "String";
   if (is_fixnum(v)) return "Fixnum";
