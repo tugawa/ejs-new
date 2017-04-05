@@ -112,6 +112,37 @@ JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
 }
 
 /*
+  determin whether an object has a property by following the prototype chain
+  if the object has the property, TRUE, else FALSE
+   o: object
+   p: property, which is a string
+ */
+int has_prop_prototype_chain(JSValue o, JSValue p) {
+  JSValue ret;
+  extern JSValue prototype_object(JSValue);
+  do {
+    if (get_prop(o, p, &ret) == SUCCESS) return TRUE;
+  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
+  // is it necessary to search in the Object's prototype?
+  return FALSE;
+}
+
+/*
+  determin whether a[n] exists or not
+  if a[n] is not an element of body (an C array) of a, search properties of a
+   a: array
+   n: subscript
+ */
+int has_array_element(JSValue a, cint n) {
+  /* in body of a */
+  if (0 <= n && n < array_size(a))
+    return (n < array_length(a))? TRUE: FALSE;
+    /* is it ok that a[n] (0 <= n < len) always exists? */
+  /* in property of a */
+  return has_prop_prototype_chain(a, cint_to_string(n));
+}
+
+/*
    obtains array's property
      a: array
      p: property (number / string / other type)

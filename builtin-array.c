@@ -413,6 +413,7 @@ BUILTIN_FUNCTION(array_sort)
 
 BUILTIN_FUNCTION(array_debugarray)
 {
+  /* BUG?: The method does not print a[i] (i >= max(size, ASIZE_LIMIT)) */
   JSValue a;
   cint size, length, to;
   int i;

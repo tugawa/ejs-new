@@ -217,6 +217,8 @@ extern void debug_print(Context *, int);
 extern int get_prop(JSValue, JSValue, JSValue *);
 extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
+extern int has_prop_prototype_chain(JSValue o, JSValue p);
+extern int has_array_element(JSValue a, cint n);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
