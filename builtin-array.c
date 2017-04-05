@@ -206,7 +206,7 @@ BUILTIN_FUNCTION(array_pop)
   if (len < array_size(a))
     ret = array_body_index(a, len);
   else
-    ret = get_prop_prototype_chain(a, flen);
+    ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
   array_length(a) = len;
   set_prop_none(a, gconsts.g_string_length, flen);
   set_a(context, ret);
@@ -227,7 +227,7 @@ BUILTIN_FUNCTION(array_push)
      This is for simplicity of implementation.
    */
   for (i = 1; i <= na; i++)
-    set_array_index_value(context, a, len++, args[i], FALSE);
+    set_array_prop(context, a, cint_to_fixnum(len++), args[i]);
   ret = (len <= MAX_ARRAY_LENGTH)?
           cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
   set_a(context, ret);
