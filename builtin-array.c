@@ -236,7 +236,45 @@ BUILTIN_FUNCTION(array_push)
 
 BUILTIN_FUNCTION(array_reverse)
 {
-  not_implemented("reverse");
+  cint len, mid, lower, upper;
+  int lowerExists, upperExists;
+  JSValue lowerValue, upperValue;
+
+  builtin_prologue();
+  len = array_length(args[0]);
+  mid = len / 2;
+  for (lower = 0; lower < mid; lower++) {
+    upper = len - lower - 1;
+    lowerExists = has_array_element(args[0], lower);
+    if (lowerExists)
+      lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
+    upperExists = has_array_element(args[0], upper);
+    if (upperExists)
+      upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+
+    if (lowerExists && upperExists) {
+      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
+      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+    } else if (!lowerExists && upperExists) {
+      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
+      /*
+         the next line must be rewritten using DeletePropertyOrThrow()
+         or remove_array_props(args[0], upper,upper+1);
+       */
+      set_array_prop(context, args[0], cint_to_fixnum(upper), JS_UNDEFINED);
+    } else if (lowerExists && !upperExists) {
+      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+      /*
+         the next line must be rewritten using DeletePropertyOrThrow()
+         or remove_array_props(args[0], lower,lower+1);
+       */
+      set_array_prop(context, args[0], cint_to_fixnum(lower), JS_UNDEFINED);
+    } else {
+      /* No action is required */
+    }
+  }
+  set_a(context, args[0]);
+
 #if 0
   int fp, i;
   uint64_t length;
