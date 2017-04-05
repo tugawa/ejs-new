@@ -434,7 +434,7 @@ BUILTIN_FUNCTION(array_debugarray)
 
 ObjBuiltinProp array_funcs[] = {
   { "toString",       array_toString,       0, ATTR_DE },
-  { "toLocateString", array_toLocaleString, 0, ATTR_DE },
+  { "toLocaleString", array_toLocaleString, 0, ATTR_DE },
   { "join",           array_join,           1, ATTR_DE },
   { "concat",         array_concat,         1, ATTR_DE },
   { "pop",            array_pop,            0, ATTR_DE },
