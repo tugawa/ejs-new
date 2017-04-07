@@ -158,7 +158,36 @@ BUILTIN_FUNCTION(array_join)
 
 BUILTIN_FUNCTION(array_concat)
 {
-  not_implemented("concat");
+  JSValue a, e, subElement;
+  cint n, k, i, len;
+
+  builtin_prologue();
+  a = new_array(context);
+  n = 0;
+  for (i = 0; i <= na; i++) {
+    e = args[i];
+    if (is_array(e)) {
+      k = 0;
+      len = array_length(e);
+      if (n + len > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
+      while (k < len) {
+        if (has_array_element(e, k)) {
+          subElement = get_array_prop(context, e, cint_to_fixnum(k));
+          set_array_prop(context, a, cint_to_fixnum(n), subElement);
+          n++;
+          k++;
+        }
+      }
+    } else {
+      if (n > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
+      set_array_prop(context, a, cint_to_fixnum(n), e);
+      n++;
+    }
+  }
+  array_length(a) = n; // is it necessary?
+  set_a(context, a);
+  return;
+
 #if 0
   int fp, i, j;
   int putPoint;
@@ -274,6 +303,7 @@ BUILTIN_FUNCTION(array_reverse)
     }
   }
   set_a(context, args[0]);
+  return;
 
 #if 0
   int fp, i;
@@ -345,7 +375,6 @@ BUILTIN_FUNCTION(array_slice)
   JSValue start, end, kValue;
 
   builtin_prologue();
-
   o = args[0];
   start = (na >= 1)? args[1]: 0;
   end = (na >= 2)? args[2]: JS_UNDEFINED;
@@ -376,6 +405,7 @@ BUILTIN_FUNCTION(array_slice)
     n++;
   }
   set_a(context, a);
+  return;
 
 #if 0
   JSValue* args;
@@ -511,7 +541,7 @@ ObjBuiltinProp array_funcs[] = {
   { "toString",       array_toString,       0, ATTR_DE },
   { "toLocaleString", array_toLocaleString, 0, ATTR_DE },
   { "join",           array_join,           1, ATTR_DE },
-  { "concat",         array_concat,         1, ATTR_DE },
+  { "concat",         array_concat,         0, ATTR_DE },
   { "pop",            array_pop,            0, ATTR_DE },
   { "push",           array_push,           1, ATTR_DE },
   { "reverse",        array_reverse,        0, ATTR_DE },
