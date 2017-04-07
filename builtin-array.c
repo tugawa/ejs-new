@@ -184,7 +184,9 @@ BUILTIN_FUNCTION(array_concat)
       n++;
     }
   }
-  array_length(a) = n; // is it necessary?
+  // is the two lines below necessary?
+  array_length(a) = n;
+  set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
   set_a(context, a);
   return;
 
@@ -230,14 +232,34 @@ BUILTIN_FUNCTION(array_pop)
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a) - 1;    // len >= 0
-  flen = cint_to_fixnum(len);
-  if (len < array_size(a))
-    ret = array_body_index(a, len);
-  else
-    ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
-  array_length(a) = len;
-  set_prop_none(a, gconsts.g_string_length, flen);
+  len = array_length(a) - 1;    // len >= -1
+  if (len >= 0) {
+    flen = cint_to_fixnum(len);
+    if (len < array_size(a))
+      ret = array_body_index(a, len);
+    else {
+      ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
+      remove_array_props(a, len, len+1); // not implemented
+      /*
+         FIXME:
+         Must delete the property a[len] here.
+         remove_array_props() is not implemented so that pop cause bugs like below:
+
+         a = [0,1,2];
+         a[102] = 102;
+         a.pop();
+         print(a[102]); // This must print undefined.
+         a.length = 105;
+         print(a);      // This must print undefined as a[102].
+
+         However, each print() results in 102.
+       */
+    }
+    array_length(a) = len;
+    set_prop_none(a, gconsts.g_string_length, flen);
+  } else {
+    ret = JS_UNDEFINED;
+  }
   set_a(context, ret);
   return;
 }
@@ -287,17 +309,19 @@ BUILTIN_FUNCTION(array_reverse)
     } else if (!lowerExists && upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
       /*
-         the next line must be rewritten using DeletePropertyOrThrow()
-         or remove_array_props(args[0], upper,upper+1);
+         FIXME:
+         the next two line must be rewritten using DeletePropertyOrThrow()
        */
       set_array_prop(context, args[0], cint_to_fixnum(upper), JS_UNDEFINED);
+      remove_array_props(args[0], upper,upper+1); // not implemented
     } else if (lowerExists && !upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
       /*
-         the next line must be rewritten using DeletePropertyOrThrow()
-         or remove_array_props(args[0], lower,lower+1);
+         FIXME:
+         the next two line must be rewritten using DeletePropertyOrThrow()
        */
       set_array_prop(context, args[0], cint_to_fixnum(lower), JS_UNDEFINED);
+      remove_array_props(args[0], lower,lower+1); // not implemented
     } else {
       /* No action is required */
     }
