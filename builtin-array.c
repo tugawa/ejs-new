@@ -233,33 +233,34 @@ BUILTIN_FUNCTION(array_pop)
   builtin_prologue();
   a = args[0];
   len = array_length(a) - 1;    // len >= -1
-  if (len >= 0) {
-    flen = cint_to_fixnum(len);
-    if (len < array_size(a))
-      ret = array_body_index(a, len);
-    else {
-      ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
-      remove_array_props(a, len, len+1); // not implemented
-      /*
-         FIXME:
-         Must delete the property a[len] here.
-         remove_array_props() is not implemented so that pop cause bugs like below:
-
-         a = [0,1,2];
-         a[102] = 102;
-         a.pop();
-         print(a[102]); // This must print undefined.
-         a.length = 105;
-         print(a);      // This must print undefined as a[102].
-
-         However, each print() results in 102.
-       */
-    }
-    array_length(a) = len;
-    set_prop_none(a, gconsts.g_string_length, flen);
-  } else {
-    ret = JS_UNDEFINED;
+  if (len < 0) {
+    set_a(context, JS_UNDEFINED);
+    return;
   }
+
+  flen = cint_to_fixnum(len);
+  if (len < array_size(a))
+    ret = array_body_index(a, len);
+  else {
+    ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
+    remove_array_props(a, len, len+1); // not implemented
+    /*
+       FIXME:
+       Must delete the property a[len] here.
+       remove_array_props() is not implemented so that pop cause bugs like below:
+
+       a = [0,1,2];
+       a[102] = 102;
+       a.pop();
+       print(a[102]); // This must print undefined.
+       a.length = 105;
+       print(a);      // This must print undefined as a[102].
+
+       However, each print() results in 102.
+     */
+  }
+  array_length(a) = len;
+  set_prop_none(a, gconsts.g_string_length, flen);
   set_a(context, ret);
   return;
 }
@@ -353,7 +354,34 @@ BUILTIN_FUNCTION(array_reverse)
 
 BUILTIN_FUNCTION(array_shift)
 {
-  not_implemented("shift");
+  JSValue first, fromVal;
+  cint len, from, to;
+
+  builtin_prologue();
+  len = array_length(args[0]);
+  if (len <= 0) {
+    set_a(context, JS_UNDEFINED);
+    return;
+  }
+
+  first = get_array_prop(context, args[0], cint_to_fixnum(0));
+  for (from = 1; from < len; from++) {
+    to = from - 1;
+    if (has_array_element(args[0], from)) {
+      fromVal = get_array_prop(context, args[0], cint_to_fixnum(from));
+      set_array_prop(context, args[0], cint_to_fixnum(to), fromVal);
+    } else {
+      set_array_prop(context, args[0], cint_to_fixnum(to), JS_UNDEFINED); // tentatively
+      remove_array_props(args[0], to, to+1); // not implemented FIXME
+    }
+  }
+  remove_array_props(args[0], len-1, len); // not implemented FIXME
+  /* should reallocate (shorten) body array here? */
+  array_length(args[0]) = --len;
+  set_prop_none(args[0], gconsts.g_string_length, cint_to_fixnum(len));
+  set_a(context, first);
+  return;
+
 #if 0
   int fp, i;
   uint64_t length;
