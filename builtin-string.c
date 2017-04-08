@@ -334,6 +334,7 @@ BUILTIN_FUNCTION(string_charCodeAt)
   set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
 }
 
+/*
 void strReverse(char* str) {
   char *l, *r;
   char c;
@@ -349,44 +350,41 @@ void strReverse(char* str) {
     l++;
   }
 }
+*/
 
+/*
+   Note that "abcdefg".lastIndexOf("efg", 4) must returns not -1 but 4
+   and "abcdefg".indexOf("",4);
+ */
 JSValue string_indexOf_(Context *context, JSValue *args, int na, int isLastIndexOf) {
-  JSValue ret, s0, s1;
-  char *s, *r, *searchStr;
-  cint pos, len, start, searchLen;
+  JSValue s0, s1;
+  char *s, *searchStr;
+  cint pos, len, start, searchLen, k, j;
+  int delta;
 
   s0 = is_string(args[0]) ? args[0] : to_string(context, args[0]);
   s1 = is_string(args[1]) ? args[1] : to_string(context, args[1]);
-  len = strlen(string_to_cstr(s0));
-  searchLen = strlen(string_to_cstr(s1));
-
-  s = (char *)malloc(sizeof(char) * (len + 1));
-  searchStr = (char *)malloc(sizeof(char) * (searchLen + 1));
-  strcpy(s, string_to_cstr(s0));
-  strcpy(searchStr, string_to_cstr(s1));
+  s = string_to_cstr(s0);
+  searchStr = string_to_cstr(s1);
+  len = string_length(s0);
+  searchLen = string_length(s1);
 
   if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
-  else if (isLastIndexOf) pos = len;
+  else if (isLastIndexOf) pos = INFINITY;
   else pos = 0;
-
   start = min(max(pos, 0), len);
+  if (searchLen == 0) return cint_to_fixnum(start); // When searchStr is an empty string
 
-  if (isLastIndexOf) {
-    strReverse(s);
-    strReverse(searchStr);
-    start = len - start - 1;
-    //printf("start=%d ",start);
-    if (start < 0) { // when args[2] is undefined or more than len
-      if (searchStr[0] == '\0') return double_to_fixnum(len); // should be refined
-      start = 0;
-    }
-    if (searchStr[0] == '\0') searchLen = 1;
+  if (isLastIndexOf) delta = -1;
+  else delta = 1;
+  k = min(start, len - searchLen);
+  while (0 <= k && k <= len - searchLen) {
+    for (j = 0; s[k+j] == searchStr[j]; j++)
+      if (j == (searchLen - 1)) return cint_to_fixnum(k);
+    k += delta;
   }
 
-  if ((r = strstr(s+start, searchStr)) == NULL ) ret = double_to_fixnum(-1);
-  else if (isLastIndexOf) ret = double_to_fixnum(len - (r - s) - 1 - (searchLen - 1));
-  else ret = double_to_fixnum(r - s);
-  return ret;
+  return cint_to_fixnum(-1);
 }
 
 BUILTIN_FUNCTION(string_indexOf)
