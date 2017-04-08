@@ -550,7 +550,26 @@ BUILTIN_FUNCTION(string_fromCharCode)
 
 BUILTIN_FUNCTION(string_localeCompare)
 {
-  not_implemented("string_localeCompare");
+  JSValue s0, s1, ret;
+  char *cs0, *cs1;
+  int r;
+
+  builtin_prologue();
+  s0 = to_string(context, args[0]);
+  if (na >= 1) s1 = to_string(context, args[1]);
+  else s1 = to_string(context, JS_UNDEFINED);
+  cs0 = string_to_cstr(s0);
+  cs1 = string_to_cstr(s1);
+
+  /* implemantation-defined */
+  r = strcmp(cs0, cs1);
+  if (r > 0) r = TRUE;
+  else if (r < 0) r = FALSE;
+  else r = 0;
+
+  ret = cint_to_fixnum(r);
+  set_a(context, ret);
+  return;
 
 #if 0
   JSValue rsv, that;
