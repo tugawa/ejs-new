@@ -334,29 +334,69 @@ BUILTIN_FUNCTION(string_charCodeAt)
   set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
 }
 
+void strReverse(char* str) {
+  char *l, *r;
+  char c;
+  if (str[0] == '\0') return;
+
+  l = str;
+  r = str + strlen(str) - 1;
+  while (r-l > 0) {
+    c = *l;
+    *l = *r;
+    *r = c;
+    r--;
+    l++;
+  }
+}
+
+JSValue string_indexOf_(Context *context, JSValue *args, int na, int isLastIndexOf) {
+  JSValue ret, s0, s1;
+  char *s, *r, *searchStr;
+  cint pos, len, start, searchLen;
+
+  s0 = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s1 = is_string(args[1]) ? args[1] : to_string(context, args[1]);
+  len = strlen(string_to_cstr(s0));
+  searchLen = strlen(string_to_cstr(s1));
+
+  s = (char *)malloc(sizeof(char) * (len + 1));
+  searchStr = (char *)malloc(sizeof(char) * (searchLen + 1));
+  strcpy(s, string_to_cstr(s0));
+  strcpy(searchStr, string_to_cstr(s1));
+
+  if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
+  else if (isLastIndexOf) pos = len;
+  else pos = 0;
+
+  start = min(max(pos, 0), len);
+
+  if (isLastIndexOf) {
+    strReverse(s);
+    strReverse(searchStr);
+    start = len - start - 1;
+    //printf("start=%d ",start);
+    if (start < 0) { // when args[2] is undefined or more than len
+      if (searchStr[0] == '\0') return double_to_fixnum(len); // should be refined
+      start = 0;
+    }
+    if (searchStr[0] == '\0') searchLen = 1;
+  }
+
+  if ((r = strstr(s+start, searchStr)) == NULL ) ret = double_to_fixnum(-1);
+  else if (isLastIndexOf) ret = double_to_fixnum(len - (r - s) - 1 - (searchLen - 1));
+  else ret = double_to_fixnum(r - s);
+  return ret;
+}
+
 BUILTIN_FUNCTION(string_indexOf)
 {
   JSValue ret;
-  char *s, *searchStr;
-  int pos, len, start, searchLen;
-  char *r;
-
   builtin_prologue();
-
-  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
-  s = string_to_cstr(ret);
-  ret = is_string(args[1]) ? args[1] : to_string(context, args[1]);
-  searchStr = string_to_cstr(ret);
-
-  if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context,args[2]);
-  else pos = 0;
-
-  len = strlen(s);
-  start = min(max(pos, 0), len);
-  searchLen = strlen(searchStr);
-  if ((r = strstr(s+start, searchStr)) == NULL ) ret = double_to_fixnum(-1);
-  else ret = double_to_fixnum(r - s);
+  ret = string_indexOf_(context, args, na, FALSE);
   set_a(context, ret);
+  return;
+
 
 #if 0
   JSValue sch, position, rsv;
@@ -416,7 +456,11 @@ BUILTIN_FUNCTION(string_indexOf)
 
 BUILTIN_FUNCTION(string_lastIndexOf)
 {
-  not_implemented("string_lastIndexOf");
+  JSValue ret;
+  builtin_prologue();
+  ret = string_indexOf_(context, args, na, TRUE);
+  set_a(context, ret);
+  return;
 
 #if 0
   JSValue sch, position, rsv;
