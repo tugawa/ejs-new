@@ -162,6 +162,7 @@ extern HashTable *malloc_hashtable(void);
 extern int hash_create(HashTable *, unsigned int);
 extern int hash_get(HashTable *, HashKey, HashData *);
 extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
+extern int hash_delete(HashTable *table, HashKey key);
 extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
@@ -226,6 +227,8 @@ extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_index_value(Context *, JSValue, cint, JSValue, int);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 extern void remove_array_props(JSValue, cint, cint);
+extern int delete_object_prop(JSValue obj, HashKey key);
+extern int delete_array_element(JSValue a, cint n);
 extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);

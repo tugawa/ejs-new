@@ -87,6 +87,32 @@ BUILTIN_FUNCTION(array_toString)
 }
 
 BUILTIN_FUNCTION(array_toLocaleString){
+  /* toLocaleString() calls other toLocaleString()s of the elements of the array */
+  /*
+  JSValue array, elem, separator, r, elementObj, func;
+  cint len;
+
+  builtin_prologue();
+  array = args[0];
+  len = array_length(args[0]);
+
+  if (len == 0) {
+    set_a(context, gconsts.g_string_empty);
+    return;
+  }
+  separator = gconsts.g_string_comma;
+  elem = get_array_prop(context, array, cint_to_fixnum(0));
+  if (is_null(elem) || is_undefined(elem)) r = gconsts.g_string_empty;
+  else {
+    elementObj = to_object(context, elem);
+    func = get_prop_prototype_chain(elementObj, cstr_to_string("toLocaleString"));
+    if (!is_function(func)) type_error_exception("not callable"); // must use is_callable()?
+  }
+  set_a(context, array);
+  return;
+  */
+  not_implemented("toLocaleString");
+#if 0
   int i;
   uint64_t length, sumLength;
   JSValue array, item, prim;
@@ -94,7 +120,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
   char *retCStr, *addr;
   ArrayCell *ap;
 
-  builtin_prologue();  
+  builtin_prologue();
   array = args[0];
   length = array_length(array);
 
@@ -132,6 +158,7 @@ BUILTIN_FUNCTION(array_toLocaleString){
     set_a(context, gconsts.g_string_empty);
     return;
   }
+#endif
 }
 
 /*
@@ -241,24 +268,9 @@ BUILTIN_FUNCTION(array_pop)
   flen = cint_to_fixnum(len);
   if (len < array_size(a))
     ret = array_body_index(a, len);
-  else {
+  else
     ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
-    remove_array_props(a, len, len+1); // not implemented
-    /*
-       FIXME:
-       Must delete the property a[len] here.
-       remove_array_props() is not implemented so that pop cause bugs like below:
-
-       a = [0,1,2];
-       a[102] = 102;
-       a.pop();
-       print(a[102]); // This must print undefined.
-       a.length = 105;
-       print(a);      // This must print undefined as a[102].
-
-       However, each print() results in 102.
-     */
-  }
+  delete_array_element(a, len);
   array_length(a) = len;
   set_prop_none(a, gconsts.g_string_length, flen);
   set_a(context, ret);
@@ -309,20 +321,10 @@ BUILTIN_FUNCTION(array_reverse)
       set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
     } else if (!lowerExists && upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
-      /*
-         FIXME:
-         the next two line must be rewritten using DeletePropertyOrThrow()
-       */
-      set_array_prop(context, args[0], cint_to_fixnum(upper), JS_UNDEFINED);
-      remove_array_props(args[0], upper,upper+1); // not implemented
+      delete_array_element(args[0], upper);
     } else if (lowerExists && !upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
-      /*
-         FIXME:
-         the next two line must be rewritten using DeletePropertyOrThrow()
-       */
-      set_array_prop(context, args[0], cint_to_fixnum(lower), JS_UNDEFINED);
-      remove_array_props(args[0], lower,lower+1); // not implemented
+      delete_array_element(args[0], lower);
     } else {
       /* No action is required */
     }
@@ -371,11 +373,10 @@ BUILTIN_FUNCTION(array_shift)
       fromVal = get_array_prop(context, args[0], cint_to_fixnum(from));
       set_array_prop(context, args[0], cint_to_fixnum(to), fromVal);
     } else {
-      set_array_prop(context, args[0], cint_to_fixnum(to), JS_UNDEFINED); // tentatively
-      remove_array_props(args[0], to, to+1); // not implemented FIXME
+      delete_array_element(args[0], to);
     }
   }
-  remove_array_props(args[0], len-1, len); // not implemented FIXME
+  delete_array_element(args[0], len - 1);
   /* should reallocate (shorten) body array here? */
   array_length(args[0]) = --len;
   set_prop_none(args[0], gconsts.g_string_length, cint_to_fixnum(len));
@@ -508,9 +509,123 @@ BUILTIN_FUNCTION(array_slice)
 #endif
 }
 
+/*
+   softCompare(context, x, y, comparefn) returns
+    x < y: minus
+    x = y: 0
+    x > y: plus
+ */
+int sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
+  char *xString, *yString;
+  if (is_undefined(x) && is_undefined(y)) return 0;
+  else if (is_undefined(x)) return 1;
+  else if (is_undefined(y)) return -1;
+  else if (!is_undefined(comparefn)) {
+    /* TODO
+    if (!is_callable(comparefn)) LOG_EXIT("TypeError");
+    return call(comparefn(x,y));
+    */
+    LOG_EXIT("not implemented");
+  }
+  xString = string_to_cstr(to_string(context, x));
+  yString = string_to_cstr(to_string(context, y));
+  return strcmp(xString, yString);
+}
+
+/* should be refine */
+void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
+  JSValue tmp;
+  JSValue p;
+  cint i, j;
+  /*
+  for(cint z = 0; z < array_length(array); z++) {
+    tmp = get_array_prop(context, array, cint_to_fixnum(z));
+    if (l <= z && z <= r) print_value_simple(context, tmp);
+    else printf("_");
+    if (z < array_length(array)-1) printf(",");
+    else printf("\n");
+  }
+  */
+
+  if (l < r) {
+    i = l, j = r;
+    p = get_array_prop(context, array, cint_to_fixnum(i)); // kari
+
+    while (1) {
+      while (sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
+      while (sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
+      if (i >= j) break;
+      // exchange a[i] and a[j]
+      tmp = get_array_prop(context, array, cint_to_fixnum(i));
+      set_array_prop(context, array, cint_to_fixnum(i), get_array_prop(context, array, cint_to_fixnum(j)));
+      set_array_prop(context, array, cint_to_fixnum(j), tmp);
+      i++;
+      j--;
+    }
+    asort(context, array, l, i - 1, comparefn);
+    asort(context, array, j + 1, r, comparefn);
+  }
+}
+
 BUILTIN_FUNCTION(array_sort)
 {
-  not_implemented("sort");
+  JSValue obj, comparefn, elem, proto;
+  cint len, i;
+  int is_sparse;
+
+  builtin_prologue();
+  obj = args[0];
+  comparefn = args[1];
+  len = array_length(obj);
+  /*
+     TODO:
+       The behavior is implementation defined for each condition 1-4.
+   */
+  /* 1
+      * comparefn is not undefined
+      * comparefn is not a consistent comparison function
+        for the elements of array
+   */
+  /* 2
+      Let proto be tha value of the prototype of obj.
+        * proto is not null
+        * there exists an integer j such that all of the conditions below:
+          * obj is sparse
+          * 0 <= j < len
+          * proto has the property ToString(j)
+   */
+  /* 3
+      obj is sparse
+      any of the following conditions are true:
+        * [[Extensible]] internal property of obj is false
+        * any array index property of obj whose name is nonnegative integer
+          less than len is a data property whose [[Configurable]] attribute
+          is false
+   */
+  /* 4
+      if any array index property of obj whose name is
+      a nonnegative integer less than
+      len is an accessor property
+      or is a data property whose [[Writable]] attribute is false
+   */
+
+  /*
+  int is_sparse(JSValue a) {
+    JSValue e;
+    cint i;
+
+    if (!is_array(a)) return FALSE;
+    for (i = 0; i < array_length(a); i++) {
+      e = get_array_prop(context, a, cint_to_fixnum(i));
+      if (is_undefined(e)) return TRUE;
+    }
+    return FALSE;
+  }
+  */
+  asort(context, obj, 0, len-1, comparefn);
+  set_a(context, obj);
+  return;
+
 #if 0
   JSValue* args;
   JSValue rsv, comp, lenv, iv, jv, temp;

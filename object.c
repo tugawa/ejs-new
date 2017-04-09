@@ -305,9 +305,9 @@ int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int se
       while ((newsize = increase_asize(size)) <= n) size = newsize;
       reallocate_array_data(context, a, newsize);
     }
-    /* If len < n, expands the array.  It should be noted that
+    /* If len <= n, expands the array.  It should be noted that
        if len >= n, this for loop does nothing */
-    for (i = len; i < n; i++)
+    for (i = len; i <= n; i++) // i < n?
       array_body_index(a, i) = JS_UNDEFINED;
   } else {
     /*
@@ -401,6 +401,39 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
 void remove_array_props(JSValue a, cint from, cint to) {
 }
 
+/*
+   delete the hash cell with key and the property of the object
+   NOTE:
+     This function merely sets the corresponding property as JS_UNDEFINED,
+     so that it does not delete (free) the property and does not reallocate
+     (shorten) the prop array of the object.
+     It must be improved.
+ */
+int delete_object_prop(JSValue obj, HashKey key) {
+  int index;
+
+  if (!is_object(obj)) return FAIL;
+
+  /* Set corresponding property as JS_UNDEFINED */
+  index = prop_index(obj, key);
+  if (index == - 1) return FAIL;
+  obj_prop_index(obj, index) = JS_UNDEFINED;
+
+  /* Free the HashCell */
+  if(hash_delete(obj_map(obj), key) == HASH_GET_FAILED) return FAIL;
+  return SUCCESS;
+}
+
+/*
+   delete a[n]
+ */
+int delete_array_element(JSValue a, cint n) {
+  if (n < array_size(a)) {
+    array_body_index(a, n) = JS_UNDEFINED;
+    return SUCCESS;
+  }
+  return delete_object_prop(a, cint_to_string(n));
+}
 
 #if 0
 static inline void setArrayBody(JSValue array, int size)
