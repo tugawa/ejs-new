@@ -569,9 +569,8 @@ void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
 
 BUILTIN_FUNCTION(array_sort)
 {
-  JSValue obj, comparefn, elem, proto;
-  cint len, i;
-  int is_sparse;
+  JSValue obj, comparefn;
+  cint len;
 
   builtin_prologue();
   obj = args[0];

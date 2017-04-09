@@ -397,8 +397,12 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
 /*
    removes array data whose subscript is between `from' and `to'
    that are stored in the property table.
+   implemented tentatively
  */
 void remove_array_props(JSValue a, cint from, cint to) {
+  // printf("%d-%d\n",from,to);
+  for (; from < to ; from++)
+    delete_array_element(a, from);
 }
 
 /*
