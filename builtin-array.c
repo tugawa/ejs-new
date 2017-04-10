@@ -201,9 +201,9 @@ BUILTIN_FUNCTION(array_concat)
         if (has_array_element(e, k)) {
           subElement = get_array_prop(context, e, cint_to_fixnum(k));
           set_array_prop(context, a, cint_to_fixnum(n), subElement);
-          n++;
-          k++;
         }
+        n++;
+        k++;
       }
     } else {
       if (n > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
