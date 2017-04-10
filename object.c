@@ -439,6 +439,7 @@ int delete_object_prop(JSValue obj, HashKey key) {
 
 /*
    delete a[n]
+   Note that this function does not change a.length
  */
 int delete_array_element(JSValue a, cint n) {
   if (n < array_size(a)) {

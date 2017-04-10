@@ -510,7 +510,7 @@ BUILTIN_FUNCTION(array_slice)
 }
 
 /*
-   softCompare(context, x, y, comparefn) returns
+   sortCompare(context, x, y, comparefn) returns
     x < y: minus
     x = y: 0
     x > y: plus
