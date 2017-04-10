@@ -134,12 +134,21 @@ int has_prop_prototype_chain(JSValue o, JSValue p) {
    n: subscript
  */
 int has_array_element(JSValue a, cint n) {
+  if (!is_array(a)) return FALSE;
+  if (n < 0 || array_length(a) <= n) return FALSE;
   /* in body of a */
-  if (0 <= n && n < array_size(a))
-    return (n < array_length(a))? TRUE: FALSE;
-    /* is it ok that a[n] (0 <= n < len) always exists? */
+  /* is it ok that a[n] (0 <= n < len) always exists? */
+  if (n < array_size(a)) return TRUE;
   /* in property of a */
   return has_prop_prototype_chain(a, cint_to_string(n));
+
+//if (!is_array(a)) return FALSE;
+///* in body of a */
+///* is it ok that a[n] (0 <= n < len) always exists? */
+//if (0 <= n && n < array_size(a))
+//  return (n < array_length(a))? TRUE: FALSE;
+///* in property of a */
+//return has_prop_prototype_chain(a, cint_to_string(n));
 }
 
 /*
