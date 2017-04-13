@@ -1,14 +1,22 @@
 /*
    builtin-object.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -39,29 +47,29 @@ BUILTIN_FUNCTION(object_constr)
       break;
     case T_FIXNUM:
     case T_FLONUM:
-      ret = new_number(arg);
-      // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
+      ret = new_normal_number(context, arg);
+      // set___proto___all(context, ret, gconsts.g_number_proto);
       break;
     case T_SPECIAL:
       if (is_true(arg) || is_false(arg)) {
-        ret = new_boolean(arg);
-        // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
+        ret = new_normal_boolean(context, arg);
+        // set___proto___all(context, ret, gconsts.g_boolean_proto);
       } else {
-        ret = new_object(context);
-        // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
+        ret = new_normal_object(context);
+        // set___proto___all(context, ret, gconsts.g_object_proto);
       }
       break;
     case T_STRING:
-      ret = new_string(arg);
-      // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
+      ret = new_normal_string(context, arg);
+      // set___proto___all(context, ret, gconsts.g_string_proto);
       break;
     }
   } else {
     //    printf("object_constr: na == 0, calls new_object\n");
     //    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
-    ret = new_object(context);
+    ret = new_normal_object(context);
     //    printf("ret = %016lx\n", ret);
-    // set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
+    // set___proto___all(context, ret, gconsts.g_object_proto);
   }
   set_a(context, ret);
 }
@@ -73,37 +81,45 @@ BUILTIN_FUNCTION(object_toString)
 
 ObjBuiltinProp object_funcs[] = {
   { "toString",       object_toString,       0, ATTR_DE },
-#ifdef PARALLEL
-  {  "setShared",     objectProtoSetShared,  0, ATTR_DE },
-#endif
   { NULL,             NULL,                  0, ATTR_DE }
 };
 
-void init_builtin_object(void)
+void init_builtin_object(Context *ctx)
 {
   JSValue obj, proto;
 
   gconsts.g_object = obj =
-    new_builtin_with_constr(object_constr, object_constr, 0);
+    // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
+    new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
+#ifdef HIDDEN_CLASS
+#ifdef HIDDEN_DEBUG
+  print_hidden_class("g_object", obj_hidden_class(obj));
+#endif
+#endif
   proto = gconsts.g_object_proto;
-  set_prop_de(obj, gconsts.g_string_prototype, proto);
+  set_prototype_de(ctx, obj, proto);
+#ifdef HIDDEN_CLASS
+#ifdef HIDDEN_DEBUG
+  print_hidden_class("g_object", obj_hidden_class(obj));
+#endif
+#endif
 
   // not implemented yet
   // set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
   //            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
 
-  gconsts.g_function_proto = new_object(NULL);
-#ifdef PARALLEL
-  set_obj_cstr_prop(gconsts.g_function_proto, "setAtomic",
-                    new_builtin(functionProtoSetAtomic, 0), ATTR_DE);
-#endif
-
+  gconsts.g_function_proto = new_normal_object(ctx);
   {
     ObjBuiltinProp *p = object_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, proto, p->name, 
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
+#ifdef HIDDEN_CLASS
+#ifdef HIDDEN_DEBUG
+  print_hidden_class("g_function_proto", obj_hidden_class(gconsts.g_function_proto));
+#endif
+#endif
 }
-

@@ -1,14 +1,22 @@
 /*
    vmloop.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -18,21 +26,13 @@
 #define NOT_IMPLEMENTED() \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
 
-inline void make_insn_ptr(FunctionTable *curfn, void *const *jt
-#ifdef PARALLEL
-, bool inpar
-#endif
-) {
+inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
   int i, n_insns;
   Instruction *insns;
 //  void **ptr = curfn->insn_ptr;
   InsnLabel *ptr = curfn->insn_ptr;
   n_insns = curfn->n_insns;
-#ifdef PARALLEL
-  insns = inpar? curfn->parallelInsns: curfn->insns;
-#else
   insns = curfn->insns;
-#endif
   for (i = 0; i < n_insns; i++)
     ptr[i] = jt[get_opcode(insns[i].code)];
   curfn->insn_ptr_created = true;
@@ -118,24 +118,6 @@ do{                                                                  \
 
 #endif // USE_ASM
 
-// defines update_context()
-//
-#ifdef PARALLEL
-
-#define update_context() do {                       \
-  curfn = get_cf(context);                          \
-  codesize = ftab_n_insns(curfn);                   \
-  pc = get_pc(context);                             \
-  fp = get_fp(context);                             \
-  insns = (context->inParallel ? curfn->parallelInsns : curfn->insns) + pc \
-  regbase = (JSValue *)&get_stack(context, fp) - 1; \
-  if (!curfn->insn_ptr_created)                     \
-    make_insn_ptr(curfn, jump_table, context->inParallel);                 \
-  insn_ptr = curfn->insn_ptr + pc;                  \
-} while (0)
-
-#else
-
 #define save_context() do			\
 {						\
   set_cf(context, curfn);			\
@@ -154,8 +136,6 @@ do{                                                                  \
     make_insn_ptr(curfn, jump_table);               \
   insn_ptr = curfn->insn_ptr + pc;                  \
 } while (0)
-
-#endif // PARALLEL
 
 #define load_regs(insn, dst, r1, r2, v1, v2) \
   dst = get_first_operand_reg(insn), \
@@ -1058,11 +1038,11 @@ I_GETPROP:
     dst = get_first_operand_reg(insn);
     o = regbase[get_second_operand_reg(insn)];
     idx = regbase[get_third_operand_reg(insn)];
-    if (is_array(o))
+    if (is_array(o)) {
       regbase[dst] = get_array_prop(context, o, idx);
-    else if (is_object(o))
+    } else if (is_object(o)) {
       regbase[dst] = get_object_prop(context, o, idx);
-    else {
+    } else {
 if (o == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
       o = to_object(context, o);
       if (!is_object(o))
@@ -1072,6 +1052,7 @@ if (o == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
     }
     /*
     printf("getprop: idx = "); print_value_simple(context, idx);
+    printf(" ; o = "); print_value_simple(context, o);
     printf(" ; result = "); print_value_simple(context, regbase[dst]);
     printf("\n");
     */
@@ -1139,6 +1120,10 @@ I_GETGLOBAL:
     str = regbase[get_second_operand_reg(insn)];
     if (get_prop(context->global, str, &ret) == FAIL)
       LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
+    /*
+    printf("getglobal: dst = %d, str = %s, ret = ", dst, string_to_cstr(str));
+    print_value_verbose(context, ret); putchar('\n');
+    */
     regbase[dst] = ret;
   }
   NEXT_INSN_INCPC();
@@ -1156,7 +1141,7 @@ I_SETGLOBAL:
 
     str = regbase[get_first_operand_reg(insn)];
     src = regbase[get_second_operand_reg(insn)];
-    if (set_prop_none(context->global, str, src) == FAIL)
+    if (set_prop_none(context, context->global, str, src) == FAIL)
       LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
   }
   NEXT_INSN_INCPC();
@@ -1177,7 +1162,7 @@ I_INSTANCEOF:
     ret = JS_FALSE;
     if (is_object(v1) && is_object(v2) &&
         get_prop(v2, gconsts.g_string_prototype, &p) == SUCCESS) {
-      while (get_prop(v1, gconsts.g_string___proto__, &v1) == SUCCESS)
+      while (get___proto__(v1, &v1) == SUCCESS)
         if (v1 == p) {
           ret = JS_TRUE;
           break;
@@ -1242,12 +1227,12 @@ I_NEW:
     con = regbase[get_second_operand_reg(insn)];
     if (is_function(con)) {
       save_context(); // GC
-      o = new_object(context);
+      o = new_normal_object(context);
       update_context(); // GC
       // printf("NEW: is_function, o = %lx\n", o);
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
-      set_prop_all(o, gconsts.g_string___proto__, p);
+      set___proto___all(context, o, p);
     } else
       o = JS_UNDEFINED;
 #if 0
@@ -1257,36 +1242,14 @@ I_NEW:
       //        con == gconsts.g_number || con == gconsts.g_boolean)
       o = JS_UNDEFINED;
     else if (is_function(con)) {
-      o = new_object();
+      o = new_normal_object();
       get_prop(con, gconsts.g_string_prototype, &p);
       if (!is_object(p)) p = gconsts.g_object_proto;
-      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
+      set___proto___all(context, o, gconsts.g_object_proto);
     } else
       LOG_EXIT("NEW: not a constructor");
 #endif
     regbase[dst] = o;
-
-#if 0
-    /*
-       The following definition is based on the one of the old ssjsvm
-       developed by Takada, but it seems to have a problem when the
-       ``con'' is a built-in object such as Array.
-     */
-    o = new_object();
-    if (get_prop(con, gconsts.g_string_prototype, &p) == SUCCESS &&
-        is_object(p))
-      set_prop_all(o, gconsts.g_string___proto__, p);
-    else
-      set_prop_all(o, gconsts.g_string___proto__, gconsts.g_object_proto);
-    {
-      printf("NEW: o = %016lx, p = %016lx, g_object_proto = %016lx, ", o, p, gconsts.g_object_proto);
-      if (get_prop(o, gconsts.g_string___proto__, &p) == SUCCESS)
-        printf("NEW: o[__proto__] = %016lx\n", p);
-      else
-        printf("NEW: o[__proto__] not found\n");
-    }
-    regbase[dst] = o;
-#endif
   }
   NEXT_INSN_INCPC();
 
@@ -1419,7 +1382,7 @@ I_NEWARGS:
     fr = new_frame(get_cf(context), get_lp(context));
     set_lp(context, fr);
     save_context(); // GC
-    args = new_array_with_size(context, na);
+    args = new_normal_array_with_size(context, na);
     update_context(); // GC
     /*
        Note that the i-th arg is regbase[i + 2].
@@ -1626,7 +1589,7 @@ I_MAKECLOSURE:
     dst = get_first_operand_reg(insn);
     ss = get_second_operand_subscr(insn) + 1;
     save_context(); // GC
-    regbase[dst] = new_function(context, ss);
+    regbase[dst] = new_normal_function(context, ss);
     update_context();  // GC
   }
   NEXT_INSN_INCPC();
@@ -1646,7 +1609,7 @@ I_MAKEITERATOR:
     dst = get_second_operand_reg(insn);
     if (!is_object(obj))
       LOG_EXIT("makeiterator: not an object\n");
-    regbase[dst] = new_iterator(obj);
+    regbase[dst] = new_normal_iterator(context, obj);
     // printf("makeiterator: iter = %016lx ", regbase[dst]); simple_print(regbase[dst]); printf("\n");
   }
   NEXT_INSN_INCPC();
@@ -1671,22 +1634,10 @@ I_NEXTPROPNAME:
     // printf("nextpropname: itr = %016lx ", itr); simple_print(itr); printf("\n");
     while (1) {
       int r;
-      // printf("nextpropname: before get_next_propname res = "); simple_print(res); printf("\n");
       r = get_next_propname(itr, &res);
-      // printf("  nextpropname: after get_next_propname, r = %d, res = ", r); simple_print(res); printf(" "); printf("\n");
       if (r != SUCCESS) break;
       if ((val = get_prop_prototype_chain(obj, res)) != JS_UNDEFINED) break;
     }
-    /*
-    while ((get_next_propname(itr, &res) == SUCCESS) &&
-           (get_prop_prototype_chain(obj, res) != JS_UNDEFINED)) {
-      printf("in while\n");
-    }
-    */
-    /*
-    printf("nextpropname: res = "); simple_print(res);
-    printf(", val = "); simple_print(val); printf("\n");
-    */
     regbase[dst] = res;
   }
   NEXT_INSN_INCPC();
@@ -2427,93 +2378,6 @@ I_SLOWGETLOCAL:
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-#ifdef PARALLEL
-I_GETGLOBALPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_SETGLOBALPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_GETPROPPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_SETPROPPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_GETARGPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_GETLOCALPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_SETARGPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_SETLOCALPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_CALLPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_SENDPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_TAILCALLPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_TAILSENDPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_LIGHTCALLPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_LIGHTSENDPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_LIGHTTAIL:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_LIGHTTAILSENDPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-I_RETPAR:
-  ENTER_INSN(__LINE__);
-  NOT_IMPLEMENTED();
-  NEXT_INSN_INCPC();
-
-#endif // PRARLLEL
 #ifdef J5MODE
 I_ARG:
   ENTER_INSN(__LINE__);

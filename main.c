@@ -1,14 +1,22 @@
 /*
    main.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -200,17 +208,15 @@ int main(int argc, char *argv[]) {
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();
-  init_context(function_table, init_global(), &context);
+  init_global_malloc_objects();
+  init_global_objects();
+  init_context(function_table, gconsts.g_global, &context);
+  init_builtin(context);
 
+  srand((unsigned)time(NULL));
   init_code_loader(fp);
-  n = code_loader(function_table);
+  n = code_loader(context, function_table);
   end_code_loader();
-
-#ifdef PARALLEL
-  // generates bytecode for parallel execution
-  generateParallelCode(function_table, n);
-  //printFuncTbl(functionTable, n);
-#endif // PARALLEL
 
   // obtains the time before execution
 #ifdef USE_PAPI
@@ -348,7 +354,10 @@ void simple_print(JSValue v) {
 
   switch (tag = get_tag(v)) {
   case T_FIXNUM:
+    //    printf("fixnum:%ld", (v >> 3));
+    //    break;
   case T_FLONUM:
+    //    printf("flonum:%le", number_to_double(v));
     printf("number:%le", number_to_double(v));
     break;
   case T_STRING:

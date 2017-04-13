@@ -1,11 +1,23 @@
 /*
- * gc.h
- * 
- *   eJS Project
- *
- *   Hideya Iwaski, 2016
- *   Tomoharu Ugawa, 2016
- */
+   gc.h
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
 
 typedef uint32_t cell_type_t;
 
@@ -15,7 +27,12 @@ extern void init_memory(void);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
 extern JSValue *gc_jsalloc(Context *, uintptr_t, uint32_t);
 extern void gc_push_tmp_root(JSValue *loc);
+extern void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2);
+extern void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3);
 extern void gc_pop_tmp_root(int n);
+extern void gc_push_tmp_root_malloc(void **loc);
+extern void gc_push_tmp_root_malloc2(void **loc1, void **loc2);
+extern void gc_pop_tmp_root_malloc(int n);
 
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
@@ -38,7 +55,12 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
   return mem + 1;
 }
 #define gc_push_tmp_root(x)
+#define gc_push_tmp_root2(x, y)
+#define gc_push_tmp_root3(x, y, z)
 #define gc_pop_tmp_root(x)
+#define gc_push_tmp_root_malloc(x)
+#define gc_push_tmp_root_malloc2(x, y)
+#define gc_pop_tmp_root_malloc(x)
 #define enable_gc()
 #define disable_gc()
 static cell_type_t gc_obj_header_type(void *p)

@@ -1,14 +1,22 @@
 /*
    object.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 /*
@@ -41,19 +49,59 @@
 
 #define sign(x) ((x) > 0? 1: -1)
 
+#define hash_put(map, name, retv, attr) \
+  ((hash_put_with_attribute((map),(name),(retv),(attr)) == HASH_PUT_SUCCESS)? \
+   (int)(retv): (-1))
+
+#ifdef HIDDEN_CLASS
+static HiddenClass *hclass;
+#endif
+
 /*
    obtains the index of a property of an Object
    If the specified property does not exist, returns -1.
+
+   Note that if HIDDEN_CLASS is defined and hash_get_with_attribute returns
+   HASH_GET_SUCCESS, the hidden map in the object contains either the index
+   of JSValue array (as a fixnum) or the pointer to the next hidden class.
+   These two cases can be distinguished by investigating the ``transition
+   bit'' of the obtained attribute.  For the latter case, the pointer to
+   the next hidden class is temporary assigned to a static variable named
+   ``hclass''.
  */
 int prop_index(JSValue obj, JSValue name)
 {
   HashData retv;
   int result;
+#ifdef HIDDEN_CLASS
+  Attribute att;
+#endif
 
-  if (!is_object(obj)) return -1;
+  if (!is_object(obj)) return -1;   // Is it necessary to check the type?
+#ifdef HIDDEN_CLASS
+  result =
+    hash_get_with_attribute(obj_hidden_class_map(obj), name, &retv, &att);
+  // printf("in prop_index: result = %d\n", result);
+  if (result == HASH_GET_FAILED) {
+    hclass = NULL;
+    // printf("in prop_index: hclass = NULL, returning -1\n");
+    return -1;
+  }
+  if (is_transition(att)) {
+    hclass = (HiddenClass *)retv;
+    // printf("in prop_index: is_transition, returning -1\n");
+    return -1;
+  } else {
+    // printf("prop_index is returning %d\n", (int)retv);
+    return (int)retv;
+  }
+#else
+  // print_hash_table(obj_map(obj));
   result = hash_get(obj_map(obj), name, &retv);
   if (result == HASH_GET_FAILED) return -1;
-  else return (int)retv;
+  // printf("prop_index: "); simple_print(retv); putchar('\n');
+  return (int)retv;
+#endif
 }
 
 /*
@@ -65,10 +113,12 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret)
 {
   int index;
 
-  //printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
+  // printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
+  // simple_print(name); putchar('\n');
   index = prop_index(obj, name);
+  // printf("get_prop: index = %d\n", index);
   if (index == -1) return FAIL;
-
+  // simple_print(obj_prop_index(obj, index)); putchar('\n');
   *ret = obj_prop_index(obj, index);
   return SUCCESS;
 }
@@ -89,7 +139,7 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   // printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
   do {
     if (get_prop(o, p, &ret) == SUCCESS) return ret;
-  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
+  } while (get___proto__(o, &o) == SUCCESS);
   // is it necessary to search in the Object's prototype?
   return JS_UNDEFINED;
 }
@@ -100,14 +150,14 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
      p: property (number / string / other type)
    It is not necessary to check the type of `o'.
  */
-JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
+JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
   /*
     if (p is not a string) p = to_string(p);
       returns the value regsitered under the property p
     }
   */
   // printf("get_object_prop, o = %016lx, p = %016lx\n", o, p);
-  if (!is_string(p)) p = to_string(context, p);
+  if (!is_string(p)) p = to_string(ctx, p);
   return get_prop_prototype_chain(o, p);
 }
 
@@ -117,7 +167,7 @@ JSValue get_object_prop(Context *context, JSValue o, JSValue p) {
      p: property (number / string / other type)
    It is not necessary to check the type of `a'.
  */
-JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
+JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
   /*
     if (p is a number) {
       if (p is within the range of an subscript of an array)
@@ -164,7 +214,7 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
     }
     break;
   default:
-   p = to_string(context, p);
+   p = to_string(ctx, p);
    // fall through
   case T_STRING:
     {
@@ -186,10 +236,18 @@ JSValue get_array_prop(Context *context, JSValue a, JSValue p) {
 /*
    sets an object's property value with its attribute
  */
-int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr) {
+int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, Attribute attr) {
   uint64_t retv, newsize;
+  int index, r;
+#ifdef HIDDEN_CLASS
+  HiddenClass *nexth, *oh;
+#endif // HIDDEN_CLASS
 
-  if (hash_get(obj_map(obj), name, (HashData *)(&retv)) == HASH_GET_FAILED) {
+  // printf("set_prop_with_attribute: obj = %p, name = %s, v = %p\n",
+  //        obj, string_to_cstr(name), v);
+  index = prop_index(obj, name);
+  // printf("set_prop_with_index: index = %d\n", index);
+  if (index == -1) {
     // The specified property is not registered in the hash table.
     retv = obj_n_props(obj);
     if (retv >= obj_limit_props(obj)) {
@@ -200,31 +258,68 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
         LOG_EXIT("proptable overflow\n");
         return FAIL;
       }
-      obj_prop(obj) = reallocate_prop_table(obj_prop(obj), retv, newsize);
+      gc_push_tmp_root3(&obj, &name, &v);
+      obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
+      gc_pop_tmp_root(3);
       obj_limit_props(obj) = newsize;
       printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
              obj_n_props(obj), obj_limit_props(obj));
     }
-    // retv = (obj_n_props(obj))++;
-    (obj_n_props(obj))++;
+    index = (cint)retv;
+    // printf("set_prop_with_index: index = %d\n", index);
+#ifdef HIDDEN_CLASS
+    oh = obj_hidden_class(obj);    // source hidden class
     /*
-    printf("obj = %lx, obj_n_props(obj) = %d, name = %s, value = ",
-            obj, obj_n_props(obj), string_to_cstr(name));
-    simple_print(v); printf("\n");
+    if (hidden_htype(oh) == HTYPE_TRANSIT)
+      print_hidden_class("transit_hidden_class: from (TRANSIT)", oh);
+    else
+      print_hidden_class("transit_hidden_class: from (GROW)", oh);
     */
-
-    if (hash_put_with_attribute(obj_map(obj), name, retv, attr)
-          == HASH_PUT_SUCCESS) {
-      obj_prop_index(obj, (int)retv) = v;
-      return SUCCESS;
-    } else
-      return FAIL;
-  } else {
-    // returned value is HASH_GET_SUCCESS
-    // There is already the property `name', overwrites its value.
-    obj_prop_index(obj, (int)retv) = v;
-    return SUCCESS;
+    if (hidden_htype(oh) == HTYPE_TRANSIT) {
+      nexth = hclass;    // NULL or pointer to the next hidden class
+      if (nexth == NULL) {
+        // printf("transit_hidden_class: making the next hidden class\n");
+        gc_push_tmp_root3(&obj, &name, &v);
+        nexth = new_hidden_class(ctx, oh);
+        gc_pop_tmp_root(3);
+        // print_hidden_class("transit_hidden_class: to (before put)", nexth);
+        gc_push_tmp_root_malloc2((void **)&nexth, (void **)&oh);
+        r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
+        if (r != HASH_PUT_SUCCESS) {
+          gc_pop_tmp_root_malloc(2);
+          return FAIL;
+        }
+        hidden_n_entries(nexth)++;
+        hash_put_with_attribute(hidden_map(oh), name, (HashData)nexth,
+                          ATTR_NONE | ATTR_TRANSITION);
+        gc_pop_tmp_root_malloc(2);
+        hidden_n_entries(oh)++;
+      }
+      hidden_n_exit(obj_hidden_class(obj))++;
+      obj_hidden_class(obj) = nexth;
+      hidden_n_enter(nexth)++;
+    } else {                  // hidden_htype(oh) == HTYPE_GROW
+      nexth = oh;
+      gc_push_tmp_root_malloc((void **)&nexth);
+      r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
+      gc_pop_tmp_root_malloc(1);
+      if (r != HASH_PUT_SUCCESS) return FAIL;
+      hidden_n_entries(nexth)++;
+    }
+    // print_hidden_class("transit_hidden_class: to (after put)", nexth);
+#else // HIDDEN_CLASS
+    gc_push_tmp_root(&obj);
+    // printf("set_prop_with_index: putting attribute, name = %s, index = %d\n", string_to_cstr(name), index);
+    r = hash_put_with_attribute(obj_map(obj), name, index, attr);
+    // printf("set_prop_with_index: hash_put_with_attribute done, r = %d\n", r);
+    gc_pop_tmp_root(1);
+    if (r != HASH_PUT_SUCCESS) return FAIL;
+    // print_hash_table(obj_map(obj));
+#endif // HIDDEN_CLASS
+    (obj_n_props(obj)) = index + 1;
   }
+  obj_prop_index(obj, index) = v;
+  return SUCCESS;
 }
 
 /*
@@ -234,10 +329,10 @@ int set_prop_with_attribute(JSValue obj, JSValue name, JSValue v, Attribute attr
      v: value to be set
    It is not necessary to check the type of `o'.
  */
-int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
-  if (!is_string(p)) p = to_string(context, p);
-  // printf("set_object_prop: "); print_value_verbose(context, p); printf("\n");
-  return set_prop_none(o, p, v);
+int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v) {
+  if (!is_string(p)) p = to_string(ctx, p);
+  // printf("set_object_prop: "); print_value_verbose(ctx, p); printf("\n");
+  return set_prop_none(ctx, o, p, v);
 }
 
 /*
@@ -256,7 +351,7 @@ int set_object_prop(Context *context, JSValue o, JSValue p, JSValue v) {
       FAIL   : the above assignment has not been done yet because n is
                outside, but expanding array has been done if necessary
  */
-int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int setlength) {
+int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlength) {
   cint len, size, adatamax;
   int i;
 
@@ -272,7 +367,7 @@ int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int se
        */
       cint newsize;
       while ((newsize = increase_asize(size)) <= n) size = newsize;
-      reallocate_array_data(context, a, newsize);
+      reallocate_array_data(ctx, a, newsize);
     }
     /* If len < n, expands the array.  It should be noted that
        if len >= n, this for loop does nothing */
@@ -285,7 +380,7 @@ int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int se
     */
     if (size < ASIZE_LIMIT) {
       /* The array data is not fully expanded, so we expand it */
-      reallocate_array_data(context, a, ASIZE_LIMIT);
+      reallocate_array_data(ctx, a, ASIZE_LIMIT);
       for (i = len; i < ASIZE_LIMIT; i++)
         array_body_index(a, i) = JS_UNDEFINED;
       adatamax = ASIZE_LIMIT;
@@ -293,7 +388,7 @@ int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int se
   }
   if (len <= n || setlength == TRUE) {
     array_length(a) = n + 1;
-    set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    set_prop_none(ctx, a, gconsts.g_string_length, cint_to_fixnum(n + 1));
   }
   if (setlength == TRUE && n < len && adatamax <= len) {
     remove_array_props(a, adatamax, len);
@@ -312,7 +407,7 @@ int set_array_index_value(Context *context, JSValue a, cint n, JSValue v, int se
      v: value to be set
    It is not necessary to check the type of `a'.
  */
-int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
+int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
   switch (get_tag(p)) {
   case T_FIXNUM:
     {
@@ -320,15 +415,15 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
 
       n = fixnum_to_cint(p);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-        if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
+        if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
           return SUCCESS;
       }
       p = fixnum_to_string(p);
-      return set_object_prop(context, a, p, v);
+      return set_object_prop(ctx, a, p, v);
     }
     break;
   default:
-   p = to_string(context, p);
+   p = to_string(ctx, p);
    // fall through
   case T_STRING:
     {
@@ -339,10 +434,10 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
       if (is_fixnum(num)) {
         n = fixnum_to_cint(num);
         if (0 <= n && n < MAX_ARRAY_LENGTH) {
-          if (set_array_index_value(context, a, n, v, FALSE) == SUCCESS)
+          if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
             return SUCCESS;
         }
-        return set_object_prop(context, a, p, v);
+        return set_object_prop(ctx, a, p, v);
       }
       if (p == gconsts.g_string_length && is_fixnum(v)) {
         cint n;
@@ -352,12 +447,12 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
             The property name is "length" and the given value is a fixnum.
             Thus, expands / shrinks the array.
            */
-          if (set_array_index_value(context, a, n - 1, JS_UNDEFINED, TRUE)
+          if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
                 == SUCCESS)
             return SUCCESS;
         }
       }
-      return set_object_prop(context, a, p, v);
+      return set_object_prop(ctx, a, p, v);
     }
     break;
   }
@@ -369,7 +464,6 @@ int set_array_prop(Context *context, JSValue a, JSValue p, JSValue v) {
  */
 void remove_array_props(JSValue a, cint from, cint to) {
 }
-
 
 #if 0
 static inline void setArrayBody(JSValue array, int size)
@@ -388,30 +482,21 @@ int next_propname(JSValue obj, HashIterator *iter, HashKey *key)
 {
   HashEntry e;
   int r;
+  Map *a;
 
-  while ((r = __hashNext(obj_map(obj), iter, &e)) != FAIL &&
-         (e.attr & ATTR_DE));
+#ifdef HIDDEN_CLASS
+  a = obj_hidden_class_map(obj);
+  while ((r = __hashNext(a, iter, &e)) != FAIL &&
+         ((e.attr & ATTR_DE) || (e.attr & ATTR_TRANSITION)));
+#else
+  a = obj_map(obj);
+  while ((r = __hashNext(a, iter, &e)) != FAIL && (e.attr & ATTR_DE));
+#endif
+
   if (r == FAIL) return FAIL;
   *key = e.key;
   return SUCCESS;
 }
-
-#if 0
-// ------------------------------------------------------------------
-/**
- * @brief イテレータに数値を追加
- * @param 対象のイテレータ
- * @param インデックス
- */
-
-void putIndexToIterator(JSValue iter, uint64_t index)
-{
-  // 文字列に変換して用いる
-  char str[1000];
-  snprintf(str, 1000 - 1, "%llu", (long long unsigned int)index);
-  putCStrToIterator(iter, str);
-}
-#endif
 
 /*
    obtains the next property name in an iterator
@@ -427,58 +512,11 @@ int get_next_propname(JSValue iter, JSValue *name) {
   return FAIL;
 }
 
-#if 0
-// ------------------------------------------------------------------
-/**
- * @brief 配列の要素を格納する
- * @param 対象の配列
- * @param インデックス
- * @param 結果を格納する変数
- * @return 成功値
- */
-
-void setArrayValue(JSValue obj, int index, JSValue src)
-{
-  int length, size, i;
-  JSValue *oldbody;
-
-  size = (int)getArraySize(obj);
-  length = (int)getArrayLength(obj);
-
-  // 現在の長さを超えたインデックスに書き込む場合
-  if (index + 1 > length) {
-
-    // 配列のサイズが足りないので拡張する
-    if (index + 1 > size) {
-      oldbody = getArrayBody(obj);
-      setArrayBody(obj, size * 2);
-      memcpy(getArrayBody(obj), oldbody, sizeof(JSValue) * size);
-    }
-
-    setArrayLength(obj, index + 1);
-
-    // プロパティに格納するので、Fixnumの範囲かを確認
-    // Fixnum の範囲なら Fixnum に変換して
-    if (isInFixnumRange(index + 1)) {
-      setObjPropNone(obj, "length", intToFixnum(index + 1));
-    } else {
-      setObjPropNone(obj, "length", doubleToFlonum((double)index + 1));
-    }
-
-    // Undefined で埋める
-    for (i = length; i < index + 1; i++) {
-      getArrayBody(obj)[i] = JS_UNDEFINED;
-    }
-  }
-  getArrayBody(obj)[index] = src;
-}
-#endif
-
 #ifdef USE_REGEXP
 /*
    sets a regexp's members and makes an Oniguruma's regexp object
  */
-int set_regexp_members(JSValue re, char *pat, int flag) {
+int set_regexp_members(Context *ctx, JSValue re, char *pat, int flag) {
   OnigOptionType opt;
   OnigErrorInfo err;
   char *e;
@@ -496,23 +534,23 @@ int set_regexp_members(JSValue re, char *pat, int flag) {
 
   if (flag & F_REGEXP_GLOBAL) {
     regexp_global(re) = true;
-    set_obj_cstr_prop(re, "global", JS_TRUE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "global", JS_TRUE, ATTR_ALL);
   } else
-    set_obj_cstr_prop(re, "global", JS_FALSE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "global", JS_FALSE, ATTR_ALL);
 
   if (flag & F_REGEXP_IGNORE) {
     opt |= ONIG_OPTION_IGNORECASE;
     regexp_ignorecase(re) =  true;
-    set_obj_cstr_prop(re, "ignoreCase", JS_TRUE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "ignoreCase", JS_TRUE, ATTR_ALL);
   } else
-    set_obj_cstr_prop(re, "ignoreCase", JS_FALSE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "ignoreCase", JS_FALSE, ATTR_ALL);
 
   if (flag & F_REGEXP_MULTILINE) {
     opt |= ONIG_OPTION_MULTILINE;
     regexp_multiline(re) = true;
-    set_obj_cstr_prop(re, "multiline", JS_TRUE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "multiline", JS_TRUE, ATTR_ALL);
   } else
-    set_obj_cstr_prop(re, "multiline", JS_FALSE, ATTR_ALL);
+    set_obj_cstr_prop(ctx, re, "multiline", JS_FALSE, ATTR_ALL);
 
   e = pat + strlen(pat);
   if (onig_new(&(regexp_reg(re)), (OnigUChar *)pat, (OnigUChar *)e, opt,
@@ -552,34 +590,29 @@ int regexp_flag(JSValue re) {
    PHASE_VMLOOP (1).  The current phase number is stored in the global
    variable `run_phase'.
  */
-static int hsize_table[] = { HSIZE_BUILTIN_INIT, HSIZE_INIT };
-static int psize_table[] = { PSIZE_BUILTIN_INIT, PSIZE_INIT };
-// static int hsize_table[] = { HSIZE_BUILTIN_INIT, HSIZE_BUILTIN_INIT };
-// static int psize_table[] = { PSIZE_BUILTIN_INIT, PSIZE_BUILTIN_INIT };
-// static int hsize_table[] = { HSIZE_BUILTIN_INIT, 30};
-// static int psize_table[] = { PSIZE_BUILTIN_INIT, 30};
+// static int hsize_table[] = { HSIZE_BIG, HSIZE_NORMAL };
+// static int psize_table[] = { PSIZE_BIG, PSIZE_NORMAL };
 
 /*
-void set_object_members(Object *p) {
+   sets members relating to property table
+     hsize: size of the hash table
+     psize: size of the property table
+
+   If HIDDEN_CLASS is defined, hsize == 0 means that g_hidden_class_0
+   should be used instead of allocating a new hidden class.
+ */            
+void set_object_members(Object *p, int hsize, int psize) {
+#ifdef HIDDEN_CLASS
+  p->class = ((hsize == 0)?
+              gobjects.g_hidden_class_0:
+              new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
+  hidden_n_enter(p->class)++;
+#else
   Map *a;
-
   a = malloc_hashtable();
-  hash_create(a, INITIAL_HASH_SIZE);
+  hash_create(a, hsize);
   p->map = a;
-  p->prop = allocate_prop_table(INITIAL_PROPTABLE_SIZE);
-  p->n_props = 0;
-  p->limit_props = INITIAL_PROPTABLE_SIZE;
-}
-*/
-
-void set_object_members(Object *p) {
-  Map *a;
-  int psize;
-
-  a = malloc_hashtable();
-  hash_create(a, hsize_table[run_phase]);
-  p->map = a;
-  psize = psize_table[run_phase];
+#endif
   p->prop = allocate_prop_table(psize);
   p->n_props = 0;
   p->limit_props = psize;
@@ -587,52 +620,49 @@ void set_object_members(Object *p) {
 
 /*
   makes an object whose __proto__ property is not set yet
+    hsize: size of the hash table
+    psize: size of the array of property values
  */
-JSValue new_object_without_prototype(Context *ctx) {
+JSValue new_object_without_prototype(Context *ctx, int hsize, int psize) {
   JSValue ret;
   Object *p;
 
+  //  printf("new_object_without_prototype\n");
   ret = make_object(ctx);
   p = remove_object_tag(ret);
-  set_object_members(p);
+  set_object_members(p, hsize, psize);
   return ret;
 }
   
 /*
   makes a new object
+    hsize: size of the hash table
+    psize: size of the array of property values
  */
-JSValue new_object(Context *ctx) {
+JSValue new_object(Context *ctx, int hsize, int psize) {
   JSValue ret;
   Object *p;
-#ifdef PARALLEL
-  pthread_mutexattr_t attr;
-#endif
 
+  // printf("new_object\n");
   ret = make_object(ctx);
   p = remove_object_tag(ret);
-  set_object_members(p);
-  set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
-#ifdef PARALLEL
-  pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&(p->mutex), &attr);
-  pthread_mutexattr_destroy(&attr);
-#endif
+  set_object_members(p, hsize, psize);
+  set___proto___all(ctx, ret, gconsts.g_object_proto);
   return ret;
 }
 
 /*
    makes a new array
  */
-JSValue new_array(Context *ctx) {
+JSValue new_array(Context *ctx, int hsize, int vsize) {
   JSValue ret;
 
   ret = make_array(ctx);
   disable_gc();  // disable GC unitl Array is properly initialised
-  set_object_members(array_object_p(ret));
-  set_prop_all(ret, gconsts.g_string___proto__, gconsts.g_array_proto);
+  set_object_members(array_object_p(ret), hsize, vsize);
+  set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
-  set_prop_none(ret, gconsts.g_string_length, FIXNUM_ZERO);
+  set_prop_none(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
   gc_push_tmp_root(&ret);
   enable_gc(ctx);
   gc_pop_tmp_root(1);
@@ -642,15 +672,15 @@ JSValue new_array(Context *ctx) {
 /*
    makes a new array with size
  */
-JSValue new_array_with_size(Context *ctx, int size)
+JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
 {
   JSValue ret;
 
   ret = make_array(ctx);
   disable_gc();  // disable GC unitl Array is properly initialised
-  set_object_members(array_object_p(ret));
+  set_object_members(array_object_p(ret), hsize, vsize);
   allocate_array_data_critical(ret, size, size);
-  set_prop_none(ret, gconsts.g_string_length, int_to_fixnum(size));
+  set_prop_none(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
   gc_push_tmp_root(&ret);
   enable_gc(ctx);
   gc_pop_tmp_root(1);
@@ -661,19 +691,19 @@ JSValue new_array_with_size(Context *ctx, int size)
    makes a function
    The name of this function was formerly new_closure.
  */
-JSValue new_function(Context *ctx, Subscript subscr)
+JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize)
 {
   JSValue ret;
 
   ret = make_function();
   disable_gc();
-  set_object_members(func_object_p(ret));
+  set_object_members(func_object_p(ret), hsize, vsize);
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
   gc_push_tmp_root(&ret);
   enable_gc(ctx);
-  set_prop_none(ret, gconsts.g_string_prototype, new_object(ctx));
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_function_proto);
+  set_prototype_none(ctx, ret, new_normal_object(ctx));
+  set___proto___none(ctx, ret, gconsts.g_function_proto);
   gc_pop_tmp_root(1);
   return ret;
 }
@@ -681,44 +711,49 @@ JSValue new_function(Context *ctx, Subscript subscr)
 /*
    makes a new built-in function object with constructor
  */
-JSValue new_builtin_with_constr(builtin_function_t f, builtin_function_t cons, int na) {
+JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f, builtin_function_t cons, int na, int hsize, int psize) {
   JSValue ret;
 
   ret = make_builtin();
-  set_object_members(builtin_object_p(ret));
+  set_object_members(builtin_object_p(ret), hsize, psize);
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
-  // we do not have a proper context during initialisation
-  set_prop_none(ret, gconsts.g_string_prototype, new_object(NULL));
+  set_prototype_none(ctx, ret, new_normal_object(ctx));
   // TODO: g_object_proto should be g_builtin_proto
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_object_proto);
+  set___proto___none(ctx, ret, gconsts.g_object_proto);
   return ret;
 }
 
 /*
    makes a new built-in function object
  */
-JSValue new_builtin(builtin_function_t f, int na) {
-  return new_builtin_with_constr(f, builtin_not_a_constructor, na);
+JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize, int psize) {
+  return new_builtin_with_constr(ctx, f, builtin_not_a_constructor, na, hsize, psize);
 }
 
 /*
    makes an iterator object
  */
-JSValue new_iterator(JSValue obj) {
+JSValue new_iterator(Context *ctx, JSValue obj, int hsize, int vsize) {
   JSValue ret;
   HashIterator *hi;
   HashKey key;
 
   ret = make_iterator();
-  set_object_members(iterator_object_p(ret));
+  set_object_members(iterator_object_p(ret), hsize, vsize);
   hi = &(iterator_iter(ret));
   do {
+#ifdef HIDDEN_CLASS
+#ifdef HIDDEN_DEBUG
+    print_hidden_class("do in new_iterator", obj_hidden_class(obj));
+#endif
+    init_hash_iterator(obj_hidden_class_map(obj), hi);
+#else
     init_hash_iterator(obj_map(obj), hi);
+#endif
     while (next_propname(obj, hi, &key)) {
-      // printf("In new_iterator: key = "); simple_print(key); printf("\n");
-      set_prop_none(ret, key, key);
+      set_prop_none(ctx, ret, key, key);
     }
     /*
     if (is_array(obj)) {
@@ -732,8 +767,8 @@ JSValue new_iterator(JSValue obj) {
 #undef N
     }
     */
-  } while (get_prop(obj, gconsts.g_string___proto__, &obj) == SUCCESS);
-  init_hash_iterator(iterator_object_p(ret)->map, hi);
+  } while (get___proto__(obj, &obj) == SUCCESS);
+  init_hash_iterator(iterator_object_map(ret), hi);
   // print_object_properties(ret);
   return ret;
 }
@@ -742,11 +777,11 @@ JSValue new_iterator(JSValue obj) {
 /*
    makes a new regexp
  */
-JSValue new_regexp(char *pat, int flag) {
+JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   JSValue ret;
 
   ret = make_regexp();
-  set_object_members(regexp_object_p(ret));
+  set_object_members(regexp_object_p(ret), hsize, vsize);
   // pattern field is set in set_regexp_members
   // regexp_pattern(ret) = NULL;
   regexp_reg(ret) = NULL;
@@ -754,51 +789,50 @@ JSValue new_regexp(char *pat, int flag) {
   regexp_ignorecase(ret) = false;
   regexp_multiline(ret) = false;
   regexp_lastindex(ret) = 0;
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_regexp_proto);
-  return (set_regexp_members(ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
+  set___proto___none(ctx, ret, gconsts.g_regexp_proto);
+  return (set_regexp_members(ctx, ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
 #endif // USE_REGEXP
 
 /*
    makes a new boxed number
  */
-JSValue new_number(JSValue v) {
+JSValue new_number(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_number_object();
-  set_object_members(boxed_object_p(ret));
+  set_object_members(boxed_object_p(ret), hsize, psize);
   number_object_value(ret) = v;
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_number_proto);
+  set___proto___none(ctx, ret, gconsts.g_number_proto);
   return ret;
 }
 
 /*
    makes a new boxed boolean
  */
-JSValue new_boolean(JSValue v) {
+JSValue new_boolean(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_boolean_object();
-  set_object_members(boxed_object_p(ret));
+  set_object_members(boxed_object_p(ret), hsize, psize);
   boolean_object_value(ret) = v;
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_boolean_proto);
+  set___proto___none(ctx, ret, gconsts.g_boolean_proto);
   return (JSValue)ret;
 }
 
 /*
    makes a new boxed string
  */
-JSValue new_string(JSValue v) {
+JSValue new_string(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_string_object();
-  set_object_members(boxed_object_p(ret));
+  set_object_members(boxed_object_p(ret), hsize, psize);
   string_object_value(ret) = v;
-
+  set___proto___none(ctx, ret, gconsts.g_string_proto);
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
-  set_prop_all(ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
-  set_prop_none(ret, gconsts.g_string___proto__, gconsts.g_string_proto);
+  set_prop_all(ctx, ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
   return ret;
 }
 
@@ -813,7 +847,64 @@ double cstr_to_double(char* cstr) {
   char* endPtr;
   double ret;
   ret = strtod(cstr, &endPtr);
-  while( isspace(*endPtr)) endPtr++;
+  while (isspace(*endPtr)) endPtr++;
   if (*endPtr == '\0') return ret;
   else return NAN;
 }
+
+#ifdef HIDDEN_CLASS
+/*
+  allocates a new empty hidden class
+ */
+HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
+  HiddenClass *c;
+  Map *a;
+
+  c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
+  disable_gc();
+  a = malloc_hashtable();
+  hash_create(a, hsize);
+  hidden_map(c) = a;
+  hidden_n_entries(c) = 0;
+  hidden_htype(c) = htype;
+  hidden_n_enter(c) = 0;
+  hidden_n_exit(c) = 0;
+  gc_push_tmp_root_malloc((void **)&c);
+  enable_gc(ctx);
+  gc_pop_tmp_root_malloc(1);
+  return c;
+}
+
+/*
+  allocates a new hidden class on the basis of oldc and name
+ */
+HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
+  HiddenClass *c;
+  Map *a;
+  int ne;
+
+  c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
+  disable_gc();
+  a = malloc_hashtable();
+  hash_create(a, oldc->map->size);
+  hidden_map(c) = a;
+  ne = hash_copy(ctx, hidden_map(oldc), a);
+  hidden_n_entries(c) = ne;
+  hidden_htype(c) = HTYPE_TRANSIT;
+  hidden_n_enter(c) = 0;
+  hidden_n_exit(c) = 0;
+  gc_push_tmp_root_malloc((void **)&c);
+  enable_gc(ctx);
+  gc_pop_tmp_root_malloc(1);
+  return c;
+}
+
+void print_hidden_class(char *s, HiddenClass *hc) {
+  printf("======= %s start ======\n", s);
+  printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
+         hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+  print_hash_table(hc->map);
+  printf("======= %s end ======\n", s);
+}
+
+#endif

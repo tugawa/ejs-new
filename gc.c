@@ -1,11 +1,23 @@
 /*
- * gc.h
- *
- *   eJS Project
- *
- *   Hideya Iwaski, 2016
- *   Tomoharu Ugawa, 2016
- */
+   gc.c
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -86,7 +98,6 @@ struct space {
 /*
  * variables
  */
-
 STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
 STATIC struct space malloc_space;
@@ -94,6 +105,9 @@ STATIC struct space debug_malloc_shadow;
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
+#define MAX_TMP_ROOTS_MALLOC 100
+STATIC void **tmp_roots_malloc[MAX_TMP_ROOTS_MALLOC];
+STATIC int tmp_roots_malloc_sp;
 STATIC int gc_disabled = 1;
 STATIC int generation = 0;
 
@@ -112,6 +126,9 @@ STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
 STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
 STATIC void trace_HashCell(HashCell **ptrp);
+#ifdef HIDDEN_CLASS
+STATIC void trace_HiddenClass(HiddenClass **ptrp);
+#endif
 STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
 STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
@@ -236,6 +253,7 @@ void init_memory()
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
   create_space(&debug_malloc_shadow, MALLOC_SPACE_BYTES, "debug_malloc_shadow");
   tmp_roots_sp = -1;
+  tmp_roots_malloc_sp = -1;
   gc_disabled = 0;
   generation = 1;
 }
@@ -245,9 +263,38 @@ void gc_push_tmp_root(JSValue *loc)
   tmp_roots[++tmp_roots_sp] = loc;
 }
 
+void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2)
+{
+  tmp_roots[++tmp_roots_sp] = loc1;
+  tmp_roots[++tmp_roots_sp] = loc2;
+}
+
+void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3)
+{
+  tmp_roots[++tmp_roots_sp] = loc1;
+  tmp_roots[++tmp_roots_sp] = loc2;
+  tmp_roots[++tmp_roots_sp] = loc3;
+}
+
 void gc_pop_tmp_root(int n)
 {
   tmp_roots_sp -= n;
+}
+
+void gc_push_tmp_root_malloc(void **loc)
+{
+  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc;
+}
+
+void gc_push_tmp_root_malloc2(void **loc1, void **loc2)
+{
+  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc1;
+  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc2;
+}
+
+void gc_pop_tmp_root_malloc(int n)
+{
+  tmp_roots_malloc_sp -= n;
 }
 
 cell_type_t gc_obj_header_type(void *p)
@@ -337,18 +384,19 @@ void enable_gc(Context *ctx)
 
 STATIC void garbage_collect(Context *ctx)
 {
+  // printf("Enter gc, generation = %d\n", generation);
   GCLOG("Before Garbage Collection\n");
-  print_memory_status();
+  // print_memory_status();
 
   scan_roots(ctx);
   weak_clear();
   sweep();
-
   GCLOG("After Garbage Collection\n");
-  print_memory_status();
+  // print_memory_status();
   // print_heap_stat();
 
   generation++;
+  // printf("Exit gc, generation = %d\n", generation);
 }
 
 /*
@@ -455,6 +503,10 @@ STATIC void trace_HashCell(HashCell **ptrp)
     return;
 
   trace_slot(&ptr->entry.key);
+#ifdef HIDDEN_CLASS
+  if (is_transition(ptr->entry.attr))
+    trace_HiddenClass((HiddenClass **)&ptr->entry.data);
+#endif
   if (ptr->next != NULL)
     trace_HashCell(&ptr->next);
 }
@@ -546,6 +598,18 @@ STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
       trace_StrCons(ptr + i);
 }
 
+#ifdef HIDDEN_CLASS
+STATIC void trace_HiddenClass(HiddenClass **ptrp)
+{
+  HiddenClass *ptr = *ptrp;
+  // printf("Enter trace_HiddenClass\n");
+  if (test_and_mark_cell(ptr))
+    return;
+  trace_HashTable(&hidden_map(ptr));
+  // printf("Exit trace_HiddenClass\n");
+}
+#endif
+
 /*
  * we do not move context
  */
@@ -585,7 +649,11 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   }
 
   /* common header */
+#ifdef HIDDEN_CLASS
+  trace_HiddenClass(&obj->class);
+#else
   trace_HashTable(&obj->map);
+#endif
   trace_JSValue_array(&obj->prop, obj->n_props);
 
   switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
@@ -655,6 +723,32 @@ STATIC void trace_slot(JSValue* ptr)
     trace_js_object((uintptr_t *) ptr);
 }
 
+STATIC void trace_malloc_pointer(void **ptrp)
+{
+  void *ptr = *ptrp;
+
+  switch (obj_header_tag(ptr)) {
+  case HTAG_PROP:
+    printf("HTAG_PROP in trace_malloc_pointer\n"); break;
+  case HTAG_ARRAY_DATA:
+    printf("HTAG_ARRAY_DATA in trace_malloc_pointer\n"); break;
+  case HTAG_FUNCTION_FRAME:
+    trace_FunctionFrame((FunctionFrame **)ptrp); break;
+  case HTAG_HASH_BODY:
+    trace_HashTable((HashTable **)ptrp); break;
+  case HTAG_STR_CONS:
+    trace_StrCons((StrCons **)ptrp); break;
+  case HTAG_CONTEXT:
+    trace_Context((Context **)ptrp); break;
+  case HTAG_STACK:
+    printf("HTAG_STACK in trace_malloc_pointer\n"); break;
+#ifdef HIDDEN_CLASS
+  case HTAG_HIDDEN_CLASS:
+    trace_HiddenClass((HiddenClass **)ptrp); break;
+#endif
+  }
+}
+
 STATIC void scan_roots(Context *ctx)
 {
   struct global_constant_objects *gconstsp = &gconsts;
@@ -668,6 +762,16 @@ STATIC void scan_roots(Context *ctx)
   for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++) {
     trace_slot(p);
   }
+
+  /*
+   * global malloced objects
+   * For simplicity, we do not use a `for' loop to visit every object
+   * registered in the gobjects.
+   */
+#ifdef HIDDEN_CLASS
+  trace_HiddenClass(&gobjects.g_hidden_class_0);
+#endif
+
   /* function table: do not trace.
    *                 Used slots should be traced through Function objects
    */
@@ -684,6 +788,8 @@ STATIC void scan_roots(Context *ctx)
    */
   for (i = 0; i <= tmp_roots_sp; i++)
     trace_slot((JSValue *) tmp_roots[i]);
+  for (i = 0; i <= tmp_roots_malloc_sp; i++)
+    trace_malloc_pointer(tmp_roots_malloc[i]);
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)

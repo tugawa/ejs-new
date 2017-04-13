@@ -1,15 +1,23 @@
 /*
    allocate.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
- */
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
 
 #include "prefix.h"
 #define EXTERN extern
@@ -167,9 +175,12 @@ JSValue *allocate_prop_table(int size) {
   return table;
 }
 
-JSValue *reallocate_prop_table(JSValue *oldtab, int oldsize, int newsize) {
-  JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * newsize,
-                                                 HTAG_PROP);
+JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int newsize) {
+  JSValue *table;
+
+  gc_push_tmp_root(oldtab);
+  table  = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize, HTAG_PROP);
+  gc_pop_tmp_root(1);
   size_t i;
   for (i = 0; i < oldsize; i++)
     table[i] = oldtab[i];

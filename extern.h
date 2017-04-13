@@ -1,3 +1,24 @@
+/*
+   extern.h
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 #define FUNCTION_TABLE_LIMIT  (100)
 
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
@@ -29,7 +50,7 @@ extern void reallocate_array_data(Context *, JSValue, int);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int);
-extern JSValue *reallocate_prop_table(JSValue *, int, int);
+extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
 extern IteratorCell *allocate_iterator(void);
 #ifdef USE_REGEXP
 extern RegexpCell *allocate_regexp(void);
@@ -46,7 +67,7 @@ extern BUILTIN_FUNCTION(builtin_const_false);
 extern BUILTIN_FUNCTION(builtin_const_undefined);
 extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
-extern BUILTIN_FUNCTION(builtin_fixnum_to_string);
+extern BUILTIN_FUNCTION(builtin_fixnu_to_string);
 extern BUILTIN_FUNCTION(builtin_flonum_to_string);
 // extern BUILTIN_FUNCTION(builtin_string_to_index);
 
@@ -100,19 +121,19 @@ JSValue call_builtin0(Context *, JSValue, JSValue, int);
 extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
-extern int code_loader(FunctionTable *);
+extern int code_loader(Context *, FunctionTable *);
 extern void init_constant_cell(ConstantCell *);
 extern void end_constant_cell(ConstantCell *);
-extern int insn_load(ConstantCell *, Bytecode *, int);
+extern int insn_load(Context *, ConstantCell *, Bytecode *, int);
 extern int update_function_table(FunctionTable *, int, ConstantCell *,
                                  Bytecode *, int, int, int, int);
 
 extern JSValue specstr_to_jsvalue(const char *);
 
-extern int add_constant_number(ConstantCell *, double);
-extern int add_constant_string(ConstantCell *, char *);
+extern int add_constant_number(Context *, ConstantCell *, double);
+extern int add_constant_string(Context *, ConstantCell *, char *);
 #ifdef USE_REGEXP
-extern int add_constant_regexp(ConstantCell *, char *, int);
+extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
 #endif
 
 /*
@@ -159,8 +180,12 @@ extern JSValue cint_to_string(cint);
 
 extern HashTable *malloc_hashtable(void);
 extern int hash_create(HashTable *, unsigned int);
+extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
 extern int hash_get(HashTable *, HashKey, HashData *);
 extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
+#ifdef HIDDEN_CLASS
+extern int hash_copy(Context *, HashTable *, HashTable *);
+#endif
 extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
@@ -200,7 +225,9 @@ extern JSValue str_intern2(Context *ctx,
  * init.c
  */
 extern void init_global_constants(void);
-extern JSValue init_global(void);
+extern void init_global_malloc_objects(void);
+extern void init_global_objects(void);
+extern void init_builtin(Context *);
 
 /*
  * main.c
@@ -214,11 +241,14 @@ extern void debug_print(Context *, int);
 /*
  * object.c
  */
+#ifdef HIDDEN_CLASS
+extern int transit_hidden_class(Context *, JSValue, JSValue, HiddenClass *);
+#endif
 extern int get_prop(JSValue, JSValue, JSValue *);
 extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
-extern int set_prop_with_attribute(JSValue, JSValue, JSValue, Attribute);
+extern int set_prop_with_attribute(Context *, JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_index_value(Context *, JSValue, cint, JSValue, int);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
@@ -227,23 +257,26 @@ extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
 #endif
-extern JSValue new_object_without_prototype(Context *);
-extern JSValue new_object(Context *);
-extern JSValue new_array(Context *);
-extern JSValue new_array_with_size(Context *, int size);
-extern JSValue new_function(Context *, Subscript);
-extern JSValue new_builtin_with_constr(builtin_function_t, builtin_function_t, int);
-extern JSValue new_builtin(builtin_function_t, int);
-extern JSValue new_iterator(JSValue);
+extern JSValue new_object_without_prototype(Context *, int, int);
+extern JSValue new_object(Context *, int, int);
+extern JSValue new_array(Context *, int, int);
+extern JSValue new_array_with_size(Context *, int, int, int);
+extern JSValue new_function(Context *, Subscript, int, int);
+extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_function_t, int, int, int);
+extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
+extern JSValue new_iterator(Context *, JSValue, int, int);
 #ifdef USE_REGEXP
-extern JSValue new_regexp(char *, int);
+extern JSValue new_regexp(Context *, char *, int, int, int);
 #endif // USE_REGEXP
-extern JSValue new_number(JSValue);
-extern JSValue new_boolean(JSValue);
-extern JSValue new_string(JSValue);
-
+extern JSValue new_number(Context *, JSValue, int, int);
+extern JSValue new_boolean(Context *, JSValue, int, int);
+extern JSValue new_string(Context *, JSValue, int, int);
 extern char *space_chomp(char *);
-// extern double cstr_to_double(char *);
+#ifdef HIDDEN_CLASS
+extern HiddenClass *new_empty_hidden_class(Context *, int, int);
+extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
+void print_hidden_class(char *, HiddenClass *);
+#endif
 
 /*
  * operations.c
@@ -266,15 +299,15 @@ extern JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2);
  */
 extern int vmrun_threaded(Context *, int);
 
-extern void init_builtin_global(void);
-extern void init_builtin_object(void);
-extern void init_builtin_array(void);
-extern void init_builtin_number(void);
-extern void init_builtin_string(void);
-extern void init_builtin_boolean(void);
-extern void init_builtin_math(void);
+extern void init_builtin_global(Context *);
+extern void init_builtin_object(Context *);
+extern void init_builtin_array(Context *);
+extern void init_builtin_number(Context *);
+extern void init_builtin_string(Context *);
+extern void init_builtin_boolean(Context *);
+extern void init_builtin_math(Context *);
 #ifdef USE_REGEXP
-extern void init_builtin_regexp(void);
+extern void init_builtin_regexp(Context *);
 #endif
 
 #ifdef __cplusplus

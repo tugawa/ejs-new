@@ -1,25 +1,27 @@
 /*
    init.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
-
-#ifdef PARALLEL
-static JSValue vmTest;
-static JSValue thread;
-static JSValue tcp;
-#endif
 
 /*
    initilaizes global constants
@@ -48,61 +50,57 @@ void init_global_constants(void) {
   gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);
   gconsts.g_flonum_negative_infinity = double_to_flonum(-INFINITY);
   gconsts.g_flonum_nan       = double_to_flonum(NAN);
+}
 
-  // Why the following constants are necessary?
-  // gconsts.g_const_true = new_builtin(builtin_const_true, 0);
-  // gconsts.g_const_false = new_builtin(builtin_const_false, 0);
-  // gconsts.g_const_undefined = new_builtin(builtin_const_undefined, 0);
-  // gconsts.g_const_null = new_builtin(builtin_const_null, 0);
-  // gconsts.g_identity = new_builtin(builtin_identity, 1);
-  // gconsts.g_fixnum_to_string = new_builtin(builtin_fixnum_to_string, 0);
-  // gconsts.g_flonum_to_string = new_builtin(builtin_flonum_to_string, 0);
-  // gconsts.g_string_to_index = new_builtin(builtin_string_to_index, 0);
+/*
+   initilaizes global malloc-ed objects
+ */
+void init_global_malloc_objects(void) {
+#ifdef HIDDEN_CLASS
+  gobjects.g_hidden_class_0 =
+    new_empty_hidden_class(NULL, HSIZE_NORMAL, HTYPE_TRANSIT);
+#endif
 }
 
 /*
    initializes global objects
+   2017/03/30: moved from init_global
  */
-JSValue init_global(void) {
+void init_global_objects(void) {
   /*
-     First, it is necessary to make the object that will be set as
+     It is necessary to make the object that will be set as
      Object.prototype, because this object is referred to in new_object.
-     Its __proto__ property is null.
+     Its `prototype' property is null.
   */
-  gconsts.g_object_proto = new_object_without_prototype(NULL);
-  set_prop_de(gconsts.g_object_proto, gconsts.g_string_prototype, JS_NULL);
+  gconsts.g_object_proto = new_big_predef_object_without_prototype(NULL);
+  set_prototype_de(NULL, gconsts.g_object_proto, JS_NULL);
+  gconsts.g_global = new_big_predef_object(NULL);
+  gconsts.g_math = new_big_predef_object(NULL);
 
-  gconsts.g_global = new_object(NULL);
-  gconsts.g_math = new_object(NULL);
+#ifdef HIDDEN_CLASS
+#ifdef HIDDEN_DEBUG
+  print_hidden_class("g_object_proto", obj_hidden_class(gconsts.g_object_proto));
+  print_hidden_class("g_global", obj_hidden_class(gconsts.g_global));
+  print_hidden_class("g_math", obj_hidden_class(gconsts.g_math));
+#endif
+#endif
+
+}
+
+/*
+   initializes builtin
+ */
+void init_builtin(Context *ctx) {
+  init_builtin_object(ctx);
+  init_builtin_array(ctx);
+  init_builtin_number(ctx);
+  init_builtin_string(ctx);
+  init_builtin_boolean(ctx);
+  init_builtin_math(ctx);
 #ifdef USE_REGEXP
-  // gconsts.g_regexp
-  //   = new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
-#endif
-#ifdef PARALLEL
-  vmTest = new_object(NULL);
-  thread = new_object(NULL);
-  tcp = new_object(NULL);
-#endif
-
-  init_builtin_object();
-  init_builtin_array();
-  init_builtin_number();
-  init_builtin_string();
-  init_builtin_boolean();
-  init_builtin_math();
-#ifdef USE_REGEXP
-  init_builtin_regexp();
-#endif
-
-#ifdef PARALLEL
-  set_obj_cstr_prop(gconsts.vmTest, "run", new_builtin(vmTestRun, 1), ATTR_DE);
-  set_obj_cstr_prop(gconsts.thread, "init", new_builtin(threadInit, 1), ATTR_DE);
-  set_obj_cstr_prop(gconsts.tcp, "init", new_builtin(tcpInit, 0), ATTR_DE);
+  init_builtin_regexp(ctx);
 #endif
 
   // call init_buitin_global after gconsts is properly set up
-  init_builtin_global();
-
-  srand((unsigned)time(NULL));
-  return gconsts.g_global;
+  init_builtin_global(ctx);
 }

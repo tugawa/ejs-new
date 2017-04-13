@@ -178,25 +178,6 @@ fastsetglobal         TWOOP
 slowsetglobal         TWOOP
 fastgetlocal          GETVAR
 slowgetlocal          GETVAR
-#ifdef PARALLEL
-getglobalpar          TWOOP
-setglobalpar          TWOOP
-getproppar            TWOOP
-setproppar            TWOOP
-getargpar             GETVAR
-getlocalpar           GETVAR
-setargpar             SETVAR
-setlocalpar           SETVAR
-callpar               CALLOP
-sendpar               CALLOP
-tailcallpar           CALLOP
-tailsendpar           CALLOP
-lightcallpar          CALLOP
-lightsendpar          CALLOP
-lighttailCALLpar      CALLOP
-lighttailsendpar      CALLOP
-retpar                ZEROOP
-#endif // PRARLLEL
 #ifdef J5MODE
 arg                   TWOOP
 print                 ONEOP

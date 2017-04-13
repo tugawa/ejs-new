@@ -1,3 +1,24 @@
+/*
+   context.c
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
@@ -10,9 +31,6 @@ FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env) {
   FunctionFrame *frame;
   JSValue *locals;
   int nl, i;
-#ifdef PARALLEL
-  pthread_mutexattr_t attr;
-#endif
 
   nl = ftab_n_locals(ft);
   nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
@@ -24,14 +42,6 @@ FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env) {
   locals = frame->locals;
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;
-#ifdef PARALLEL
-  // initilizes the mutex
-  // Is it possible to reuse attr???
-  pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init(&(frame->mutex), &attr);
-  pthread_mutexattr_destroy(&attr);
-#endif
   return frame;
 }
 
@@ -76,12 +86,6 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
 
 #ifdef USE_FFI
   initForeignFunctionInterface(c);
-#endif
-
-#ifdef PARALLEL
-  c->inParallel = false;
-  c->threadId = 0;
-  c->eventQueue = newEventQueue();
 #endif
 }
 

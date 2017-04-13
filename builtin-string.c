@@ -1,3 +1,24 @@
+/*
+   builtin-string.c
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
@@ -16,7 +37,7 @@ BUILTIN_FUNCTION(string_constr)
 
   builtin_prologue();
   // printf("In string_constr\n");
-  rsv = new_string(na > 0? args[1]: gconsts.g_string_empty);
+  rsv = new_normal_string(context, na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
 
@@ -519,20 +540,23 @@ ObjBuiltinProp string_funcs[] = {
   { NULL,             NULL,                 0, ATTR_DE }
 };
 
-void init_builtin_string(void)
+void init_builtin_string(Context *ctx)
 {
   JSValue str, proto;
 
   gconsts.g_string = str =
-    new_builtin_with_constr(string_constr_nonew, string_constr, 1);
-  gconsts.g_string_proto = proto = new_string(gconsts.g_string_empty);
-  set_prop_de(str, gconsts.g_string_prototype, proto);
-  set_prop_de(str, cstr_to_string("fromCharCode"), new_builtin(string_fromCharCode, 0));
-  set_prop_all(proto, gconsts.g_string___proto__, gconsts.g_object_proto);
+    new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
+  gconsts.g_string_proto = proto =
+    new_string(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
+  set___proto___all(ctx, proto, gconsts.g_object_proto);
+  set_prototype_de(ctx, str, proto);
+  set_prop_de(ctx, str, cstr_to_string("fromCharCode"),
+              new_normal_builtin(ctx, string_fromCharCode, 0));
   {
     ObjBuiltinProp *p = string_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, proto, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

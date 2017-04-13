@@ -1,14 +1,22 @@
 /*
    conversion.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -141,7 +149,7 @@ JSValue special_to_boolean(JSValue v) {
 /*
    converts a special value to an object
  */
-JSValue special_to_object(JSValue v) {
+JSValue special_to_object(Context *ctx, JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
     type_error_exception("trying to convert undefined to an object");
@@ -151,7 +159,7 @@ JSValue special_to_object(JSValue v) {
     return JS_UNDEFINED;
   case JS_TRUE:
   case JS_FALSE:
-    return new_boolean(v);
+    return new_normal_boolean(ctx, v);
   default:
     type_error("special expected in special_to_object");
     return JS_UNDEFINED;
@@ -210,12 +218,12 @@ JSValue string_to_boolean(JSValue v) {
 /*
    converts a string to an Object
  */
-JSValue string_to_object(JSValue v) {
+JSValue string_to_object(Context *ctx, JSValue v) {
   if (! is_string(v)) {
     type_error("string expected in string_to_object");
     return JS_UNDEFINED;
   }
-  return new_string(v);
+  return new_normal_string(ctx, v);
 }
 
 #define BUFSIZE 1000
@@ -294,30 +302,30 @@ JSValue flonum_to_boolean(JSValue v) {
 /*
    converts a fixnum to an object
  */
-JSValue fixnum_to_object(JSValue v) {
+JSValue fixnum_to_object(Context *ctx, JSValue v) {
   if (!is_fixnum(v)) {
     type_error("fixnum expected in fixnum_to_object");
     return JS_UNDEFINED;
   }
-  return new_number(v);
+  return new_normal_number(ctx, v);
 }
 
 /*
    converts a flonum to an object
  */
-JSValue flonum_to_object(JSValue v) {
+JSValue flonum_to_object(Context *ctx, JSValue v) {
   if (!is_flonum(v)) {
     type_error("flonum expected in flonum_to_object");
     return JS_UNDEFINED;
   }
-  return new_number(v);
+  return new_normal_number(ctx, v);
 }
 
 #if 0
 double primitive_to_double(JSValue p) {
   Tag tag;
   double x;
-
+p
   tag = get_tag(p);
   switch (tag) {
   case T_FIXNUM:
@@ -577,11 +585,11 @@ JSValue to_number(Context *context, JSValue v) {
 /*
    converts to an object
  */
-JSValue to_object(Context *context, JSValue v) {
-  if (is_string(v)) return string_to_object(v);
-  if (is_fixnum(v)) return fixnum_to_object(v);
-  if (is_flonum(v)) return flonum_to_object(v);
-  if (is_special(v)) return special_to_object(v);
+JSValue to_object(Context *ctx, JSValue v) {
+  if (is_string(v)) return string_to_object(ctx, v);
+  if (is_fixnum(v)) return fixnum_to_object(ctx, v);
+  if (is_flonum(v)) return flonum_to_object(ctx, v);
+  if (is_special(v)) return special_to_object(ctx, v);
   if (is_object(v)) return v;
   LOG_ERR("This cannot happen in to_object");
   return JS_UNDEFINED;
