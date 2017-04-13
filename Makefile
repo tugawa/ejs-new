@@ -43,7 +43,8 @@ endif
 GENERATED_HFILES = \
          instructions-opcode.h \
 	 instructions-table.h \
-	 instructions-label.h
+	 instructions-label.h \
+	 cell_header.h
 
 HFILES = $(GENERATED_HFILES) \
          prefix.h \
@@ -55,8 +56,7 @@ HFILES = $(GENERATED_HFILES) \
 	 types.h \
 	 globals.h \
 	 extern.h \
-	 gc.h \
-	 cell_header.h
+	 gc.h
 
 OFILES = allocate.o \
 	 builtin-array.o \
