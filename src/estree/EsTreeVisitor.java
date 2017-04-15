@@ -35,8 +35,8 @@ public abstract class EsTreeVisitor<T> {
 	public abstract T visitSequenceExpression(SequenceExpression node);
 	public abstract T visitSwitchCase(SwitchCase node);
 	public abstract T visitSwitchStatement(SwitchStatement node);
-	// public abstract T visitThisExpression(ThisStatement node);
-	// public abstract T visitThrowExpression(ThrowExpression node);
+	public abstract T visitThisExpression(ThisExpression node);
+	public abstract T visitThrowStatement(ThrowStatement node);
 	public abstract T visitTryStatement(TryStatement node);
 	public abstract T visitUnaryExpression(UnaryExpression node);
 	public abstract T visitUpdateExpression(UpdateExpression node);
@@ -148,17 +148,38 @@ public abstract class EsTreeVisitor<T> {
 			return visitLiteral((Literal) node);
 		}
 		case Node.LOGICAL_EXP:
+		{
+			return visitLogicalExpression((LogicalExpression) node);
+		}
 		case Node.LOGICAL_OP:
 		case Node.MEMBER_EXP:
+		{
+			return visitMemberExpression((MemberExpression) node);
+		}
 		case Node.NEW_EXP:
+		{
+			return visitNewExpression((NewExpression) node);
+		}
 		case Node.OBJECT_EXP:
+		{
+			return visitObjectExpression((ObjectExpression) node);
+		}
 		case Node.PROGRAM:
 		{
 			return visitProgram((Program) node);
 		}
 		case Node.PROPERTY:
+		{
+			return visitProperty((Property) node);
+		}
 		case Node.RETURN_STMT:
+		{
+			return visitReturnStatement((ReturnStatement) node);
+		}
 		case Node.SEQUENCE_EXP:
+		{
+			return visitSequenceExpression((SequenceExpression) node);
+		}
 		case Node.SWITCH_STMT:
 		{
 			return visitSwitchStatement((SwitchStatement) node);
@@ -168,11 +189,26 @@ public abstract class EsTreeVisitor<T> {
 			return visitSwitchCase((SwitchCase) node);
 		}
 		case Node.THIS_EXP:
+		{
+			return visitThisExpression((ThisExpression) node);
+		}
 		case Node.TRY_STMT:
+		{
+			return visitTryStatement((TryStatement) node);
+		}
 		case Node.THROW_STMT:
+		{
+			return visitThrowStatement((ThrowStatement) node);
+		}
 		case Node.UNARY_EXP:
+		{
+			return visitUnaryExpression((UnaryExpression) node);
+		}
 		case Node.UNARY_OP:
 		case Node.UPDATE_EXP:
+		{
+			return visitUpdateExpression((UpdateExpression) node);
+		}
 		case Node.UPDATE_OP:
 		case Node.VAR_DECL_LIST:
 		case Node.VAR_DECLARATION:

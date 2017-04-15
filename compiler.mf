@@ -1,0 +1,2 @@
+Main-Class: Main
+Class-Path: ./libs/antlr-4.5.3-complete.jar ./libs/javax.json-1.0.4.jar

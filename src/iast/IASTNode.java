@@ -416,6 +416,13 @@ class IASTTernaryExpression extends IASTOperatorExpression {
 		COND
 	}
 	Operator operator;
+	IASTTernaryExpression(Operator operator, IASTExpression op1, IASTExpression op2, IASTExpression op3) {
+		this.operator = operator;
+		this.operands = new IASTExpression[3];
+		this.operands[0] = op1;
+		this.operands[1] = op2;
+		this.operands[2] = op3;
+	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
 		return visitor.visitTernayExpression(this);
@@ -425,6 +432,10 @@ class IASTTernaryExpression extends IASTOperatorExpression {
 class IASTCallExpression extends IASTExpression {
 	IASTExpression callee;
 	List<IASTExpression> arguments;
+	IASTCallExpression(IASTExpression callee, List<IASTExpression> arguments) {
+		this.callee = callee;
+		this.arguments = arguments;
+	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
 		return visitor.visitCallExpression(this);
@@ -434,6 +445,10 @@ class IASTCallExpression extends IASTExpression {
 class IASTNewExpression extends IASTExpression {
 	IASTExpression constructor;
 	List<IASTExpression> arguments;
+	IASTNewExpression(IASTExpression constructor, List<IASTExpression> arguments) {
+		this.constructor = constructor;
+		this.arguments = arguments;
+	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
 		return visitor.visitNewExpression(this);
@@ -443,6 +458,10 @@ class IASTNewExpression extends IASTExpression {
 class IASTMemberExpression extends IASTExpression {
 	IASTExpression object;
 	IASTExpression property;
+	IASTMemberExpression(IASTExpression object, IASTExpression property) {
+		this.object = object;
+		this.property = property;
+	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
 		return visitor.visitMemberExpression(this);

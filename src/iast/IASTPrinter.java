@@ -281,7 +281,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 		// locals
 		JsonArrayBuilder jaLocals = Json.createArrayBuilder();
 		for (String local : node.locals) {
-			jaParams.add(local);
+			jaLocals.add(local);
 		}
 		jb.add(KEY_LOCALS, jaLocals);
 		// body
@@ -455,9 +455,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 		}
 		// operands
 		JsonArrayBuilder jaOperands = Json.createArrayBuilder();
-		System.out.println(node.operands.length);
 		for(IASTExpression e: node.operands) {
-			System.out.println("binexp operand");
 			jaOperands.add((JsonObject) e.accept(this));
 		}
 		jb.add(KEY_OPERANDS, jaOperands);

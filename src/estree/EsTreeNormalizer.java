@@ -190,7 +190,6 @@ public class EsTreeNormalizer {
 		@Override
 		public List<FunctionDeclaration> visitFunctionExpression(FunctionExpression node) {
 			// TODO Auto-generated method stub
-			System.out.println("visitFunctionExpression");
 			estree.FunctionExpression f = (estree.FunctionExpression) node;
 			List<estree.FunctionDeclaration> funcDecls = new ArrayList<estree.FunctionDeclaration>();
 			List<estree.Node.IStatement> stmts = new ArrayList<estree.Node.IStatement>();
@@ -397,6 +396,18 @@ public class EsTreeNormalizer {
 
 		@Override
 		public List<FunctionDeclaration> visitContinueStatement(ContinueStatement node) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public List<FunctionDeclaration> visitThisExpression(ThisExpression node) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public List<FunctionDeclaration> visitThrowStatement(ThrowStatement node) {
 			// TODO Auto-generated method stub
 			return null;
 		}
@@ -771,7 +782,20 @@ public class EsTreeNormalizer {
 		@Override
 		public Node visitContinueStatement(ContinueStatement node) {
 			// TODO Auto-generated method stub
-			return null;
+			return node;
+		}
+
+		@Override
+		public Node visitThisExpression(ThisExpression node) {
+			// TODO Auto-generated method stub
+			// node
+			return node;
+		}
+
+		@Override
+		public Node visitThrowStatement(ThrowStatement node) {
+			// TODO Auto-generated method stub
+			return node;
 		}
 		
 	}
