@@ -1,7 +1,7 @@
 package estree;
 import java.util.ArrayList;
 import java.util.List;
-
+import estree.Node;
 //import estree_nodes.*;
 //import estree_nodes.Node;
 //import estree_nodes.Node.IStatement;
@@ -9,7 +9,7 @@ import java.util.List;
 
 public class EsTreeNormalizer {
 	
-	estree.Node est;
+	Node est;
 	
 	public EsTreeNormalizer(estree.Node est) {
 		this.est = est;
@@ -686,7 +686,9 @@ public class EsTreeNormalizer {
 		@Override
 		public Node visitReturnStatement(ReturnStatement node) {
 			// TODO Auto-generated method stub
-			node.setArgument((estree.Node.IExpression) visit((estree.Node) node.getArgument()));
+		    if (node.getArgument() != null) {
+		        node.setArgument((estree.Node.IExpression) visit((estree.Node) node.getArgument()));
+		    }
 			return node;
 		}
 
@@ -762,7 +764,9 @@ public class EsTreeNormalizer {
 		@Override
 		public Node visitVariableDeclarator(VariableDeclarator node) {
 			// TODO Auto-generated method stub
-			node.setInit((Node.IExpression) visit((Node) node.getInit()));
+		    if (node.getInit() != null) {
+		        node.setInit((Node.IExpression) visit((Node) node.getInit()));
+		    }
 			return node;
 		}
 

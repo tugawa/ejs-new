@@ -12,8 +12,27 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 	public IASTProgram gen(Node estree) {
 		return (IASTProgram) visitProgram((IProgram) estree);
 	}
-
+	
 	List<String> hoistDeclarations(IStatement nd) {
+	    List<String> tmp = hoistDeclarations_(nd);
+	    // delete duplicate string
+	    List<String> uniqStrs = new ArrayList<String>();
+	    for (String s : tmp) {
+	        boolean isUniq = true;
+	        for (String t : uniqStrs) {
+	            if (s.equals(t)) {
+	                isUniq = false;
+	                break;
+	            }
+	        }
+	        if (isUniq) {
+	            uniqStrs.add(s);
+	        }
+	    }
+	    return uniqStrs;
+	}
+
+	List<String> hoistDeclarations_(IStatement nd) {
         List<String> localNames = new ArrayList<String>();
         switch (nd.getTypeId()) {
         case Node.FUNC_DECLARATION: {
@@ -27,46 +46,52 @@ public class IASTGenerator extends ESTreeBaseVisitor {
         } break;
         case Node.BLOCK_STMT: {
             for (IStatement stmt: ((IBlockStatement) nd).getBody()) {
-                localNames.addAll(hoistDeclarations(stmt));
+                localNames.addAll(hoistDeclarations_(stmt));
             }
         } break;
         case Node.IF_STMT: {
             IIfStatement ifstmt = (IIfStatement) nd;
-            localNames.addAll(hoistDeclarations(ifstmt.getConsequent()));
-            localNames.addAll(hoistDeclarations(ifstmt.getAlternate()));
+            localNames.addAll(hoistDeclarations_(ifstmt.getConsequent()));
+            localNames.addAll(hoistDeclarations_(ifstmt.getAlternate()));
         } break;
         case Node.DO_WHILE_STMT: {
             IDoWhileStatement dowhile = (IDoWhileStatement) nd;
-            localNames.addAll(hoistDeclarations(dowhile.getBody()));
+            localNames.addAll(hoistDeclarations_(dowhile.getBody()));
         } break;
         case Node.WHILE_STMT: {
             IWhileStatement whileStmt = (IWhileStatement) nd;
-            localNames.addAll(hoistDeclarations(whileStmt.getBody()));
+            localNames.addAll(hoistDeclarations_(whileStmt.getBody()));
         } break;
         case Node.FOR_STMT: {
             IForStatement forStmt = (IForStatement) nd;
-            localNames.addAll(hoistDeclarations(forStmt.getBody()));
+            if (forStmt.getValDeclInit() != null) {
+                localNames.addAll(hoistDeclarations_(forStmt.getValDeclInit()));
+            }
+            localNames.addAll(hoistDeclarations_(forStmt.getBody()));
         } break;
         case Node.FOR_IN_STMT: {
             IForInStatement forinStmt = (IForInStatement) nd;
-            localNames.addAll(hoistDeclarations(forinStmt.getBody()));
+            if (forinStmt.getValDeclLeft() != null) {
+                localNames.addAll(hoistDeclarations_(forinStmt.getValDeclLeft()));
+            }
+            localNames.addAll(hoistDeclarations_(forinStmt.getBody()));
         } break;
         case Node.TRY_STMT: {
             ITryStatement tryStmt = (ITryStatement) nd;
-            localNames.addAll(hoistDeclarations(tryStmt.getBlock()));
+            localNames.addAll(hoistDeclarations_(tryStmt.getBlock()));
             if (tryStmt.getFinalizer() != null) {
-                localNames.addAll(hoistDeclarations(tryStmt.getFinalizer()));
+                localNames.addAll(hoistDeclarations_(tryStmt.getFinalizer()));
             }
         } break;
         case Node.LABELED_STMT: {
             ILabeledStatement labeled = (ILabeledStatement) nd;
-            localNames.addAll(hoistDeclarations(labeled.getBody()));
+            localNames.addAll(hoistDeclarations_(labeled.getBody()));
         } break;
         case Node.SWITCH_STMT: {
             ISwitchStatement switchStmt = (ISwitchStatement) nd;
             for (ISwitchCase c : switchStmt.getCases()) {
                 for (IStatement s : c.getConsequent()) {
-                    localNames.addAll(hoistDeclarations(s));
+                    localNames.addAll(hoistDeclarations_(s));
                 }
             }
         } break;
@@ -140,11 +165,12 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 	}
 	public Object visitDebuggerStatement(IDebuggerStatement node) {
 		return visitStatement(node);
-	}
-	public Object visitWithStatement(IWithStatement node) {
-		node.getBody().accept(this);
-		return visitStatement(node);
 	}*/
+	public Object visitWithStatement(IWithStatement node) {
+	    IASTExpression object = (IASTExpression) node.getObject().accept(this);
+	    IASTStatement body = (IASTStatement) node.getBody().accept(this);
+		return new IASTWithStatement(object, body);
+	}
 	public Object visitReturnStatement(IReturnStatement node) {
 		IASTExpression arg = null;
 		if (node.getArgument() != null) {
@@ -234,28 +260,41 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		return new IASTDoWhileStatement(test, body);
 	}
 	public Object visitForStatement(IForStatement node) {
-		/*
+	    IASTExpression init = null, test = null, update = null;
+	    IASTStatement body = null;
 		if (node.getExpInit() != null) {
-			node.getExpInit().accept(this);
+			init = (IASTExpression) node.getExpInit().accept(this);
 		} else if (node.getValDeclInit() != null) {
-			node.getValDeclInit().accept(this);
-			node.getValDeclInit().getDeclarations()
+			init = ((IASTExpressionStatement) node.getValDeclInit().accept(this)).exp;
 		}
-		node.getTest().accept(this);
-		node.getUpdate().accept(this);
-		node.getBody().accept(this);*/
-		return visitStatement(node);
+		if (node.getTest() != null) {
+		    test = (IASTExpression) node.getTest().accept(this);
+		}
+		if (node.getUpdate() != null) {
+		    update = (IASTExpression) node.getUpdate().accept(this);
+		}
+		if (node.getBody() != null) {
+		    body = (IASTStatement) node.getBody().accept(this);
+		}
+		return new IASTForStatement(init, test, update, body);
 	}
 	public Object visitForInStatement(IForInStatement node) {
-		/*
-		if (node.getPatternLeft() == null) {
-			node.getValDeclLeft().accept(this);
-		} else {
-			node.getPatternLeft().accept(this);
+	    String v = null;
+	    IASTExpression obj = null;
+	    IASTStatement body = null;
+		if (node.getPatternLeft() != null) {
+			v = ((IIdentifier) node.getValDeclLeft()).getName();
+		} else if (node.getValDeclLeft() != null) {
+		    List<IVariableDeclarator> varDecls = node.getValDeclLeft().getDeclarations();
+		    if (varDecls.size() == 1) {
+		        v = ((IIdentifier) varDecls.get(0).getId()).getName();
+		    } else {
+		        // what behavior???
+		    }
 		}
-		node.getRight().accept(this);
-		node.getBody().accept(this);*/
-		return visitStatement(node);
+		obj = (IASTExpression) node.getRight().accept(this);
+		body = (IASTStatement) node.getBody().accept(this);
+		return new IASTForInStatement(v, obj, body);
 	}
 	public Object visitDeclaration(IDeclaration node) {
 		return visitStatement(node);
@@ -274,14 +313,14 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		return new IASTExpressionStatement(assign);
 	}
 	public Object visitVariableDeclaration(IVariableDeclaration node) {
-		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
+		List<IASTExpression> exps = new ArrayList<IASTExpression>();
 		for (IVariableDeclarator vd : node.getDeclarations()) {
 			Object r = vd.accept(this);
 			if (r != null) {
-				stmts.add((IASTStatement) r);
+				exps.add((IASTExpression) r);
 			}
 		}
-		return new IASTBlockStatement(stmts);
+		return new IASTExpressionStatement(new IASTSequenceExpression(exps));
 	}
 	public Object visitVariableDeclarator(IVariableDeclarator node) {
 		if (node.getInit() == null) {
@@ -291,7 +330,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTExpression exp = (IASTExpression) node.getInit().accept(this);
 		IASTBinaryExpression assign = new IASTBinaryExpression(
 				IASTBinaryExpression.Operator.ASSIGN, id, exp);
-		return new IASTExpressionStatement(assign);
+		return assign;
 	}
 	/*public Object visitExpression(IExpression node) {
 		return visitNode(node);

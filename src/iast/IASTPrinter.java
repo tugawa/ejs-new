@@ -36,6 +36,8 @@ public class IASTPrinter extends IASTBaseVisitor {
 	public static final String KEY_PROPERTY         = "property";
 	public static final String KEY_ID               = "id";
 	public static final String KEY_LABEL            = "label";
+	public static final String KEY_EXPRESSIONS      = "expressions";
+	public static final String KEY_VAR              = "var";
 	
 	public void print(IASTNode iast) {
 		JsonObject json = (JsonObject) iast.accept(this);
@@ -106,6 +108,15 @@ public class IASTPrinter extends IASTBaseVisitor {
 			jb.add(KEY_VALUE, JsonObject.NULL);
 		}
 		return jb.build();
+	}
+	public Object visitWithStatement(IASTWithStatement node) {
+	    JsonObjectBuilder jb = Json.createObjectBuilder();
+	    jb.add(KEY_NAME, "WithStatement");
+	    // object
+	    jb.add(KEY_OBJECT, (JsonObject) node.object.accept(this));
+	    // body
+	    jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
+	    return jb.build();
 	}
 	public Object visitIfStatement(IASTIfStatement node) {
 		JsonObjectBuilder jb = Json.createObjectBuilder();
@@ -210,7 +221,9 @@ public class IASTPrinter extends IASTBaseVisitor {
 	public Object visitForInStatement(IASTForInStatement node) {
 		JsonObjectBuilder jb = Json.createObjectBuilder();
 		jb.add(KEY_NAME, "ForInStatement");
-		// test
+		// var
+		jb.add(KEY_VAR, node.var);
+		// object
 		jb.add(KEY_OBJECT, (JsonObject) node.object.accept(this));
 		// body
 		jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
@@ -512,5 +525,15 @@ public class IASTPrinter extends IASTBaseVisitor {
 		jb.add(KEY_NAME, "Identifier");
 		jb.add(KEY_ID, node.id);
 		return jb.build();
+	}
+	public Object visitSequenceExpression(IASTSequenceExpression node) {
+	    JsonObjectBuilder jb = Json.createObjectBuilder();
+	    jb.add(KEY_NAME, "SequenceExpression");
+	    JsonArrayBuilder ja = Json.createArrayBuilder();
+	    for (IASTExpression e : node.expressions) {
+	        ja.add((JsonObject) e.accept(this));
+	    }
+	    jb.add(KEY_EXPRESSIONS, ja);
+	    return jb.build();
 	}
 }

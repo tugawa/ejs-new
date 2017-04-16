@@ -121,12 +121,20 @@ class IASTReturnStatement extends IASTStatement {
 	}
 }
 
-/*
+
 class IASTWithStatement extends IASTStatement {
 	IASTExpression object;
 	IASTStatement body;
+	IASTWithStatement(IASTExpression object, IASTStatement body) {
+	    this.object = object;
+	    this.body = body;
+	}
+	@Override
+	Object accept(IASTBaseVisitor visitor) {
+	    return visitor.visitWithStatement(this);
+	}
 }
-*/
+
 
 class IASTIfStatement extends IASTStatement {
 	IASTExpression test;
@@ -477,5 +485,16 @@ class IASTIdentifier extends IASTExpression {
 	Object accept(IASTBaseVisitor visitor) {
 		return visitor.visitIdentifier(this);
 	}
+}
+
+class IASTSequenceExpression extends IASTExpression {
+    List<IASTExpression> expressions;
+    IASTSequenceExpression(List<IASTExpression> expressions) {
+        this.expressions = expressions;
+    }
+    @Override
+    Object accept(IASTBaseVisitor visitor) {
+        return visitor.visitSequenceExpression(this);
+    }
 }
 

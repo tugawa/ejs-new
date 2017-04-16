@@ -43,6 +43,11 @@ public class IASTBaseVisitor {
 			node.value.accept(this);
 		return visitStatement(node);
 	}
+	public Object visitWithStatement(IASTWithStatement node) {
+	    node.object.accept(this);
+	    node.body.accept(this);
+	    return visitStatement(node);
+	}
 	public Object visitIfStatement(IASTIfStatement node) {
 		node.test.accept(this);
 		node.consequent.accept(this);
@@ -160,5 +165,11 @@ public class IASTBaseVisitor {
 	}
 	public Object visitIdentifier(IASTIdentifier node) {
 		return visitExpression(node);
+	}
+	public Object visitSequenceExpression(IASTSequenceExpression node) {
+	    for (IASTExpression e : node.expressions) {
+	        e.accept(this);
+	    }
+	    return visitExpression(node);
 	}
 }
