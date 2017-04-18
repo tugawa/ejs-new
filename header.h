@@ -33,6 +33,8 @@
 #include <math.h>
 #include <float.h>
 #include <time.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #ifdef USE_REGEXP
 #include <oniguruma.h>
@@ -40,14 +42,6 @@
 
 #ifdef USE_BOEHMGC
 #include <gc.h>
-#endif
-
-#ifdef PARALLEL
-#include <pthread.h>
-#include "SSJSVM_parallel.h"
-#include "SSJSVM_parallel_thread.h"
-#include "SSJSVM_parallel_tcp.h"
-#include "SSJSVM_event_forward.h"
 #endif
 
 #ifndef __USE_GNU

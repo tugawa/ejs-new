@@ -109,7 +109,10 @@ STATIC int tmp_roots_sp;
 STATIC void **tmp_roots_malloc[MAX_TMP_ROOTS_MALLOC];
 STATIC int tmp_roots_malloc_sp;
 STATIC int gc_disabled = 1;
-STATIC int generation = 0;
+
+int generation = 0;
+int gc_sec;
+int gc_usec; 
 
 /*
  * prototype
@@ -256,6 +259,8 @@ void init_memory()
   tmp_roots_malloc_sp = -1;
   gc_disabled = 0;
   generation = 1;
+  gc_sec = 0;
+  gc_usec = 0;
 }
 
 void gc_push_tmp_root(JSValue *loc)
@@ -384,9 +389,12 @@ void enable_gc(Context *ctx)
 
 STATIC void garbage_collect(Context *ctx)
 {
+  struct rusage ru0, ru1;
+
   // printf("Enter gc, generation = %d\n", generation);
   GCLOG("Before Garbage Collection\n");
   // print_memory_status();
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
   scan_roots(ctx);
   weak_clear();
@@ -394,6 +402,21 @@ STATIC void garbage_collect(Context *ctx)
   GCLOG("After Garbage Collection\n");
   // print_memory_status();
   // print_heap_stat();
+
+  if (cputime_flag == TRUE) {
+    time_t sec;
+    suseconds_t usec;
+
+    getrusage(RUSAGE_SELF, &ru1);
+    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+    if (usec < 0) {
+      sec--;
+      usec += 1000000;
+    }
+    gc_sec += sec;
+    gc_usec += usec;
+  }
 
   generation++;
   // printf("Exit gc, generation = %d\n", generation);

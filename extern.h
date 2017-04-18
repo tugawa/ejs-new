@@ -27,9 +27,13 @@ EXTERN StrTable string_table;
 extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
+extern int cputime_flag;
 extern int regstack_limit;
 
-EXTERN int run_phase;
+extern int run_phase;
+extern int generation;
+extern int gc_sec;
+extern int gc_usec;
 
 extern FILE *log_stream;
 

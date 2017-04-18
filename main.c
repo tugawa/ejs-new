@@ -24,12 +24,18 @@
 #include "header.h"
 
 /*
+  phase
+ */
+int run_phase;         // PHASE_INIT or PHASE_VMLOOP
+
+/*
   flags
  */
 int ftable_flag;       // prints the function table
 int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
 int all_flag;          // all flag values are true
+int cputime_flag;      // prints the cpu time
 
 /*
   parameter
@@ -114,6 +120,7 @@ struct commandline_option  options_table[] = {
   { "-f", 0, &ftable_flag        },
   { "-t", 0, &trace_flag         },
   { "-a", 0, &all_flag           },
+  { "-u", 0, &cputime_flag       },
   { "-s", 1, &regstack_limit     },      // not used yet
   { (char *)NULL, 0, (int *)NULL }
 };
@@ -150,12 +157,19 @@ int process_options(int ac, char *av[]) {
   return 0;
 }
 
+void print_cputime(time_t sec, suseconds_t usec) {
+  printf("total CPU time = %d.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
+          sec * 1000 + usec / 1000, usec % 1000,
+          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
+}
+
 /*
    main function
  */
 int main(int argc, char *argv[]) {
   // If input program is given from a file, fp is set to NULL.
   FILE *fp = NULL;
+  struct rusage ru0, ru1;
   int k;
 
   log_stream = stderr;
@@ -235,7 +249,9 @@ int main(int argc, char *argv[]) {
 
   // enters the VM loop
   run_phase = PHASE_VMLOOP;
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
   vmrun_threaded(context, 0);
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
 
   // obtains the time after execution
 #ifdef CALC_TIME
@@ -287,6 +303,18 @@ int main(int argc, char *argv[]) {
   LOG("%"PRId64"\n", callcount);
 #endif // CALC_CALL
 
+  if (cputime_flag == TRUE) {
+    time_t sec;
+    suseconds_t usec;
+
+    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+    if (usec < 0) {
+      sec--;
+      usec += 1000000;
+    }
+    print_cputime(sec, usec);
+  }
   return 0;
 }
 
