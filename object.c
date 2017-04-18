@@ -915,4 +915,29 @@ void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s end ======\n", s);
 }
 
+static int nhc = 1;
+
+void print_hidden_class_recursive(char *s, HiddenClass *hc) {
+  HashTable *tab;
+  HashCell *p;
+  int i;
+  char buf[128];
+
+  sprintf(buf, "%d: %s", nhc, s);
+  print_hidden_class(buf, hc);
+  nhc++;
+  tab = hc->map;
+  for (i = 0; i < tab->size; i++) {
+    if ((p = tab->body[i]) == NULL) continue;
+    do {
+      if (is_transition(p->entry.attr))
+        print_hidden_class_recursive(string_to_cstr(p->entry.key), (HiddenClass *)p->entry.data);
+    } while ((p = p->next) != NULL);
+  }
+}
+
+void print_all_hidden_class(void) {
+  print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
+}
+
 #endif

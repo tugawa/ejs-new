@@ -36,6 +36,9 @@ int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
 int all_flag;          // all flag values are true
 int cputime_flag;      // prints the cpu time
+#ifdef HIDDEN_CLASS
+int hcprint_flag;      // prints all transitive hidden classes
+#endif
 
 /*
   parameter
@@ -121,6 +124,9 @@ struct commandline_option  options_table[] = {
   { "-t", 0, &trace_flag         },
   { "-a", 0, &all_flag           },
   { "-u", 0, &cputime_flag       },
+#ifdef HIDDEN_CLASS
+  { "-h", 0, &hcprint_flag       },
+#endif
   { "-s", 1, &regstack_limit     },      // not used yet
   { (char *)NULL, 0, (int *)NULL }
 };
@@ -316,6 +322,12 @@ int main(int argc, char *argv[]) {
     }
     print_cputime(sec, usec);
   }
+#ifdef HIDDEN_CLASS
+  if (hcprint_flag == TRUE)
+    print_all_hidden_class();
+#endif
+
+
   return 0;
 }
 

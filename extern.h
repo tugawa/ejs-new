@@ -286,6 +286,7 @@ extern char *space_chomp(char *);
 extern HiddenClass *new_empty_hidden_class(Context *, int, int);
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
 void print_hidden_class(char *, HiddenClass *);
+void print_all_hidden_class(void);
 #endif
 
 /*

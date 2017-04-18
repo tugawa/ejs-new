@@ -427,9 +427,9 @@ void print_hash_table(HashTable *tab) {
     ec++;
     do {
       printf(" (%d: (", i);
-      printf("%016lx = ", p->entry.key); simple_print(p->entry.key);
+      printf("%p = ", p->entry.key); simple_print(p->entry.key);
       printf(", ");
-      printf("%016lx = %d\n", (int)p->entry.data);
+      printf("%p", p->entry.data);
       printf("))\n");
     } while ((p = p->next) != NULL);
     // if (ec >= tab->entry_count) break;
