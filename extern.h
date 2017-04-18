@@ -37,6 +37,12 @@ extern int gc_usec;
 
 extern FILE *log_stream;
 
+#ifdef HIDDEN_CLASS
+extern int n_hc;
+extern int n_enter_hc;
+extern int n_exit_hc;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

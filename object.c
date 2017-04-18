@@ -55,6 +55,9 @@
 
 #ifdef HIDDEN_CLASS
 static HiddenClass *hclass;
+int n_hc;
+int n_enter_hc;
+int n_exit_hc;
 #endif
 
 /*
@@ -296,8 +299,10 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
         hidden_n_entries(oh)++;
       }
       hidden_n_exit(obj_hidden_class(obj))++;
+      n_exit_hc++;
       obj_hidden_class(obj) = nexth;
       hidden_n_enter(nexth)++;
+      n_enter_hc++;
     } else {                  // hidden_htype(oh) == HTYPE_GROW
       nexth = oh;
       gc_push_tmp_root_malloc((void **)&nexth);
@@ -607,6 +612,7 @@ void set_object_members(Object *p, int hsize, int psize) {
               gobjects.g_hidden_class_0:
               new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
   hidden_n_enter(p->class)++;
+  n_enter_hc++;
 #else
   Map *a;
   a = malloc_hashtable();
@@ -872,6 +878,7 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   gc_push_tmp_root_malloc((void **)&c);
   enable_gc(ctx);
   gc_pop_tmp_root_malloc(1);
+  n_hc++;
   return c;
 }
 
@@ -896,6 +903,7 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   gc_push_tmp_root_malloc((void **)&c);
   enable_gc(ctx);
   gc_pop_tmp_root_malloc(1);
+  n_hc++;
   return c;
 }
 

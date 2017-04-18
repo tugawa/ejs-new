@@ -161,6 +161,7 @@ void print_cputime(time_t sec, suseconds_t usec) {
   printf("total CPU time = %d.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
           sec * 1000 + usec / 1000, usec % 1000,
           gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
+  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n", n_hc, n_enter_hc, n_exit_hc);
 }
 
 /*
