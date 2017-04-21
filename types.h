@@ -141,9 +141,6 @@ typedef struct object_cell {
   HashTable *map;         // map from property name to the index within prop
 #endif
   JSValue *prop;          // array of property values
-#ifdef PARALLEL
-  pthread_mutex_t mutex;
-#endif
 } Object;
 
 #define is_object(p)           (equal_tag((p), T_OBJECT))

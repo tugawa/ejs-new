@@ -65,6 +65,7 @@ StringCell *allocate_string(uint32_t length)
    allocates a string
    This takes a pointer to a C string.
  */
+#if 0
 JSValue allocate_string1(const char* str)
 {
   uint32_t len;
@@ -72,6 +73,7 @@ JSValue allocate_string1(const char* str)
   len = strlen(str);
   return str_intern(str, len, calc_hash_len(str, len), INTERN_HARD);
 }
+#endif
 
 /*
    allocates a string
