@@ -41,4 +41,9 @@ public class LabeledStatement extends Node implements ILabeledStatement {
 		return visitor.visitLabeledStatement(this);
 	}
 
+    @Override
+    public void setBody(IStatement stmt) {
+        this.body = stmt;
+    }
+
 }

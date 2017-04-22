@@ -184,6 +184,7 @@ public abstract class Node {
     public interface ILabeledStatement extends IStatement {
         public IIdentifier getLabel();
         public IStatement getBody();
+        public void setBody(IStatement stmt);
     }
 
     public interface IBreakStatement extends IStatement {

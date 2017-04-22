@@ -99,6 +99,10 @@ public abstract class EsTreeVisitor<T> {
 		{
 			return null;
 		}
+		case Node.WHILE_STMT:
+		{
+		    return visitWhileStatement((WhileStatement) node);
+		}
 		case Node.DO_WHILE_STMT:
 		{
 			return visitDoWhileStatement((DoWhileStatement) node);
@@ -141,7 +145,7 @@ public abstract class EsTreeVisitor<T> {
 		}
 		case Node.LABELED_STMT:
 		{
-			return null;
+			return visitLabeledStatement((LabeledStatement) node);
 		}
 		case Node.LITERAL:
 		{

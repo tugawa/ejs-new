@@ -57,13 +57,19 @@ public class Main {
     }
     
     new EsTreeNormalizer(ast);
-    // System.out.println(ast.getEsTree());
+    
+    if (optPrintESTree) {
+      System.out.println(ast.getEsTree());
+    }
     IASTGenerator iastgen = new IASTGenerator();
     IASTNode iast = iastgen.gen(ast);
     
     if (optPrintIAST) {
       new IASTPrinter().print(iast);
     }
+    
+    CodeGenerator codeGen = new CodeGenerator();
+    codeGen.compile((IASTProgram) iast);
     
 		/*
     String jsFileName = null;

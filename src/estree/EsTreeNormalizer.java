@@ -232,6 +232,7 @@ public class EsTreeNormalizer {
 		@Override
 		public List<FunctionDeclaration> visitLabeledStatement(LabeledStatement node) {
 			// TODO Auto-generated method stub
+		    visit((estree.Node) node.body);
 			return null;
 		}
 
@@ -385,6 +386,8 @@ public class EsTreeNormalizer {
 		@Override
 		public List<FunctionDeclaration> visitWhileStatement(WhileStatement node) {
 			// TODO Auto-generated method stub
+		    if (node.body != null)
+		        visit((estree.Node) node.body);
 			return null;
 		}
 
@@ -610,7 +613,7 @@ public class EsTreeNormalizer {
 
 		@Override
 		public Node visitLabeledStatement(LabeledStatement node) {
-			// TODO Auto-generated method stub
+		    node.setBody((estree.Node.IStatement) visit((estree.Node) node.getBody()));
 			return node;
 		}
 
@@ -706,7 +709,9 @@ public class EsTreeNormalizer {
 		@Override
 		public Node visitSwitchCase(SwitchCase node) {
 			// TODO Auto-generated method stub
-			node.setTest((estree.Node.IExpression) visit((estree.Node) node.getTest()));
+		    if (node.getTest() != null) {
+		        node.setTest((estree.Node.IExpression) visit((estree.Node) node.getTest()));
+		    }
 			List<estree.Node.IStatement> newStmts = new ArrayList<estree.Node.IStatement>();
 			for (estree.Node.IStatement stmt : node.getConsequent()) {
 				newStmts.add((estree.Node.IStatement) visit((estree.Node) stmt));
@@ -791,8 +796,6 @@ public class EsTreeNormalizer {
 
 		@Override
 		public Node visitThisExpression(ThisExpression node) {
-			// TODO Auto-generated method stub
-			// node
 			return node;
 		}
 

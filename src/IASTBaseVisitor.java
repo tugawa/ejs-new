@@ -1,4 +1,4 @@
-package iast;
+
 
 public class IASTBaseVisitor {
 	public Object visitNode(IASTNode node) {
@@ -143,7 +143,7 @@ public class IASTBaseVisitor {
 	public Object visitBinaryExpression(IASTBinaryExpression node) {
 		return visitOperatorExpression(node);
 	}
-	public Object visitTernayExpression(IASTTernaryExpression node) {
+	public Object visitTernaryExpression(IASTTernaryExpression node) {
 		return visitOperatorExpression(node);
 	}
 	public Object visitCallExpression(IASTCallExpression node) {

@@ -1,9 +1,10 @@
-package iast;
+
 
 import java.util.List;
 
 abstract public class IASTNode {
 	abstract Object accept(IASTBaseVisitor visitor);
+	// abstract void compile(CodeGenerator.BCBuilder bcb, CodeGenerator.Environment env, Register reg)
 }
 
 class IASTProgram extends IASTNode {
@@ -41,6 +42,13 @@ class IASTNumericLiteral extends IASTLiteral {
 	double value;
 	IASTNumericLiteral(double value) {
 		this.value = value;
+	}
+	boolean isInteger() {
+	    String s = Double.toString(value);
+	    if (s.charAt(s.length() - 1) == '0' && s.charAt(s.length() - 2) == '.')
+	        return true;
+	    else
+	        return false;
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
@@ -433,7 +441,7 @@ class IASTTernaryExpression extends IASTOperatorExpression {
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
-		return visitor.visitTernayExpression(this);
+		return visitor.visitTernaryExpression(this);
 	}
 }
 
