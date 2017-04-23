@@ -171,6 +171,28 @@ class IMod extends BCode {
         return super.toString("mod", dst, src1, src2);
     }
 }
+class IBitor extends BCode {
+    Register dst, src1, src2;
+    IBitor(Register dst, Register src1, Register src2) {
+        this.dst = dst;
+        this.src1 = src1;
+        this.src2 = src2;
+    }
+    public String toString() {
+        return super.toString("bitor", dst, src1, src2);
+    }
+}
+class IBitand extends BCode {
+    Register dst, src1, src2;
+    IBitand(Register dst, Register src1, Register src2) {
+        this.dst = dst;
+        this.src1 = src1;
+        this.src2 = src2;
+    }
+    public String toString() {
+        return super.toString("bitand", dst, src1, src2);
+    }
+}
 class ILeftshift extends BCode {
     Register dst, src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
@@ -569,5 +591,18 @@ class INumberOfInstruction extends BCode {
     INumberOfInstruction(int n) { this.n = n; }
     public String toString() {
         return super.toString("numberOfInstruction", n);
+    }
+}
+
+
+class IError extends BCode {
+    Register dst;
+    String str;
+    IError(Register dst, String str) {
+        this.dst = dst;
+        this.str = str;
+    }
+    public String toString() {
+        return super.toString("error", dst, str);
     }
 }

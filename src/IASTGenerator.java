@@ -2,15 +2,18 @@
 import java.util.ArrayList;
 import java.util.List;
 
-import estree.*;
-import estree.Node.*;
+import ast_node.ESTreeBaseVisitor;
+import ast_node.*;
+import ast_node.Node.*;
+// import estree.*;
+// import estree.Node.*;
 
-public class IASTGenerator extends ESTreeBaseVisitor {
+public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 	
 	public IASTGenerator() {};
 	
 	public IASTProgram gen(Node estree) {
-		return (IASTProgram) visitProgram((IProgram) estree);
+		return (IASTProgram) visitProgram((Program) estree);
 	}
 	
 	List<String> hoistDeclarations(IStatement nd) {
@@ -130,10 +133,10 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		return new IASTBlockStatement(stmts);
 	}
 
-	public Object visitIdentifier(IIdentifier node) {
+	public IASTNode visitIdentifier(Identifier node) {
 		return new IASTIdentifier(node.getName());
 	}
-	public Object visitLiteral(ILiteral node) {
+	protected IASTNode visitLiteral(Literal node) {
 		switch (node.getLiteralType()) {
 		case STRING:
 			return new IASTStringLiteral(node.getStringValue());
@@ -148,10 +151,10 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return null; // ERROR
 	}
-	public Object visitRegExpLiteral(IRegExpLiteral node) {
+	/*protected IASTNode visitRegExpLiteral(RegExpLiteral node) {
 		return new IASTRegExpLiteral(node.getRegExpValue());
-	}
-	public Object visitProgram(IProgram node) {
+	}*/
+	protected IASTNode visitProgram(Program node) {
 		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
 		for (IStatement stmt : node.getBody()) {
 	        stmts.add((IASTStatement) stmt.accept(this));
@@ -163,7 +166,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block);
 		return new IASTProgram(func);
 	}
-	/*public Object visitFunction(IFunction node) {
+	/*protected IASTNode visitFunction(IFunction node) {
 		node.getId().accept(this);
 		for (IPattern param : node.getParams()) {
 			param.accept(this);
@@ -171,38 +174,38 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		node.getBody().accept(this);
 		return visitNode(node);
 	}*/
-	/*public Object visitStatement(IStatement node) {
+	/*protected IASTNode visitStatement(IStatement node) {
 		return visitNode(node);
 	}*/
-	public Object visitExpressionStatement(IExpressionStatement node) {
+	protected IASTNode visitExpressionStatement(ExpressionStatement node) {
 		return new IASTExpressionStatement((IASTExpression) node.getExpression().accept(this));
 	}
-	public Object visitBlockStatement(IBlockStatement node) {
+	protected IASTNode visitBlockStatement(BlockStatement node) {
 		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
 		for (IStatement stmt : node.getBody()) {
 			stmts.add((IASTStatement) stmt.accept(this));
 		}
 		return new IASTBlockStatement(stmts);
 	}
-	/*public Object visitEmptyStatement(IEmptyStatement node) {
+	/*protected IASTNode visitEmptyStatement(IEmptyStatement node) {
 		return visitStatement(node);
 	}
-	public Object visitDebuggerStatement(IDebuggerStatement node) {
+	protected IASTNode visitDebuggerStatement(IDebuggerStatement node) {
 		return visitStatement(node);
 	}*/
-	public Object visitWithStatement(IWithStatement node) {
+	protected IASTNode visitWithStatement(WithStatement node) {
 	    IASTExpression object = (IASTExpression) node.getObject().accept(this);
 	    IASTStatement body = (IASTStatement) node.getBody().accept(this);
 		return new IASTWithStatement(object, body);
 	}
-	public Object visitReturnStatement(IReturnStatement node) {
+	protected IASTNode visitReturnStatement(ReturnStatement node) {
 		IASTExpression arg = null;
 		if (node.getArgument() != null) {
 			arg = (IASTExpression) node.getArgument().accept(this);
 		}
 		return new IASTReturnStatement(arg);
 	}
-	public Object visitLabeledStatement(ILabeledStatement node) {
+	protected IASTNode visitLabeledStatement(LabeledStatement node) {
 		IASTStatement stmt = (IASTStatement) node.getBody().accept(this);
 		String label = node.getLabel().getName();
 		if (stmt instanceof IASTForStatement) {
@@ -218,17 +221,17 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return stmt;
 	}
-	public Object visitBreakStatement(IBreakStatement node) {
+	protected IASTNode visitBreakStatement(BreakStatement node) {
 	    String labelName = null;
 	    if (node.getLabel() != null) labelName = node.getLabel().getName();
 		return new IASTBreakStatement(labelName);
 	}
-	public Object visitContinueStatement(IContinueStatement node) {
+	protected IASTNode visitContinueStatement(ContinueStatement node) {
 	    String labelName = null;
         if (node.getLabel() != null) labelName = node.getLabel().getName();
 		return new IASTContinueStatement(labelName);
 	}
-	public Object visitIfStatement(IIfStatement node) {
+	protected IASTNode visitIfStatement(IfStatement node) {
 		IASTExpression test = (IASTExpression) node.getTest().accept(this);
 		IASTStatement conseq = (IASTStatement) node.getConsequent().accept(this);
 		IASTStatement alter = null;
@@ -237,7 +240,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTIfStatement(test, conseq, alter);
 	}
-	public Object visitSwitchStatement(ISwitchStatement node) {
+	protected IASTNode visitSwitchStatement(SwitchStatement node) {
 		IASTExpression discriminant = (IASTExpression) node.getDiscriminant().accept(this);
 		List<IASTSwitchStatement.CaseClause> cases = new ArrayList<IASTSwitchStatement.CaseClause>();
 		for (ISwitchCase c : node.getCases()) {
@@ -252,10 +255,10 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTSwitchStatement(discriminant, cases);
 	}
-	public Object visitThrowStatement(IThrowStatement node) {
+	protected IASTNode visitThrowStatement(ThrowStatement node) {
 		return new IASTThrowStatement((IASTExpression) node.getArgument().accept(this));
 	}
-	public Object visitTryStatement(ITryStatement node) {
+	protected IASTNode visitTryStatement(TryStatement node) {
 		IASTStatement block = (IASTStatement) node.getBlock().accept(this);
 		if (node.getHandler() != null) {
 			String param = ((IIdentifier) node.getHandler().getParam()).getName();
@@ -273,22 +276,22 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		} // else ERROR
 		return null;
 	}
-	/*public Object visitCatchClause(ICatchClause node) {
+	/*protected IASTNode visitCatchClause(ICatchClause node) {
 		node.getParam().accept(this);
 		node.getBody().accept(this);
 		return visitNode(node);
 	}*/
-	public Object visitWhileStatement(IWhileStatement node) {
+	protected IASTNode visitWhileStatement(WhileStatement node) {
 		IASTExpression test = (IASTExpression) node.getTest().accept(this);
 		IASTStatement body = (IASTStatement) node.getBody().accept(this);
 		return new IASTWhileStatement(test, body);
 	}
-	public Object visitDoWhileStatement(IDoWhileStatement node) {
+	protected IASTNode visitDoWhileStatement(DoWhileStatement node) {
 		IASTExpression test = (IASTExpression) node.getTest().accept(this);
 		IASTStatement body = (IASTStatement) node.getBody().accept(this);
 		return new IASTDoWhileStatement(test, body);
 	}
-	public Object visitForStatement(IForStatement node) {
+	protected IASTNode visitForStatement(ForStatement node) {
 	    IASTExpression init = null, test = null, update = null;
 	    IASTStatement body = null;
 		if (node.getExpInit() != null) {
@@ -307,7 +310,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTForStatement(init, test, update, body);
 	}
-	public Object visitForInStatement(IForInStatement node) {
+	protected IASTNode visitForInStatement(ForInStatement node) {
 	    String v = null;
 	    IASTExpression obj = null;
 	    IASTStatement body = null;
@@ -325,10 +328,10 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		body = (IASTStatement) node.getBody().accept(this);
 		return new IASTForInStatement(v, obj, body);
 	}
-	public Object visitDeclaration(IDeclaration node) {
+	/*protected IASTNode visitDeclaration(Declaration node) {
 		return visitStatement(node);
-	}
-	public Object visitFunctionDeclaration(IFunctionDeclaration node) {
+	}*/
+	protected IASTNode visitFunctionDeclaration(FunctionDeclaration node) {
 		IASTIdentifier id = (IASTIdentifier) node.getId().accept(this);
 		List<String> params = new ArrayList<String>();
 		for (IPattern param : node.getParams()) {
@@ -341,7 +344,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 				IASTBinaryExpression.Operator.ASSIGN, id, func);
 		return new IASTExpressionStatement(assign);
 	}
-	public Object visitVariableDeclaration(IVariableDeclaration node) {
+	protected IASTNode visitVariableDeclaration(VariableDeclaration node) {
 		List<IASTExpression> exps = new ArrayList<IASTExpression>();
 		for (IVariableDeclarator vd : node.getDeclarations()) {
 			Object r = vd.accept(this);
@@ -351,7 +354,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTExpressionStatement(new IASTSequenceExpression(exps));
 	}
-	public Object visitVariableDeclarator(IVariableDeclarator node) {
+	protected IASTNode visitVariableDeclarator(VariableDeclarator node) {
 		if (node.getInit() == null) {
 			return null;
 		}
@@ -361,27 +364,34 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 				IASTBinaryExpression.Operator.ASSIGN, id, exp);
 		return assign;
 	}
-	/*public Object visitExpression(IExpression node) {
+	/*protected IASTNode visitExpression(IExpression node) {
 		return visitNode(node);
 	}*/
-	public Object visitThisExpression(IThisExpression node) {
+	protected IASTNode visitThisExpression(ThisExpression node) {
 		return new IASTThisExpression();
 	}
-	public Object visitArrayExpression(IArrayExpression node) {
+	protected IASTNode visitArrayExpression(ArrayExpression node) {
 		List<IASTExpression> elements = new ArrayList<IASTExpression>();
 		for (IExpression e : node.getElements()) {
 			elements.add((IASTExpression) e.accept(this));
 		}
 		return new IASTArrayExpression(elements);
 	}
-	public Object visitObjectExpression(IObjectExpression node) {
+	protected IASTNode visitObjectExpression(ObjectExpression node) {
 	    List<IASTObjectExpression.Property> props = new ArrayList<IASTObjectExpression.Property>();
 		for (IProperty p : node.getProperties()) {
-			props.add((IASTObjectExpression.Property) p.accept(this));
+			// props.add((IASTObjectExpression.Property) p.accept(this));
+		    IASTLiteral key = null;
+		    if (p.getLiteralKey() != null)
+		        key = (IASTLiteral) p.getLiteralKey().accept(this);
+		    else if (p.getIdentifierKey() != null)
+		        key = new IASTStringLiteral(p.getIdentifierKey().getName());
+		    IASTExpression value = (IASTExpression) p.getValue().accept(this);
+		    props.add(new IASTObjectExpression.Property(key, value, IASTObjectExpression.Property.Kind.INIT));
 		}
 		return new IASTObjectExpression(props);
 	}
-	public Object visitProperty(IProperty node) {
+	/*protected IASTNode visitProperty(Property node) {
 		IASTLiteral key = null;
 		if (node.getLiteralKey() != null) {
 			key = (IASTLiteral) node.getLiteralKey().accept(this);
@@ -390,8 +400,8 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		} // else ERROR
 		IASTExpression value = (IASTExpression) node.getValue().accept(this);
 		return new IASTObjectExpression.Property(key, value, IASTObjectExpression.Property.Kind.INIT);
-	}
-	public Object visitFunctionExpression(IFunctionExpression node) {
+	}*/
+	protected IASTNode visitFunctionExpression(FunctionExpression node) {
 		List<String> params = new ArrayList<String>();
 		for (IPattern param : node.getParams()) {
 			params.add(((IIdentifier) param).getName());
@@ -400,7 +410,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTBlockStatement body = (IASTBlockStatement) node.getBody().accept(this);
 		return new IASTFunctionExpression(params, locals, body);
 	}
-	public Object visitUnaryExpression(IUnaryExpression node) {
+	protected IASTNode visitUnaryExpression(UnaryExpression node) {
 		IASTUnaryExpression.Operator operator = null;
 		switch (node.getOperator()) {
 		case "+": {
@@ -428,7 +438,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTExpression argument = (IASTExpression) node.getArgument().accept(this);
 		return new IASTUnaryExpression(operator, argument, true);
 	}
-	public Object visitUpdateExpression(IUpdateExpression node) {
+	protected IASTNode visitUpdateExpression(UpdateExpression node) {
 		IASTUnaryExpression.Operator operator = null;
 		switch (node.getOperator()) {
 		case "++": {
@@ -441,7 +451,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTExpression argument = (IASTExpression) node.getArgument().accept(this);
 		return new IASTUnaryExpression(operator, argument, node.getPrefix());
 	}
-	public Object visitBinaryExpression(IBinaryExpression node) {
+	protected IASTNode visitBinaryExpression(BinaryExpression node) {
 		IASTBinaryExpression.Operator operator = null;
 		switch (node.getOperator()) {
 		case EQ_EQ: {
@@ -512,7 +522,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTExpression right = (IASTExpression) node.getRight().accept(this);
 		return new IASTBinaryExpression(operator, left, right);
 	}
-	public Object visitAssignmentExpression(IAssignmentExpression node) {
+	protected IASTNode visitAssignmentExpression(AssignmentExpression node) {
 		IASTExpression left = null;
 		if (node.getExpressionLeft() == null) {
 			left = new IASTStringLiteral(((IIdentifier) node.getPatternLeft()).getName());
@@ -561,7 +571,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTBinaryExpression(operator, left, right);
 	}
-	public Object visitLogicalExpression(ILogicalExpression node) {
+	protected IASTNode visitLogicalExpression(LogicalExpression node) {
 		IASTBinaryExpression.Operator operator = null;
 		switch (node.getOperator()) {
 		case OR: {
@@ -575,7 +585,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		IASTExpression right = (IASTExpression) node.getRight().accept(this);
 		return new IASTBinaryExpression(operator, left, right);
 	}
-	public Object visitMemberExpression(IMemberExpression node) {
+	protected IASTNode visitMemberExpression(MemberExpression node) {
 		IASTExpression object = (IASTExpression) node.getObject().accept(this);
 		IASTExpression property = (IASTExpression) node.getProperty().accept(this);
 		if (property instanceof IASTIdentifier) {
@@ -583,13 +593,13 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTMemberExpression(object, property);
 	}
-	public Object visitConditionalExpression(IConditionalExpression node) {
+	protected IASTNode visitConditionalExpression(ConditionalExpression node) {
 		IASTExpression exp1 = (IASTExpression) node.getTest().accept(this);
 		IASTExpression exp2 = (IASTExpression) node.getConsequent().accept(this);
 		IASTExpression exp3 = (IASTExpression) node.getAlternate().accept(this);
 		return new IASTTernaryExpression(IASTTernaryExpression.Operator.COND, exp1, exp2, exp3);
 	}
-	public Object visitCallExpression(ICallExpression node) {
+	protected IASTNode visitCallExpression(CallExpression node) {
 		IASTExpression callee = (IASTExpression) node.getCallee().accept(this);
 		List<IASTExpression> arguments = new ArrayList<IASTExpression>();
 		for (IExpression e : node.getArguments()) {
@@ -597,7 +607,7 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTCallExpression(callee, arguments);
 	}
-	public Object visitNewExpression(INewExpression node) {
+	protected IASTNode visitNewExpression(NewExpression node) {
 		IASTExpression constructor = (IASTExpression) node.getCallee().accept(this);
 		List<IASTExpression> arguments = new ArrayList<IASTExpression>();
 		for (IExpression e : node.getArguments()) {
@@ -605,13 +615,10 @@ public class IASTGenerator extends ESTreeBaseVisitor {
 		}
 		return new IASTNewExpression(constructor, arguments);
 	}
-	public Object visitSequenceExpression(ISequenceExpression node) {
+	protected IASTNode visitSequenceExpression(SequenceExpression node) {
 		for (IExpression e : node.getExpression()) {
 			e.accept(this);
 		}
 		return visitExpression(node);
-	}
-	public Object visitPattern(IPattern node) {
-		return visitNode(node);
 	}
 }

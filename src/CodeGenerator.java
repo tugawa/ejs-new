@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import ast_node.BinaryExpression;
+
 // import IASTNode.*;
 
 public class CodeGenerator {
@@ -357,7 +359,7 @@ public class CodeGenerator {
         }
         
         int getFBIdx() {
-            return fBuilders.size() - 0;
+            return fBuilders.size() - 2;
         }
         
         void setSendentry(int n) {
@@ -782,11 +784,18 @@ public class CodeGenerator {
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
                     bcBuilder.push(new ISub(reg, r1, r2));
                 }
-                
+                compileAssignment(bcBuilder, env, node.operands[0], reg);
             } else {
                 Register r1 = env.freshRegister();
+                Register r2 = env.freshRegister();
                 dispatcher.compile(node.operands[0], bcBuilder, env, reg);
                 bcBuilder.push(new IFixnum(r1, 1));
+                if (node.operator == IASTUnaryExpression.Operator.INC) {
+                    bcBuilder.push(new IAdd(r2, reg, r1));
+                } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
+                    bcBuilder.push(new ISub(r2, reg, r1));
+                }
+                compileAssignment(bcBuilder, env, node.operands[0], r2);
             }
         } break;
         }
@@ -799,43 +808,74 @@ public class CodeGenerator {
         case SHL: case SHR: case UNSIGNED_SHR:
         case BAND: case BOR: case BXOR:
         case EQUAL: case NOT_EQUAL: case EQ: case NOT_EQ: case LT: case LTE: case GT: case GTE:
-        case AND: case OR:
+        case ASSIGN_ADD: case ASSIGN_SUB: case ASSIGN_MUL: case ASSIGN_DIV: case ASSIGN_MOD:
+        case ASSIGN_SHL: case ASSIGN_SHR: case ASSIGN_UNSIGNED_SHR:
+        case ASSIGN_BAND: case ASSIGN_BOR: case ASSIGN_BXOR:
             r1 = env.freshRegister();
             dispatcher.compile(node.operands[0], bcBuilder, env, r1);
             r2 = env.freshRegister();
             dispatcher.compile(node.operands[1], bcBuilder, env, r2);
         }
+        
+        
         switch (node.operator) {
         // arithmetic
-        case ADD: {
+        case ADD: case ASSIGN_ADD: {
             bcBuilder.push(new IAdd(reg, r1, r2));
         } break;
-        case SUB: {
+        case SUB: case ASSIGN_SUB: {
             bcBuilder.push(new ISub(reg, r1, r2));
         } break;
-        case MUL: {
+        case MUL: case ASSIGN_MUL: {
             bcBuilder.push(new IMul(reg, r1, r2));
         } break;
-        case DIV: {
+        case DIV: case ASSIGN_DIV: {
             bcBuilder.push(new IDiv(reg, r1, r2));
         } break;
-        case MOD: {
+        case MOD: case ASSIGN_MOD: {
             bcBuilder.push(new IMod(reg, r1, r2));
         } break;
         
         // shift
-        case SHL: {
+        case SHL: case ASSIGN_SHL: {
             bcBuilder.push(new ILeftshift(reg, r1, r2));
         } break;
-        case SHR: {
+        case SHR: case ASSIGN_SHR: {
             bcBuilder.push(new IRightshift(reg, r1, r2));
         } break;
-        case UNSIGNED_SHR: {
+        case UNSIGNED_SHR: case ASSIGN_UNSIGNED_SHR: {
             bcBuilder.push(new IUnsignedrightshift(reg, r1, r2));
         } break;
         
+        // bit
+        case BOR: case ASSIGN_BOR: {
+            bcBuilder.push(new IBitor(reg, r1, r2));
+        } break;
+        case BAND: case ASSIGN_BAND: {
+            bcBuilder.push(new IBitand(reg, r1, r2));
+        } break;
+        case BXOR: case ASSIGN_BXOR: {
+            System.out.println("not implemented.");
+        } break;
+        
+        // logical
+        case OR: {
+            Label l1 = new Label();
+            dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+            bcBuilder.push(new IJumptrue(reg, l1));
+            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            bcBuilder.push(l1);
+        } break;
+        case AND: {
+            Label l1 = new Label();
+            dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+            bcBuilder.push(new IJumpfalse(reg, l1));
+            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            bcBuilder.push(l1);
+        }
+        
         // relational
-        case EQUAL: {
+        case EQUAL: case NOT_EQUAL: {
             Register r3 = env.freshRegister();
             Register r4 = env.freshRegister();
             Register r5 = env.freshRegister();
@@ -843,24 +883,43 @@ public class CodeGenerator {
             Register r7 = env.freshRegister();
             Register r8 = env.freshRegister();
             Register r9 = env.freshRegister();
+            Register r10 = node.operator == IASTBinaryExpression.Operator.EQUAL ? reg : env.freshRegister();
             Register ar1 = env.freshArgumentRegister(1)[0];
             Label l1 = new Label();
             Label l2 = new Label();
-            Label l3 = new Label();/*
+            Label l3 = new Label();
+            Label l4 = new Label();
             bcBuilder.push(new IEqual(r3, r1, r2));
             bcBuilder.push(new IIsundef(r4, r3));
             bcBuilder.push(new IJumpfalse(r4, l1));
-            bcBuilder.push(new IString(r5, "valueOf"));
+            bcBuilder.push(new IString(r5, "\"valueOf\""));
             bcBuilder.push(new IIsobject(r6, r1));
             bcBuilder.push(new IJumpfalse(r6, l2));
+            
             bcBuilder.push(new IGetprop(r7, r1, r5));
             bcBuilder.push(new IMove(ar1, r1));
             bcBuilder.push(new ISend(r7, 0));
             bcBuilder.push(new IGeta(r8));
-            bcBuilder.push(new IMove(r9, r4));
-            bcBuilder.push(new IJump(l3));*/
+            bcBuilder.push(new IMove(r9, r2));
             
+            bcBuilder.push(new IJump(l3));
+            
+            bcBuilder.push(l2);
+            bcBuilder.push(new IGetprop(r7, r2, r5));
+            bcBuilder.push(new IMove(ar1, r2));
+            bcBuilder.push(new ISend(r7, 0));
+            bcBuilder.push(new IGeta(r9));
+            bcBuilder.push(new IMove(r8, r1));
+            
+            bcBuilder.push(l3);
+            bcBuilder.push(new IEqual(r10, r8, r9));
+            bcBuilder.push(new IIsundef(r5, r10));
+            bcBuilder.push(new IJumpfalse(r5, l4));
+            bcBuilder.push(new IError(r10, "\"EQUAL_GETTOPRIMITIVE\""));
             bcBuilder.push(l1);
+            bcBuilder.push(l4);
+            if (node.operator == IASTBinaryExpression.Operator.NOT_EQUAL)
+                bcBuilder.push(new INot(reg, r10));
         } break;
         case EQ: {
             bcBuilder.push(new IEq(reg, r1, r2));
@@ -869,49 +928,62 @@ public class CodeGenerator {
             Register r3 = env.freshRegister();
             bcBuilder.push(new IEq(r3, r1, r2));
             bcBuilder.push(new INot(reg, r3));
-        }
+        } break;
         case LT: {
             bcBuilder.push(new ILessthan(reg, r1, r2));
         } break;
         case LTE: {
-            bcBuilder.push(new ILessthan(reg, r1, r2));
+            bcBuilder.push(new ILessthanequal(reg, r1, r2));
         } break;
         case GT: {
             bcBuilder.push(new ILessthan(reg, r2, r1));
         } break;
         case GTE: {
-            bcBuilder.push(new ILessthan(reg, r2, r1));
+            bcBuilder.push(new ILessthanequal(reg, r2, r1));
         } break;
         
         // assignment
         case ASSIGN: {
             dispatcher.compile(node.operands[1], bcBuilder, env, reg);
-            if (node.operands[0] instanceof IASTIdentifier) {
-                String id = ((IASTIdentifier) node.operands[0]).id;
-                Environment.Result varLoc = env.getVar(id);
-                if (varLoc == null) {
-                    r1 = env.freshRegister();
-                    bcBuilder.push(new IString(r1, id));
-                    bcBuilder.push(new ISetglobal(r1, reg));
-                } else {
-                    if (varLoc.isLocal) {
-                        bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.n, reg));
-                    } else {
-                        bcBuilder.push(new ISetarg(varLoc.depth, varLoc.n, reg));
-                    }
-                }
-            } else if (node.operands[0] instanceof IASTMemberExpression) {
-                IASTMemberExpression memExp = (IASTMemberExpression) node.operands[0];
-                Register objReg = env.freshRegister();
-                dispatcher.compile(memExp.object, bcBuilder, env, objReg);
-                Register propReg = env.freshRegister();
-                dispatcher.compile(memExp.property, bcBuilder, env, propReg);
-                bcBuilder.push(new ISetprop(objReg, propReg, reg));
-            }
         } break;
         default: {
             System.out.println("not implemented: " + node.getClass().getSimpleName());
         }
+        }
+        
+        
+        switch (node.operator) {
+        case ASSIGN_ADD: case ASSIGN_SUB: case ASSIGN_MUL: case ASSIGN_DIV: case ASSIGN_MOD:
+        case ASSIGN_SHL: case ASSIGN_SHR: case ASSIGN_UNSIGNED_SHR:
+        case ASSIGN_BAND: case ASSIGN_BOR: case ASSIGN_BXOR:
+        case ASSIGN: {
+            compileAssignment(bcBuilder, env, node.operands[0], reg);
+        }
+        }
+    }
+    
+    void compileAssignment(BCBuilder bcBuilder, Environment env, IASTExpression dst, Register srcReg) {
+        if (dst instanceof IASTIdentifier) {
+            String id = ((IASTIdentifier) dst).id;
+            Environment.Result varLoc = env.getVar(id);
+            if (varLoc == null) {
+                Register r1 = env.freshRegister();
+                bcBuilder.push(new IString(r1, id));
+                bcBuilder.push(new ISetglobal(r1, srcReg));
+            } else {
+                if (varLoc.isLocal) {
+                    bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.n, srcReg));
+                } else {
+                    bcBuilder.push(new ISetarg(varLoc.depth, varLoc.n, srcReg));
+                }
+            }
+        } else if (dst instanceof IASTMemberExpression) {
+            IASTMemberExpression memExp = (IASTMemberExpression) dst;
+            Register objReg = env.freshRegister();
+            dispatcher.compile(memExp.object, bcBuilder, env, objReg);
+            Register propReg = env.freshRegister();
+            dispatcher.compile(memExp.property, bcBuilder, env, propReg);
+            bcBuilder.push(new ISetprop(objReg, propReg, srcReg));
         }
     }
     
@@ -930,7 +1002,7 @@ public class CodeGenerator {
             bcBuilder.push(l2);
         } break;
         default:
-            System.out.println("ERROR: ThernaryExpression.");
+            System.out.println("ERROR: TernaryExpression.");
         }
     }
     
@@ -956,6 +1028,8 @@ public class CodeGenerator {
     }
     
     void compileNewExpression(IASTNewExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+        Register constructorReg = env.freshRegister();
+        dispatcher.compile(node.constructor, bcBuilder, env, constructorReg);
         Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
         {
             List<Register> tmpRegs = new LinkedList<Register>();
@@ -969,8 +1043,6 @@ public class CodeGenerator {
                 bcBuilder.push(new IMove(argRegs[i++], r));
             }
         }
-        Register constructorReg = env.freshRegister();
-        dispatcher.compile(node.constructor, bcBuilder, env, constructorReg);
         bcBuilder.push(new INew(reg, constructorReg));
         bcBuilder.push(new IMove(argRegs[0], reg));
         bcBuilder.push(new INewsend(constructorReg, argRegs.length - 1));
