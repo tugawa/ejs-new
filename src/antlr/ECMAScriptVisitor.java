@@ -592,19 +592,19 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitMemberIndexExpression(ECMAScriptParser.MemberIndexExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code MemberExpr}
-	 * labeled alternative in {@link ECMAScriptParser#newExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberExpr(ECMAScriptParser.MemberExprContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code NewExpression2}
 	 * labeled alternative in {@link ECMAScriptParser#newExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitNewExpression2(ECMAScriptParser.NewExpression2Context ctx);
+	/**
+	 * Visit a parse tree produced by the {@code MemberExpr}
+	 * labeled alternative in {@link ECMAScriptParser#newExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMemberExpr(ECMAScriptParser.MemberExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ArgumentsExpression}
 	 * labeled alternative in {@link ECMAScriptParser#callExpression}.

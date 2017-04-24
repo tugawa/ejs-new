@@ -4181,21 +4181,21 @@ public class ECMAScriptParser extends Parser {
 			_errHandler.sync(this);
 			switch ( getInterpreter().adaptivePredict(_input,45,_ctx) ) {
 			case 1:
-				_localctx = new MemberExprContext(_localctx);
+				_localctx = new NewExpression2Context(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
 				setState(597);
-				memberExpression(0);
+				match(New);
+				setState(598);
+				newExpression();
 				}
 				break;
 			case 2:
-				_localctx = new NewExpression2Context(_localctx);
+				_localctx = new MemberExprContext(_localctx);
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(598);
-				match(New);
 				setState(599);
-				newExpression();
+				memberExpression(0);
 				}
 				break;
 			}
@@ -5451,14 +5451,14 @@ public class ECMAScriptParser extends Parser {
 		"\7\5\2\2\u024c\u024d\5X-\2\u024d\u024e\7\6\2\2\u024e\u0253\3\2\2\2\u024f"+
 		"\u0250\f\4\2\2\u0250\u0251\7\20\2\2\u0251\u0253\5l\67\2\u0252\u024a\3"+
 		"\2\2\2\u0252\u024f\3\2\2\2\u0253\u0256\3\2\2\2\u0254\u0252\3\2\2\2\u0254"+
-		"\u0255\3\2\2\2\u0255_\3\2\2\2\u0256\u0254\3\2\2\2\u0257\u025b\5^\60\2"+
-		"\u0258\u0259\7@\2\2\u0259\u025b\5`\61\2\u025a\u0257\3\2\2\2\u025a\u0258"+
-		"\3\2\2\2\u025ba\3\2\2\2\u025c\u025d\b\62\1\2\u025d\u025e\5^\60\2\u025e"+
-		"\u025f\5T+\2\u025f\u026c\3\2\2\2\u0260\u0261\f\5\2\2\u0261\u026b\5T+\2"+
-		"\u0262\u0263\f\4\2\2\u0263\u0264\7\5\2\2\u0264\u0265\5X-\2\u0265\u0266"+
-		"\7\6\2\2\u0266\u026b\3\2\2\2\u0267\u0268\f\3\2\2\u0268\u0269\7\20\2\2"+
-		"\u0269\u026b\5l\67\2\u026a\u0260\3\2\2\2\u026a\u0262\3\2\2\2\u026a\u0267"+
-		"\3\2\2\2\u026b\u026e\3\2\2\2\u026c\u026a\3\2\2\2\u026c\u026d\3\2\2\2\u026d"+
+		"\u0255\3\2\2\2\u0255_\3\2\2\2\u0256\u0254\3\2\2\2\u0257\u0258\7@\2\2\u0258"+
+		"\u025b\5`\61\2\u0259\u025b\5^\60\2\u025a\u0257\3\2\2\2\u025a\u0259\3\2"+
+		"\2\2\u025ba\3\2\2\2\u025c\u025d\b\62\1\2\u025d\u025e\5^\60\2\u025e\u025f"+
+		"\5T+\2\u025f\u026c\3\2\2\2\u0260\u0261\f\5\2\2\u0261\u026b\5T+\2\u0262"+
+		"\u0263\f\4\2\2\u0263\u0264\7\5\2\2\u0264\u0265\5X-\2\u0265\u0266\7\6\2"+
+		"\2\u0266\u026b\3\2\2\2\u0267\u0268\f\3\2\2\u0268\u0269\7\20\2\2\u0269"+
+		"\u026b\5l\67\2\u026a\u0260\3\2\2\2\u026a\u0262\3\2\2\2\u026a\u0267\3\2"+
+		"\2\2\u026b\u026e\3\2\2\2\u026c\u026a\3\2\2\2\u026c\u026d\3\2\2\2\u026d"+
 		"c\3\2\2\2\u026e\u026c\3\2\2\2\u026f\u0272\5b\62\2\u0270\u0272\5`\61\2"+
 		"\u0271\u026f\3\2\2\2\u0271\u0270\3\2\2\2\u0272e\3\2\2\2\u0273\u0274\t"+
 		"\7\2\2\u0274g\3\2\2\2\u0275\u0278\t\b\2\2\u0276\u0278\5j\66\2\u0277\u0275"+

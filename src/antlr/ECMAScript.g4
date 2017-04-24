@@ -684,8 +684,8 @@ singleExpression
  ;
 
  newExpression 
- : memberExpression														 	# MemberExpr
- | New newExpression		                                               	# NewExpression2
+ : New newExpression		                                               	# NewExpression2
+ | memberExpression														 	# MemberExpr
  ;
 
  callExpression

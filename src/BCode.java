@@ -28,6 +28,9 @@ public class BCode {
     String toString(String opcode, Register op1, int op2, int op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
+    String toString(String opcode, Register op1, int op2, Register op3) {
+        return opcode + " " + op1 + " " + op2 + " " + op3;
+    }
     String toString(String opcode, int op1, int op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
@@ -387,6 +390,19 @@ class ISetprop extends BCode {
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
+    }
+}
+class ISetarray extends BCode {
+    Register ary;
+    int n;
+    Register src;
+    ISetarray(Register ary, int n, Register src) {
+        this.ary = ary;
+        this.n = n;
+        this.src = src;
+    }
+    public String toString() {
+        return super.toString("setarray", ary, n, src);
     }
 }
 

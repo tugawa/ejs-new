@@ -62,7 +62,8 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
             // localNames.addAll(hoistDeclarations_(ifstmt.getConsequent()));
             // localNames.addAll(hoistDeclarations_(ifstmt.getAlternate()));
             hoistDeclarations_(declIds, lexicalIds, ifstmt.getConsequent());
-            hoistDeclarations_(declIds, lexicalIds, ifstmt.getAlternate());
+            if (ifstmt.getAlternate() != null)
+                hoistDeclarations_(declIds, lexicalIds, ifstmt.getAlternate());
         } break;
         case Node.DO_WHILE_STMT: {
             IDoWhileStatement dowhile = (IDoWhileStatement) nd;

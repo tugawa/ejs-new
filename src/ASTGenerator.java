@@ -9,6 +9,7 @@ import antlr.ECMAScriptParser.*;
 import ast_node.*;
 import ast_node.Node.*;
 
+// for new JavaScript grammar definition
 
 public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	

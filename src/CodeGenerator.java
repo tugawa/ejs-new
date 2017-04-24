@@ -487,6 +487,14 @@ public class CodeGenerator {
             codeGen.compileThisExpression(node, bcBuilder, env, reg);
             return null;
         }
+        public Object visitArrayExpression(IASTArrayExpression node) {
+            codeGen.compileArrayExpression(node, bcBuilder, env, reg);
+            return null;
+        }
+        public Object visitObjectExpression(IASTObjectExpression node) {
+            codeGen.compileObjectExpression(node, bcBuilder, env, reg);
+            return null;
+        }
         public Object visitUnaryExpression(IASTUnaryExpression node) {
             codeGen.compileUnaryExpression(node, bcBuilder, env, reg);
             return null;
@@ -753,6 +761,46 @@ public class CodeGenerator {
     
     void compileThisExpression(IASTThisExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
         bcBuilder.push(new IMove(reg, env.getRegOfGlobalObj()));
+    }
+    
+    void compileArrayExpression(IASTArrayExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+        Register r1 = env.freshRegister();
+        Register r2 = env.freshRegister();
+        Register r3 = env.freshRegister();
+        Register[] argRegs = env.freshArgumentRegister(2);
+        bcBuilder.push(new IFixnum(r1, node.elements.size()));
+        bcBuilder.push(new IString(r2, "\"Array\""));
+        bcBuilder.push(new IGetglobal(r3, r2));
+        bcBuilder.push(new INew(reg, r3));
+        bcBuilder.push(new IMove(argRegs[0], r1));
+        bcBuilder.push(new IMove(argRegs[1], reg));
+        bcBuilder.push(new INewsend(r3, 1));
+        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.push(new IGeta(reg));
+        int i = 0;
+        for (IASTExpression element : node.elements) {
+            dispatcher.compile(element, bcBuilder, env, r1);
+            bcBuilder.push(new ISetarray(reg, i++, r1));
+        }
+    }
+    
+    void compileObjectExpression(IASTObjectExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+        Register r1 = env.freshRegister();
+        Register r2 = env.freshRegister();
+        // Register r3 = env.freshRegister();
+        Register[] argRegs = env.freshArgumentRegister(1);
+        bcBuilder.push(new IString(r1, "\"Object\""));
+        bcBuilder.push(new IGetglobal(r2, r1));
+        bcBuilder.push(new INew(reg, r2));
+        bcBuilder.push(new IMove(argRegs[0], reg));
+        bcBuilder.push(new INewsend(r2, 0));
+        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.push(new IGeta(reg));
+        for (IASTObjectExpression.Property prop : node.properties) {
+            dispatcher.compile(prop.value, bcBuilder, env, r1);
+            dispatcher.compile(prop.key, bcBuilder, env, r2);
+            bcBuilder.push(new ISetprop(reg, r2, r1));
+        }
     }
     
     void compileUnaryExpression(IASTUnaryExpression node, BCBuilder bcBuilder, Environment env, Register reg) {

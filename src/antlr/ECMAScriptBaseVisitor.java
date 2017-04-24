@@ -640,14 +640,14 @@ public class ECMAScriptBaseVisitor<T> extends AbstractParseTreeVisitor<T> implem
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitMemberExpr(ECMAScriptParser.MemberExprContext ctx) { return visitChildren(ctx); }
+	@Override public T visitNewExpression2(ECMAScriptParser.NewExpression2Context ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitNewExpression2(ECMAScriptParser.NewExpression2Context ctx) { return visitChildren(ctx); }
+	@Override public T visitMemberExpr(ECMAScriptParser.MemberExprContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
