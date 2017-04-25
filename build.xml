@@ -11,8 +11,8 @@
     <property name="source" value="1.7"/>
     <path id="ejs_compiler.classpath">
         <pathelement location="bin"/>
-        <pathelement location="libs/javax.json-1.0.4.jar"/>
-        <pathelement location="libs/antlr-4.5.3-complete.jar"/>
+        <pathelement location="../../../../../../../../../usr/local/lib/javax.json-1.0.4.jar"/>
+        <pathelement location="../../../../../../../../../usr/local/lib/antlr-4.5.3-complete.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -50,8 +50,15 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
+    <target name="ASTGenerator">
+        <java classname="est_nodes.ASTGenerator" failonerror="true" fork="yes">
+            <arg line="test.js"/>
+            <classpath refid="ejs_compiler.classpath"/>
+        </java>
+    </target>
     <target name="Main">
         <java classname="Main" failonerror="true" fork="yes">
+            <arg line="--estree&#10;--iast"/>
             <classpath refid="ejs_compiler.classpath"/>
         </java>
     </target>
