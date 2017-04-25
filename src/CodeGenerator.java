@@ -531,11 +531,12 @@ public class CodeGenerator {
         }
     }
     
-    public void compile(IASTProgram node) {
+    public List<BCode> compile(IASTProgram node) {
         BCBuilder bcBuilder = new BCBuilder();
         Environment env = new Environment();
         compileProgram(node, bcBuilder, env, null);
-        printByteCode(bcBuilder.build());
+        // printByteCode(bcBuilder.build());
+        return bcBuilder.build();
     }
     
     void compileProgram(IASTProgram node, BCBuilder bcBuilder, Environment env, Register reg) {
