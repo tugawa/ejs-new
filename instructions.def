@@ -53,9 +53,6 @@ send                  CALLOP
 newsend               CALLOP
 tailcall              CALLOP
 tailsend              CALLOP
-try                   TRYOP
-throw                 ONEOP
-finally               ZEROOP
 lightcall             CALLOP
 lightsend             CALLOP
 lighttailcall         CALLOP
@@ -202,6 +199,12 @@ arg                   TWOOP
 print                 ONEOP
 newline               ZEROOP
 #endif // J5MODE
+pushhandler           UNCONDJUMP
+pophandler            ZEROOP
+throw                 ZEROOP
+localcall             UNCONDJUMP
+localret              ZEROOP
+poplocal              ZEROOP
 error                 BIGPRIMITIVE
 unknown               UNKNOWNOP
 end                   ZEROOP
