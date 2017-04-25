@@ -257,11 +257,11 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitElementList(ECMAScriptParser.ElementListContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link ECMAScriptParser#elision_opt}.
+	 * Visit a parse tree produced by {@link ECMAScriptParser#elision}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitElision_opt(ECMAScriptParser.Elision_optContext ctx);
+	T visitElision(ECMAScriptParser.ElisionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link ECMAScriptParser#objectLiteral}.
 	 * @param ctx the parse tree
@@ -347,13 +347,6 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAssignmentExpression(ECMAScriptParser.AssignmentExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code LeftHandSideExpr}
-	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLeftHandSideExpr(ECMAScriptParser.LeftHandSideExprContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code LogicalAndExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
@@ -368,6 +361,13 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitInstanceofExpression(ECMAScriptParser.InstanceofExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code ObjectLiteralExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitObjectLiteralExpression(ECMAScriptParser.ObjectLiteralExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code PreDecreaseExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
@@ -375,12 +375,33 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitPreDecreaseExpression(ECMAScriptParser.PreDecreaseExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code ArrayLiteralExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArrayLiteralExpression(ECMAScriptParser.ArrayLiteralExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code InExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitInExpression(ECMAScriptParser.InExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ArgumentsExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArgumentsExpression(ECMAScriptParser.ArgumentsExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code MemberDotExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMemberDotExpression(ECMAScriptParser.MemberDotExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code NotExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
@@ -396,12 +417,12 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDeleteExpression(ECMAScriptParser.DeleteExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code UnaryMinusExpression}
+	 * Visit a parse tree produced by the {@code IdentifierExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitUnaryMinusExpression(ECMAScriptParser.UnaryMinusExpressionContext ctx);
+	T visitIdentifierExpression(ECMAScriptParser.IdentifierExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code BitAndExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
@@ -410,12 +431,26 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBitAndExpression(ECMAScriptParser.BitAndExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code UnaryMinusExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryMinusExpression(ECMAScriptParser.UnaryMinusExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code PreIncrementExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitPreIncrementExpression(ECMAScriptParser.PreIncrementExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code FunctionExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunctionExpression(ECMAScriptParser.FunctionExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code BitShiftExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
@@ -424,13 +459,6 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitBitShiftExpression(ECMAScriptParser.BitShiftExpressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code VoidExpression}
-	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitVoidExpression(ECMAScriptParser.VoidExpressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code LogicalOrExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
@@ -438,12 +466,33 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLogicalOrExpression(ECMAScriptParser.LogicalOrExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code VoidExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVoidExpression(ECMAScriptParser.VoidExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ParenthesizedExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParenthesizedExpression(ECMAScriptParser.ParenthesizedExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code UnaryPlusExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitUnaryPlusExpression(ECMAScriptParser.UnaryPlusExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code LiteralExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLiteralExpression(ECMAScriptParser.LiteralExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code BitNotExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
@@ -472,6 +521,13 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitAssignmentOperatorExpression(ECMAScriptParser.AssignmentOperatorExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code NewExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNewExpression(ECMAScriptParser.NewExpressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code PostDecreaseExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
@@ -508,145 +564,26 @@ public interface ECMAScriptVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitAdditiveExpression(ECMAScriptParser.AdditiveExpressionContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code MemberIndexExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitMemberIndexExpression(ECMAScriptParser.MemberIndexExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code ThisExpression}
+	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitThisExpression(ECMAScriptParser.ThisExpressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code MultiplicativeExpression}
 	 * labeled alternative in {@link ECMAScriptParser#singleExpression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitMultiplicativeExpression(ECMAScriptParser.MultiplicativeExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ThisExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitThisExpression(ECMAScriptParser.ThisExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code IdentifierExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitIdentifierExpression(ECMAScriptParser.IdentifierExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code LiteralExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitLiteralExpression(ECMAScriptParser.LiteralExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ArrayLiteralExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitArrayLiteralExpression(ECMAScriptParser.ArrayLiteralExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ObjectLiteralExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitObjectLiteralExpression(ECMAScriptParser.ObjectLiteralExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ParenthesizedExpression}
-	 * labeled alternative in {@link ECMAScriptParser#primaryExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitParenthesizedExpression(ECMAScriptParser.ParenthesizedExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code FunctionExpression}
-	 * labeled alternative in {@link ECMAScriptParser#memberExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitFunctionExpression(ECMAScriptParser.FunctionExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberDotExpression}
-	 * labeled alternative in {@link ECMAScriptParser#memberExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberDotExpression(ECMAScriptParser.MemberDotExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code PrimaryExpr}
-	 * labeled alternative in {@link ECMAScriptParser#memberExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPrimaryExpr(ECMAScriptParser.PrimaryExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code NewExpression1}
-	 * labeled alternative in {@link ECMAScriptParser#memberExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNewExpression1(ECMAScriptParser.NewExpression1Context ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberIndexExpression}
-	 * labeled alternative in {@link ECMAScriptParser#memberExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberIndexExpression(ECMAScriptParser.MemberIndexExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code NewExpression2}
-	 * labeled alternative in {@link ECMAScriptParser#newExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNewExpression2(ECMAScriptParser.NewExpression2Context ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberExpr}
-	 * labeled alternative in {@link ECMAScriptParser#newExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberExpr(ECMAScriptParser.MemberExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code ArgumentsExpression}
-	 * labeled alternative in {@link ECMAScriptParser#callExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitArgumentsExpression(ECMAScriptParser.ArgumentsExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberIndexExpression2}
-	 * labeled alternative in {@link ECMAScriptParser#callExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberIndexExpression2(ECMAScriptParser.MemberIndexExpression2Context ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberArgumentsExpression}
-	 * labeled alternative in {@link ECMAScriptParser#callExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberArgumentsExpression(ECMAScriptParser.MemberArgumentsExpressionContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code MemberDotExpression2}
-	 * labeled alternative in {@link ECMAScriptParser#callExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMemberDotExpression2(ECMAScriptParser.MemberDotExpression2Context ctx);
-	/**
-	 * Visit a parse tree produced by the {@code CallExpr}
-	 * labeled alternative in {@link ECMAScriptParser#leftHandSideExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitCallExpr(ECMAScriptParser.CallExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code NewExpr}
-	 * labeled alternative in {@link ECMAScriptParser#leftHandSideExpression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNewExpr(ECMAScriptParser.NewExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link ECMAScriptParser#assignmentOperator}.
 	 * @param ctx the parse tree

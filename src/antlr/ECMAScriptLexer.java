@@ -140,7 +140,7 @@ public class ECMAScriptLexer extends Lexer {
 	    // A flag indicating if the lexer should operate in strict mode.
 	    // When set to true, FutureReservedWords are tokenized, when false,
 	    // an octal literal can be tokenized.
-	    private boolean strictMode = false;   //true
+	    private boolean strictMode = true;
 
 	    // The most recently produced token.
 	    private Token lastToken = null;

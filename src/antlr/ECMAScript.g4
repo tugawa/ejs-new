@@ -52,17 +52,6 @@ grammar ECMAScript;
         return (ahead.getChannel() == Lexer.HIDDEN) && (ahead.getType() == type);
     }
 
-    private boolean here2(final int type) {
-
-        // Get the token ahead of the current index.
-        int possibleIndexEosToken = this.getCurrentToken().getTokenIndex() - 2;
-        Token ahead = _input.get(possibleIndexEosToken);
-
-        // Check if the token resides on the HIDDEN channel and if it's of the
-        // provided type.
-        return (ahead.getChannel() == Lexer.HIDDEN) && (ahead.getType() == type);
-    }
-	
     /**
      * Returns {@code true} iff on the current index of the parser's
      * token stream a token exists on the {@code HIDDEN} channel which
@@ -85,7 +74,7 @@ grammar ECMAScript;
             return false;
         }
 
-        if (ahead.getType() == LineTerminator) {        //改行
+        if (ahead.getType() == LineTerminator) {
             // There is definitely a line terminator ahead.
             return true;
         }
@@ -111,7 +100,7 @@ grammar ECMAScript;
     // A flag indicating if the lexer should operate in strict mode.
     // When set to true, FutureReservedWords are tokenized, when false,
     // an octal literal can be tokenized.
-    private boolean strictMode = false;   //true
+    private boolean strictMode = true;
 
     // The most recently produced token.
     private Token lastToken = null;
@@ -326,21 +315,21 @@ iterationStatement
 ///     continue ;
 ///     continue [no LineTerminator here] Identifier ;
 continueStatement
- : Continue ({!lineTerminatorAhead()}? Identifier eos | eos)
+ : Continue Identifier? eos
  ;
 
 /// BreakStatement :
 ///     break ;
 ///     break [no LineTerminator here] Identifier ;
 breakStatement
- :  Break ({!lineTerminatorAhead()}? Identifier eos | eos)
+ : Break Identifier? eos
  ;
 
 /// ReturnStatement :
 ///     return ;
 ///     return [no LineTerminator here] Expression ;
 returnStatement
- : Return ({!lineTerminatorAhead()}? expressionSequence eos | eos)
+ : Return expressionSequence? eos
  ;
 
 /// WithStatement :
@@ -390,7 +379,7 @@ labelledStatement
 /// ThrowStatement :
 ///     throw [no LineTerminator here] Expression ;
 throwStatement
- : Throw {!lineTerminatorAhead()}? expressionSequence eos
+ : Throw expressionSequence eos
  ;
 
 /// TryStatement :
@@ -445,21 +434,21 @@ functionBody
 ///     [ ElementList ]
 ///     [ ElementList , Elision? ]
 arrayLiteral
- : '[' elementList? ','? elision_opt']'
+ : '[' elementList? ','? elision? ']'
  ;
 
 /// ElementList :
 ///     Elision? AssignmentExpression
 ///     ElementList , Elision? AssignmentExpression
 elementList
- : elision_opt singleExpression ( ',' elision_opt singleExpression )*
+ : elision? singleExpression ( ',' elision? singleExpression )*
  ;
 
 /// Elision :
 ///     ,
 ///     Elision ,
-elision_opt
- : ','*
+elision
+ : ','+
  ;
 
 /// ObjectLiteral :
@@ -489,7 +478,7 @@ propertyAssignment
     
 /// PropertyName :
 ///     IdentifierName
-///     StringLiteral　
+///     StringLiteral
 ///     NumericLiteral
 propertyName
  : identifierName
@@ -637,7 +626,11 @@ expressionSequence
  ;
 
 singleExpression
- : leftHandSideExpression												  # LeftHandSideExpr
+ : Function Identifier? '(' formalParameterList? ')' '{' functionBody '}' # FunctionExpression
+ | singleExpression '[' expressionSequence ']'                            # MemberIndexExpression
+ | singleExpression '.' identifierName                                    # MemberDotExpression
+ | singleExpression arguments                                             # ArgumentsExpression
+ | New singleExpression arguments?                                        # NewExpression
  | singleExpression {!here(LineTerminator)}? '++'                         # PostIncrementExpression
  | singleExpression {!here(LineTerminator)}? '--'                         # PostDecreaseExpression
  | Delete singleExpression                                                # DeleteExpression
@@ -649,7 +642,7 @@ singleExpression
  | '-' singleExpression                                                   # UnaryMinusExpression
  | '~' singleExpression                                                   # BitNotExpression
  | '!' singleExpression                                                   # NotExpression
- | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression        
+ | singleExpression ( '*' | '/' | '%' ) singleExpression                  # MultiplicativeExpression
  | singleExpression ( '+' | '-' ) singleExpression                        # AdditiveExpression
  | singleExpression ( '<<' | '>>' | '>>>' ) singleExpression              # BitShiftExpression
  | singleExpression ( '<' | '>' | '<=' | '>=' ) singleExpression          # RelationalExpression
@@ -662,43 +655,14 @@ singleExpression
  | singleExpression '&&' singleExpression                                 # LogicalAndExpression
  | singleExpression '||' singleExpression                                 # LogicalOrExpression
  | singleExpression '?' singleExpression ':' singleExpression             # TernaryExpression
- | leftHandSideExpression '=' singleExpression                            # AssignmentExpression
- | leftHandSideExpression assignmentOperator singleExpression             # AssignmentOperatorExpression //修正
- ;
-
- primaryExpression
- : This                                                                   # ThisExpression
+ | singleExpression '=' singleExpression                                  # AssignmentExpression
+ | singleExpression assignmentOperator singleExpression                   # AssignmentOperatorExpression
+ | This                                                                   # ThisExpression
  | Identifier                                                             # IdentifierExpression
  | literal                                                                # LiteralExpression
  | arrayLiteral                                                           # ArrayLiteralExpression
  | objectLiteral                                                          # ObjectLiteralExpression
  | '(' expressionSequence ')'                                             # ParenthesizedExpression
- ;
- 
- memberExpression
- : primaryExpression										   			  # PrimaryExpr
- | Function Identifier? '(' formalParameterList? ')' '{' functionBody '}' # FunctionExpression
- | memberExpression '[' expressionSequence ']'                            # MemberIndexExpression
- | memberExpression '.' identifierName                                    # MemberDotExpression
- | New memberExpression arguments                                         # NewExpression1
- ;
-
- newExpression 
- : New newExpression		                                               	# NewExpression2
- | memberExpression														 	# MemberExpr
- ;
-
- callExpression
- : memberExpression arguments										# MemberArgumentsExpression
- | callExpression arguments                                         # ArgumentsExpression
- | callExpression '[' expressionSequence ']'						# MemberIndexExpression2
- | callExpression '.' identifierName								# MemberDotExpression2
- ;
-
- leftHandSideExpression
- : callExpression															#CallExpr 
- | newExpression															#NewExpr
-
  ;
 
 /// AssignmentOperator : one of
@@ -804,7 +768,7 @@ setter
 eos
  : SemiColon
  | EOF
- | {lineTerminatorAhead()}?          
+ | {lineTerminatorAhead()}?
  | {_input.LT(1).getType() == CloseBrace}?
  ;
 
@@ -820,7 +784,7 @@ RegularExpressionLiteral
 
 /// 7.3 Line Terminators
 LineTerminator
- : [\r\n\u2028\u2029] -> channel(HIDDEN)  //改行を消費
+ : [\r\n\u2028\u2029] -> channel(HIDDEN)
  ;
 
 OpenBracket                : '[';

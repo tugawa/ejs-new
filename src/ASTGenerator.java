@@ -4,23 +4,19 @@ import java.util.List;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import antlr.*;
-import antlr.ECMAScriptBaseVisitor;
 import antlr.ECMAScriptParser.*;
 import ast_node.*;
 import ast_node.Node.*;
 
-// for new JavaScript grammar definition
 
 public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	
 	@Override
 	public Node visitProgram(ECMAScriptParser.ProgramContext ctx) {
 		List<IStatement> decls = new ArrayList<IStatement>();
-		if (ctx.sourceElements() != null) {
-    		for (SourceElementContext el : ctx.sourceElements().sourceElement()) {
-    			IStatement decl = (IStatement) visit(el);
-    			decls.add(decl);
-    		}
+		for (SourceElementContext el : ctx.sourceElements().sourceElement()) {
+			IStatement decl = (IStatement) visit(el);
+			decls.add(decl);
 		}
 		return new Program(decls);
 	}
@@ -223,12 +219,12 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	
 	@Override
 	public Node visitForVarInStatement(ECMAScriptParser.ForVarInStatementContext ctx) {
-		List<IVariableDeclarator> varDeclList = new ArrayList<IVariableDeclarator>();
-		IVariableDeclarator varDecl = (IVariableDeclarator) visit(ctx.variableDeclaration());
-		varDeclList.add(varDecl);
+		List<IVariableDeclarator> decls = new ArrayList<IVariableDeclarator>();
+		decls.add((IVariableDeclarator) visit(ctx.variableDeclaration()));
+		IVariableDeclaration left = new VariableDeclaration(decls);
 		IExpression right = (IExpression) visit(ctx.expressionSequence());
 		IStatement body = (IStatement) visit(ctx.statement());
-		return new ForInStatement(new VariableDeclaration(varDeclList), right, body);
+		return new ForInStatement(left, right, body);
 	}
 	
 	@Override
@@ -263,26 +259,51 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitSwitchStatement(ECMAScriptParser.SwitchStatementContext ctx) {
-	    /* caseBlock and caseCause do no appear anywhere else in the grammar.
-	     * So it is safe to traverse directly these node of the parse tree.
-	     */
-		IExpression discriminant = (IExpression) visit(ctx.expressionSequence());
-		List<ISwitchCase> switchCases = new ArrayList<ISwitchCase>();
-		if (ctx.caseBlock().caseClauses(0) != null) {
-			for (CaseClauseContext switchList : ctx.caseBlock().caseClauses(0).caseClause()){
-				switchCases.add((SwitchCase)visit(switchList));
-			}
-		}
-		if (ctx.caseBlock().defaultClause() != null) {
-			switchCases.add((SwitchCase) visit(ctx.caseBlock().defaultClause()));
-		}
-		if (ctx.caseBlock().caseClauses(1) != null) {
-			for (CaseClauseContext switchList : ctx.caseBlock().caseClauses(1).caseClause()){
-				switchCases.add((SwitchCase)visit(switchList));
-			}
-		}
-		return new SwitchStatement(discriminant, switchCases);
+	    IExpression discriminant = (IExpression) visit(ctx.expressionSequence());
+	    List<ISwitchCase> switchCases = new ArrayList<ISwitchCase>();
+	    if (ctx.caseBlock().caseClauses(0) != null) {
+	        for (CaseClauseContext switchList : ctx.caseBlock().caseClauses(0).caseClause()) {
+	            switchCases.add((SwitchCase) visit(switchList));
+	        }
+	    }
+	    if (ctx.caseBlock().defaultClause() != null) {
+	        switchCases.add((SwitchCase) visit(ctx.caseBlock().defaultClause()));
+	    }
+	    if (ctx.caseBlock().caseClauses(1) != null) {
+	        for (CaseClauseContext switchList : ctx.caseBlock().caseClauses(1).caseClause()) {
+	            switchCases.add((SwitchCase) visit(switchList));
+	        }
+	    }
+	    return new SwitchStatement(discriminant, switchCases);
+		/*IExpression discriminant = (IExpression) visit(ctx.expressionSequence());
+		SwitchStatement switchStmt = (SwitchStatement) visit(ctx.caseBlock());
+		switchStmt.setDiscriminant(discriminant);
+		return switchStmt;*/
 	}
+
+	/*
+	@Override public Node visitCaseBlock(ECMAScriptParser.CaseBlockContext ctx) {
+		SwitchStatement switchStmt = (SwitchStatement) visit(ctx.caseClauses(0));
+		if (ctx.defaultClause() != null) {
+			switchStmt.setCase((SwitchCase) visit(ctx.defaultClause()));
+			if (ctx.caseClauses(1) != null) {
+				SwitchStatement switchStmt2 = (SwitchStatement) visit(ctx.caseClauses(1));
+				for (ISwitchCase sc : switchStmt2.getCases()) {
+					switchStmt.setCase(sc);
+				}
+			}
+		}
+		return switchStmt;
+	}*/
+
+	/*
+	@Override public Node visitCaseClauses(ECMAScriptParser.CaseClausesContext ctx) {
+		List<ISwitchCase> switchCases = new ArrayList<ISwitchCase>();
+		for (CaseClauseContext caseClauseCtx : ctx.caseClause()) {
+			switchCases.add((SwitchCase) visit(caseClauseCtx));
+		}
+		return new SwitchStatement(switchCases);
+	}*/
 
 	@Override public Node visitCaseClause(ECMAScriptParser.CaseClauseContext ctx) {
 		IExpression test = (IExpression) visit(ctx.expressionSequence());
@@ -305,7 +326,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		Identifier label = new Identifier(ctx.Identifier().getText());
 		IStatement statement = (IStatement) visit(ctx.statement());
 		
-		// statement������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������������
+		// statementがループの文だったときはラベルを教えてやらないといけない
 		if (statement.getTypeId() == Node.WHILE_STMT) {
 			((WhileStatement) statement).setLabel(label.getName());
 		} else if (statement.getTypeId() == Node.DO_WHILE_STMT) {
@@ -380,30 +401,20 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
 	@Override public Node visitArrayLiteral(ECMAScriptParser.ArrayLiteralContext ctx) {
 		List<IExpression> elements = new ArrayList<IExpression>();
-		//elision������������������������������������������������������������������������null���������������������������������������������
-		ctx.elision_opt();
 		if (ctx.elementList() != null) {
 			List<SingleExpressionContext> singleExprCtxList = ctx.elementList().singleExpression();
-			List<Elision_optContext> elisionOptContxList = ctx.elementList().elision_opt();
-			ArrayLiteral : for (Elision_optContext elisionOptCtx : elisionOptContxList) {
-			    for (int i = 0; i < elisionOptCtx.getChildCount(); i++) {
-			        elements.add((IExpression)null);
-			    }
-			    for (SingleExpressionContext singleExprCtx : singleExprCtxList) {
-			        elements.add((IExpression) visit(singleExprCtx));
-			        singleExprCtxList.remove(0);
-			        continue ArrayLiteral;
-			    }
+			
+			for (SingleExpressionContext singleExprCtx : singleExprCtxList) {
+				elements.add((IExpression) visit(singleExprCtx));
 			}
 		}
 		return new ArrayExpression(elements);
 	}
 
-	@Override public Node visitElementList(ECMAScriptParser.ElementListContext ctx) { 
-	    return visitChildren(ctx);
-	}
+	@Override public Node visitElementList(ECMAScriptParser.ElementListContext ctx) { return visitChildren(ctx); }
 
-	@Override public Node visitElision_opt(ECMAScriptParser.Elision_optContext ctx) { return visitChildren(ctx);}
+	@Override public Node visitElision(ECMAScriptParser.ElisionContext ctx) { return visitChildren(ctx); }
+	// @Override public Node visitElision_opt(ECMAScriptParser.Elision_optContext ctx) { return visitChildren(ctx); }
 
 	@Override public Node visitObjectLiteral(ECMAScriptParser.ObjectLiteralContext ctx) {
 		// System.out.println("ObjectLiteral");
@@ -411,7 +422,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		if (ctx.propertyNameAndValueList() != null) {
 			List<PropertyAssignmentContext> propAssignCtxList = ctx.propertyNameAndValueList().propertyAssignment();
 			for (PropertyAssignmentContext propAssignCtx : propAssignCtxList) {
-				props.add((IProperty) visit(propAssignCtx));
+				props.add((Property) visit(propAssignCtx));
 			}
 		}
 		return new ObjectExpression(props);
@@ -478,9 +489,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		return visitChildren(ctx);
 	}
 
-	@Override public Node visitPropertySetParameterList(ECMAScriptParser.PropertySetParameterListContext ctx) { 
-		return new Identifier(ctx.Identifier().getText());
-	}
+	@Override public Node visitPropertySetParameterList(ECMAScriptParser.PropertySetParameterListContext ctx) { return visitChildren(ctx); }
 
 	@Override public Node visitArguments(ECMAScriptParser.ArgumentsContext ctx) {
 		System.out.println("Arguments");
@@ -490,24 +499,12 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		System.out.println("ArgumentList");
 		return visitChildren(ctx); }
 
-	@Override public Node visitExpressionSequence(ECMAScriptParser.ExpressionSequenceContext ctx) {
-		if (ctx.singleExpression().size() == 1) {
-			return visit(ctx.singleExpression(0));
-		} else if (ctx.singleExpression(0) == null) {
-			return null;
-		}
-		List<IExpression> list = new ArrayList<IExpression>();
-		List<SingleExpressionContext> singleExpressionContext = ctx.singleExpression();
-		for (SingleExpressionContext sectx : singleExpressionContext) {
-			list.add((IExpression) visit(sectx));
-		}
-		return new SequenceExpression(list);
-	}
+	@Override public Node visitExpressionSequence(ECMAScriptParser.ExpressionSequenceContext ctx) { return visitChildren(ctx); }
 
 	@Override public Node visitTernaryExpression(ECMAScriptParser.TernaryExpressionContext ctx) {
 		IExpression test = (IExpression) visit(ctx.singleExpression(0));
-		IExpression consequent = (IExpression) visit(ctx.singleExpression(1));
-		IExpression alternate = (IExpression) visit(ctx.singleExpression(2));
+		IExpression alternate = (IExpression) visit(ctx.singleExpression(1));
+		IExpression consequent = (IExpression) visit(ctx.singleExpression(2));
 		return new ConditionalExpression(test, alternate, consequent);
 	}
 
@@ -518,8 +515,8 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitAssignmentExpression(ECMAScriptParser.AssignmentExpressionContext ctx) {
-		IExpression left = (IExpression) visit(ctx.leftHandSideExpression());
-		IExpression right = (IExpression) visit(ctx.singleExpression());
+		IExpression left = (IExpression) visit(ctx.singleExpression(0));
+		IExpression right = (IExpression) visit(ctx.singleExpression(1));
 		return new AssignmentExpression("=", left, right);
 	}
 
@@ -552,7 +549,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitArgumentsExpression(ECMAScriptParser.ArgumentsExpressionContext ctx) {
-		IExpression callee = (IExpression) visit(ctx.callExpression());
+		IExpression callee = (IExpression) visit(ctx.singleExpression());
 		List<IExpression> arguments = new ArrayList<IExpression>();
 		ArgumentListContext argumentsContext = ctx.arguments().argumentList();
 		if (argumentsContext != null) {
@@ -564,47 +561,9 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitMemberDotExpression(ECMAScriptParser.MemberDotExpressionContext ctx) {
-		IExpression object = (IExpression) visit(ctx.memberExpression());
+		IExpression object = (IExpression) visit(ctx.singleExpression());
 		IExpression property = (IExpression) visit(ctx.identifierName());
 		return new MemberExpression(object, property, false);
-	}
-
-	@Override public Node visitMemberDotExpression2(ECMAScriptParser.MemberDotExpression2Context ctx) {
-	    IExpression object = (IExpression) visit(ctx.callExpression());
-	    IExpression property = (IExpression) visit(ctx.identifierName());
-	    return new MemberExpression(object, property, false);
-	}
-
-	@Override public Node visitLeftHandSideExpr(ECMAScriptParser.LeftHandSideExprContext ctx) {
-	    return visit(ctx.leftHandSideExpression());
-	}
-	
-	@Override public Node visitNewExpr(ECMAScriptParser.NewExprContext ctx) {
-	    return visit(ctx.newExpression());
-	}
-	
-	@Override public Node visitCallExpr(ECMAScriptParser.CallExprContext ctx) {
-	    return visit(ctx.callExpression());
-	}
-	
-	@Override public Node visitMemberExpr(ECMAScriptParser.MemberExprContext ctx) {
-	    return visit(ctx.memberExpression());
-	}
-	
-	@Override public Node visitPrimaryExpr(ECMAScriptParser.PrimaryExprContext ctx) {
-        return visit(ctx.primaryExpression());
-    }
-	
-	@Override public Node visitMemberArgumentsExpression(ECMAScriptParser.MemberArgumentsExpressionContext ctx) {
-	    IExpression callee = (IExpression) visit(ctx.memberExpression());
-	    List<IExpression> arguments = new ArrayList<IExpression>();
-	    ArgumentListContext argumentsContext = ctx.arguments().argumentList();
-	    if (argumentsContext != null) {
-	        for (SingleExpressionContext sectx : argumentsContext.singleExpression()) {
-	            arguments.add((IExpression) visit(sectx));
-	        }
-	    }
-	    return new CallExpression(callee, arguments);
 	}
 
 	@Override public Node visitNotExpression(ECMAScriptParser.NotExpressionContext ctx) {
@@ -647,9 +606,6 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitFunctionExpression(ECMAScriptParser.FunctionExpressionContext ctx) {
-		IIdentifier id = null;
-		if (ctx.Identifier() != null)
-			id = new Identifier(ctx.Identifier().getText()); 
 		List<IPattern> params = new ArrayList<IPattern>();
 		FormalParameterListContext fplist = ctx.formalParameterList();
 		if (fplist != null) {
@@ -658,7 +614,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			}
 		}
 		BlockStatement body = (BlockStatement) visit(ctx.functionBody());
-		return new FunctionExpression(id, params, body);
+		return new FunctionExpression(null, params, body);
 	}
 
 	@Override public Node visitBitShiftExpression(ECMAScriptParser.BitShiftExpressionContext ctx) {
@@ -709,42 +665,16 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
 	@Override public Node visitAssignmentOperatorExpression(ECMAScriptParser.AssignmentOperatorExpressionContext ctx) {
 		String op = ctx.assignmentOperator().getText();
-		IExpression left = (IExpression) visit(ctx.leftHandSideExpression());
-		IExpression right = (IExpression) visit(ctx.singleExpression());
+		IExpression left = (IExpression) visit(ctx.singleExpression(0));
+		IExpression right = (IExpression) visit(ctx.singleExpression(1));
 		return new AssignmentExpression(op, left, right);
 	}
 
-	   @Override public Node visitNewExpression1(ECMAScriptParser.NewExpression1Context ctx) {    
-	        IExpression exp = (IExpression) visit(ctx.memberExpression());
-	        List<IExpression> arguments = new ArrayList<IExpression>();
-	        if (ctx.arguments() != null) {
-	            ArgumentListContext argumentsContext = ctx.arguments().argumentList();
-	            if (argumentsContext != null) {
-	                for (SingleExpressionContext sectx : argumentsContext.singleExpression()) {
-	                    arguments.add((IExpression) visit(sectx));
-	                }
-	            }
-	        }
-	        return new NewExpression(exp, arguments);
-	   }
-	        @Override public Node visitNewExpression2(ECMAScriptParser.NewExpression2Context ctx) {    
-	            IExpression exp = (IExpression) visit(ctx.newExpression());
-	            return new NewExpression(exp, null);
-	        }
-	        /*
-	@Override public Node visitNewExpression(ECMAScriptParser.NewExpressionContext ctx) {    
+	@Override public Node visitNewExpression(ECMAScriptParser.NewExpressionContext ctx) {
 		IExpression exp = (IExpression) visit(ctx.singleExpression());
-		List<IExpression> arguments = new ArrayList<IExpression>();
-		if (ctx.arguments() != null) {
-			ArgumentListContext argumentsContext = ctx.arguments().argumentList();
-			if (argumentsContext != null) {
-				for (SingleExpressionContext sectx : argumentsContext.singleExpression()) {
-					arguments.add((IExpression) visit(sectx));
-				}
-			}
-		}
-		return new NewExpression(exp, arguments);
-	}
+    return new NewExpression(
+        ((CallExpression) exp).getCallee(),
+        ((CallExpression) exp).getArguments());
 
 /*
     IExpression callee;
@@ -781,6 +711,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
       }
     }
     */
+  }
 
 	@Override public Node visitPostDecreaseExpression(ECMAScriptParser.PostDecreaseExpressionContext ctx) {
 		IExpression argument = (IExpression) visit(ctx.singleExpression());
@@ -812,15 +743,9 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitMemberIndexExpression(ECMAScriptParser.MemberIndexExpressionContext ctx) {
-		IExpression object = (IExpression) visit(ctx.memberExpression());
+		IExpression object = (IExpression) visit(ctx.singleExpression());
 		IExpression property = (IExpression) visit(ctx.expressionSequence());
 		return new MemberExpression(object, property, true);
-	}
-
-	@Override public Node visitMemberIndexExpression2(ECMAScriptParser.MemberIndexExpression2Context ctx) {
-	    IExpression object = (IExpression) visit(ctx.callExpression());
-	    IExpression property = (IExpression) visit(ctx.expressionSequence());
-	    return new MemberExpression(object, property, true);
 	}
 
 	@Override public Node visitThisExpression(ECMAScriptParser.ThisExpressionContext ctx) {
