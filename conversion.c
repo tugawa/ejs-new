@@ -647,6 +647,14 @@ double to_double(Context *context, JSValue v) {
   return NAN;                 // not reached
 }
 
+JSValue number_to_cint(JSValue n)
+{
+  if (is_fixnum(n))
+    return fixnum_to_cint(n);
+  else
+    return (int) flonum_to_double(n);
+}
+
 char *type_name(JSValue v) {
   if (is_string(v)) return "String";
   if (is_fixnum(v)) return "Fixnum";

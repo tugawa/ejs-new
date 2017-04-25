@@ -150,6 +150,7 @@ extern JSValue to_string(Context *, JSValue);
 extern JSValue to_boolean(JSValue v);
 extern JSValue to_number(Context *, JSValue);
 extern double to_double(Context *, JSValue);
+extern JSValue number_to_cint(JSValue n);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
 

@@ -2601,14 +2601,6 @@ I_END:
   return 1;
 }
 
-JSValue number_to_cint(JSValue n)
-{
-  if (is_fixnum(n))
-    return fixnum_to_cint(n);
-  else
-    return (int) flonum_to_double(n);
-}
-
 static void exhandler_stack_push(Context* context, int pc, int fp)
 {
   int sp = context->exhandler_stack_ptr;
