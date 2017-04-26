@@ -52,7 +52,7 @@ extern "C" {
  */
 extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
-extern JSValue allocate_string2(const char *, const char *);
+extern JSValue allocate_string2(Context *ctx, const char *, const char *);
 extern Object *allocate_object(Context *ctx);
 extern ArrayCell *allocate_array(Context *ctx);
 extern void allocate_array_data(Context *, JSValue, int, int);

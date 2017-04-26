@@ -288,7 +288,8 @@ I_ADD:
         regbase[dst] = str_intern2(context, s1, len1, s2, len2,
                                    calc_hash2(s1, s2), INTERN_HARD);
 #else
-        regbase[dst] = cstr_to_string2(string_to_cstr(v1), string_to_cStr(v2));
+        regbase[dst] = cstr_to_string2(context,
+				       string_to_cstr(v1), string_to_cStr(v2));
 #endif
       }
       break;

@@ -436,7 +436,7 @@ typedef struct string_cell {
 #define cstr_to_string(str) \
   (str_intern(str, strlen(str), calc_hash(str), INTERN_HARD))
 
-#define cstr_to_string2(str1, str2) (allocate_string2(str1, str2))
+#define cstr_to_string2(ctx, str1, str2) (allocate_string2(ctx, str1, str2))
 
 /*
    Object header

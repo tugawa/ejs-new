@@ -54,7 +54,7 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
     v1 = fixnum_to_string(v1);
   case TP_STRSTR:
 STRSTR:
-    return cstr_to_string2(string_to_cstr(v1), string_to_cstr(v2));
+    return cstr_to_string2(context, string_to_cstr(v1), string_to_cstr(v2));
   case TP_FIXFIX:
     {
       cint sum = fixnum_to_cint(v1) + fixnum_to_cint(v2);
