@@ -255,8 +255,8 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
     retv = obj_n_props(obj);
     if (retv >= obj_limit_props(obj)) {
       // The property array is full
-      printf("proptable full: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
-             obj_n_props(obj), obj_limit_props(obj));
+      //      printf("proptable full: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
+      //             obj_n_props(obj), obj_limit_props(obj));
       if ((newsize = increase_psize(retv)) == retv) {
         LOG_EXIT("proptable overflow\n");
         return FAIL;
@@ -265,8 +265,8 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
       gc_pop_tmp_root(3);
       obj_limit_props(obj) = newsize;
-      printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
-             obj_n_props(obj), obj_limit_props(obj));
+      //      printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
+      //             obj_n_props(obj), obj_limit_props(obj));
     }
     index = (cint)retv;
     // printf("set_prop_with_index: index = %d\n", index);
