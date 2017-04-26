@@ -132,7 +132,6 @@ typedef struct hidden_class {
 #endif
 
 typedef struct object_cell {
-  //  uint64_t header;        // header
   uint64_t n_props;       // number of properties
   uint64_t limit_props;   //
 #ifdef HIDDEN_CLASS
@@ -148,7 +147,6 @@ typedef struct object_cell {
 #define remove_object_tag(p)   ((Object *)(remove_tag((p), T_OBJECT)))
 #define make_object(ctx)       (put_object_tag(allocate_object(ctx)))
 
-#define obj_header(p)          ((remove_object_tag(p))->header)
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
 #ifdef HIDDEN_CLASS
@@ -160,11 +158,8 @@ typedef struct object_cell {
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
-// #define is_callable(p)     (is_object(p) && (isFunction(p) || isBuiltin(p) || isForeign(p)))
-//#define obj_header_tag(x)    ((Tag)(obj_header(x) & HEADER_TYPE_MASK))
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-#define obj_size(x)            (obj_header(x) >> HEADER_SIZE_OFFSET)
 
 #define PSIZE_NORMAL  20  // default initial size of the property array
 #define PSIZE_BIG    100
@@ -392,7 +387,6 @@ typedef struct boxed_cell {
    tag == T_FLONUM
  */
 typedef struct flonum_cell {
-  uint64_t header;
   double value;
 } FlonumCell;
 
@@ -417,7 +411,6 @@ typedef struct flonum_cell {
    tag == T_STRING
  */
 typedef struct string_cell {
-  uint64_t header;
 #ifdef STROBJ_HAS_HASH
   uint32_t hash;           // hash value before computing mod
   uint32_t length;         // length of the string
