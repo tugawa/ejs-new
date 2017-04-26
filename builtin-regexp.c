@@ -1,3 +1,24 @@
+/*
+   builtin-regexp.c
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
@@ -37,17 +58,17 @@ int cstr_to_regexp_flag(char *cstr, int *flag) {
   return SUCCESS;
 }
 
-int regexp_constructor_sub(char *pat, char *flagstr, JSValue *dst) {
+int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr, JSValue *dst) {
   JSValue re;
   int flag, err;
-
+  
   if ((err = cstr_to_regexp_flag(flagstr, &flag)) == FAIL)
     return FAIL;
-  if ((re = new_regexp(pat, flag)) == JS_UNDEFINED)
+  if ((re = new_normal_regexp(ctx, pat, flag)) == JS_UNDEFINED)
     return FAIL;
-  set_obj_cstr_prop(re, "source", cstr_to_string(pat), ATTR_ALL);
+  set_obj_cstr_prop(ctx, re, "source", cstr_to_string(pat), ATTR_ALL);
   regexp_lastindex(re) = 0;
-  set_obj_cstr_prop(re, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
+  set_obj_cstr_prop(ctx, re, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
   *dst = re;
   return SUCCESS;
 }
@@ -59,7 +80,7 @@ void regexp_constr_general(Context *context, int fp, int na, int new) {
   builtin_prologue();
   switch (na) {
   case 0:
-    regexp_constructor_sub("", "", &res);
+    regexp_constructor_sub(context, "", "", &res);
     set_a(context, res);
     return;
   case 1:
@@ -69,17 +90,17 @@ LAB1:
     pat = args[1];
     if (is_regexp(pat)) {
       if (new == TRUE)
-        regexp_constructor_sub(regexp_pattern(pat), cstrflag, &res);
+        regexp_constructor_sub(context, regexp_pattern(pat), cstrflag, &res);
       else
         res = pat;
     } else if (pat == JS_UNDEFINED)
-      regexp_constructor_sub("", cstrflag, &res);
+      regexp_constructor_sub(context, "", cstrflag, &res);
     else {
       pat = to_string(context, pat);
       if (is_string(pat))
-        regexp_constructor_sub(string_value(pat), cstrflag, &res);
+        regexp_constructor_sub(context, string_value(pat), cstrflag, &res);
       else
-        regexp_constructor_sub("", cstrflag, &res);
+        regexp_constructor_sub(context, "", cstrflag, &res);
     }
     break;
   default:
@@ -91,7 +112,7 @@ LAB1:
   set_a(context, res);
 }
 
-JSValue regexp_exec(Context* context, JSValue rsv, char *cstr) {
+JSValue regexp_exec(Context* ctx, JSValue rsv, char *cstr) {
   return JS_NULL;
 }
 
@@ -227,19 +248,21 @@ ObjBuiltinProp regexp_funcs[] = {
   { NULL,             NULL,                         0, ATTR_DE }
 };
 
-void init_builtin_regexp(void)
+void init_builtin_regexp(Context *ctx)
 {
   JSValue r, proto;
 
   gconsts.g_regexp = r =
-    new_builtin_with_constr(regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = proto = new_object(NULL);
-  set_prop_all(r, gconsts.g_string_prototype, proto);
-  set_obj_cstr_prop(proto, "constructor", r, ATTR_DE);
+    new_normal_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
+  gconsts.g_regexp_proto = proto =
+    new_normal_predef_object(ctx);
+  set_prototype_all(ctx, r, proto);
+  set_obj_cstr_prop(ctx, proto, "constructor", r, ATTR_DE);
   {
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, proto, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

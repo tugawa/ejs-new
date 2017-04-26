@@ -1,14 +1,22 @@
 /*
    prefix.h
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #ifndef PREFIX_H_
@@ -30,6 +38,7 @@
 //#define USE_ASM2
 //#define CALC_CALL
 
+#define HIDDEN_CLASS
 
 #if 0
 #ifdef DEBUG_PRINT

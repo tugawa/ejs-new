@@ -1,6 +1,6 @@
 ## Uncomment after editing options and paths
 #
-# all: ssjsvm
+# all: ejsvm
 #
 
 CC = clang
@@ -56,6 +56,7 @@ HFILES = $(GENERATED_HFILES) \
 	 types.h \
 	 globals.h \
 	 extern.h \
+	 log.h \
 	 gc.h
 
 OFILES = allocate.o \
@@ -85,14 +86,13 @@ SEDCOM_GEN_INSN_LABEL  = 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/'
 SED = gsed
 RUBY = ruby
 
-
 message:
 	@echo "This is a template of Makefile.  Copy Makefile to your own"
 	@echo "Makefile such as Makefile.mine, edit it, and make with your"
 	@echo "own Makefile."
 	@echo "   make -f Makefile.mine"
 
-ssjsvm :: $(OFILES)
+ejsvm :: $(OFILES)
 	$(CC) -o $@ $^ $(LIBS)
 
 instructions-opcode.h: instructions.def

@@ -1,14 +1,22 @@
 /*
    types.h
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #ifndef TYPES_H_
@@ -89,15 +97,50 @@ typedef uint16_t Tag;
    Object
    tag == T_OBJECT
  */
+#ifdef HIDDEN_CLASS
+/*
+   Hidden Class Transition
+
+   A hidden class has a hash table, where each key is a property name
+   represented in a JS string.
+   Associated value for a key is either an index in the property array
+   (as a fixnum) or a pointer to the next hidden class.
+   The former is called `index entry' and the latter is called `transition
+   entry'.
+   Member n_entries has the number of entries registered in the map, i.e.,
+   the sum of the number of index entries and that of the transition entries.
+ */
+typedef struct hidden_class {
+  uint32_t n_entries;
+  int htype;              // HTYPE_TRANSIT or HTYPE_GROW
+  uint32_t n_enter;       // number of times this class is used
+  uint32_t n_exit;        // number of times this class is left
+  HashTable *map;         // map which is explained above
+} HiddenClass;
+
+#define hidden_n_entries(h)    ((h)->n_entries)
+#define hidden_htype(h)        ((h)->htype)
+#define hidden_n_enter(h)      ((h)->n_enter)
+#define hidden_n_exit(h)       ((h)->n_exit)
+#define hidden_map(h)          ((h)->map)
+
+#define HTYPE_TRANSIT   0
+#define HTYPE_GROW      1
+
+// #define new_empty_hidden_class(cxt, name, hsize)      \
+//   new_hidden_class(cxt, NULL, name, 0, hsize)
+#endif
+
 typedef struct object_cell {
   //  uint64_t header;        // header
   uint64_t n_props;       // number of properties
   uint64_t limit_props;   //
+#ifdef HIDDEN_CLASS
+  HiddenClass *class;     // Hidden class for this object
+#else
   HashTable *map;         // map from property name to the index within prop
-  JSValue *prop;          // array of property values
-#ifdef PARALLEL
-  pthread_mutex_t mutex;
 #endif
+  JSValue *prop;          // array of property values
 } Object;
 
 #define is_object(p)           (equal_tag((p), T_OBJECT))
@@ -108,7 +151,12 @@ typedef struct object_cell {
 #define obj_header(p)          ((remove_object_tag(p))->header)
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
+#ifdef HIDDEN_CLASS
+#define obj_hidden_class(p)    ((remove_object_tag(p))->class)
+#define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
+#else
 #define obj_map(p)             ((remove_object_tag(p))->map)
+#endif
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
@@ -118,14 +166,51 @@ typedef struct object_cell {
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 #define obj_size(x)            (obj_header(x) >> HEADER_SIZE_OFFSET)
 
-#define PSIZE_INIT   20       // default initial size of the property array
-#define PSIZE_DELTA  20       // delta when expanding the property array
-#define PSIZE_LIMIT  500      // limit size of the property array
-#define HSIZE_INIT   30       // default initial size of the map (hash table)
-#define PSIZE_BUILTIN_INIT 100  // PSIZE_INIT for built-in objects
-#define HSIZE_BUILTIN_INIT 100  // HSIZE_INIT for built-in objects
+#define PSIZE_NORMAL  20  // default initial size of the property array
+#define PSIZE_BIG    100
+#define PSIZE_DELTA   20  // delta when expanding the property array
+#define PSIZE_LIMIT  500  // limit size of the property array
+#define HSIZE_NORMAL  30  // default initial size of the map (hash table)
+#define HSIZE_BIG    100
 
 #define increase_psize(n)     (((n) >= PSIZE_LIMIT)? (n): ((n) + PSIZE_DELTA))
+
+#ifdef HIDDEN_CLASS
+#define HHH 0
+#else
+#define HHH HSIZE_NORMAL
+#endif
+
+#define new_normal_object(ctx)  new_object(ctx, HHH, PSIZE_NORMAL)
+#define new_normal_predef_object(ctx) \
+  new_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
+#define new_big_predef_object(ctx) new_object(ctx, HSIZE_BIG, PSIZE_BIG)
+#define new_big_predef_object_without_prototype(ctx) \
+  new_object_without_prototype(ctx, HSIZE_BIG, PSIZE_BIG)
+
+#define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
+
+#define new_normal_builtin(ctx, f, na) \
+  new_builtin(ctx, f, na, HHH, PSIZE_NORMAL)
+#define new_normal_builtin_with_constr(ctx, f, cons, na) \
+  new_builtin_with_constr(ctx, f, cons, na, HHH, PSIZE_NORMAL)
+
+#define new_big_builtin(ctx, f, cons, na) \
+  new_builtin(ctx, f, na, HSIZE_BIG, PSIZE_BIG)
+#define new_big_builtin_with_constr(ctx, f, cons, na) \
+  new_builtin_with_constr(ctx, f, cons, na, HSIZE_BIG, PSIZE_BIG)
+
+#define new_normal_array(ctx) new_array(ctx, HHH, PSIZE_NORMAL)
+#define new_normal_array_with_size(ctx, n) \
+  new_array_with_size(ctx, n, HHH, PSIZE_NORMAL)
+#define new_normal_number(ctx, v) new_number(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_boolean(ctx, v) new_boolean(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_string(ctx, v) new_string(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_iterator(ctx, o) new_iterator(ctx, o, HHH, PSIZE_NORMAL)
+
+#ifdef USE_REGEXP
+#define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
+#endif
 
 /*
    Array
@@ -231,7 +316,11 @@ typedef struct iterator_cell {
 #define make_iterator()          (put_iterator_tag(allocate_iterator()))
 
 #define iterator_object_p(i)     (&((remove_iterator_tag(i))->o))
+#ifdef HIDDEN_CLASS
+#define iterator_object_map(i) (hidden_map((remove_iterator_tag(i))->o.class))
+#else
 #define iterator_object_map(i)   ((remove_iterator_tag(i))->o.map)
+#endif
 #define iterator_object_prop_index(i,k) ((remove_iterator_tag(i))->o.prop[k])
 #define iterator_iter(i)         ((remove_iterator_tag(i))->iter)
 
@@ -397,20 +486,9 @@ typedef struct string_cell {
 #define HTAG_STR_CONS       (0x15)
 #define HTAG_CONTEXT        (0x16)
 #define HTAG_STACK          (0x17)
-
-/* HEADER_xxx are obsolete */
-#define HEADER_COMMON(cell, htag) \
-   (make_header((sizeof(cell) / BYTES_IN_JSVALUE), htag))
-#define HEADER_FLONUM         HEADER_COMMON(FlonumCell, HTAG_FLONUM)
-#define HEADER_OBJECT         HEADER_COMMON(Object, HTAG_OBJECT)
-#define HEADER_ARRAY          HEADER_COMMON(ArrayCell, HTAG_ARRAY)
-#define HEADER_FUNCTION       HEADER_COMMON(FunctionCell, HTAG_FUNCTION)
-#define HEADER_BUILTIN        HEADER_COMMON(BuiltinCell, HTAG_BUILTIN)
-#define HEADER_ITERATOR       HEADER_COMMON(IteratorCell, HTAG_ITERATOR)
-#define HEADER_REGEXP         HEADER_COMMON(RegexpCell, HTAG_REGEXP)
-#define HEADER_BOXED_STRING   HEADER_COMMON(BoxedCell, HTAG_BOXED_STRING)
-#define HEADER_BOXED_NUMBER   HEADER_COMMON(BoxedCell, HTAG_BOXED_NUMBER)
-#define HEADER_BOXED_BOOLEAN  HEADER_COMMON(BoxedCell, HTAG_BOXED_BOOLEAN)
+#ifdef HIDDEN_CLASS
+#define HTAG_HIDDEN_CLASS   (0x18)
+#endif
 
 /*
    Fixnum
@@ -524,12 +602,28 @@ typedef uint64_t cuint;
    by a string object or a C string.
  */
 
-#define set_prop_none(o, s, v) set_prop_with_attribute(o, s, v, ATTR_NONE)
-#define set_prop_all(o, s, v) set_prop_with_attribute(o, s, v, ATTR_ALL)
-#define set_prop_de(o, s, v) set_prop_with_attribute(o, s, v, ATTR_DE)
+#define set_prop_none(c, o, s, v) \
+  set_prop_with_attribute(c, o, s, v, ATTR_NONE)
+#define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
+#define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
 
-#define set_obj_cstr_prop(o, s, v, attr) \
-  set_prop_with_attribute(o, cstr_to_string(s), v, attr)
-#define set_obj_cstr_prop_none(o, s, v) set_obj_cstr_prop(o, s, v, ATTR_NONE)
+#define set___proto___none(c, o, v) \
+  set_prop_none(c, o, gconsts.g_string___proto__, v)
+#define set___proto___all(c, o, v) \
+  set_prop_all(c, o, gconsts.g_string___proto__, v)
+#define set___proto___de(c, o, v) \
+  set_prop_de(c, o, gconsts.g_string___proto__, v)
+#define set_prototype_none(c, o, v) \
+  set_prop_none(c, o, gconsts.g_string_prototype, v)
+#define set_prototype_all(c, o, v) \
+  set_prop_all(c, o, gconsts.g_string_prototype, v)
+#define set_prototype_de(c, o, v) \
+  set_prop_de(c, o, gconsts.g_string_prototype, v)
 
+#define set_obj_cstr_prop(c, o, s, v, attr) \
+  set_prop_with_attribute(c, o, cstr_to_string(s), v, attr)
+#define set_obj_cstr_prop_none(c, o, s, v) \
+  set_obj_cstr_prop(c, o, s, v, ATTR_NONE)
+
+#define get___proto__(o, r) get_prop(o, gconsts.g_string___proto__, r)
 #endif

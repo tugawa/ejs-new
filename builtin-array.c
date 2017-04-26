@@ -1,15 +1,23 @@
 /*
    builtin-array.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
- */
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
 
 #include "prefix.h"
 #define EXTERN extern
@@ -42,21 +50,21 @@ BUILTIN_FUNCTION(array_constr)
   cint size, length;
 
   builtin_prologue();
-  rsv = new_array(context);  // note: new_array sets the `length' property to 0
+  rsv = new_normal_array(context); // this sets the `length' property to 0
   gc_push_tmp_root(&rsv);
   if (na == 0) {
     allocate_array_data(context, rsv, ASIZE_INIT, 0);
-    set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
+    set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
   } else if (na == 1) {
     JSValue n = args[1];  // GC: n is used in uninterraptible section
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
       size = compute_asize(length);
       allocate_array_data(context, rsv, size, length);
       // printf("array_constr: length = %ld, size = %ld, rsv = %lx\n", length, size, rsv);
-      set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
+      set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
     } else {
       allocate_array_data(context, rsv, ASIZE_INIT, 0);
-      set_prop_none(rsv, gconsts.g_string_length, FIXNUM_ZERO);
+      set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
     }
   } else {
     /*
@@ -68,7 +76,7 @@ BUILTIN_FUNCTION(array_constr)
     length = na;
     size = compute_asize(length);
     allocate_array_data(context, rsv, size, length);
-    set_prop_none(rsv, gconsts.g_string_length, cint_to_fixnum(length));
+    set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
     for (i = 0; i < length; i++)
       array_body_index(rsv, i) = args[i];
   }
@@ -208,7 +216,7 @@ BUILTIN_FUNCTION(array_pop)
   else
     ret = get_prop_prototype_chain(a, flen);
   array_length(a) = len;
-  set_prop_none(a, gconsts.g_string_length, flen);
+  set_prop_none(context, a, gconsts.g_string_length, flen);
   set_a(context, ret);
   return;
 }
@@ -447,17 +455,19 @@ ObjBuiltinProp array_funcs[] = {
   { NULL,             NULL,                 0, ATTR_DE }
 };
 
-void init_builtin_array(void)
+void init_builtin_array(Context *ctx)
 {
   JSValue proto;
 
-  gconsts.g_array = new_builtin_with_constr(array_constr, array_constr, 0);
-  gconsts.g_array_proto = proto = new_object(NULL);
-  set_prop_all(gconsts.g_array, gconsts.g_string_prototype, proto);
+  gconsts.g_array =
+    new_normal_builtin_with_constr(ctx, array_constr, array_constr, 0);
+  gconsts.g_array_proto = proto = new_big_predef_object(ctx);
+  set_prototype_all(ctx, gconsts.g_array, proto);
   {
     ObjBuiltinProp *p = array_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(proto, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, proto, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

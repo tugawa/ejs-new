@@ -1,14 +1,22 @@
 /*
    context.h
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 /*
@@ -16,18 +24,14 @@
  */
 //volatile
 typedef struct function_table {
-  int call_entry;             // entry of a function call
-  int send_entry;             // entry of a method call
-  int n_locals;               // number of locals
-  Instruction *insns;         // array of instructions followed by constant pool
-#ifdef PARALLEL
-  Instruction *parallelInsns; // array of instrumented instructions for
-                              // parallel execution
-#endif
-  InsnLabel *insn_ptr;        // array of instruction labels for threaded code
-  bool insn_ptr_created;      // flag whether insn_ptr has been generated or not
-  int body_size;              // number of elements in insns
-  int n_insns;                // number of instructions
+  int call_entry;           // entry of a function call
+  int send_entry;           // entry of a method call
+  int n_locals;             // number of locals
+  Instruction *insns;       // array of instructions followed by constant pool
+  InsnLabel *insn_ptr;      // array of instruction labels for threaded code
+  bool insn_ptr_created;    // flag whether insn_ptr has been generated or not
+  int body_size;            // number of elements in insns
+  int n_insns;              // number of instructions
 } FunctionTable;
 
 #define ftab_call_entry(f)       ((f)->call_entry)
@@ -40,9 +44,6 @@ typedef struct function_table {
  */
 typedef struct function_frame {
   struct function_frame *prev_frame;
-#ifdef PARALLEL
-  pthread_mutex_t mutex;
-#endif
   JSValue arguments;
   JSValue locals[];
 } FunctionFrame;
@@ -86,11 +87,6 @@ typedef struct context {
   int lcall_stack_ptr;
 #ifdef USE_FFI
   struct foreign_env_cell *fenv;
-#endif
-#ifdef PARALLEL
-  bool inParallel;
-  int threadId;
-  EventQueue *eventQueue;
 #endif
 } Context;
 
@@ -177,35 +173,5 @@ typedef struct context {
 
 #define ARRAY_INDEX_MAX     (0x7fffffff)
 // #define INITIAL_ARRAY_SIZE  (1000)
-
-#ifdef PARALLEL
-
-#define updateContext() do{ \
-currentFunction = getCf(c); \
-codesize = currentFunction->numberOfInstructions; \
-pc = getPc(c); \
-cfp = getFp(c); \
-insns = (c->inParallel ? currentFunction->parallelInsns : currentFunction->insns) + pc; \
-regBase = (JSValue*)&Stack(c, cfp) - 1; \
-if(!currentFunction->instPtrCreated){ \
-  makeInstPtr(currentFunction, jumpTable, c->inParallel); } \
-instPtr = currentFunction->instPtr + pc; \
-}while(0)
-
-#else
-
-#define updateContext() do{                             \
-currentFunction = getCf(c);                       \
-codesize = currentFunction->numberOfInstructions;       \
-pc = getPc(c);                                    \
-cfp = getFp(c);                                   \
-insns = currentFunction->insns + pc;                    \
-regBase = (JSValue*)&Stack(c, cfp) - 1;           \
-if(!currentFunction->instPtrCreated){                   \
-  makeInstPtr(currentFunction, jumpTable); }            \
-instPtr = currentFunction->instPtr + pc;                \
-}while(0)
-
-#endif // PARALLEL
 
 void check_stack_invariant(Context *ctx);

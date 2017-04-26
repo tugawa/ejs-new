@@ -1,14 +1,22 @@
 /*
    codeloader.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -70,7 +78,7 @@ inline int check_read_token(char *buf, char *tok) {
 /*
    codeloader
  */
-int code_loader(FunctionTable *ftable) {
+int code_loader(Context *ctx, FunctionTable *ftable) {
   ConstantCell ctable;
   Bytecode* bytecodes;
   char buf[LOADBUFLEN];
@@ -109,7 +117,7 @@ int code_loader(FunctionTable *ftable) {
 
     // loads instructions for each function
     for (j = 0; j < ninsns; j++)
-      ret = insn_load(&ctable, bytecodes, j);
+      ret = insn_load(ctx, &ctable, bytecodes, j);
 
     ret = update_function_table(ftable, i, &ctable, bytecodes,
                                callentry, sendentry, nlocals, ninsns);
@@ -176,7 +184,7 @@ Opcode find_insn(char* s) {
 /*
    loads an instruction
  */
-int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
+int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc) {
   char buf[LOADBUFLEN];
   char *tokp;
   Opcode oc;
@@ -220,7 +228,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           int index;
           number = atof(next_token());
           // writes the number into the constant table
-          index = add_constant_number(constant, number);
+          index = add_constant_number(ctx, constant, number);
           bytecodes[pc] = makecode_number(dst, index);
         }
         break;
@@ -234,7 +242,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           // str = next_token();
           if (str == NULL) str = "";
           else len = decode_escape_char(str);
-          index = add_constant_string(constant, str);
+          index = add_constant_string(ctx, constant, str);
           if (oc == STRING)
             bytecodes[pc] = makecode_string(dst, index);
           else
@@ -251,7 +259,7 @@ int insn_load(ConstantCell *constant, Bytecode *bytecodes, int pc) {
           str = next_token();
           if (str == NULL) str = "";
           else len = decode_escape_char(str);
-          index = add_constant_regexp(constant, str, flag);
+          index = add_constant_regexp(ctx, constant, str, flag);
           bytecodes[pc] = makecode_regexp(dst, index);
         }
         break;
@@ -413,7 +421,7 @@ char *jsvalue_to_specstr(JSValue v) {
    Currently, the same constant numbers might be added to the table
    more than once.  It might be better to avoid such duplication.
  */
-int add_constant_number(ConstantCell *constant, double x) {
+int add_constant_number(Context *ctx, ConstantCell *constant, double x) {
   int index;
 
   index = constant->n_constant_values++;
@@ -424,7 +432,7 @@ int add_constant_number(ConstantCell *constant, double x) {
 /*
    adds a string into the constant table.
  */
-int add_constant_string(ConstantCell *constant, char *str) {
+int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
   JSValue a;
   int index;
 
@@ -440,13 +448,13 @@ int add_constant_string(ConstantCell *constant, char *str) {
 /*
    adds a regexp into the constant table.
  */
-int add_constant_regexp(ConstantCell *constant, char *pat, int flag) {
+int add_constant_regexp(Context *ctx, ConstantCell *constant, char *pat, int flag) {
   JSValue re;
   int index;
 
   index = constant->n_constant_values++;
   // re = new_regexp();
-  if ((re = new_regexp(pat, flag)) != JS_UNDEFINED) {
+  if ((re = new_normal_regexp(ctx, pat, flag)) != JS_UNDEFINED) {
     (constant->constant_values)[index] = re;
     return index;
   } else {
@@ -539,9 +547,6 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("n_locals: %d\n" ,ftable[i].n_locals);
     printf("n_insns: %d\n", ftable[i].n_insns);
     printf("body_size: %d\n", ftable[i].body_size);
-#ifdef PARALLEL
-    printf("bytecode(normal):\n");
-#endif
     for (j = 0; j < ftable[i].n_insns; j++) {
       printf("%03d: %016lx --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
@@ -563,11 +568,6 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
       else
         printf("Unexpected JSValue\n");
     }
-#ifdef PARALLEL
-    printf("bytecode(parallel):\n");
-    for (j = 0; j < ftable[i].body_size; j++)
-      printf("%03d:%016lx\n", j, ftable[i].parallelInsns[j].code);
-#endif
   }
   return 0;
 }
@@ -783,48 +783,3 @@ uint32_t decode_escape_char(char *str) {
   *dst = '\0';
   return (uint32_t)(dst - str);
 }
-
-#ifdef PARALLEL
-#define REWRITE(code, org, new) \
-  case org: \
-    code = (((Bytecode)new << OPCODE_OFFSET) | ((Bytecode)(code) & ~OPCODE_MASK)); \
-    break
-
-// For all functions, rewrite instructions to their parallel versions.
-//
-void generateParallelCode(FunctionTableCell *ftable, int nfuncs)
-{
-  int i, j;
-
-  for (i = 0; i < nfuncs; ++i) {
-    FunctionTableCell *currentFunc = &ftable[i];
-    currentFunc->parallelInsns = (Instruction *)malloc(sizeof(Instruction) * currentFunc->bodysize);
-    if (!(currentFunc->parallelInsns))
-      LOG_EXIT("%dth func: cannnot malloc bytecode for parallel execution\n", i);
-
-    for (j = 0; j < currentFunc->n_insns; ++j) {
-      instruction *instOrg = &(currentFunc->insns[j]);
-      instruction *instPar = &(currentFunc->parallelInsns[j]);
-
-      instPar->code = instOrg->code;
-      switch (get_opcode(instPar->code)) {
-      REWRITE(instPar->code, GETGLOBAL, GETGLOBALPAR);
-      REWRITE(instPar->code, SETGLOBAL, SETGLOBALPAR);
-      REWRITE(instPar->code, GETPROP, GETPROPPAR);
-      REWRITE(instPar->code, SETPROP, SETPROPPAR);
-      REWRITE(instPar->code, GETARG, GETARGPAR);
-      REWRITE(instPar->code, GETLOCAL, GETLOCALPAR);
-      REWRITE(instPar->code, SETARG, SETARGPAR);
-      REWRITE(instPar->code, SETLOCAL, SETLOCALPAR);
-      REWRITE(instPar->code, CALL, CALLPAR);
-      REWRITE(instPar->code, SEND, SENDPAR);
-      REWRITE(instPar->code, RET, RETPAR);
-      default: break;
-      }
-    }
-
-    for (; j < currentFunc->body_size; ++j)
-      currentFunc->parallelInsns[j].code = currentFunc->insns[j].code;
-  }
-}
-#endif

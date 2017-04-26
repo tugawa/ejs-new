@@ -1,14 +1,22 @@
 /*
    builtin-global.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
@@ -231,41 +239,36 @@ ObjGconstsProp global_gconsts_props[] = {
   { "Number",    &gconsts.g_number,          ATTR_DE   },
   { "String",    &gconsts.g_string,          ATTR_DE   },
   { "Boolean",   &gconsts.g_boolean,         ATTR_DE   },
-//{ "undefined", &gconsts.g_const_undefined, ATTR_DDDE },
   { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
   { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
   { "Math",      &gconsts.g_math,            ATTR_DE   },
-#ifdef PARALLEL
-  { "VMTest",    &gconsts.g_vm_test,         ATTR_DE   },
-  { "Thread",    &gconsts.g_thread,          ATTR_DE   },
-  { "Tcp",       &gconsts.g_tcp,             ATTR_DE   },
-#endif
   { NULL,        NULL,                       ATTR_DE   }
 };
 
 /*
    sets the global object's properties
  */
-void init_builtin_global(void)
+void init_builtin_global(Context *ctx)
 {
   JSValue g;
 
   g = gconsts.g_global;
-  set_obj_cstr_prop(g, "true", JS_TRUE, ATTR_DE);
-  set_obj_cstr_prop(g, "false", JS_FALSE, ATTR_DE);
-  set_obj_cstr_prop(g, "null", JS_NULL, ATTR_DE);
-  set_obj_cstr_prop(g, "undefined", JS_UNDEFINED, ATTR_DE);
+  set_obj_cstr_prop(ctx, g, "true", JS_TRUE, ATTR_DE);
+  set_obj_cstr_prop(ctx, g, "false", JS_FALSE, ATTR_DE);
+  set_obj_cstr_prop(ctx, g, "null", JS_NULL, ATTR_DE);
+  set_obj_cstr_prop(ctx, g, "undefined", JS_UNDEFINED, ATTR_DE);
   {
     ObjBuiltinProp *p = global_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(g, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, g, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
   {
     ObjGconstsProp *p = global_gconsts_props;
     while (p->name != NULL) {
-      set_obj_cstr_prop(g, p->name, *(p->addr), p->attr);
+      set_obj_cstr_prop(ctx, g, p->name, *(p->addr), p->attr);
       p++;
     }
   }

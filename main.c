@@ -1,19 +1,32 @@
 /*
    main.c
 
-   SSJS Project at the University of Electro-communications
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
 
-   Sho Takada, 2012-13
-   Akira Tanimura, 2012-13
-   Akihiro Urushihara, 2013-14
-   Ryota Fujii, 2013-14
-   Tomoharu Ugawa, 2013-16
-   Hideya Iwasaki, 2013-16
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
 */
 
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
+
+/*
+  phase
+ */
+int run_phase;         // PHASE_INIT or PHASE_VMLOOP
 
 /*
   flags
@@ -22,6 +35,10 @@ int ftable_flag;       // prints the function table
 int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
 int all_flag;          // all flag values are true
+int cputime_flag;      // prints the cpu time
+#ifdef HIDDEN_CLASS
+int hcprint_flag;      // prints all transitive hidden classes
+#endif
 
 /*
   parameter
@@ -106,6 +123,10 @@ struct commandline_option  options_table[] = {
   { "-f", 0, &ftable_flag        },
   { "-t", 0, &trace_flag         },
   { "-a", 0, &all_flag           },
+  { "-u", 0, &cputime_flag       },
+#ifdef HIDDEN_CLASS
+  { "-h", 0, &hcprint_flag       },
+#endif
   { "-s", 1, &regstack_limit     },      // not used yet
   { (char *)NULL, 0, (int *)NULL }
 };
@@ -142,12 +163,22 @@ int process_options(int ac, char *av[]) {
   return 0;
 }
 
+void print_cputime(time_t sec, suseconds_t usec) {
+  printf("total CPU time = %d.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
+          sec * 1000 + usec / 1000, usec % 1000,
+          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
+#ifdef HIDDEN_CLASS
+  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n", n_hc, n_enter_hc, n_exit_hc);
+#endif
+}
+
 /*
    main function
  */
 int main(int argc, char *argv[]) {
   // If input program is given from a file, fp is set to NULL.
   FILE *fp = NULL;
+  struct rusage ru0, ru1;
   int k;
 
   log_stream = stderr;
@@ -200,17 +231,15 @@ int main(int argc, char *argv[]) {
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();
-  init_context(function_table, init_global(), &context);
+  init_global_malloc_objects();
+  init_global_objects();
+  init_context(function_table, gconsts.g_global, &context);
+  init_builtin(context);
 
+  srand((unsigned)time(NULL));
   init_code_loader(fp);
-  n = code_loader(function_table);
+  n = code_loader(context, function_table);
   end_code_loader();
-
-#ifdef PARALLEL
-  // generates bytecode for parallel execution
-  generateParallelCode(function_table, n);
-  //printFuncTbl(functionTable, n);
-#endif // PARALLEL
 
   // obtains the time before execution
 #ifdef USE_PAPI
@@ -229,7 +258,9 @@ int main(int argc, char *argv[]) {
 
   // enters the VM loop
   run_phase = PHASE_VMLOOP;
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
   vmrun_threaded(context, 0);
+  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
 
   // obtains the time after execution
 #ifdef CALC_TIME
@@ -280,6 +311,24 @@ int main(int argc, char *argv[]) {
 #ifdef CALC_CALL
   LOG("%"PRId64"\n", callcount);
 #endif // CALC_CALL
+
+  if (cputime_flag == TRUE) {
+    time_t sec;
+    suseconds_t usec;
+
+    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+    if (usec < 0) {
+      sec--;
+      usec += 1000000;
+    }
+    print_cputime(sec, usec);
+  }
+#ifdef HIDDEN_CLASS
+  if (hcprint_flag == TRUE)
+    print_all_hidden_class();
+#endif
+
 
   return 0;
 }
@@ -348,7 +397,10 @@ void simple_print(JSValue v) {
 
   switch (tag = get_tag(v)) {
   case T_FIXNUM:
+    //    printf("fixnum:%ld", (v >> 3));
+    //    break;
   case T_FLONUM:
+    //    printf("flonum:%le", number_to_double(v));
     printf("number:%le", number_to_double(v));
     break;
   case T_STRING:

@@ -1,3 +1,24 @@
+/*
+   builtin-math.c
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-17
+     Hideya Iwasaki, 2016-17
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
@@ -208,7 +229,7 @@ ObjDoubleProp math_values[] = {
   { NULL,        0.0,                   ATTR_ALL }
 };
 
-void init_builtin_math(void)
+void init_builtin_math(Context *ctx)
 {
   JSValue math;
 
@@ -216,14 +237,15 @@ void init_builtin_math(void)
   {
     ObjDoubleProp *p = math_values;
     while (p->name != NULL) {
-      set_obj_cstr_prop(math, p->name, double_to_flonum(p->value), p->attr);
+      set_obj_cstr_prop(ctx, math, p->name, double_to_flonum(p->value), p->attr);
       p++;
     }
   }
   {
     ObjBuiltinProp *p = math_funcs;
     while (p->name != NULL) {
-      set_obj_cstr_prop(math, p->name, new_builtin(p->fn, p->na), p->attr);
+      set_obj_cstr_prop(ctx, math, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
