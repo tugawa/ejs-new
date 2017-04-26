@@ -166,14 +166,14 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 STATIC int in_js_space(void *addr_)
 {
   uintptr_t addr = (uintptr_t) addr_;
-  return (js_space.addr <= addr && addr <= js_space.addr + js_space.bytes);
+  return (js_space.addr <= addr && addr < js_space.addr + js_space.bytes);
 }
 
 STATIC int in_malloc_space(void *addr_)
 {
   uintptr_t addr = (uintptr_t) addr_;
   return (malloc_space.addr <= addr &&
-	  addr <= malloc_space.addr + malloc_space.bytes);
+	  addr < malloc_space.addr + malloc_space.bytes);
 }
 
 STATIC header_t *get_shadow(void *ptr)
