@@ -881,7 +881,9 @@ STATIC void sweep_space(struct space *space)
 	   is_marked_cell_header((void *) scan)) {
       header_t header = *(header_t *) scan;
       size_t size = HEADER0_GET_SIZE(header);
+#ifdef GC_DEBUG
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
+#endif /* GC_DEBUG */
       unmark_cell_header((void *) scan);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;
@@ -891,7 +893,9 @@ STATIC void sweep_space(struct space *space)
 	   !is_marked_cell_header((void *) scan)) {
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
+#ifdef GC_DEBUG
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
+#endif /* GC_DEBUG */
       scan += size << LOG_BYTES_IN_JSVALUE;
     }
     if (free_start < scan) {
