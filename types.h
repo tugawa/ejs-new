@@ -534,7 +534,7 @@ typedef uint64_t cuint;
 #define FIXNUM_TEN  (cint_to_fixnum((cint)10))
 
 #define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
-#define MIN_FIXNUM_CINT ((cint)(-1) << (BITS_IN_JSVALUE - TAGOFFSET - 1))
+#define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
 #define is_number(p) (is_fixnum((p)) || is_flonum((p)))
 
