@@ -1,5 +1,6 @@
 
 public class BCode {
+    int number;
     
     String toString(String opcode) {
         return opcode;
@@ -64,10 +65,11 @@ class Fl {
 }
 class Label {
     BCode bcode;
-    int n = 0;
     Label() {}
     Label(BCode bcode) { this.bcode = bcode; }
-    public String toString() { return Integer.toString(n); }
+    public int dist(int number) {
+        return bcode.number - number;
+    }
 }
 
 
@@ -536,7 +538,7 @@ class IJump extends BCode {
     Label label;
     IJump(Label label) { this.label = label; }
     public String toString() {
-        return super.toString("jump", label.n);
+        return super.toString("jump", label.dist(number));
     }
 }
 class IJumptrue extends BCode {
@@ -547,7 +549,7 @@ class IJumptrue extends BCode {
         this.label = label;
     }
     public String toString() {
-        return super.toString("jumptrue", test, label.n);
+        return super.toString("jumptrue", test, label.dist(number));
     }
 }
 class IJumpfalse extends BCode {
@@ -558,7 +560,7 @@ class IJumpfalse extends BCode {
         this.label = label;
     }
     public String toString() {
-        return super.toString("jumpfalse", test, label.n);
+        return super.toString("jumpfalse", test, label.dist(number));
     }
 }
 

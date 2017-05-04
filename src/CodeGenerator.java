@@ -12,30 +12,11 @@ import ast_node.BinaryExpression;
 public class CodeGenerator {
     
     class JSLabel {
-        String id;
-        BCode continueDest;
-        BCode breakDest;
-        private List<Label> continueLabels = new LinkedList<Label>();
-        private List<Label> breakLabels = new LinkedList<Label>();
-        
-        Label createContinueLabel() {
-            Label l = new Label();
-            continueLabels.add(l);
-            return l;
-        }
-        Label createBreakLabel() {
-            Label l = new Label();
-            breakLabels.add(l);
-            return l;
-        }
-        
-        void finish() {
-            for (Label l : continueLabels) {
-                l.bcode = continueDest;
-            }
-            for (Label l : breakLabels) {
-                l.bcode = breakDest;
-            }
+        String name;
+        Label label;
+        JSLabel(String name, Label label) {
+            this.name = name;
+            this.label = label;
         }
     }
     
@@ -58,13 +39,10 @@ public class CodeGenerator {
             private List<Register> argumentRegisters = new LinkedList<Register>();
             
             private Fl fl = new Fl();
-            LinkedList<JSLabel> createdJSLabels = new LinkedList<JSLabel>();
+            LinkedList<JSLabel> breakLabels = new LinkedList<JSLabel>();
+            LinkedList<JSLabel> continueLabels = new LinkedList<JSLabel>();
             
             Register registerOfGlobalObj = null;
-            
-            // LinkedList<JSLabel> continueLabelStack = new LinkedList<JSLabel>();
-            // LinkedList<JSLabel> breakLabelStack = new LinkedList<JSLabel>();
-            LinkedList<JSLabel> jsLabelStack = new LinkedList<JSLabel>();
             
             Frame(List<String> args, List<String> locals) {
                 this.args = args; // created by FunctionDeclaration
@@ -107,9 +85,6 @@ public class CodeGenerator {
                 fl.n = numOfRequiredRegisters + numOfUsingArgumentRegisters;
                 for (int i = 0, n = numOfRequiredRegisters + 1; i < numOfUsingArgumentRegisters; i++, n++) {
                     argumentRegisters.get(i).n = n;
-                }
-                for (JSLabel jsl : createdJSLabels) {
-                    jsl.finish();
                 }
             }
             
@@ -198,32 +173,37 @@ public class CodeGenerator {
             this.frameList.getFirst().popCurNumOfUsingRegister();
         }
         
+        void pushBreakLabel(String name, Label label) {
+            frameList.getFirst().breakLabels.push(new JSLabel(name, label));
+        }
+        void popBreakLabel() {
+            frameList.getFirst().breakLabels.pop();
+        }
+        void pushContinueLabel(String name, Label label) {
+            frameList.getFirst().continueLabels.push(new JSLabel(name, label));
+        }
+        void popContinueLabel() {
+            frameList.getFirst().continueLabels.pop();
+        }
         
-        JSLabel createJSLabel(String id) {
-            JSLabel jsl = new JSLabel();
-            jsl.id = id;
-            frameList.getFirst().createdJSLabels.add(jsl);
-            return jsl;
+        Label getBreakLabel(String name) {
+            Frame f = frameList.getFirst();
+            if (name == null) {
+                return f.breakLabels.getFirst().label;
+            } else {
+                for (JSLabel jsl : f.breakLabels) {
+                    if (name.equals(jsl.name)) return jsl.label;
+                }
+            }
+            return null;
         }
-        // You must call these methods at the beginning/ending scope of the JS label.
-        void pushJSLabel(JSLabel jsl) {
-            frameList.getFirst().jsLabelStack.push(jsl);
-        }
-        void popJSLabel() {
-            frameList.getFirst().jsLabelStack.pop();
-        }
-        // Fetch JSLabel from continueLabelStack and breakLabelStack
-        // and return fetched instance of JSLabel.
-        // if JSLabel that has given id is not found, return null.
-        JSLabel fetchJSLabel(String id) {
-            LinkedList<JSLabel> jsLabelStack = frameList.getFirst().jsLabelStack;
-            for (JSLabel jsl : jsLabelStack) {
-                if (id == null) {
-                    return jsl;
-                } else {
-                    if (jsl.id != null && id.equals(jsl.id)) {
-                        return jsl;
-                    }
+        Label getContinueLabel(String name) {
+            Frame f = frameList.getFirst();
+            if (name == null) {
+                return f.continueLabels.getFirst().label;
+            } else {
+                for (JSLabel jsl : f.continueLabels) {
+                    if (name.equals(jsl.name)) return jsl.label;
                 }
             }
             return null;
@@ -265,6 +245,11 @@ public class CodeGenerator {
             List<BCode> build() {
                 int numberOfInstruction = bcodes.size();
                 List<BCode> result = new LinkedList<BCode>();
+                int number = 0;
+                for (BCode bcode : bcodes) {
+                    bcode.number = number;
+                    number++;
+                }
                 result.add(new ICallentry(callentry));
                 result.add(new ISendentry(sendentry));
                 result.add(new INumberOfLocals(numberOfLocals));
@@ -292,29 +277,6 @@ public class CodeGenerator {
         }
         
         void closeFuncBCBuilder() {
-            FunctionBCBuilder fb = fbStack.getFirst();
-            int src = 0;
-            for (BCode bcode : fb.bcodes) {
-                Label label = null;
-                if (bcode instanceof IJump) {
-                    label = ((IJump) bcode).label;
-                } else if (bcode instanceof IJumptrue) {
-                    label = ((IJumptrue) bcode).label;
-                } else if (bcode instanceof IJumpfalse) {
-                    label = ((IJumpfalse) bcode).label;
-                }
-                if (label != null) {
-                    int j = 0, dst = 0;
-                    for (BCode _bcode : fb.bcodes) {
-                        if (label.bcode == _bcode) {
-                            dst = j;
-                        }
-                        j++;
-                    }
-                    label.n = dst - src;
-                }
-                src++;
-            }
             fbStack.pop();
         }
         
@@ -339,13 +301,6 @@ public class CodeGenerator {
             this.labelsSetJumpDest.push(label);
         }
         void push(BCode bcode) {
-            for (JSLabel jsl : this.jslabelsContinueDest) {
-                jsl.continueDest = bcode;
-            }
-            this.jslabelsContinueDest.clear();
-            for (JSLabel jsl : this.jslabelsBreakDest) {
-                jsl.breakDest = bcode;
-            }
             this.jslabelsBreakDest.clear();
             for (Label l : this.labelsSetJumpDest) {
                 l.bcode = bcode;
@@ -607,7 +562,6 @@ public class CodeGenerator {
     }
     
     void compileSwitchStatement(IASTSwitchStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.createJSLabel(node.label);
         Register discReg = env.freshRegister();
         dispatcher.compile(node.discriminant, bcBuilder, env, discReg);
         LinkedList<Label> caseLabels = new LinkedList<Label>();
@@ -626,7 +580,8 @@ public class CodeGenerator {
                 break;
             }
         }
-        env.pushJSLabel(jsLabel);
+        Label breakLabel = new Label();
+        env.pushBreakLabel(node.label, breakLabel);
         for (IASTSwitchStatement.CaseClause caseClause : node.cases) {
             Label caseLabel = caseLabels.pollFirst();
             if (caseLabel != null) {
@@ -634,8 +589,8 @@ public class CodeGenerator {
             }
             dispatcher.compile(caseClause.consequent, bcBuilder, env, testReg);
         }
-        env.popJSLabel();
-        bcBuilder.pushBreakDest(jsLabel);
+        env.popBreakLabel();
+        bcBuilder.push(breakLabel);
     }
     
     void compileExpressionStatement(IASTExpressionStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
@@ -655,19 +610,22 @@ public class CodeGenerator {
     }
     
     void compileForStatement(IASTForStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.createJSLabel(node.label);
         if (node.init != null)
             dispatcher.compile(node.init, bcBuilder, env, reg);
         Label l1 = new Label();
         Label l2 = new Label();
+        Label continueLabel = new Label();
+        Label breakLabel = new Label();
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(l2);
         if (node.body != null) {
-            env.pushJSLabel(jsLabel);
+            env.pushBreakLabel(node.label, breakLabel);
+            env.pushContinueLabel(node.label, continueLabel);
             dispatcher.compile(node.body, bcBuilder, env, reg);
-            env.popJSLabel();
+            env.popBreakLabel();
+            env.popContinueLabel();
         }
-        bcBuilder.pushContinueDest(jsLabel);
+        bcBuilder.push(continueLabel);
         if (node.update != null)
             dispatcher.compile(node.update, bcBuilder, env, reg);
         bcBuilder.push(l1);
@@ -677,40 +635,46 @@ public class CodeGenerator {
         } else {
             bcBuilder.push(new IJump(l2));
         }
-        bcBuilder.pushBreakDest(jsLabel);
+        bcBuilder.push(breakLabel);
     }
     
     void compileWhileStatement(IASTWhileStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.createJSLabel(node.label);
         Label l1 = new Label();
         Label l2 = new Label();
+        Label breakLabel = new Label();
+        Label continueLabel = new Label();
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(l2);
         if (node.body != null) {
-            env.pushJSLabel(jsLabel);
+            env.pushBreakLabel(node.label, breakLabel);
+            env.pushContinueLabel(node.label, continueLabel);
             dispatcher.compile(node.body, bcBuilder, env, reg);
-            env.popJSLabel();
+            env.popBreakLabel();
+            env.popContinueLabel();
         }
-        bcBuilder.pushContinueDest(jsLabel);
+        bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
         dispatcher.compile(node.test, bcBuilder, env, reg);
         bcBuilder.push(new IJumptrue(reg, l2));
-        bcBuilder.pushBreakDest(jsLabel);
+        bcBuilder.push(breakLabel);
     }
     
     void compileDoWhileStatement(IASTDoWhileStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.createJSLabel(node.label);
         Label l1 = new Label();
-        bcBuilder.pushContinueDest(jsLabel);
+        Label breakLabel = new Label();
+        Label continueLabel = new Label();
+        bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
         if (node.body != null) {
-            env.pushJSLabel(jsLabel);
+            env.pushBreakLabel(node.label, breakLabel);
+            env.pushContinueLabel(node.label, continueLabel);
             dispatcher.compile(node.body, bcBuilder, env, reg);
-            env.popJSLabel();
+            env.popBreakLabel();
+            env.popContinueLabel();
         }
         dispatcher.compile(node.test, bcBuilder, env, reg);
         bcBuilder.push(new IJumptrue(reg, l1));
-        bcBuilder.pushBreakDest(jsLabel);
+        bcBuilder.push(breakLabel);
     }
     
     void compileForInStatement(IASTForInStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
@@ -718,18 +682,18 @@ public class CodeGenerator {
     }
     
     void compileBreakStatement(IASTBreakStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.fetchJSLabel(node.label);
-        if (jsLabel != null) {
-            bcBuilder.push(new IJump(jsLabel.createBreakLabel()));
+        Label label = env.getBreakLabel(node.label);
+        if (label != null) {
+            bcBuilder.push(new IJump(label));
         } else {
             System.out.println("ERROR: BreakStatement");
         }
     }
     
     void compileContinueStatement(IASTContinueStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        JSLabel jsLabel = env.fetchJSLabel(node.label);
-        if (jsLabel != null) {
-            bcBuilder.push(new IJump(jsLabel.createContinueLabel()));
+        Label label = env.getContinueLabel(node.label);
+        if (label != null) {
+            bcBuilder.push(new IJump(label));
         } else {
             System.out.println("ERROR: ContinueStatement");
         }
