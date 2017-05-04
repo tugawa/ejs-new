@@ -1,0 +1,331 @@
+\documentclass[a4j,12pt]{jarticle}
+\usepackage{listings}
+
+\title{eJS compiler 内部設計と実装}
+\author{片岡 崇史}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+
+\section{用語の定義}
+
+\begin{description}
+\item{ejsc} 本資料で説明するコンパイラ．JavaScriptのソースをeJSVMの
+  バイトコード形式に変換する．
+\end{description}
+
+
+
+\section{コンパイル規則}
+
+$C[[e]]\ \rho\ d $ は，環境$\rho$における，JavaScriptのコード
+$e$のコンパイル規則である．
+コンパイルしたコードの実行結果を$d$に格納する．
+\footnotesize{
+\begin{tabbing}
+xx\=xx\=xx\=\kill \\
+\textbf{数値} \\
+ただし，\textit{value\_of}($n$)は，$n$のバイトコードにおける
+数値表現である．\\
+\>$ C[[n]]\ \rho\ d\ = $ \\
+\>\>\texttt{number}\  $d$\  \textit{value\_of}($n$) \\
+\\
+\textbf{文字列} \\
+ただし，\textit{name\_of}($str$)は，$str$のバイトコードにおける
+文字列表現である．\\
+\>$ C[[str]]\ \rho\ d\ = $ \\
+\>\>\texttt{string}\ $d$\ \textit{name\_of}($str$) \\
+\\
+\textbf{真偽値，undefined，null} \\
+ただし，\textit{const\_of}($val$)は，$val$のバイトコードにおける
+文字列表現である．\\
+\>$ C[[val]]\ \rho\ d\ =$ \\
+\>\>\texttt{specconst}\ $d$\ \textit{const\_of}($val$) \\
+\\
+
+\textbf{変数} \\
+\>$C[[x]]\ \rho\ d\ =$ \\
+\>\>\textit{if}($\rho$($x$)\ $==$\ \textit{local}($l$, $o$))\ \{ \\
+\>\>\>\texttt{getlocal}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else\ if}($\rho$($x$)\ $==$\ \textit{arg}($l$, $o$))\ \{ \\
+\>\>\>\texttt{getarg}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{string}\ $r$\ \textit{name\_of}($x$) \\
+\>\>\>\texttt{getglobal}\ $d$\ $r$ \\
+\>\>\} \\
+\\
+
+\textbf{代入} \\
+  ただし，$A[[x]]\ \rho\ s$は環境$\rho$における$x$に対して$s$の値を代入する． \\
+\>$A[[x]]\ \rho\ s\ =$\\
+\>\>\textit{if}($\rho$($x$)\ $==$\ \textit{local}($l$, $o$))\ \{ \\
+\>\>\>\texttt{setlocal}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else\ if}($\rho$($x$)\ $==$\ \textit{arg}($l$, $o$))\ \{ \\
+\>\>\>\texttt{setarg}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{string}\ $r$\ \textit{name\_of}($x$) \\
+\>\>\>\texttt{setglobal}\ $d$\ $r$ \\
+\>\>\} \\
+\\
+
+\textbf{変数への代入} \\
+\>$C[[x\ \texttt{=}\ e]]\ \rho\ d =$ \\
+\>\>$C[[e]]\ \rho\ d$ \\
+\>\>$A[[x]]\ \rho\ d$ \\
+\\
+
+\textbf{\texttt{.}を用いたプロパティへのアクセス} \\
+\>$C[[e\texttt{.}x]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[e]] \rho\ t_1\ False$ \\
+\>\>\texttt{string}\ $t_2$\ \textit{name\_of}($x$) \\
+\>\>\texttt{getprop}\ $d$\ $t_1$\ $t_2$ \\
+\\
+
+\textbf{\texttt{.}を用いたプロパティへの代入} \\
+\>$C[[e_1\texttt{.}x\ \texttt{=}\ e_2]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[e_1]] \rho\ t_1\ False$ \\
+\>\>\texttt{string}\ $t_2$\ \textit{name\_of}($x$) \\
+\>\>$C[[e_2]] \rho\ t_3\ False$ \\
+\>\>\texttt{setprop}\ $t_1$\ $t_2$\ $t_3$ \\
+\\
+
+\textbf{\texttt{[]}を用いたプロパティへのアクセス} \\
+\>$C[[e_1\texttt{[}e_2\texttt{]}]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[e_1]] \rho\ t_1\ False$ \\
+\>\>$C[[e_2]] \rho\ t_2\ False$ \\
+\>\>\texttt{getprop}\ $d$\ $t_1$\ $t_2$ \\
+\\
+
+\textbf{\texttt{[]}を用いたプロパティへの代入} \\
+\>$C[[e_1\texttt{[}e_2\texttt{]}\ \texttt{=}\ e_3]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[e_1]] \rho\ t_1\ False$ \\
+\>\>$C[[e_2]] \rho\ t_2\ False$ \\
+\>\>$C[[e_3]] \rho\ t_3\ False$ \\
+\>\>\texttt{setprop}\ $t_1$\ $t_2$\ $t_3$ \\
+\\
+
+\textbf{if文} \\
+\>$C[[\texttt{if(}e\texttt{)}\ s1\ \texttt{else}\ s2]]$ \\
+\>\>$C[[e]]\ \rho\ t_1\ False$ \\
+\>\>\texttt{jumpfalse}\ $t_1$\ \textgt{L1} \\
+\>\>$C[[s1]]\ \rho\ d\ False$ \\
+\>\>\texttt{jump}\ \textgt{L2} \\
+\>\>\textgt{L1}: \\
+\>\>$C[[s2]]\ \rho\ d\ False$ \\
+\>\>\textgt{L2}: \\
+\\
+
+\textbf{for文} \\
+\>$C[[\texttt{for(}e_1\texttt{;}e_2\texttt{;}e_3\texttt{)}\ s_1]]\ \rho\ d\ f\ =$\\
+\>\>$C[[e_1]]\ \rho\ d\ False$ \\
+\>\>\texttt{jump}\ \textgt{L1} \\
+\>\>\textgt{L2:} \\
+\>\>$C[[s_1]]\ \rho\ d\ False$ \\
+\>\>$C[[e_1]]\ \rho\ d\ False$ \\
+\>\>\textgt{L1:} 
+\>
+\\
+
+\textbf{レシーバの無い関数呼び出し} \\
+FLは現在の環境でのレジスタウィンドウの大きさを表している． \\
+\>$C[[func\texttt{(}x_1, ... , x_n\texttt{)}]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[func]]\ \rho\ t_f\ False$ \\
+\>\>$C[[x_1]]\ \rho\ t_1\ False$ \\
+\>\>$C[[x_2]]\ \rho\ t_2\ False$ \\
+\>\>$...$ \\
+\>\>$C[[x_n]]\ \rho\ t_n\ False$ \\
+\>\>\textit{if}($f$)\{ \\
+\>\>\>\texttt{move}\ \texttt{\$2}\ $t_1$ \\
+\>\>\>\texttt{move}\ \texttt{\$3}\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \texttt{\$n+1}\ $t_1$ \\
+\>\>\>\texttt{tailcall}\ $t_f$\ $n$ \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{move}\ \$($FL-n+1$)\ $t_1$ \\
+\>\>\>\texttt{move}\ \$($FL-n+2$)\ $t_2$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \$($FL$)\ $t_n$ \\
+\>\>\>\texttt{call}\ $t_f$\ $n$ \\
+\>\>\>\texttt{setfl}\ FL \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\} \\
+\\
+
+\textbf{レシーバのある関数呼び出し} \\
+\>$C[[e.m\texttt{(}x_1, ... , x_n\texttt{)}]]\ \rho\ d\ f\ =$ \\
+\>\>$C[[e]]\ \rho\ t_e\ False$ \\
+\>\>\texttt{string}\ $t_ms$\ \textit{name\_of}($m$) \\
+\>\>\texttt{getprop}\ $t_m$\ $t_e$\ $t_ms$ \\
+\>\>$C[[x_1]]\ \rho\ t_e\ False$ \\
+\>\>$C[[x_2]]\ \rho\ t_1\ False$ \\
+\>\>$...$ \\
+\>\>$C[[x_n]]\ \rho\ t_{n+1}\ False$ \\
+\>\>\textit{if}($f$)\{ \\
+\>\>\>\texttt{move}\ \texttt{\$1}\ $t_e$ \\
+\>\>\>\texttt{move}\ \texttt{\$2}\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \texttt{\$n+1}\ $t_n$ \\
+\>\>\>\texttt{tailsend}\ $t_f$\ $n$ \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{move}\ \$($\textrm{FL}-n$)\ $t_e$ \\
+\>\>\>\texttt{move}\ \$($\textrm{FL}-n+1$)\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \$(FL)\ $t_n$ \\
+\>\>\>\texttt{send}\ $t_m$\ $n$ \\
+\>\>\>\texttt{setfl}\ FL \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\} \\
+\\
+
+\textbf{関数式} \\
+\>$C[[\texttt{function(}arg\texttt{)\{}\ s\ \texttt{\}}\ 
+  locals\ :=\ \{x\ \mid\ sの中で宣言された変数名x\}]]\ \rho\ d\ =$ \\
+\>\>\texttt{makeclosure}\ $d$\ $F[[s]]\ arg\cup locals$\ $d$ \\
+\\
+
+\textbf{関数からのリターン} \\
+ただし，\textit{const\_of}($val$)は，$val$のバイトコードにおける
+文字列表現である．\\
+\>$ C[[\texttt{return}\ e]]\ \rho\ d\ =$ \\
+\>\>$C[[e]]\ \rho\ d $ \\
+\>\>\texttt{seta}\ $d$ \\
+\>\>\texttt{ret} \\
+
+\end{tabbing}
+}
+
+
+
+
+
+\section{コンパイラの全体像}
+ejscは，以下の4つの部分から構成される．
+\begin{enumerate}
+  \item Antlrによって生成された字句解析器と構文解析器
+  \item 1.が生成したASTをESTree形式に変換する変換器
+  \item ESTree形式のASTをiASTに変換する変換器
+  \item iAST形式のASTからバイトコードを生成するコード生成器
+\end{enumerate}
+
+まず，入力のJavaScriptのソースコードを字句解析，構文解析し，
+ParseTreeを生成する．
+この解析はAntlrによって生成された解析器を使用する．
+
+ESTree生成器は，ParseTreeからESTree形式のASTを生成する．
+ESTreeは，JavaScriptの有名なASTの一つである．
+しかし，ESTreeはeJSVMのバイトコード生成は困難であるので，
+ESTreeから独自のASTの形式に変換する．
+このASTをiASTと呼ぶことにする．
+ESTreeからiASTへ変換する前には，ESTreeの一部を変形する処理を行う．
+詳細は後に説明する．
+
+最後に，コード生成器がeJSVMのバイトコードを生成する．
+
+
+\section{ESTree上での変形}
+
+ESTreeの変形について述べる．
+
+ここで行うことは二点ある．
+一つは，ESTree内にある関数宣言をスコープの先頭に移動することである．
+移動した関数宣言は，後でESTreeからiASTに変換する際に，ローカル変数に
+関数オブジェクトを代入する意味のASTに変換される．
+これによって，関数を宣言したスコープ内でのみ，
+その関数を呼び出すことができるようにする．
+
+もう一つは，名前付き関数式の除去である．
+ESTreeに現れる名前付き関数式のノードを同じ意味になるように
+無名関数式から成るノードに変換する．
+変換するのは関数式のみであり，関数宣言を変形しない．
+
+% 具体的には...
+
+\subsection{実装}
+
+関数宣言をスコープの先頭に移動するための実装は，ESTreeNormalizerクラス
+の内部クラスであるHoistingFuncDeclクラスにされている．
+FunctionDeclarationとFunctionExpressionのbodyは新しいスコープになるので，
+bodyの直下のノードにある全てのFunctionDeclarationをbodyの先頭に
+列挙する．
+
+名前付き関数式を除去するための実装は，ESTreeNormalizerクラスの
+内部クラスであるEliminatingNamedFuncクラスにされている．
+ESTreeに，FunctionExpressionのノードでそのnameプロパティがnullでない
+（つまり，無名関数式）があれば，これを変換する．
+
+
+
+
+\section{iASTの生成}
+
+ESTreeからiASTを生成する．
+入力となるESTreeは，先に行われるESTreeを変形する処理によって，
+関数宣言がスコープの先頭にあることと，名前付き関数が無いことが
+保証されている．
+
+iASTとESTreeの間で大きく異なる点は，
+変数宣言と関数宣言が無いことである．
+変数宣言時に初期化代入する文は，代入式のみ残る．
+変数宣言と関数宣言が無い代わりに，
+FunctionExpressionにlocalsプロパティを持たせている．
+localsプロパティは，FunctionExpressionのbody内で宣言される
+変数と関数の名前を列挙している．
+
+% 例を入れる
+
+% ESTree -> iAST への変換規則を書く
+
+% hoistDeclarations
+
+
+
+\section{コード生成}
+
+\subsection{コード生成に関わるデータ}
+
+\subsubsection{BCode}
+
+バイトコード命令の基底クラスである．
+全ての命令の定義はこのクラスの派生クラスである．
+
+\subsubsection{Register}
+
+レジスタ番号となる値のみを持つクラスである．
+
+\subsubsection{Fl}
+
+フレーム長となる値のみを持つクラスである．
+setfl命令の定義となるISetflクラスは，Flクラスのインスタンスを
+プロパティに持つ．
+
+\subsubsection{Label}
+
+BCodeをプロパティに持ち，これでジャンプ先の命令を指定する．
+例えば，jump命令の定義であるIJumpクラスは，ジャンプ先を指定するために，
+ジャンプ先のBCodeを持つLabelをプロパティに持つ．
+
+\subsubsection{JSLabel}
+
+\texttt{break}文と\texttt{continue}文が記述可能な文
+（For文，ForIn文，While文，DoWhile文，SwitchCase文）の中で，
+\texttt{break}文や\texttt{continue}文があったときにジャンプする
+先を示す．
+詳しくは後で．
+
+\subsubsection{Environment}
+
+あるノードをコンパイルするときに与える環境を持つクラスである．
+
+
+
+
+
+
+\lstinputlisting[numbers=left,label=example01]{./example01.js}
+
+\end{document}
