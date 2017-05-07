@@ -517,15 +517,32 @@ BUILTIN_FUNCTION(array_slice)
  */
 int sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   char *xString, *yString;
+  JSValue *stack, ret;
+  int sp;
+
   if (is_undefined(x) && is_undefined(y)) return 0;
   else if (is_undefined(x)) return 1;
   else if (is_undefined(y)) return -1;
+  else if (is_function(comparefn)) {
+    stack = &get_stack(context, 0);
+    sp = get_sp(context);
+    stack[sp] = y;
+    stack[sp-1] = x;
+    stack[sp-2] = gconsts.g_object; // TODO is receiver always global object?
+    call_function(context, comparefn, 2, TRUE); // TODO is sendp always true?
+
+    vmrun_threaded(context, get_fp(context));
+    ret = get_a(context);
+    //printf("ret = ");print_value_simple(context, ret);printf("\n");
+    return fixnum_to_cint(ret); // TODO Must fixed
+  }
+  else if (is_builtin(comparefn)) {
+    // TODO
+    //call_builtin0(context, gconsts.g_object, comparefn, TRUE);
+    LOG_EXIT("not implemented"); // TODO implementation defined?
+  }
   else if (!is_undefined(comparefn)) {
-    /* TODO
-    if (!is_callable(comparefn)) LOG_EXIT("TypeError");
-    return call(comparefn(x,y));
-    */
-    LOG_EXIT("not implemented");
+    LOG_EXIT("not implemented"); // TODO implementation defined?
   }
   xString = string_to_cstr(to_string(context, x));
   yString = string_to_cstr(to_string(context, y));
