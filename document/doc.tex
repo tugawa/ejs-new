@@ -16,7 +16,7 @@ xx\=xx\=xx\=\kill \\
   $C_{stmt}[[s]]\ :\ S \rightarrow Env \rightarrow Cont \rightarrow instructions$ \\
   $C_{exp}[[e]]\ :\ E \rightarrow Env \rightarrow Reg \rightarrow instructions$ \\
   $Cont\ :\ FlowType \rightarrow Reg \cup \{\} \rightarrow instructions $ \\
-  $FlowType = \{ \texttt{THROW},\texttt{RETURN},\texttt{BREAK},\texttt{CONTINUE}\}$ \\
+  $FlowType = \{ \texttt{BREAK},\texttt{CONTINUE}\}$ \\
 \end{tabbing}
 }
 
@@ -250,7 +250,7 @@ FLは現在の環境でのレジスタウィンドウの大きさを表してい
 \textbf{関数からのリターン} \\
 ただし，\textit{const\_of}($val$)は，$val$のバイトコードにおける
 文字列表現である．\\
-\>$ C_{stmt}[[\texttt{return}\ e]]\ \rho\ d\ =$ \\
+\>$ C_{stmt}[[\texttt{return}\ e]]\ \rho\ \kappa =$ \\
 \>\>$C_{exp}[[e]]\ \rho\ d $ \\
 \>\>\texttt{seta}\ $d$ \\
 \>\>\texttt{ret} \\
