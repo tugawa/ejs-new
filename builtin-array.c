@@ -523,38 +523,49 @@ int sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   if (is_undefined(x) && is_undefined(y)) return 0;
   else if (is_undefined(x)) return 1;
   else if (is_undefined(y)) return -1;
-  else if (is_function(comparefn)) {
-    stack = &get_stack(context, 0);
-    sp = get_sp(context);
-    stack[sp] = y;
-    stack[sp-1] = x;
-    stack[sp-2] = gconsts.g_object; // TODO is receiver always global object?
-    call_function(context, comparefn, 2, TRUE); // TODO is sendp always true?
-
-    vmrun_threaded(context, get_fp(context));
-    ret = get_a(context);
-    //printf("ret = ");print_value_simple(context, ret);printf("\n");
-    return fixnum_to_cint(ret); // TODO Must fixed
-  }
-  else if (is_builtin(comparefn)) {
-    // TODO
-    //call_builtin0(context, gconsts.g_object, comparefn, TRUE);
-    LOG_EXIT("not implemented"); // TODO implementation defined?
-  }
   else if (!is_undefined(comparefn)) {
-    LOG_EXIT("not implemented"); // TODO implementation defined?
+    if (is_function(comparefn)) {
+      JSValue oldsp, oldfp;
+      // printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),fixnum_to_cint(y));
+      stack = &get_stack(context, 0);
+      oldsp = sp = get_sp(context);
+      oldfp = get_fp(context);
+      stack[sp] = y;
+      stack[sp-1] = x;
+      stack[sp-2] = gconsts.g_object; // is receiver always global object?
+      call_function(context, comparefn, 2, TRUE);
+      vmrun_threaded(context, get_fp(context));
+      restore_special_registers(context, stack, oldsp-2-4);
+      set_fp(context, oldfp);
+      set_sp(context, oldsp);
+    }
+    else if (is_builtin(comparefn)) {
+      // TODO
+      //call_builtin0(context, gconsts.g_object, comparefn, TRUE);
+      LOG_EXIT("not implemented"); // TODO implementation defined?
+    }
+    ret = get_a(context);
+    // printf("ret = ");print_value_simple(context, ret);printf("\n");
+    if(is_nan(ret)) return FIXNUM_ZERO;
+    return fixnum_to_cint(ret); // TODO Must fixed
   }
   xString = string_to_cstr(to_string(context, x));
   yString = string_to_cstr(to_string(context, y));
   return strcmp(xString, yString);
 }
 
-/* should be refine */
+void swap(JSValue *a, JSValue *b) {
+  JSValue tmp = *a;
+  *a = *b;
+  *b = tmp;
+}
+
+/* Should be refine */
 void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
   JSValue tmp;
   JSValue p;
   cint i, j;
-  /*
+  /* DEBUG: print array
   for(cint z = 0; z < array_length(array); z++) {
     tmp = get_array_prop(context, array, cint_to_fixnum(z));
     if (l <= z && z <= r) print_value_simple(context, tmp);
@@ -563,24 +574,58 @@ void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
     else printf("\n");
   }
   */
+  /* Insertion sort */
+  if(r - l <= 22) {
+    for (i = l; i <= r; i++) {
+      tmp = get_array_prop(context, array, cint_to_fixnum(i)); // tmp = a[i]
+      for (j = i - 1; l <= j; j--) {
+        if (sortCompare(context, get_array_prop(context, array, cint_to_fixnum(j)), tmp, comparefn) > 0) set_array_prop(context, array, cint_to_fixnum(j+1), get_array_prop(context, array, cint_to_fixnum(j))); // a[j+1] = a[j]
+        else break;
+      }
+      set_array_prop(context, array, cint_to_fixnum(j+1), tmp); // a[j+1] = tmp;
+    }
+    return;
+  }
 
+  /* Quick sort */
   if (l < r) {
-    i = l, j = r;
-    p = get_array_prop(context, array, cint_to_fixnum(i)); // kari
-
+    /* Find pivot (2nd biggest value in a[l], a[r] and a[l+((r-l)/2)]) */
+    JSValue v0, v1, v2;
+    cint m = l+((r-l)/2);
+    v0 = get_array_prop(context, array, cint_to_fixnum(l));
+    v1 = get_array_prop(context, array, cint_to_fixnum(m));
+    v2 = get_array_prop(context, array, cint_to_fixnum(r));
+    // Sort v0 v1 v2
+    if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v0 < v1
+    if (sortCompare(context, v1, v2, comparefn) > 0) { // v0 < v1 and v2 < v1
+      swap(&v1, &v2);
+      if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v2 < v0 < v1
+    }
+    /*
+       Update array with [v0, v1(=p), a[2], a[3],..., a[m-1], a[1], a[m+1],..., a[r-1], v2]
+                           l             i                                           j   r
+     */
+    p = v1;
+    set_array_prop(context, array, cint_to_fixnum(l), v0); // a[l] = v0
+    set_array_prop(context, array, cint_to_fixnum(r), v2); // a[r] = v2
+    set_array_prop(context, array, cint_to_fixnum(m), get_array_prop(context, array, cint_to_fixnum(l+1))); // a[m] = a[l+1]
+    set_array_prop(context, array, cint_to_fixnum(l+1), v1); // a[l+1] = v1(=p)
+    i = l+2;
+    j = r-1;
+    /* Sorting (from i to j) */
     while (1) {
-      while (sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
-      while (sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
+      while (i < r && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
+      while (l < j && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
       if (i >= j) break;
-      // exchange a[i] and a[j]
+      // Exchange a[i] and a[j]
       tmp = get_array_prop(context, array, cint_to_fixnum(i));
       set_array_prop(context, array, cint_to_fixnum(i), get_array_prop(context, array, cint_to_fixnum(j)));
       set_array_prop(context, array, cint_to_fixnum(j), tmp);
       i++;
       j--;
     }
-    asort(context, array, l, i - 1, comparefn);
     asort(context, array, j + 1, r, comparefn);
+    asort(context, array, l, i - 1, comparefn);
   }
 }
 
