@@ -1,5 +1,3 @@
-package vmgen;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -85,7 +83,7 @@ public class TypeDefinition {
 		while(sc.hasNextLine()) {
 			String line = sc.nextLine();
 			line = line.split("#")[0];
-			if (line.matches("^¥s*$"))
+			if (line.matches("^\\s*$"))
 				continue;
 			if (line.equals("%%%"))
 				break;
