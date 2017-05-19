@@ -1,0 +1,8 @@
+\inst I_ADD [$v1, $v2]  ( $dst )
+\when ($v1:flonum) && $v2:string
+flostr
+\when ($v2:string && $v1:fixnum) || ($v1:fixnum && $v2:special)
+fixstr or fixspe
+\inst example [$v1] ($v2, $dst)
+\when $v1:fixnum
+fix
