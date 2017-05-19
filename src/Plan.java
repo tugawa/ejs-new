@@ -42,48 +42,19 @@ public class Plan {
 		}
 	}
 
+	int arity;
 	Set<Rule> rules;
 
-	void twoOperand(TypeDefinition td, Set<Rule> rules) {
-		Set<Branch> root = new HashSet<Branch>();
-		for (Rule r: rules) {
-			TagPairBranch b = new TagPairBranch(r);
-			root.add(b);
-			for(PT pt0: r.uniquePT(td, 0))
-				for (PT pt1: r.uniquePT(td, 1))
-					b.addCondition(pt0, pt1);
-		}
-
-		root.stream().forEach(b -> System.out.println(b));
-
-		Map<Map<TypeRepresentation, Rule>, Set<TypeRepresentation>> revDispatchTable = new HashMap<Map<TypeRepresentation, Rule>, Set<TypeRepresentation>>();
-		for (Rule r0: rules)
-			for (TypeRepresentation tr0: r0.getTypeRepresentations(td, 0)) {
-				HashMap<TypeRepresentation, Rule> innerDispatch = new HashMap<TypeRepresentation, Rule>();
-				for (Rule r: rules) {
-					for (TypeRepresentation tr1: r.getTypeRepresentations(td, 1))
-						innerDispatch.put(tr1, r);
-				}
-				Set<TypeRepresentation> trs = revDispatchTable.get(innerDispatch);
-				if (trs == null) {
-					trs = new HashSet<TypeRepresentation>();
-					revDispatchTable.put(innerDispatch, trs);
-				}
-				trs.add(tr0);
-			}
-
-		Set<PTBranch> secondLevel = new HashSet<PTBranch>();
-		revDispatchTable.values().forEach(trs -> {
-			PTBranch b = new PTBranch();
-			secondLevel.add(b);
-			DataType.uniquePT(trs).stream().forEach(pt -> b.addCondition(pt));
-		});
-
-		secondLevel.forEach(b -> System.out.println(b));
+	Set<Rule> getRules() {
+		return rules;
+	}
+	int getArity() {
+		return arity;
 	}
 
 	Plan() {
 		rules = new HashSet<Rule>();
+		arity = 2;
 
 		/* generate dummy data that looks like add */
 		rules.add(new Rule("fixfix", new Condition("fixnum", "fixnum")));
@@ -104,7 +75,8 @@ public class Plan {
 							new Condition("array", "array")));
 	}
 
-	Plan(Set<Rule> rules) {
+	Plan(int arity, Set<Rule> rules) {
+	    this.arity = arity;
 	    this.rules = rules;
 	}
 }

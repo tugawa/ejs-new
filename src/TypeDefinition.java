@@ -16,14 +16,14 @@ import java.util.stream.Stream;
 
 public class TypeDefinition {
 	String quoted;
-	
+
 	DataType parseLine(String line) {
 		Scanner sc = new Scanner(line);
 		try {
 			sc.findInLine("([a-zA-Z_]+)\\s*:\\s*");
 			String name = sc.match().group(1);
 			DataType dt = DataType.get(name);
-		
+
 			while (sc.hasNext("[a-zA-Z_].*")) {
 				sc.findInLine("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?");
 				MatchResult m = sc.match();
@@ -34,11 +34,11 @@ public class TypeDefinition {
 					pTagLength ++;
 					pTagValue <<= 1;
 					if (m.group(2).charAt(i) == '1')
-						pTagValue += 1;	
+						pTagValue += 1;
 				}
 				String hTypeName = m.group(4);
 				int hTypeValue = m.group(5) == null ? 0 : Integer.parseInt(m.group(5));
-				
+
 				TypeRepresentation r = new TypeRepresentation(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
 				dt.addRepresentation(r);
 			}
@@ -50,7 +50,7 @@ public class TypeDefinition {
 			return null;
 		}
 	}
-	
+
 	void load(String filename) throws FileNotFoundException {
 		Scanner sc = new Scanner(new FileInputStream(filename));
 		while(sc.hasNextLine()) {
@@ -69,7 +69,7 @@ public class TypeDefinition {
 		}
 		quoted = sb.toString();
 	}
-	
+
 	@Override
 	public String toString() {
 		String s = "";
@@ -79,7 +79,7 @@ public class TypeDefinition {
 		s += quoted;
 		return s;
 	}
-	
+
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
 		td.load("datatype/embstr.dtdef");
@@ -97,6 +97,6 @@ public class TypeDefinition {
 				"boolean_object",
 				"string").map(n -> DataType.get(n)))));
 		Plan p = new Plan();
-		p.twoOperand(td, p.rules);
+		new TagPairSynthesiser().twoOperand(td, p.rules);
 	}
 }
