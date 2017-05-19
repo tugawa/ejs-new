@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class ProcDefinition {
 
     List<Definition> defs = new LinkedList<Definition>();
@@ -20,7 +21,6 @@ public class ProcDefinition {
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
             if (line.matches("^\\\\inst .+")) {
-                // System.out.println("inst: " + line.substring(6));
                 if (def != null) {
                     def.end();
                     defs.add(def);
@@ -54,17 +54,12 @@ public class ProcDefinition {
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("inst.def");
         System.out.println(procDef);
+        InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
+        Plan p = new Plan();
+        p.twoOperand(td, instDef.toRules());
     }
 }
 
-class Pair<L, R> {
-    L left;
-    R right;
-    Pair(L left, R right) {
-        this.left = left;
-        this.right = right;
-    }
-}
 class JSTypePair {
     String left, right;
     JSTypePair(String left, String right) {
@@ -163,11 +158,11 @@ class TypeDispatchDefinition {
             List<Pair<JSTypePair,List<String>>> removeList = new LinkedList<Pair<JSTypePair,List<String>>>();
             for (Pair<JSTypePair,List<String>> e : tmpActionList) {
                 if (cProgram == null) {
-                    cProgram = e.right;
-                    sameActions.add(e.left);
+                    cProgram = e.second();
+                    sameActions.add(e.first());
                     removeList.add(e);
-                } else if (cProgram == e.right) {
-                    sameActions.add(e.left);
+                } else if (cProgram == e.second()) {
+                    sameActions.add(e.first());
                     removeList.add(e);
                 }
             }
@@ -188,7 +183,7 @@ class TypeDispatchDefinition {
                 conditions.remove(otherwise);
             for (JSTypePair jtp : conditions) {
                 for (Pair<JSTypePair,List<String>> act : actionList) {
-                    if (jtp.left.equals(act.left.left)) {
+                    if (jtp.left.equals(act.first().left)) {
                         // throw new Exception();
                         System.out.println("error");
                     }
@@ -202,7 +197,7 @@ class TypeDispatchDefinition {
             for (JSTypePair jtp : conditions) {
                 if (jtp.left == null) {
                     for (Pair<JSTypePair,List<String>> act : actionListWildcardLeft) {
-                        if (jtp.right.equals(act.left.right)) {
+                        if (jtp.right.equals(act.first().right)) {
                             // throw new Exception();
                             System.out.println("error");
                         }
@@ -210,7 +205,7 @@ class TypeDispatchDefinition {
                     actionListWildcardLeft.add(new Pair<JSTypePair,List<String>>(jtp, cProgram));
                 } else if (jtp.right == null) {
                     for (Pair<JSTypePair,List<String>> act : actionListWildcardRight) {
-                        if (jtp.left.equals(act.left.left)) {
+                        if (jtp.left.equals(act.first().left)) {
                             // throw new Exception();
                             System.out.println("error");
                         }
@@ -218,7 +213,7 @@ class TypeDispatchDefinition {
                     actionListWildcardRight.add(new Pair<JSTypePair,List<String>>(jtp, cProgram));
                 } else {
                     for (Pair<JSTypePair,List<String>> act : actionList) {
-                        if (jtp.left.equals(act.left.left) && jtp.right.equals(act.left.right)) {
+                        if (jtp.left.equals(act.first().left) && jtp.right.equals(act.first().right)) {
                             // throw new Exception();
                             System.out.println("error");
                         }
@@ -342,6 +337,22 @@ class TypeDispatchDefinition {
         }
         return ret;
     }
+
+    public Set<Plan.Rule> toRules() {
+        Set<Plan.Rule> rules = new HashSet<Plan.Rule>();
+        for (Map.Entry<Set<JSTypePair>, List<String>> e : this.actionsMap.entrySet()) {
+            List<Plan.Condition> conditions = new LinkedList<Plan.Condition>();
+            for (JSTypePair jtp : e.getKey()) {
+                conditions.add(new Plan.Condition(jtp.left, jtp.right));
+            }
+            String action = "";
+            for (String s : e.getValue()) {
+                action += s;
+            }
+            rules.add(new Plan.Rule(action, conditions));
+        }
+        return rules;
+    }
 }
 
 
@@ -349,12 +360,19 @@ interface Definition {
     void read(String line);
     void start();
     void end();
+    public Set<Plan.Rule> toRules();
 }
 
 class InstDefinition implements Definition {
     String instName;
     String[] dispatchVars, otherVars;
     TypeDispatchDefinition tdDef;
+    InstDefinition(String instName, String[] dispatchVars, String[] otherVars, TypeDispatchDefinition tdDef) {
+        this.instName = instName;
+        this.dispatchVars = dispatchVars;
+        this.otherVars = otherVars;
+        this.tdDef = tdDef;
+    }
     InstDefinition(String instDefLine) {
         Pattern ptnInst = Pattern.compile("^\\s*(\\w+)(\\s*\\[\\s*((\\$?\\w+)\\s*(,\\s*(\\$?\\w+)\\s*)?)?\\])?(\\s*\\((\\s*(\\$\\w+)(\\s*,\\s*(\\$\\w+)(\\s*,\\s*((\\$\\w+)))?)?)?\\s*\\))?\\s*$");
         Matcher m = ptnInst.matcher(instDefLine);
@@ -398,6 +416,9 @@ class InstDefinition implements Definition {
     }
     public void end() {
         tdDef.end();
+    }
+    public Set<Plan.Rule> toRules() {
+        return tdDef.toRules();
     }
     public String toString() {
         String ret = "Instruction name: " + instName + "\n";
