@@ -10,6 +10,10 @@ public class Plan {
 	static class Condition {
 		DataType[] dts;
 
+		Condition(String tn1) {
+		    dts = new DataType[]{DataType.get(tn1)};
+		}
+
 		Condition(String tn1, String tn2) {
 			dts = new DataType[]{DataType.get(tn1), DataType.get(tn2)};
 		}

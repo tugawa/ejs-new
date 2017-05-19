@@ -294,7 +294,10 @@ class TypeDispatchDefinition {
         for (Map.Entry<Set<JSTypePair>, List<String>> e : this.actionsMap.entrySet()) {
             List<Plan.Condition> conditions = new LinkedList<Plan.Condition>();
             for (JSTypePair jtp : e.getKey()) {
-                conditions.add(new Plan.Condition(jtp.left, jtp.right));
+                if (vnames.length == 1)
+                    conditions.add(new Plan.Condition(jtp.left));
+                else if (vnames.length == 2)
+                    conditions.add(new Plan.Condition(jtp.left, jtp.right));
             }
             String action = "";
             for (String s : e.getValue()) {
