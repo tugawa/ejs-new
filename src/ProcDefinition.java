@@ -11,55 +11,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class ProcDefinition {
-
-    List<Definition> defs = new LinkedList<Definition>();
-
-    void load(String fname) throws FileNotFoundException {
-        Scanner sc = new Scanner(new FileInputStream(fname));
-        Definition def = null;
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            if (line.matches("^\\\\inst .+")) {
-                if (def != null) {
-                    def.end();
-                    defs.add(def);
-                }
-                def = new InstDefinition(line.substring(6));
-                def.start();
-            } else if (line.matches("^\\\\func ")) {
-                // func
-            } else {
-                def.read(line);
-            }
-        }
-        if (def != null) {
-            def.end();
-            defs.add(def);
-        }
-    }
-
-    public String toString() {
-        String ret = "";
-        for (Definition def : defs) {
-            ret += def.toString() + "\n";
-        }
-        return ret;
-    }
-
-    public static void main(String[] args) throws FileNotFoundException {
-        TypeDefinition td = new TypeDefinition();
-        td.load("datatype.def");
-        System.out.println(td);
-        ProcDefinition procDef = new ProcDefinition();
-        procDef.load("inst.def");
-        System.out.println(procDef);
-        InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
-        Plan p = new Plan();
-        p.twoOperand(td, instDef.toRules());
-    }
-}
-
 class JSTypePair {
     String left, right;
     JSTypePair(String left, String right) {
@@ -439,4 +390,54 @@ class InstDefinition implements Definition {
 
 class FuncDefinition {
     List cSrcLines = new LinkedList<String>();
+}
+
+
+public class ProcDefinition {
+
+    List<Definition> defs = new LinkedList<Definition>();
+
+    void load(String fname) throws FileNotFoundException {
+        Scanner sc = new Scanner(new FileInputStream(fname));
+        Definition def = null;
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine();
+            if (line.matches("^\\\\inst .+")) {
+                if (def != null) {
+                    def.end();
+                    defs.add(def);
+                }
+                def = new InstDefinition(line.substring(6));
+                def.start();
+            } else if (line.matches("^\\\\func ")) {
+                // func
+            } else {
+                def.read(line);
+            }
+        }
+        if (def != null) {
+            def.end();
+            defs.add(def);
+        }
+    }
+
+    public String toString() {
+        String ret = "";
+        for (Definition def : defs) {
+            ret += def.toString() + "\n";
+        }
+        return ret;
+    }
+
+    public static void main(String[] args) throws FileNotFoundException {
+        TypeDefinition td = new TypeDefinition();
+        td.load("datatype.def");
+        System.out.println(td);
+        ProcDefinition procDef = new ProcDefinition();
+        procDef.load("inst.def");
+        System.out.println(procDef);
+        InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
+        Plan p = new Plan();
+        p.twoOperand(td, instDef.toRules());
+    }
 }
