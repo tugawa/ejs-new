@@ -196,6 +196,7 @@ BUILTIN_FUNCTION(array_concat)
 
   builtin_prologue();
   a = new_array(context);
+  gc_push_tmp_root(&a);
   n = 0;
   for (i = 0; i <= na; i++) {
     e = args[i];
@@ -221,6 +222,7 @@ BUILTIN_FUNCTION(array_concat)
   array_length(a) = n;
   set_prop_none(a, gconsts.g_string_length, cint_to_fixnum(n));
   set_a(context, a);
+  gc_pop_tmp_root(1);
   return;
 
 #if 0
@@ -452,6 +454,7 @@ BUILTIN_FUNCTION(array_slice)
 
   count = max(final - k, 0);
   a = new_array_with_size(context, count);
+  gc_push_tmp_root(&a);
   set_prop_all(a, gconsts.g_string___proto__, gconsts.g_array_proto);
 
   n = 0;
@@ -464,6 +467,7 @@ BUILTIN_FUNCTION(array_slice)
     n++;
   }
   set_a(context, a);
+  gc_pop_tmp_root(1);
   return;
 
 #if 0
@@ -543,7 +547,14 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     }
     else if (is_builtin(comparefn)) {
       save_special_registers(context, stack, oldsp - 6);
-      // y(<-oldsp), x, receiver, CF, PC, LP, FP
+      set_fp(context, oldsp-2); // for GC
+      // y(<-oldsp), x, receiver (<-newfp), CF, PC, LP, FP
+      /*
+      set_lp(context, NULL);
+      set_pc(context, -1);
+      set_cf(context, NULL);
+      set_ac(context, 2);
+      */
       call_builtin(context, comparefn, 2, TRUE, FALSE);
     }
     restore_special_registers(context, stack, oldsp - 6);
