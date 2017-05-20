@@ -151,7 +151,32 @@ BUILTIN_FUNCTION(string_toUpperCase)
 
 BUILTIN_FUNCTION(string_substring)
 {
-  not_implemented("string_substring");
+  JSValue ret;
+  cint len, intStart, intEnd;
+  cint finalStart, finalEnd, from, to;
+  char *s, *r;
+
+  builtin_prologue();
+
+  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s = string_to_cstr(ret);
+  len = string_length(ret);
+
+  intStart = is_undefined(args[1]) ? 0 : toInteger(context, args[1]);
+  intEnd = is_undefined(args[2]) ? len : toInteger(context, args[2]);
+  finalStart = min(max(intStart, 0), len);
+  finalEnd = min(max(intEnd, 0), len);
+  from = min(finalStart, finalEnd);
+  to = max(finalStart, finalEnd);
+  len = to - from;
+
+  r = mallocstr(len);
+  strncpy(r, s+from, len);
+  r[len] = '\0';
+  ret = cstr_to_string(r);
+  free(r);
+
+  set_a(context, ret);
 
 #if 0
   JSValue endv;
@@ -204,7 +229,30 @@ BUILTIN_FUNCTION(string_substring)
 
 BUILTIN_FUNCTION(string_slice)
 {
-  not_implemented("string_slice");
+  JSValue ret;
+  cint len, intStart, intEnd;
+  cint from, to;
+  char *s, *r;
+
+  builtin_prologue();
+
+  ret = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s = string_to_cstr(ret);
+  len = string_length(ret);
+
+  intStart = is_undefined(args[1]) ? 0 : toInteger(context, args[1]);
+  intEnd = is_undefined(args[2]) ? len : toInteger(context, args[2]);
+  from = intStart < 0 ? max(len + intStart, 0) : min(intStart, len);
+  to = intEnd < 0 ? max(len + intEnd, 0) : min(intEnd, len);
+  len = max(to - from, 0);
+
+  r = mallocstr(len);
+  strncpy(r, s+from, len);
+  r[len] = '\0';
+  ret = cstr_to_string(r);
+  free(r);
+
+  set_a(context, ret);
 
 #if 0
   JSValue rsv, startv, endv;
@@ -307,9 +355,67 @@ BUILTIN_FUNCTION(string_charCodeAt)
   set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
 }
 
+/*
+void strReverse(char* str) {
+  char *l, *r;
+  char c;
+  if (str[0] == '\0') return;
+
+  l = str;
+  r = str + strlen(str) - 1;
+  while (r-l > 0) {
+    c = *l;
+    *l = *r;
+    *r = c;
+    r--;
+    l++;
+  }
+}
+*/
+
+/*
+   Note that "abcdefg".lastIndexOf("efg", 4) must returns not -1 but 4
+   and "abcdefg".indexOf("",4);
+ */
+JSValue string_indexOf_(Context *context, JSValue *args, int na, int isLastIndexOf) {
+  JSValue s0, s1;
+  char *s, *searchStr;
+  cint pos, len, start, searchLen, k, j;
+  int delta;
+
+  s0 = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  s1 = is_string(args[1]) ? args[1] : to_string(context, args[1]);
+  s = string_to_cstr(s0);
+  searchStr = string_to_cstr(s1);
+  len = string_length(s0);
+  searchLen = string_length(s1);
+
+  if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
+  else if (isLastIndexOf) pos = INFINITY;
+  else pos = 0;
+  start = min(max(pos, 0), len);
+  if (searchLen == 0) return cint_to_fixnum(start); // When searchStr is an empty string
+
+  if (isLastIndexOf) delta = -1;
+  else delta = 1;
+  k = min(start, len - searchLen);
+  while (0 <= k && k <= len - searchLen) {
+    for (j = 0; s[k+j] == searchStr[j]; j++)
+      if (j == (searchLen - 1)) return cint_to_fixnum(k);
+    k += delta;
+  }
+
+  return cint_to_fixnum(-1);
+}
+
 BUILTIN_FUNCTION(string_indexOf)
 {
-  not_implemented("string_indexOf");
+  JSValue ret;
+  builtin_prologue();
+  ret = string_indexOf_(context, args, na, FALSE);
+  set_a(context, ret);
+  return;
+
 
 #if 0
   JSValue sch, position, rsv;
@@ -369,7 +475,11 @@ BUILTIN_FUNCTION(string_indexOf)
 
 BUILTIN_FUNCTION(string_lastIndexOf)
 {
-  not_implemented("string_lastIndexOf");
+  JSValue ret;
+  builtin_prologue();
+  ret = string_indexOf_(context, args, na, TRUE);
+  set_a(context, ret);
+  return;
 
 #if 0
   JSValue sch, position, rsv;
@@ -461,7 +571,26 @@ BUILTIN_FUNCTION(string_fromCharCode)
 
 BUILTIN_FUNCTION(string_localeCompare)
 {
-  not_implemented("string_localeCompare");
+  JSValue s0, s1, ret;
+  char *cs0, *cs1;
+  int r;
+
+  builtin_prologue();
+  s0 = to_string(context, args[0]);
+  if (na >= 1) s1 = to_string(context, args[1]);
+  else s1 = to_string(context, JS_UNDEFINED);
+  cs0 = string_to_cstr(s0);
+  cs1 = string_to_cstr(s1);
+
+  /* implemantation-defined */
+  r = strcmp(cs0, cs1);
+  if (r > 0) r = TRUE;
+  else if (r < 0) r = FALSE;
+  else r = 0;
+
+  ret = cint_to_fixnum(r);
+  set_a(context, ret);
+  return;
 
 #if 0
   JSValue rsv, that;

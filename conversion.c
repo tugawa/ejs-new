@@ -520,7 +520,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   ap = remove_array_tag(array);
 
   for (i = 0; i < length; i++) {
-    item = array_body_index(array, i);
+    item = get_array_prop(context, array, cint_to_fixnum(i));
     strs[i] = string_to_cstr(to_string(context, item));
     sumlen += strlen(strs[i]);
   }
@@ -661,6 +661,26 @@ JSValue number_to_cint(JSValue n)
     return fixnum_to_cint(n);
   else
     return (int) flonum_to_double(n);
+}
+
+// used in builtin methods
+cint toInteger(Context *context, JSValue a) {
+  cint n;
+
+  if (is_fixnum(a)) n = fixnum_to_int(a);
+  else if (is_nan(a)) n = 0;
+  else if (is_flonum(a)) n = flonum_to_int(a);
+  else {
+    a = to_number(context, a);
+    if (is_fixnum(a)) n = fixnum_to_int(a);
+    else if (is_nan(a)) n = 0;
+    else if (is_flonum(a)) n = flonum_to_int(a);
+    else {
+      //printf("cannot convert to a integer\n");
+      n = 0;
+    }
+  }
+  return n;
 }
 
 char *type_name(JSValue v) {

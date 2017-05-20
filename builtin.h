@@ -30,6 +30,9 @@
 // #define builtin_prologue() \
 //   int fp; JSValue *args; fp = get_fp(context); args = get_args()
 
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
 typedef struct obj_builtin_prop {
   char *name;
   builtin_function_t fn;

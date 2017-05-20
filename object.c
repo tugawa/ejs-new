@@ -165,6 +165,46 @@ JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
 }
 
 /*
+  determin whether an object has a property by following the prototype chain
+  if the object has the property, TRUE, else FALSE
+   o: object
+   p: property, which is a string
+ */
+int has_prop_prototype_chain(JSValue o, JSValue p) {
+  JSValue ret;
+  extern JSValue prototype_object(JSValue);
+  do {
+    if (get_prop(o, p, &ret) == SUCCESS) return TRUE;
+  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
+  // is it necessary to search in the Object's prototype?
+  return FALSE;
+}
+
+/*
+  determin whether a[n] exists or not
+  if a[n] is not an element of body (an C array) of a, search properties of a
+   a: array
+   n: subscript
+ */
+int has_array_element(JSValue a, cint n) {
+  if (!is_array(a)) return FALSE;
+  if (n < 0 || array_length(a) <= n) return FALSE;
+  /* in body of a */
+  /* is it ok that a[n] (0 <= n < len) always exists? */
+  if (n < array_size(a)) return TRUE;
+  /* in property of a */
+  return has_prop_prototype_chain(a, cint_to_string(n));
+
+//if (!is_array(a)) return FALSE;
+///* in body of a */
+///* is it ok that a[n] (0 <= n < len) always exists? */
+//if (0 <= n && n < array_size(a))
+//  return (n < array_length(a))? TRUE: FALSE;
+///* in property of a */
+//return has_prop_prototype_chain(a, cint_to_string(n));
+}
+
+/*
    obtains array's property
      a: array
      p: property (number / string / other type)
@@ -374,9 +414,9 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
       while ((newsize = increase_asize(size)) <= n) size = newsize;
       reallocate_array_data(ctx, a, newsize);
     }
-    /* If len < n, expands the array.  It should be noted that
+    /* If len <= n, expands the array.  It should be noted that
        if len >= n, this for loop does nothing */
-    for (i = len; i < n; i++)
+    for (i = len; i <= n; i++) // i < n?
       array_body_index(a, i) = JS_UNDEFINED;
   } else {
     /*
@@ -464,10 +504,55 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
 }
 
 /*
-   removes array data whose subscript is between `from' and `tp'
+   removes array data whose subscript is between `from' and `to'
    that are stored in the property table.
+   implemented tentatively
  */
 void remove_array_props(JSValue a, cint from, cint to) {
+  // printf("%d-%d\n",from,to);
+  for (; from < to ; from++)
+    delete_array_element(a, from);
+}
+
+/*
+   delete the hash cell with key and the property of the object
+   NOTE:
+     The function does not reallocate (shorten) the prop array of the object.
+     It must be improved.
+   NOTE:
+     When using hidden class, this function does not delete a property of an object
+     but merely sets the corresponding property as JS_UNDEFINED,
+ */
+int delete_object_prop(JSValue obj, HashKey key) {
+  int index;
+
+  if (!is_object(obj)) return FAIL;
+
+  /* Set corresponding property as JS_UNDEFINED */
+  index = prop_index(obj, key);
+  if (index == - 1) return FAIL;
+  obj_prop_index(obj, index) = JS_UNDEFINED;
+
+  /* Delete map */
+#ifdef HIDDEN_CLASS
+  // LOG("To delete properties of an object is not completely implemented when using hidden class (instead set a property to undefined)\n"); // TODO
+#else
+  /* Free the HashCell */
+  if(hash_delete(obj_map(obj), key) == HASH_GET_FAILED) return FAIL;
+#endif
+  return SUCCESS;
+}
+
+/*
+   delete a[n]
+   Note that this function does not change a.length
+ */
+int delete_array_element(JSValue a, cint n) {
+  if (n < array_size(a)) {
+    array_body_index(a, n) = JS_UNDEFINED;
+    return SUCCESS;
+  }
+  return delete_object_prop(a, cint_to_string(n));
 }
 
 #if 0

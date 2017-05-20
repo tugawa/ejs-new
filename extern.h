@@ -182,6 +182,7 @@ extern JSValue to_boolean(JSValue v);
 extern JSValue to_number(Context *, JSValue);
 extern double to_double(Context *, JSValue);
 extern JSValue number_to_cint(JSValue n);
+extern cint toInteger(Context *context, JSValue a);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
 
@@ -197,6 +198,7 @@ extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
 #ifdef HIDDEN_CLASS
 extern int hash_copy(Context *, HashTable *, HashTable *);
 #endif
+extern int hash_delete(HashTable *table, HashKey key);
 extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
@@ -258,12 +260,16 @@ extern int transit_hidden_class(Context *, JSValue, JSValue, HiddenClass *);
 extern int get_prop(JSValue, JSValue, JSValue *);
 extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
+extern int has_prop_prototype_chain(JSValue o, JSValue p);
+extern int has_array_element(JSValue a, cint n);
 extern JSValue get_array_prop(Context *, JSValue, JSValue);
 extern int set_prop_with_attribute(Context *, JSValue, JSValue, JSValue, Attribute);
 extern int set_object_prop(Context *, JSValue, JSValue, JSValue);
 extern int set_array_index_value(Context *, JSValue, cint, JSValue, int);
 extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 extern void remove_array_props(JSValue, cint, cint);
+extern int delete_object_prop(JSValue obj, HashKey key);
+extern int delete_array_element(JSValue a, cint n);
 extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
