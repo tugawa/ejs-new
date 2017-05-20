@@ -58,6 +58,7 @@ class TypeDispatchDefinition {
     List<Pair<JSTypePair,List<String>>> actionList;
     List<Pair<JSTypePair,List<String>>> actionListWildcardLeft;
     List<Pair<JSTypePair,List<String>>> actionListWildcardRight;
+    List<String> otherwiseCProgram;
 
     TypeDispatchDefinition(String[] vnames) {
         numOfVars = vnames.length;
@@ -89,7 +90,7 @@ class TypeDispatchDefinition {
             List<JSTypePair> conditions = parseCondition(line.substring(6));
             if (cProgram != null) endWhenScope();
             nextWhenScope(conditions);
-        } else if (line.matches("^\\\\otherwise .*")) {
+        } else if (line.matches("^\\\\otherwise\\s*")) {
             if (cProgram != null) endWhenScope();
             nextWhenScope(null);
         } else {
@@ -97,12 +98,60 @@ class TypeDispatchDefinition {
         }
     }
 
-    // It have to invoke 'end()' each end of inst/func definition
     void end() {
         endWhenScope();
         // actionWildcardLeft/Right
         actionsMap = new HashMap<Set<JSTypePair>,List<String>>();
         List<Pair<JSTypePair,List<String>>> tmpActionList = new LinkedList<Pair<JSTypePair,List<String>>>(actionList);
+        if (vnames.length == 2) {
+            for (Pair<JSTypePair,List<String>> e : this.actionListWildcardLeft) {
+                List<Pair<JSTypePair,List<String>>> tmpActionList1 = new LinkedList<Pair<JSTypePair,List<String>>>();
+                tmpActionList1.addAll(this.actionList);
+                tmpActionList1.addAll(this.actionListWildcardRight);
+                List<String> rightSames = getDefined(tmpActionList1, e.first(), 1);
+                List<String> datatypeStrs = getSubDatatype(rightSames);
+                for (String dts : datatypeStrs) {
+                    JSTypePair jtp = new JSTypePair(dts, e.first().right);
+                    Pair<JSTypePair,List<String>> pair = new Pair<JSTypePair,List<String>>(jtp, e.second());
+                    tmpActionList.add(pair);
+                }
+            }
+            for (Pair<JSTypePair,List<String>> e : this.actionListWildcardRight) {
+                List<Pair<JSTypePair,List<String>>> tmpActionList1 = new LinkedList<Pair<JSTypePair,List<String>>>();
+                tmpActionList1.addAll(this.actionList);
+                tmpActionList1.addAll(this.actionListWildcardLeft);
+                List<String> leftSames = getDefined(tmpActionList1, e.first(), 0);
+                List<String> datatypeStrs = getSubDatatype(leftSames);
+                for (String dts : datatypeStrs) {
+                    JSTypePair jtp = new JSTypePair(e.first().left, dts);
+                    Pair<JSTypePair,List<String>> pair = new Pair<JSTypePair,List<String>>(jtp, e.second());
+                    tmpActionList.add(pair);
+                }
+            }
+        }
+        if (otherwiseCProgram != null) {
+            List<Pair<JSTypePair,List<String>>> otherwiseList = new LinkedList<Pair<JSTypePair,List<String>>>();
+            for (DataType leftDt : DataType.all()) {
+                for (DataType rightDt : DataType.all()) {
+                    boolean b = false;
+                    for (Pair<JSTypePair,List<String>> e : tmpActionList) {
+                        JSTypePair p = e.first();
+                        if (leftDt.name.equals(p.left) && rightDt.name.equals(p.right)) {
+                            // tmpActionList.add(index, element);
+                            b = true;
+                            break;
+                        }
+                    }
+                    if (!b) {
+                        Pair<JSTypePair,List<String>> o = new Pair<JSTypePair,List<String>>(
+                                new JSTypePair(leftDt.name, rightDt.name), otherwiseCProgram);
+                        otherwiseList.add(o);
+                    }
+                }
+            }
+            tmpActionList.addAll(otherwiseList);
+        }
+
         while (!tmpActionList.isEmpty()) {
             List<JSTypePair> sameActions = new LinkedList<JSTypePair>();
             List<String> cProgram = null;
@@ -122,16 +171,48 @@ class TypeDispatchDefinition {
             actionsMap.put(set, cProgram);
             tmpActionList.removeAll(removeList);
         }
+
+
+    }
+
+    private List<String> getSubDatatype(List<String> typenames) {
+        List<String> ret = new LinkedList<String>();
+        for (DataType dt : DataType.all()) {
+            ret.add(dt.name);
+        }
+        ret.removeAll(typenames);
+        return ret;
+    }
+
+    // if check left, c -> 0     if check right, c -> 1
+    private List<String> getDefined(List<Pair<JSTypePair,List<String>>> actionList, JSTypePair jtp, int c) {
+        List<String> ret = new LinkedList<String>();
+        for (Pair<JSTypePair,List<String>> e : actionList) {
+            if (c == 0) {
+                if (e.first().left == null) {
+                    ret.add(e.first().right);
+                } else if (jtp.left.equals(e.first().left)) {
+                    ret.add(e.first().right);
+                }
+            } else if (c == 1) {
+                if (e.first().right == null) {
+                    ret.add(e.first().left);
+                } else if (jtp.right.equals(e.first().right)) {
+                    ret.add(e.first().left);
+                }
+            }
+        }
+        return ret;
     }
 
     private void endWhenScope() {
         List<JSTypePair> conditions = tmpConditions;
         tmpConditions = null;
-        JSTypePair otherwise = null;
+        if (conditions == null) {
+            otherwiseCProgram = cProgram;
+            return;
+        }
         if (numOfVars == 1) {
-            otherwise = seekOtherwise(conditions);
-            if (otherwise != null)
-                conditions.remove(otherwise);
             for (JSTypePair jtp : conditions) {
                 for (Pair<JSTypePair,List<String>> act : actionList) {
                     if (jtp.left.equals(act.first().left)) {
@@ -142,9 +223,6 @@ class TypeDispatchDefinition {
                 actionList.add(new Pair<JSTypePair,List<String>>(jtp, cProgram));
             }
         } else if (numOfVars == 2) {
-            otherwise = seekOtherwise(conditions);
-            if (otherwise != null)
-                conditions.remove(otherwise);
             for (JSTypePair jtp : conditions) {
                 if (jtp.left == null) {
                     for (Pair<JSTypePair,List<String>> act : actionListWildcardLeft) {
@@ -261,7 +339,13 @@ class TypeDispatchDefinition {
                 ret.addAll(conditionToListOfJSTypePair(c.cond2));
             }
         } else if (condition instanceof AtomCondition) {
-            ret.add(new JSTypePair(((AtomCondition) condition).jsType, null));
+            AtomCondition atom = (AtomCondition) condition;
+            int idx = this.getVarIdx(atom.varName);
+            if (idx == 0) {
+                ret.add(new JSTypePair(atom.jsType, null));
+            } else if (idx == 1) {
+                ret.add(new JSTypePair(null, atom.jsType));
+            }
         }
         return ret;
     }
