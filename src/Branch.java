@@ -1,5 +1,6 @@
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 class Branch {
 	ActionNode action;
@@ -40,5 +41,30 @@ class PTBranch extends Branch {
 
 	void addCondition(PT pt) {
 		condition.add(pt);
+	}
+
+	@Override
+	public String toString() {
+		String c = condition.stream().map(pt -> pt.name).collect(Collectors.joining(","));
+		return "case ("+c+") -> "+action;
+	}
+}
+
+class HTBranch extends Branch {
+	Set<HT> condition;
+
+	HTBranch(ActionNode action) {
+		super(action);
+		condition = new HashSet<HT>();
+	}
+
+	void addCondition(HT ht) {
+		condition.add(ht);
+	}
+
+	@Override
+	public String toString() {
+		String c = condition.stream().map(ht -> ht.name).collect(Collectors.joining(","));
+		return "case ("+c+") -> "+action;
 	}
 }

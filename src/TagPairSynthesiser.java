@@ -231,6 +231,7 @@ class LLPlan {
 	 * 1. Canonical form has no rules all of whose conditions has been "done".
 	 * 2. All actions of canonical form are distinct.  (Rules that has the same
 	 *    action are merged.)
+	 * 3. All inner plans are in canonical form.
 	 */
 	public void canonicalise() {
 		Set<LLRule> result = new HashSet<LLRule>();
@@ -239,11 +240,15 @@ class LLPlan {
 		.filter(r -> r.condition.stream().anyMatch(c -> !c.done))
 		.forEach(r -> {
 			for (LLRule newr: result)
-				if (mergable(newr, r)) {
+				if (newr.action.mergable(r.action)) {
 					newr.condition.addAll(r.condition);
 					return;
 				}
 			result.add(r);
+		});
+		result.forEach(r -> {
+			if (r.action instanceof UnexpandedActionNode)
+				((UnexpandedActionNode) r.action).ruleList.canonicalise();
 		});
 		rules = result;
 	}
@@ -260,11 +265,15 @@ class TagPairSynthesiser extends Synthesiser {
 	String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
 		System.out.println(dispatchRuleList);
-		tagPairDispatch(dispatchRuleList);
+		DispatchActionNode root = tagPairDispatch(dispatchRuleList);
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
 		System.out.println(nestedRuleList);
 		nestedRuleList.canonicalise();
 		System.out.println(nestedRuleList);
+		DispatchActionNode d = nestedDispatch(nestedRuleList);
+		System.out.println(d);
+		root.add(new TagPairBranch(d));
+		System.out.println(root);
 
 		// TODO Auto-generated method stub
 		//tagPairDispatch(dispatchRuleList);
@@ -284,8 +293,62 @@ class TagPairSynthesiser extends Synthesiser {
 		throw new Error("no TerminalActionNode with action "+ r);
 	}
 
+	DispatchActionNode nestedDispatch(LLPlan llplan) {
+		DispatchActionNode disp = new DispatchActionNode("PT");
+		Map<LLRule, PTBranch> revDisp = new HashMap<LLRule, PTBranch>();
+
+		for (LLRule r: llplan.rules) {
+			ActionNode a = r.action;
+			if (a instanceof UnexpandedActionNode) {
+				a = nestedDispatch(((UnexpandedActionNode) a).ruleList);
+				((UnexpandedActionNode) r.action).setExpanded(a);
+			}
+			PTBranch b = new PTBranch(a);
+			disp.add(b);
+			revDisp.put(r, b);
+		}
+
+		/* pointer tag */
+		for (PT pt: llplan.allPTNthOperand(0)) {
+			Set<LLRule> match = llplan.findByPT(pt);
+			if (match.size() == 1) {
+				LLRule r = match.iterator().next();
+				PTBranch b = revDisp.get(r);
+				b.addCondition(pt);
+				r.condition.forEach(c -> {
+					if (c.trs[0].getPT() == pt)
+						c.done = true;
+				});
+			}
+		}
+
+		/* header type */
+		llplan.canonicalise();
+		if (llplan.rules.size() > 0) {
+			DispatchActionNode htDisp = new DispatchActionNode("HT");
+			PTBranch others = new PTBranch(htDisp);
+			disp.add(others);
+
+			llplan.rules.stream()
+			.flatMap(r -> r.condition.stream())
+			.map(c -> c.trs[0].getPT())
+			.forEach(pt -> others.addCondition(pt));
+
+			llplan.rules.forEach(r -> {
+				ActionNode a = new RedirectActionNode(r.action);
+				HTBranch b = new HTBranch(a);
+				htDisp.add(b);
+				r.condition.stream().map(c -> c.trs[0].getHT()).forEach(ht -> {
+					b.addCondition(ht);
+				});
+			});
+		}
+
+		return disp;
+	}
+
 	DispatchActionNode tagPairDispatch(LLPlan llplan) {
-		DispatchActionNode disp = new DispatchActionNode();
+		DispatchActionNode disp = new DispatchActionNode("TP");
 		Map<LLRule, TagPairBranch> revDisp = new HashMap<LLRule, TagPairBranch>();
 
 		for (LLRule r: llplan.rules) {
