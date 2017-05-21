@@ -525,6 +525,6 @@ public class ProcDefinition {
         System.out.println(procDef);
         InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
         Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
-        new TagPairSynthesiser().twoOperand(td, p.rules);
+//        new TagPairSynthesiser().twoOperand(td, p.rules);
     }
 }

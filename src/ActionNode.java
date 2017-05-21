@@ -7,30 +7,50 @@ class ActionNode {
 
 class DispatchActionNode extends ActionNode {
 	Set<Branch> branches;
-	
+
 	DispatchActionNode() {
 		branches = new HashSet<Branch>();
 	}
-	
+
 	void add(Branch b) {
 		branches.add(b);
 	}
 }
 
-class TerminalActionNode extends ActionNode {
-	Plan.Rule rule;
-	
-	TerminalActionNode(Plan.Rule rule) {
-		this.rule = rule;
+class UnexpandedActionNode extends ActionNode {
+	LLPlan ruleList;
+	UnexpandedActionNode(LLPlan drs) {
+		this.ruleList = drs;
+	}
+
+	@Override
+	public String toString() {
+		return "@" + ruleList;
 	}
 }
 
-class ForwardActionNode extends ActionNode {
+class TerminalActionNode extends ActionNode {
+	Plan.Rule rule;
+
+	TerminalActionNode(Plan.Rule rule) {
+		this.rule = rule;
+	}
+
+	@Override
+	public String toString() {
+		return "(" + rule.action + ")";
+	}
+}
+
+class RedirectActionNode extends ActionNode {
 	ActionNode destination;
-	
-	ForwardActionNode() {}
-	
-	void set(ActionNode destination) {
+
+	RedirectActionNode(ActionNode destination) {
 		this.destination = destination;
+	}
+
+	@Override
+	public String toString() {
+		return ">" + destination;
 	}
 }

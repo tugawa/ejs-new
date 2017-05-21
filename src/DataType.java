@@ -100,6 +100,37 @@ class TypeRepresentation {
 		else
 			return pt.toString();
 	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((ht == null) ? 0 : ht.hashCode());
+		result = prime * result + ((pt == null) ? 0 : pt.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		TypeRepresentation other = (TypeRepresentation) obj;
+		if (ht == null) {
+			if (other.ht != null)
+				return false;
+		} else if (!ht.equals(other.ht))
+			return false;
+		if (pt == null) {
+			if (other.pt != null)
+				return false;
+		} else if (!pt.equals(other.pt))
+			return false;
+		return true;
+	}
 }
 
 class DataType {
@@ -125,17 +156,17 @@ class DataType {
 		Stream.of(
 			"string",
 			"fixnum",
-			"flonum",
-			"special",
+/*			"flonum",
+			"special", */
 			"simple_object",
 			"array",
-			"function",
-			"builtin",
+			"function"//,
+/*			"builtin",
 			"iterator",
 			"regexp",
 			"string_object",
 			"number_object",
-			"boolean_object")
+			"boolean_object" */)
 		.forEach(name -> defineDataType(name));
 	}
 	

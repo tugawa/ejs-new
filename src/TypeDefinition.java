@@ -97,6 +97,6 @@ public class TypeDefinition {
 				"boolean_object",
 				"string").map(n -> DataType.get(n)))));
 		Plan p = new Plan();
-		new TagPairSynthesiser().twoOperand(td, p.rules);
+		new TagPairSynthesiser().synthesise(p);
 	}
 }

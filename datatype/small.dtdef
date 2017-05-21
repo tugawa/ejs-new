@@ -1,0 +1,5 @@
+string:  T_STRING(100)/HTAG_STRING(4)
+fixnum:  T_FIXNUM(111)
+simple_object: T_OBJECT(000)/HTAG_SIMPLEOBJECT(6)
+array:         T_OBJECT(000)/HTAG_ARRAY(7)
+function:      T_OBJECT(000)/HTAG_FUNCTION(8)
