@@ -83,7 +83,7 @@ class TypeDispatchDefinition {
 
     List<JSTypePair> tmpConditions;
     List<String> cProgram;
-    String rawCondition;
+    // String rawCondition;
 
     void read(String line) {
         if (line.matches("^\\\\when .*")) {
@@ -266,56 +266,129 @@ class TypeDispatchDefinition {
         return null;
     }
 
-    private void eatSpaces(String rawCondition, int[] idx) {
-        for (; idx[0] < rawCondition.length(); idx[0]++) {
-            if (rawCondition.charAt(idx[0]) != ' ') break;
+    private boolean eatSpaces(final String rawCond, int[] idx) {
+        for (; idx[0] < rawCond.length(); idx[0]++) {
+            if (rawCond.charAt(idx[0]) != ' ') break;
         }
+        return idx[0] >= rawCond.length();
     }
 
-    private Condition makeParseTree(String rawCondition, int[] idx) {
-        eatSpaces(rawCondition, idx);
-        Pattern ptnAtom = Pattern.compile("^(\\$\\w+)\\s*:\\s*(\\w+)\\s*");
-        if (idx[0] == (rawCondition.length() - 1)) {
+    private Condition parseParenthesizedCondition(final String rawCond, int[] idx, boolean last) {
+        eatSpaces(rawCond, idx);
+        int tmp = idx[0];
+        if (rawCond.charAt(idx[0]) != '(')
+            return null;
+        idx[0]++;
+        Condition ret = parseCondition(rawCond, idx, last);
+        if (eatSpaces(rawCond, idx)) {
+            idx[0] = tmp;
             return null;
         }
-        Condition c1 = null;
-        boolean isNot = false;
-        if (rawCondition.charAt(idx[0]) == '!') {
-            idx[0]++;
-            isNot = true;
+        if (rawCond.charAt(idx[0]) != ')') {
+            idx[0] = tmp;
+            return null;
         }
-        if (rawCondition.charAt(idx[0]) == '(') {
-            idx[0]++;
-            Condition tmp = makeParseTree(rawCondition, idx);
-            if (rawCondition.charAt(idx[0]++) == ')') {
-                c1 = tmp;
-            } else {
-                System.out.println("error");
+        eatSpaces(rawCond, idx);
+        if (last && idx[0] < rawCond.length()) {
+            idx[0] = tmp;
+            return null;
+        }
+        return ret;
+    }
+
+    private Condition parseAtomCondition(final String rawCond, int[] idx, boolean last) {
+        eatSpaces(rawCond, idx);
+        final Pattern ptnAtom = Pattern.compile("^(\\$\\w+)\\s*:\\s*(\\w+)\\s*");
+        Matcher m = ptnAtom.matcher(rawCond.substring(idx[0]));
+        if (!m.find()) return null;
+        Condition ret = new AtomCondition(m.group(1), m.group(2));
+        int tmp = idx[0];
+        idx[0] = idx[0] + m.end();
+        eatSpaces(rawCond, idx);
+        if (last && idx[0] < rawCond.length()) {
+            idx[0] = tmp;
+            return null;
+        }
+        return ret;
+    }
+
+    private Condition parseCompoundConditionNOT(final String rawCond, int[] idx, boolean last) {
+        eatSpaces(rawCond, idx);
+        int tmp = idx[0];
+        if (rawCond.charAt(idx[0]) != '!') return null;
+        idx[0]++;
+        Condition cond1 = parseCondition(rawCond, idx, last);
+        eatSpaces(rawCond, idx);
+        if (last && idx[0] < rawCond.length()) {
+            idx[0] = tmp;
+            return null;
+        }
+        return new CompoundCondition(ConditionalOperator.NOT, cond1, null);
+    }
+
+    private Condition parseCompoundConditionANDOR(final String rawCond, int[] idx, boolean last, ConditionalOperator op) {
+        eatSpaces(rawCond, idx);
+        int tmp = idx[0];
+        Condition left = parseParenthesizedCondition(rawCond, idx, false);
+        if (left == null) {
+            idx[0] = tmp;
+            left = parseAtomCondition(rawCond, idx, false);
+        }
+        if (left != null) {
+            eatSpaces(rawCond, idx);
+            if (idx[0] + 1 < rawCond.length()) {
+                if (op == ConditionalOperator.AND) {
+                    if (!(rawCond.charAt(idx[0]) == '&' && rawCond.charAt(idx[0] + 1) == '&')) {
+                        idx[0] = tmp;
+                        return null;
+                    }
+                } else if (op == ConditionalOperator.OR) {
+                    if (!(rawCond.charAt(idx[0]) == '|' && rawCond.charAt(idx[0] + 1) == '|')) {
+                        idx[0] = tmp;
+                        return null;
+                    }
+                }
+                idx[0] += 2;
             }
         } else {
-            Matcher m = ptnAtom.matcher(rawCondition.substring(idx[0]));
-            if (!m.find()) return null;
-            c1 = new AtomCondition(m.group(1), m.group(2));
-            idx[0] = idx[0] + m.end();
+            idx[0] = tmp;
+            return null;
         }
-        if (isNot && c1 != null) {
-            c1 = new CompoundCondition(ConditionalOperator.NOT, c1, null);
+        eatSpaces(rawCond, idx);
+        Condition right = parseCondition(rawCond, idx, last);
+        if (right == null) {
+            idx[0] = tmp;
+            return null;
         }
-        eatSpaces(rawCondition, idx);
-        if (c1 != null) {
-            if (idx[0] + 1 >= rawCondition.length()) return c1;
-            if (rawCondition.charAt(idx[0]) == '&' && rawCondition.charAt(idx[0] + 1) == '&') {
-                idx[0] += 2;
-                Condition c2 = makeParseTree(rawCondition, idx);
-                return new CompoundCondition(ConditionalOperator.AND, c1, c2);
-            } else if (rawCondition.charAt(idx[0]) == '|' && rawCondition.charAt(idx[0] + 1) == '|') {
-                idx[0] += 2;
-                Condition c2 = makeParseTree(rawCondition, idx);
-                return new CompoundCondition(ConditionalOperator.OR, c1, c2);
-            } else {
-                return c1;
-            }
+        return new CompoundCondition(op, left, right);
+    }
+
+    private Condition parseCompoundCondition(final String rawCond, int[] idx, boolean last) {
+        int tmp = idx[0];
+        Condition cond = parseCompoundConditionNOT(rawCond, idx, last);
+        if (cond != null)
+            return cond;
+        idx[0] = tmp;
+        cond = parseCompoundConditionANDOR(rawCond, idx, last, ConditionalOperator.AND);
+        if (cond != null) {
+            return cond;
         }
+        idx[0] = tmp;
+        cond = parseCompoundConditionANDOR(rawCond, idx, last, ConditionalOperator.OR);
+        if (cond != null)
+            return cond;
+        return null;
+    }
+
+    private Condition parseCondition(final String rawCond, int[] idx, boolean last) {
+        // System.out.println("parseCondition: " + rawCond + " # " + idx[0]);
+        Condition cond = null;
+        cond = parseParenthesizedCondition(rawCond, idx, last);
+        if (cond != null) return cond;
+        cond = parseAtomCondition(rawCond, idx, last);
+        if (cond != null) return cond;
+        cond = parseCompoundCondition(rawCond, idx, last);
+        if (cond != null) return cond;
         return null;
     }
 
@@ -352,7 +425,10 @@ class TypeDispatchDefinition {
 
     private List<JSTypePair> parseCondition(String rawCondition) {
         List<JSTypePair> jtps = new LinkedList<JSTypePair>();
-        Condition c = makeParseTree(rawCondition, new int[1]);
+        // Condition c = makeParseTree(rawCondition, new int[1]);
+        System.out.println(rawCondition);
+        Condition c = parseCondition(rawCondition, new int[1], true);
+        System.out.println(c);
         return conditionToListOfJSTypePair(c);
     }
 
@@ -518,7 +594,7 @@ public class ProcDefinition {
 
     public static void main(String[] args) throws FileNotFoundException {
         TypeDefinition td = new TypeDefinition();
-        td.load("datatype.def");
+        td.load("datatype/embstr.dtdef");
         System.out.println(td);
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("inst.def");

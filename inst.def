@@ -1,7 +1,17 @@
 \inst I_ADD [$v1, $v2]  ( $dst )
-\when $v1:fixnum
-fix???
-\when $v1:fixnum && $v2:string
-fixstr
+\when $v1:fixnum && $v2:fixnum
+fixfix
+\when $v1:fixnum && $v2:flonum
+fixflo
+\when $v1:flonum && $v2:fixnum
+flofix
+\when $v1:flonum && $v2:flonum
+floflo
+\when $v1:string
+str***
+\when $v2:string
+***str
+\when $v1:string && $v2:string
+strstr
 \otherwise
 otherwise
