@@ -13,5 +13,7 @@ str***
 ***str
 \when $v1:string && $v2:string
 strstr
+\when ($v1:simple_object || $v1:array) && ($v2:fixnum || $v2:flonum)
+simple_object or array and fixnum or flonum
 \otherwise
 otherwise

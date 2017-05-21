@@ -87,7 +87,7 @@ class TypeDispatchDefinition {
 
     void read(String line) {
         if (line.matches("^\\\\when .*")) {
-            List<JSTypePair> conditions = parseCondition(line.substring(6));
+            List<JSTypePair> conditions = conditionStrToJSTypePair(line.substring(6));
             if (cProgram != null) endWhenScope();
             nextWhenScope(conditions);
         } else if (line.matches("^\\\\otherwise\\s*")) {
@@ -274,12 +274,14 @@ class TypeDispatchDefinition {
     }
 
     private Condition parseParenthesizedCondition(final String rawCond, int[] idx, boolean last) {
-        eatSpaces(rawCond, idx);
+        // System.out.println("parseParenthesizedCondition: " + rawCond + " # " + idx[0]);
         int tmp = idx[0];
+        eatSpaces(rawCond, idx);
+        if (idx[0] + 1 >=  rawCond.length()) return null;
         if (rawCond.charAt(idx[0]) != '(')
             return null;
         idx[0]++;
-        Condition ret = parseCondition(rawCond, idx, last);
+        Condition ret = parseCondition(rawCond, idx, false);
         if (eatSpaces(rawCond, idx)) {
             idx[0] = tmp;
             return null;
@@ -288,45 +290,46 @@ class TypeDispatchDefinition {
             idx[0] = tmp;
             return null;
         }
+        idx[0]++;
         eatSpaces(rawCond, idx);
         if (last && idx[0] < rawCond.length()) {
             idx[0] = tmp;
             return null;
         }
+        // System.out.println("Parenthesized ret is " + ret);
         return ret;
     }
 
     private Condition parseAtomCondition(final String rawCond, int[] idx, boolean last) {
+        // System.out.println("parseAtomCondition: " + rawCond + " # " + idx[0]);
         eatSpaces(rawCond, idx);
         final Pattern ptnAtom = Pattern.compile("^(\\$\\w+)\\s*:\\s*(\\w+)\\s*");
         Matcher m = ptnAtom.matcher(rawCond.substring(idx[0]));
-        if (!m.find()) return null;
+        if (!m.find()) {
+            return null;
+        }
         Condition ret = new AtomCondition(m.group(1), m.group(2));
         int tmp = idx[0];
         idx[0] = idx[0] + m.end();
         eatSpaces(rawCond, idx);
-        if (last && idx[0] < rawCond.length()) {
-            idx[0] = tmp;
-            return null;
-        }
+        // System.out.println("Atom ret is " + ret + " " + idx[0]);
         return ret;
     }
 
     private Condition parseCompoundConditionNOT(final String rawCond, int[] idx, boolean last) {
+        // System.out.println("parseCompoundConditionNOT: " + rawCond + " # " + idx[0]);
         eatSpaces(rawCond, idx);
         int tmp = idx[0];
+        if (idx[0] + 1 >= rawCond.length()) return null;
         if (rawCond.charAt(idx[0]) != '!') return null;
         idx[0]++;
         Condition cond1 = parseCondition(rawCond, idx, last);
         eatSpaces(rawCond, idx);
-        if (last && idx[0] < rawCond.length()) {
-            idx[0] = tmp;
-            return null;
-        }
         return new CompoundCondition(ConditionalOperator.NOT, cond1, null);
     }
 
     private Condition parseCompoundConditionANDOR(final String rawCond, int[] idx, boolean last, ConditionalOperator op) {
+        // System.out.println("parseCompoundCondition" + op + ": " + rawCond + " # " + idx[0]);
         eatSpaces(rawCond, idx);
         int tmp = idx[0];
         Condition left = parseParenthesizedCondition(rawCond, idx, false);
@@ -334,22 +337,20 @@ class TypeDispatchDefinition {
             idx[0] = tmp;
             left = parseAtomCondition(rawCond, idx, false);
         }
-        if (left != null) {
-            eatSpaces(rawCond, idx);
-            if (idx[0] + 1 < rawCond.length()) {
-                if (op == ConditionalOperator.AND) {
-                    if (!(rawCond.charAt(idx[0]) == '&' && rawCond.charAt(idx[0] + 1) == '&')) {
-                        idx[0] = tmp;
-                        return null;
-                    }
-                } else if (op == ConditionalOperator.OR) {
-                    if (!(rawCond.charAt(idx[0]) == '|' && rawCond.charAt(idx[0] + 1) == '|')) {
-                        idx[0] = tmp;
-                        return null;
-                    }
+        eatSpaces(rawCond, idx);
+        if (left != null && idx[0] + 1 < rawCond.length()) {
+            if (op == ConditionalOperator.AND) {
+                if (!(rawCond.charAt(idx[0]) == '&' && rawCond.charAt(idx[0] + 1) == '&')) {
+                    idx[0] = tmp;
+                    return null;
                 }
-                idx[0] += 2;
+            } else if (op == ConditionalOperator.OR) {
+                if (!(rawCond.charAt(idx[0]) == '|' && rawCond.charAt(idx[0] + 1) == '|')) {
+                    idx[0] = tmp;
+                    return null;
+                }
             }
+            idx[0] += 2;
         } else {
             idx[0] = tmp;
             return null;
@@ -360,10 +361,12 @@ class TypeDispatchDefinition {
             idx[0] = tmp;
             return null;
         }
+        // System.out.println("CompoundCondition: " + op +", " + left + ", " + right);
         return new CompoundCondition(op, left, right);
     }
 
     private Condition parseCompoundCondition(final String rawCond, int[] idx, boolean last) {
+        // System.out.println("parseCompoundCondition: " + rawCond + " # " + idx[0]);
         int tmp = idx[0];
         Condition cond = parseCompoundConditionNOT(rawCond, idx, last);
         if (cond != null)
@@ -382,14 +385,77 @@ class TypeDispatchDefinition {
 
     private Condition parseCondition(final String rawCond, int[] idx, boolean last) {
         // System.out.println("parseCondition: " + rawCond + " # " + idx[0]);
+        int tmp = idx[0];
         Condition cond = null;
-        cond = parseParenthesizedCondition(rawCond, idx, last);
-        if (cond != null) return cond;
-        cond = parseAtomCondition(rawCond, idx, last);
-        if (cond != null) return cond;
         cond = parseCompoundCondition(rawCond, idx, last);
         if (cond != null) return cond;
+        idx[0] = tmp;
+        cond = parseParenthesizedCondition(rawCond, idx, last);
+        if (cond != null) return cond;
+        idx[0] = tmp;
+        cond = parseAtomCondition(rawCond, idx, last);
+        if (cond != null) return cond;
+        idx[0] = tmp;
         return null;
+    }
+
+    private void convertConditionToDNFStep1(Condition condition) {
+        if (condition instanceof AtomCondition) return;
+        // condition instance of CompoundCondition
+        CompoundCondition cond = (CompoundCondition) condition;
+        if (cond.op == ConditionalOperator.NOT) {
+            convertConditionToDNFStep1(cond.cond1);
+            if (cond.cond1 instanceof AtomCondition) return;
+            CompoundCondition cond1 = (CompoundCondition) cond.cond1;
+            if (cond1.op == ConditionalOperator.NOT) {
+                cond.cond1 = cond1.cond1;
+            } else if (cond1.op == ConditionalOperator.AND) {
+                cond.cond1 = new CompoundCondition(ConditionalOperator.NOT, cond1.cond1, null);
+                cond.cond2 = new CompoundCondition(ConditionalOperator.NOT, cond1.cond1, null);
+                cond.op = ConditionalOperator.OR;
+            } else if (cond1.op == ConditionalOperator.OR) {
+                cond.cond1 = new CompoundCondition(ConditionalOperator.NOT, cond1.cond1, null);
+                cond.cond2 = new CompoundCondition(ConditionalOperator.NOT, cond1.cond1, null);
+                cond.op = ConditionalOperator.AND;
+            }
+        } else {
+            convertConditionToDNFStep1(cond.cond1);
+            convertConditionToDNFStep1(cond.cond2);
+        }
+    }
+
+    private void convertConditionToDNFStep2(Condition condition) {
+        if (condition instanceof AtomCondition) return;
+        CompoundCondition cond = (CompoundCondition) condition;
+        if (cond.op == ConditionalOperator.NOT) return;
+        else if (cond.op == ConditionalOperator.AND) {
+            boolean b = true;
+            if (cond.cond1 instanceof CompoundCondition) {
+                CompoundCondition cond1 = (CompoundCondition) cond.cond1;
+                if (cond1.op == ConditionalOperator.OR) {
+                    Condition c = cond.cond2;
+                    cond.cond1 = new CompoundCondition(ConditionalOperator.AND, cond1.cond1, c);
+                    cond.cond2 = new CompoundCondition(ConditionalOperator.AND, cond1.cond2, c);
+                    cond.op = ConditionalOperator.OR;
+                }
+            }
+            if (cond.cond2 instanceof CompoundCondition) {
+                CompoundCondition cond2 = (CompoundCondition) cond.cond2;
+                if (b && cond2.op == ConditionalOperator.OR) {
+                    Condition c = cond.cond1;
+                    cond.cond1 = new CompoundCondition(ConditionalOperator.AND, c, cond2.cond1);
+                    cond.cond2 = new CompoundCondition(ConditionalOperator.AND, c, cond2.cond2);
+                    cond.op = ConditionalOperator.OR;
+                }
+            }
+        }
+        convertConditionToDNFStep2(cond.cond1);
+        convertConditionToDNFStep2(cond.cond2);
+    }
+
+    private void convertConditionToDNF(Condition condition) {
+        convertConditionToDNFStep1(condition);
+        convertConditionToDNFStep2(condition);
     }
 
     private List<JSTypePair> conditionToListOfJSTypePair(Condition condition) {
@@ -423,12 +489,14 @@ class TypeDispatchDefinition {
         return ret;
     }
 
-    private List<JSTypePair> parseCondition(String rawCondition) {
+    private List<JSTypePair> conditionStrToJSTypePair(String rawCondition) {
         List<JSTypePair> jtps = new LinkedList<JSTypePair>();
         // Condition c = makeParseTree(rawCondition, new int[1]);
         System.out.println(rawCondition);
         Condition c = parseCondition(rawCondition, new int[1], true);
-        System.out.println(c);
+        System.out.println("raw: " + c);
+        convertConditionToDNF(c);
+        System.out.println("dnf: " + c);
         return conditionToListOfJSTypePair(c);
     }
 
