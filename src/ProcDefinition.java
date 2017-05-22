@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// import ProcDefinition.DefinitionA;
+
 
 class JSTypePair {
     String left, right;
@@ -490,20 +492,14 @@ class TypeDispatchDefinition {
     }
 
     private List<JSTypePair> conditionStrToJSTypePair(String rawCondition) {
-        List<JSTypePair> jtps = new LinkedList<JSTypePair>();
-        // Condition c = makeParseTree(rawCondition, new int[1]);
-        System.out.println(rawCondition);
         Condition c = parseCondition(rawCondition, new int[1], true);
-        System.out.println("raw: " + c);
         convertConditionToDNF(c);
-        System.out.println("dnf: " + c);
         return conditionToListOfJSTypePair(c);
     }
 
     public String toString() {
         String ret = "";
         for (Map.Entry<Set<JSTypePair>, List<String>> pair : actionsMap.entrySet()) {
-            Set<JSTypePair> set = pair.getKey();
             ret += "(";
             for (JSTypePair e : pair.getKey()) {
                 ret += (", " + e);
@@ -529,7 +525,7 @@ class TypeDispatchDefinition {
             }
             String action = "";
             for (String s : e.getValue()) {
-                action += s;
+                action += s + "\n";
             }
             rules.add(new Plan.Rule(action, conditions));
         }
@@ -538,24 +534,28 @@ class TypeDispatchDefinition {
 }
 
 
-interface Definition {
+
+
+
+interface DefinitionBuilder {
     void read(String line);
     void start();
     void end();
-    public Set<Plan.Rule> toRules();
+    ProcDefinition.Definition build();
+    // public Set<Plan.Rule> toRules();
 }
 
-class InstDefinition implements Definition {
+class InstDefinitionBuilder implements DefinitionBuilder {
     String instName;
     String[] dispatchVars, otherVars;
     TypeDispatchDefinition tdDef;
-    InstDefinition(String instName, String[] dispatchVars, String[] otherVars, TypeDispatchDefinition tdDef) {
+    InstDefinitionBuilder(String instName, String[] dispatchVars, String[] otherVars, TypeDispatchDefinition tdDef) {
         this.instName = instName;
         this.dispatchVars = dispatchVars;
         this.otherVars = otherVars;
         this.tdDef = tdDef;
     }
-    InstDefinition(String instDefLine) {
+    InstDefinitionBuilder(String instDefLine) {
         Pattern ptnInst = Pattern.compile("^\\s*(\\w+)(\\s*\\[\\s*((\\$?\\w+)\\s*(,\\s*(\\$?\\w+)\\s*)?)?\\])?(\\s*\\((\\s*(\\$\\w+)(\\s*,\\s*(\\$\\w+)(\\s*,\\s*((\\$\\w+)))?)?)?\\s*\\))?\\s*$");
         Matcher m = ptnInst.matcher(instDefLine);
         if (m.find()) {
@@ -617,44 +617,77 @@ class InstDefinition implements Definition {
         ret += "\n";
         return ret;
     }
+    @Override
+    public ProcDefinition.Definition build() {
+        return new ProcDefinition.InstDefinition(this.instName, this.dispatchVars, this.otherVars, this.tdDef);
+    }
 }
 
 class FuncDefinition {
-    List cSrcLines = new LinkedList<String>();
+    List<String> cSrcLines = new LinkedList<String>();
 }
 
 
 public class ProcDefinition {
 
-    List<Definition> defs = new LinkedList<Definition>();
+    interface Definition {
+    }
+
+    static class InstDefinition implements Definition {
+        String name;
+        String[] dispatchVars, otherVars;
+        TypeDispatchDefinition tdDef;
+        InstDefinition(String name, String[] dispatchVars, String[] otherVars, TypeDispatchDefinition tdDef) {
+            this.name = name;
+            this.dispatchVars = dispatchVars;
+            this.otherVars = otherVars;
+            this.tdDef = tdDef;
+        }
+        public Set<Plan.Rule> toRules() {
+            return tdDef.toRules();
+        }
+    }
+
+    // List<DefinitionA> defs = new LinkedList<DefinitionA>();
+    List<InstDefinition> instDefs = new LinkedList<InstDefinition>();
+
+    private void addDef(Definition def) {
+        if (def instanceof InstDefinition) {
+            instDefs.add((InstDefinition) def);
+        }
+    }
 
     void load(String fname) throws FileNotFoundException {
         Scanner sc = new Scanner(new FileInputStream(fname));
-        Definition def = null;
+        DefinitionBuilder defb = null;
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
             if (line.matches("^\\\\inst .+")) {
-                if (def != null) {
-                    def.end();
-                    defs.add(def);
+                if (defb != null) {
+                    defb.end();
+                    addDef(defb.build());
                 }
-                def = new InstDefinition(line.substring(6));
-                def.start();
+                defb = new InstDefinitionBuilder(line.substring(6));
+                defb.start();
             } else if (line.matches("^\\\\func ")) {
+                if (defb != null) {
+                    defb.end();
+                    addDef(defb.build());
+                }
                 // func
             } else {
-                def.read(line);
+                defb.read(line);
             }
         }
-        if (def != null) {
-            def.end();
-            defs.add(def);
+        if (defb != null) {
+            defb.end();
+            addDef(defb.build());
         }
     }
 
     public String toString() {
-        String ret = "";
-        for (Definition def : defs) {
+        String ret = "InstDefinition:\n";
+        for (InstDefinition def : instDefs) {
             ret += def.toString() + "\n";
         }
         return ret;
@@ -662,13 +695,21 @@ public class ProcDefinition {
 
     public static void main(String[] args) throws FileNotFoundException {
         TypeDefinition td = new TypeDefinition();
-        td.load("datatype/embstr.dtdef");
+        td.load("datatype/ssjs.dtdef");
         System.out.println(td);
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("inst.def");
-        System.out.println(procDef);
-        InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
-        Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
-        new TagPairSynthesiser().twoOperand(td, p.rules);
+        // System.out.println(procDef);
+        // InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
+        SimpleSynthesiser ss = new SimpleSynthesiser();
+        for (InstDefinition instDef : procDef.instDefs) {
+            System.out.println("###########");
+            System.out.println("inst_name: " + instDef.name);
+            Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
+            System.out.println(ss.synthesise(p));
+        }
+        // Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
+        // new TagPairSynthesiser().twoOperand(td, p.rules);
+        // System.out.println(new SimpleSynthesiser().synthesise(p));
     }
 }
