@@ -715,7 +715,7 @@ public class ProcDefinition {
 
     public static void main(String[] args) throws FileNotFoundException {
         TypeDefinition td = new TypeDefinition();
-        td.load("datatype/ssjs.dtdef");
+        td.load("datatype/ssjs_origin.dtdef");
         System.out.println(td);
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("datatype/add.idef");
