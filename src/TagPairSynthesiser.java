@@ -376,18 +376,12 @@ class TagPairSynthesiser extends Synthesiser {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
-		td.load("datatype/small.dtdef");
+		td.load("datatype/ssjs.dtdef");
 		System.out.println(td);
-		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of("fixnum", "string", "array").map(n -> DataType.get(n)))));
-		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
-				"simple_object",
-				"array",
-				"string").map(n -> DataType.get(n)))));
-
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load("datatype/sample.idef");
+        procDef.load("datatype/add.idef");
         System.out.println(procDef);
-        InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
+        ProcDefinition.InstDefinition instDef = (ProcDefinition.InstDefinition) procDef.instDefs.get(0);
         Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
 
         new TagPairSynthesiser().synthesise(p);

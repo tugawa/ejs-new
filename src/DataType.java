@@ -156,17 +156,17 @@ class DataType {
 		Stream.of(
 			"string",
 			"fixnum",
-/*			"flonum",
-			"special", */
+			"flonum",
+			"special", 
 			"simple_object",
 			"array",
-			"function"//,
-/*			"builtin",
+			"function",
+			"builtin",
 			"iterator",
 			"regexp",
 			"string_object",
 			"number_object",
-			"boolean_object" */)
+			"boolean_object")
 		.forEach(name -> defineDataType(name));
 	}
 	
