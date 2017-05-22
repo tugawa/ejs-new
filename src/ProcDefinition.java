@@ -1,5 +1,10 @@
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -631,6 +636,7 @@ class FuncDefinition {
 public class ProcDefinition {
 
     interface Definition {
+        void gen(Synthesiser synthesiser);
     }
 
     static class InstDefinition implements Definition {
@@ -645,6 +651,20 @@ public class ProcDefinition {
         }
         public Set<Plan.Rule> toRules() {
             return tdDef.toRules();
+        }
+        public void gen(Synthesiser synthesiser) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(name + "_HEAD:\n");
+            Plan p = new Plan(dispatchVars.length, toRules());
+            sb.append(synthesiser.synthesise(p));
+            try {
+                File file = new File("./" + name + ".c");
+                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+                pw.print(sb.toString());
+                pw.close();
+            }catch(IOException e){
+                System.out.println(e);
+            }
         }
     }
 
@@ -703,13 +723,8 @@ public class ProcDefinition {
         // InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
         SimpleSynthesiser ss = new SimpleSynthesiser();
         for (InstDefinition instDef : procDef.instDefs) {
-            System.out.println("###########");
-            System.out.println("inst_name: " + instDef.name);
-            Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
-            System.out.println(ss.synthesise(p));
+            System.out.println(instDef.name);
+            instDef.gen(ss);
         }
-        // Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
-        // new TagPairSynthesiser().twoOperand(td, p.rules);
-        // System.out.println(new SimpleSynthesiser().synthesise(p));
     }
 }
