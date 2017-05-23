@@ -533,7 +533,9 @@ else vdst = JS_FALSE;
 
 \inst I_GETPROP [$obj, $prop] ($vdst)
 \when $obj:array && $prop:fixnum
-cint n = fixnum_to_cint(prop);
+cint n;
+I_GETPROP_ARYFIX:
+n = fixnum_to_cint(prop);
 if (0 <= n && n < array_size(obj)) {
   vdst = (n < array_length(obj)) ? array_body_index(obj, n) : JS_UNDEFINED;
 } else {
@@ -545,7 +547,8 @@ if (0 <= n && n < array_size(obj)) {
 JSValue num;
 cint n;
 num = string_to_number(prop);
-goto I_GETPROP_HEAD;
+if (is_fixnum(num)) goto I_GETPROP_ARYFIX;
+else vdst = get_prop_prototype_chain(obj, prop);
 
 \when $obj:array && $prop:flonum
 prop = flonum_to_string(prop);
@@ -568,3 +571,150 @@ if (obj == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
 \otherwise
 obj = to_object(context, obj);
 goto I_GETPROP_HEAD;
+
+
+
+\inst I_SETPROP [$obj, $prop] ($value)
+\when $obj:array && $prop:fixnum
+cint n = fixnum_to_cint(prop);
+if (0 <= n && n < MAX_ARRAY_LENGTH) {
+  if (set_array_index_value(context, obj, n, value, FALSE) != SUCCESS) {
+    prop = fixnum_to_string(prop);
+    goto I_SETPROP_ARYSTR;
+  }
+}
+
+\when $obj:array && $prop:string
+JSValue num;
+cint n;
+I_SETPROP_ARYSTR:
+num = string_to_number(prop);
+if (is_fixnum(num)) {
+  n = fixnum_to_cint(num);
+  if (0 <= n && n < MAX_ARRAY_LENGTH) {
+    if (set_array_index_value(context, prop, n, value, FALSE) != SUCCESS)
+      goto I_SETPROP_OBJSTR;
+      // set_object_prop(context, obj, prop, value);
+  } else {
+    // set_object_prop(context, obj, prop, value);
+    goto I_SETPROP_OBJSTR;
+  }
+}
+if (prop == gconsts.g_string_length && is_fixnum(value)) {
+  cint n = fixnum_to_cint(value);
+  if (0 <= n && n < MAX_ARRAY_LENGTH) {
+  /*
+    The property name is "length" and the given value is a fixnum.
+    Thus, expands / shrinks the array.
+  */
+    if (set_array_index_value(context, obj, n - 1, JS_UNDEFINED, TRUE) != SUCCESS)
+      goto I_SETPROP_OBJSTR;
+      // set_object_prop(context, obj, prop, value);
+  } else {
+    // set_object_prop(context, obj, prop, value);
+    goto I_SETPROP_OBJSTR;
+  }
+}
+
+\when $obj:array
+prop = to_string(context, prop);
+goto I_SETPROP_ARYSTR;
+
+\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function) && $prop:string
+I_SETPROP_OBJSTR:
+set_prop_none(context, obj, prop, value);
+
+\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function)
+prop = to_string(context, prop);
+set_prop_none(context, obj, prop, value);
+
+\otherwise
+LOG_EXIT("setprop: first operand is not an object\n%x\n", get_tag(obj));
+
+
+
+\inst I_NEW [$con] ($vdst)
+\when $con:function
+JSValue o, p;
+save_context();
+o = new_normal_object(context);
+update_context();
+get_prop(con, gconsts.g_string_prototype, &p);
+if (!is_object(p)) p = gconsts.g_object_proto;
+set___proto___all(context, o, p);
+vdst = o;
+
+\otherwise
+vdst = JS_UNDEFINED;
+
+
+
+\inst I_CALL [ $fn ] ($nargs)
+\when $fn:function
+set_fp(context, fp);
+set_pc(context, pc);
+call_function(context, fn, nargs, FALSE);
+update_context();
+NEXT_INSN_NOINCPC();
+
+\when $fn:builtin
+set_fp(context, fp);
+set_pc(context, pc);
+call_builtin(context, fn, nargs, FALSE, FALSE);
+update_context();
+NEXT_INSN_INCPC();
+
+\otherwise
+set_fp(context, fp);
+set_pc(context, pc);
+print_value_simple(context, fn);
+printf(" is called in CALL instruction\n");
+LOG_EXIT("CALL\n");
+
+
+
+\inst I_SEND [ $fn ] ($nargs)
+\when $fn:function
+set_fp(context, fp);
+set_pc(context, pc);
+call_function(context, fn, nargs, TRUE);
+update_context();
+NEXT_INSN_NOINCPC();
+
+\when $fn:builtin
+set_fp(context, fp);
+set_pc(context, pc);
+call_builtin(context, fn, nargs, TRUE, FALSE);
+update_context();
+NEXT_INSN_INCPC();
+
+\otherwise
+set_fp(context, fp);
+set_pc(context, pc);
+print_value_simple(context, fn);
+printf(" is called in SEND instruction\n");
+LOG_EXIT("SEND\n");
+
+
+
+\inst I_NEWSEND [ $fn ] ($nargs)
+\when $fn:function
+set_fp(context, fp);
+set_pc(context, pc);
+call_function(context, fn, nargs, TRUE);
+update_context();
+NEXT_INSN_NOINCPC();
+
+\when $fn:builtin
+set_fp(context, fp);
+set_pc(context, pc);
+call_builtin(context, fn, nargs, TRUE, TRUE);
+update_context();
+NEXT_INSN_INCPC();
+
+\otherwise
+set_fp(context, fp);
+set_pc(context, pc);
+print_value_simple(context, fn);
+printf(" is called in NEWSEND instruction\n");
+LOG_EXIT("Not a constructor\n");

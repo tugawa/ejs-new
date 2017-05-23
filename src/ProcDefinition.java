@@ -593,6 +593,7 @@ class InstDefinitionBuilder implements DefinitionBuilder {
             // this.tdDef = new TypeDispatchDefinition(this.dispatchVars);
         } else {
             // error
+            System.out.println("parsing error: inst statement");
         }
     }
     public void read(String line) {
