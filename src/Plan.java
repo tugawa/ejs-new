@@ -47,6 +47,7 @@ public class Plan {
 	}
 
 	int arity;
+	String[] vars;
 	Set<Rule> rules;
 
 	Set<Rule> getRules() {
@@ -79,8 +80,9 @@ public class Plan {
 							new Condition("array", "array")));
 	}
 
-	Plan(int arity, Set<Rule> rules) {
-	    this.arity = arity;
+	Plan(String[] vars, Set<Rule> rules) {
+	    this.arity = vars.length;
+	    this.vars = vars;
 	    this.rules = rules;
 	}
 }

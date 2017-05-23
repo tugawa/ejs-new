@@ -655,7 +655,7 @@ public class ProcDefinition {
         public void gen(Synthesiser synthesiser) {
             StringBuilder sb = new StringBuilder();
             sb.append(name + "_HEAD:\n");
-            Plan p = new Plan(dispatchVars.length, toRules());
+            Plan p = new Plan(dispatchVars, toRules());
             sb.append(synthesiser.synthesise(p));
             try {
                 File file = new File("./" + name + ".c");

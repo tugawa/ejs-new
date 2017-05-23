@@ -3,18 +3,23 @@ import java.util.Set;
 
 public class SimpleSynthesiser extends Synthesiser {
 
+    Plan plan;
+
 	String ptOfOperand(int i) {
-		// return "GET_PT(v" + (i + 1) + ")";
-	    return "get_tag(v" + (i + 1) + ")";
+	    if (plan == null)
+	        return "GET_PT(v" + (i + 1) + ")";
+	    else
+	        return "get_tag(" + plan.vars[i].substring(1) + ")";
 	}
 
 	String htOfOperand(int i) {
-		// return "GET_HT(v" + (i + 1) + ")";
-	    return "obj_header_tag(v" + (i + 1) + ")";
+		if (plan == null) return "GET_HT(v" + (i + 1) + ")";
+		else return "obj_header_tag(" + plan.vars[i].substring(1) + ")";
 	}
 
 	@Override
 	String synthesise(Plan plan) {
+	    this.plan = plan;
 		Set<Plan.Rule> rules = plan.getRules();
 		StringBuilder code = new StringBuilder();
 

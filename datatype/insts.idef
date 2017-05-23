@@ -452,7 +452,8 @@ if (v1 == v2) {
 }
 
 \when $v1:special && $v2:special
-vdst = true_false((is_undefined(v1) && is_null(v2)) || (is_undefined(v2) && is_null(v1)));
+if (v1 == v2) vdst = JS_TRUE;
+else vdst = true_false((is_undefined(v1) && is_null(v2)) || (is_undefined(v2) && is_null(v1)));
 
 \when $v1:string && $v2:fixnum
 v1 = string_to_number(v1);
@@ -512,18 +513,58 @@ else {
 v1 = object_to_primitive(context, v1, HINT_NUMBER);
 vdst = true_false(v1 == v2);
 
-\when ($v1:flonum || $v1:string || $v1:special) && ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function)
+\when $v1:fixnum && ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function)
 v2 = object_to_primitive(context, v2, HINT_NUMBER);
 vdst = true_false(v1 == v2);
+
+\when ($v1:flonum || $v1:string || $v1:special) && ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function)
+v2 = object_to_primitive(context, v2, HINT_NUMBER);
+goto I_EQUAL_HEAD;
 
 \when ($v1:regexp || $v1:number_object || $v1:boolean_object || $v1:builtin || $v1:string_object || $v1:simple_object || $v1:array || $v1:iterator || $v1:function) && ($v2:flonum || $v2:string || $v2:special)
 v1 = object_to_primitive(context, v1, HINT_NUMBER);
 goto I_EQUAL_HEAD;
 
-\when $v1:fixnum && ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function)
-v2 = object_to_primitive(context, v2, HINT_NUMBER);
-goto I_EQUAL_HEAD;
-
 \otherwise
 if (v1 == v2) vdst = JS_TRUE;
 else vdst = JS_FALSE;
+
+
+
+\inst I_GETPROP [$obj, $prop] ($vdst)
+\when $obj:array && $prop:fixnum
+cint n = fixnum_to_cint(prop);
+if (0 <= n && n < array_size(obj)) {
+  vdst = (n < array_length(obj)) ? array_body_index(obj, n) : JS_UNDEFINED;
+} else {
+  prop = fixnum_to_string(prop);
+  vdst = get_prop_prototype_chain(obj, prop);
+}
+
+\when $obj:array && $prop:string
+JSValue num;
+cint n;
+num = string_to_number(prop);
+goto I_GETPROP_HEAD;
+
+\when $obj:array && $prop:flonum
+prop = flonum_to_string(prop);
+vdst = get_prop_prototype_chain(obj, prop);
+
+\when $obj:array
+prop = to_string(context, prop);
+goto I_GETPROP_HEAD;
+
+\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function) && $prop:string
+vdst = get_prop_prototype_chain(obj, prop);
+
+\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function)
+prop = to_string(context, prop);
+vdst = get_prop_prototype_chain(obj, prop);
+
+\when $obj:special
+if (obj == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
+
+\otherwise
+obj = to_object(context, obj);
+goto I_GETPROP_HEAD;

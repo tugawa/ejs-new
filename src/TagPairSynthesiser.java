@@ -382,7 +382,7 @@ class TagPairSynthesiser extends Synthesiser {
         procDef.load("datatype/add.idef");
         System.out.println(procDef);
         ProcDefinition.InstDefinition instDef = (ProcDefinition.InstDefinition) procDef.instDefs.get(0);
-        Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
+        Plan p = new Plan(instDef.dispatchVars, instDef.toRules());
 
         new TagPairSynthesiser().synthesise(p);
 	}
