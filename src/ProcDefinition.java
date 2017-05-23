@@ -718,9 +718,7 @@ public class ProcDefinition {
         td.load("datatype/ssjs_origin.dtdef");
         System.out.println(td);
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load("datatype/add.idef");
-        // System.out.println(procDef);
-        // InstDefinition instDef = (InstDefinition) procDef.defs.get(0);
+        procDef.load("datatype/insts.idef");
         SimpleSynthesiser ss = new SimpleSynthesiser();
         for (InstDefinition instDef : procDef.instDefs) {
             System.out.println(instDef.name);
