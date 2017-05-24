@@ -575,61 +575,12 @@ goto I_GETPROP_HEAD;
 
 
 \inst I_SETPROP [$obj, $prop] ($value)
-\when $obj:array && $prop:fixnum
-cint n = fixnum_to_cint(prop);
-if (0 <= n && n < MAX_ARRAY_LENGTH) {
-  if (set_array_index_value(context, obj, n, value, FALSE) != SUCCESS) {
-    prop = fixnum_to_string(prop);
-    goto I_SETPROP_ARYSTR;
-  }
-}
-
-\when $obj:array && $prop:string
-JSValue num;
-cint n;
-I_SETPROP_ARYSTR:
-num = string_to_number(prop);
-if (is_fixnum(num)) {
-  n = fixnum_to_cint(num);
-  if (0 <= n && n < MAX_ARRAY_LENGTH) {
-    if (set_array_index_value(context, prop, n, value, FALSE) != SUCCESS)
-      goto I_SETPROP_OBJSTR;
-      // set_object_prop(context, obj, prop, value);
-  } else {
-    // set_object_prop(context, obj, prop, value);
-    goto I_SETPROP_OBJSTR;
-  }
-}
-if (prop == gconsts.g_string_length && is_fixnum(value)) {
-  cint n = fixnum_to_cint(value);
-  if (0 <= n && n < MAX_ARRAY_LENGTH) {
-  /*
-    The property name is "length" and the given value is a fixnum.
-    Thus, expands / shrinks the array.
-  */
-    if (set_array_index_value(context, obj, n - 1, JS_UNDEFINED, TRUE) != SUCCESS)
-      goto I_SETPROP_OBJSTR;
-      // set_object_prop(context, obj, prop, value);
-  } else {
-    // set_object_prop(context, obj, prop, value);
-    goto I_SETPROP_OBJSTR;
-  }
-}
-
 \when $obj:array
-prop = to_string(context, prop);
-goto I_SETPROP_ARYSTR;
-
-\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function) && $prop:string
-I_SETPROP_OBJSTR:
-set_prop_none(context, obj, prop, value);
-
+set_array_prop(context, obj, prop, value);
 \when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function)
-prop = to_string(context, prop);
-set_prop_none(context, obj, prop, value);
-
+set_object_prop(context, obj, prop, value);
 \otherwise
-LOG_EXIT("setprop: first operand is not an object\n%x\n", get_tag(obj));
+LOG_EXIT("setprop: first operand is not an object\n");
 
 
 
