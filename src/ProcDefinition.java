@@ -138,21 +138,38 @@ class TypeDispatchDefinition {
         }
         if (otherwiseCProgram != null) {
             List<Pair<JSTypePair,List<String>>> otherwiseList = new LinkedList<Pair<JSTypePair,List<String>>>();
-            for (DataType leftDt : DataType.all()) {
-                for (DataType rightDt : DataType.all()) {
+            if (vnames.length == 1) {
+                for (DataType dt : DataType.all()) {
                     boolean b = false;
                     for (Pair<JSTypePair,List<String>> e : tmpActionList) {
                         JSTypePair p = e.first();
-                        if (leftDt.name.equals(p.left) && rightDt.name.equals(p.right)) {
-                            // tmpActionList.add(index, element);
+                        if (dt.name.equals(p.left)) {
                             b = true;
                             break;
                         }
                     }
                     if (!b) {
-                        Pair<JSTypePair,List<String>> o = new Pair<JSTypePair,List<String>>(
-                                new JSTypePair(leftDt.name, rightDt.name), otherwiseCProgram);
+                        Pair<JSTypePair,List<String>> o = new Pair<JSTypePair,List<String>>(new JSTypePair(dt.name, null), otherwiseCProgram);
                         otherwiseList.add(o);
+                    }
+                }
+            } else if (vnames.length == 2) {
+                for (DataType leftDt : DataType.all()) {
+                    for (DataType rightDt : DataType.all()) {
+                        boolean b = false;
+                        for (Pair<JSTypePair,List<String>> e : tmpActionList) {
+                            JSTypePair p = e.first();
+                            if (leftDt.name.equals(p.left) && rightDt.name.equals(p.right)) {
+                                // tmpActionList.add(index, element);
+                                b = true;
+                                break;
+                            }
+                        }
+                        if (!b) {
+                            Pair<JSTypePair,List<String>> o = new Pair<JSTypePair,List<String>>(
+                                    new JSTypePair(leftDt.name, rightDt.name), otherwiseCProgram);
+                            otherwiseList.add(o);
+                        }
                     }
                 }
             }
@@ -561,7 +578,7 @@ class InstDefinitionBuilder implements DefinitionBuilder {
         this.tdDef = tdDef;
     }
     InstDefinitionBuilder(String instDefLine) {
-        Pattern ptnInst = Pattern.compile("^\\s*(\\w+)(\\s*\\[\\s*((\\$?\\w+)\\s*(,\\s*(\\$?\\w+)\\s*)?)?\\])?(\\s*\\((\\s*(\\$\\w+)(\\s*,\\s*(\\$\\w+)(\\s*,\\s*((\\$\\w+)))?)?)?\\s*\\))?\\s*$");
+        Pattern ptnInst = Pattern.compile("^\\s*(\\w+)(\\s*\\[\\s*((\\$?\\w+)\\s*(,\\s*(\\$?\\w+)\\s*)?)?\\])?(\\s*\\((\\s*(\\$?\\w+)(\\s*,\\s*(\\$?\\w+)(\\s*,\\s*((\\$?\\w+)))?)?)?\\s*\\))?\\s*$");
         Matcher m = ptnInst.matcher(instDefLine);
         if (m.find()) {
             // \inst INST_NAME [ x1 , x2 ] ( y1 , y2 , y3 )
