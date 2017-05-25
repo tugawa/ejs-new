@@ -44,6 +44,11 @@ public class Plan {
 		    for (Condition c: condition)
 		        this.condition.add(c);
 		}
+
+		Rule(String action, Set<Condition> condition) {
+		    this.action = action;
+		    this.condition = condition;
+		}
 	}
 
 	int arity;
