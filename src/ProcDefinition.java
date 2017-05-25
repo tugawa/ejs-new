@@ -605,7 +605,7 @@ public class ProcDefinition {
             Plan p = new Plan(dispatchVars, tdDef.rules);
             sb.append(synthesiser.synthesise(p));
             try {
-                File file = new File("./" + name + ".c");
+                File file = new File(OUT_DIR + "/" + name + ".c");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
                 pw.print(sb.toString());
                 pw.close();
@@ -659,12 +659,18 @@ public class ProcDefinition {
         return ret;
     }
 
+    static final String OUT_DIR = "./generated";
+
     public static void main(String[] args) throws FileNotFoundException {
         TypeDefinition td = new TypeDefinition();
         td.load("datatype/ssjs_origin.dtdef");
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("datatype/insts.idef");
         SimpleSynthesiser ss = new SimpleSynthesiser();
+        if (!(new File(OUT_DIR).exists())) {
+            File dir = new File(OUT_DIR);
+            dir.mkdir();
+        }
         for (InstDefinition instDef : procDef.instDefs) {
             System.out.println(instDef.name);
             instDef.gen(ss);
