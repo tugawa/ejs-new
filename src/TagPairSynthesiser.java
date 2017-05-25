@@ -2,7 +2,9 @@ import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -264,33 +266,93 @@ class TagPairSynthesiser extends Synthesiser {
 	@Override
 	String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
-		System.out.println(dispatchRuleList);
-		DispatchActionNode root = tagPairDispatch(dispatchRuleList);
+//		System.out.println(dispatchRuleList);
+		ActionNode root = tagPairDispatch(dispatchRuleList);
+		Stream<PT[]> undispatched = dispatchRuleList.rules.stream()
+			.flatMap(r -> r.condition.stream())
+			.filter(c -> !c.done)
+			.map(c -> new PT[] {c.trs[0].getPT(), c.trs[1].getPT()})
+			.distinct();
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
-		System.out.println(nestedRuleList);
+//		System.out.println(nestedRuleList)
 		nestedRuleList.canonicalise();
-		System.out.println(nestedRuleList);
+//		System.out.println(nestedRuleList);
 		DispatchActionNode d = nestedDispatch(nestedRuleList);
-		System.out.println(d);
-		root.add(new TagPairBranch(d));
+//		System.out.println(d);
+		TagPairBranch b = new TagPairBranch(d);
+		undispatched.forEach(pt -> b.addCondition(pt[0], pt[1]));
+		((DispatchActionNode) root).add(b);
+//		System.out.println(root);
+		System.out.println(root);
+		System.out.println("----------------");
+		root = simplify(root);
+		System.out.println(root);
+		System.out.println("----------------");
+		arrangeTerminalNode(root);
 		System.out.println(root);
 
+		System.out.println(root.code());
 		// TODO Auto-generated method stub
 		//tagPairDispatch(dispatchRuleList);
 		return null;
 	}
-
-	Set<TypeRepresentation> conditionNthOperand(Set<TypeRepresentation[]> conds, int n) {
-		return conds.stream().map(c -> c[n]).collect(Collectors.toSet());
+	
+	ActionNode simplify(ActionNode n_) {
+		if (n_ instanceof DispatchActionNode) {
+			DispatchActionNode n = (DispatchActionNode) n_;
+			n.branches.forEach(b -> b.action = simplify(b.action));
+			n.branches.removeIf(b -> {
+				if (b.size() == 0)
+					return true;
+				ActionNode a = b.action;
+				while (a instanceof RedirectActionNode)
+					a = ((RedirectActionNode) a).destination;
+				if (a instanceof DispatchActionNode)
+					if (((DispatchActionNode) a).branches.size() == 0)
+						return true;
+				return false;
+			});
+			if (n.branches.size() == 1)
+				return n.branches.iterator().next().action;
+			return n;
+		} else if (n_ instanceof RedirectActionNode) {
+			return simplify(((RedirectActionNode) n_).destination);
+		} else if (n_ instanceof TerminalActionNode)
+			return n_;
+		else if (n_ instanceof UnexpandedActionNode) {
+			UnexpandedActionNode n = (UnexpandedActionNode) n_;
+			if (n.expanded != null)
+				return simplify(n.expanded);		
+		}
+		throw new Error("Undexpcted action node: "+ n_);
 	}
 
-	ActionNode findTerminalActionNode(DispatchActionNode disp, Plan.Rule r) {
-		for (Branch b: disp.branches) {
-			ActionNode a = b.action;
-			if (a instanceof TerminalActionNode && ((TerminalActionNode) a).rule == r)
-				return a;
+	void arrangeTerminalNode(ActionNode root) {
+		Queue<ActionNode> queue = new LinkedList<ActionNode>();
+		queue.add(root);
+		while (!queue.isEmpty()) {
+			ActionNode a_ = queue.element();
+			queue.remove();
+			
+			if (a_ instanceof DispatchActionNode) {
+				DispatchActionNode a = (DispatchActionNode) a_;
+				for (Branch b: a.branches) {
+					while (true) {
+						if (b.action instanceof RedirectActionNode)
+							b.action = ((RedirectActionNode) b.action).destination;
+						else if (b.action instanceof UnexpandedActionNode)
+							b.action = ((UnexpandedActionNode) b.action).expanded;
+						else
+							break;
+					}
+					if (b.action.arranged)
+						b.action = new RedirectActionNode(b.action);
+					else
+						queue.add(b.action);
+					b.action.arranged = true;
+				}
+			}
 		}
-		throw new Error("no TerminalActionNode with action "+ r);
 	}
 
 	DispatchActionNode nestedDispatch(LLPlan llplan) {
@@ -376,10 +438,16 @@ class TagPairSynthesiser extends Synthesiser {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
-		td.load("datatype/ssjs.dtdef");
+		if (DEBUG_WITH_SMALL)
+			td.load("datatype/small.dtdef");
+		else
+			td.load("datatype/ssjs.dtdef");
 		System.out.println(td);
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load("datatype/add.idef");
+        if (DEBUG_WITH_SMALL)
+        	procDef.load("datatype/sample.idef");
+        else
+        	procDef.load("datatype/add.idef");
         System.out.println(procDef);
         ProcDefinition.InstDefinition instDef = (ProcDefinition.InstDefinition) procDef.instDefs.get(0);
         Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());

@@ -2,12 +2,14 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-class Branch {
+abstract class Branch {
 	ActionNode action;
 
 	Branch(ActionNode action) {
 		this.action = action;
 	}
+	abstract public int size();
+	abstract public String code();
 }
 
 class TagPairBranch extends Branch {
@@ -22,12 +24,22 @@ class TagPairBranch extends Branch {
 	}
 
 	@Override
+	public int size() {
+		return condition.size();
+	}
+
+	@Override
+	public String code() {
+		return condition.stream()
+				.map(p -> "case TAG_PAIR("+p.first().name+", "+p.second().name+"):")
+				.collect(Collectors.joining(" ")) + "\n" +
+				action.code();
+	}
+
+	@Override
 	public String toString() {
-		String s = "L_" + action.toString() + ":\n";
-		for (Pair<PT,PT> p: condition)
-			s += "case ("+p.first().name+","+p.second().name+")\n";
-		s += "    " + action.toString() + "; break;\n";
-		return s;
+		String c = condition.stream().map(pair -> pair.first() + "*" + pair.second()).collect(Collectors.joining(","));
+		return "case ("+c+") -> "+action;
 	}
 }
 
@@ -41,6 +53,19 @@ class PTBranch extends Branch {
 
 	void addCondition(PT pt) {
 		condition.add(pt);
+	}
+
+	@Override
+	public int size() {
+		return condition.size();
+	}
+
+	@Override
+	public String code() {
+		return condition.stream()
+				.map(pt -> "case "+pt.name+":")
+				.collect(Collectors.joining(" ")) + "\n" +
+				action.code();
 	}
 
 	@Override
@@ -60,6 +85,19 @@ class HTBranch extends Branch {
 
 	void addCondition(HT ht) {
 		condition.add(ht);
+	}
+
+	@Override
+	public String code() {
+		return condition.stream()
+				.map(ht -> "case "+ht.name+":")
+				.collect(Collectors.joining(" ")) + "\n" +
+				action.code();
+	}
+
+	@Override
+	public int size() {
+		return condition.size();
 	}
 
 	@Override

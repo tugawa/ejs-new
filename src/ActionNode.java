@@ -3,10 +3,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
-class ActionNode {
+abstract class ActionNode {
+	static int nextLabel = 0;
+	String label;
+	boolean arranged;
+	
+	ActionNode() {
+		arranged = false;
+		label = String.format("L%d", nextLabel++);
+	}
+
 	public boolean mergable(ActionNode that) {
 		return false;
 	}
+	
+	abstract public String code();
 }
 
 class DispatchActionNode extends ActionNode {
@@ -27,6 +38,15 @@ class DispatchActionNode extends ActionNode {
 	}
 
 	@Override
+	public String code() {
+		StringBuffer sb = new StringBuffer();
+		sb.append(label + ": ");
+		sb.append("switch(???) {\n");
+		branches.forEach(b -> sb.append(b.code()));
+		sb.append("}\n");
+		return sb.toString();
+	}
+	@Override
 	public String toString() {
 		return kind + "{" + branches.stream().map(b -> b.toString()).collect(Collectors.joining("\n")) + "}";
 	}
@@ -42,6 +62,11 @@ class UnexpandedActionNode extends ActionNode {
 
 	void setExpanded(ActionNode expanded) {
 		this.expanded = expanded;
+	}
+
+	@Override
+	public String code() {
+		throw new Error("UnexpandedActionNode");
 	}
 
 	@Override
@@ -91,6 +116,11 @@ class TerminalActionNode extends ActionNode {
 		return "(" + rule.action + ")";
 	}
 
+	@Override
+	public String code() {
+		return label + ": "+ rule.action + "\nbreak;\n";
+	}
+
 	public boolean mergable(ActionNode that) {
 		return this == that;
 	}
@@ -106,6 +136,11 @@ class RedirectActionNode extends ActionNode {
 	@Override
 	public String toString() {
 		return ">" + destination;
+	}
+
+	@Override
+	public String code() {
+		return "goto "+destination.label+";\n";
 	}
 
 	public boolean mergable(ActionNode that_) {
