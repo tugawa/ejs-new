@@ -60,29 +60,93 @@ HFILES = $(GENERATED_HFILES) \
 	 gc.h
 
 OFILES = allocate.o \
-	 builtin-array.o \
-	 builtin-boolean.o \
-	 builtin-global.o \
-	 builtin-math.o \
-	 builtin-number.o \
-	 builtin-object.o \
-	 builtin-regexp.o \
-	 builtin-string.o \
-	 call.o \
+         builtin-array.o \
+         builtin-boolean.o \
+         builtin-global.o \
+         builtin-math.o \
+         builtin-number.o \
+         builtin-object.o \
+         builtin-regexp.o \
+         builtin-string.o \
+         call.o \
          codeloader.o \
          context.o \
-	 conversion.o \
-	 hash.o \
-	 init.o \
-	 object.o \
-	 operations.o \
-	 vmloop.o \
-	 gc.o \
-	 main.o
+         conversion.o \
+         hash.o \
+         init.o \
+         object.o \
+         operations.o \
+         vmloop.o \
+         gc.o \
+         main.o
 
-SEDCOM_GEN_INSN_OPCODE = 's/^\([a-z][a-z]*\).*/\U\1,/'
-SEDCOM_GEN_INSN_TABLE  = 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/'
-SEDCOM_GEN_INSN_LABEL  = 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/'
+INSN_FILES = \
+         insns/add.def \
+         insns/bitand.def \
+         insns/bitor.def \
+         insns/call.def \
+         insns/div.def \
+         insns/end.def \
+         insns/eq.def \
+         insns/equal.def \
+         insns/error.def \
+         insns/fixnum.def \
+         insns/geta.def \
+         insns/getarg.def \
+         insns/geterr.def \
+         insns/getglobal.def \
+         insns/getglobalobj.def \
+         insns/getidx.def \
+         insns/getlocal.def \
+         insns/getprop.def \
+         insns/instanceof.def \
+         insns/isobject.def \
+         insns/isundef.def \
+         insns/jump.def \
+         insns/jumpfalse.def \
+         insns/jumptrue.def \
+         insns/leftshift.def \
+         insns/lessthan.def \
+         insns/lessthanequal.def \
+         insns/localcall.def \
+         insns/localret.def \
+         insns/makeclosure.def \
+         insns/makeiterator.def \
+         insns/mod.def \
+         insns/move.def \
+         insns/mul.def \
+         insns/new.def \
+         insns/newargs.def \
+         insns/nextpropname.def \
+         insns/nop.def \
+         insns/not.def \
+         insns/number.def \
+         insns/pophandler.def \
+         insns/poplocal.def \
+         insns/pushhandler.def \
+         insns/ret.def \
+         insns/rightshift.def \
+         insns/seta.def \
+         insns/setarg.def \
+         insns/setarray.def \
+         insns/setfl.def \
+         insns/setglobal.def \
+         insns/setlocal.def \
+         insns/setprop.def \
+         insns/specconst.def \
+         insns/sub.def \
+         insns/tailcall.def \
+         insns/throw.def \
+         insns/typeof.def \
+         insns/unknown.def \
+         insns/unsignedrightshift.def
+
+SEDCOM_GEN_INSN_OPCODE = \
+  -e 's/^\([a-z][a-z]*\).*/\U\1,/' -e '/^\/\/.*/d'
+SEDCOM_GEN_INSN_TABLE = \
+  -e 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/' -e '/^\/\/.*/d'
+SEDCOM_GEN_INSN_LABEL = \
+  -e 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/' -e '/^\/\/.*/d'
 SED = gsed
 RUBY = ruby
 
@@ -96,21 +160,26 @@ ejsvm :: $(OFILES)
 	$(CC) -o $@ $^ $(LIBS)
 
 instructions-opcode.h: instructions.def
-	$(SED) -e $(SEDCOM_GEN_INSN_OPCODE) instructions.def > $@
+	$(SED) $(SEDCOM_GEN_INSN_OPCODE) instructions.def > $@
 
 instructions-table.h: instructions.def
-	$(SED) -e $(SEDCOM_GEN_INSN_TABLE) instructions.def > $@
+	$(SED) $(SEDCOM_GEN_INSN_TABLE) instructions.def > $@
 
 instructions-label.h: instructions.def
-	$(SED) -e $(SEDCOM_GEN_INSN_LABEL) instructions.def > $@
+	$(SED) $(SEDCOM_GEN_INSN_LABEL) instructions.def > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 
 cell_header.h: cell_header.def
 	$(RUBY) $< > $@
 
+vmloop-cases.def: instructions.def gen-vmloop-cases.sed
+	$(SED) -f gen-vmloop-cases.sed instructions.def > $@
+
+vmloop.o: vmloop.c vmloop-cases.def $(INSN_FILES) $(HFILES)
+
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
-	rm $(OFILES) $(GENERATED_HFILES)
+	rm $(OFILES) $(GENERATED_HFILES) vmloop-cases.def
