@@ -245,7 +245,7 @@ class IASTWhileStatement extends IASTStatement {
 	IASTWhileStatement(IASTExpression test, IASTStatement body) {
 		this.test = test;
 		this.body = body;
-		
+
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
@@ -505,4 +505,6 @@ class IASTSequenceExpression extends IASTExpression {
         return visitor.visitSequenceExpression(this);
     }
 }
+
+class IASTEmptyStatement extends IASTStatement {}
 

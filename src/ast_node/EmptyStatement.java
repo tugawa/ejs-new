@@ -21,7 +21,6 @@ public class EmptyStatement extends Node implements IEmptyStatement {
 
     @Override
     public Object accept(ESTreeBaseVisitor visitor) {
-        // TODO Auto-generated method stub
         return visitor.visitEmptyStatement(this);
     }
 

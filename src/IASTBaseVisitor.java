@@ -43,6 +43,9 @@ public class IASTBaseVisitor {
 			node.value.accept(this);
 		return visitStatement(node);
 	}
+	public Object visitEmptyStatement(IASTEmptyStatement node) {
+	    return visitStatement(node);
+	}
 	public Object visitWithStatement(IASTWithStatement node) {
 	    node.object.accept(this);
 	    node.body.accept(this);

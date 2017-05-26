@@ -5,7 +5,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 // import estree.Node;
 // import estree.EsTreeNormalizer;
 //import iast.*;
- 
+
 import antlr.*;
 
 import java.io.FileInputStream;
@@ -20,15 +20,15 @@ import java.util.List;
 
 
 public class Main {
-    
+
     static class Info {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
-        
+
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
         boolean optHelp = false;
-        
+
         static Info parseOption(String[] args) {
             Info info = new Info();
             for (int i = 0; i < args.length; i++) {
@@ -42,6 +42,9 @@ public class Main {
                         break;
                     case "--help":
                         info.optHelp = true;
+                        break;
+                    case "-o":
+                        info.outputFileName = args[++i];
                         break;
                     }
                 } else {
@@ -61,7 +64,7 @@ public class Main {
             return info;
         }
     }
-    
+
     void writeBCodeToSBCFile(List<BCode> bcodes, String filename) {
         try {
             File file = new File(filename);
@@ -74,17 +77,17 @@ public class Main {
             System.out.println(e);
         }
     }
-    
-    
+
+
     void run(String[] args) {
-    
+
         // Parse command line option.
         Info info = Info.parseOption(args);
         if (info.optHelp && info.inputFileName == null) {
             // TODO print how to use ...
             return;
         }
-        
+
         ANTLRInputStream antlrInStream;
         try {
             InputStream inStream;
@@ -98,34 +101,34 @@ public class Main {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         ECMAScriptParser parser = new ECMAScriptParser(tokens);
         ParseTree tree = parser.program();
-    
+
         // convert ANTLR's parse tree into ESTree.
         ASTGenerator astgen = new ASTGenerator();
         ast_node.Node ast = astgen.visit(tree);
         if (info.optPrintESTree) {
             System.out.println(ast.getEsTree());
         }
-    
+
         // normalize ESTree.
         new ESTreeNormalizer().normalize(ast);
         if (info.optPrintESTree) {
             System.out.println(ast.getEsTree());
         }
-    
+
         // convert ESTree into iAST.
         IASTGenerator iastgen = new IASTGenerator();
         IASTNode iast = iastgen.gen(ast);
         if (info.optPrintIAST) {
             new IASTPrinter().print(iast);
         }
-    
+
         // convert iAST into ByteCode.
         CodeGenerator codegen = new CodeGenerator();
         List<BCode> bcodes = codegen.compile((IASTProgram) iast);
-        
+
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
-    
+
     public static void main(String[] args) throws IOException {
         new Main().run(args);
     }

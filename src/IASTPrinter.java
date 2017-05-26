@@ -38,12 +38,12 @@ public class IASTPrinter extends IASTBaseVisitor {
 	public static final String KEY_LABEL            = "label";
 	public static final String KEY_EXPRESSIONS      = "expressions";
 	public static final String KEY_VAR              = "var";
-	
+
 	public void print(IASTNode iast) {
 		JsonObject json = (JsonObject) iast.accept(this);
 		System.out.println(json.toString());
 	}
-	
+
 	public Object visitProgram(IASTProgram node) {
 		JsonObjectBuilder jb = Json.createObjectBuilder();
 		jb.add(KEY_NAME, "Program");
@@ -108,6 +108,11 @@ public class IASTPrinter extends IASTBaseVisitor {
 			jb.add(KEY_VALUE, JsonObject.NULL);
 		}
 		return jb.build();
+	}
+	public Object visitEmptyStatement(IASTEmptyStatement node) {
+	    JsonObjectBuilder jb = Json.createObjectBuilder();
+	    jb.add(KEY_NAME, "EmptyStatement");
+	    return jb.build();
 	}
 	public Object visitWithStatement(IASTWithStatement node) {
 	    JsonObjectBuilder jb = Json.createObjectBuilder();

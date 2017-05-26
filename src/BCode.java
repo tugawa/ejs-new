@@ -1,11 +1,11 @@
 
 public class BCode {
     int number;
-    
+
     String toString(String opcode) {
         return opcode;
     }
-    
+
     String toString(String opcode, Register op1) {
         return opcode + " " + op1;
     }
@@ -15,11 +15,11 @@ public class BCode {
     String toString(String opcode, Register op1, Register op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
-    
+
     String toString(String opcode, Register op1, String op2) {
         return opcode + " " + op1 + " " + op2;
     }
-    
+
     String toString(String opcode, Register op1, int op2) {
         return opcode + " " + op1 + " " + op2;
     }
@@ -35,7 +35,7 @@ public class BCode {
     String toString(String opcode, int op1, int op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
-    
+
     String toString(String opcode, int op1) {
         return opcode + " " + op1;
     }

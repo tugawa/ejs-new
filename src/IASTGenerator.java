@@ -9,13 +9,13 @@ import ast_node.Node.*;
 // import estree.Node.*;
 
 public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
-	
+
 	public IASTGenerator() {};
-	
+
 	public IASTProgram gen(Node estree) {
 		return (IASTProgram) visitProgram((Program) estree);
 	}
-	
+
 	List<String> hoistDeclarations(IStatement nd) {
 	    List<String> declIds = new ArrayList<String>();
 	    List<String> lexicalIds = new ArrayList<String>();
@@ -125,7 +125,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
         } break;
         }
     }
-	
+
 	IASTBlockStatement listOfIStatement2IASTBlock(List<IStatement> src) {
 		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
 		for (IStatement s : src) {
@@ -158,9 +158,10 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 	protected IASTNode visitProgram(Program node) {
 		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
 		for (IStatement stmt : node.getBody()) {
+		    // System.out.println(stmt.accept(this));
 	        stmts.add((IASTStatement) stmt.accept(this));
 	    }
-		
+
 		List<String> params = new ArrayList<String>();
 		List<String> locals = new ArrayList<String>();
 		IASTBlockStatement block = new IASTBlockStatement(stmts);
@@ -188,9 +189,9 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		}
 		return new IASTBlockStatement(stmts);
 	}
-	/*protected IASTNode visitEmptyStatement(IEmptyStatement node) {
-		return visitStatement(node);
-	}
+	protected IASTNode visitEmptyStatement(EmptyStatement node) {
+	    return new IASTEmptyStatement();
+	}/*
 	protected IASTNode visitDebuggerStatement(IDebuggerStatement node) {
 		return visitStatement(node);
 	}*/

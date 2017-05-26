@@ -8,7 +8,6 @@ public class ESTreeNormalizer {
     
     public void normalize(Node estree) {
         new HoistingFuncDecl().run((INode) estree);
-        System.out.println(estree.getEsTree());
         new EliminatingNamedFunc().run((INode) estree);
     }
 
