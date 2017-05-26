@@ -71,10 +71,9 @@ public class CodeGenerator {
                 for (; numOfUsingArgumentRegisters < n; numOfUsingArgumentRegisters++) {
                     argumentRegisters.add(new Register());
                 }
-                // numOfUsingArgumentRegisters = n;
                 Register[] ret = new Register[n];
-                for (int i = 0; i < n; i++) {
-                    ret[i] = argumentRegisters.get(i);
+                for (int i = 0, j = n - 1; i < n; i++, j--) {
+                    ret[j] = argumentRegisters.get(i);
                 }
                 return ret;
             }
@@ -83,7 +82,7 @@ public class CodeGenerator {
             }
             void close() {
                 fl.n = numOfRequiredRegisters + numOfUsingArgumentRegisters;
-                for (int i = 0, n = numOfRequiredRegisters + 1; i < numOfUsingArgumentRegisters; i++, n++) {
+                for (int i = 0, n = fl.n; i < numOfUsingArgumentRegisters; i++, n--) {
                     argumentRegisters.get(i).n = n;
                 }
             }
@@ -625,7 +624,7 @@ public class CodeGenerator {
 
     void compileForStatement(IASTForStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
         if (node.init != null)
-            dispatcher.compile(node.init, bcBuilder, env, reg);
+            dispatcher.compile(node.init, bcBuilder, env, env.freshRegister());
         Label l1 = new Label();
         Label l2 = new Label();
         Label continueLabel = new Label();
@@ -641,11 +640,12 @@ public class CodeGenerator {
         }
         bcBuilder.push(continueLabel);
         if (node.update != null)
-            dispatcher.compile(node.update, bcBuilder, env, reg);
+            dispatcher.compile(node.update, bcBuilder, env, env.freshRegister());
         bcBuilder.push(l1);
+        Register testReg = env.freshRegister();
         if (node.test != null) {
-            dispatcher.compile(node.test, bcBuilder, env, reg);
-            bcBuilder.push(new IJumptrue(reg, l2));
+            dispatcher.compile(node.test, bcBuilder, env, testReg);
+            bcBuilder.push(new IJumptrue(testReg, l2));
         } else {
             bcBuilder.push(new IJump(l2));
         }
@@ -668,8 +668,9 @@ public class CodeGenerator {
         }
         bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
-        dispatcher.compile(node.test, bcBuilder, env, reg);
-        bcBuilder.push(new IJumptrue(reg, l2));
+        Register testReg = env.freshRegister();
+        dispatcher.compile(node.test, bcBuilder, env, testReg);
+        bcBuilder.push(new IJumptrue(testReg, l2));
         bcBuilder.push(breakLabel);
     }
 
@@ -686,8 +687,9 @@ public class CodeGenerator {
             env.popBreakLabel();
             env.popContinueLabel();
         }
-        dispatcher.compile(node.test, bcBuilder, env, reg);
-        bcBuilder.push(new IJumptrue(reg, l1));
+        Register testReg = env.freshRegister();
+        dispatcher.compile(node.test, bcBuilder, env, testReg);
+        bcBuilder.push(new IJumptrue(testReg, l1));
         bcBuilder.push(breakLabel);
     }
 
@@ -724,7 +726,8 @@ public class CodeGenerator {
         bcBuilder.push(new INewargs());
         Register retReg = env.freshRegister();
         dispatcher.compile(node.body, bcBuilder, env, retReg);
-        bcBuilder.push(new IString(reg, "\"undefined\""));
+        // bcBuilder.push(new IString(reg, "\"undefined\""));
+        bcBuilder.push(new ISpecconst(reg, "undefined"));
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
 
@@ -903,14 +906,14 @@ public class CodeGenerator {
 
         // relational
         case EQUAL: case NOT_EQUAL: {
-            Register r3 = env.freshRegister();
+            Register r3 = (node.operator == IASTBinaryExpression.Operator.EQUAL) ? reg : env.freshRegister();
             Register r4 = env.freshRegister();
             Register r5 = env.freshRegister();
             Register r6 = env.freshRegister();
             Register r7 = env.freshRegister();
             Register r8 = env.freshRegister();
             Register r9 = env.freshRegister();
-            Register r10 = node.operator == IASTBinaryExpression.Operator.EQUAL ? reg : env.freshRegister();
+            // Register r10 = node.operator == IASTBinaryExpression.Operator.EQUAL ? reg : env.freshRegister();
             Register ar1 = env.freshArgumentRegister(1)[0];
             Label l1 = new Label();
             Label l2 = new Label();
@@ -939,14 +942,14 @@ public class CodeGenerator {
             bcBuilder.push(new IMove(r8, r1));
 
             bcBuilder.push(l3);
-            bcBuilder.push(new IEqual(r10, r8, r9));
-            bcBuilder.push(new IIsundef(r5, r10));
+            bcBuilder.push(new IEqual(r3, r8, r9));
+            bcBuilder.push(new IIsundef(r5, r3));
             bcBuilder.push(new IJumpfalse(r5, l4));
-            bcBuilder.push(new IError(r10, "\"EQUAL_GETTOPRIMITIVE\""));
+            bcBuilder.push(new IError(r3, "\"EQUAL_GETTOPRIMITIVE\""));
             bcBuilder.push(l1);
             bcBuilder.push(l4);
             if (node.operator == IASTBinaryExpression.Operator.NOT_EQUAL)
-                bcBuilder.push(new INot(reg, r10));
+                bcBuilder.push(new INot(reg, r3));
         } break;
         case EQ: {
             bcBuilder.push(new IEq(reg, r1, r2));
@@ -1034,6 +1037,38 @@ public class CodeGenerator {
     }
 
     void compileCallExpression(IASTCallExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+        if (node.callee instanceof IASTIdentifier) {
+            Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
+            Register[] tmpRegs = new Register[argRegs.length];
+            for (int i = 0; i < argRegs.length; i++) {
+                tmpRegs[i] = env.freshRegister();
+                dispatcher.compile(node.arguments.get(i), bcBuilder, env, tmpRegs[i]);
+            }
+            for (int i = 0; i < argRegs.length; i++) {
+                bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
+            }
+            Register calleeReg = env.freshRegister();
+            dispatcher.compile(node.callee, bcBuilder, env, calleeReg);
+            bcBuilder.push(new ICall(calleeReg, argRegs.length));
+        } else if (node.callee instanceof IASTMemberExpression) {
+            Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
+            Register[] tmpRegs = new Register[node.arguments.size()];
+            Register objReg = env.freshRegister();
+            dispatcher.compile(((IASTMemberExpression) node.callee).object, bcBuilder, env, objReg);
+            Register propReg = env.freshRegister();
+            dispatcher.compile(((IASTMemberExpression) node.callee).property, bcBuilder, env, propReg);
+            Register expReg = env.freshRegister();
+            bcBuilder.push(new IGetprop(expReg, objReg, propReg));
+            for (int i = 0; i < tmpRegs.length; i++) {
+                tmpRegs[i] = env.freshRegister();
+                dispatcher.compile(node.arguments.get(i), bcBuilder, env, tmpRegs[i]);
+            }
+            bcBuilder.push(new IMove(argRegs[0], objReg));
+            for (int i = 0; i < tmpRegs.length; i++) {
+                bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
+            }
+            bcBuilder.push(new ISend(expReg, node.arguments.size()));
+        }/*
         Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
         Register[] tmpRegs = new Register[argRegs.length];
         for (int i = 0; i < argRegs.length; i++) {
@@ -1043,13 +1078,21 @@ public class CodeGenerator {
         for (int i = 0; i < argRegs.length; i++) {
             bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
         }
-        Register calleeReg = env.freshRegister();
-        dispatcher.compile(node.callee, bcBuilder, env, calleeReg);
         if (node.callee instanceof IASTIdentifier) {
+            Register calleeReg = env.freshRegister();
+            dispatcher.compile(node.callee, bcBuilder, env, calleeReg);
             bcBuilder.push(new ICall(calleeReg, argRegs.length));
         } else if (node.callee instanceof IASTMemberExpression) {
-            bcBuilder.push(new ISend(calleeReg, argRegs.length));
-        }
+            Register objReg = env.freshRegister();
+            dispatcher.compile(((IASTMemberExpression) node.callee).object, bcBuilder, env, objReg);
+            Register propReg = env.freshRegister();
+            dispatcher.compile(((IASTMemberExpression) node.callee).property, bcBuilder, env, propReg);
+            Register expReg = env.freshRegister();
+            bcBuilder.push(new IGetprop(expReg, objReg, propReg));
+            // dispatcher.compile(node.callee, bcBuilder, env, propReg);
+            bcBuilder.push(new IMove(tmpRegs[0], objReg));
+            bcBuilder.push(new ISend(expReg, argRegs.length));
+        }*/
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));
     }
@@ -1059,6 +1102,14 @@ public class CodeGenerator {
         dispatcher.compile(node.constructor, bcBuilder, env, constructorReg);
         Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
         {
+            /*Register[] tmpRegs = new Register[node.arguments.size()];
+            int i = 0;
+            for (IASTExpression arg : node.arguments) {
+                tmpRegs[i] = env.freshRegister();
+                dispatcher.compile(arg, bcBuilder, env, tmpRegs[i]);
+                i++;
+            }*/
+
             List<Register> tmpRegs = new LinkedList<Register>();
             for (IASTExpression arg : node.arguments) {
                 Register tmpReg = env.freshRegister();
@@ -1072,7 +1123,7 @@ public class CodeGenerator {
         }
         bcBuilder.push(new INew(reg, constructorReg));
         bcBuilder.push(new IMove(argRegs[0], reg));
-        bcBuilder.push(new INewsend(constructorReg, argRegs.length - 1));
+        bcBuilder.push(new INewsend(constructorReg, node.arguments.size()));
         bcBuilder.push(new ISetfl(env.getFl()));
         Register strReg = env.freshRegister();
         bcBuilder.push(new IString(strReg, "\"Object\""));
