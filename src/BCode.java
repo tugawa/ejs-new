@@ -39,6 +39,10 @@ public class BCode {
     String toString(String opcode, int op1) {
         return opcode + " " + op1;
     }
+
+    String toString(String opcode, Register op1, int op2, String op3) {
+        return opcode + " " + op1 + " " + op2 + " " + op3;
+    }
 }
 
 
@@ -116,6 +120,19 @@ class ISpecconst extends BCode {
     }
     public String toString() {
         return super.toString("specconst", dst, val);
+    }
+}
+class IRegexp extends BCode {
+    Register dst;
+    int idx;
+    String ptn;
+    IRegexp(Register dst, int idx, String ptn) {
+        this.dst = dst;
+        this.idx = idx;
+        this.ptn = ptn;
+    }
+    public String toString() {
+        return super.toString("regexp", dst, idx, ptn);
     }
 }
 

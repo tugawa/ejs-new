@@ -590,8 +590,10 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 	protected IASTNode visitMemberExpression(MemberExpression node) {
 		IASTExpression object = (IASTExpression) node.getObject().accept(this);
 		IASTExpression property = (IASTExpression) node.getProperty().accept(this);
-		if (property instanceof IASTIdentifier) {
-		    property = new IASTStringLiteral(((IASTIdentifier) property).id);
+		if (!node.getComputed()) {
+		    if (property instanceof IASTIdentifier) {
+		        property = new IASTStringLiteral(((IASTIdentifier) property).id);
+		    }
 		}
 		return new IASTMemberExpression(object, property);
 	}

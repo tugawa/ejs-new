@@ -532,7 +532,7 @@ public class CodeGenerator {
         bcBuilder.push(new ISpecconst(reg, "null"));
     }
     void compileRegExpLiteral(IASTRegExpLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
-        System.out.println("not implemented.");
+        bcBuilder.push(new IRegexp(reg, 0, "\"" + node.pattern + "\""));
     }
 
     void compileBlockStatement(IASTBlockStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
@@ -555,8 +555,7 @@ public class CodeGenerator {
         System.out.println("non implemented.");
     }
 
-    void compileEmptyStatement(IASTEmptyStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-    }
+    void compileEmptyStatement(IASTEmptyStatement node, BCBuilder bcBuilder, Environment env, Register reg) {}
 
     void compileIfStatement(IASTIfStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
         Label l1 = new Label();
