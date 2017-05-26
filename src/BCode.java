@@ -548,6 +548,27 @@ class INewsend extends BCode {
         return super.toString("newsend", constructor, numOfArgs);
     }
 }
+class IMakeiterator extends BCode {
+    Register obj, dst;
+    IMakeiterator(Register obj, Register dst) {
+        this.obj = obj;
+        this.dst = dst;
+    }
+    public String toString() {
+        return super.toString("makeiterator", obj, dst);
+    }
+}
+class INextpropname extends BCode {
+    Register obj, ite, dst;
+    INextpropname(Register obj, Register ite, Register dst) {
+        this.obj = obj;
+        this.ite = ite;
+        this.dst = dst;
+    }
+    public String toString() {
+        return super.toString("nextpropname", obj, ite, dst);
+    }
+}
 
 
 // Jump instructions

@@ -240,6 +240,10 @@ public class CodeGenerator {
             int sendentry = 0;
             int numberOfLocals = 0;
             LinkedList<BCode> bcodes = new LinkedList<BCode>();
+            
+            LinkedList<JSLabel> jslabelsContinueDest = new LinkedList<JSLabel>();
+            LinkedList<JSLabel> jslabelsBreakDest = new LinkedList<JSLabel>();
+            LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
 
             List<BCode> build() {
                 int numberOfInstruction = bcodes.size();
@@ -262,10 +266,9 @@ public class CodeGenerator {
         private LinkedList<FunctionBCBuilder> fBuilders = new LinkedList<FunctionBCBuilder>();
 
         // "bcode" of instance of JSLabel/Label within the list will refer the next pushed BCode.
-        // private LinkedList<JSLabel> jslabelsSetJumpDest = new LinkedList<JSLabel>();
-        private LinkedList<JSLabel> jslabelsContinueDest = new LinkedList<JSLabel>();
-        private LinkedList<JSLabel> jslabelsBreakDest = new LinkedList<JSLabel>();
-        private LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
+        // private LinkedList<JSLabel> jslabelsContinueDest = new LinkedList<JSLabel>();
+        // private LinkedList<JSLabel> jslabelsBreakDest = new LinkedList<JSLabel>();
+        // private LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
 
         int maxNumOfArgsOfCallingFunction = 0;
 
@@ -291,20 +294,20 @@ public class CodeGenerator {
         }
 
         void pushContinueDest(JSLabel label) {
-            this.jslabelsContinueDest.add(label);
+            fbStack.getFirst().jslabelsContinueDest.add(label);
         }
         void pushBreakDest(JSLabel label) {
-            this.jslabelsBreakDest.add(label);
+            fbStack.getFirst().jslabelsBreakDest.add(label);
         }
         void push(Label label) {
-            this.labelsSetJumpDest.push(label);
+            fbStack.getFirst().labelsSetJumpDest.push(label);
         }
         void push(BCode bcode) {
-            this.jslabelsBreakDest.clear();
-            for (Label l : this.labelsSetJumpDest) {
+            fbStack.getFirst().jslabelsBreakDest.clear();
+            for (Label l : fbStack.getFirst().labelsSetJumpDest) {
                 l.bcode = bcode;
             }
-            this.labelsSetJumpDest.clear();
+            fbStack.getFirst().labelsSetJumpDest.clear();
             fbStack.getFirst().bcodes.add(bcode);
         }
 
@@ -693,7 +696,34 @@ public class CodeGenerator {
     }
 
     void compileForInStatement(IASTForInStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        System.out.println("ForInStatement: not implemented");
+        // System.out.println("ForInStatement: not implemented");
+        Register objReg = env.freshRegister();
+        Register iteReg = env.freshRegister();
+        Register propReg = env.freshRegister();
+        Register testReg = env.freshRegister();
+        Label l1 = new Label();
+        Label l2 = new Label();
+        dispatcher.compile(node.object, bcBuilder, env, objReg);
+        bcBuilder.push(new IMakeiterator(objReg, iteReg));
+        bcBuilder.push(l1);
+        bcBuilder.push(new INextpropname(objReg, iteReg, propReg));
+        Environment.Result id = env.getVar(node.var);
+        if (id == null) {
+            Register r1 = env.freshRegister();
+            bcBuilder.push(new IString(r1, node.var));
+            bcBuilder.push(new ISetglobal(r1, propReg));
+        } else {
+            if (id.isLocal) {
+                bcBuilder.push(new ISetlocal(id.depth, id.n, propReg));
+            } else {
+                bcBuilder.push(new ISetarg(id.depth, id.n, propReg));
+            }
+        }
+        bcBuilder.push(new IIsundef(testReg, propReg));
+        bcBuilder.push(new IJumptrue(testReg, l2));
+        dispatcher.compile(node.body, bcBuilder, env, reg);
+        bcBuilder.push(new IJump(l1));
+        bcBuilder.push(l2);
     }
 
     void compileBreakStatement(IASTBreakStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
@@ -753,8 +783,8 @@ public class CodeGenerator {
         bcBuilder.push(new IString(r2, "\"Array\""));
         bcBuilder.push(new IGetglobal(r3, r2));
         bcBuilder.push(new INew(reg, r3));
-        bcBuilder.push(new IMove(argRegs[0], r1));
-        bcBuilder.push(new IMove(argRegs[1], reg));
+        bcBuilder.push(new IMove(argRegs[1], r1));
+        bcBuilder.push(new IMove(argRegs[0], reg));
         bcBuilder.push(new INewsend(r3, 1));
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));

@@ -317,7 +317,8 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 	    IASTExpression obj = null;
 	    IASTStatement body = null;
 		if (node.getPatternLeft() != null) {
-			v = ((IIdentifier) node.getValDeclLeft()).getName();
+		    v = ((IIdentifier) node.getPatternLeft()).getName();
+			// v = ((IIdentifier) node.getValDeclLeft()).getName();
 		} else if (node.getValDeclLeft() != null) {
 		    List<IVariableDeclarator> varDecls = node.getValDeclLeft().getDeclarations();
 		    if (varDecls.size() == 1) {
