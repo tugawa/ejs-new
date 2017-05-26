@@ -100,15 +100,18 @@ class LLRule {
 }
 
 class LLPlan {
+	String[] dispatchVars;
 	Set<LLRule> rules;
 
 	LLPlan(Plan plan) {
+		dispatchVars = plan.dispatchVars;
 		rules = plan.getRules().stream()
 				.map(r -> new LLRule(r, plan.getArity()))
 				.collect(Collectors.toSet());
 	}
 
-	LLPlan() {
+	LLPlan(String[] dispatchVars) {
+		this.dispatchVars = dispatchVars;
 		rules = new HashSet<LLRule>();
 	}
 
@@ -172,10 +175,10 @@ class LLPlan {
 	 * @return nested plan
 	 */
 	public LLPlan convertToNestedPlan(boolean redirect) {
-		LLPlan outer = new LLPlan();
+		LLPlan outer = new LLPlan(new String[] {dispatchVars[0]});
 
 		for (TypeRepresentation tr0: allTRNthOperand(0)) {
-			LLPlan inner = new LLPlan();
+			LLPlan inner = new LLPlan(new String[] {dispatchVars[1]});
 			for (TypeRepresentation tr1: allTRNthOperand(1)) {
 				LLRule r = find(tr0, tr1);
 				ActionNode a = r.action;
@@ -283,18 +286,17 @@ class TagPairSynthesiser extends Synthesiser {
 		undispatched.forEach(pt -> b.addCondition(pt[0], pt[1]));
 		((DispatchActionNode) root).add(b);
 //		System.out.println(root);
-		System.out.println(root);
-		System.out.println("----------------");
+//		System.out.println("----------------");
 		root = simplify(root);
-		System.out.println(root);
-		System.out.println("----------------");
+//		System.out.println(root);
+//		System.out.println("----------------");
 		arrangeTerminalNode(root);
-		System.out.println(root);
+//		System.out.println(root);
 
-		System.out.println(root.code());
+//		System.out.println(root.code());
 		// TODO Auto-generated method stub
 		//tagPairDispatch(dispatchRuleList);
-		return null;
+		return root.code();
 	}
 	
 	ActionNode simplify(ActionNode n_) {
@@ -356,7 +358,7 @@ class TagPairSynthesiser extends Synthesiser {
 	}
 
 	DispatchActionNode nestedDispatch(LLPlan llplan) {
-		DispatchActionNode disp = new DispatchActionNode("PT");
+		DispatchActionNode disp = new DispatchActionNode(getPTCode(llplan.dispatchVars));
 		Map<LLRule, PTBranch> revDisp = new HashMap<LLRule, PTBranch>();
 
 		for (LLRule r: llplan.rules) {
@@ -387,7 +389,7 @@ class TagPairSynthesiser extends Synthesiser {
 		/* header type */
 		llplan.canonicalise();
 		if (llplan.rules.size() > 0) {
-			DispatchActionNode htDisp = new DispatchActionNode("HT");
+			DispatchActionNode htDisp = new DispatchActionNode(getHTCode(llplan.dispatchVars));
 			PTBranch others = new PTBranch(htDisp);
 			disp.add(others);
 
@@ -410,7 +412,7 @@ class TagPairSynthesiser extends Synthesiser {
 	}
 
 	DispatchActionNode tagPairDispatch(LLPlan llplan) {
-		DispatchActionNode disp = new DispatchActionNode("TP");
+		DispatchActionNode disp = new DispatchActionNode(getTagPairCode(llplan.dispatchVars));
 		Map<LLRule, TagPairBranch> revDisp = new HashMap<LLRule, TagPairBranch>();
 
 		for (LLRule r: llplan.rules) {
@@ -450,9 +452,13 @@ class TagPairSynthesiser extends Synthesiser {
         	procDef.load("datatype/add.idef");
         System.out.println(procDef);
         ProcDefinition.InstDefinition instDef = (ProcDefinition.InstDefinition) procDef.instDefs.get(0);
-        Plan p = new Plan(instDef.dispatchVars.length, instDef.toRules());
-
-        new TagPairSynthesiser().synthesise(p);
+        String[] dispatchVars = Arrays.stream(instDef.dispatchVars)
+        		.map(s -> s.substring(1, s.length()))
+        		.collect(Collectors.toList())
+        		.toArray(new String[]{});
+        Plan p = new Plan(dispatchVars, instDef.toRules());
+        Synthesiser sy = new TagPairSynthesiser();
+        System.out.println(sy.synthesise(p));
 	}
 
 }

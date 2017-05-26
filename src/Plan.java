@@ -43,19 +43,19 @@ public class Plan implements GlobalConstantOptions {
 		}
 	}
 
-	int arity;
+	String[] dispatchVars;
 	Set<Rule> rules;
 
 	Set<Rule> getRules() {
 		return rules;
 	}
 	int getArity() {
-		return arity;
+		return dispatchVars.length;
 	}
 
 	Plan() {
 		rules = new HashSet<Rule>();
-		arity = 2;
+		dispatchVars = new String[]{"v1", "v2"};
 
 		/* generate dummy data that looks like add */
 		rules.add(new Rule("fixfix", new Condition("fixnum", "fixnum")));
@@ -76,8 +76,8 @@ public class Plan implements GlobalConstantOptions {
 							new Condition("array", "array")));
 	}
 
-	Plan(int arity, Set<Rule> rules) {
-	    this.arity = arity;
+	Plan(String[] dispatchVars, Set<Rule> rules) {
+	    this.dispatchVars = dispatchVars;
 	    this.rules = rules;
 	}
 }

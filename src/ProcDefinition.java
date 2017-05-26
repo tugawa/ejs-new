@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -14,6 +15,7 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 // import ProcDefinition.DefinitionA;
 
@@ -655,7 +657,7 @@ public class ProcDefinition {
         public void gen(Synthesiser synthesiser) {
             StringBuilder sb = new StringBuilder();
             sb.append(name + "_HEAD:\n");
-            Plan p = new Plan(dispatchVars.length, toRules());
+            Plan p = new Plan(Arrays.stream(dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), toRules());
             sb.append(synthesiser.synthesise(p));
             try {
                 File file = new File("./" + name + ".c");

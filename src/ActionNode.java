@@ -22,11 +22,11 @@ abstract class ActionNode {
 
 class DispatchActionNode extends ActionNode {
 	Set<Branch> branches;
-	String kind;
+	String dispatchExpression;
 
-	DispatchActionNode(String kind) {
+	DispatchActionNode(String dispatchExpression) {
 		branches = new HashSet<Branch>();
-		this.kind = kind;
+		this.dispatchExpression = dispatchExpression;
 	}
 
 	void add(Branch b) {
@@ -41,14 +41,14 @@ class DispatchActionNode extends ActionNode {
 	public String code() {
 		StringBuffer sb = new StringBuffer();
 		sb.append(label + ": ");
-		sb.append("switch(???) {\n");
+		sb.append("switch("+dispatchExpression+") {\n");
 		branches.forEach(b -> sb.append(b.code()));
 		sb.append("}\n");
 		return sb.toString();
 	}
 	@Override
 	public String toString() {
-		return kind + "{" + branches.stream().map(b -> b.toString()).collect(Collectors.joining("\n")) + "}";
+		return dispatchExpression + "{" + branches.stream().map(b -> b.toString()).collect(Collectors.joining("\n")) + "}";
 	}
 }
 

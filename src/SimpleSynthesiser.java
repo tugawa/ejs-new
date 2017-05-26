@@ -2,17 +2,6 @@ import java.io.FileNotFoundException;
 import java.util.Set;
 
 public class SimpleSynthesiser extends Synthesiser {
-
-	String ptOfOperand(int i) {
-		// return "GET_PT(v" + (i + 1) + ")";
-	    return "get_tag(v" + (i + 1) + ")";
-	}
-
-	String htOfOperand(int i) {
-		// return "GET_HT(v" + (i + 1) + ")";
-	    return "obj_header_tag(v" + (i + 1) + ")";
-	}
-
 	@Override
 	String synthesise(Plan plan) {
 		Set<Plan.Rule> rules = plan.getRules();
@@ -20,7 +9,7 @@ public class SimpleSynthesiser extends Synthesiser {
 
 		for (Plan.Rule r: rules) {
 			String cstr = r.condition.stream()
-			.map(c -> SynthesiseCondition(c, plan.arity, 0, ""))
+			.map(c -> SynthesiseCondition(plan.dispatchVars, c, plan.getArity(), 0, ""))
 			.reduce((acc, term) -> {
 				if (acc == null)
 					return term;
@@ -37,7 +26,7 @@ public class SimpleSynthesiser extends Synthesiser {
 		return code.toString();
 	}
 
-	String SynthesiseCondition(Plan.Condition c, int n, int i, String part) {
+	String SynthesiseCondition(String[] dispatchVars, Plan.Condition c, int n, int i, String part) {
 		if (i == n)
 			return "(" + part + ")";
 
@@ -45,10 +34,10 @@ public class SimpleSynthesiser extends Synthesiser {
 			String s = part;
 			if (i > 0)
 				s += " && ";
-			s += ptOfOperand(i) + " == " + tr.getPT().name;
+			s += getPTCode(dispatchVars[i]) + " == " + tr.getPT().name;
 			if (tr.hasHT())
-				s += " && " + htOfOperand(i) + " == " + tr.getHT().name;
-			return SynthesiseCondition(c, n, i + 1, s);
+				s += " && " + getHTCode(dispatchVars[i]) + " == " + tr.getHT().name;
+			return SynthesiseCondition(dispatchVars, c, n, i + 1, s);
 		})
 		.reduce((acc, term) -> {
 			if (acc == null)
