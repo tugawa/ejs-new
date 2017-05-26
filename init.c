@@ -68,8 +68,8 @@ void init_global_malloc_objects(void) {
  */
 void init_global_objects(void) {
   /*
-     It is necessary to make the object that will be set as
-     Object.prototype, because this object is referred to in new_object.
+     It is necessary to make the object that will be set as Object.prototype,
+     because this object is referred to in new_simple_object.
      Its `prototype' property is null.
   */
   gconsts.g_object_proto = new_big_predef_object_without_prototype(NULL);

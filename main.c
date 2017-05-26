@@ -72,7 +72,7 @@ void testtest(Context *cxt) {
   else
     printf("Testtest: Object[prototype] = not found\n");
 
-  v = new_object(cxt);
+  v = new_simple_object(cxt);
   set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
   set_obj_cstr_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
@@ -356,7 +356,7 @@ void print_value(Context *context, JSValue v, int verbose) {
       p = remove_object_tag(v);
       // printf("tag = T_OBJECT, header tag = %ld\n", obj_header_tag(p));
       switch (obj_header_tag(p)) {
-      case HTAG_OBJECT: v = gconsts.g_string_objtostr; break;
+      case HTAG_SIMPLE_OBJECT: v = gconsts.g_string_objtostr; break;
       // case HTAG_ARRAY:  v = cstr_to_string("array"); break;
       case HTAG_ARRAY:  v = array_to_string(context, v, gconsts.g_string_comma); break;
       case HTAG_FUNCTION: v = cstr_to_string("function"); break;

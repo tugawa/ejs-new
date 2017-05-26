@@ -710,32 +710,32 @@ void set_object_members(Object *p, int hsize, int psize) {
 }
 
 /*
-  makes an object whose __proto__ property is not set yet
+  makes a simple object whose __proto__ property is not set yet
     hsize: size of the hash table
     psize: size of the array of property values
  */
-JSValue new_object_without_prototype(Context *ctx, int hsize, int psize) {
+JSValue new_simple_object_without_prototype(Context *ctx, int hsize, int psize) {
   JSValue ret;
   Object *p;
 
-  //  printf("new_object_without_prototype\n");
-  ret = make_object(ctx);
+  //  printf("new_simple_object_without_prototype\n");
+  ret = make_simple_object(ctx);
   p = remove_object_tag(ret);
   set_object_members(p, hsize, psize);
   return ret;
 }
   
 /*
-  makes a new object
+  makes a new simple object
     hsize: size of the hash table
     psize: size of the array of property values
  */
-JSValue new_object(Context *ctx, int hsize, int psize) {
+JSValue new_simple_object(Context *ctx, int hsize, int psize) {
   JSValue ret;
   Object *p;
 
-  // printf("new_object\n");
-  ret = make_object(ctx);
+  // printf("new_simple_object\n");
+  ret = make_simple_object(ctx);
   p = remove_object_tag(ret);
   set_object_members(p, hsize, psize);
   set___proto___all(ctx, ret, gconsts.g_object_proto);

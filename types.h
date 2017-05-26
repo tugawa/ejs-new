@@ -142,10 +142,15 @@ typedef struct object_cell {
   JSValue *prop;          // array of property values
 } Object;
 
+// is_object checks whether `p' is one of the object families,
+// i.e., simple object, array, function, builtin, iterator, regexp,
+// boxed string, boxed number, boxed boolean.
+// Note that is_object does not investigate the header tag.
+//
 #define is_object(p)           (equal_tag((p), T_OBJECT))
 #define put_object_tag(p)      (put_tag(p, T_OBJECT))
 #define remove_object_tag(p)   ((Object *)(remove_tag((p), T_OBJECT)))
-#define make_object(ctx)       (put_object_tag(allocate_object(ctx)))
+#define make_simple_object(ctx) (put_object_tag(allocate_simple_object(ctx)))
 
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
@@ -160,6 +165,8 @@ typedef struct object_cell {
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
+
+#define is_simple_object(p)    is_obj_header_tag((p), HTAG_SIMPLE_OBJECT)
 
 #define PSIZE_NORMAL  20  // default initial size of the property array
 #define PSIZE_BIG    100
@@ -176,12 +183,12 @@ typedef struct object_cell {
 #define HHH HSIZE_NORMAL
 #endif
 
-#define new_normal_object(ctx)  new_object(ctx, HHH, PSIZE_NORMAL)
+#define new_normal_object(ctx)  new_simple_object(ctx, HHH, PSIZE_NORMAL)
 #define new_normal_predef_object(ctx) \
-  new_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
-#define new_big_predef_object(ctx) new_object(ctx, HSIZE_BIG, PSIZE_BIG)
+  new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
+#define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
 #define new_big_predef_object_without_prototype(ctx) \
-  new_object_without_prototype(ctx, HSIZE_BIG, PSIZE_BIG)
+  new_simple_object_without_prototype(ctx, HSIZE_BIG, PSIZE_BIG)
 
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
 
@@ -460,7 +467,7 @@ typedef struct string_cell {
  */
 #define HTAG_STRING        (0x4)
 #define HTAG_FLONUM        (0x5)
-#define HTAG_OBJECT        (0x6)
+#define HTAG_SIMPLE_OBJECT (0x6)
 #define HTAG_ARRAY         (0x7)
 #define HTAG_FUNCTION      (0x8)
 #define HTAG_BUILTIN       (0x9)

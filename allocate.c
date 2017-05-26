@@ -91,12 +91,12 @@ JSValue allocate_string2(Context *context, const char *str1, const char *str2)
 }
 
 /*
-   allocates an object
+   allocates a simple object
    Note that the return value does not have a pointer tag.
  */
-Object *allocate_object(Context *ctx)
+Object *allocate_simple_object(Context *ctx)
 {
-  Object *object = (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_OBJECT);
+  Object *object = (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_SIMPLE_OBJECT);
   return object;
 }
 

@@ -683,7 +683,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   trace_JSValue_array(&obj->prop, obj->n_props);
 
   switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
-  case HTAG_OBJECT:
+  case HTAG_SIMPLE_OBJECT:
     break;
   case HTAG_ARRAY:
     trace_JSValue_array(&((ArrayCell *) obj)->body,

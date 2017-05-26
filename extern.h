@@ -53,7 +53,7 @@ extern "C" {
 extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
-extern Object *allocate_object(Context *ctx);
+extern Object *allocate_simple_object(Context *ctx);
 extern ArrayCell *allocate_array(Context *ctx);
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
@@ -274,8 +274,8 @@ extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
 #endif
-extern JSValue new_object_without_prototype(Context *, int, int);
-extern JSValue new_object(Context *, int, int);
+extern JSValue new_simple_object_without_prototype(Context *, int, int);
+extern JSValue new_simple_object(Context *, int, int);
 extern JSValue new_array(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);
