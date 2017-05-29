@@ -6,8 +6,6 @@
  */
 {
   Register dst = r0;
-  JSValue v1 = regbase[r1];
-  JSValue v2 = regbase[r2];
   Tag tag;
   uint32_t x1;
   cint x2;

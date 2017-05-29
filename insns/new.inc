@@ -3,7 +3,7 @@
      $dst = new object created by $con
  */
 {
-  JSValue con = regbase[r1];
+  JSValue con = v1;
   JSValue o, p;
 
   if (is_function(con)) {

@@ -4,7 +4,8 @@
    newsend fn nargs
  */
 {
-  JSValue fn = regbase[r0];
+  JSValue fn = v0;
+  int nargs = i1;
   Opcode op;
   int sendp, newp;
 

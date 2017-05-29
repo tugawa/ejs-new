@@ -4,5 +4,5 @@
  */
 {
   // if (context->global == JS_UNDEFINED) printf("GETGLOBALOBJ: !!!!\n");
-  regbase[r] = context->global;
+  regbase[r0] = context->global;
 }

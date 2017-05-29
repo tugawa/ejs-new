@@ -1,65 +1,65 @@
-fixnum                SMALLPRIMITIVE
-specconst             SMALLPRIMITIVE
+fixnum                SMALLPRIMITIVE Register   int
+specconst             SMALLPRIMITIVE Register   int
 string                BIGPRIMITIVE   LABELONLY
 regexp                BIGPRIMITIVE   LABELONLY
-number                BIGPRIMITIVE
-add                   THREEOP
-sub                   THREEOP
-mul                   THREEOP
-div                   THREEOP
-mod                   THREEOP
-bitand                THREEOP
-bitor                 THREEOP
-leftshift             THREEOP
-rightshift            THREEOP
-unsignedrightshift    THREEOP
-lessthan              THREEOP
-lessthanequal         THREEOP   
-eq                    THREEOP
-equal                 THREEOP
-getprop               THREEOP
-setprop               THREEOP
-setarray              THREEOP
-getglobal             TWOOP
-setglobal             TWOOP
-instanceof            THREEOP
-move                  TWOOP
-typeof                TWOOP
-not                   TWOOP
-new                   TWOOP
-getidx                TWOOP
-isundef               TWOOP
-isobject              TWOOP
-setfl                 ONEOP
-seta                  ONEOP
-geta                  ONEOP
-geterr                ONEOP
-getglobalobj          ONEOP
+number                BIGPRIMITIVE   Register   Displacement
+add                   THREEOP        Register   JSValue   JSValue
+sub                   THREEOP        Register   JSValue   JSValue
+mul                   THREEOP        Register   JSValue   JSValue
+div                   THREEOP        Register   JSValue   JSValue
+mod                   THREEOP        Register   JSValue   JSValue
+bitand                THREEOP        Register   JSValue   JSValue
+bitor                 THREEOP        Register   JSValue   JSValue
+leftshift             THREEOP        Register   JSValue   JSValue
+rightshift            THREEOP        Register   JSValue   JSValue
+unsignedrightshift    THREEOP        Register   JSValue   JSValue
+lessthan              THREEOP        Register   JSValue   JSValue
+lessthanequal         THREEOP        Register   JSValue   JSValue
+eq                    THREEOP        Register   JSValue   JSValue
+equal                 THREEOP        Register   JSValue   JSValue
+getprop               THREEOP        Register   JSValue   JSValue
+setprop               THREEOP        JSValue    JSValue   JSValue
+setarray              THREEOP        JSValue    Subscript JSValue
+getglobal             TWOOP          Register   JSValue
+setglobal             TWOOP          JSValue    JSValue
+instanceof            THREEOP        Register   JSValue   JSValue
+move                  TWOOP          Register   JSValue
+typeof                TWOOP          Register   Register
+not                   TWOOP          Register   JSValue
+new                   TWOOP          Register   JSValue
+getidx                TWOOP          Register   Register
+isundef               TWOOP          Register   JSValue
+isobject              TWOOP          Register   JSValue
+setfl                 ONEOP          int
+seta                  ONEOP          JSValue
+geta                  ONEOP          Register
+geterr                ONEOP          Register
+getglobalobj          ONEOP          Register
 newargs               ZEROOP
 ret                   ZEROOP
 nop                   ZEROOP
-jump                  UNCONDJUMP
-jumptrue              CONDJUMP
-jumpfalse             CONDJUMP
-getarg                GETVAR
-getlocal              GETVAR
-setarg                SETVAR
-setlocal              SETVAR
-makeclosure           MAKECLOSUREOP
-makeiterator          TWOOP
-nextpropname          THREEOP
+jump                  UNCONDJUMP     Displacement
+jumptrue              CONDJUMP       JSValue    Displacement
+jumpfalse             CONDJUMP       JSValue    Displacement
+getarg                GETVAR         Register   int          Subscript
+getlocal              GETVAR         Register   int          Subscript
+setarg                SETVAR         int        Subscript    JSValue
+setlocal              SETVAR         int        Subscript    JSValue
+makeclosure           MAKECLOSUREOP  Register   Subscript
+makeiterator          TWOOP          JSValue    Register
+nextpropname          THREEOP        JSValue    JSValue      Register
 send                  CALLOP         LABELONLY
 newsend               CALLOP         LABELONLY
-call                  CALLOP
+call                  CALLOP         JSValue    int
 tailsend              CALLOP         LABELONLY
-tailcall              CALLOP
-pushhandler           UNCONDJUMP
+tailcall              CALLOP         JSValue    int
+pushhandler           UNCONDJUMP     Displacement
 pophandler            ZEROOP
 throw                 ZEROOP
-localcall             UNCONDJUMP
+localcall             UNCONDJUMP     Displacement
 localret              ZEROOP
 poplocal              ZEROOP
-error                 BIGPRIMITIVE
+error                 BIGPRIMITIVE   Register   int
 unknown               UNKNOWNOP
 end                   ZEROOP
 // lightcall             CALLOP

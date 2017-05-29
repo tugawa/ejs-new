@@ -4,7 +4,7 @@
    $dst = iterator object for iterating $obj
  */ 
 {
-  JSValue obj = regbase[r0];
+  JSValue obj = v0;
   Register dst = r1;
 
   if (!is_object(obj))

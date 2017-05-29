@@ -2,7 +2,7 @@
    error
  */
 {
-  dst = 0;
-  disp = 0;
+  r0 = 0;
+  d1 = 0;
   return -1;
 }

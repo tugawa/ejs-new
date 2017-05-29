@@ -3,10 +3,8 @@
    if ($src) pc = pc + $disp
  */
 {
-  JSValue v = regbase[r];
-  if (v == JS_TRUE || to_boolean(v) == JS_TRUE) {
-    Displacement disp = get_second_operand_disp(insn);
-    set_pc_relative(disp);
+  if (v0 == JS_TRUE || to_boolean(v0) == JS_TRUE) {
+    set_pc_relative(d1);
     NEXT_INSN_NOINCPC();
   }
 }

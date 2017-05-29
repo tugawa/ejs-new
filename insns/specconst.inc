@@ -1,9 +1,9 @@
 /*
-   specconst dst specimm
+   specconst dst imm
     dst : destination register
     imm : immediate value of the special constant
-   $dst = specimm
+   $dst = imm
  */
 {
-  regbase[dst] = imm;
+  regbase[r0] = i1;
 }

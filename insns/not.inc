@@ -5,8 +5,7 @@
    $dst = ! $reg
  */
 {
-  JSValue v = regbase[r1];
   regbase[r0] =
-    true_false(v == JS_FALSE || v == FIXNUM_ZERO ||
-               v == gconsts.g_flonum_nan || v == gconsts.g_string_empty);
+    true_false(v1 == JS_FALSE || v1 == FIXNUM_ZERO ||
+               v1 == gconsts.g_flonum_nan || v1 == gconsts.g_string_empty);
 }

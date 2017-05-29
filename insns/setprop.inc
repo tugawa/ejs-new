@@ -6,9 +6,9 @@
    $obj[$prop] = $val
  */
 {
-  JSValue obj = regbase[r0];
-  JSValue prop = regbase[r1];
-  JSValue val = regbase[r2];
+  JSValue obj = v0;
+  JSValue prop = v1;
+  JSValue val = v2;
 
   if (is_array(obj))
     set_array_prop(context, obj, prop, val);

@@ -10,9 +10,9 @@
      main function.  Since the main function comes first in the
      function table, the subecript should be added by 1.
    */
-  Subscript ss = index + 1;
+  Subscript ss = s1 + 1;
   save_context();    // GC
-  regbase[dst] = new_normal_function(context, ss);
+  regbase[r0] = new_normal_function(context, ss);
   update_context();  // GC
 }
 

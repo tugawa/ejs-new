@@ -3,7 +3,8 @@
    tailsend fn nargs
  */
 {
-  JSValue fn = regbase[r0];
+  JSValue fn = v0;
+  int nargs = i1;
   int sendp;
 
   sendp = (get_opcode(insn) == TAILSEND)? TRUE: FALSE;

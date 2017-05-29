@@ -4,5 +4,5 @@
    $dst = a
  */
 {
-  regbase[r] = get_a(context);
+  regbase[r0] = get_a(context);
 }

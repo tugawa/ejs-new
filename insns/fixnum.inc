@@ -6,5 +6,5 @@
  */
 
 {
-  regbase[dst] = cint_to_fixnum((cint)imm);
+  regbase[r0] = cint_to_fixnum((cint)i1);
 }

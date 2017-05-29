@@ -6,8 +6,8 @@
    $dst = the next property name of $obj in $itr
  */
 {
-  JSValue obj = regbase[r0];
-  JSValue itr = regbase[r1];
+  JSValue obj = v0;
+  JSValue itr = v1;
   Register dst = r2;
   JSValue res = JS_UNDEFINED;
   JSValue val;

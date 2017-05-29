@@ -5,8 +5,8 @@
    property value for the string in the global object = $src
  */
 {
-  JSValue str = regbase[r0];
-  JSValue src = regbase[r1];
+  JSValue str = v0;
+  JSValue src = v1;
   if (set_prop_none(context, context->global, str, src) == FAIL)
     LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
 }

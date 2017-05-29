@@ -4,5 +4,5 @@
    a = $src
  */
 {
-  set_a(context, regbase[r]);
+  set_a(context, v0);
 }

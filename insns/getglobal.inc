@@ -5,7 +5,7 @@
    $dst = property value for the string in the global object
  */
 {
-  JSValue str = regbase[r1];
+  JSValue str = v1;
   JSValue ret;
 
   if (get_prop(context->global, str, &ret) == FAIL)

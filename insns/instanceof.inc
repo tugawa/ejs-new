@@ -5,8 +5,6 @@
 ENTER_INSN(__LINE__);
 {
   Register dst = r0;
-  JSValue v1 = regbase[r1];
-  JSValue v2 = regbase[r2];
   JSValue p, ret;
 
   ret = JS_FALSE;

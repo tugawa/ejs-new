@@ -3,6 +3,9 @@
    $dst = value of the index-th local variable in the link-th function frame
  */
 {
+  Register dst = r0;
+  int link = i1;
+  Subscript index = s2;
   FunctionFrame *fr;
   int i;
 

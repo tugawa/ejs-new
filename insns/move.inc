@@ -5,5 +5,5 @@
    $dst = $src
  */
 {
-  regbase[r0] = regbase[r1];
+  regbase[r0] = v1;
 }

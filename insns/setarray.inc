@@ -6,9 +6,6 @@
    $dst[$reg] = $src
  */
 {
-  JSValue a = regbase[dst];
-  JSValue v = regbase[src];
-  
   // It is unnecessary to typecheck the values.
-  array_body_index(a, s) = v;
+  array_body_index(v0, s1) = v2;
 }

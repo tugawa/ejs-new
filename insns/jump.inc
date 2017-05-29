@@ -3,5 +3,5 @@
    pc = pc + $disp
  */
 {
-  set_pc_relative(disp);
+  set_pc_relative(d0);
 }

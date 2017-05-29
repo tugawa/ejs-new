@@ -302,6 +302,12 @@ typedef void *InsnLabel;
 
 #define get_third_operand_reg(code)  ((Register)(get_third_operand(code)))
 
+#define get_first_operand_value(code) (regbase[get_first_operand_reg(code)])
+
+#define get_second_operand_value(code) (regbase[get_second_operand_reg(code)])
+
+#define get_third_operand_value(code)  (regbase[get_third_operand_reg(code)])
+
 #define get_first_operand_disp(code) ((Displacement)(get_first_operand(code)))
 
 #define get_second_operand_disp(code) ((Displacement)(get_second_operand(code)))

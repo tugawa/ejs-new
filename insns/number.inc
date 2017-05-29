@@ -7,6 +7,6 @@
    $dst = insns[pc + disp]
  */
 {
-    regbase[dst] = insns[disp].code;
+    regbase[r0] = insns[d1].code;
 }
 

@@ -4,8 +4,8 @@
  */
 {
   Register dst = r0;
-  JSValue obj = regbase[r1];
-  JSValue idx = regbase[r2];
+  JSValue obj = v1;
+  JSValue idx = v2;
 
   if (is_array(obj)) {
     regbase[dst] = get_array_prop(context, obj, idx);

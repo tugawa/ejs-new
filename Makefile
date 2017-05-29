@@ -81,65 +81,65 @@ OFILES = allocate.o \
          main.o
 
 INSN_FILES = \
-         insns/add.def \
-         insns/bitand.def \
-         insns/bitor.def \
-         insns/call.def \
-         insns/div.def \
-         insns/end.def \
-         insns/eq.def \
-         insns/equal.def \
-         insns/error.def \
-         insns/fixnum.def \
-         insns/geta.def \
-         insns/getarg.def \
-         insns/geterr.def \
-         insns/getglobal.def \
-         insns/getglobalobj.def \
-         insns/getidx.def \
-         insns/getlocal.def \
-         insns/getprop.def \
-         insns/instanceof.def \
-         insns/isobject.def \
-         insns/isundef.def \
-         insns/jump.def \
-         insns/jumpfalse.def \
-         insns/jumptrue.def \
-         insns/leftshift.def \
-         insns/lessthan.def \
-         insns/lessthanequal.def \
-         insns/localcall.def \
-         insns/localret.def \
-         insns/makeclosure.def \
-         insns/makeiterator.def \
-         insns/mod.def \
-         insns/move.def \
-         insns/mul.def \
-         insns/new.def \
-         insns/newargs.def \
-         insns/nextpropname.def \
-         insns/nop.def \
-         insns/not.def \
-         insns/number.def \
-         insns/pophandler.def \
-         insns/poplocal.def \
-         insns/pushhandler.def \
-         insns/ret.def \
-         insns/rightshift.def \
-         insns/seta.def \
-         insns/setarg.def \
-         insns/setarray.def \
-         insns/setfl.def \
-         insns/setglobal.def \
-         insns/setlocal.def \
-         insns/setprop.def \
-         insns/specconst.def \
-         insns/sub.def \
-         insns/tailcall.def \
-         insns/throw.def \
-         insns/typeof.def \
-         insns/unknown.def \
-         insns/unsignedrightshift.def
+         insns/add.inc \
+         insns/bitand.inc \
+         insns/bitor.inc \
+         insns/call.inc \
+         insns/div.inc \
+         insns/end.inc \
+         insns/eq.inc \
+         insns/equal.inc \
+         insns/error.inc \
+         insns/fixnum.inc \
+         insns/geta.inc \
+         insns/getarg.inc \
+         insns/geterr.inc \
+         insns/getglobal.inc \
+         insns/getglobalobj.inc \
+         insns/getidx.inc \
+         insns/getlocal.inc \
+         insns/getprop.inc \
+         insns/instanceof.inc \
+         insns/isobject.inc \
+         insns/isundef.inc \
+         insns/jump.inc \
+         insns/jumpfalse.inc \
+         insns/jumptrue.inc \
+         insns/leftshift.inc \
+         insns/lessthan.inc \
+         insns/lessthanequal.inc \
+         insns/localcall.inc \
+         insns/localret.inc \
+         insns/makeclosure.inc \
+         insns/makeiterator.inc \
+         insns/mod.inc \
+         insns/move.inc \
+         insns/mul.inc \
+         insns/new.inc \
+         insns/newargs.inc \
+         insns/nextpropname.inc \
+         insns/nop.inc \
+         insns/not.inc \
+         insns/number.inc \
+         insns/pophandler.inc \
+         insns/poplocal.inc \
+         insns/pushhandler.inc \
+         insns/ret.inc \
+         insns/rightshift.inc \
+         insns/seta.inc \
+         insns/setarg.inc \
+         insns/setarray.inc \
+         insns/setfl.inc \
+         insns/setglobal.inc \
+         insns/setlocal.inc \
+         insns/setprop.inc \
+         insns/specconst.inc \
+         insns/sub.inc \
+         insns/tailcall.inc \
+         insns/throw.inc \
+         insns/typeof.inc \
+         insns/unknown.inc \
+         insns/unsignedrightshift.inc
 
 SEDCOM_GEN_INSN_OPCODE = \
   -e 's/^\([a-z][a-z]*\).*/\U\1,/' -e '/^\/\/.*/d'
@@ -173,13 +173,13 @@ instructions.h: instructions-opcode.h instructions-table.h
 cell-header.h: cell-header.def
 	$(RUBY) $< > $@
 
-vmloop-cases.def: instructions.def gen-vmloop-cases.sed
-	$(SED) -f gen-vmloop-cases.sed instructions.def > $@
+vmloop-cases.inc: instructions.def gen-vmloop-cases.rb
+	$(RUBY) gen-vmloop-cases.rb < instructions.def > $@
 
-vmloop.o: vmloop.c vmloop-cases.def $(INSN_FILES) $(HFILES)
+vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
-	rm $(OFILES) $(GENERATED_HFILES) vmloop-cases.def
+	rm $(OFILES) $(GENERATED_HFILES) vmloop-cases.inc

@@ -5,6 +5,6 @@
    I don't know in which situation this instruction is necessary.
  */
 {
-  regbase[r] = get_err(context);
+  regbase[r0] = get_err(context);
 }
 
