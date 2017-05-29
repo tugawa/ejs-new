@@ -44,7 +44,7 @@ GENERATED_HFILES = \
          instructions-opcode.h \
 	 instructions-table.h \
 	 instructions-label.h \
-	 cell_header.h
+	 cell-header.h
 
 HFILES = $(GENERATED_HFILES) \
          prefix.h \
@@ -170,7 +170,7 @@ instructions-label.h: instructions.def
 
 instructions.h: instructions-opcode.h instructions-table.h
 
-cell_header.h: cell_header.def
+cell-header.h: cell-header.def
 	$(RUBY) $< > $@
 
 vmloop-cases.def: instructions.def gen-vmloop-cases.sed

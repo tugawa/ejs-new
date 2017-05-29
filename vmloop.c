@@ -184,7 +184,7 @@ int vmrun_threaded(Context* context, int border) {
   NEXT_INSN();
 #endif
 
-#include "vmloop-cases.def"
+#include "vmloop-cases.inc"
 
 // Now the following case branches are automatically generated in
 // the file named ``vmloop-cases.def''.

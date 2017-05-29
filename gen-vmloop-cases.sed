@@ -14,7 +14,7 @@ s/^\([a-z][a-z]*\)  *SMALLPRIMITIVE.*/I_\U\1\E:\
   {\
     Register dst = get_first_operand_reg(insn);\
     int64_t imm = get_small_immediate(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -26,7 +26,7 @@ s/^\([a-z][a-z]*\)  *BIGPRIMITIVE.*/I_\U\1\E:\
   {\
     Register dst = get_first_operand_reg(insn);\
     Displacement disp = get_big_disp(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -39,7 +39,7 @@ s/^\(setarray\)  *THREEOP.*/I_\U\1\E:\
     Register dst = get_first_operand_reg(insn);\
     Subscript s = get_second_operand_subscr(insn);\
     Register src = get_third_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -52,7 +52,7 @@ s/^\([a-z][a-z]*\)  *THREEOP.*/I_\U\1\E:\
     Register r0 = get_first_operand_reg(insn);\
     Register r1 = get_second_operand_reg(insn);\
     Register r2 = get_third_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -64,7 +64,7 @@ s/^\([a-z][a-z]*\)  *TWOOP.*/I_\U\1\E:\
   {\
     Register r0 = get_first_operand_reg(insn);\
     Register r1 = get_second_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -75,7 +75,7 @@ s/^\(setfl\)  *ONEOP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
     int newfl = get_first_operand_int(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -86,7 +86,7 @@ s/^\([a-z][a-z]*\)  *ONEOP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
     Register r = get_first_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -96,7 +96,7 @@ s/^\([a-z][a-z]*\)  *ONEOP.*/I_\U\1\E:\
 s/^\(throw\)  *ZEROOP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_NOINCPC();\
 /
@@ -106,7 +106,7 @@ s/^\(throw\)  *ZEROOP.*/I_\U\1\E:\
 s/^\([a-z][a-z]*\)  *ZEROOP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -117,7 +117,7 @@ s/^\(pushhandler\)  *UNCONDJUMP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
     Displacement disp = get_first_operand_disp(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -128,7 +128,7 @@ s/^\([a-z][a-z]*\)  *UNCONDJUMP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
     Displacement disp = get_first_operand_disp(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_NOINCPC();\
 /
@@ -139,7 +139,7 @@ s/^\([a-z][a-z]*\)  *CONDJUMP.*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
     Register r = get_first_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -152,7 +152,7 @@ s/^\([a-z][a-z]*\)  *GETVAR.*/I_\U\1\E:\
     Register dst = get_first_operand_reg(insn);\
     int link = get_second_operand_int(insn);\
     Subscript index = get_third_operand_subscr(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -165,7 +165,7 @@ s/^\([a-z][a-z]*\)  *SETVAR.*/I_\U\1\E:\
     int link = get_first_operand_int(insn);\
     Subscript index = get_second_operand_subscr(insn);\
     Register src = get_third_operand_reg(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -177,7 +177,7 @@ s/^\([a-z][a-z]*\)  *MAKECLOSURE.*/I_\U\1\E:\
   {\
     Register dst = get_first_operand_reg(insn);\
     Subscript index = get_second_operand_subscr(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -189,7 +189,7 @@ s/^\([a-z][a-z]*\)  *CALLOP.*/I_\U\1\E:\
   {\
     Register r0 = get_first_operand_reg(insn);\
     int nargs = get_second_operand_int(insn);\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
@@ -199,7 +199,7 @@ s/^\([a-z][a-z]*\)  *CALLOP.*/I_\U\1\E:\
 s/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/I_\U\1\E:\
   ENTER_INSN(__LINE__);\
   {\
-#include "insns\/\1.def"\
+#include "insns\/\1.inc"\
   }\
   NEXT_INSN_INCPC();\
 /
