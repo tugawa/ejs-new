@@ -16,9 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-class JSTypePairB {
+
+class JSTypePair {
     DataType left, right;
-    JSTypePairB(DataType left, DataType right) {
+    JSTypePair(DataType left, DataType right) {
         this.left = left;
         this.right = right;
     }
@@ -67,110 +68,110 @@ class TypeDispatchDefinitionBuilder {
     List<Pair<Condition,String>> actList = new LinkedList<Pair<Condition,String>>();
     Condition tmpCond = null;
     String csrc = null;
-    void readB(String line) {
+    void read(String line) {
         if (line.matches("^\\\\when .*")) {
             Condition c = parseCondition(line.substring(6), new int[1], true);
             convertConditionToDNF(c);
-            if (csrc != null) endWhenScopeB();
-            startWhenScopeB(c);
+            if (csrc != null) endWhenScope();
+            startWhenScope(c);
         } else if (line.matches("^\\\\otherwise\\s*")) {
-            if (csrc != null) endWhenScopeB();
-            startWhenScopeB(null);
+            if (csrc != null) endWhenScope();
+            startWhenScope(null);
         } else {
             csrc = csrc + line + "\n";
         }
     }
-    void endWhenScopeB() {
+    void endWhenScope() {
         actList.add(new Pair<Condition,String>(tmpCond, csrc));
     }
-    void startWhenScopeB(Condition c) {
+    void startWhenScope(Condition c) {
         tmpCond = c;
         csrc = "";
     }
-    void endB() {
-        endWhenScopeB();
+    void end() {
+        endWhenScope();
     }
     ProcDefinition.TypeDispatchDefinition build() {
-        List<Pair<JSTypePairB,String>> raw = actListToParts(actList);
-        List<Pair<JSTypePairB,String>> twoOp = new LinkedList<Pair<JSTypePairB,String>>();
-        List<Pair<JSTypePairB,String>> oneOpL = new LinkedList<Pair<JSTypePairB,String>>();
-        List<Pair<JSTypePairB,String>> oneOpR = new LinkedList<Pair<JSTypePairB,String>>();
-        Pair<JSTypePairB,String> otherwisep = new Pair<JSTypePairB,String>(null, null);
+        List<Pair<JSTypePair,String>> raw = actListToParts(actList);
+        List<Pair<JSTypePair,String>> twoOp = new LinkedList<Pair<JSTypePair,String>>();
+        List<Pair<JSTypePair,String>> oneOpL = new LinkedList<Pair<JSTypePair,String>>();
+        List<Pair<JSTypePair,String>> oneOpR = new LinkedList<Pair<JSTypePair,String>>();
+        Pair<JSTypePair,String> otherwisep = new Pair<JSTypePair,String>(null, null);
         splitByOpType(raw, twoOp, oneOpL, oneOpR, otherwisep);
 
         String otherwise = otherwisep.second();
-        List<Pair<JSTypePairB,String>> result = new LinkedList<Pair<JSTypePairB,String>>();
+        List<Pair<JSTypePair,String>> result = new LinkedList<Pair<JSTypePair,String>>();
         if (this.vnames.length == 1) {
             result.addAll(oneOpL);
             if (otherwise != null) {
                 for (DataType dt : DataType.all()) {
                     boolean b = true;
-                    for (Pair<JSTypePairB,String> e : result) {
-                        JSTypePairB jtp = e.first();
+                    for (Pair<JSTypePair,String> e : result) {
+                        JSTypePair jtp = e.first();
                         if (jtp.left == dt) {
                             b = false;
                             break;
                         }
                     }
-                    if (b) result.add(new Pair<JSTypePairB,String>(new JSTypePairB(dt, null), otherwise));
+                    if (b) result.add(new Pair<JSTypePair,String>(new JSTypePair(dt, null), otherwise));
                 }
             }
         } else if (this.vnames.length == 2) {
             result.addAll(twoOp);
-            for (Pair<JSTypePairB,String> el : oneOpL) {
+            for (Pair<JSTypePair,String> el : oneOpL) {
                 DataType left = el.first().left;
                 for (DataType right : DataType.all()) {
                     boolean willBeAdded = true;
-                    for (Pair<JSTypePairB,String> etwo : twoOp) {
+                    for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
                             willBeAdded = false;
                             break;
                         }
                     }
                     if (!willBeAdded) break;
-                    for (Pair<JSTypePairB,String> er : oneOpR) {
+                    for (Pair<JSTypePair,String> er : oneOpR) {
                         if (er.first().right == right) {
                             willBeAdded = false;
                             break;
                         }
                     }
                     if (!willBeAdded) break;
-                    result.add(new Pair<JSTypePairB,String>(new JSTypePairB(left, right), el.second()));
+                    result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), el.second()));
                 }
             }
-            for (Pair<JSTypePairB,String> er : oneOpR) {
+            for (Pair<JSTypePair,String> er : oneOpR) {
                 DataType right = er.first().right;
                 for (DataType left : DataType.all()) {
                     boolean willBeAdded = true;
-                    for (Pair<JSTypePairB,String> etwo : twoOp) {
+                    for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
                             willBeAdded = false;
                             break;
                         }
                     }
                     if (!willBeAdded) break;
-                    for (Pair<JSTypePairB,String> el : oneOpL) {
+                    for (Pair<JSTypePair,String> el : oneOpL) {
                         if (el.first().left == left) {
                             willBeAdded = false;
                             break;
                         }
                     }
                     if (!willBeAdded) break;
-                    result.add(new Pair<JSTypePairB,String>(new JSTypePairB(left, right), er.second()));
+                    result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), er.second()));
                 }
             }
             if (otherwise != null) {
                 for (DataType left : DataType.all()) {
                     for (DataType right : DataType.all()) {
                         boolean willBeAdded = true;
-                        for (Pair<JSTypePairB,String> e : result) {
+                        for (Pair<JSTypePair,String> e : result) {
                             if (e.first().left == left && e.first().right == right) {
                                 willBeAdded = false;
                                 break;
                             }
                         }
                         if (willBeAdded) {
-                            result.add(new Pair<JSTypePairB,String>(new JSTypePairB(left, right), otherwise));
+                            result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), otherwise));
                         }
                     }
                 }
@@ -178,14 +179,14 @@ class TypeDispatchDefinitionBuilder {
         }
         return new ProcDefinition.TypeDispatchDefinition(this.vnames, partsToRules(result));
     }
-    private Set<Plan.Rule> partsToRules(List<Pair<JSTypePairB,String>> parts) {
-        List<Pair<JSTypePairB,String>> _parts = new LinkedList<Pair<JSTypePairB,String>>(parts);
+    private Set<Plan.Rule> partsToRules(List<Pair<JSTypePair,String>> parts) {
+        List<Pair<JSTypePair,String>> _parts = new LinkedList<Pair<JSTypePair,String>>(parts);
         Set<Plan.Rule> rules = new HashSet<Plan.Rule>();
-        for (Pair<JSTypePairB,String> e : parts) {
+        for (Pair<JSTypePair,String> e : parts) {
             if (_parts.contains(e)) {
                 Set<Plan.Condition> conditions = new HashSet<Plan.Condition>();
-                List<Pair<JSTypePairB,String>> rmList = new LinkedList<Pair<JSTypePairB,String>>();
-                for (Pair<JSTypePairB,String> _e : _parts) {
+                List<Pair<JSTypePair,String>> rmList = new LinkedList<Pair<JSTypePair,String>>();
+                for (Pair<JSTypePair,String> _e : _parts) {
                     if (e.second() == _e.second()) {
                         if (this.vnames.length == 1) {
                             conditions.add(new Plan.Condition(_e.first().left.getName()));
@@ -201,7 +202,7 @@ class TypeDispatchDefinitionBuilder {
         }
         return rules;
     }
-    private void conditionIntoParts(List<JSTypePairB> result, Condition arg) {
+    private void conditionIntoParts(List<JSTypePair> result, Condition arg) {
         if (arg instanceof CompoundCondition) {
             CompoundCondition cond = (CompoundCondition) arg;
             if (cond.op == ConditionalOperator.AND) {
@@ -209,9 +210,9 @@ class TypeDispatchDefinitionBuilder {
                     AtomCondition c1 = (AtomCondition) cond.cond1;
                     AtomCondition c2 = (AtomCondition) cond.cond2;
                     if (c1.varIdx == 0 && c2.varIdx == 1) {
-                        result.add(new JSTypePairB(c1.t, c2.t));
+                        result.add(new JSTypePair(c1.t, c2.t));
                     } else if (c2.varIdx == 0 && c1.varIdx == 1) {
-                        result.add(new JSTypePairB(c2.t, c1.t));
+                        result.add(new JSTypePair(c2.t, c1.t));
                     } else {
                         // error
                         System.out.println("error: " + c1.varIdx + ", " + c2.varIdx);
@@ -227,46 +228,46 @@ class TypeDispatchDefinitionBuilder {
         } else if (arg instanceof AtomCondition) {
             AtomCondition atom = (AtomCondition) arg;
             if (atom.varIdx == 0) {
-                result.add(new JSTypePairB(atom.t, null));
+                result.add(new JSTypePair(atom.t, null));
             } else if (atom.varIdx == 1) {
-                result.add(new JSTypePairB(null, atom.t));
+                result.add(new JSTypePair(null, atom.t));
             } else {
                 // error
                 System.out.println("error: AtomCondition.varIdx must be '0' or '1'.");
             }
         }
     }
-    private List<Pair<JSTypePairB,String>> actListToParts(List<Pair<Condition,String>> actList) {
-        List<Pair<JSTypePairB,String>> result = new LinkedList<Pair<JSTypePairB,String>>();
+    private List<Pair<JSTypePair,String>> actListToParts(List<Pair<Condition,String>> actList) {
+        List<Pair<JSTypePair,String>> result = new LinkedList<Pair<JSTypePair,String>>();
         actList.forEach(act -> {
             if (act.first() == null) {
-                result.add(new Pair<JSTypePairB,String>(null, act.second()));
+                result.add(new Pair<JSTypePair,String>(null, act.second()));
             } else {
-                List<JSTypePairB> jtps = new LinkedList<JSTypePairB>();
+                List<JSTypePair> jtps = new LinkedList<JSTypePair>();
                 conditionIntoParts(jtps, act.first());
-                for (JSTypePairB j1 : jtps) {
+                for (JSTypePair j1 : jtps) {
                     boolean b = true;
-                    for (Pair<JSTypePairB,String> e : result) {
-                        JSTypePairB j2 = e.first();
+                    for (Pair<JSTypePair,String> e : result) {
+                        JSTypePair j2 = e.first();
                         if (j1.left == j2.left && j1.right == j2.right) {
                             // error
                             b = false;
                             System.out.println("error: same condition (" + j1 + ", " + j2 + ")");
                         }
                     }
-                    if (b) result.add(new Pair<JSTypePairB, String>(j1, act.second()));
+                    if (b) result.add(new Pair<JSTypePair, String>(j1, act.second()));
                 }
             }
         });
         return result;
     }
-    private void splitByOpType(List<Pair<JSTypePairB,String>> raw,
-            List<Pair<JSTypePairB,String>> twoOp,
-            List<Pair<JSTypePairB,String>> oneOpL,
-            List<Pair<JSTypePairB,String>> oneOpR,
-            Pair<JSTypePairB,String> otherwise) {
-        for (Pair<JSTypePairB,String> e : raw) {
-            JSTypePairB j = e.first();
+    private void splitByOpType(List<Pair<JSTypePair,String>> raw,
+            List<Pair<JSTypePair,String>> twoOp,
+            List<Pair<JSTypePair,String>> oneOpL,
+            List<Pair<JSTypePair,String>> oneOpR,
+            Pair<JSTypePair,String> otherwise) {
+        for (Pair<JSTypePair,String> e : raw) {
+            JSTypePair j = e.first();
             if (j == null) {
                 otherwise.t = e.second();
             } else if (j.left != null) {
@@ -536,17 +537,14 @@ class InstDefinitionBuilder implements DefinitionBuilder {
         }
     }
     public void read(String line) {
-        tdDef.readB(line);
+        tdDef.read(line);
     }
     public void start() {
         tdDef = new TypeDispatchDefinitionBuilder(dispatchVars);
     }
     public void end() {
-        tdDef.endB();
+        tdDef.end();
     }
-    //public Set<Plan.Rule> toRules() {
-        //return tdDef.toRules();
-    //}
     public String toString() {
         String ret = "Instruction name: " + instName + "\n";
         ret += "dispatch vars:";
@@ -569,8 +567,70 @@ class InstDefinitionBuilder implements DefinitionBuilder {
     }
 }
 
-class FuncDefinition {
-    List<String> cSrcLines = new LinkedList<String>();
+class FuncDefinitionBuilder implements DefinitionBuilder {
+
+    String id;
+    List<Pair<Integer,ProcDefinition.TypeDispatchDefinition>> tdDefs = new LinkedList<Pair<Integer,ProcDefinition.TypeDispatchDefinition>>();
+
+    // Pair<Integer,TypeDispatchDefinitionBuilder> tdb = null;
+    TypeDispatchDefinitionBuilder tdb = null;
+    int lineNumber = 0;
+    List<String> lines = new LinkedList<String>();
+
+    FuncDefinitionBuilder(String funcDefStr) {
+        Pattern ptn = Pattern.compile("^(\\w+)\\s*$");
+        Matcher m = ptn.matcher(funcDefStr);
+        if (m.find()) {
+            this.id = m.group(1);
+        }
+    }
+
+    static final Pattern ptn = Pattern.compile("^\\s*\\[\\s*((\\$\\w+)\\s*(,\\s*(\\$\\w+)\\s*)?)\\]\\s*$");
+
+    public void read(String line) {
+        if (line.matches("^\\\\begin.+")) {
+            if (tdb != null) { System.out.println("error: FuncDefinitionBuilder"); }
+            System.out.println("begin");
+            String argStr = line.substring(6);
+            Matcher m = ptn.matcher(argStr);
+            String[] vnames;
+            if (m.find()) {
+                if (m.group(2) == null) {
+                    System.out.println("error: " + this.id + " " + "\\begin statement has no args.");
+                }
+                if (m.group(4) == null) {
+                    vnames = new String[] { m.group(2) };
+                } else {
+                    vnames = new String[] { m.group(2), m.group(4) };
+                }
+                tdb = new TypeDispatchDefinitionBuilder(vnames);
+            }
+        } else if (line.matches("^\\\\end\\s*$")) {
+            System.out.println("end");
+            tdb.end();
+            tdDefs.add(new Pair<Integer,ProcDefinition.TypeDispatchDefinition>(lineNumber, tdb.build()));
+            tdb = null;
+        } else {
+            System.out.println(line);
+            if (tdb == null) {
+                lines.add(line);
+                lineNumber++;
+            } else {
+                tdb.read(line);
+            }
+        }
+    }
+
+    @Override
+    public void start() {}
+
+    @Override
+    public void end() {}
+
+    @Override
+    public ProcDefinition.FuncDefinition build() {
+        return new ProcDefinition.FuncDefinition(id, lines, tdDefs);
+    }
 }
 
 
@@ -587,6 +647,49 @@ public class ProcDefinition {
 
     interface Definition {
         void gen(Synthesiser synthesiser);
+    }
+
+    static class FuncDefinition implements Definition {
+        String name;
+        List<String> lines;
+        List<Pair<Integer,TypeDispatchDefinition>> tdDefs;
+        FuncDefinition(String name, List<String> lines, List<Pair<Integer,TypeDispatchDefinition>> tdDefs) {
+            this.name = name;
+            this.lines = lines;
+            this.tdDefs = tdDefs;
+        }
+        @Override
+        public void gen(Synthesiser synthesiser) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < lines.size() + 1; i++) {
+                for (Pair<Integer,TypeDispatchDefinition> e : tdDefs) {
+                    if (e.first() == i) {
+                        if (tdDefs.size() == 1) {
+                            sb.append(name + "_HEAD:\n");
+                        } else {
+                            sb.append(name + "_" + tdDefs.indexOf(e) + "_HEAD:\n");
+                        }
+                        Plan p = new Plan(e.second().vars, e.second().rules);
+                        sb.append(synthesiser.synthesise(p));
+                        sb.append('\n');
+                    } else if (e.first() > i) {
+                        break;
+                    }
+                }
+                if (i < lines.size()) {
+                    sb.append(lines.get(i));
+                    sb.append('\n');
+                }
+            }
+            try {
+                File file = new File(OUT_DIR + "/" + name + ".c");
+                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+                pw.print(sb.toString());
+                pw.close();
+            } catch (IOException e) {
+                System.out.println(e);
+            }
+        }
     }
 
     static class InstDefinition implements Definition {
@@ -616,10 +719,13 @@ public class ProcDefinition {
     }
 
     List<InstDefinition> instDefs = new LinkedList<InstDefinition>();
+    List<FuncDefinition> funcDefs = new LinkedList<FuncDefinition>();
 
     private void addDef(Definition def) {
         if (def instanceof InstDefinition) {
             instDefs.add((InstDefinition) def);
+        } else if (def instanceof FuncDefinition) {
+            funcDefs.add((FuncDefinition) def);
         }
     }
 
@@ -635,12 +741,13 @@ public class ProcDefinition {
                 }
                 defb = new InstDefinitionBuilder(line.substring(6));
                 defb.start();
-            } else if (line.matches("^\\\\func ")) {
+            } else if (line.matches("^\\\\func .+")) {
                 if (defb != null) {
                     defb.end();
                     addDef(defb.build());
                 }
-                // func
+                defb = new FuncDefinitionBuilder(line.substring(6));
+                defb.start();
             } else {
                 defb.read(line);
             }
@@ -666,6 +773,7 @@ public class ProcDefinition {
         td.load("datatype/ssjs_origin.dtdef");
         ProcDefinition procDef = new ProcDefinition();
         procDef.load("datatype/insts.idef");
+        // procDef.load("./sample.idef");
         SimpleSynthesiser ss = new SimpleSynthesiser();
         if (!(new File(OUT_DIR).exists())) {
             File dir = new File(OUT_DIR);
@@ -674,6 +782,10 @@ public class ProcDefinition {
         for (InstDefinition instDef : procDef.instDefs) {
             System.out.println(instDef.name);
             instDef.gen(ss);
+        }
+        for (FuncDefinition funcDef : procDef.funcDefs) {
+            System.out.println(funcDef.name);
+            funcDef.gen(ss);
         }
     }
 }

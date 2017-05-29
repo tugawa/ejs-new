@@ -669,3 +669,43 @@ set_pc(context, pc);
 print_value_simple(context, fn);
 printf(" is called in NEWSEND instruction\n");
 LOG_EXIT("Not a constructor\n");
+
+
+
+\inst I_TAILCALL [ $fn ] ($nargs)
+\when $fn:function
+set_fp(context, fp);
+set_pc(context, pc);
+tailcall_function(context, fn, nargs, FALSE);
+update_context();
+NEXT_INSN_NOINCPC();
+
+\when $fn:builtin
+set_fp(context, fp);
+set_pc(context, pc);
+tailcall_builtin(context, fn, nargs, FALSE, FALSE);
+update_context();
+NEXT_INSN_INCPC();
+
+\otherwise
+LOG_EXIT("TAILCALL: not a function\n");
+
+
+
+\inst I_TAILSEND [ $fn ] ($nargs)
+\when $fn:function
+set_fp(context, fp);
+set_pc(context, pc);
+tailcall_function(context, fn, nargs, TRUE);
+update_context();
+NEXT_INSN_NOINCPC();
+
+\when $fn:builtin
+set_fp(context, fp);
+set_pc(context, pc);
+tailcall_builtin(context, fn, nargs, TRUE, FALSE);
+update_context();
+NEXT_INSN_INCPC();
+
+\otherwise
+LOG_EXIT("TAILSEND: not a function\n");
