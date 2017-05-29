@@ -1,12 +1,9 @@
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 
-public class Plan {
+public class Plan implements GlobalConstantOptions {
 	static class Condition {
 		DataType[] dts;
 
@@ -51,20 +48,24 @@ public class Plan {
 		}
 	}
 
+/*<<<<<<< HEAD
 	int arity;
 	String[] vars;
+=======*/
+	String[] dispatchVars;
+// >>>>>>> develop
 	Set<Rule> rules;
 
 	Set<Rule> getRules() {
 		return rules;
 	}
 	int getArity() {
-		return arity;
+		return dispatchVars.length;
 	}
 
 	Plan() {
 		rules = new HashSet<Rule>();
-		arity = 2;
+		dispatchVars = new String[]{"v1", "v2"};
 
 		/* generate dummy data that looks like add */
 		rules.add(new Rule("fixfix", new Condition("fixnum", "fixnum")));
@@ -85,9 +86,14 @@ public class Plan {
 							new Condition("array", "array")));
 	}
 
+/*<<<<<<< HEAD
 	Plan(String[] vars, Set<Rule> rules) {
 	    this.arity = vars.length;
 	    this.vars = vars;
+=======*/
+	Plan(String[] dispatchVars, Set<Rule> rules) {
+	    this.dispatchVars = dispatchVars;
+// >>>>>>> develop
 	    this.rules = rules;
 	}
 }

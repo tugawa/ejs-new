@@ -133,7 +133,7 @@ class TypeRepresentation {
 	}
 }
 
-class DataType {
+class DataType implements GlobalConstantOptions {
 	static Map<String, DataType> dataTypes = new HashMap<String, DataType>();
 	
 	static void defineDataType(String name) {
@@ -153,21 +153,31 @@ class DataType {
 	}
 	
 	static {
-		Stream.of(
-			"string",
-			"fixnum",
-			"flonum",
-			"special", 
-			"simple_object",
-			"array",
-			"function",
-			"builtin",
-			"iterator",
-			"regexp",
-			"string_object",
-			"number_object",
-			"boolean_object")
-		.forEach(name -> defineDataType(name));
+		if (DEBUG_WITH_SMALL) {
+			Stream.of(
+					"string",
+					"fixnum",
+					"simple_object",
+					"array",
+					"function")
+				.forEach(name -> defineDataType(name));
+		} else {
+			Stream.of(
+				"string",
+				"fixnum",
+				"flonum",
+				"special", 
+				"simple_object",
+				"array",
+				"function",
+				"builtin",
+				"iterator",
+				"regexp",
+				"string_object",
+				"number_object",
+				"boolean_object")
+			.forEach(name -> defineDataType(name));
+		}
 	}
 	
 	static Collection<DataType> all() {
