@@ -61,7 +61,7 @@ BUILTIN_FUNCTION(number_toString)
       set_a(context, number_to_string(number_object_value(rsv)));
     else {
 
-      if(!get_tag(args[1]) == T_FIXNUM){
+      if(!is_fixnum(args[1])){
         LOG_ERR("args[1] is not a fixnum.");
         set_a(context, JS_UNDEFINED); }
 
@@ -78,7 +78,7 @@ BUILTIN_FUNCTION(number_toString)
 
 
       // 小数点部と分離させる
-      if(get_tag(v) == T_FIXNUM){
+      if(is_fixnum(v)) {
         numeric = (int)fixnum_to_int(v);
         decimal = 0.0;
       }else{
