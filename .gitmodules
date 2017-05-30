@@ -1,0 +1,4 @@
+[submodule "vmgen"]
+	path = vmgen
+	url = ssh://git@spa.info.kochi-tech.ac.jp/ejs/vmgen
+	branch = develop
