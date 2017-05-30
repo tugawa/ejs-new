@@ -108,8 +108,13 @@ static Context *allocate_context(size_t stack_size)
 int in_js_space(void *addr_);
 int in_malloc_space(void *addr_);
 
+/*
+ * Need to generate automatically because this validator
+ * depends on type representation.
+ */
 int is_valid_JSValue(JSValue x)
 {
+#if 0
   switch(get_tag(x)) {
   case T_GENERIC:
     return in_js_space((void *) x);
@@ -131,6 +136,9 @@ int is_valid_JSValue(JSValue x)
   default:
     return 0;
   }
+#else
+  return 1;
+#endif
 }
 
 void check_stack_invariant(Context *ctx)
