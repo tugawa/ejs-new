@@ -3,7 +3,7 @@
   <property name="bin" location="bin"/>
 
   <target name="init">
-    <mkdir dir="${build}"/>
+    <mkdir dir="${bin}"/>
   </target>
   
   <target name="compile">
