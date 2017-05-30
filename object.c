@@ -30,7 +30,7 @@
      in its header.
 
    make_xxx : (macro)
-     This only calls allocate_xxx, puts pointer tag (T_OBJECT), and
+     This only calls allocate_xxx, puts pointer tag (T_GENERIC), and
      returns a JSValue data.
 
    new_xxx : (function)

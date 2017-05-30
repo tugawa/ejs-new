@@ -642,7 +642,7 @@ double to_double(Context *context, JSValue v) {
       return NAN;
     }
     break;
-  case T_OBJECT:
+  case T_GENERIC:
    {
      JSValue w;
 

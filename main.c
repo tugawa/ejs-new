@@ -348,13 +348,13 @@ void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
     printf("%016lx (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
   switch (get_tag(v)) {
-  case T_OBJECT:
+  case T_GENERIC:
     // v = object_to_string(context, v);
     {
       Object *p;
 
       p = remove_object_tag(v);
-      // printf("tag = T_OBJECT, header tag = %ld\n", obj_header_tag(p));
+      // printf("tag = T_GENERIC, header tag = %ld\n", obj_header_tag(p));
       switch (obj_header_tag(p)) {
       case HTAG_SIMPLE_OBJECT: v = gconsts.g_string_objtostr; break;
       // case HTAG_ARRAY:  v = cstr_to_string("array"); break;
@@ -422,7 +422,7 @@ void simple_print(JSValue v) {
       break;
     }
     break;
-  case T_OBJECT:
+  case T_GENERIC:
     printf("object:object");
     break;
   default:

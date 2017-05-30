@@ -42,7 +42,7 @@ BUILTIN_FUNCTION(object_constr)
     arg = args[1];
     tag = get_tag(arg);
     switch(tag){
-    case T_OBJECT:
+    case T_GENERIC:
       ret = arg;
       break;
     case T_FIXNUM:

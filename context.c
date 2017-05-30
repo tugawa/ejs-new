@@ -111,7 +111,7 @@ int in_malloc_space(void *addr_);
 int is_valid_JSValue(JSValue x)
 {
   switch(get_tag(x)) {
-  case T_OBJECT:
+  case T_GENERIC:
     return in_js_space((void *) x);
   case T_STRING:
     if (!in_js_space((void *) x))
