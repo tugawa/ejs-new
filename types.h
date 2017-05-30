@@ -278,11 +278,6 @@ typedef struct builtin_cell {
 #define builtin_constructor(f)  ((remove_builtin_tag(f))->constructor)
 #define builtin_n_args(f)       ((remove_builtin_tag(f))->n_args)
 
-#define is_function_or_builtin(p) \
-  (is_object((p)) && \
-   ((obj_header_tag((p)) == HTAG_FUNCTION) || \
-    (obj_header_tag((p)) == HTAG_BUILTIN))
-
 /*
    Iterator
    tag == T_GENERIC
