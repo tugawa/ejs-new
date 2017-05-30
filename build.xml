@@ -6,11 +6,11 @@
     <mkdir dir="${bin}"/>
   </target>
   
-  <target name="compile">
+  <target name="compile" depends="init">
     <javac srcdir="${src}" destdir="${bin}"/>
   </target>
 
-  <target name="dist">
+  <target name="dist" depends="compile">
     <jar jarfile="vmgen.jar" basedir="${bin}"/>
   </target>
   
