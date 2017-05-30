@@ -24,53 +24,38 @@
 #include "header.h"
 
 /*
-   constructor for an object
+  constructor for an object
  */
 BUILTIN_FUNCTION(object_constr)
 {
-  JSValue rsv, ret, arg;
-  Tag tag;
+  JSValue ret, arg;
 
   builtin_prologue();
-  rsv = args[0];
-  // printf("called object_constr, na = %d\n", na);
   /*
-     If this is called with `new', which kind of object is allocated
-     depends on the type of the first argument.
-  */
+   *  If this is called with `new', which kind of object is allocated
+   *  depends on the type of the first argument.
+   *
+   *  ES5 specification Sec 15.2.2.1 requires not to create an object
+   *  if the argument is native ECMAScript object, i.e, those that are
+   *  not String, Boolean, or Number.  Though JavaScript Core seems
+   *  to create an object for an Array argument.
+   *
+   *  TODO: use dispacher generator
+   */
   if (na > 0) {
     arg = args[1];
-    tag = get_tag(arg);
-    switch(tag){
-    case T_OBJECT:
+    if (is_object(arg))
       ret = arg;
-      break;
-    case T_FIXNUM:
-    case T_FLONUM:
+    else if (is_number(arg))
       ret = new_normal_number(context, arg);
-      // set___proto___all(context, ret, gconsts.g_number_proto);
-      break;
-    case T_SPECIAL:
-      if (is_true(arg) || is_false(arg)) {
-        ret = new_normal_boolean(context, arg);
-        // set___proto___all(context, ret, gconsts.g_boolean_proto);
-      } else {
-        ret = new_normal_object(context);
-        // set___proto___all(context, ret, gconsts.g_object_proto);
-      }
-      break;
-    case T_STRING:
+    else if (is_boolean(arg))
+      ret = new_normal_boolean(context, arg);
+    else if (is_string(arg))
       ret = new_normal_string(context, arg);
-      // set___proto___all(context, ret, gconsts.g_string_proto);
-      break;
-    }
-  } else {
-    //    printf("object_constr: na == 0, calls new_object\n");
-    //    printf("gconsts.g_object_proto = %016lx\n", gconsts.g_object_proto);
+    else
+      ret = new_normal_object(context);
+  } else
     ret = new_normal_object(context);
-    //    printf("ret = %016lx\n", ret);
-    // set___proto___all(context, ret, gconsts.g_object_proto);
-  }
   set_a(context, ret);
 }
 

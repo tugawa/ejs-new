@@ -44,7 +44,8 @@ GENERATED_HFILES = \
          instructions-opcode.h \
 	 instructions-table.h \
 	 instructions-label.h \
-	 cell-header.h
+	 cell-header.h \
+	 types-generated.h
 
 HFILES = $(GENERATED_HFILES) \
          prefix.h \
@@ -177,6 +178,9 @@ vmloop-cases.inc: instructions.def gen-vmloop-cases.rb
 	$(RUBY) gen-vmloop-cases.rb < instructions.def > $@
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
+
+types-generated.h: datatypes.def
+	java -cp vmgen/vmgen.jar TypesGen $< > $@
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<

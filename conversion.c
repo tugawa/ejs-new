@@ -321,34 +321,6 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
   return new_normal_number(ctx, v);
 }
 
-#if 0
-double primitive_to_double(JSValue p) {
-  Tag tag;
-  double x;
-p
-  tag = get_tag(p);
-  switch (tag) {
-  case T_FIXNUM:
-    return (double)fixnum_to_cint(p);
-  case T_SPECIAL:
-    x = special_to_double(p);
-    goto TO_INT_FLO;
-  case T_STRING:
-    x = cstr_to_double(string_to_cstr(p));
-    goto TO_INT_FLO;
-  case T_FLONUM:
-    x = flonum_to_double(p);
-TO_INT_FLO:
-    if (isnan(x))
-      return (double)0.0;
-    else
-      return sign(x) * floor(fabs(x));
-  default:
-    LOG_EXIT("Argument is not a primitive.");
-  }
-}
-#endif
-
 /*
    converts an object to a string
  */
@@ -615,43 +587,32 @@ double special_to_double(JSValue x) {
    converts to a C's double
  */
 double to_double(Context *context, JSValue v) {
-  Tag tag;
-
-  switch (tag = get_tag(v)) {
-  case T_FIXNUM:
+  if (is_fixnum(v))
     return (double)(fixnum_to_cint(v));
-    break;
-  case T_FLONUM:
+  else if (is_flonum(v))
     return flonum_to_double(v);
-    break;
-  case T_SPECIAL:
+  else if (is_string(v)) {
+    char *p, *q;
+    int n;
+    double d;
+
+    p = string_value(v);
+    if (p[0] == '\0') return (double)0.0;
+    n = strtol(p, &q, 10);
+    if (p != q && *q == '\0') return (double)n;  // succeeded 
+    d = strtod(p, &q);
+    if (p != q && *q == '\0') return d;
+    return NAN;
+  } else if (is_special(v))
     return special_to_double(v);
-    break;
-  case T_STRING:
-    {
-      char *p, *q;
-      int n;
-      double d;
+  else if (is_object(v)) {
+    JSValue w;
 
-      p = string_value(v);
-      if (p[0] == '\0') return (double)0.0;
-      n = strtol(p, &q, 10);
-      if (p != q && *q == '\0') return (double)n;  // succeeded 
-      d = strtod(p, &q);
-      if (p != q && *q == '\0') return d;
-      return NAN;
-    }
-    break;
-  case T_OBJECT:
-   {
-     JSValue w;
-
-     w = object_to_number(context, v);
-     if (is_fixnum(w)) return fixnum_to_double(w);
-     if (is_flonum(w)) return flonum_to_double(w);
-   }
-   break;
+    w = object_to_number(context, v);
+    if (is_fixnum(w)) return fixnum_to_double(w);
+    if (is_flonum(w)) return flonum_to_double(w);
   }
+
   return NAN;                 // not reached
 }
 
@@ -699,7 +660,7 @@ char *type_name(JSValue v) {
   if (is_regexp(v)) return "Regexp";
 #endif
   if (is_simple_object(v)) return "SimpleObject";
-  if (is_object(v)) return "Object";  // could it happen?
+  //  if (is_object(v)) return "Object";  // could it happen?
   return "???";
 }
 

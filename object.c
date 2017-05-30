@@ -30,7 +30,7 @@
      in its header.
 
    make_xxx : (macro)
-     This only calls allocate_xxx, puts pointer tag (T_OBJECT), and
+     This only calls allocate_xxx, puts pointer tag (T_GENERIC), and
      returns a JSValue data.
 
    new_xxx : (function)
@@ -243,36 +243,29 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
 
   */
 
-  switch (get_tag(p)) {
-  case T_FIXNUM:
-    {
-      cint n;
-      n = fixnum_to_cint(p);
-      // printf("get_array_prop: n = %ld, array_length(a) = %d\n", n, array_length(a));
+  if (is_fixnum(p)) {
+    cint n;
+    n = fixnum_to_cint(p);
+    if (0 <= n && n < array_size(a)) {
+      return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
+    }
+    p = fixnum_to_string(p);
+    return get_prop_prototype_chain(a, p);
+  }
+
+  if (!is_string(p))
+    p = to_string(ctx, p);
+  /* assert: is_string(p) == true */ {
+    JSValue num;
+    cint n;
+    num = string_to_number(p);
+    if (is_fixnum(num)) {
+      n = fixnum_to_cint(num);
       if (0 <= n && n < array_size(a)) {
-        return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
+	return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
-      p = fixnum_to_string(p);
-      return get_prop_prototype_chain(a, p);
     }
-    break;
-  default:
-   p = to_string(ctx, p);
-   // fall through
-  case T_STRING:
-    {
-      JSValue num;
-      cint n;
-      num = string_to_number(p);
-      if (is_fixnum(num)) {
-        n = fixnum_to_cint(num);
-        if (0 <= n && n < array_size(a)) {
-          return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
-        }
-      }
-      return get_prop_prototype_chain(a, p);
-    }
-    break;
+    return get_prop_prototype_chain(a, p);
   }
 }          
 
@@ -453,53 +446,47 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
    It is not necessary to check the type of `a'.
  */
 int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
-  switch (get_tag(p)) {
-  case T_FIXNUM:
-    {
-      cint n;
+  if (is_fixnum(p)) {
+    cint n;
 
-      n = fixnum_to_cint(p);
+    n = fixnum_to_cint(p);
+    if (0 <= n && n < MAX_ARRAY_LENGTH) {
+      if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
+	return SUCCESS;
+    }
+    p = fixnum_to_string(p);
+    return set_object_prop(ctx, a, p, v);
+  }
+
+  if (!is_string(p))
+    p = to_string(ctx, p);
+  /* assert: p == string */ {
+    JSValue num;
+    cint n;
+
+    num = string_to_number(p);
+    if (is_fixnum(num)) {
+      n = fixnum_to_cint(num);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-        if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
-          return SUCCESS;
+	if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
+	  return SUCCESS;
       }
-      p = fixnum_to_string(p);
       return set_object_prop(ctx, a, p, v);
     }
-    break;
-  default:
-   p = to_string(ctx, p);
-   // fall through
-  case T_STRING:
-    {
-      JSValue num;
+    if (p == gconsts.g_string_length && is_fixnum(v)) {
       cint n;
-
-      num = string_to_number(p);
-      if (is_fixnum(num)) {
-        n = fixnum_to_cint(num);
-        if (0 <= n && n < MAX_ARRAY_LENGTH) {
-          if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
-            return SUCCESS;
-        }
-        return set_object_prop(ctx, a, p, v);
+      n = fixnum_to_cint(v);
+      if (0 <= n && n < MAX_ARRAY_LENGTH) {
+	/*
+	  The property name is "length" and the given value is a fixnum.
+	  Thus, expands / shrinks the array.
+	*/
+	if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
+	    == SUCCESS)
+	  return SUCCESS;
       }
-      if (p == gconsts.g_string_length && is_fixnum(v)) {
-        cint n;
-        n = fixnum_to_cint(v);
-        if (0 <= n && n < MAX_ARRAY_LENGTH) {
-          /*
-            The property name is "length" and the given value is a fixnum.
-            Thus, expands / shrinks the array.
-           */
-          if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
-                == SUCCESS)
-            return SUCCESS;
-        }
-      }
-      return set_object_prop(ctx, a, p, v);
     }
-    break;
+    return set_object_prop(ctx, a, p, v);
   }
 }
 

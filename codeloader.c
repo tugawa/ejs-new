@@ -553,13 +553,11 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     }
     for (; j < ftable[i].body_size; j++) {
       JSValue o;
-      int tag;
       o = ftable[i].insns[j].code;
       printf("%03d: %016lx --- ", j, o);
-      tag = get_tag(o);
-      if (tag == T_FLONUM)
+      if (is_flonum(o))
         printf("FLONUM %lf\n", flonum_value(o));
-      else if (tag == T_STRING)
+      else if (is_string(o))
         printf("STRING \"%s\"\n", string_value(o));
 #ifdef USE_REGEXP
       else if (is_regexp(o))
@@ -610,32 +608,30 @@ void print_bytecode(Instruction *insns, int j) {
       Register dst;
       Displacement disp;
       JSValue o;
-      int tag;
       dst = get_first_operand_reg(code);
       disp = get_big_disp(code);
       o = (JSValue)(insns[j + disp].code);
       // printf("j = %d, disp = %d, o = %p\n", j, disp, (char *)o);
-      tag = get_tag(o);
       switch (oc) {
       case NUMBER:
-        if (tag == T_FLONUM)
-          printf("%d %f", dst, ((FlonumCell *)remove_tag(o, T_FLONUM))->value);
+        if (is_flonum(o))
+          printf("%d %f", dst, flonum_value(o));
         else
-          printf("Object type mismatched: tag = %d", tag);
+          printf("Object type mismatched: tag = %d", get_tag(o));
         break;
       case STRING:
       case ERROR:
-        if (tag == T_STRING)
-          printf("%d \"%s\"", dst, ((StringCell *)remove_tag(o, T_STRING))->value);
+        if (is_string(o))
+          printf("%d \"%s\"", dst, string_value(o));
         else
-          printf("Object type mismatched: tag = %d", tag);
+          printf("Object type mismatched: tag = %d", get_tag(o));
         break;
 #ifdef USE_REGEXP
       case REGEXP:
         if (is_regexp(o))
           printf("%d %d \"%s\"", dst, regexp_flag(o), regexp_pattern(o));
         else
-          printf("Object type mismatched: tag = %d", tag);
+          printf("Object type mismatched: tag = %d", get_tag(o));
         break;
 #endif // USE_REGEXP
       default:

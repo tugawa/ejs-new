@@ -22,6 +22,13 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+// is_object checks whether `p' is one of the object families,
+// i.e., simple object, array, function, builtin, iterator, regexp,
+// boxed string, boxed number, boxed boolean.
+// Note that is_object does not investigate the header tag.
+//
+#include "types-generated.h"
+
 /*
    First-class data in JavaScript is represented as a JSValue.
    JSValue has 64 bits, where least sifnificat three bits is its tag.
@@ -41,48 +48,32 @@
 #define equal_tag(p,t)  (get_tag((p)) == (t))
 
 /*
-   Objects
- */
-#define T_OBJECT  (0x0)  // 000
-#define T_UNUSED0 (0x1)  // 001
-#define T_UNUSED1 (0x2)  // 010
-#define T_UNUSED2 (0x3)  // 011
-
-/*
-   Constant
- */
-#define T_STRING  (0x4)  // 100
-#define T_FLONUM  (0x5)  // 101
-#define T_SPECIAL (0x6)  // 110
-#define T_FIXNUM  (0x7)  // 111
-
-/*
    Pair of two pointer tags
    Note that Tag the result of TAG_PAIR is of type Tag
  */
 #define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
 
-#define TP_OBJOBJ TAG_PAIR(T_OBJECT, T_OBJECT)
-#define TP_OBJSTR TAG_PAIR(T_OBJECT, T_STRING)
-#define TP_OBJFLO TAG_PAIR(T_OBJECT, T_FLONUM)
-#define TP_OBJSPE TAG_PAIR(T_OBJECT, T_SPECIAL)
-#define TP_OBJFIX TAG_PAIR(T_OBJECT, T_FIXNUM)
-#define TP_STROBJ TAG_PAIR(T_STRING, T_OBJECT)
+#define TP_OBJOBJ TAG_PAIR(T_GENERIC, T_GENERIC)
+#define TP_OBJSTR TAG_PAIR(T_GENERIC, T_STRING)
+#define TP_OBJFLO TAG_PAIR(T_GENERIC, T_FLONUM)
+#define TP_OBJSPE TAG_PAIR(T_GENERIC, T_SPECIAL)
+#define TP_OBJFIX TAG_PAIR(T_GENERIC, T_FIXNUM)
+#define TP_STROBJ TAG_PAIR(T_STRING, T_GENERIC)
 #define TP_STRSTR TAG_PAIR(T_STRING, T_STRING)
 #define TP_STRFLO TAG_PAIR(T_STRING, T_FLONUM)
 #define TP_STRSPE TAG_PAIR(T_STRING, T_SPECIAL)
 #define TP_STRFIX TAG_PAIR(T_STRING, T_FIXNUM)
-#define TP_FLOOBJ TAG_PAIR(T_FLONUM, T_OBJECT)
+#define TP_FLOOBJ TAG_PAIR(T_FLONUM, T_GENERIC)
 #define TP_FLOSTR TAG_PAIR(T_FLONUM, T_STRING)
 #define TP_FLOFLO TAG_PAIR(T_FLONUM, T_FLONUM)
 #define TP_FLOSPE TAG_PAIR(T_FLONUM, T_SPECIAL)
 #define TP_FLOFIX TAG_PAIR(T_FLONUM, T_FIXNUM)
-#define TP_SPEOBJ TAG_PAIR(T_SPECIAL, T_OBJECT)
+#define TP_SPEOBJ TAG_PAIR(T_SPECIAL, T_GENERIC)
 #define TP_SPESTR TAG_PAIR(T_SPECIAL, T_STRING)
 #define TP_SPEFLO TAG_PAIR(T_SPECIAL, T_FLONUM)
 #define TP_SPESPE TAG_PAIR(T_SPECIAL, T_SPECIAL)
 #define TP_SPEFIX TAG_PAIR(T_SPECIAL, T_FIXNUM)
-#define TP_FIXOBJ TAG_PAIR(T_FIXNUM, T_OBJECT)
+#define TP_FIXOBJ TAG_PAIR(T_FIXNUM, T_GENERIC)
 #define TP_FIXSTR TAG_PAIR(T_FIXNUM, T_STRING)
 #define TP_FIXFLO TAG_PAIR(T_FIXNUM, T_FLONUM)
 #define TP_FIXSPE TAG_PAIR(T_FIXNUM, T_SPECIAL)
@@ -95,7 +86,7 @@ typedef uint16_t Tag;
 
 /*
    Object
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 #ifdef HIDDEN_CLASS
 /*
@@ -142,14 +133,8 @@ typedef struct object_cell {
   JSValue *prop;          // array of property values
 } Object;
 
-// is_object checks whether `p' is one of the object families,
-// i.e., simple object, array, function, builtin, iterator, regexp,
-// boxed string, boxed number, boxed boolean.
-// Note that is_object does not investigate the header tag.
-//
-#define is_object(p)           (equal_tag((p), T_OBJECT))
-#define put_object_tag(p)      (put_tag(p, T_OBJECT))
-#define remove_object_tag(p)   ((Object *)(remove_tag((p), T_OBJECT)))
+#define put_object_tag(p)      (put_tag(p, T_GENERIC))
+#define remove_object_tag(p)   ((Object *)(remove_tag((p), T_GENERIC)))
 #define make_simple_object(ctx) (put_object_tag(allocate_simple_object(ctx)))
 
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
@@ -165,8 +150,6 @@ typedef struct object_cell {
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-
-#define is_simple_object(p)    is_obj_header_tag((p), HTAG_SIMPLE_OBJECT)
 
 #define PSIZE_NORMAL  20  // default initial size of the property array
 #define PSIZE_BIG    100
@@ -216,7 +199,7 @@ typedef struct object_cell {
 
 /*
    Array
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 typedef struct array_cell {
   Object o;
@@ -225,9 +208,8 @@ typedef struct array_cell {
   JSValue *body;        // pointer to a C array
 } ArrayCell;
 
-#define is_array(p)           is_obj_header_tag((p), HTAG_ARRAY)
-#define put_array_tag(p)      (put_tag(p, T_OBJECT))
-#define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_OBJECT)))
+#define put_array_tag(p)      (put_tag(p, T_GENERIC))
+#define remove_array_tag(p)   ((ArrayCell *)(remove_tag((p), T_GENERIC)))
 #define make_array(ctx)       (put_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)     (&((remove_array_tag(a))->o))
@@ -247,7 +229,7 @@ typedef struct array_cell {
 
 /*
    Function
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 
 typedef struct function_cell {
@@ -256,9 +238,8 @@ typedef struct function_cell {
   FunctionFrame *environment;
 } FunctionCell;
 
-#define is_function(p)         is_obj_header_tag((p), HTAG_FUNCTION)
-#define put_function_tag(p)    (put_tag(p, T_OBJECT))
-#define remove_function_tag(p) ((FunctionCell *)(remove_tag((p), T_OBJECT)))
+#define put_function_tag(p)    (put_tag(p, T_GENERIC))
+#define remove_function_tag(p) ((FunctionCell *)(remove_tag((p), T_GENERIC)))
 #define make_function()        (put_function_tag(allocate_function()))
 
 #define func_object_p(f)       (&((remove_function_tag(f))->o))
@@ -267,7 +248,7 @@ typedef struct function_cell {
 
 /*
    Builtin
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 
 /*
@@ -288,9 +269,8 @@ typedef struct builtin_cell {
   int n_args;
 } BuiltinCell;
 
-#define is_builtin(p)           is_obj_header_tag((p), HTAG_BUILTIN)
-#define put_builtin_tag(p)      (put_tag(p, T_OBJECT))
-#define remove_builtin_tag(p)   ((BuiltinCell *)remove_tag((p), T_OBJECT))
+#define put_builtin_tag(p)      (put_tag(p, T_GENERIC))
+#define remove_builtin_tag(p)   ((BuiltinCell *)remove_tag((p), T_GENERIC))
 #define make_builtin()          (put_builtin_tag(allocate_builtin()))
 
 #define builtin_object_p(f)     (&((remove_builtin_tag(f))->o))
@@ -298,23 +278,17 @@ typedef struct builtin_cell {
 #define builtin_constructor(f)  ((remove_builtin_tag(f))->constructor)
 #define builtin_n_args(f)       ((remove_builtin_tag(f))->n_args)
 
-#define is_function_or_builtin(p) \
-  (is_object((p)) && \
-   ((obj_header_tag((p)) == HTAG_FUNCTION) || \
-    (obj_header_tag((p)) == HTAG_BUILTIN))
-
 /*
    Iterator
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 typedef struct iterator_cell {
   Object o;
   HashIterator iter;
 } IteratorCell;
 
-#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
-#define remove_iterator_tag(p)   ((IteratorCell *)remove_tag((p), T_OBJECT))
-#define put_iterator_tag(p)      (put_tag(p, T_OBJECT))
+#define remove_iterator_tag(p)   ((IteratorCell *)remove_tag((p), T_GENERIC))
+#define put_iterator_tag(p)      (put_tag(p, T_GENERIC))
 #define make_iterator()          (put_iterator_tag(allocate_iterator()))
 
 #define iterator_object_p(i)     (&((remove_iterator_tag(i))->o))
@@ -329,7 +303,7 @@ typedef struct iterator_cell {
 #ifdef USE_REGEXP
 /*
    Regexp
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 typedef struct regexp_cell {
   Object o;
@@ -346,9 +320,8 @@ typedef struct regexp_cell {
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
 
-#define is_regexp(r)           is_obj_header_tag((r), HTAG_REGEXP)
-#define put_regexp_tag(p)      (put_tag(p, T_OBJECT))
-#define remove_regexp_tag(p)   ((RegexpCell *)remove_tag((p), T_OBJECT))
+#define put_regexp_tag(p)      (put_tag(p, T_GENERIC))
+#define remove_regexp_tag(p)   ((RegexpCell *)remove_tag((p), T_GENERIC))
 #define make_regexp()          (put_regexp_tag(allocate_regexp()))
 
 #define regexp_object_p(r)     (&((remove_regexp_tag(r))->o))
@@ -363,29 +336,26 @@ typedef struct regexp_cell {
 
 /*
    Boxed Object
-   tag == T_OBJECT
+   tag == T_GENERIC
  */
 typedef struct boxed_cell {
   Object o;
   JSValue value;   // boxed value; it is number, boolean, or string
 } BoxedCell;
 
-#define remove_boxed_tag(p)      ((BoxedCell *)(remove_tag((p), T_OBJECT)))
-#define put_boxed_tag(p)         (put_tag(p, T_OBJECT))
+#define remove_boxed_tag(p)      ((BoxedCell *)(remove_tag((p), T_GENERIC)))
+#define put_boxed_tag(p)         (put_tag(p, T_GENERIC))
 #define make_boxed(t)            (put_boxed_tag(allocate_boxed((t))))
 
 #define boxed_object_p(b)        (&((remove_boxed_tag(b))->o))
 #define boxed_value(b)           ((remove_boxed_tag(b))->value)
 
-#define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
 #define make_number_object()     make_boxed(HTAG_BOXED_NUMBER)
 #define number_object_value(n)   boxed_value((n))
 
-#define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
 #define make_boolean_object()    make_boxed(HTAG_BOXED_BOOLEAN)
 #define boolean_object_value(b)  boxed_value((b))
 
-#define is_string_object(p)      is_obj_header_tag((p), HTAG_BOXED_STRING)
 #define make_string_object()     make_boxed(HTAG_BOXED_STRING)
 #define string_object_value(s)   boxed_value((s))
 
@@ -397,7 +367,6 @@ typedef struct flonum_cell {
   double value;
 } FlonumCell;
 
-#define is_flonum(p)         (equal_tag((p), T_FLONUM))
 #define put_flonum_tag(p)    (put_tag(p, T_FLONUM))
 #define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_FLONUM))
 
@@ -425,7 +394,6 @@ typedef struct string_cell {
   char value[BYTES_IN_JSVALUE];
 } StringCell;
 
-#define is_string(p)         (equal_tag((p), T_STRING))
 #define put_string_tag(p)    (put_tag(p, T_STRING))
 #define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
 
@@ -463,21 +431,8 @@ typedef struct string_cell {
 #define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
 
 /*
-   header tags
+   header tags for non-JS objects
  */
-#define HTAG_STRING        (0x4)
-#define HTAG_FLONUM        (0x5)
-#define HTAG_SIMPLE_OBJECT (0x6)
-#define HTAG_ARRAY         (0x7)
-#define HTAG_FUNCTION      (0x8)
-#define HTAG_BUILTIN       (0x9)
-#define HTAG_ITERATOR      (0xa)
-#ifdef USE_REGEXP
-#define HTAG_REGEXP        (0xb)
-#endif
-#define HTAG_BOXED_STRING  (0xc)
-#define HTAG_BOXED_NUMBER  (0xd)
-#define HTAG_BOXED_BOOLEAN (0xe)
 /* HTAG_FREE is defined in gc.c */
 #define HTAG_PROP           (0x11)
 #define HTAG_ARRAY_DATA     (0x12)
@@ -502,7 +457,6 @@ typedef struct string_cell {
 typedef int64_t cint;
 typedef uint64_t cuint;
 
-#define is_fixnum(p) (equal_tag((p), T_FIXNUM))
 
 // #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET)
 #define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
@@ -543,7 +497,6 @@ typedef uint64_t cuint;
 #define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
 #define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
-#define is_number(p) (is_fixnum((p)) || is_flonum((p)))
 
 #define cint_to_number(n) \
   (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
@@ -560,7 +513,6 @@ typedef uint64_t cuint;
 #define SPECIALOFFSET           (TAGOFFSET + 1)
 #define SPECIALMASK             ((uint64_t)(1 << SPECIALOFFSET) - 1)
 
-#define is_special(p)           (equal_tag((p), T_SPECIAL))
 #define remove_special_tag(p)   (remove_tag((p), T_SPECIAL))
 #define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
 #define special_tag(p)          ((uint64_t)(p) & SPECIALMASK)
@@ -595,7 +547,7 @@ typedef uint64_t cuint;
 /*
    Primitive is either number, boolean, or string.
  */
-#define is_primitive(p) (get_tag(p) != T_OBJECT && (!is_null_or_undefined(p)))
+#define is_primitive(p) (!is_object(p) && !is_null_or_undefined(p))
 
 /*
    Set a specified property to an object where property name is given
