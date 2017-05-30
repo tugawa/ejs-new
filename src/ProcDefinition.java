@@ -27,7 +27,7 @@ class JSTypePair {
     }
 }
 
-
+/*
 class TypeDispatchDefinitionBuilder {
 
     class Condition {}
@@ -73,6 +73,7 @@ class TypeDispatchDefinitionBuilder {
     void read(String line) {
         if (line.matches("^\\\\when .*")) {
             Condition c = parseCondition(line.substring(6), new int[1], true);
+            System.out.println(c);
             convertConditionToDNF(c);
             if (csrc != null) endWhenScope();
             startWhenScope(c);
@@ -491,150 +492,7 @@ interface DefinitionBuilder {
     void end();
     ProcDefinition.Definition build();
 }
-
-class InstDefinitionBuilder implements DefinitionBuilder {
-    String instName;
-    String[] dispatchVars, otherVars;
-    TypeDispatchDefinitionBuilder tdDef;
-    InstDefinitionBuilder(String instName, String[] dispatchVars, String[] otherVars, TypeDispatchDefinitionBuilder tdDef) {
-        this.instName = instName;
-        this.dispatchVars = dispatchVars;
-        this.otherVars = otherVars;
-        this.tdDef = tdDef;
-    }
-    InstDefinitionBuilder(String instDefLine) {
-        Pattern ptnInst = Pattern.compile("^\\s*(\\w+)(\\s*\\[\\s*((\\$?\\w+)\\s*(,\\s*(\\$?\\w+)\\s*)?)?\\])?(\\s*\\((\\s*(\\$?\\w+)(\\s*,\\s*(\\$?\\w+)(\\s*,\\s*((\\$?\\w+)))?)?)?\\s*\\))?\\s*$");
-        Matcher m = ptnInst.matcher(instDefLine);
-        if (m.find()) {
-            // \inst INST_NAME [ x1 , x2 ] ( y1 , y2 , y3 )
-            // (2, INST_NAME)  (4, x1)  (6, x2)  (9, y1)  (11, y2)  (13, y3)
-            String instName = m.group(1);
-            String x1 = m.group(4), x2 = m.group(6);
-            String y1 = m.group(9), y2 = m.group(11), y3 = m.group(13);
-            String[] xs, ys;
-            if (x1 != null) {
-                if (x2 != null) {
-                    xs = new String[2];
-                    xs[1] = x2;
-                } else xs = new String[1];
-                xs[0] = x1;
-            } else xs = new String[0];
-            if (y1 != null) {
-                if (y2 != null) {
-                    if (y3 != null) {
-                        ys = new String[3];
-                        ys[2] = y3;
-                    } else ys = new String[2];
-                    ys[1] = y2;
-                } else ys = new String[1];
-                ys[0] = y1;
-            } else ys = new String[0];
-            this.instName = instName;
-            this.dispatchVars = xs;
-            this.otherVars = ys;
-            // this.tdDef = new TypeDispatchDefinition(this.dispatchVars);
-        } else {
-            // error
-            System.out.println("parsing error: inst statement");
-        }
-    }
-    public void read(String line) {
-        tdDef.read(line);
-    }
-    public void start() {
-        tdDef = new TypeDispatchDefinitionBuilder(dispatchVars);
-    }
-    public void end() {
-        tdDef.end();
-    }
-    public String toString() {
-        String ret = "Instruction name: " + instName + "\n";
-        ret += "dispatch vars:";
-        for (String v : dispatchVars) {
-            ret += " " + v;
-        }
-        ret += "\nother vars: ";
-        for (String v : otherVars) {
-            ret += " " + v;
-        }
-        ret += "\n";
-        ret += tdDef.toString();
-        ret += "\n";
-        return ret;
-    }
-    @Override
-    public ProcDefinition.InstDefinition build() {
-        ProcDefinition.TypeDispatchDefinition def = this.tdDef.build();
-        return new ProcDefinition.InstDefinition(this.instName, this.dispatchVars, this.otherVars, def);
-    }
-}
-
-class FuncDefinitionBuilder implements DefinitionBuilder {
-
-    String id;
-    List<Pair<Integer,ProcDefinition.TypeDispatchDefinition>> tdDefs = new LinkedList<Pair<Integer,ProcDefinition.TypeDispatchDefinition>>();
-
-    // Pair<Integer,TypeDispatchDefinitionBuilder> tdb = null;
-    TypeDispatchDefinitionBuilder tdb = null;
-    int lineNumber = 0;
-    List<String> lines = new LinkedList<String>();
-
-    FuncDefinitionBuilder(String funcDefStr) {
-        Pattern ptn = Pattern.compile("^(\\w+)\\s*$");
-        Matcher m = ptn.matcher(funcDefStr);
-        if (m.find()) {
-            this.id = m.group(1);
-        }
-    }
-
-    static final Pattern ptn = Pattern.compile("^\\s*\\[\\s*((\\$\\w+)\\s*(,\\s*(\\$\\w+)\\s*)?)\\]\\s*$");
-
-    public void read(String line) {
-        if (line.matches("^\\\\begin.+")) {
-            if (tdb != null) { System.out.println("error: FuncDefinitionBuilder"); }
-            System.out.println("begin");
-            String argStr = line.substring(6);
-            Matcher m = ptn.matcher(argStr);
-            String[] vnames;
-            if (m.find()) {
-                if (m.group(2) == null) {
-                    System.out.println("error: " + this.id + " " + "\\begin statement has no args.");
-                }
-                if (m.group(4) == null) {
-                    vnames = new String[] { m.group(2) };
-                } else {
-                    vnames = new String[] { m.group(2), m.group(4) };
-                }
-                tdb = new TypeDispatchDefinitionBuilder(vnames);
-            }
-        } else if (line.matches("^\\\\end\\s*$")) {
-            System.out.println("end");
-            tdb.end();
-            tdDefs.add(new Pair<Integer,ProcDefinition.TypeDispatchDefinition>(lineNumber, tdb.build()));
-            tdb = null;
-        } else {
-            System.out.println(line);
-            if (tdb == null) {
-                lines.add(line);
-                lineNumber++;
-            } else {
-                tdb.read(line);
-            }
-        }
-    }
-
-    @Override
-    public void start() {}
-
-    @Override
-    public void end() {}
-
-    @Override
-    public ProcDefinition.FuncDefinition build() {
-        return new ProcDefinition.FuncDefinition(id, lines, tdDefs);
-    }
-}
-
+*/
 
 public class ProcDefinition {
 
@@ -651,47 +509,206 @@ public class ProcDefinition {
         void gen(Synthesiser synthesiser);
     }
 
-    static class FuncDefinition implements Definition {
-        String name;
-        List<String> lines;
-        List<Pair<Integer,TypeDispatchDefinition>> tdDefs;
-        FuncDefinition(String name, List<String> lines, List<Pair<Integer,TypeDispatchDefinition>> tdDefs) {
-            this.name = name;
-            this.lines = lines;
-            this.tdDefs = tdDefs;
-        }
-        @Override
-        public void gen(Synthesiser synthesiser) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < lines.size() + 1; i++) {
-                for (Pair<Integer,TypeDispatchDefinition> e : tdDefs) {
-                    if (e.first() == i) {
-                        if (tdDefs.size() == 1) {
-                            sb.append(name + "_HEAD:\n");
-                        } else {
-                            sb.append(name + "_" + tdDefs.indexOf(e) + "_HEAD:\n");
+    ProcDefinition.TypeDispatchDefinition build(String[] vars, List<Pair<JSTypePair,String>> raw) {
+        List<Pair<JSTypePair,String>> twoOp = new LinkedList<Pair<JSTypePair,String>>();
+        List<Pair<JSTypePair,String>> oneOpL = new LinkedList<Pair<JSTypePair,String>>();
+        List<Pair<JSTypePair,String>> oneOpR = new LinkedList<Pair<JSTypePair,String>>();
+        Pair<JSTypePair,String> otherwisep = new Pair<JSTypePair,String>(null, null);
+        splitByOpType(raw, twoOp, oneOpL, oneOpR, otherwisep);
+
+        String otherwise = otherwisep.second();
+        List<Pair<JSTypePair,String>> result = new LinkedList<Pair<JSTypePair,String>>();
+        if (vars.length == 1) {
+            result.addAll(oneOpL);
+            if (otherwise != null) {
+                for (DataType dt : DataType.all()) {
+                    boolean b = true;
+                    for (Pair<JSTypePair,String> e : result) {
+                        JSTypePair jtp = e.first();
+                        if (jtp.left == dt) {
+                            b = false;
+                            break;
                         }
-                        Plan p = new Plan(e.second().vars, e.second().rules);
-                        sb.append(synthesiser.synthesise(p));
-                        sb.append('\n');
-                    } else if (e.first() > i) {
-                        break;
+                    }
+                    if (b) result.add(new Pair<JSTypePair,String>(new JSTypePair(dt, null), otherwise));
+                }
+            }
+        } else if (vars.length == 2) {
+            result.addAll(twoOp);
+            for (Pair<JSTypePair,String> el : oneOpL) {
+                DataType left = el.first().left;
+                for (DataType right : DataType.all()) {
+                    boolean willBeAdded = true;
+                    for (Pair<JSTypePair,String> etwo : twoOp) {
+                        if (etwo.first().left == left && etwo.first().right == right) {
+                            willBeAdded = false;
+                            break;
+                        }
+                    }
+                    if (!willBeAdded) break;
+                    for (Pair<JSTypePair,String> er : oneOpR) {
+                        if (er.first().right == right) {
+                            willBeAdded = false;
+                            break;
+                        }
+                    }
+                    if (!willBeAdded) break;
+                    result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), el.second()));
+                }
+            }
+            for (Pair<JSTypePair,String> er : oneOpR) {
+                DataType right = er.first().right;
+                for (DataType left : DataType.all()) {
+                    boolean willBeAdded = true;
+                    for (Pair<JSTypePair,String> etwo : twoOp) {
+                        if (etwo.first().left == left && etwo.first().right == right) {
+                            willBeAdded = false;
+                            break;
+                        }
+                    }
+                    if (!willBeAdded) break;
+                    for (Pair<JSTypePair,String> el : oneOpL) {
+                        if (el.first().left == left) {
+                            willBeAdded = false;
+                            break;
+                        }
+                    }
+                    if (!willBeAdded) break;
+                    result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), er.second()));
+                }
+            }
+            if (otherwise != null) {
+                for (DataType left : DataType.all()) {
+                    for (DataType right : DataType.all()) {
+                        boolean willBeAdded = true;
+                        for (Pair<JSTypePair,String> e : result) {
+                            if (e.first().left == left && e.first().right == right) {
+                                willBeAdded = false;
+                                break;
+                            }
+                        }
+                        if (willBeAdded) {
+                            result.add(new Pair<JSTypePair,String>(new JSTypePair(left, right), otherwise));
+                        }
                     }
                 }
-                if (i < lines.size()) {
-                    sb.append(lines.get(i));
-                    sb.append('\n');
-                }
-            }
-            try {
-                File file = new File(OUT_DIR + "/" + name + ".c");
-                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-                pw.print(sb.toString());
-                pw.close();
-            } catch (IOException e) {
-                System.out.println(e);
             }
         }
+        return new ProcDefinition.TypeDispatchDefinition(vars, partsToRules(vars, result));
+    }
+    private Set<Plan.Rule> partsToRules(String[] vars, List<Pair<JSTypePair,String>> parts) {
+        List<Pair<JSTypePair,String>> _parts = new LinkedList<Pair<JSTypePair,String>>(parts);
+        Set<Plan.Rule> rules = new HashSet<Plan.Rule>();
+        for (Pair<JSTypePair,String> e : parts) {
+            if (_parts.contains(e)) {
+                Set<Plan.Condition> conditions = new HashSet<Plan.Condition>();
+                List<Pair<JSTypePair,String>> rmList = new LinkedList<Pair<JSTypePair,String>>();
+                for (Pair<JSTypePair,String> _e : _parts) {
+                    if (e.second() == _e.second()) {
+                        if (vars.length == 1) {
+                            conditions.add(new Plan.Condition(_e.first().left.getName()));
+                        } else if (vars.length == 2) {
+                            conditions.add(new Plan.Condition(_e.first().left.getName(), _e.first().right.getName()));
+                        }
+                        rmList.add(_e);
+                    }
+                }
+                _parts.removeAll(rmList);
+                rules.add(new Plan.Rule(e.second(), conditions));
+            }
+        }
+        return rules;
+    }
+
+    private void splitByOpType(List<Pair<JSTypePair,String>> raw,
+            List<Pair<JSTypePair,String>> twoOp,
+            List<Pair<JSTypePair,String>> oneOpL,
+            List<Pair<JSTypePair,String>> oneOpR,
+            Pair<JSTypePair,String> otherwise) {
+        for (Pair<JSTypePair,String> e : raw) {
+            JSTypePair j = e.first();
+            if (j == null) {
+                otherwise.t = e.second();
+            } else if (j.left != null) {
+                if (j.right != null) {
+                    twoOp.add(e);
+                } else {
+                    oneOpL.add(e);
+                }
+            } else {
+                if (j.right != null) {
+                    oneOpR.add(e);
+                } else {
+                    otherwise.t = e.second();
+                }
+            }
+        }
+    }
+
+    private void conditionIntoParts(List<JSTypePair> result, DslParser.Condition arg) {
+        if (arg instanceof DslParser.CompoundCondition) {
+            DslParser.CompoundCondition cond = (DslParser.CompoundCondition) arg;
+            if (cond.op == DslParser.ConditionalOp.AND) {
+                if (cond.cond1 instanceof DslParser.AtomCondition && cond.cond2 instanceof DslParser.AtomCondition) {
+                    DslParser.AtomCondition c1 = (DslParser.AtomCondition) cond.cond1;
+                    DslParser.AtomCondition c2 = (DslParser.AtomCondition) cond.cond2;
+                    if (c1.varIdx == 0 && c2.varIdx == 1) {
+                        result.add(new JSTypePair(c1.t, c2.t));
+                    } else if (c2.varIdx == 0 && c1.varIdx == 1) {
+                        result.add(new JSTypePair(c2.t, c1.t));
+                    } else {
+                        // error
+                        System.out.println("error: " + c1.varIdx + ", " + c2.varIdx);
+                    }
+                } else {
+                    // error
+                    System.out.println("error: cond1 and cond2 must be AtomCondition.");
+                }
+            } else if (cond.op == DslParser.ConditionalOp.OR) {
+                conditionIntoParts(result, cond.cond1);
+                conditionIntoParts(result, cond.cond2);
+            }
+        } else if (arg instanceof DslParser.AtomCondition) {
+            DslParser.AtomCondition atom = (DslParser.AtomCondition) arg;
+            if (atom.varIdx == 0) {
+                result.add(new JSTypePair(atom.t, null));
+            } else if (atom.varIdx == 1) {
+                result.add(new JSTypePair(null, atom.t));
+            } else {
+                // error
+                System.out.println("error: AtomCondition.varIdx must be '0' or '1'.");
+            }
+        }
+    }
+    // private List<Pair<JSTypePair,String>> actListToParts(List<Pair<DslParser.Condition,String>> actList) {
+    private List<Pair<JSTypePair,String>> whenClausesToParts(List<DslParser.WhenClause> actList) {
+        List<Pair<JSTypePair,String>> result = new LinkedList<Pair<JSTypePair,String>>();
+        actList.forEach(act -> {
+            if (act.condition == null) {
+                result.add(new Pair<JSTypePair,String>(null, act.body));
+            } else {
+                List<JSTypePair> jtps = new LinkedList<JSTypePair>();
+                conditionIntoParts(jtps, act.condition);
+                for (JSTypePair j1 : jtps) {
+                    boolean b = true;
+                    for (Pair<JSTypePair,String> e : result) {
+                        JSTypePair j2 = e.first();
+                        if (j1.left == j2.left && j1.right == j2.right) {
+                            // error
+                            b = false;
+                            System.out.println("error: same condition (" + j1 + ", " + j2 + ")");
+                        }
+                    }
+                    if (b) result.add(new Pair<JSTypePair, String>(j1, act.body));
+                }
+            }
+        });
+        return result;
+    }
+    TypeDispatchDefinition makeDispatchDefFromInstDef(DslParser.InstDef idef) {
+        List<Pair<JSTypePair,String>> actions = whenClausesToParts(idef.whenClauses);
+        TypeDispatchDefinition td = build(idef.vars, actions);
+        return td;
     }
 
     static class InstDefinition implements Definition {
@@ -721,43 +738,21 @@ public class ProcDefinition {
     }
 
     List<InstDefinition> instDefs = new LinkedList<InstDefinition>();
-    List<FuncDefinition> funcDefs = new LinkedList<FuncDefinition>();
+    // List<FuncDefinition> funcDefs = new LinkedList<FuncDefinition>();
 
     private void addDef(Definition def) {
         if (def instanceof InstDefinition) {
             instDefs.add((InstDefinition) def);
-        } else if (def instanceof FuncDefinition) {
-            funcDefs.add((FuncDefinition) def);
         }
     }
 
-    void load(String fname) throws FileNotFoundException {
-        Scanner sc = new Scanner(new FileInputStream(fname));
-        DefinitionBuilder defb = null;
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            if (line.matches("^\\\\inst .+")) {
-                if (defb != null) {
-                    defb.end();
-                    addDef(defb.build());
-                }
-                defb = new InstDefinitionBuilder(line.substring(6));
-                defb.start();
-            } else if (line.matches("^\\\\func .+")) {
-                if (defb != null) {
-                    defb.end();
-                    addDef(defb.build());
-                }
-                defb = new FuncDefinitionBuilder(line.substring(6));
-                defb.start();
-            } else {
-                defb.read(line);
-            }
-        }
-        if (defb != null) {
-            defb.end();
-            addDef(defb.build());
-        }
+    InstDefinition load(String fname) {
+        DslParser dslp = new DslParser();
+        DslParser.InstDef instAst = dslp.run(fname);
+        TypeDispatchDefinition td = makeDispatchDefFromInstDef(instAst);
+        InstDefinition instDef = new InstDefinition(instAst.id, instAst.vars, null, td);
+        addDef(instDef);
+        return instDef;
     }
 
     public String toString() {
@@ -769,25 +764,26 @@ public class ProcDefinition {
     }
 
     static final String OUT_DIR = "./generated";
+    static final String IN_DIR = "./idefs";
 
     public static void main(String[] args) throws FileNotFoundException {
         TypeDefinition td = new TypeDefinition();
         td.load("datatype/ssjs_origin.dtdef");
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load("datatype/insts.idef");
-        // procDef.load("./sample.idef");
+        // procDef.load("datatype/insts.idef");
+
         SimpleSynthesiser ss = new SimpleSynthesiser();
         if (!(new File(OUT_DIR).exists())) {
             File dir = new File(OUT_DIR);
             dir.mkdir();
         }
-        for (InstDefinition instDef : procDef.instDefs) {
-            System.out.println(instDef.name);
+
+        File indir = new File(IN_DIR);
+        String[] list = indir.list();
+        for (int i = 0; i < list.length; i++) {
+            String path = IN_DIR + "/" + list[i];
+            InstDefinition instDef = procDef.load(path);
             instDef.gen(ss);
-        }
-        for (FuncDefinition funcDef : procDef.funcDefs) {
-            System.out.println(funcDef.name);
-            funcDef.gen(ss);
         }
     }
 }

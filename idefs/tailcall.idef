@@ -1,0 +1,23 @@
+\inst tailcall ($fn)
+
+\when $fn:function \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  tailcall_function(context, fn, nargs, FALSE);
+  update_context();
+  NEXT_INSN_NOINCPC();
+\}
+
+\when $fn:builtin \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  tailcall_builtin(context, fn, nargs, FALSE, FALSE);
+  update_context();
+  NEXT_INSN_INCPC();
+\}
+
+\otherwise \{
+  LOG_EXIT("TAILCALL: not a function\n");
+\}
+
+
