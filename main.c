@@ -347,88 +347,58 @@ void print_value_verbose(Context *context, JSValue v) {
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
     printf("%016lx (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
-  switch (get_tag(v)) {
-  case T_GENERIC:
-    // v = object_to_string(context, v);
-    {
-      Object *p;
 
-      p = remove_object_tag(v);
-      // printf("tag = T_GENERIC, header tag = %ld\n", obj_header_tag(p));
-      switch (obj_header_tag(p)) {
-      case HTAG_SIMPLE_OBJECT: v = gconsts.g_string_objtostr; break;
-      // case HTAG_ARRAY:  v = cstr_to_string("array"); break;
-      case HTAG_ARRAY:  v = array_to_string(context, v, gconsts.g_string_comma); break;
-      case HTAG_FUNCTION: v = cstr_to_string("function"); break;
-      case HTAG_BUILTIN: v = cstr_to_string("builtin"); break;
-      case HTAG_ITERATOR: v = cstr_to_string("iterator"); break;
-#ifdef USE_REGEXP
-      case HTAG_REGEXP:
-        printf("/%s/", regexp_pattern(v));
-        return;
-#endif
-      case HTAG_BOXED_STRING: v = cstr_to_string("boxed-string"); break;
-      case HTAG_BOXED_NUMBER: v = cstr_to_string("boxed-number"); break;
-      case HTAG_BOXED_BOOLEAN: v = cstr_to_string("boxed-boolean"); break;
-      default: v = cstr_to_string("???"); break;
-      }
-    }
-    break;
-  case T_STRING:
-    break;
-  case T_FIXNUM:
-    v = fixnum_to_string(v);
-    break;
-  case T_FLONUM:
-    v = flonum_to_string(v);
-    break;
-  case T_SPECIAL:
+  if (is_string(v))
+    /* do nothing */;
+  else if (is_number(v))
+    v = number_to_string(v);
+  else if (is_special(v))
     v = special_to_string(v);
-    break;
-  default:
-    LOG_ERR("Type Error\n");
-    break;
+  else if (is_simple_object(v))
+    v = gconsts.g_string_objtostr;
+  else if (is_array(v))
+    v = array_to_string(context, v, gconsts.g_string_comma);
+  else if (is_function(v))
+    v = cstr_to_string("function");
+  else if (is_builtin(v))
+    v = cstr_to_string("builtin");
+  else if (is_iterator(v))
+    v = cstr_to_string("iterator");
+#ifdef USE_REGEXP
+  else if (is_regexp(v)) {
+    printf("/%s/", regexp_pattern(v));
+    return;
   }
+#endif
+  else if (is_string_object(v))
+    v = cstr_to_string("boxed-string");
+  else if (is_number_object(v))
+    v = cstr_to_string("boxed-number");
+  else if (is_boolean_object(v))
+    v = cstr_to_string("boxed-boolean");
+  else
+    LOG_ERR("Type Error\n");
+
   printf("%s", string_to_cstr(v));
 }
 
 void simple_print(JSValue v) {
-  Tag tag;
-
-  switch (tag = get_tag(v)) {
-  case T_FIXNUM:
-    //    printf("fixnum:%ld", (v >> 3));
-    //    break;
-  case T_FLONUM:
-    //    printf("flonum:%le", number_to_double(v));
+  if (is_number(v))
     printf("number:%le", number_to_double(v));
-    break;
-  case T_STRING:
+  else if (is_string(v))
     printf("string:%s", string_to_cstr(v));
-    break;
-  case T_SPECIAL:
-    switch (v) {
-    case JS_TRUE:
-      printf("boolean:true");
-      break;
-    case JS_FALSE:
-      printf("boolean:false");
-      break;
-    case JS_UNDEFINED:
-      printf("undefined:undefined");
-      break;
-    case JS_NULL:
-      printf("object:null");
-      break;
-    }
-    break;
-  case T_GENERIC:
+  else if (is_object(v))
     printf("object:object");
-    break;
-  default:
+  else if (v == JS_TRUE)
+    printf("boolean:true");
+  else if (v == JS_FALSE)
+    printf("boolean:false");
+  else if (v == JS_UNDEFINED)
+    printf("undefined:undefined");
+  else if (v == JS_NULL)
+    printf("object:null");
+  else
     printf("unknown value");
-    break;
-  }
 }
 
 /*

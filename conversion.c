@@ -699,7 +699,7 @@ char *type_name(JSValue v) {
   if (is_regexp(v)) return "Regexp";
 #endif
   if (is_simple_object(v)) return "SimpleObject";
-  if (is_object(v)) return "Object";  // could it happen?
+  //  if (is_object(v)) return "Object";  // could it happen?
   return "???";
 }
 
