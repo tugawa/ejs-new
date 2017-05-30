@@ -114,7 +114,7 @@ int in_malloc_space(void *addr_);
  */
 int is_valid_JSValue(JSValue x)
 {
-#if 0
+#if 0  /* temporarily disabled */
   switch(get_tag(x)) {
   case T_GENERIC:
     return in_js_space((void *) x);
