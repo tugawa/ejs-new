@@ -11,7 +11,7 @@ abstract class Synthesiser implements GlobalConstantOptions {
 	}
 
 	String getHTCode(String dispatchVar) {
-		return "obj_header_tag("+dispatchVar+")";
+		return "gc_obj_header_type(clear_tag("+dispatchVar+"))";
 	}
 
 	String getHTCode(String[] dispatchVars) {
