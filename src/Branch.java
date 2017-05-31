@@ -84,6 +84,7 @@ class HTBranch extends Branch {
 	}
 
 	void addCondition(HT ht) {
+		if(ht == null) throw new Error();
 		condition.add(ht);
 	}
 

@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -170,35 +171,39 @@ class LLPlan {
 	}
 
 	/**
-	 * Convert this pair-dispatch plan to a nested single-dispatch plan.
+	 * Convert this tuple-dispatch plan to a nested single-dispatch plan.
 	 * @param redirect if true, create redirect actions
 	 * @return nested plan
 	 */
-	public LLPlan convertToNestedPlan(boolean redirect) {
-		LLPlan outer = new LLPlan(new String[] {dispatchVars[0]});
-
-		for (TypeRepresentation tr0: allTRNthOperand(0)) {
-			LLPlan inner = new LLPlan(new String[] {dispatchVars[1]});
-			for (TypeRepresentation tr1: allTRNthOperand(1)) {
-				LLRule r = find(tr0, tr1);
-				ActionNode a = r.action;
-				if (redirect)
-					a = new RedirectActionNode(a);
-				LLRule.Condition c = new LLRule.Condition(tr1);
-				c.done = r.find(tr0, tr1).done;
-				LLRule innerRule = new LLRule(c, a);
-				inner.rules.add(innerRule);
+	public LLPlan convertToNestedPlan(boolean redirect, TypeRepresentation[] dispatchVals) {
+		int level = dispatchVals.length;
+		LLPlan outer = new LLPlan(new String[] {dispatchVars[level]});
+		for (TypeRepresentation tr: allTRNthOperand(level)) {
+			TypeRepresentation[] nextVals = new TypeRepresentation[level + 1];
+			System.arraycopy(dispatchVals, 0, nextVals, 0, level);
+			nextVals[level] = tr;
+			if (nextVals.length == dispatchVars.length) {
+				LLRule r = find(nextVals);
+				LLRule.Condition c = new LLRule.Condition(tr);
+				c.done = r.find(nextVals).done;
+				LLRule newRule = new LLRule(c, r.action);
+				outer.rules.add(newRule);
+			} else {
+				LLPlan inner = convertToNestedPlan(redirect, nextVals);
+				LLRule.Condition outerCond = new LLRule.Condition(tr);
+				outerCond.done = inner.rules.stream()
+						.flatMap(r -> r.condition.stream())
+						.allMatch(c -> c.done);
+				UnexpandedActionNode outerAction = new UnexpandedActionNode(inner);
+				LLRule outerRule = new LLRule(outerCond, outerAction);
+				outer.rules.add(outerRule);
 			}
-			LLRule.Condition outerCond = new LLRule.Condition(tr0);
-			outerCond.done = inner.rules.stream()
-					.flatMap(r -> r.condition.stream())
-					.allMatch(c -> c.done);
-			UnexpandedActionNode outerAction = new UnexpandedActionNode(inner);
-			LLRule outerRule = new LLRule(outerCond, outerAction);
-			outer.rules.add(outerRule);
 		}
-
 		return outer;
+	}
+
+	public LLPlan convertToNestedPlan(boolean redirect) {
+		return convertToNestedPlan(redirect, new TypeRepresentation[]{});
 	}
 
 	protected boolean mergable(LLRule r0, LLRule r1) {
@@ -243,6 +248,10 @@ class LLPlan {
 
 		rules.stream()
 		.filter(r -> r.condition.stream().anyMatch(c -> !c.done))
+		.map(r -> {
+			Set<LLRule.Condition> cond = r.condition.stream().filter(c -> !c.done).collect(Collectors.toSet());
+			return new LLRule(cond, r.action);
+		})
 		.forEach(r -> {
 			for (LLRule newr: result)
 				if (newr.action.mergable(r.action)) {
@@ -260,7 +269,6 @@ class LLPlan {
 
 	@Override
 	public String toString() {
-		System.out.println(rules.size());
 		return rules.stream().map(dr -> dr.toString()).collect(Collectors.joining("\n"));
 	}
 }

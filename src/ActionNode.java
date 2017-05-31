@@ -113,7 +113,7 @@ class TerminalActionNode extends ActionNode {
 
 	@Override
 	public String toString() {
-		return "(" + rule.action + ")";
+		return "(" + rule.action.split("\n")[0] + ")";
 	}
 
 	@Override
