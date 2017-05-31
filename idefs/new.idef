@@ -1,6 +1,6 @@
-\inst new ($con)
+\inst new (con)
 
-\when $con:function \{
+\when con:function \{
   JSValue o, p;
   save_context();
   o = new_normal_object(context);

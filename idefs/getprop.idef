@@ -1,5 +1,6 @@
-\inst getprop ($obj, $prop)
-\when $obj:array && $prop:fixnum \{
+\inst getprop (obj, prop)
+
+\when obj:array && prop:fixnum \{
   cint n;
   getprop_ARYFIX:
   n = fixnum_to_cint(prop);
@@ -11,7 +12,7 @@
   }
 \}
 
-\when $obj:array && $prop:string \{
+\when obj:array && prop:string \{
   JSValue num;
   cint n;
   num = string_to_number(prop);
@@ -19,26 +20,26 @@
   else vdst = get_prop_prototype_chain(obj, prop);
 \}
 
-\when $obj:array && $prop:flonum \{
+\when obj:array && prop:flonum \{
   prop = flonum_to_string(prop);
   vdst = get_prop_prototype_chain(obj, prop);
 \}
 
-\when $obj:array \{
+\when obj:array \{
   prop = to_string(context, prop);
   goto getprop_HEAD;
 \}
 
-\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function) && $prop:string \{
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:iterator || obj:function) && prop:string \{
   vdst = get_prop_prototype_chain(obj, prop);
 \}
 
-\when ($obj:regexp || $obj:number_object || $obj:boolean_object || $obj:builtin || $obj:string_object || $obj:simple_object || $obj:iterator || $obj:function) \{
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:iterator || obj:function) \{
   prop = to_string(context, prop);
   vdst = get_prop_prototype_chain(obj, prop);
 \}
 
-\when $obj:special \{
+\when obj:special \{
   if (obj == JS_UNDEFINED) printf("GETPROP: !!!!!\n");
 \}
 

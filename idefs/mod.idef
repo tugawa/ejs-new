@@ -1,5 +1,5 @@
-\inst mod ($v1, $v2)
-\when $v1:fixnum && $v2:fixnum \{
+\inst mod (v1, v2)
+\when v1:fixnum && v2:fixnum \{
   if (v2 == FIXNUM_ZERO)
     vdst = gconsts.g_flonum_nan;
   else {
@@ -8,7 +8,7 @@
   }
 \}
 
-\when ($v1:fixnum && $v2:flonum) || ($v1:flonum && $v2:fixnum) || ($v1:flonum && $v2:flonum) \{
+\when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{
   double x1 = to_double(context, v1);
   double x2 = to_double(context, v2);
   double d;
@@ -22,12 +22,12 @@
   }
 \}
 
-\when $v1:fixnum || $v1:flonum \{
+\when v1:fixnum || v1:flonum \{
   v2 = to_number(context, v2);
   goto mod_HEAD;
 \}
 
-\when $v2:fixnum || $v2:flonum \{
+\when v2:fixnum || v2:flonum \{
   v1 = to_number(context, v1);
   goto mod_HEAD;
 \}

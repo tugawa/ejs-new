@@ -1,5 +1,5 @@
-\inst call ($fn)
-\when $fn:function \{
+\inst call (fn)
+\when fn:function \{
   set_fp(context, fp);
   set_pc(context, pc);
   call_function(context, fn, nargs, FALSE);
@@ -7,7 +7,7 @@
   NEXT_INSN_NOINCPC();
 \}
 
-\when $fn:builtin \{
+\when fn:builtin \{
   set_fp(context, fp);
   set_pc(context, pc);
   call_builtin(context, fn, nargs, FALSE, FALSE);

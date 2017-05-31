@@ -1,32 +1,32 @@
-\inst bitand ($v1, $v2)
-\when $v1:fixnum && $v2:fixnum \{
+\inst bitand (v1, v2)
+\when v1:fixnum && v2:fixnum \{
   vdst = v1 & v2;
 \}
 
-\when $v1:fixnum && $v2:flonum \{
+\when v1:fixnum && v2:flonum \{
   cint x1 = fixnum_to_cint(v1);
   cint x2 = flonum_to_cint(v2);
   vdst = cint_to_fixnum(x1 & x2);
 \}
 
-\when $v1:flonum && $v2:fixnum \{
+\when v1:flonum && v2:fixnum \{
   cint x1 = flonum_to_cint(v1);
   cint x2 = fixnum_to_cint(v2);
   vdst = cint_to_fixnum(x1 & x2);
 \}
 
-\when $v1:flonum && $v2:flonum \{
+\when v1:flonum && v2:flonum \{
   cint x1 = flonum_to_cint(v1);
   cint x2 = flonum_to_cint(v2);
   vdst = cint_to_fixnum(x1 & x2);
 \}
 
-\when $v1:fixnum || $v1:flonum \{
+\when v1:fixnum || v1:flonum \{
   v2 = to_number(context, v2);
   goto bitand_HEAD;
 \}
 
-\when $v2:fixnum || $v2:flonum \{
+\when v2:fixnum || v2:flonum \{
   v1 = to_number(context, v1);
   goto bitand_HEAD;
 \}

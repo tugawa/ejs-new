@@ -724,10 +724,10 @@ public class ProcDefinition {
         public void gen(Synthesiser synthesiser) {
             StringBuilder sb = new StringBuilder();
             sb.append(name + "_HEAD:\n");
-            Plan p = new Plan(Arrays.stream(dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), tdDef.rules);
+            Plan p = new Plan(Arrays.stream(dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), tdDef.rules);
             sb.append(synthesiser.synthesise(p));
             try {
-                File file = new File(OUT_DIR + "/" + name + ".c");
+                File file = new File(OUT_DIR + "/" + name + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
                 pw.print(sb.toString());
                 pw.close();

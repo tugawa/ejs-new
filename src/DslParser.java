@@ -188,7 +188,7 @@ public class DslParser {
 
     Condition parseAtomCondition(Token[] tks, Idx idx) throws Exception {
         int i = idx.n;
-        if (tks[i].id != TokenId.OPERAND) return null;
+        if (tks[i].id != TokenId.STRING) return null;
         if (tks[i+1].id != TokenId.COLON) return null;
         if (tks[i+2].id != TokenId.STRING) return null;
 
@@ -260,11 +260,12 @@ public class DslParser {
             String[] vars = null;
             if (t.id == TokenId.CAMMA) {
                 Token op2 = tks.pollFirst();
-                checkToken(op1, TokenId.OPERAND);
-                checkToken(op2, TokenId.OPERAND);
+                checkToken(op1, TokenId.STRING);
+                checkToken(op2, TokenId.STRING);
                 checkToken(tks.pollFirst(), TokenId.PARENTHESES, ")");
                 vars = new String[] { op1.raw, op2.raw };
             } else if (t.id == TokenId.PARENTHESES) {
+                checkToken(op1, TokenId.STRING);
                 checkToken(t, TokenId.PARENTHESES, ")");
                 vars = new String[] { op1.raw };
             }
@@ -302,7 +303,7 @@ public class DslParser {
         KEY_INST,
         KEY_WHEN,
         KEY_OTHERWISE,
-        OPERAND,
+        //OPERAND,
         STRING,
         COND_OP,
         CPROGRAM,
@@ -320,7 +321,7 @@ public class DslParser {
     }
 
     class Tokenizer {
-        static final String tks = "\\\\\\\\.*$|,|:|&&|\\|\\||\\(|\\)|\\\\\\{(.|\\n)*?\\\\\\}|\\\\inst|\\\\when|\\\\otherwise|\\$\\w+|\\w+";
+        static final String tks = "\\\\\\\\.*$|,|:|&&|\\|\\||\\(|\\)|\\\\\\{(.|\\n)*?\\\\\\}|\\\\inst|\\\\when|\\\\otherwise|\\w+";
         final Pattern ptn = Pattern.compile(tks, Pattern.MULTILINE);
         List<Token> tokenize(String all) {
             List<Token> tks = new LinkedList<Token>();
@@ -343,8 +344,8 @@ public class DslParser {
                     tk = new Token(TokenId.KEY_WHEN, s);
                 } else if (s.equals("\\otherwise")) {
                     tk = new Token(TokenId.KEY_OTHERWISE, s);
-                } else if (s.matches("\\$\\w+")) {
-                    tk = new Token(TokenId.OPERAND, s);
+                //} else if (s.matches("\\$\\w+")) {
+                    //tk = new Token(TokenId.OPERAND, s);
                 } else if (s.matches("\\w+")) {
                     tk = new Token(TokenId.STRING, s);
                 } else if (s.matches("\\\\\\{(.|\n)*\\\\\\}")) {
@@ -381,7 +382,8 @@ public class DslParser {
 
     public static void main(String[] args) {
         DslParser dslp = new DslParser();
-        InstDef instDef = dslp.run("idefs/sample.idef");
+        InstDef instDef = dslp.run("sample.idef");
+        System.out.println(instDef);
         /*
         String all = dslp.readAll("idefs/sample.idef");
         System.out.println(all);

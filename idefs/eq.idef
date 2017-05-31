@@ -1,5 +1,5 @@
-\inst eq ($v1, $v2)
-\when $v1:flonum && $v2:flonum \{
+\inst eq (v1, v2)
+\when v1:flonum && v2:flonum \{
   double x1 = flonum_to_double(v1);
   double x2 = flonum_to_double(v2);
   vdst = true_false(x1 == x2);

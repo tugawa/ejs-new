@@ -1,5 +1,5 @@
-\inst mul ($v1, $v2)
-\when $v1:fixnum && $v2:fixnum \{
+\inst mul (v1, v2)
+\when v1:fixnum && v2:fixnum \{
   cint n1, n2, p;
   n1 = fixnum_to_cint(v1);
   n2 = fixnum_to_cint(v2);
@@ -12,18 +12,18 @@
   }
 \}
 
-\when ($v1:fixnum && $v2:flonum) || ($v1:flonum && $v2:fixnum) || ($v1:flonum && $v2:flonum) \{
+\when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{
   double x1 = to_double(context, v1);
   double x2 = to_double(context, v2);
   vdst = double_to_number(x1 * x2);
 \}
 
-\when $v1:fixnum || $v1:flonum \{
+\when v1:fixnum || v1:flonum \{
   v2 = to_number(context, v2);
   goto mul_HEAD;
 \}
 
-\when $v2:fixnum || $v2:flonum \{
+\when v2:fixnum || v2:flonum \{
   v1 = to_number(context, v1);
   goto mul_HEAD;
 \}
