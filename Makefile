@@ -1,6 +1,6 @@
 ## Uncomment after editing options and paths
 #
-# all: ejsvm
+# all: ejsvm-with-suffix
 #
 
 CC = clang
@@ -25,6 +25,13 @@ LIBS=-L/usr/local/lib
 
 CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -O3 $(INCLUDES)
 LIBS += -lm
+
+
+SUFFIX:=
+ifeq ($(typesgen),true)
+	SUFFIX:=$(SUFFIX)_t
+	CFLAGS+=-DUSE_TYPES_GENERATED=1
+endif
 
 ifeq ($(OPT_GC),native)
 	CFLAGS+=-DUSE_NATIVEGC=1
@@ -157,7 +164,11 @@ message:
 	@echo "own Makefile."
 	@echo "   make -f Makefile.mine"
 
-ejsvm :: $(OFILES)
+ejsvm-with-suffix: ejsvm$(SUFFIX)
+
+clean: clean$(SUFFIX)
+
+ejsvm$(SUFFIX) :: $(patsubst %.o, %$(SUFFIX).o, $(OFILES))
 	$(CC) -o $@ $^ $(LIBS)
 
 instructions-opcode.h: instructions.def
@@ -177,13 +188,13 @@ cell-header.h: cell-header.def
 vmloop-cases.inc: instructions.def gen-vmloop-cases.rb
 	$(RUBY) gen-vmloop-cases.rb < instructions.def > $@
 
-vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
+vmloop$(SUFFIX).o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 
 types-generated.h: datatypes.def
 	java -cp vmgen/vmgen.jar TypesGen $< > $@
 
-%.o: %.c $(HFILES)
+%$(SUFFIX).o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 clean:
-	rm $(OFILES) $(GENERATED_HFILES) vmloop-cases.inc
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc
