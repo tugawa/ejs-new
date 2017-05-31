@@ -714,18 +714,27 @@ public class ProcDefinition {
     static class InstDefinition implements Definition {
         String name;
         String[] dispatchVars, otherVars;
+        String prologue, epilogue;
         TypeDispatchDefinition tdDef;
-        InstDefinition(String name, String[] dispatchVars, String[] otherVars, TypeDispatchDefinition tdDef) {
+        InstDefinition(String name, String[] dispatchVars, String[] otherVars, String prologue, String epilogue, TypeDispatchDefinition tdDef) {
             this.name = name;
             this.dispatchVars = dispatchVars;
             this.otherVars = otherVars;
+            this.prologue = prologue;
+            this.epilogue = epilogue;
             this.tdDef = tdDef;
         }
         public void gen(Synthesiser synthesiser) {
             StringBuilder sb = new StringBuilder();
+            if (this.prologue != null) {
+                sb.append(this.prologue + "\n");
+            }
             sb.append(name + "_HEAD:\n");
             Plan p = new Plan(Arrays.stream(dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), tdDef.rules);
             sb.append(synthesiser.synthesise(p));
+            if (this.epilogue != null) {
+                sb.append(this.epilogue + "\n");
+            }
             try {
                 File file = new File(OUT_DIR + "/" + name + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
@@ -746,11 +755,15 @@ public class ProcDefinition {
         }
     }
 
+    InstDefinition makeInstDefinitionFromParsedInst(DslParser.InstDef ins) {
+        TypeDispatchDefinition td = makeDispatchDefFromInstDef(ins);
+        return new InstDefinition(ins.id, ins.vars, null, ins.prologue, ins.epilogue, td);
+    }
+
     InstDefinition load(String fname) {
         DslParser dslp = new DslParser();
-        DslParser.InstDef instAst = dslp.run(fname);
-        TypeDispatchDefinition td = makeDispatchDefFromInstDef(instAst);
-        InstDefinition instDef = new InstDefinition(instAst.id, instAst.vars, null, td);
+        DslParser.InstDef parsedInst = dslp.run(fname);
+        InstDefinition instDef = makeInstDefinitionFromParsedInst(parsedInst);
         addDef(instDef);
         return instDef;
     }

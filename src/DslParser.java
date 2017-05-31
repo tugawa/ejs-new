@@ -30,6 +30,8 @@ public class DslParser {
         String id;
         String[] vars;
         List<WhenClause> whenClauses = new LinkedList<WhenClause>();
+        String prologue;
+        String epilogue;
         InstDef(String id, String[] vars) {
             this.id = id;
             this.vars = vars;
@@ -45,6 +47,12 @@ public class DslParser {
                 sb.append(vars[0] + "," + vars[1]);
             }
             sb.append(")");
+            if (prologue != null) {
+                sb.append("prologue:(" + prologue + ")");
+            }
+            if (epilogue != null) {
+                sb.append("epilogue:(" + epilogue + ")");
+            }
             sb.append("whenClauses:{");
             for (WhenClause w : whenClauses) {
                 sb.append("(" + w.toString() + ")");
@@ -284,6 +292,16 @@ public class DslParser {
                     checkToken(cprog, TokenId.CPROGRAM);
                     instDef.whenClauses.add(new WhenClause(null, cprog.raw));
                 } break;
+                case KEY_PROLOGUE: {
+                    Token cprog = tks.pollFirst();
+                    checkToken(cprog, TokenId.CPROGRAM);
+                    instDef.prologue = cprog.raw;
+                } break;
+                case KEY_EPILOGUE: {
+                    Token cprog = tks.pollFirst();
+                    checkToken(cprog, TokenId.CPROGRAM);
+                    instDef.epilogue = cprog.raw;
+                } break;
                 case KEY_INST: break;
                 default: {
                     System.out.println("parse error!!!!" + tk.raw);
@@ -301,9 +319,10 @@ public class DslParser {
         CAMMA,
         PARENTHESES,
         KEY_INST,
+        KEY_PROLOGUE,
+        KEY_EPILOGUE,
         KEY_WHEN,
         KEY_OTHERWISE,
-        //OPERAND,
         STRING,
         COND_OP,
         CPROGRAM,
@@ -321,7 +340,7 @@ public class DslParser {
     }
 
     class Tokenizer {
-        static final String tks = "\\\\\\\\.*$|,|:|&&|\\|\\||\\(|\\)|\\\\\\{(.|\\n)*?\\\\\\}|\\\\inst|\\\\when|\\\\otherwise|\\w+";
+        static final String tks = "\\\\\\\\.*$|,|:|&&|\\|\\||\\(|\\)|\\\\\\{(.|\\n)*?\\\\\\}|\\\\inst|\\\\prologue|\\\\epilogue|\\\\when|\\\\otherwise|\\w+";
         final Pattern ptn = Pattern.compile(tks, Pattern.MULTILINE);
         List<Token> tokenize(String all) {
             List<Token> tks = new LinkedList<Token>();
@@ -340,12 +359,14 @@ public class DslParser {
                     tk = new Token(TokenId.COND_OP, s);
                 } else if (s.equals("\\inst")) {
                     tk = new Token(TokenId.KEY_INST, s);
+                } else if (s.equals("\\prologue")) {
+                    tk = new Token(TokenId.KEY_PROLOGUE, s);
+                } else if (s.equals("\\epilogue")) {
+                    tk = new Token(TokenId.KEY_EPILOGUE, s);
                 } else if (s.equals("\\when")) {
                     tk = new Token(TokenId.KEY_WHEN, s);
                 } else if (s.equals("\\otherwise")) {
                     tk = new Token(TokenId.KEY_OTHERWISE, s);
-                //} else if (s.matches("\\$\\w+")) {
-                    //tk = new Token(TokenId.OPERAND, s);
                 } else if (s.matches("\\w+")) {
                     tk = new Token(TokenId.STRING, s);
                 } else if (s.matches("\\\\\\{(.|\n)*\\\\\\}")) {
