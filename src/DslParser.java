@@ -397,9 +397,6 @@ public class DslParser {
     public InstDef run(String fname) {
         String all = readAll(fname);
         List<Token> tks = new Tokenizer().tokenize(all);
-        for (Token t : tks) {
-            System.out.println(t);
-        }
         InstDef instDef = parse(tks);
         return instDef;
     }
