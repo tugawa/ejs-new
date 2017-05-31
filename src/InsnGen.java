@@ -16,10 +16,10 @@ public class InsnGen {
 		String typeDefFile = args[0];
 		String insnDefFile = args[1];
 		String outDir = args[2];
-		
+
 		TypeDefinition td = new TypeDefinition();
         td.load(typeDefFile);
-        
+
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);
 
@@ -29,14 +29,14 @@ public class InsnGen {
 			sb.append(insnDef.name + "_HEAD:\n");
             Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
-        	try {
-        		File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
+            try {
+            	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
                 pw.print(sb.toString());
                 pw.close();
             }catch(IOException e){
                 System.out.println(e);
-            }        	
+            }
         }
 	}
 }
