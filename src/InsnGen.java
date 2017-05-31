@@ -26,9 +26,15 @@ public class InsnGen {
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	Synthesiser synth = new SimpleSynthesiser();
         	StringBuilder sb = new StringBuilder();
+        	if (insnDef.prologue != null) {
+        	    sb.append(insnDef.prologue + "\n");
+        	}
 			sb.append(insnDef.name + "_HEAD:\n");
             Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
+            if (insnDef.epilogue != null) {
+                sb.append(insnDef.epilogue + "\n");
+            }
             try {
             	File file = new File(outDir + "/" + insnDef.name.toLowerCase() + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
