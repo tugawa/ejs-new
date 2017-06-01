@@ -1,0 +1,14 @@
+\inst setprop (obj, prop)
+
+\when obj:array \{
+  set_array_prop(context, obj, prop, value);
+\}
+
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:iterator || obj:function) \{
+  set_object_prop(context, obj, prop, value);
+\}
+
+\otherwise \{
+  LOG_EXIT("setprop: first operand is not an object\n");
+\}
+

@@ -1,0 +1,27 @@
+\inst send (fn)
+
+\when fn:function \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  call_function(context, fn, nargs, TRUE);
+  update_context();
+  NEXT_INSN_NOINCPC();
+\}
+
+\when fn:builtin \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  call_builtin(context, fn, nargs, TRUE, FALSE);
+  update_context();
+  NEXT_INSN_INCPC();
+\}
+
+\otherwise \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  print_value_simple(context, fn);
+  printf(" is called in SEND instruction\n");
+  LOG_EXIT("SEND\n");
+\}
+
+

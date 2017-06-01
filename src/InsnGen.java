@@ -30,11 +30,17 @@ public class InsnGen {
         					new TagPairSynthesiser() :
         					new SwitchSynthesiser();
         	StringBuilder sb = new StringBuilder();
+        	if (insnDef.prologue != null) {
+        	    sb.append(insnDef.prologue + "\n");
+        	}
 			sb.append(insnDef.name + "_HEAD:\n");
-            Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
+            Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
+            if (insnDef.epilogue != null) {
+                sb.append(insnDef.epilogue + "\n");
+            }
             try {
-            	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
+            	File file = new File(outDir + "/" + insnDef.name.toLowerCase() + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
                 pw.print(sb.toString());
                 pw.close();
