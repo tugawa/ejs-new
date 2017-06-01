@@ -44,6 +44,7 @@ class DispatchActionNode extends ActionNode {
 		sb.append("switch("+dispatchExpression+") {\n");
 		branches.forEach(b -> sb.append(b.code()));
 		sb.append("}\n");
+		sb.append("break;\n");
 		return sb.toString();
 	}
 	@Override
