@@ -2,24 +2,6 @@ import java.io.FileNotFoundException;
 import java.util.Set;
 
 public class SimpleSynthesiser extends Synthesiser {
-/*<<<<<<< HEAD
-
-    Plan plan;
-
-	String ptOfOperand(int i) {
-	    if (plan == null)
-	        return "GET_PT(v" + (i + 1) + ")";
-	    else
-	        return "get_tag(" + plan.vars[i].substring(1) + ")";
-	}
-
-	String htOfOperand(int i) {
-		if (plan == null) return "GET_HT(v" + (i + 1) + ")";
-		else return "obj_header_tag(" + plan.vars[i].substring(1) + ")";
-	}
-
-=======
->>>>>>> develop*/
 	@Override
 	String synthesise(Plan plan) {
 	    // this.plan = plan;

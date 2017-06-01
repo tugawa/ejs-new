@@ -8,14 +8,36 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class InsnGen {
-	public static void main(String[] args) throws FileNotFoundException {
-		if (args.length != 3) {
-			System.out.println("InsnGen <type definition> <insn definition> <out dir>");
+	static String typeDefFile;
+	static String insnDefFile;
+	static String outDir;
+	static boolean isSimple;
+	
+	static void parseOption(String[] args) {
+		int i = 0;
+		
+		isSimple = false;
+		
+		while (true) {
+			if (args[i].equals("-simple")) {
+				isSimple = true;
+				i++;
+			} else
+				break;
+		}
+
+		try {
+			typeDefFile = args[i++];
+			insnDefFile = args[i++];
+			outDir = args[i++];
+		} catch (Exception e) {
+			System.out.println("InsnGen [-simple] <type definition> <insn definition> <out dir>");
 			System.exit(1);
 		}
-		String typeDefFile = args[0];
-		String insnDefFile = args[1];
-		String outDir = args[2];
+	}
+
+	public static void main(String[] args) throws FileNotFoundException {
+		parseOption(args);
 
 		TypeDefinition td = new TypeDefinition();
         td.load(typeDefFile);
@@ -24,19 +46,23 @@ public class InsnGen {
         procDef.load(insnDefFile);
 
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-        	Synthesiser synth = new SimpleSynthesiser();
+        	System.out.println(insnDef.name);
+        	Synthesiser synth =
+        			isSimple ? new SimpleSynthesiser() :
+        			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
+        					new SwitchSynthesiser();
         	StringBuilder sb = new StringBuilder();
         	if (insnDef.prologue != null) {
         	    sb.append(insnDef.prologue + "\n");
         	}
 			sb.append(insnDef.name + "_HEAD:\n");
-            Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
+            Plan p = new Plan(insnDef.dispatchVars, insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
             if (insnDef.epilogue != null) {
                 sb.append(insnDef.epilogue + "\n");
             }
             try {
-            	File file = new File(outDir + "/" + insnDef.name.toLowerCase() + ".inc");
+            	File file = new File(outDir + "/" + insnDef.name + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
                 pw.print(sb.toString());
                 pw.close();
