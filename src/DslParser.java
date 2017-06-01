@@ -139,7 +139,7 @@ public class DslParser {
     void convertConditionToDNF(Condition cond) {
         convertConditionToDNFStep2(cond);
     }
-
+/*
     Condition parseCompoundCondition_(Token[] tks, Idx idx, ConditionalOp op) throws Exception {
         Idx idx1 = new Idx(idx.n);
         Condition c1, c2;
@@ -216,6 +216,105 @@ public class DslParser {
         c = parseAtomCondition(tks, idx1);
         if (c != null) { idx.n = idx1.n; return c; }
         return null;
+    }
+    */
+
+    Condition parseConditionAtom(Token[] tks, Idx idx) throws Exception {
+        if (idx.n >= tks.length) return null;
+        if (tks[idx.n].id == TokenId.PARENTHESES) {
+            Idx idx1 = new Idx(idx.n);
+            if (!tks[idx1.n].raw.equals("(")) return null;
+            idx1.n++;
+            Condition c = parseCondition(tks, idx1);
+            if (c == null) return null;
+            if (idx1.n >= tks.length) return null;
+            if (tks[idx1.n].id != TokenId.PARENTHESES) return null;
+            if (!tks[idx1.n].raw.equals(")")) return null;
+            idx1.n++;
+            idx.n = idx1.n;
+            return c;
+        } else {
+            int i = idx.n;
+            if (tks[i].id != TokenId.STRING) return null;
+            if (tks[i+1].id != TokenId.COLON) return null;
+            if (tks[i+2].id != TokenId.STRING) return null;
+            DataType dt = DataType.get(tks[i+2].raw);
+            if (dt == null) { System.out.println("dt is null"); throw new Exception(); }
+            idx.n = i + 3;
+            return new AtomCondition(tks[i].raw, tks[i+2].raw);
+        }
+    }
+
+    CompoundCondition parseConditionTerm_(Token[] tks, Idx idx) throws Exception {
+        if (idx.n >= tks.length) return null;
+        if (tks[idx.n].id == TokenId.COND_OP && tks[idx.n].raw.equals("&&")) {
+            Idx idx1 = new Idx(idx.n);
+            idx1.n++;
+            Condition r = parseConditionTerm(tks, idx1);
+            if (r == null) {
+                System.out.println("condition parse error");
+                throw new Exception();
+            }
+            idx.n = idx1.n;
+            return new CompoundCondition(ConditionalOp.AND, null, r);
+        } else {
+            return null;
+        }
+    }
+
+    Condition parseConditionTerm(Token[] tks, Idx idx) throws Exception {
+        if (idx.n >= tks.length) return null;
+        Idx idx1 = new Idx(idx.n);
+        Condition a = parseConditionAtom(tks, idx1);
+        CompoundCondition c = parseConditionTerm_(tks, idx1);
+        if (c == null) {
+            idx.n = idx1.n;
+            return a;
+        }
+        else {
+            c.cond1 = a;
+            idx.n = idx1.n;
+            return c;
+        }
+    }
+
+    Condition parseCondition_(Token[] tks, Idx idx) throws Exception {
+        if (idx.n >= tks.length) return null;
+        if (tks[idx.n].id == TokenId.COND_OP && tks[idx.n].raw.equals("||")) {
+            Idx idx1 = new Idx(idx.n);
+            idx1.n++;
+            Condition r = parseCondition(tks, idx1);
+            if (r == null) {
+                System.out.println("condition parse error");
+                throw new Exception();
+            }
+            idx.n = idx1.n;
+            return new CompoundCondition(ConditionalOp.OR, null, r);
+        } else {
+            return null;
+        }
+    }
+
+    Condition parseCondition(Token[] tks, Idx idx) throws Exception {
+        if (idx.n >= tks.length) return null;
+        Idx idx1 = new Idx(idx.n);
+        Condition t, c;
+        t = parseConditionTerm(tks, idx1);
+        c = parseCondition_(tks, idx1);
+        if (c == null) {
+            idx.n = idx1.n;
+            return t;
+        } else {
+            if (c instanceof CompoundCondition) {
+                CompoundCondition cc = (CompoundCondition) c;
+                cc.cond1 = t;
+                idx.n = idx1.n;
+                return cc;
+            } else {
+                System.out.println("condition parse error");
+                throw new Exception();
+            }
+        }
     }
 
     void assignVarIdx(String[] vars, Condition cond) {
@@ -403,8 +502,8 @@ public class DslParser {
 
     public static void main(String[] args) {
         DslParser dslp = new DslParser();
-        InstDef instDef = dslp.run("sample.idef");
-        System.out.println(instDef);
+        InstDef instDef = dslp.run("idefs/add.idef");
+        // System.out.println(instDef);
         /*
         String all = dslp.readAll("idefs/sample.idef");
         System.out.println(all);
