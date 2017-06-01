@@ -118,7 +118,7 @@ class TerminalActionNode extends ActionNode {
 
 	@Override
 	public String code() {
-		return label + ": "+ rule.action + "\nbreak;\n";
+		return label + ": {"+ rule.action + "\n}\nbreak;\n";
 	}
 
 	public boolean mergable(ActionNode that) {
