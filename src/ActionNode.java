@@ -42,9 +42,8 @@ class DispatchActionNode extends ActionNode {
 		StringBuffer sb = new StringBuffer();
 		sb.append(label + ": ");
 		sb.append("switch("+dispatchExpression+") {\n");
-		branches.forEach(b -> sb.append(b.code()));
+		branches.forEach(b -> sb.append(b.code()).append("break;\n"));
 		sb.append("}\n");
-		sb.append("break;\n");
 		return sb.toString();
 	}
 	@Override
@@ -119,7 +118,7 @@ class TerminalActionNode extends ActionNode {
 
 	@Override
 	public String code() {
-		return label + ": {"+ rule.action + "\n}\nbreak;\n";
+		return label + ": {"+ rule.action + "\n}\n";
 	}
 
 	public boolean mergable(ActionNode that) {
