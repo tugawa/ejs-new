@@ -1,6 +1,0 @@
-/*
-   unknown
- */
-{
-  return -1;
-}
