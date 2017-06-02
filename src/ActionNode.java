@@ -5,12 +5,13 @@ import java.util.stream.Collectors;
 
 abstract class ActionNode {
 	static int nextLabel = 0;
+	static String prefix = "";
 	String label;
 	boolean arranged;
 	
 	ActionNode() {
 		arranged = false;
-		label = String.format("L%d", nextLabel++);
+		label = String.format("L%s%d", prefix, nextLabel++);
 	}
 
 	public boolean mergable(ActionNode that) {
