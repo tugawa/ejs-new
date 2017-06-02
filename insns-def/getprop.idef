@@ -1,0 +1,28 @@
+\inst getprop (v1)
+
+\prologue \{
+#define dst regbase[r0]
+#define obj v1
+#define prop v2
+\}
+
+\epilogue \{
+#undef dst
+#undef obj
+#undef prop
+\}
+
+\when v1:array \{
+  dst = get_array_prop(context, obj, prop);
+\}
+
+\when (v1:regexp || v1:number_object || v1:boolean_object || v1:string_object || v1:builtin || v1:simple_object || v1:iterator || v1:function) \{
+  dst = get_object_prop(context, obj, prop);
+\}
+
+\otherwise \{
+  if (obj == JS_UNDEFINED) printf("GETPROP: !!!!\n");
+  obj = to_object(context, obj);
+  goto getprop_HEAD;
+\}
+

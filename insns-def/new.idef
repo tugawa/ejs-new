@@ -1,0 +1,27 @@
+\inst new (v1)
+
+\prologue \{
+#define dst regbase[r0]
+#define con v1
+\}
+
+\epilogue \{
+#undef dst
+#undef con
+\}
+
+\when v1:function \{
+  JSValue o, p;
+  save_context();
+  o = new_normal_object(context);
+  update_context();
+  get_prop(con, gconsts.g_string_prototype, &p);
+  if (!is_object(p)) p = gconsts.g_object_proto;
+  set___proto___all(context, o, p);
+  dst = o;
+\}
+
+\otherwise \{
+dst = JS_UNDEFINED;
+\}
+

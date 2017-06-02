@@ -1,0 +1,26 @@
+\inst setprop (v0)
+
+\prologue \{
+#define obj v0
+#define prop v1
+#define value v2
+\}
+
+\epilogue \{
+#undef obj
+#undef prop
+#undef value
+\}
+
+\when v0:array \{
+  set_array_prop(context, obj, prop, value);
+\}
+
+\when (v0:regexp || v0:number_object || v0:boolean_object || v0:builtin || v0:string_object || v0:simple_object || v0:iterator || v0:function) \{
+  set_object_prop(context, obj, prop, value);
+\}
+
+\otherwise \{
+  LOG_EXIT("setprop: first operand is not an object\n");
+\}
+

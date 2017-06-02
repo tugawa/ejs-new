@@ -1,0 +1,123 @@
+\inst equal (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when (v1:fixnum && v2:fixnum) || (v1:string && v2:string) \{
+  if (v1 == v2) dst = JS_TRUE;
+  else dst = JS_FALSE;
+\}
+
+\when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:special && v2:flonum) || (v1:flonum && v2:special) \{
+  dst = JS_FALSE;
+\}
+
+\when v1:flonum && v2:flonum \{
+  double x1, x2;
+  if (v1 == v2) {
+    dst = false_true(is_nan(v1));
+  } else {
+    x1 = flonum_to_double(v1);
+    x2 = flonum_to_double(v2);
+    dst = true_false(x1 == x2);
+  }
+\}
+
+\when v1:special && v2:special \{
+  if (v1 == v2) dst = JS_TRUE;
+  else dst = true_false((is_undefined(v1) && is_null(v2)) || (is_undefined(v2) && is_null(v1)));
+\}
+
+\when v1:string && v2:fixnum \{
+  v1 = string_to_number(v1);
+  dst = true_false(v1 == v2);
+\}
+
+\when v1:string && v2:flonum \{
+equal_STRFIX:
+  v1 = string_to_number(v1);
+  goto equal_HEAD;
+\}
+
+\when v1:fixnum && v2:string \{
+equal_FIXSTR:
+  v2 = string_to_number(v2);
+  dst = true_false(v1 == v2);
+\}
+
+\when v1:flonum && v2:string \{
+  v2 = string_to_number(v2);
+  goto equal_HEAD;
+\}
+
+\when v1:special && v2:fixnum \{
+  if (v1 == JS_UNDEFINED) dst = JS_FALSE;
+  else if (v1 == JS_NULL) dst = JS_FALSE;
+  else {
+    if (v1 == JS_TRUE) v1 = FIXNUM_ONE;
+    else if (v1 == JS_FALSE) v1 = FIXNUM_ZERO;
+    dst = true_false(v1 == v2);
+  }
+\}
+
+\when v1:fixnum && v2:special \{
+  if (v2 == JS_UNDEFINED) dst = JS_FALSE;
+  else if (v2 == JS_NULL) dst = JS_FALSE;
+  else {
+    if (v2 == JS_TRUE) v2 = FIXNUM_ONE;
+    else if (v2 == JS_FALSE) v2 = FIXNUM_ZERO;
+    dst = true_false(v1 == v2);
+  }
+\}
+
+\when v1:special && v2:string \{
+  if (v1 == JS_UNDEFINED) dst = JS_FALSE;
+  else if (v1 == JS_NULL) dst = JS_FALSE;
+  else {
+    if (v1 == JS_TRUE) v1 = FIXNUM_ONE;
+    else if (v1 == JS_FALSE) v1 = FIXNUM_ZERO;
+    goto equal_FIXSTR;
+  }
+\}
+
+\when v1:string && v2:special \{
+  if (v2 == JS_UNDEFINED) dst = JS_FALSE;
+  else if (v2 == JS_NULL) dst = JS_FALSE;
+  else {
+    if (v2 == JS_TRUE) v2 = FIXNUM_ONE;
+    else if (v2 == JS_FALSE) v2 = FIXNUM_ZERO;
+    goto equal_STRFIX;
+  }
+\}
+
+\when (v1:regexp || v1:number_object || v1:boolean_object || v1:builtin || v1:string_object || v1:simple_object || v1:array || v1:iterator || v1:function) && v2:fixnum \{
+  v1 = object_to_primitive(context, v1, HINT_NUMBER);
+  dst = true_false(v1 == v2);
+\}
+
+\when v1:fixnum && (v2:regexp || v2:number_object || v2:boolean_object || v2:builtin || v2:string_object || v2:simple_object || v2:array || v2:iterator || v2:function) \{
+  v2 = object_to_primitive(context, v2, HINT_NUMBER);
+  dst = true_false(v1 == v2);
+\}
+
+\when (v1:flonum || v1:string || v1:special) && (v2:regexp || v2:number_object || v2:boolean_object || v2:builtin || v2:string_object || v2:simple_object || v2:array || v2:iterator || v2:function) \{
+  v2 = object_to_primitive(context, v2, HINT_NUMBER);
+  goto equal_HEAD;
+\}
+
+\when (v1:regexp || v1:number_object || v1:boolean_object || v1:builtin || v1:string_object || v1:simple_object || v1:array || v1:iterator || v1:function) && (v2:flonum || v2:string || v2:special) \{
+  v1 = object_to_primitive(context, v1, HINT_NUMBER);
+  goto equal_HEAD;
+\}
+
+\otherwise \{
+  if (v1 == v2) dst = JS_TRUE;
+  else dst = JS_FALSE;
+\}
+
+

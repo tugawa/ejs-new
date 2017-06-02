@@ -1,0 +1,51 @@
+\inst mod (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when v1:fixnum && v2:fixnum \{
+  if (v2 == FIXNUM_ZERO)
+    dst = gconsts.g_flonum_nan;
+  else {
+    cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
+    dst = cint_to_fixnum(s);
+  }
+\}
+
+\when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{
+  double x1 = to_double(context, v1);
+  double x2 = to_double(context, v2);
+  double d;
+  if (isinf(x1) || x2 == 0.0f)
+    dst = gconsts.g_flonum_nan;
+  else {
+    d = x1 / x2;
+    d = d >= 0? floor(d) : ceil(d);
+    d = x1 - (d * x2);
+    dst = double_to_number(d);
+  }
+\}
+
+\when v1:fixnum || v1:flonum \{
+  v2 = to_number(context, v2);
+  goto mod_HEAD;
+\}
+
+\when v2:fixnum || v2:flonum \{
+  v1 = to_number(context, v1);
+  goto mod_HEAD;
+\}
+
+\otherwise \{
+  v1 = to_number(context, v1);
+  v2 = to_number(context, v2);
+  goto mod_HEAD;
+\}
+
+
+

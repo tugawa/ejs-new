@@ -1,0 +1,52 @@
+\inst leftshift (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when v1:fixnum && v2:fixnum \{
+  int32_t x1 = (int32_t) fixnum_to_cint(v1);
+  cint x2 = fixnum_to_cint(v2);
+  dst = cint_to_fixnum((cint) (x1 << x2));
+\}
+
+\when v1:fixnum && v2:flonum \{
+  int32_t x1 = (int32_t) fixnum_to_cint(v1);
+  cint x2 = flonum_to_cint(v2);
+  dst = cint_to_fixnum((cint) (x1 << x2));
+\}
+
+\when v1:flonum && v2:fixnum \{
+  int32_t x1 = (int32_t) flonum_to_cint(v1);
+  cint x2 = fixnum_to_cint(v2);
+  dst = cint_to_fixnum((cint) (x1 << x2));
+\}
+
+\when v1:flonum && v2:flonum \{
+  int32_t x1 = (int32_t) flonum_to_cint(v1);
+  cint x2 = flonum_to_cint(v2);
+  dst = cint_to_fixnum((cint) (x1 << x2));
+\}
+
+\when v1:fixnum || v1:flonum \{
+  v2 = to_number(context, v2);
+  goto leftshift_HEAD;
+\}
+
+\when v2:fixnum || v2:flonum \{
+  v1 = to_number(context, v1);
+  goto leftshift_HEAD;
+\}
+
+\otherwise \{
+  v1 = to_number(context, v1);
+  v2 = to_number(context, v2);
+  goto leftshift_HEAD;
+\}
+
+
+
