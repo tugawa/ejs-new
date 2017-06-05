@@ -45,17 +45,19 @@ public class TypesGen {
 	}
 
 	String minimumRepresentation(Set<DataType> dts) {
-		return DataType.typeRepresentationStreamOf(dts)
-			.map(tr -> {
-				PT pt = tr.getPT();
-				if (hasUniquePT(pt, dts, DataType.all()))
-					return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
-				else
-					return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
-							+"obj_header_tag(x) == "+ tr.getHT().name +")";
-				})
-			.distinct()
-			.collect(Collectors.joining(" || "));
+		return "(" +
+				DataType.typeRepresentationStreamOf(dts)
+				.map(tr -> {
+					PT pt = tr.getPT();
+					if (hasUniquePT(pt, dts, DataType.all()))
+						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
+					else
+						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
+								+"obj_header_tag(x) == "+ tr.getHT().name +")";
+					})
+				.distinct()
+				.collect(Collectors.joining(" || ")) +
+			   ")";
 	}
 
 	String defineDTPredicates() {
@@ -92,17 +94,19 @@ public class TypesGen {
 			.map(tr -> tr.getPT())
 			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 		String def = "";
-		def += "#define has_unique_ptag(x) "+
+		def += "#define has_unique_ptag(x) ("+
 				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).map(pt -> {
 					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
 				})
-				.collect(Collectors.joining(" || "));
+				.collect(Collectors.joining(" || ")) +
+				")";
 		def += "\n";
-		def += "#define has_common_ptag(x) "+
+		def += "#define has_common_ptag(x) ("+
 				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).map(pt -> {
 					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
 				})
-				.collect(Collectors.joining(" || "));
+				.collect(Collectors.joining(" || ")) +
+				")";
 		def += "\n";
 		return def;
 	}
