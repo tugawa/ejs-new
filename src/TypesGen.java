@@ -111,6 +111,37 @@ public class TypesGen {
 		return def;
 	}
 
+	String defineTagOperations() {
+		String[][] typemap = new String[][] {
+				{"simple_object", "Object"},
+				{"array", "ArrayCell"},
+				{"function", "FunctionCell"},
+				{"builtin", "BuiltinCell"},
+				{"iterator", "IteratorCell"},
+				{"regexp", "RegexpCell"},
+				{"flonum", null},
+				{"string", null}
+		};
+		StringBuilder sb = new StringBuilder();
+		for (String[] t: typemap) {
+			String jsType = t[0];
+			String cType = t[1];
+			String ptName = DataType.get(jsType).reprs.iterator().next().pt.name;
+			sb.append("#define put_").append(jsType).append("_tag(p) ")
+			  .append("(put_tag(p, ").append(ptName).append("))\n");
+			if (cType != null)
+				sb.append("#define remove_").append(jsType).append("_tag(p) ")
+				  .append("((").append(cType).append(" *)remove_tag(p, ").append(ptName).append("))\n");
+		}
+		sb.append("#define put_boxed_tag(p) (put_tag(p, ")
+		  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+		  .append("))\n");
+		sb.append("#define remove_boxed_tag(p) ((BoxedCell *)remove_tag(p, ")
+		  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+		  .append("))\n");
+		return sb.toString();
+	}
+
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
 		if (args.length == 1)
@@ -123,5 +154,6 @@ public class TypesGen {
 		System.out.println(tg.defineDTPredicates());
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.uniquenessPredicates());
+		System.out.println(tg.defineTagOperations());
 	}
 }
