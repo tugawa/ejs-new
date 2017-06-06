@@ -707,7 +707,7 @@ JSValue new_simple_object_without_prototype(Context *ctx, int hsize, int psize) 
 
   //  printf("new_simple_object_without_prototype\n");
   ret = make_simple_object(ctx);
-  p = remove_object_tag(ret);
+  p = remove_simple_object_tag(ret);
   set_object_members(p, hsize, psize);
   return ret;
 }
@@ -723,7 +723,7 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 
   // printf("new_simple_object\n");
   ret = make_simple_object(ctx);
-  p = remove_object_tag(ret);
+  p = remove_simple_object_tag(ret);
   set_object_members(p, hsize, psize);
   set___proto___all(ctx, ret, gconsts.g_object_proto);
   return ret;

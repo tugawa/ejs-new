@@ -471,7 +471,6 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   JSValue ret, item;
   char **strs;
   char *sep, *cstr, *p;
-  ArrayCell *ap;
   int i;
 
   if (!is_array(array)) {
@@ -489,7 +488,6 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   sep = string_to_cstr(separator);
   seplen = strlen(sep);
   sumlen = 0;
-  ap = remove_array_tag(array);
 
   for (i = 0; i < length; i++) {
     item = get_array_prop(context, array, cint_to_fixnum(i));
