@@ -147,7 +147,7 @@ public class TypesGen {
 		if (args.length == 1)
 			td.load(args[0]);
 		else
-			td.load("datatype/embstr.dtdef"); // debug
+			td.load("datatype/genericfloat.def"); // debug
 		TypesGen tg = new TypesGen();
 		System.out.println(tg.definePT());
 		System.out.println(tg.defineHT());

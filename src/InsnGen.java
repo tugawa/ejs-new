@@ -12,10 +12,20 @@ public class InsnGen {
 	static String insnDefFile;
 	static String outDir;
 	static boolean isSimple;
+	public static boolean DEBUG = false;
 	
 	static void parseOption(String[] args) {
 		int i = 0;
 		
+		if (args.length == 0) {
+			typeDefFile = "datatype/genericfloat.def";
+			insnDefFile = "idefs/div.idef";
+			outDir = null;
+			isSimple = false;
+			DEBUG = true;
+			return;
+		}
+
 		isSimple = false;
 		
 		while (true) {
@@ -29,9 +39,10 @@ public class InsnGen {
 		try {
 			typeDefFile = args[i++];
 			insnDefFile = args[i++];
-			outDir = args[i++];
+			if (i < args.length)
+				outDir = args[i++];
 		} catch (Exception e) {
-			System.out.println("InsnGen [-simple] <type definition> <insn definition> <out dir>");
+			System.out.println("InsnGen [-simple] <type definition> <insn definition> [<out dir>]");
 			System.exit(1);
 		}
 	}
@@ -46,7 +57,8 @@ public class InsnGen {
         procDef.load(insnDefFile);
 
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-        	System.out.println(insnDef.name);
+        	if (outDir != null)
+        		System.out.println(insnDef.name);
         	ActionNode.prefix = insnDef.name;
         	Synthesiser synth =
         			isSimple ? new SimpleSynthesiser() :
@@ -62,13 +74,17 @@ public class InsnGen {
             if (insnDef.epilogue != null) {
                 sb.append(insnDef.epilogue + "\n");
             }
-            try {
-            	File file = new File(outDir + "/" + insnDef.name + ".inc");
-                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-                pw.print(sb.toString());
-                pw.close();
-            }catch(IOException e){
-                System.out.println(e);
+            if (outDir == null) {
+            	System.out.println(sb.toString());
+            } else {
+	            try {
+	            	File file = new File(outDir + "/" + insnDef.name + ".inc");
+	                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+	                pw.print(sb.toString());
+	                pw.close();
+	            }catch(IOException e){
+	                System.out.println(e);
+	            }
             }
         }
 	}
