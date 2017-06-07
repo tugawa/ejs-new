@@ -15,9 +15,9 @@ import java.util.stream.Stream;
 
 
 public class TypeDefinition {
-	String quoted;
+	static String quoted;
 
-	DataType parseLine(String line) {
+	static DataType parseLine(String line) {
 		Scanner sc = new Scanner(line);
 		try {
 			sc.findInLine("([a-zA-Z_]+)\\s*:\\s*");
@@ -51,7 +51,7 @@ public class TypeDefinition {
 		}
 	}
 
-	void load(String filename) throws FileNotFoundException {
+	static void load(String filename) throws FileNotFoundException {
 		Scanner sc = new Scanner(new FileInputStream(filename));
 		while(sc.hasNextLine()) {
 			String line = sc.nextLine();
@@ -70,6 +70,10 @@ public class TypeDefinition {
 		quoted = sb.toString();
 	}
 
+	static String getQuoted() {
+		return quoted;
+	}
+
 	@Override
 	public String toString() {
 		String s = "";
@@ -81,9 +85,7 @@ public class TypeDefinition {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
-		TypeDefinition td = new TypeDefinition();
-		td.load("datatype/embstr.dtdef");
-		System.out.println(td);
+		TypeDefinition.load("datatype/embstr.dtdef");
 		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of("fixnum", "string", "array").map(n -> DataType.get(n)))));
 		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
 				"simple_object",

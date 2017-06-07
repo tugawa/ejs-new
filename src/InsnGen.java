@@ -50,8 +50,7 @@ public class InsnGen {
 	public static void main(String[] args) throws FileNotFoundException {
 		parseOption(args);
 
-		TypeDefinition td = new TypeDefinition();
-        td.load(typeDefFile);
+        TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);

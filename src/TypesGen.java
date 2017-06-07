@@ -143,11 +143,10 @@ public class TypesGen {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
-		TypeDefinition td = new TypeDefinition();
 		if (args.length == 1)
-			td.load(args[0]);
+			TypeDefinition.load(args[0]);
 		else
-			td.load("datatype/genericfloat.def"); // debug
+			TypeDefinition.load("datatype/genericfloat.def"); // debug
 		TypesGen tg = new TypesGen();
 		System.out.println(tg.definePT());
 		System.out.println(tg.defineHT());
@@ -155,6 +154,6 @@ public class TypesGen {
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.uniquenessPredicates());
 		System.out.println(tg.defineTagOperations());
-		System.out.println(td.quoted);
+		System.out.println(TypeDefinition.quoted);
 	}
 }
