@@ -155,5 +155,6 @@ public class TypesGen {
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.uniquenessPredicates());
 		System.out.println(tg.defineTagOperations());
+		System.out.println(td.quoted);
 	}
 }
