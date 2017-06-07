@@ -95,6 +95,9 @@
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
 
+#define is_pointer(p)     (((p) & 2) != 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+
 #endif /* USE_TYPES_GENERATED */
 
 /*

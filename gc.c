@@ -736,17 +736,17 @@ STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
 STATIC void trace_slot(JSValue* ptr)
 {
   JSValue jsv = *ptr;
-  /* TODO: use macro */
-  if ((jsv & 0x2) != 0) /* not a pointer */
-    return;
-  if ((jsv & 0x4) != 0) {
+  if (is_leaf_object(jsv)) {
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
+  } else if (is_pointer(jsv)) {
+    uint8_t tag = jsv & TAGMASK;
+    jsv &= ~TAGMASK;
+    trace_js_object((uintptr_t *) &jsv);
+    *ptr = jsv | tag;
   }
-  else
-    trace_js_object((uintptr_t *) ptr);
 }
 
 STATIC void trace_malloc_pointer(void **ptrp)

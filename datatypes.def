@@ -11,3 +11,7 @@ regexp:        T_GENERIC(000)/HTAG_REGEXP(11)
 string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)
 number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)
 boolean_object:T_GENERIC(000)/HTAG_BOXED_BOOLEAN(14)
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
