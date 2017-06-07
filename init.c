@@ -27,6 +27,10 @@
    initilaizes global constants
  */
 void init_global_constants(void) {
+  int i;
+  for (i = 0; i < sizeof(gconsts)/sizeof(JSValue); i++)
+    ((JSValue *)&gconsts)[i] = JS_UNDEFINED;
+
   // string constants
   gconsts.g_string_prototype = cstr_to_string("prototype");
   gconsts.g_string___proto__ = cstr_to_string("__proto__");

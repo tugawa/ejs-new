@@ -663,16 +663,11 @@ STATIC void trace_js_object(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
   Object *obj = (Object *) ptr;
-  /* TODO: specialise.  If obj is pointed at through JSValue, we do not
-   *       need to check it's space.  It should be in js_space */
-  if (ptr == 0)
-    return;
+
   assert(in_js_space((void *) ptr));
-  if (in_malloc_space((void *) ptr) || in_js_space((void *) ptr)) {
-    if (is_marked_cell((void *) ptr))
-      return;
-    mark_cell((void *) ptr);
-  }
+  if (is_marked_cell((void *) ptr))
+    return;
+  mark_cell((void *) ptr);
 
   /* common header */
 #ifdef HIDDEN_CLASS
