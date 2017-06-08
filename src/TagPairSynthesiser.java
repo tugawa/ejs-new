@@ -21,7 +21,7 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 			.map(c -> new PT[] {c.trs[0].getPT(), c.trs[1].getPT()})
 			.distinct();
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
-//		System.out.println(nestedRuleList)
+//		System.out.println(nestedRuleList);
 		nestedRuleList.canonicalise();
 //		System.out.println(nestedRuleList);
 		DispatchActionNode d = nestedDispatch(nestedRuleList);

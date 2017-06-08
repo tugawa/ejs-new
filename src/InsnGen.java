@@ -24,7 +24,11 @@ public class InsnGen {
         procDef.load(insnDefFile);
 
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-        	Synthesiser synth = new SimpleSynthesiser();
+        	System.out.println(insnDef.name);
+        	Synthesiser synth =
+        			insnDef.dispatchVars.length == 2 ?
+        					new TagPairSynthesiser() :
+        					new SwitchSynthesiser();
         	StringBuilder sb = new StringBuilder();
 			sb.append(insnDef.name + "_HEAD:\n");
             Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
