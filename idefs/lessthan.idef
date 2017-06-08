@@ -1,17 +1,25 @@
 \inst lessthan (v1, v2)
 
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
 \when v1:fixnum && v2:fixnum \{
-  vdst = true_false((int64_t) v1 < (int64_t) v2);
+  dst = true_false((int64_t) v1 < (int64_t) v2);
 \}
 
 \when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{
   double x1 = to_double(context, v1);
   double x2 = to_double(context, v2);
-  vdst = true_false(x1 < x2);
+  dst = true_false(x1 < x2);
 \}
 
 \when v1:string && v2:string \{
-  vdst = true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0);
+  dst = true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0);
 \}
 
 \when (v1:special && v2:special) || (v1:special && v2:string) || (v1:string && v2:special) \{

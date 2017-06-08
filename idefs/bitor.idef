@@ -1,24 +1,33 @@
 \inst bitor (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
 \when v1:fixnum && v2:fixnum \{
-  vdst = v1 | v2;
+  dst = v1 | v2;
 \}
 
 \when v1:fixnum && v2:flonum \{
   cint x1 = fixnum_to_cint(v1);
   cint x2 = flonum_to_cint(v2);
-  vdst = cint_to_fixnum(x1 | x2);
+  dst = cint_to_fixnum(x1 | x2);
 \}
 
 \when v1:flonum && v2:fixnum \{
   cint x1 = flonum_to_cint(v1);
   cint x2 = fixnum_to_cint(v2);
-  vdst = cint_to_fixnum(x1 | x2);
+  dst = cint_to_fixnum(x1 | x2);
 \}
 
 \when v1:flonum && v2:flonum \{
   cint x1 = flonum_to_cint(v1);
   cint x2 = flonum_to_cint(v2);
-  vdst = cint_to_fixnum(x1 | x2);
+  dst = cint_to_fixnum(x1 | x2);
 \}
 
 \when v1:fixnum || v1:flonum \{

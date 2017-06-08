@@ -8,38 +8,82 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class InsnGen {
-	public static void main(String[] args) throws FileNotFoundException {
-		if (args.length != 3) {
-			System.out.println("InsnGen <type definition> <insn definition> <out dir>");
+	static String typeDefFile;
+	static String insnDefFile;
+	static String outDir;
+	static boolean isSimple;
+	public static boolean DEBUG = false;
+	
+	static void parseOption(String[] args) {
+		int i = 0;
+		
+		if (args.length == 0) {
+			typeDefFile = "datatype/genericfloat.def";
+			insnDefFile = "idefs/div.idef";
+			outDir = null;
+			isSimple = false;
+			DEBUG = true;
+			return;
+		}
+
+		isSimple = false;
+		
+		while (true) {
+			if (args[i].equals("-simple")) {
+				isSimple = true;
+				i++;
+			} else
+				break;
+		}
+
+		try {
+			typeDefFile = args[i++];
+			insnDefFile = args[i++];
+			if (i < args.length)
+				outDir = args[i++];
+		} catch (Exception e) {
+			System.out.println("InsnGen [-simple] <type definition> <insn definition> [<out dir>]");
 			System.exit(1);
 		}
-		String typeDefFile = args[0];
-		String insnDefFile = args[1];
-		String outDir = args[2];
+	}
 
-		TypeDefinition td = new TypeDefinition();
-        td.load(typeDefFile);
+	public static void main(String[] args) throws FileNotFoundException {
+		parseOption(args);
+
+        TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);
 
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-        	System.out.println(insnDef.name);
+        	if (outDir != null)
+        		System.out.println(insnDef.name);
+        	ActionNode.prefix = insnDef.name;
         	Synthesiser synth =
-        			insnDef.dispatchVars.length == 2 ?
-        					new TagPairSynthesiser() :
+        			isSimple ? new SimpleSynthesiser() :
+        			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
         					new SwitchSynthesiser();
         	StringBuilder sb = new StringBuilder();
+        	if (insnDef.prologue != null) {
+        	    sb.append(insnDef.prologue + "\n");
+        	}
 			sb.append(insnDef.name + "_HEAD:\n");
-            Plan p = new Plan(Arrays.stream(insnDef.dispatchVars).map(s -> s.substring(1, s.length())).collect(Collectors.toList()).toArray(new String[]{}), insnDef.tdDef.rules);
+            Plan p = new Plan(insnDef.dispatchVars, insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
-            try {
-            	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
-                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-                pw.print(sb.toString());
-                pw.close();
-            }catch(IOException e){
-                System.out.println(e);
+            if (insnDef.epilogue != null) {
+                sb.append(insnDef.epilogue + "\n");
+            }
+            if (outDir == null) {
+            	System.out.println(sb.toString());
+            } else {
+	            try {
+	            	File file = new File(outDir + "/" + insnDef.name + ".inc");
+	                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+	                pw.print(sb.toString());
+	                pw.close();
+	            }catch(IOException e){
+	                System.out.println(e);
+	            }
             }
         }
 	}

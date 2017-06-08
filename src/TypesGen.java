@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
-		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.all())
+		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.allUsed())
 						.map(tr -> tr.getPT())
 						.distinct()
 						.collect(Collectors.toList());
@@ -27,7 +27,10 @@ public class TypesGen {
 	}
 
 	String defineHT() {
-		List<HT> pts = DataType.typeRepresentationStreamOf(DataType.all())
+		/* Need to produce HT definition regardless of whether the type is used or not
+		 * because GC uses HT.
+		 */
+		List<HT> pts = DataType.typeRepresentationStreamOf(DataType.allInSpec())
 						.filter(tr -> tr.hasHT())
 						.map(tr -> tr.getHT())
 						.distinct()
@@ -45,23 +48,31 @@ public class TypesGen {
 	}
 
 	String minimumRepresentation(Set<DataType> dts) {
-		return DataType.typeRepresentationStreamOf(dts)
-			.map(tr -> {
-				PT pt = tr.getPT();
-				if (hasUniquePT(pt, dts, DataType.all()))
-					return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
-				else
-					return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
-							+"obj_header_tag(x) == "+ tr.getHT().name +")";
-				})
-			.distinct()
-			.collect(Collectors.joining(" || "));
+		return "(" +
+				DataType.typeRepresentationStreamOf(dts)
+				.map(tr -> {
+					PT pt = tr.getPT();
+					if (hasUniquePT(pt, dts, DataType.allUsed()))
+						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
+					else
+						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
+								+"obj_header_tag(x) == "+ tr.getHT().name +")";
+					})
+				.distinct()
+				.collect(Collectors.joining(" || ")) +
+			   ")";
 	}
 
 	String defineDTPredicates() {
-		return DataType.all().stream()
-			.map(dt -> "#define is_" + dt.name + "(x) "+ minimumRepresentation(Stream.of(dt).collect(Collectors.toSet())) +"\n")
-			.collect(Collectors.joining());
+		StringBuilder sb = new StringBuilder();
+		for (DataType dt: DataType.allInSpec()) {
+			sb.append("#define is_").append(dt.name).append("(x) ");
+			if (dt.reprs.isEmpty())
+				sb.append("0  /* not used */\n");
+			else
+				sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet())) +"\n");
+		}
+		return sb.toString();
 	}
 
 	String defineDTFamilyPredicates() {
@@ -88,36 +99,74 @@ public class TypesGen {
 	}
 
 	String uniquenessPredicates() {
-		Map<PT, Long> ptCount = DataType.typeRepresentationStreamOf(DataType.all())
+		Map<PT, Long> ptCount = DataType.typeRepresentationStreamOf(DataType.allUsed())
 			.map(tr -> tr.getPT())
 			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 		String def = "";
-		def += "#define has_unique_ptag(x) "+
+		def += "#define has_unique_ptag(x) ("+
 				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).map(pt -> {
 					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
 				})
-				.collect(Collectors.joining(" || "));
+				.collect(Collectors.joining(" || ")) +
+				")";
 		def += "\n";
-		def += "#define has_common_ptag(x) "+
+		def += "#define has_common_ptag(x) ("+
 				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).map(pt -> {
 					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
 				})
-				.collect(Collectors.joining(" || "));
+				.collect(Collectors.joining(" || ")) +
+				")";
 		def += "\n";
 		return def;
 	}
 
+	String defineTagOperations() {
+		String[][] typemap = new String[][] {
+				{"simple_object", "Object"},
+				{"array", "ArrayCell"},
+				{"function", "FunctionCell"},
+				{"builtin", "BuiltinCell"},
+				{"iterator", "IteratorCell"},
+				{"regexp", "RegexpCell"},
+				{"flonum", null},
+				{"string", null}
+		};
+		StringBuilder sb = new StringBuilder();
+		for (String[] t: typemap) {
+			String jsType = t[0];
+			String cType = t[1];
+			if (!DataType.get(jsType).reprs.isEmpty()) {
+				String ptName = DataType.get(jsType).reprs.iterator().next().pt.name;
+				sb.append("#define put_").append(jsType).append("_tag(p) ")
+				  .append("(put_tag(p, ").append(ptName).append("))\n");
+				if (cType != null)
+					sb.append("#define remove_").append(jsType).append("_tag(p) ")
+					  .append("((").append(cType).append(" *)remove_tag(p, ").append(ptName).append("))\n");
+			}
+		}
+		if (!DataType.get("string_object").reprs.isEmpty()) {
+			sb.append("#define put_boxed_tag(p) (put_tag(p, ")
+			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+			  .append("))\n");
+			sb.append("#define remove_boxed_tag(p) ((BoxedCell *)remove_tag(p, ")
+			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+			  .append("))\n");
+		}
+		return sb.toString();
+	}
+
 	public static void main(String[] args) throws FileNotFoundException {
-		TypeDefinition td = new TypeDefinition();
 		if (args.length == 1)
-			td.load(args[0]);
+			TypeDefinition.load(args[0]);
 		else
-			td.load("datatype/embstr.dtdef"); // debug
+			TypeDefinition.load("datatype/genericfloat.def"); // debug
 		TypesGen tg = new TypesGen();
 		System.out.println(tg.definePT());
 		System.out.println(tg.defineHT());
 		System.out.println(tg.defineDTPredicates());
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.uniquenessPredicates());
+		System.out.println(tg.defineTagOperations());
+		System.out.println(TypeDefinition.quoted);
 	}
 }
