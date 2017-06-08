@@ -3,7 +3,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 
-abstract class ActionNode {
+abstract class ActionNode implements GlobalConstantOptions {
 	static int nextLabel = 0;
 	static String prefix = "";
 	String label;
@@ -40,10 +40,16 @@ class DispatchActionNode extends ActionNode {
 
 	@Override
 	public String code() {
+		Branch max = null;
+		for (Branch b: branches) {
+			if (max == null || b.size() > max.size())
+				max = b;
+		}
+		Branch largetBranch = max;
 		StringBuffer sb = new StringBuffer();
 		sb.append(label + ": ");
 		sb.append("switch("+dispatchExpression+") {\n");
-		branches.forEach(b -> sb.append(b.code()).append("break;\n"));
+		branches.forEach(b -> sb.append(b.code(USE_DEFAULT_CASE && (b == largetBranch))).append("break;\n"));
 		sb.append("}\n");
 		return sb.toString();
 	}

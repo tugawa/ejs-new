@@ -9,7 +9,10 @@ abstract class Branch {
 		this.action = action;
 	}
 	abstract public int size();
-	abstract public String code();
+	public String code() {
+		return code(false);
+	}
+	abstract public String code(boolean isDefaultCase);
 }
 
 class TagPairBranch extends Branch {
@@ -29,11 +32,15 @@ class TagPairBranch extends Branch {
 	}
 
 	@Override
-	public String code() {
-		return condition.stream()
-				.map(p -> "case TAG_PAIR("+p.first().name+", "+p.second().name+"):")
-				.collect(Collectors.joining(" ")) + "\n" +
-				action.code();
+	public String code(boolean isDefaultCase) {
+		if (isDefaultCase) {
+			return "default: \n" + action.code();
+		} else {
+			return condition.stream()
+					.map(p -> "case TAG_PAIR("+p.first().name+", "+p.second().name+"):")
+					.collect(Collectors.joining(" ")) + "\n" +
+					action.code();
+		}
 	}
 
 	@Override
@@ -61,11 +68,15 @@ class PTBranch extends Branch {
 	}
 
 	@Override
-	public String code() {
-		return condition.stream()
-				.map(pt -> "case "+pt.name+":")
-				.collect(Collectors.joining(" ")) + "\n" +
-				action.code();
+	public String code(boolean isDefaultCase) {
+		if (isDefaultCase) {
+			return "default: \n"+ action.code();
+		} else {
+			return condition.stream()
+					.map(pt -> "case "+pt.name+":")
+					.collect(Collectors.joining(" ")) + "\n" +
+					action.code();
+		}
 	}
 
 	@Override
@@ -89,11 +100,15 @@ class HTBranch extends Branch {
 	}
 
 	@Override
-	public String code() {
-		return condition.stream()
-				.map(ht -> "case "+ht.name+":")
-				.collect(Collectors.joining(" ")) + "\n" +
-				action.code();
+	public String code(boolean isDefaultCase) {
+		if (isDefaultCase) {
+			return "default: \n"+ action.code();
+		} else {
+			return condition.stream()
+					.map(ht -> "case "+ht.name+":")
+					.collect(Collectors.joining(" ")) + "\n" +
+					action.code();
+		}
 	}
 
 	@Override
