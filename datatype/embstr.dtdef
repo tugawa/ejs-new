@@ -11,3 +11,5 @@ regexp:        T_OBJECT(000)/HTAG_REGEXP(11)
 string_object: T_OBJECT(000)/HTAG_STRINGOBJECT(12)
 number_object: T_OBJECT(000)/HTAG_NUMBEROBJECT(13)
 boolean_object:T_OBJECT(000)/HTAG_BOOLEANOBJECT(14)
+%%%
+#define is_boolean(p)  ((p) == JS_TRUE || (p) == JS_FALSE))
