@@ -66,7 +66,7 @@ public class TypesGen {
 	String defineDTPredicates() {
 		StringBuilder sb = new StringBuilder();
 		for (DataType dt: DataType.allInSpec()) {
-			sb.append("#define is_").append(dt.name).append(" ");
+			sb.append("#define is_").append(dt.name).append("(x) ");
 			if (dt.reprs.isEmpty())
 				sb.append("0  /* not used */\n");
 			else
