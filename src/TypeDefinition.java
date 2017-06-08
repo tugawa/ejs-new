@@ -77,7 +77,7 @@ public class TypeDefinition {
 	@Override
 	public String toString() {
 		String s = "";
-		for (DataType dt: DataType.all()) {
+		for (DataType dt: DataType.allInSpec()) {
 			s += dt + "\n";
 		}
 		s += quoted;

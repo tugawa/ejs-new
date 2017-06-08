@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
-		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.all())
+		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.allUsed())
 						.map(tr -> tr.getPT())
 						.distinct()
 						.collect(Collectors.toList());
@@ -27,7 +27,10 @@ public class TypesGen {
 	}
 
 	String defineHT() {
-		List<HT> pts = DataType.typeRepresentationStreamOf(DataType.all())
+		/* Need to produce HT definition regardless of whether the type is used or not
+		 * because GC uses HT.
+		 */
+		List<HT> pts = DataType.typeRepresentationStreamOf(DataType.allInSpec())
 						.filter(tr -> tr.hasHT())
 						.map(tr -> tr.getHT())
 						.distinct()
@@ -49,7 +52,7 @@ public class TypesGen {
 				DataType.typeRepresentationStreamOf(dts)
 				.map(tr -> {
 					PT pt = tr.getPT();
-					if (hasUniquePT(pt, dts, DataType.all()))
+					if (hasUniquePT(pt, dts, DataType.allUsed()))
 						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
 					else
 						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
@@ -61,9 +64,15 @@ public class TypesGen {
 	}
 
 	String defineDTPredicates() {
-		return DataType.all().stream()
-			.map(dt -> "#define is_" + dt.name + "(x) "+ minimumRepresentation(Stream.of(dt).collect(Collectors.toSet())) +"\n")
-			.collect(Collectors.joining());
+		StringBuilder sb = new StringBuilder();
+		for (DataType dt: DataType.allInSpec()) {
+			sb.append("#define is_").append(dt.name).append(" ");
+			if (dt.reprs.isEmpty())
+				sb.append("0  /* not used */\n");
+			else
+				sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet())) +"\n");
+		}
+		return sb.toString();
 	}
 
 	String defineDTFamilyPredicates() {
@@ -90,7 +99,7 @@ public class TypesGen {
 	}
 
 	String uniquenessPredicates() {
-		Map<PT, Long> ptCount = DataType.typeRepresentationStreamOf(DataType.all())
+		Map<PT, Long> ptCount = DataType.typeRepresentationStreamOf(DataType.allUsed())
 			.map(tr -> tr.getPT())
 			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 		String def = "";
@@ -126,19 +135,23 @@ public class TypesGen {
 		for (String[] t: typemap) {
 			String jsType = t[0];
 			String cType = t[1];
-			String ptName = DataType.get(jsType).reprs.iterator().next().pt.name;
-			sb.append("#define put_").append(jsType).append("_tag(p) ")
-			  .append("(put_tag(p, ").append(ptName).append("))\n");
-			if (cType != null)
-				sb.append("#define remove_").append(jsType).append("_tag(p) ")
-				  .append("((").append(cType).append(" *)remove_tag(p, ").append(ptName).append("))\n");
+			if (!DataType.get(jsType).reprs.isEmpty()) {
+				String ptName = DataType.get(jsType).reprs.iterator().next().pt.name;
+				sb.append("#define put_").append(jsType).append("_tag(p) ")
+				  .append("(put_tag(p, ").append(ptName).append("))\n");
+				if (cType != null)
+					sb.append("#define remove_").append(jsType).append("_tag(p) ")
+					  .append("((").append(cType).append(" *)remove_tag(p, ").append(ptName).append("))\n");
+			}
 		}
-		sb.append("#define put_boxed_tag(p) (put_tag(p, ")
-		  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
-		  .append("))\n");
-		sb.append("#define remove_boxed_tag(p) ((BoxedCell *)remove_tag(p, ")
-		  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
-		  .append("))\n");
+		if (!DataType.get("string_object").reprs.isEmpty()) {
+			sb.append("#define put_boxed_tag(p) (put_tag(p, ")
+			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+			  .append("))\n");
+			sb.append("#define remove_boxed_tag(p) ((BoxedCell *)remove_tag(p, ")
+			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
+			  .append("))\n");
+		}
 		return sb.toString();
 	}
 

@@ -521,7 +521,7 @@ public class ProcDefinition {
         if (vars.length == 1) {
             result.addAll(oneOpL);
             if (otherwise != null) {
-                for (DataType dt : DataType.all()) {
+                for (DataType dt : DataType.allInSpec()) {
                     boolean b = true;
                     for (Pair<JSTypePair,String> e : result) {
                         JSTypePair jtp = e.first();
@@ -537,7 +537,7 @@ public class ProcDefinition {
             result.addAll(twoOp);
             for (Pair<JSTypePair,String> el : oneOpL) {
                 DataType left = el.first().left;
-                for (DataType right : DataType.all()) {
+                for (DataType right : DataType.allInSpec()) {
                     boolean willBeAdded = true;
                     for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
@@ -558,7 +558,7 @@ public class ProcDefinition {
             }
             for (Pair<JSTypePair,String> er : oneOpR) {
                 DataType right = er.first().right;
-                for (DataType left : DataType.all()) {
+                for (DataType left : DataType.allInSpec()) {
                     boolean willBeAdded = true;
                     for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
@@ -578,8 +578,8 @@ public class ProcDefinition {
                 }
             }
             if (otherwise != null) {
-                for (DataType left : DataType.all()) {
-                    for (DataType right : DataType.all()) {
+                for (DataType left : DataType.allInSpec()) {
+                    for (DataType right : DataType.allInSpec()) {
                         boolean willBeAdded = true;
                         for (Pair<JSTypePair,String> e : result) {
                             if (e.first().left == left && e.first().right == right) {

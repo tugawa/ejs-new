@@ -180,10 +180,15 @@ class DataType implements GlobalConstantOptions {
 		}
 	}
 	
-	static Collection<DataType> all() {
+	static Collection<DataType> allInSpec() {
 		return dataTypes.values();
 	}
 
+	static Collection<DataType> allUsed() {
+		return dataTypes.values().stream()
+				.filter(dt -> !dt.reprs.isEmpty())
+				.collect(Collectors.toSet());
+	}
 	/*
 	 * utilities
 	 */
@@ -209,7 +214,7 @@ class DataType implements GlobalConstantOptions {
 				.map(tr -> tr.getPT())
 				.distinct()
 				.filter(pt -> {
-					return typeRepresentationStreamOf(DataType.all())
+					return typeRepresentationStreamOf(DataType.allUsed())
 							.filter(tr -> tr.getPT() == pt)
 							.allMatch(tr -> trs.contains(tr));
 				})
