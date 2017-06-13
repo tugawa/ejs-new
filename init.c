@@ -100,7 +100,9 @@ void init_builtin(Context *ctx) {
   init_builtin_number(ctx);
   init_builtin_string(ctx);
   init_builtin_boolean(ctx);
+#ifdef need_flonum
   init_builtin_math(ctx);
+#endif /* need_flonum */
 #ifdef USE_REGEXP
   init_builtin_regexp(ctx);
 #endif

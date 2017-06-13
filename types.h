@@ -424,6 +424,7 @@ typedef struct flonum_cell {
   double value;
 } FlonumCell;
 
+#ifdef need_flonum
 #define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_FLONUM))
 
 #define flonum_value(p)      ((remove_flonum_tag(p))->value)
@@ -437,6 +438,18 @@ typedef struct flonum_cell {
 #define flonum_to_int(p)     ((int)(flonum_value(p)))
 
 #define is_nan(p) (is_flonum((p))? isnan(flonum_to_double((p))): 0)
+#else /* need_flonum */
+#define double_to_flonum(n)  JS_UNDEFINED
+#define int_to_flonum(i)     JS_UNDEFINED
+#define cint_to_flonum(i)    JS_UNDEFINED
+
+#define flonum_to_double(p)  0
+#define flonum_to_cint(p)    0
+#define flonum_to_int(p)     0
+
+#define is_nan(p) JS_FALSE
+#endif /* need_flonum */
+
 
 /*
    StringCell

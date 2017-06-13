@@ -23,6 +23,8 @@
 #define EXTERN extern
 #include "header.h"
 
+#ifndef USE_TYPES_GENERATED
+
 /*
    adds two values slowly
    For details, see sect. 4.8.1.
@@ -463,3 +465,5 @@ LEAGAIN:
     goto LEAGAIN;
   }
 }
+
+#endif /* USE_TYPES_GENERATED */

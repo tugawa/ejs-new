@@ -954,8 +954,10 @@ STATIC void check_invariant_nobw_space(struct space *space)
     header_t header = *hdrp;
     if (HEADER0_GET_TYPE(header) == HTAG_STRING)
       ;
+#ifdef need_flonum
     else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
       ;
+#endif
     else if (HEADER0_GET_TYPE(header) == HTAG_CONTEXT)
       ;
     else if (HEADER0_GET_TYPE(header) == HTAG_STACK)

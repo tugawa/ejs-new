@@ -83,6 +83,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
     set_a(context, int_to_fixnum(ret));
 }
 
+#ifdef need_float
 BUILTIN_FUNCTION(builtin_parse_float)
 {
   JSValue str;
@@ -100,6 +101,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
   else
     set_a(context, double_to_flonum(x));
 }
+#endif /* need_float */
 
 /*
    throws Error because it is not a constructor
