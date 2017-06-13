@@ -120,6 +120,14 @@ public class TypesGen {
 		return def;
 	}
 
+	String defineNeed() {
+		StringBuilder sb = new StringBuilder();
+		DataType.allUsed().forEach(dt -> {
+			sb.append("#define need_").append(dt.name).append(" 1\n");
+		});
+		return sb.toString();
+	}
+	
 	String defineTagOperations() {
 		String[][] typemap = new String[][] {
 				{"simple_object", "Object"},
@@ -167,6 +175,7 @@ public class TypesGen {
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.uniquenessPredicates());
 		System.out.println(tg.defineTagOperations());
+		System.out.println(tg.defineNeed());
 		System.out.println(TypeDefinition.quoted);
 	}
 }
