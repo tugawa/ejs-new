@@ -98,6 +98,20 @@
 #define is_pointer(p)     (((p) & 2) != 0)
 #define is_leaf_object(p) (((p) & 6) == 4)
 
+#define need_simple_object 1
+#define need_string 1
+#define need_boolean_object 1
+#define need_special 1
+#define need_number_object 1
+#define need_string_object 1
+#define need_regexp 1
+#define need_iterator 1
+#define need_flonum 1
+#define need_builtin 1
+#define need_fixnum 1
+#define need_array 1
+#define need_function 1
+
 #endif /* USE_TYPES_GENERATED */
 
 /*
