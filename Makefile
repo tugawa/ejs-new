@@ -23,7 +23,7 @@ INCLUDES=-I/usr/local/include
 LIBS=-L/usr/local/lib
 
 
-CFLAGS = -std=gnu89 -Wall -Wno-format -g -DUSER_DEF -O3 $(INCLUDES)
+CFLAGS = -std=gnu89 -Wall -Wno-unused-label -Wno-format -g -DUSER_DEF -O3 $(INCLUDES)
 LIBS += -lm
 
 
