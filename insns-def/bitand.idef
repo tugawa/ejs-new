@@ -5,7 +5,7 @@
 \}
 
 \epilogue \{
-#define dst
+#undef dst
 \}
 
 \when v1:fixnum && v2:fixnum \{
