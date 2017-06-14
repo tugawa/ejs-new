@@ -37,14 +37,6 @@ char *insn_nemonic(int opcode) {
 /*
    instruction table
  */
-typedef struct insn_cons {
-  int opcode;
-  struct insn_cons *next;  // pointer to the next instCons
-} InsnCons;
-
-#define INSN_HASH_SIZE (1000)
-
-static InsnCons *insn_hash_table[INSN_HASH_SIZE];
 
 #define LOADBUFLEN 1024
 
@@ -133,25 +125,6 @@ int code_loader(Context *ctx, FunctionTable *ftable) {
    initializes the code loader
  */
 void init_code_loader(FILE *fp) {
-  int i;
-  int numinsts;
-  uint32_t index;
-  char *name;
-  InsnCons *c;
-
-  for (i = 0; i < INSN_HASH_SIZE; i++)
-    insn_hash_table[i] = NULL;
-
-  // register every instruction names and its opcode
-  numinsts = sizeof(insn_info_table) / sizeof(InsnInfo);
-  for (i = 0; i < numinsts; i++) {
-    name = insn_info_table[i].insn_name;
-    index = calc_hash(name) % INSN_HASH_SIZE;
-    c = (InsnCons *) malloc(sizeof(InsnCons));
-    c->opcode = i;
-    c->next = insn_hash_table[index];
-    insn_hash_table[index] = c;
-  }
   file_pointer = fp;
 }
 
@@ -166,14 +139,11 @@ void end_code_loader() {
 #define NOT_OPCODE ((Opcode)(-1))
 
 Opcode find_insn(char* s) {
-  int index, oc;
-  InsnCons *c;
-
-  index = calc_hash(s) % INSN_HASH_SIZE;
-  for (c = insn_hash_table[index]; c != NULL; c = c->next) {
-    oc = c->opcode;
-    if (strcmp(insn_info_table[oc].insn_name, s) == 0) return oc;
-  }
+  int i;
+  int numinsts = sizeof(insn_info_table) / sizeof(InsnInfo);
+  for (i = 0; i < numinsts; i++)
+    if (strcmp(insn_info_table[i].insn_name, s) == 0)
+      return i;
   // not found in the instruction table
   return NOT_OPCODE;
 }

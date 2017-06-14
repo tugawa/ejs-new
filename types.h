@@ -490,10 +490,11 @@ typedef struct string_cell {
 #define string_length(p)     (strlen(string_value(p)))
 #endif // STROBJ_HAS_HASH
 
-#define cstr_to_string(str) \
-  (str_intern(str, strlen(str), calc_hash(str), INTERN_HARD))
+#define cstr_to_string(str)  (cstr_to_string_ool(NULL, str))
+/* TODO: give a nice name to ejs_string_concat
+ *       (string_concat is used for builtin function) */
+#define ejs_string_concat(ctx, str1, str2)  (string_concat_ool(ctx, str1, str2))
 
-#define cstr_to_string2(ctx, str1, str2) (allocate_string2(ctx, str1, str2))
 
 /*
    Object header

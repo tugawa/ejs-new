@@ -82,6 +82,7 @@ OFILES = allocate.o \
          conversion.o \
          hash.o \
          init.o \
+	 string.o \
          object.o \
          operations.o \
          vmloop.o \

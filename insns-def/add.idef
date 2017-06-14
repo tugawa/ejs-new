@@ -25,7 +25,7 @@
 
 \when v1:string && v2:string \{
 add_STRSTR:
-  dst = cstr_to_string2(context, string_to_cstr(v1), string_to_cstr(v2));
+  dst = ejs_string_concat(context, v1, v2);
 \}
 
 \when (v1:regexp || v1:number_object || v1:boolean_object || v1:builtin || v1:string_object || v1:simple_object || v1:array || v1:iterator || v1:function) && (v2:fixnum || v2:flonum || v2:special || v2:string) \{

@@ -64,35 +64,6 @@ StringCell *allocate_string(uint32_t length)
 }
 
 /*
-   allocates a string
-   This takes a pointer to a C string.
- */
-#if 0
-JSValue allocate_string1(const char* str)
-{
-  uint32_t len;
-
-  len = strlen(str);
-  return str_intern(str, len, calc_hash_len(str, len), INTERN_HARD);
-}
-#endif
-
-/*
-   allocates a string
-   This takes two C strings and concatenates them.
- */
-JSValue allocate_string2(Context *context, const char *str1, const char *str2)
-{
-  uint32_t len1, len2;
-
-  len1 = strlen(str1);
-  len2 = strlen(str2);
-  return str_intern2(context, str1, len1, str2, len2,
-		     calc_hash_len2(str1, len1, str2, len2),
-		     INTERN_HARD);
-}
-
-/*
    allocates a simple object
    Note that the return value does not have a pointer tag.
  */
