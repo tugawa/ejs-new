@@ -37,7 +37,7 @@ BUILTIN_FUNCTION(string_constr)
 
   builtin_prologue();
   // printf("In string_constr\n");
-  rsv = new_normal_string(context, na > 0? args[1]: gconsts.g_string_empty);
+  rsv = new_normal_string_object(context, na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
 
@@ -676,7 +676,7 @@ void init_builtin_string(Context *ctx)
   gconsts.g_string = str =
     new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
   gconsts.g_string_proto = proto =
-    new_string(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
+    new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   set_prototype_de(ctx, str, proto);
   set_prop_de(ctx, str, cstr_to_string("fromCharCode"),

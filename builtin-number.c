@@ -30,7 +30,7 @@ BUILTIN_FUNCTION(number_constr)
   JSValue rsv;
 
   builtin_prologue();  
-  rsv = new_normal_number(context, FIXNUM_ZERO);
+  rsv = new_normal_number_object(context, FIXNUM_ZERO);
   // set___proto___all(context, rsv, gconsts.g_number_proto);
   if (na > 0)
     number_object_value(rsv) = to_number(context, args[1]);
@@ -149,7 +149,7 @@ void init_builtin_number(Context *ctx)
   gconsts.g_number = n =
     new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
   gconsts.g_number_proto = proto =
-    new_number(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+    new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   set_prototype_de(ctx, n, proto);
   set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);

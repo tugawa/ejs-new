@@ -47,11 +47,11 @@ BUILTIN_FUNCTION(object_constr)
     if (is_object(arg))
       ret = arg;
     else if (is_number(arg))
-      ret = new_normal_number(context, arg);
+      ret = new_normal_number_object(context, arg);
     else if (is_boolean(arg))
-      ret = new_normal_boolean(context, arg);
+      ret = new_normal_boolean_object(context, arg);
     else if (is_string(arg))
-      ret = new_normal_string(context, arg);
+      ret = new_normal_string_object(context, arg);
     else
       ret = new_normal_object(context);
   } else

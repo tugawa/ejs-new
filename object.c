@@ -875,7 +875,7 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
 /*
    makes a new boxed number
  */
-JSValue new_number(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_number_object();
@@ -888,7 +888,7 @@ JSValue new_number(Context *ctx, JSValue v, int hsize, int psize) {
 /*
    makes a new boxed boolean
  */
-JSValue new_boolean(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_boolean_object();
@@ -901,7 +901,7 @@ JSValue new_boolean(Context *ctx, JSValue v, int hsize, int psize) {
 /*
    makes a new boxed string
  */
-JSValue new_string(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_string_object();

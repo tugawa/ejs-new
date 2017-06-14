@@ -30,7 +30,7 @@ BUILTIN_FUNCTION(boolean_constr)
   JSValue rsv;
 
   builtin_prologue();  
-  rsv = new_normal_boolean(context, JS_TRUE);
+  rsv = new_normal_boolean_object(context, JS_TRUE);
   set___proto___all(context, rsv, gconsts.g_boolean_proto);
   if (na > 0)
     boolean_object_value(rsv) = to_boolean(args[1]);
@@ -59,7 +59,7 @@ void init_builtin_boolean(Context *ctx)
 
   gconsts.g_boolean = b = new_normal_builtin(ctx, boolean_constr, 1);
   gconsts.g_boolean_proto = proto =
-    new_boolean(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
+    new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
   set_prototype_de(ctx, b, proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   {

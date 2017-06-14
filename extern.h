@@ -285,9 +285,9 @@ extern JSValue new_iterator(Context *, JSValue, int, int);
 #ifdef USE_REGEXP
 extern JSValue new_regexp(Context *, char *, int, int, int);
 #endif // USE_REGEXP
-extern JSValue new_number(Context *, JSValue, int, int);
-extern JSValue new_boolean(Context *, JSValue, int, int);
-extern JSValue new_string(Context *, JSValue, int, int);
+extern JSValue new_number_object(Context *, JSValue, int, int);
+extern JSValue new_boolean_object(Context *, JSValue, int, int);
+extern JSValue new_string_object(Context *, JSValue, int, int);
 extern char *space_chomp(char *);
 #ifdef HIDDEN_CLASS
 extern HiddenClass *new_empty_hidden_class(Context *, int, int);

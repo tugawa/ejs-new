@@ -271,9 +271,9 @@ typedef struct object_cell {
 #define new_normal_array(ctx) new_array(ctx, HHH, PSIZE_NORMAL)
 #define new_normal_array_with_size(ctx, n) \
   new_array_with_size(ctx, n, HHH, PSIZE_NORMAL)
-#define new_normal_number(ctx, v) new_number(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_boolean(ctx, v) new_boolean(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_string(ctx, v) new_string(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_number_object(ctx, v) new_number_object(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_boolean_object(ctx, v) new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_string_object(ctx, v) new_string_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_iterator(ctx, o) new_iterator(ctx, o, HHH, PSIZE_NORMAL)
 
 #ifdef USE_REGEXP
