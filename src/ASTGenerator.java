@@ -326,7 +326,6 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		Identifier label = new Identifier(ctx.Identifier().getText());
 		IStatement statement = (IStatement) visit(ctx.statement());
 		
-		// statementがループの文だったときはラベルを教えてやらないといけない
 		if (statement.getTypeId() == Node.WHILE_STMT) {
 			((WhileStatement) statement).setLabel(label.getName());
 		} else if (statement.getTypeId() == Node.DO_WHILE_STMT) {
