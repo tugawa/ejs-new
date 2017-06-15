@@ -407,7 +407,7 @@ int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
   int index;
 
   index = constant->n_constant_values++;
-  a = cstr_to_string(str);
+  a = cstr_to_string(NULL, str);
   // printf("updateConstantString: str = %s, a = %lld (%s)\n",
   //        str, a, stringToCStr(a));
   (constant->constant_values)[index] = a;

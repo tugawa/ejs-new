@@ -465,6 +465,7 @@ typedef struct flonum_cell {
 #endif /* need_flonum */
 
 
+#if 0
 /*
    StringCell
    tag == T_STRING
@@ -495,6 +496,83 @@ typedef struct string_cell {
  *       (string_concat is used for builtin function) */
 #define ejs_string_concat(ctx, str1, str2)  (string_concat_ool(ctx, str1, str2))
 
+#else
+
+#define string_value(p)  (is_embedded_string(p) ? embedded_string_value(p) : normal_string_value(p))
+#define string_to_cstr(p) (string_value(p))
+#define string_hash(p)    (is_embedded_string(p) ? embedded_string_hash(p) : normal_string_hash(p))
+#define string_length(p) (is_embedded_string(p) ? embedded_string_length(p) : normal_string_length(p))
+#define cstr_to_string(ctx,str) \
+  (cstr_to_string_embedded_string_suitable(str) ? \
+   (cstr_to_embedded_string((ctx),(str))) :	  \
+   (cstr_to_normal_string((ctx),(str))))
+#define ejs_string_concat(ctx,str1,str2) \
+  (ejs_string_concat_embedded_string_suitable((str1),(str2)) ?	\
+   (ejs_embedded_string_concat((ctx),(str1),(str2))) :		\
+   (ejs_normal_string_concat((ctx),(str1),(str2))))
+
+/* embedded string */
+#define ESTRING_LENGTH_MASK    (0x7 << TAGOFFSET)
+#define ESTRING_LENGTH_OFFSET  TAGOFFSET
+#define ESTRING_MAX_LENGTH     6
+
+#define put_estring_tag(p)     (put_tag((p), T_ESTRING))
+#define is_embedded_string(p)  (((p) & 7) == T_ESTRING)
+
+#define embedded_string_value(p)  (((char *) &(p)) + 1)
+#define embedded_string_hash(p)   (p)
+#define embedded_string_length(p) \
+  (((p) & ESTRING_LENGTH_MASK) >> ESTRING_LENGTH_OFFSET)
+
+#define cstr_to_string_embedded_string_suitable(str) \
+  (strnlen((str), ESTRING_MAX_LENGTH + 1) <= ESTRING_MAX_LENGTH)
+#define ejs_string_concat_embedded_string_suitable(str1,str2) \
+  (string_length(str1)+string_length(str2) <= ESTRING_MAX_LENGTH)
+
+/* assume little endian */
+static inline JSValue cstr_to_embedded_string(Context *ctx, char *str)
+{
+  JSValue v = 0;
+  int len = 0;
+  char* p = ((char *) &v) + 1;
+  for (len = 0; *str != '\0'; len++)
+    *p++ = *str++;
+  v = put_estring_tag(v);
+  v |= len << ESTRING_LENGTH_OFFSET;
+  return v;
+}
+
+/*
+   StringCell
+   tag == T_STRING
+ */
+typedef struct string_cell {
+#ifdef STROBJ_HAS_HASH
+  uint32_t hash;           // hash value before computing mod
+  uint32_t length;         // length of the string
+#endif // STROBJ_HAS_HASH
+  char value[BYTES_IN_JSVALUE];
+} StringCell;
+
+#define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
+
+#define normal_string_value(p)   ((remove_string_tag(p))->value)
+
+#ifdef STROBJ_HAS_HASH
+#define normal_string_hash(p)       ((remove_string_tag(p))->hash)
+#define normal_string_length(p)     ((remove_string_tag(p))->length)
+#else
+#define normal_string_hash(p)       (calc_hash(string_value(p)))
+#define normal_string_length(p)     (strlen(string_value(p)))
+#endif // STROBJ_HAS_HASH
+
+#define cstr_to_normal_string(ctx, str)  (cstr_to_string_ool((ctx), (str)))
+/* TODO: give a nice name to ejs_string_concat
+ *       (string_concat is used for builtin function) */
+#define ejs_normal_string_concat(ctx, str1, str2) \
+  (string_concat_ool((ctx), (str1), (str2)))
+
+#endif
 
 /*
    Object header
@@ -656,7 +734,7 @@ typedef uint64_t cuint;
   set_prop_de(c, o, gconsts.g_string_prototype, v)
 
 #define set_obj_cstr_prop(c, o, s, v, attr) \
-  set_prop_with_attribute(c, o, cstr_to_string(s), v, attr)
+  set_prop_with_attribute(c, o, cstr_to_string((c),(s)), v, attr)
 #define set_obj_cstr_prop_none(c, o, s, v) \
   set_obj_cstr_prop(c, o, s, v, ATTR_NONE)
 

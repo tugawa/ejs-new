@@ -359,11 +359,11 @@ void print_value(Context *context, JSValue v, int verbose) {
   else if (is_array(v))
     v = array_to_string(context, v, gconsts.g_string_comma);
   else if (is_function(v))
-    v = cstr_to_string("function");
+    v = cstr_to_string(NULL, "function");
   else if (is_builtin(v))
-    v = cstr_to_string("builtin");
+    v = cstr_to_string(NULL, "builtin");
   else if (is_iterator(v))
-    v = cstr_to_string("iterator");
+    v = cstr_to_string(NULL, "iterator");
 #ifdef USE_REGEXP
   else if (is_regexp(v)) {
     printf("/%s/", regexp_pattern(v));
@@ -371,11 +371,11 @@ void print_value(Context *context, JSValue v, int verbose) {
   }
 #endif
   else if (is_string_object(v))
-    v = cstr_to_string("boxed-string");
+    v = cstr_to_string(NULL, "boxed-string");
   else if (is_number_object(v))
-    v = cstr_to_string("boxed-number");
+    v = cstr_to_string(NULL, "boxed-number");
   else if (is_boolean_object(v))
-    v = cstr_to_string("boxed-boolean");
+    v = cstr_to_string(NULL, "boxed-boolean");
   else
     LOG_ERR("Type Error\n");
 

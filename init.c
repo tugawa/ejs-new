@@ -32,23 +32,23 @@ void init_global_constants(void) {
     ((JSValue *)&gconsts)[i] = JS_UNDEFINED;
 
   // string constants
-  gconsts.g_string_prototype = cstr_to_string("prototype");
-  gconsts.g_string___proto__ = cstr_to_string("__proto__");
-  gconsts.g_string_tostring  = cstr_to_string("toString");
-  gconsts.g_string_valueof   = cstr_to_string("valueOf");
-  gconsts.g_string_boolean   = cstr_to_string("boolean");
-  gconsts.g_string_number    = cstr_to_string("number");
-  gconsts.g_string_object    = cstr_to_string("object");
-  gconsts.g_string_string    = cstr_to_string("string");
-  gconsts.g_string_true      = cstr_to_string("true");
-  gconsts.g_string_false     = cstr_to_string("false");
-  gconsts.g_string_null      = cstr_to_string("null");
-  gconsts.g_string_undefined = cstr_to_string("undefined");
-  gconsts.g_string_length    = cstr_to_string("length");
-  gconsts.g_string_objtostr  = cstr_to_string("[object Object]");
-  gconsts.g_string_empty     = cstr_to_string("");
-  gconsts.g_string_comma     = cstr_to_string(",");
-  gconsts.g_string_blank     = cstr_to_string(" ");
+  gconsts.g_string_prototype = cstr_to_string(NULL, "prototype");
+  gconsts.g_string___proto__ = cstr_to_string(NULL, "__proto__");
+  gconsts.g_string_tostring  = cstr_to_string(NULL, "toString");
+  gconsts.g_string_valueof   = cstr_to_string(NULL, "valueOf");
+  gconsts.g_string_boolean   = cstr_to_string(NULL, "boolean");
+  gconsts.g_string_number    = cstr_to_string(NULL, "number");
+  gconsts.g_string_object    = cstr_to_string(NULL, "object");
+  gconsts.g_string_string    = cstr_to_string(NULL, "string");
+  gconsts.g_string_true      = cstr_to_string(NULL, "true");
+  gconsts.g_string_false     = cstr_to_string(NULL, "false");
+  gconsts.g_string_null      = cstr_to_string(NULL, "null");
+  gconsts.g_string_undefined = cstr_to_string(NULL, "undefined");
+  gconsts.g_string_length    = cstr_to_string(NULL, "length");
+  gconsts.g_string_objtostr  = cstr_to_string(NULL, "[object Object]");
+  gconsts.g_string_empty     = cstr_to_string(NULL, "");
+  gconsts.g_string_comma     = cstr_to_string(NULL, ",");
+  gconsts.g_string_blank     = cstr_to_string(NULL, " ");
 
   // numbers
   gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);

@@ -158,3 +158,19 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   gc_pop_tmp_root(1);
   return v;
 }
+
+JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
+{
+  int len = 0;
+  JSValue v = 0;
+  char* p = ((char *) &v) + 1;
+  char* q;
+  for (q = string_value(str1); *q != '\0'; len++)
+    *p++ = *q++;
+  for (q = string_value(str2); *q != '\0'; len++)
+    *p++ = *q++;
+  v = put_estring_tag(v);
+  v |= len << ESTRING_LENGTH_OFFSET;
+  return v;
+}
+

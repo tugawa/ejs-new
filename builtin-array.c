@@ -581,9 +581,14 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     }
     //LOG_EXIT("to_number(ret) is not a number");
   }
-  xString = string_to_cstr(to_string(context, x));
-  yString = string_to_cstr(to_string(context, y));
-  return strcmp(xString, yString);
+  {
+    JSValue vx, vy;
+    vx = to_string(context, x);
+    vy = to_string(context, y);
+    xString = string_to_cstr(vx);
+    yString = string_to_cstr(vy);
+    return strcmp(xString, yString);
+  }
 }
 
 void swap(JSValue *a, JSValue *b) {

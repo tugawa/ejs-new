@@ -66,7 +66,7 @@ int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr, JSValue *dst)
     return FAIL;
   if ((re = new_normal_regexp(ctx, pat, flag)) == JS_UNDEFINED)
     return FAIL;
-  set_obj_cstr_prop(ctx, re, "source", cstr_to_string(pat), ATTR_ALL);
+  set_obj_cstr_prop(ctx, re, "source", cstr_to_string(NULL, pat), ATTR_ALL);
   regexp_lastindex(re) = 0;
   set_obj_cstr_prop(ctx, re, "lastIndex", FIXNUM_ZERO, ATTR_DDDE);
   *dst = re;
@@ -142,7 +142,7 @@ BUILTIN_FUNCTION(regexp_toString)
     strcpy(&ret[1], pat);
     ret[len + 1] = '/';
     ret[len + 2] = '\0';
-    set_a(context, cstr_to_string(ret));
+    set_a(context, cstr_to_string(context, ret));
   } else
     LOG_EXIT("RegExp.prototype.toString: receiver is not a regexp\n");
 }

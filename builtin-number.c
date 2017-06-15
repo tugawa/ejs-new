@@ -106,7 +106,7 @@ BUILTIN_FUNCTION(number_toString)
         decimal = decimal*n - (int)(decimal*n); }
       str[nlen+dlen++] = '\0';
 
-      set_a(context, cstr_to_string(strdup(str)));
+      set_a(context, cstr_to_string(context, str));
     }
 
   } else if (is_number(rsv))

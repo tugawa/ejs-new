@@ -227,6 +227,7 @@ extern void hashCellFree(HashCell *cell);
 extern void init_string_table(unsigned int);
 extern JSValue cstr_to_string_ool(Context *context, const char *s);
 extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
+extern JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2);
 
 
 /*

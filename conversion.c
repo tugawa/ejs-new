@@ -253,15 +253,15 @@ JSValue flonum_to_string(JSValue v) {
   }
   d = flonum_to_double(v);
   if (d == 0.0)
-    return cstr_to_string("0");
+    return cstr_to_string(NULL, "0");
   if (isnan(d))
-    return cstr_to_string("NaN");
+    return cstr_to_string(NULL, "NaN");
   if (isinf(d)) {
-    if (d > 0) return cstr_to_string("Infinity");
-    else return cstr_to_string("-Infinity");
+    if (d > 0) return cstr_to_string(NULL, "Infinity");
+    else return cstr_to_string(NULL, "-Infinity");
   }
   snprintf(buf, BUFSIZE, "%.15g", d);
-  return cstr_to_string(buf);
+  return cstr_to_string(NULL, buf);
 }
 
 /*
@@ -469,7 +469,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 {
   uint64_t length, seplen, sumlen;
   JSValue ret, item;
-  char **strs;
+  JSValue *strs;
   char *sep, *cstr, *p;
   int i;
 
@@ -484,29 +484,29 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 
   // length > 0
 
-  strs = (char **)malloc(sizeof(char *) * length);
+  strs = (JSValue *)malloc(sizeof(JSValue) * length);
   sep = string_to_cstr(separator);
   seplen = strlen(sep);
   sumlen = 0;
 
   for (i = 0; i < length; i++) {
     item = get_array_prop(context, array, cint_to_fixnum(i));
-    strs[i] = string_to_cstr(to_string(context, item));
-    sumlen += strlen(strs[i]);
+    strs[i] = to_string(NULL, item);
+    sumlen += string_length(strs[i]);
   }
 
   cstr = (char *)malloc(sizeof(char) * (sumlen + (length - 1) * seplen + 1));
 
   for (i = 0, p = cstr; i < length; i++) {
-    strcpy(p, strs[i]);
-    p += strlen(strs[i]);
+    strcpy(p, string_value(strs[i]));
+    p += string_length(strs[i]);
     if (i != length - 1) {
       strcpy(p, sep);
       p += seplen;
     }
   }
   *p = '\0';
-  return cstr_to_string(cstr);
+  return cstr_to_string(context, cstr);
 }
 
 /*
@@ -664,5 +664,5 @@ char *type_name(JSValue v) {
 
 JSValue cint_to_string(cint n) {
   snprintf(buf, BUFSIZE, "%"PRId64, n);
-  return cstr_to_string(buf);
+  return cstr_to_string(NULL, buf);
 }

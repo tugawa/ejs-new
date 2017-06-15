@@ -104,7 +104,7 @@ BUILTIN_FUNCTION(string_concat)
   for (i = 0, p = s, len = 0; i <= na; i++)
     p = stpcpy(p, strs[i]);
   // printf("s = %s\n", s);
-  ret = cstr_to_string(s);
+  ret = cstr_to_string(context, s);
   free(s);
   set_a(context, ret);
 }
@@ -126,7 +126,7 @@ JSValue to_upper_lower(Context *context, JSValue str, int upper) {
       r[i] = tolower(s[i]);
   }
   r[len] = '\0';
-  ret = cstr_to_string(r);
+  ret = cstr_to_string(context, r);
   free(r);
   return ret;
 }
@@ -173,7 +173,7 @@ BUILTIN_FUNCTION(string_substring)
   r = mallocstr(len);
   strncpy(r, s+from, len);
   r[len] = '\0';
-  ret = cstr_to_string(r);
+  ret = cstr_to_string(context, r);
   free(r);
 
   set_a(context, ret);
@@ -249,7 +249,7 @@ BUILTIN_FUNCTION(string_slice)
   r = mallocstr(len);
   strncpy(r, s+from, len);
   r[len] = '\0';
-  ret = cstr_to_string(r);
+  ret = cstr_to_string(context, r);
   free(r);
 
   set_a(context, ret);
@@ -340,7 +340,7 @@ BUILTIN_FUNCTION(string_charAt)
   if (r >= 0) {
     s[0] = r;
     s[1] = '\0';
-    ret = cstr_to_string(s);
+    ret = cstr_to_string(context, s);
   } else
     ret = gconsts.g_string_blank;
   set_a(context, ret);
@@ -563,7 +563,7 @@ BUILTIN_FUNCTION(string_fromCharCode)
     s[i - 1] = c;
   }
   s[na] = '\0';
-  ret = cstr_to_string(s);
+  ret = cstr_to_string(context, s);
   free(s);
   set_a(context, ret);
 }
@@ -679,7 +679,7 @@ void init_builtin_string(Context *ctx)
     new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   set_prototype_de(ctx, str, proto);
-  set_prop_de(ctx, str, cstr_to_string("fromCharCode"),
+  set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
               new_normal_builtin(ctx, string_fromCharCode, 0));
   {
     ObjBuiltinProp *p = string_funcs;
