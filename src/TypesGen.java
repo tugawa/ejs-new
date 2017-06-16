@@ -139,8 +139,18 @@ public class TypesGen {
 
 	String defineNeed() {
 		StringBuilder sb = new StringBuilder();
-		DataType.allUsed(true).forEach(dt -> {
+		sb.append("/* VM types */\n");
+		DataType.allUsed(false).forEach(dt -> {
 			sb.append("#define need_").append(dt.name).append(" 1\n");
+		});
+		sb.append("/* customised types */\n");
+		DataType.allUsed(false).forEach(dt -> {
+			if (!dt.isLeaf()) {
+				sb.append("#define customised_"+dt.name+" 1\n");
+				dt.children.forEach(c -> {
+					sb.append("#define need_"+c.name+" 1\n");
+				});
+			}
 		});
 		return sb.toString();
 	}
@@ -158,9 +168,6 @@ public class TypesGen {
 			sb.append("#define remove_"+dt.name+"_tag(p) ")
 			  .append("("+cast+"remove_tag((p), "+ptName+"))\n");
 		}
-
-		sb.append("/* family */\n");
-		sb.append("#define remove_object_tag(p) clear_tag(p)\n");
 
 		return sb.toString();
 	}

@@ -18,7 +18,6 @@ public class TypeDefinition {
 	static String quoted;
 
 	static DataType parseLine(String line) {
-		System.out.println(line);
 		Scanner sc = new Scanner(line);
 		try {
 			sc.findInLine("([a-zA-Z_]+)\\s*:\\s*");
