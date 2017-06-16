@@ -126,7 +126,7 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, string_value(v1), len1);
   memcpy(p->value + len1, string_value(v2), len2 + 1);
-  v = put_string_tag(p);
+  v = put_normal_string_tag(p);
   gc_push_tmp_root(&v);
   string_table_put(context, v, hash);
   gc_pop_tmp_root(3);
@@ -152,14 +152,27 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, s, len + 1);
-  v = put_string_tag(p);
+  v = put_normal_string_tag(p);
   gc_push_tmp_root(&v);
   string_table_put(context, v, hash);
   gc_pop_tmp_root(1);
   return v;
 }
 
-#ifdef need_estring
+#ifdef need_embedded_string
+/* assume little endian */
+JSValue cstr_to_embedded_string(Context *ctx, char *str)
+{
+  JSValue v = 0;
+  int len = 0;
+  char* p = ((char *) &v) + 1;
+  for (len = 0; *str != '\0'; len++)
+    *p++ = *str++;
+  v = put_embedded_string_tag(v);
+  v |= len << ESTRING_LENGTH_OFFSET;
+  return v;
+}
+
 JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
 {
   int len = 0;
@@ -170,8 +183,8 @@ JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
     *p++ = *q++;
   for (q = string_value(str2); *q != '\0'; len++)
     *p++ = *q++;
-  v = put_estring_tag(v);
+  v = put_embedded_string_tag(v);
   v |= len << ESTRING_LENGTH_OFFSET;
   return v;
 }
-#endif
+#endif /* need_embedded_string */

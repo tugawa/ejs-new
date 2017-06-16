@@ -225,10 +225,10 @@ extern void hashCellFree(HashCell *cell);
  * string.c
  */
 extern void init_string_table(unsigned int);
+#ifdef need_normal_string
 extern JSValue cstr_to_string_ool(Context *context, const char *s);
 extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
-extern JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2);
-
+#endif /* need_normal_string */
 
 /*
  * init.c

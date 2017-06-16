@@ -879,7 +879,7 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_number_object();
-  set_object_members(boxed_object_p(ret), hsize, psize);
+  set_object_members(number_object_object_ptr(ret), hsize, psize);
   number_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_number_proto);
   return ret;
@@ -892,7 +892,7 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_boolean_object();
-  set_object_members(boxed_object_p(ret), hsize, psize);
+  set_object_members(boolean_object_object_ptr(ret), hsize, psize);
   boolean_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_boolean_proto);
   return (JSValue)ret;
@@ -905,7 +905,7 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   ret = make_string_object();
-  set_object_members(boxed_object_p(ret), hsize, psize);
+  set_object_members(string_object_object_ptr(ret), hsize, psize);
   string_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_string_proto);
   // A boxed string has a property ``length'' whose associated value

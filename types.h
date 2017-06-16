@@ -63,15 +63,15 @@
 #define is_fixnum(p)             (equal_tag((p), T_FIXNUM))
 #define is_special(p)            (equal_tag((p), T_SPECIAL))
 
-#define remove_object_tag(p)     ((Object *)  clear_tag(p))
-
 #define remove_simple_object_tag(p) ((Object *)  remove_tag((p), T_GENERIC))
 #define remove_array_tag(p)     ((ArrayCell *)   remove_tag((p), T_GENERIC))
 #define remove_function_tag(p)  ((FunctionCell *)remove_tag((p), T_GENERIC))
 #define remove_builtin_tag(p)   ((BuiltinCell *) remove_tag((p), T_GENERIC))
 #define remove_iterator_tag(p)  ((IteratorCell *)remove_tag((p), T_GENERIC))
 #define remove_regexp_tag(p)    ((RegexpCell *)  remove_tag((p), T_GENERIC))
-#define remove_boxed_tag(p)     ((BoxedCell *)   remove_tag((p), T_GENERIC))
+#define remove_boolean_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define remove_number_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define remove_string_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
 
 #define put_simple_object_tag(p) (put_tag(p, T_GENERIC))
 #define put_array_tag(p)         (put_tag(p, T_GENERIC))
@@ -79,9 +79,11 @@
 #define put_builtin_tag(p)       (put_tag(p, T_GENERIC))
 #define put_iterator_tag(p)      (put_tag(p, T_GENERIC))
 #define put_regexp_tag(p)        (put_tag(p, T_GENERIC))
-#define put_boxed_tag(p)         (put_tag(p, T_GENERIC))
 #define put_flonum_tag(p)        (put_tag(p, T_FLONUM))
-#define put_string_tag(p)        (put_tag(p, T_STRING))
+#define put_normal_string_tag(p) (put_tag(p, T_STRING))
+#define put_boolean_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_number_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_string_object_tag(p) (put_tag((p), T_GENERIC))
 
 #define HTAG_STRING        (0x4)
 #define HTAG_FLONUM        (0x5)
@@ -225,6 +227,8 @@ typedef struct object_cell {
 } Object;
 
 #define make_simple_object(ctx) (put_simple_object_tag(allocate_simple_object(ctx)))
+
+#define remove_object_tag(p)    ((Object *)clear_tag(p))
 
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
@@ -422,19 +426,20 @@ typedef struct boxed_cell {
   JSValue value;   // boxed value; it is number, boolean, or string
 } BoxedCell;
 
-#define make_boxed(t)            (put_boxed_tag(allocate_boxed((t))))
+#define make_number_object()					\
+  (put_number_object_tag(allocate_boxed(HTAG_BOXED_NUMBER)))
+#define number_object_value(n)      (remove_number_object_tag(n)->value)
+#define number_object_object_ptr(n) (&((remove_number_object_tag(n))->o))
 
-#define boxed_object_p(b)        (&((remove_boxed_tag(b))->o))
-#define boxed_value(b)           ((remove_boxed_tag(b))->value)
+#define make_boolean_object()					\
+  (put_number_object_tag(allocate_boxed(HTAG_BOXED_BOOLEAN)))
+#define boolean_object_value(b)      (remove_boolean_object_tag(b)->value)
+#define boolean_object_object_ptr(b) (&((remove_boolean_object_tag(b))->o))
 
-#define make_number_object()     make_boxed(HTAG_BOXED_NUMBER)
-#define number_object_value(n)   boxed_value((n))
-
-#define make_boolean_object()    make_boxed(HTAG_BOXED_BOOLEAN)
-#define boolean_object_value(b)  boxed_value((b))
-
-#define make_string_object()     make_boxed(HTAG_BOXED_STRING)
-#define string_object_value(s)   boxed_value((s))
+#define make_string_object()			\
+  (put_number_object_tag(allocate_boxed(HTAG_BOXED_STRING)))
+#define string_object_value(s)      (remove_string_object_tag(s)->value)
+#define string_object_object_ptr(s) (&((remove_string_object_tag(s))->o))
 
 /*
    FlonumCell
@@ -469,52 +474,6 @@ typedef struct flonum_cell {
 
 #define is_nan(p) JS_FALSE
 #endif /* need_flonum */
-
-#ifdef need_embedded_string
-#define string_value(p)  (is_embedded_string(p) ? embedded_string_value(p) : normal_string_value(p))
-#define string_to_cstr(p) (string_value(p))
-#define string_hash(p)    (is_embedded_string(p) ? embedded_string_hash(p) : normal_string_hash(p))
-#define string_length(p) (is_embedded_string(p) ? embedded_string_length(p) : normal_string_length(p))
-#define cstr_to_string(ctx,str) \
-  (cstr_to_string_embedded_string_suitable(str) ? \
-   (cstr_to_embedded_string((ctx),(str))) :	  \
-   (cstr_to_normal_string((ctx),(str))))
-#define ejs_string_concat(ctx,str1,str2) \
-  (ejs_string_concat_embedded_string_suitable((str1),(str2)) ?	\
-   (ejs_embedded_string_concat((ctx),(str1),(str2))) :		\
-   (ejs_normal_string_concat((ctx),(str1),(str2))))
-
-/* embedded string */
-#define ESTRING_LENGTH_MASK    (0x7 << TAGOFFSET)
-#define ESTRING_LENGTH_OFFSET  TAGOFFSET
-#define ESTRING_MAX_LENGTH     6
-
-#define put_estring_tag(p)     (put_tag((p), T_ESTRING))
-#define is_embedded_string(p)  (((p) & 7) == T_ESTRING)
-
-#define embedded_string_value(p)  (((char *) &(p)) + 1)
-#define embedded_string_hash(p)   (p)
-#define embedded_string_length(p) \
-  (((p) & ESTRING_LENGTH_MASK) >> ESTRING_LENGTH_OFFSET)
-
-#define cstr_to_string_embedded_string_suitable(str) \
-  (strnlen((str), ESTRING_MAX_LENGTH + 1) <= ESTRING_MAX_LENGTH)
-#define ejs_string_concat_embedded_string_suitable(str1,str2) \
-  (string_length(str1)+string_length(str2) <= ESTRING_MAX_LENGTH)
-
-/* assume little endian */
-static inline JSValue cstr_to_embedded_string(Context *ctx, char *str)
-{
-  JSValue v = 0;
-  int len = 0;
-  char* p = ((char *) &v) + 1;
-  for (len = 0; *str != '\0'; len++)
-    *p++ = *str++;
-  v = put_estring_tag(v);
-  v |= len << ESTRING_LENGTH_OFFSET;
-  return v;
-}
-#endif /* need_embedded_string */
 
 #ifndef customised_string
 #define string_value(p)   (normal_string_value(p))
