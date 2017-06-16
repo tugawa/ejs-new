@@ -146,7 +146,8 @@ public class TypesGen {
 		sb.append("/* customised types */\n");
 		DataType.allUsed(false).forEach(dt -> {
 			if (!dt.isLeaf()) {
-				sb.append("#define customised_"+dt.name+" 1\n");
+				if (dt.children.size() > 1)
+					sb.append("#define customised_"+dt.name+" 1\n");
 				dt.children.forEach(c -> {
 					sb.append("#define need_"+c.name+" 1\n");
 				});
