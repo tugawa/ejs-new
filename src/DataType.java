@@ -213,6 +213,7 @@ class DataType implements GlobalConstantOptions {
 
 	static Collection<DataType> allLeaves() {
 		return dataTypes.values().stream()
+				.filter(dt -> !dt.reprs.isEmpty())
 				.filter(dt -> dt.isLeaf())
 				.collect(Collectors.toSet());
 	}

@@ -34,28 +34,30 @@ public class TypeDefinition {
 					DataType.add(subName, dt);
 				}
 			} else {
-				sc.findInLine("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?");
-				MatchResult m = sc.match();
-				String pTagName = m.group(1);
-				int pTagValue = 0;
-				int pTagLength = 0;
-				for (int i = 0; i < m.group(2).length(); i++) {
-					pTagLength ++;
-					pTagValue <<= 1;
-					if (m.group(2).charAt(i) == '1')
-						pTagValue += 1;
-				}
-				String hTypeName = m.group(4);
-				int hTypeValue = m.group(5) == null ? 0 : Integer.parseInt(m.group(5));
+				if (sc.hasNext("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?")){
+					sc.findInLine("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?");
+					MatchResult m = sc.match();
+					String pTagName = m.group(1);
+					int pTagValue = 0;
+					int pTagLength = 0;
+					for (int i = 0; i < m.group(2).length(); i++) {
+						pTagLength ++;
+						pTagValue <<= 1;
+						if (m.group(2).charAt(i) == '1')
+							pTagValue += 1;
+					}
+					String hTypeName = m.group(4);
+					int hTypeValue = m.group(5) == null ? 0 : Integer.parseInt(m.group(5));
 
-				TypeRepresentation r = new TypeRepresentation(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
-				dt.addRepresentation(r);
+					TypeRepresentation r = new TypeRepresentation(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
+					dt.addRepresentation(r);
 
-				// structure
-				if (sc.hasNext("[a-zA-Z_]+")) {
-					sc.findInLine("[a-zA-Z_]+");
-					String struct = sc.match().group(0);
-					dt.setDataStructure(struct);
+					// structure
+					if (sc.hasNext("[a-zA-Z_]+")) {
+						sc.findInLine("[a-zA-Z_]+");
+						String struct = sc.match().group(0);
+						dt.setDataStructure(struct);
+					}
 				}
 			}
 			return dt;
