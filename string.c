@@ -159,6 +159,7 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   return v;
 }
 
+#ifdef need_estring
 JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
 {
   int len = 0;
@@ -173,4 +174,4 @@ JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
   v |= len << ESTRING_LENGTH_OFFSET;
   return v;
 }
-
+#endif

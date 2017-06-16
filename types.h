@@ -63,6 +63,8 @@
 #define is_fixnum(p)             (equal_tag((p), T_FIXNUM))
 #define is_special(p)            (equal_tag((p), T_SPECIAL))
 
+#define remove_object_tag(p)     ((Object *)  clear_tag(p))
+
 #define remove_simple_object_tag(p) ((Object *)  remove_tag((p), T_GENERIC))
 #define remove_array_tag(p)     ((ArrayCell *)   remove_tag((p), T_GENERIC))
 #define remove_function_tag(p)  ((FunctionCell *)remove_tag((p), T_GENERIC))
@@ -111,6 +113,10 @@
 #define need_fixnum 1
 #define need_array 1
 #define need_function 1
+
+#define need_normal_string 1
+
+#undef customised_string
 
 #endif /* USE_TYPES_GENERATED */
 
@@ -220,18 +226,18 @@ typedef struct object_cell {
 
 #define make_simple_object(ctx) (put_simple_object_tag(allocate_simple_object(ctx)))
 
-#define obj_n_props(p)         ((remove_simple_object_tag(p))->n_props)
-#define obj_limit_props(p)     ((remove_simple_object_tag(p))->limit_props)
+#define obj_n_props(p)         ((remove_object_tag(p))->n_props)
+#define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
 #ifdef HIDDEN_CLASS
-#define obj_hidden_class(p)    ((remove_simple_object_tag(p))->class)
+#define obj_hidden_class(p)    ((remove_object_tag(p))->class)
 #define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
 #else
-#define obj_map(p)             ((remove_simple_object_tag(p))->map)
+#define obj_map(p)             ((remove_object_tag(p))->map)
 #endif
-#define obj_prop(p)            ((remove_simple_object_tag(p))->prop)
-#define obj_prop_index(p,i)    ((remove_simple_object_tag(p))->prop[i])
+#define obj_prop(p)            ((remove_object_tag(p))->prop)
+#define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 
-#define obj_header_tag(x)      gc_obj_header_type(remove_simple_object_tag(x))
+#define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 
 #define PSIZE_NORMAL  20  // default initial size of the property array
@@ -464,40 +470,7 @@ typedef struct flonum_cell {
 #define is_nan(p) JS_FALSE
 #endif /* need_flonum */
 
-
-#if 0
-/*
-   StringCell
-   tag == T_STRING
- */
-typedef struct string_cell {
-#ifdef STROBJ_HAS_HASH
-  uint32_t hash;           // hash value before computing mod
-  uint32_t length;         // length of the string
-#endif // STROBJ_HAS_HASH
-  char value[BYTES_IN_JSVALUE];
-} StringCell;
-
-#define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
-
-#define string_value(p)      ((remove_string_tag(p))->value)
-#define string_to_cstr(p)    string_value(p)
-
-#ifdef STROBJ_HAS_HASH
-#define string_hash(p)       ((remove_string_tag(p))->hash)
-#define string_length(p)     ((remove_string_tag(p))->length)
-#else
-#define string_hash(p)       (calc_hash(string_value(p)))
-#define string_length(p)     (strlen(string_value(p)))
-#endif // STROBJ_HAS_HASH
-
-#define cstr_to_string(str)  (cstr_to_string_ool(NULL, str))
-/* TODO: give a nice name to ejs_string_concat
- *       (string_concat is used for builtin function) */
-#define ejs_string_concat(ctx, str1, str2)  (string_concat_ool(ctx, str1, str2))
-
-#else
-
+#ifdef need_embedded_string
 #define string_value(p)  (is_embedded_string(p) ? embedded_string_value(p) : normal_string_value(p))
 #define string_to_cstr(p) (string_value(p))
 #define string_hash(p)    (is_embedded_string(p) ? embedded_string_hash(p) : normal_string_hash(p))
@@ -541,7 +514,18 @@ static inline JSValue cstr_to_embedded_string(Context *ctx, char *str)
   v |= len << ESTRING_LENGTH_OFFSET;
   return v;
 }
+#endif /* need_embedded_string */
 
+#ifndef customised_string
+#define string_value(p)   (normal_string_value(p))
+#define string_hash(p)    (normal_string_hash(p))
+#define string_length(p)  (normal_string_length(p))
+#define cstr_to_string(ctx,str) (cstr_to_normal_string((ctx),(str)))
+#define ejs_string_concat(ctx,str1,str2)\
+  (ejs_normal_string_concat((ctx),(str1),(str2)))
+#endif /* customised_string */
+
+#ifdef need_normal_string
 /*
    StringCell
    tag == T_STRING
@@ -553,6 +537,8 @@ typedef struct string_cell {
 #endif // STROBJ_HAS_HASH
   char value[BYTES_IN_JSVALUE];
 } StringCell;
+
+#define string_to_cstr(p) (string_value(p))
 
 #define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
 
@@ -572,7 +558,7 @@ typedef struct string_cell {
 #define ejs_normal_string_concat(ctx, str1, str2) \
   (string_concat_ool((ctx), (str1), (str2)))
 
-#endif
+#endif /* need_normal_string */
 
 /*
    Object header
