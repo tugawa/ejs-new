@@ -18,13 +18,23 @@ public class TypeDefinition {
 	static String quoted;
 
 	static DataType parseLine(String line) {
+		System.out.println(line);
 		Scanner sc = new Scanner(line);
 		try {
 			sc.findInLine("([a-zA-Z_]+)\\s*:\\s*");
 			String name = sc.match().group(1);
 			DataType dt = DataType.get(name);
 
-			while (sc.hasNext("[a-zA-Z_].*")) {
+			if (sc.hasNext("\\+.*")) {
+				if (dt.parent != null)
+					throw new Error("defining sub-sub data type:"+line);
+				while (sc.hasNext("\\+[a-zA-Z_].*")) {
+					sc.findInLine("\\+([a-zA-Z_]+)");
+					MatchResult m = sc.match();
+					String subName = m.group(1);
+					DataType.add(subName, dt);
+				}
+			} else {
 				sc.findInLine("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?");
 				MatchResult m = sc.match();
 				String pTagName = m.group(1);
@@ -41,6 +51,13 @@ public class TypeDefinition {
 
 				TypeRepresentation r = new TypeRepresentation(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
 				dt.addRepresentation(r);
+
+				// structure
+				if (sc.hasNext("[a-zA-Z_]+")) {
+					sc.findInLine("[a-zA-Z_]+");
+					String struct = sc.match().group(0);
+					dt.setDataStructure(struct);
+				}
 			}
 			return dt;
 		} catch (Exception e) {
@@ -60,7 +77,8 @@ public class TypeDefinition {
 				continue;
 			if (line.equals("%%%"))
 				break;
-			parseLine(line);
+			if (line.contains(":"))
+				parseLine(line);
 		}
 		StringBuilder sb = new StringBuilder();
 		while (sc.hasNextLine()) {
@@ -85,8 +103,10 @@ public class TypeDefinition {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
-		TypeDefinition.load("datatype/embstr.dtdef");
-		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of("fixnum", "string", "array").map(n -> DataType.get(n)))));
+		TypeDefinition.load("datatype/new.dtdef");
+		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
+				"fixnum", "string", "array").map(n -> DataType.get(n))),
+				DataType.allUsed(false)));
 		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
 				"simple_object",
 				"array",
@@ -97,7 +117,8 @@ public class TypeDefinition {
 				"string_object",
 				"number_object",
 				"boolean_object",
-				"string").map(n -> DataType.get(n)))));
+				"string").map(n -> DataType.get(n))),
+				DataType.allUsed(false)));
 		Plan p = new Plan();
 		new TagPairSynthesiser().synthesise(p);
 	}

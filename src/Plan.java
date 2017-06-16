@@ -21,7 +21,7 @@ public class Plan implements GlobalConstantOptions {
 		String action;
 
 		Set<PT> uniquePT(TypeDefinition td, int i) {
-			return DataType.uniquePT(getTypeRepresentations(td, i));
+			return DataType.uniquePT(getTypeRepresentations(td, i), DataType.allUsed(false));
 		}
 
 		Set<TypeRepresentation> getTypeRepresentations(TypeDefinition td, int i) {

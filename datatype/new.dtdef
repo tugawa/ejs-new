@@ -1,0 +1,30 @@
+string:  +normal_string +embedded_string
+normal_string:   T_STRING(100)/HTAG_STRING(4)         StringCell
+embedded_string: T_ESTRING(010)
+flonum:  T_FLONUM(101)/HTAG_FLONUM(5)                 FlonumCell
+special: T_SPECIAL(110)
+fixnum:  T_FIXNUM(111)
+simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
+array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
+function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
+builtin:       T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
+iterator:      T_GENERIC(000)/HTAG_ITERATOR(10)       IteratorCell
+regexp:        T_GENERIC(000)/HTAG_REGEXP(11)         RegexpCell
+string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)   BoxedCell
+number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)   BoxedCell
+boolean_object:T_GENERIC(000)/HTAG_BOXED_BOOLEAN(14)  BoxedCell
+
+#embedded_string {
+#  cstr_to_string_suitable = cstr_to_string_embedded_string_suitable
+#  cstr_to_string = cstr_to_embedded_string
+#  ejs_string_concat_suitable = ejs_string_concat_embedded_string_suitable
+#  ejs_string_concat = ejs_embedded_string_concat
+##  string_value  = embedded_string_value
+#  string_hash   = embedded_string_hash
+#  string_length = embedded_string_length
+#}
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)

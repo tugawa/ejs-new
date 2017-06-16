@@ -135,23 +135,35 @@ class TypeRepresentation {
 
 class DataType implements GlobalConstantOptions {
 	static Map<String, DataType> dataTypes = new HashMap<String, DataType>();
-	
+
 	static void defineDataType(String name) {
-		dataTypes.put(name, new DataType(name));
+		dataTypes.put(name, new DataType(name, null));
 	}
-	
-	static DataType get(String name) {
-		DataType dt = dataTypes.get(name);
-		if (dt == null)
-			throw new Error("unknown data type; "+ name);
+
+	static DataType add(String name, DataType parent) {
+		if (dataTypes.get(name) != null)
+			throw new Error("double definition: "+ name);
+		DataType dt = new DataType(name, parent);
+		dataTypes.put(name, dt);
 		return dt;
 	}
 
-	private DataType(String name) {
+	static DataType get(String name) {
+		DataType dt = dataTypes.get(name);
+		if (dt == null)
+				throw new Error("unknown data type; "+ name);
+		return dt;
+	}
+
+	private DataType(String name, DataType parent) {
 		this.name = name;
+		this.parent = parent;
+		this.children = new HashSet<DataType>();
+		if (parent != null)
+			parent.children.add(this);
 		reprs = new HashSet<TypeRepresentation>();
 	}
-	
+
 	static {
 		if (DEBUG_WITH_SMALL) {
 			Stream.of(
@@ -181,12 +193,27 @@ class DataType implements GlobalConstantOptions {
 	}
 	
 	static Collection<DataType> allInSpec() {
-		return dataTypes.values();
+		return dataTypes.values().stream()
+				.filter(dt -> dt.parent == null)
+				.collect(Collectors.toSet());
 	}
 
-	static Collection<DataType> allUsed() {
+	static Collection<DataType> allUsed(boolean includeUserDef) {
+		if (includeUserDef) {
+			return dataTypes.values().stream()
+					.filter(dt -> !dt.reprs.isEmpty())
+					.collect(Collectors.toSet());
+		} else {
+			return dataTypes.values().stream()
+					.filter(dt -> !dt.reprs.isEmpty())
+					.filter(dt -> dt.parent == null)
+					.collect(Collectors.toSet());
+		}
+	}
+
+	static Collection<DataType> allLeaves() {
 		return dataTypes.values().stream()
-				.filter(dt -> !dt.reprs.isEmpty())
+				.filter(dt -> dt.isLeaf())
 				.collect(Collectors.toSet());
 	}
 	/*
@@ -209,12 +236,12 @@ class DataType implements GlobalConstantOptions {
 		return dts.flatMap(dt -> dt.getRepresentations().stream());
 	}
 
-	static Set<PT> uniquePT(Set<TypeRepresentation> trs) {
+	static Set<PT> uniquePT(Set<TypeRepresentation> trs, Collection<DataType> among) {
 		return trs.stream()
 				.map(tr -> tr.getPT())
 				.distinct()
 				.filter(pt -> {
-					return typeRepresentationStreamOf(DataType.allUsed())
+					return typeRepresentationStreamOf(among)
 							.filter(tr -> tr.getPT() == pt)
 							.allMatch(tr -> trs.contains(tr));
 				})
@@ -224,22 +251,45 @@ class DataType implements GlobalConstantOptions {
 	/*
 	 * data type instance
 	 */
-	
+
 	String name;
+	String struct;
+	DataType parent;
+	Set<DataType> children;
 	Set<TypeRepresentation> reprs;
 
 	String getName() {
 		return name;
 	}
-	
+
 	Set<TypeRepresentation> getRepresentations() {
 		return new HashSet<TypeRepresentation>(reprs);
 	}
-	
+
 	void addRepresentation(TypeRepresentation r) {
 		reprs.add(r);
+		if (parent != null)
+			parent.addRepresentation(r);
 	}
-	
+
+	void setDataStructure(String struct) {
+		this.struct = struct;
+	}
+
+	TypeRepresentation getRepresentation() {
+		if (!isLeaf())
+			throw new Error("not a leaf type");
+		return reprs.iterator().next();
+	}
+
+	boolean isVMType() {
+		return parent == null;
+	}
+
+	boolean isLeaf() {
+		return children.size() == 0;
+	}
+
 	@Override
 	public String toString() {
 		String s = name + " =";

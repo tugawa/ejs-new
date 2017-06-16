@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
-		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.allUsed())
+		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.allUsed(true))
 						.map(tr -> tr.getPT())
 						.distinct()
 						.collect(Collectors.toList());
@@ -47,12 +47,12 @@ public class TypesGen {
 				.allMatch(tr -> DataType.typeRepresentationOf(target).contains(tr));
 	}
 
-	String minimumRepresentation(Set<DataType> dts) {
+	String minimumRepresentation(Set<DataType> dts, Collection<DataType> among) {
 		return "(" +
 				DataType.typeRepresentationStreamOf(dts)
 				.map(tr -> {
 					PT pt = tr.getPT();
-					if (hasUniquePT(pt, dts, DataType.allUsed()))
+					if (hasUniquePT(pt, dts, among))
 						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
 					else
 						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
@@ -65,12 +65,23 @@ public class TypesGen {
 
 	String defineDTPredicates() {
 		StringBuilder sb = new StringBuilder();
+
+		sb.append("/* VM types */\n");
 		for (DataType dt: DataType.allInSpec()) {
 			sb.append("#define is_").append(dt.name).append("(x) ");
 			if (dt.reprs.isEmpty())
 				sb.append("0  /* not used */\n");
 			else
-				sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet())) +"\n");
+				sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet()), DataType.allLeaves()) +"\n");
+		}
+
+		sb.append("/* custom types */\n");
+		for (DataType dt: DataType.allLeaves()) {
+			if (dt.isVMType())
+				continue;
+			sb.append("#define is_").append(dt.name).append("(x) ");
+			sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet()), dt.parent.children));
+			sb.append("\n");
 		}
 		return sb.toString();
 	}
@@ -94,72 +105,63 @@ public class TypesGen {
 							"flonum").collect(Collectors.toSet()))
 		};
 		return Arrays.stream(families)
-			.map(p -> "#define is_"+ p.first() +"(x) "+ minimumRepresentation(p.second().stream().map(s -> DataType.get(s)).collect(Collectors.toSet())) + "\n")
+			.map(p -> "#define is_"+ p.first() +"(x) "+ minimumRepresentation(p.second().stream().map(s -> DataType.get(s)).collect(Collectors.toSet()), DataType.allLeaves()) + "\n")
 			.collect(Collectors.joining());
 	}
 
-	String uniquenessPredicates() {
-		Map<PT, Long> ptCount = DataType.typeRepresentationStreamOf(DataType.allUsed())
-			.map(tr -> tr.getPT())
+	String defineMisc() {
+		StringBuffer sb = new StringBuffer();
+
+		sb.append("/* uniqueness of PTAG */\n");
+		Map<PT, Long> ptCount = DataType.allLeaves().stream()
+			.map(dt -> dt.getRepresentation().getPT())
 			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-		String def = "";
-		def += "#define has_unique_ptag(x) ("+
-				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).map(pt -> {
-					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
-				})
-				.collect(Collectors.joining(" || ")) +
-				")";
-		def += "\n";
-		def += "#define has_common_ptag(x) ("+
-				ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).map(pt -> {
-					return "(((x) & "+ pt.name + "_MASK) == " + pt.name + ")";
-				})
-				.collect(Collectors.joining(" || ")) +
-				")";
-		def += "\n";
-		return def;
+		Set<PT> uniqPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).collect(Collectors.toSet());
+		Set<PT> commonPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).collect(Collectors.toSet());
+		if (uniqPT.size() < commonPT.size()) {
+			sb.append("#define has_unique_ptag(p) (")
+			  .append(uniqPT.stream()
+					      .map(pt -> ("(((p) & "+pt.name+"_MASK) == "+pt.name+")"))
+					      .collect(Collectors.joining("||")))
+			  .append(")\n");
+			sb.append("#define has_common_ptag(p) (!has_unique_ptag(p))\n");
+		} else {
+			sb.append("#define has_common_ptag(p) (")
+			  .append(commonPT.stream()
+					      .map(pt -> ("(((p) & "+pt.name+"_MASK) == "+pt.name+")"))
+					      .collect(Collectors.joining("||")))
+			  .append(")\n");
+			sb.append("#define has_unique_ptag(p) (!has_common_ptag(p))\n");
+		}
+
+		return sb.toString();
 	}
 
 	String defineNeed() {
 		StringBuilder sb = new StringBuilder();
-		DataType.allUsed().forEach(dt -> {
+		DataType.allUsed(true).forEach(dt -> {
 			sb.append("#define need_").append(dt.name).append(" 1\n");
 		});
 		return sb.toString();
 	}
 	
 	String defineTagOperations() {
-		String[][] typemap = new String[][] {
-				{"simple_object", "Object"},
-				{"array", "ArrayCell"},
-				{"function", "FunctionCell"},
-				{"builtin", "BuiltinCell"},
-				{"iterator", "IteratorCell"},
-				{"regexp", "RegexpCell"},
-				{"flonum", null},
-				{"string", null}
-		};
 		StringBuilder sb = new StringBuilder();
-		for (String[] t: typemap) {
-			String jsType = t[0];
-			String cType = t[1];
-			if (!DataType.get(jsType).reprs.isEmpty()) {
-				String ptName = DataType.get(jsType).reprs.iterator().next().pt.name;
-				sb.append("#define put_").append(jsType).append("_tag(p) ")
-				  .append("(put_tag(p, ").append(ptName).append("))\n");
-				if (cType != null)
-					sb.append("#define remove_").append(jsType).append("_tag(p) ")
-					  .append("((").append(cType).append(" *)remove_tag(p, ").append(ptName).append("))\n");
-			}
+
+		/* leaf types */
+		sb.append("/* leaf types */\n");
+		for (DataType dt: DataType.allLeaves()) {
+			String ptName = dt.getRepresentation().getPT().name;
+			String cast = dt.struct == null ? "" : ("("+dt.struct+" *)");
+			sb.append("#define put_"+dt.name+"_tag(p) ")
+			  .append("(put_tag((p), "+ptName+"))\n");
+			sb.append("#define remove_"+dt.name+"_tag(p) ")
+			  .append("("+cast+"remove_tag((p), "+ptName+"))\n");
 		}
-		if (!DataType.get("string_object").reprs.isEmpty()) {
-			sb.append("#define put_boxed_tag(p) (put_tag(p, ")
-			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
-			  .append("))\n");
-			sb.append("#define remove_boxed_tag(p) ((BoxedCell *)remove_tag(p, ")
-			  .append(DataType.get("string_object").reprs.iterator().next().pt.name)
-			  .append("))\n");
-		}
+
+		sb.append("/* family */\n");
+		sb.append("#define remove_object_tag(p) clear_tag(p)\n");
+
 		return sb.toString();
 	}
 
@@ -167,13 +169,13 @@ public class TypesGen {
 		if (args.length == 1)
 			TypeDefinition.load(args[0]);
 		else
-			TypeDefinition.load("datatype/genericfloat.def"); // debug
+			TypeDefinition.load("datatype/new.dtdef"); // debug
 		TypesGen tg = new TypesGen();
 		System.out.println(tg.definePT());
 		System.out.println(tg.defineHT());
 		System.out.println(tg.defineDTPredicates());
 		System.out.println(tg.defineDTFamilyPredicates());
-		System.out.println(tg.uniquenessPredicates());
+		System.out.println(tg.defineMisc());
 		System.out.println(tg.defineTagOperations());
 		System.out.println(tg.defineNeed());
 		System.out.println(TypeDefinition.quoted);
