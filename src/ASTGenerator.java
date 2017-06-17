@@ -10,7 +10,7 @@ import ast_node.Node.*;
 
 
 public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
-	
+
 	@Override
 	public Node visitProgram(ECMAScriptParser.ProgramContext ctx) {
 		List<IStatement> decls = new ArrayList<IStatement>();
@@ -20,12 +20,12 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		}
 		return new Program(decls);
 	}
-	
+
 	@Override
 	public Node visitSourceElements(ECMAScriptParser.SourceElementsContext ctx) {
 		return visitChildren(ctx);
 	}
-	
+
 	/*
 	// old
 	@Override
@@ -33,7 +33,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		Node sourceElements = visit(ctx.sourceElements());
 		return new Program(sourceElements);
 	}
-	
+
 	@Override
 	public Node visitSourceElements(ECMAScriptParser.SourceElementsContext ctx) {
 		List<Node> sourceElementList = new ArrayList<Node>();
@@ -49,12 +49,12 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	public Node visitSourceElement(ECMAScriptParser.SourceElementContext ctx) {
 		return visitChildren(ctx);
 	}
-	
+
 	@Override
 	public Node visitStatement(ECMAScriptParser.StatementContext ctx) {
 		return visitChildren(ctx);
 	}*/
-	
+
 	@Override
 	public BlockStatement visitBlock(ECMAScriptParser.BlockContext ctx) {
 		List<IStatement> stmts = new ArrayList<IStatement>();
@@ -76,7 +76,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		Node varDecl = visit(ctx.variableDeclarationList());
 		return varDecl;
 	}
-	
+
 	@Override
 	public Node visitVariableDeclarationList(ECMAScriptParser.VariableDeclarationListContext ctx) {
 		List<IVariableDeclarator> varDeclList = new ArrayList<IVariableDeclarator>();
@@ -88,7 +88,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		node.setSourceLocation(ctx.getText(), ctx.start, ctx.stop);
 		return node;
 	}
-	
+
 	@Override
 	public Node visitVariableDeclaration(ECMAScriptParser.VariableDeclarationContext ctx) {
 		String name = ctx.Identifier().getText();
@@ -106,7 +106,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		node.setSourceLocation(ctx.getText(), ctx.start, ctx.stop);
 		return node;
 	}
-	
+
 	@Override
 	public Node visitInitialiser(ECMAScriptParser.InitialiserContext ctx) {
 		// System.out.println("" + ctx.singleExpression().getChildCount());
@@ -116,18 +116,18 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		}
 		return node;
 	}
-	
+
 	@Override
 	public Node visitEmptyStatement(ECMAScriptParser.EmptyStatementContext ctx) {
 		return new EmptyStatement();
 	}
-	
+
 	@Override
 	public Node visitExpressionStatement(ECMAScriptParser.ExpressionStatementContext ctx) {
 		IExpression expression = (IExpression) visit(ctx.expressionSequence());
 		return new ExpressionStatement(expression);
 	}
-	
+
 	@Override
 	public Node visitIfStatement(ECMAScriptParser.IfStatementContext ctx) {
 		IExpression test = (IExpression) visit(ctx.expressionSequence());
@@ -142,14 +142,14 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		ifstmt.setSourceLocation(ctx.getText(), ctx.start, ctx.stop);
 		return ifstmt;
 	}
-	
+
 	@Override
 	public Node visitDoStatement(ECMAScriptParser.DoStatementContext ctx) {
 		IStatement body = (IStatement) visit(ctx.statement());
 		IExpression test = (IExpression) visit(ctx.expressionSequence());
 		return new DoWhileStatement(body, test);
 	}
-	
+
 	@Override
 	public Node visitWhileStatement(ECMAScriptParser.WhileStatementContext ctx) {
 		IStatement stmt = (IStatement) visit(ctx.statement());
@@ -158,7 +158,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 				stmt);
 		return whileStatement;
 	}
-	
+
 	@Override
 	public Node visitForStatement(ECMAScriptParser.ForStatementContext ctx) {
     /*
@@ -193,7 +193,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
     return new ForStatement(exp, (IExpression) test, update, body);
 	}
-	
+
 	@Override
 	public Node visitForVarStatement(ECMAScriptParser.ForVarStatementContext ctx) {
 		VariableDeclaration varDecl = (VariableDeclaration) visit(ctx.variableDeclarationList());
@@ -208,7 +208,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		IStatement body = (IStatement) visit(ctx.statement());
 		return new ForStatement(varDecl, test, update, body);
 	}
-	
+
 	@Override
 	public Node visitForInStatement(ECMAScriptParser.ForInStatementContext ctx) {
 		IPattern left = (IPattern) visit(ctx.singleExpression());
@@ -216,7 +216,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		IStatement body = (IStatement) visit(ctx.statement());
 		return new ForInStatement(left, right, body);
 	}
-	
+
 	@Override
 	public Node visitForVarInStatement(ECMAScriptParser.ForVarInStatementContext ctx) {
 		List<IVariableDeclarator> decls = new ArrayList<IVariableDeclarator>();
@@ -226,7 +226,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		IStatement body = (IStatement) visit(ctx.statement());
 		return new ForInStatement(left, right, body);
 	}
-	
+
 	@Override
 	public Node visitContinueStatement(ECMAScriptParser.ContinueStatementContext ctx) {
 		Identifier id = null;
@@ -235,7 +235,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		}
 		return new ContinueStatement(id);
 	}
-	
+
 	@Override public Node visitBreakStatement(ECMAScriptParser.BreakStatementContext ctx) {
 		Identifier id = null;
 		if (ctx.Identifier() != null) {
@@ -307,7 +307,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
 	@Override public Node visitCaseClause(ECMAScriptParser.CaseClauseContext ctx) {
 		IExpression test = (IExpression) visit(ctx.expressionSequence());
-		List<IStatement> consequent = new ArrayList<IStatement>(); 
+		List<IStatement> consequent = new ArrayList<IStatement>();
 		for (StatementContext stmtCtx : ctx.statementList().statement()) {
 			consequent.add((IStatement) visit(stmtCtx));
 		}
@@ -315,7 +315,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	}
 
 	@Override public Node visitDefaultClause(ECMAScriptParser.DefaultClauseContext ctx) {
-		List<IStatement> consequent = new ArrayList<IStatement>(); 
+		List<IStatement> consequent = new ArrayList<IStatement>();
 		for (StatementContext stmtCtx : ctx.statementList().statement()) {
 			consequent.add((IStatement) visit(stmtCtx));
 		}
@@ -325,14 +325,13 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	@Override public Node visitLabelledStatement(ECMAScriptParser.LabelledStatementContext ctx) {
 		Identifier label = new Identifier(ctx.Identifier().getText());
 		IStatement statement = (IStatement) visit(ctx.statement());
-		
 		if (statement.getTypeId() == Node.WHILE_STMT) {
 			((WhileStatement) statement).setLabel(label.getName());
 		} else if (statement.getTypeId() == Node.DO_WHILE_STMT) {
 			((DoWhileStatement) statement).setLabel(label.getName());
 		} else if (statement.getTypeId() == Node.FOR_STMT) {
 			((ForStatement) statement).setLabel(label.getName());
-		} else if (statement.getTypeId() == Node.FOR_IN_STMT) {
+    } else if (statement.getTypeId() == Node.FOR_IN_STMT) {
 			((ForInStatement) statement).setLabel(label.getName());
 		}
 		return new LabeledStatement(label, statement);
@@ -402,7 +401,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		List<IExpression> elements = new ArrayList<IExpression>();
 		if (ctx.elementList() != null) {
 			List<SingleExpressionContext> singleExprCtxList = ctx.elementList().singleExpression();
-			
+
 			for (SingleExpressionContext singleExprCtx : singleExprCtxList) {
 				elements.add((IExpression) visit(singleExprCtx));
 			}
@@ -599,7 +598,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		return new UnaryExpression("-", true, argument);
 	}
 
-	@Override public Node visitPreIncrementExpression(ECMAScriptParser.PreIncrementExpressionContext ctx) { 
+	@Override public Node visitPreIncrementExpression(ECMAScriptParser.PreIncrementExpressionContext ctx) {
 		IExpression argument = (IExpression) visit(ctx.singleExpression());
 		return new UpdateExpression("++", true, argument);
 	}
@@ -789,13 +788,42 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			literal = new Literal(Double.valueOf(numStr).doubleValue(), isDouble);
 		} else if (ctx.OctalIntegerLiteral() != null) {
 			String numStr = ctx.OctalIntegerLiteral().getText().substring(1);
-			literal = new Literal((double) Integer.parseInt(numStr, 8), false);
+			// literal = new Literal((double) Integer.parseInt(numStr, 8), false);
+			literal = new Literal(stringToDouble(numStr, 8), false);
 		} else if (ctx.HexIntegerLiteral() != null) {
 			String numStr = ctx.HexIntegerLiteral().getText().substring(2);
-			literal = new Literal((double) Integer.parseInt(numStr, 16), false);
+			// literal = new Literal((double) Integer.parseInt(numStr, 16), false);
+			literal = new Literal(stringToDouble(numStr, 16), false);
 		}
 		literal.setSourceLocation(ctx.getText(), ctx.start, ctx.stop);
 		return literal;
+	}
+
+	double stringToDouble(String s, int d) {
+	    char[] ca = s.toCharArray();
+	    double ret = 0;
+	    for (int i = 0; i < ca.length; i++) {
+	        ret *= d;
+	        switch (ca[i]) {
+	        case '0': ret += 0; break;
+	        case '1': ret += 1; break;
+	        case '2': ret += 2; break;
+	        case '3': ret += 3; break;
+	        case '4': ret += 4; break;
+	        case '5': ret += 5; break;
+	        case '6': ret += 6; break;
+	        case '7': ret += 7; break;
+	        case '8': ret += 8; break;
+	        case '9': ret += 9; break;
+	        case 'a': case 'A': ret += 10; break;
+	        case 'b': case 'B': ret += 11; break;
+	        case 'c': case 'C': ret += 12; break;
+	        case 'd': case 'D': ret += 13; break;
+	        case 'e': case 'E': ret += 14; break;
+	        case 'f': case 'F': ret += 15; break;
+	        }
+	    }
+	    return ret;
 	}
 
 	@Override public Node visitIdentifierName(ECMAScriptParser.IdentifierNameContext ctx) {
