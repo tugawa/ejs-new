@@ -1,6 +1,6 @@
 ## Uncomment after editing options and paths
 #
-#all: ejsvm
+all: ejsvm
 #
 
 CC = clang
@@ -19,8 +19,8 @@ OPT_REGEXP=oniguruma
 ### Paths
 ###
 
-INCLUDES=-I/usr/local/include
-LIBS=-L/usr/local/lib
+INCLUDES=-I/opt/local/include
+LIBS=-L/opt/local/lib
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-format -DUSER_DEF $(INCLUDES)
 LIBS += -lm

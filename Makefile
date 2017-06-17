@@ -1,7 +1,8 @@
 
 initial-message:
 	@echo To build customised eJSVM:
-	@echo  0. edit common.mk, the common part of the Makefile, if necessary
+	@echo  0. copy common.mk.template to common.mk, the common part
+	@echo  "   "of the Makefile and edit it, if necessary
 	@echo  1. make a build directory
 	@echo  "     "$ mkdir build_xxx
 	@echo  2. copy this Makefile to the build directory
