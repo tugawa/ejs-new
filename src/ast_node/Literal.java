@@ -82,11 +82,11 @@ public class Literal extends Node implements ILiteral {
             val = val.replace("\\\"", "\"");
             val = val.replace("\\\n", "");
             this.strVal = val;
-        } else if (val.charAt(0) == '/' && val.charAt(val.length() - 1) == '/') {
+        } else if (val.charAt(0) == '/') {
             literalType = LiteralType.REG_EXP;
             this.regExpVal = val.substring(1, val.length() - 1);
         }else {
-            System.out.println("ERROR: failed to initialize Literal.");
+            System.out.println("ERROR: failed to initialize Literal: " + val);
             literalType = LiteralType.NULL;
         }
     }
