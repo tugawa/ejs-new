@@ -240,7 +240,7 @@ public class CodeGenerator {
             int sendentry = 0;
             int numberOfLocals = 0;
             LinkedList<BCode> bcodes = new LinkedList<BCode>();
-            
+
             LinkedList<JSLabel> jslabelsContinueDest = new LinkedList<JSLabel>();
             LinkedList<JSLabel> jslabelsBreakDest = new LinkedList<JSLabel>();
             LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
@@ -613,15 +613,19 @@ public class CodeGenerator {
     }
 
     void compileThrowStatement(IASTThrowStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        System.out.println("not implemented.");
+        // System.out.println("not implemented: ThrowStatement: in CodeGenerator");
+        dispatcher.compile(node.value, bcBuilder, env, reg);
+        bcBuilder.push(new IThrow(reg));
     }
 
     void compileTryCatchStatement(IASTTryCatchStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        System.out.println("not implemented.");
+        System.out.println("not implemented: TryCatchStatement: in CodeGenerator");
+        // Label l1 = new Label();
+        // bcBuilder.push(new IPushhandler(l1));
     }
 
     void compileTryFinallyStatement(IASTTryFinallyStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        System.out.println("not implemented.");
+        System.out.println("not implemented: TryFinallyStatement: in CodeGenerator");
     }
 
     void compileForStatement(IASTForStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
@@ -914,7 +918,7 @@ public class CodeGenerator {
             bcBuilder.push(new IBitand(reg, r1, r2));
         } break;
         case BXOR: case ASSIGN_BXOR: {
-            System.out.println("not implemented.");
+            System.out.println("not implemented: bit xor: in CodeGenerator");
         } break;
 
         // logical
