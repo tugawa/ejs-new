@@ -603,6 +603,26 @@ class IJumpfalse extends BCode {
 }
 
 
+class IThrow extends BCode {
+    Register reg;
+    IThrow(Register reg) {
+        this.reg = reg;
+    }
+    public String toString() {
+        return super.toString("throw", reg);
+    }
+}
+class IPushhandler extends BCode {
+    Label label;
+    IPushhandler(Label label) {
+        this.label = label;
+    }
+    public String toString() {
+        return super.toString("pushhandler", label.dist(number));
+    }
+}
+
+
 
 
 class ISetfl extends BCode {
