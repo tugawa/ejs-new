@@ -429,7 +429,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 			operator = IASTUnaryExpression.Operator.VOID;
 		} break;
 		case "~": {
-			operator = IASTUnaryExpression.Operator.REVERSE;
+			operator = IASTUnaryExpression.Operator.BNOT;
 		} break;
 		case "typeof": {
 			operator = IASTUnaryExpression.Operator.TYPEOF;

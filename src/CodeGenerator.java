@@ -861,6 +861,22 @@ public class CodeGenerator {
                 compileAssignment(bcBuilder, env, node.operands[0], r2);
             }
         } break;
+        case BNOT: {
+        	Register r1 = env.freshRegister();
+        	dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+        	bcBuilder.push(new IFixnum(r1, 0));
+        	bcBuilder.push(new ISub(reg, r1, reg));
+        	bcBuilder.push(new IFixnum(r1, 1));
+        	bcBuilder.push(new ISub(reg, reg, r1));
+        } break;
+        case TYPEOF:
+        	throw new Error("Unary operator not implemented : typeof");
+        case VOID:
+        	throw new Error("Unary operator not implemented : void");
+        case DELETE:
+        	throw new Error("Unary operator not implemented : delete");
+        default:
+        	throw new Error("Unary operator not implemented : unknown");
         }
     }
 
@@ -918,7 +934,14 @@ public class CodeGenerator {
             bcBuilder.push(new IBitand(reg, r1, r2));
         } break;
         case BXOR: case ASSIGN_BXOR: {
-            System.out.println("not implemented: bit xor: in CodeGenerator");
+        	Register r3 = env.freshRegister();
+        	bcBuilder.push(new IBitor(r3, r1, r2));  // r3 = a | b
+        	bcBuilder.push(new IBitand(r1, r1, r2));  // r1 = a & b
+        	bcBuilder.push(new IFixnum(r2, 0));
+        	bcBuilder.push(new ISub(r1, r2, r1));    // r1 = -(a & b)
+        	bcBuilder.push(new IFixnum(r2, 1));
+        	bcBuilder.push(new ISub(r1, r1, r2));    // r1 = ~(a & b)
+        	bcBuilder.push(new IBitand(reg, r1, r3)); // reg = ~(a & b) & (a | b)
         } break;
 
         // logical

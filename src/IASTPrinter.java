@@ -331,10 +331,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 			jb.add(KEY_OPERATOR, "NOT (!)");
 		} break;
 		case BNOT: {
-			jb.add(KEY_OPERATOR, "BNOT ()");
-		} break;
-		case REVERSE: {
-			jb.add(KEY_OPERATOR, "REVERSE (~)");
+			jb.add(KEY_OPERATOR, "BNOT (~)");
 		} break;
 		case TYPEOF: {
 			jb.add(KEY_OPERATOR, "TYPEOF (typeof)");

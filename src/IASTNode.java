@@ -381,7 +381,7 @@ class IASTOperatorExpression extends IASTExpression {
 
 class IASTUnaryExpression extends IASTOperatorExpression {
 	static enum Operator {
-		PLUS, MINUS, NOT, BNOT, REVERSE, TYPEOF, VOID, DELETE, INC, DEC
+		PLUS, MINUS, NOT, BNOT, TYPEOF, VOID, DELETE, INC, DEC
 	}
 	Operator operator;
 	boolean prefix;
