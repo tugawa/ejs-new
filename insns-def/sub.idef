@@ -18,7 +18,7 @@
 \}
 
 \when v1:fixnum || v1:flonum \{
-  v2 = to_number(context, v1);
+  v2 = to_number(context, v2);
   goto sub_HEAD;
 \}
 
