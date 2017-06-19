@@ -148,6 +148,10 @@ else
 	GENERATED_HFILES += types-generated.h
 endif
 
+ifndef $(INSNGEN)
+INSNGEN=java -cp ../vmgen/vmgen.jar InsnGen $(INSNGEN_FLAGS)
+endif
+
 INSN_FILES = $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 SEDCOM_GEN_INSN_OPCODE = \
@@ -195,7 +199,7 @@ insns/%.inc: ../insns-handcraft/%.inc
 else
 $(INSN_GENERATED):insns/%.inc: ../insns-def/%.idef
 	mkdir -p insns
-	java -cp ../vmgen/vmgen.jar InsnGen $(DATATYPES) $< insns
+	$(INSNGEN) $(DATATYPES) $< insns
 
 $(INSN_HANDCRAFT):insns/%.inc: ../insns-handcraft/%.inc
 	mkdir -p insns
