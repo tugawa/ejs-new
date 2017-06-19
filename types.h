@@ -450,8 +450,6 @@ typedef struct flonum_cell {
 } FlonumCell;
 
 #ifdef need_flonum
-#define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_FLONUM))
-
 #define flonum_value(p)      ((remove_flonum_tag(p))->value)
 
 #define double_to_flonum(n)  (put_flonum_tag(allocate_flonum(n)))
