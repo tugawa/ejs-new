@@ -50,7 +50,9 @@ extern "C" {
 /*
  * allocate.c
  */
+#ifdef need_normal_flonum
 extern FlonumCell *allocate_flonum(double);
+#endif /* need_normal_flonum */
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
 extern Object *allocate_simple_object(Context *ctx);
