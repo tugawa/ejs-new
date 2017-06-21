@@ -843,7 +843,7 @@ STATIC void weak_clear_StrTable(StrTable *table)
   for (i = 0; i < table->size; i++) {
     StrCons ** p = table->obvector + i;
     while (*p != NULL) {
-      StringCell *cell = remove_string_tag((*p)->str);
+      StringCell *cell = remove_normal_string_tag((*p)->str);
       if (!is_marked_cell(cell)) {
 	(*p)->str = JS_UNDEFINED;
 	*p = (*p)->next;

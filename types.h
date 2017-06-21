@@ -63,27 +63,41 @@
 #define is_fixnum(p)             (equal_tag((p), T_FIXNUM))
 #define is_special(p)            (equal_tag((p), T_SPECIAL))
 
-#define remove_simple_object_tag(p) ((Object *)  remove_tag((p), T_GENERIC))
-#define remove_array_tag(p)     ((ArrayCell *)   remove_tag((p), T_GENERIC))
-#define remove_function_tag(p)  ((FunctionCell *)remove_tag((p), T_GENERIC))
-#define remove_builtin_tag(p)   ((BuiltinCell *) remove_tag((p), T_GENERIC))
-#define remove_iterator_tag(p)  ((IteratorCell *)remove_tag((p), T_GENERIC))
-#define remove_regexp_tag(p)    ((RegexpCell *)  remove_tag((p), T_GENERIC))
-#define remove_boolean_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_number_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_string_object_tag(p) ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_flonum_tag(p) \
+  ((FlonumCell *)remove_tag((p), T_FLONUM))
+#define remove_simple_object_tag(p)		\
+  ((Object *)  remove_tag((p), T_GENERIC))
+#define remove_normal_array_tag(p) \
+  ((ArrayCell *)   remove_tag((p), T_GENERIC))
+#define remove_normal_function_tag(p) \
+  ((FunctionCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_builtin_tag(p) \
+  ((BuiltinCell *) remove_tag((p), T_GENERIC))
+#define remove_normal_iterator_tag(p) \
+  ((IteratorCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_string_tag(p) \
+  ((StringCell *)remove_tag((p), T_STRING))
+#define remove_normal_regexp_tag(p)		\
+  ((RegexpCell *)  remove_tag((p), T_GENERIC))
+#define remove_normal_boolean_object_tag(p) \
+  ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_number_object_tag(p) \
+  ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_string_object_tag(p) \
+  ((BoxedCell *)remove_tag((p), T_GENERIC))
 
 #define put_simple_object_tag(p) (put_tag(p, T_GENERIC))
-#define put_array_tag(p)         (put_tag(p, T_GENERIC))
-#define put_function_tag(p)      (put_tag(p, T_GENERIC))
-#define put_builtin_tag(p)       (put_tag(p, T_GENERIC))
-#define put_iterator_tag(p)      (put_tag(p, T_GENERIC))
-#define put_regexp_tag(p)        (put_tag(p, T_GENERIC))
-#define put_flonum_tag(p)        (put_tag(p, T_FLONUM))
-#define put_normal_string_tag(p) (put_tag(p, T_STRING))
-#define put_boolean_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_number_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_string_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
+#define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
+#define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
+#define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
+#define put_normal_string_tag(p)         (put_tag((p), T_STRING))
+#define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
+#define put_normal_flonum_tag(p)        (put_tag(p, T_FLONUM))
+#define put_normal_normal_string_tag(p) (put_tag(p, T_STRING))
+#define put_normal_boolean_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_normal_number_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_normal_string_object_tag(p) (put_tag((p), T_GENERIC))
 
 #define HTAG_STRING        (0x4)
 #define HTAG_FLONUM        (0x5)
@@ -116,11 +130,18 @@
 #define need_array 1
 #define need_function 1
 
-#define need_normal_string 1
+#define need_normal_number_object 1
+#define need_normal_builtin 1
+#define need_normal_boolean_object 1
+#define need_normal_array 1
+#define need_normal_string_object 1
+#define need_normal_iterator 1
+#define need_normal_regexp 1
+#define need_normal_function 1
+#define need_normal_fixnum 1
 #define need_normal_flonum 1
-
-#undef customised_string
-#undef customised_flonum
+#define need_normal_special 1
+#define need_normal_string 1
 
 #endif /* USE_TYPES_GENERATED */
 
@@ -303,13 +324,13 @@ typedef struct array_cell {
   JSValue *body;        // pointer to a C array
 } ArrayCell;
 
-#define make_array(ctx)       (put_array_tag(allocate_array(ctx)))
+#define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
 
-#define array_object_p(a)     (&((remove_array_tag(a))->o))
-#define array_size(a)         ((remove_array_tag(a))->size)
-#define array_length(a)       ((remove_array_tag(a))->length)
-#define array_body(a)         ((remove_array_tag(a))->body)
-#define array_body_index(a,i) ((remove_array_tag(a))->body[i])
+#define array_object_p(a)     (&((remove_normal_array_tag(a))->o))
+#define array_size(a)         ((remove_normal_array_tag(a))->size)
+#define array_length(a)       ((remove_normal_array_tag(a))->length)
+#define array_body(a)         ((remove_normal_array_tag(a))->body)
+#define array_body_index(a,i) ((remove_normal_array_tag(a))->body[i])
 
 #define ASIZE_INIT   10       // default initial size of the C array
 #define ASIZE_DELTA  10       // delta when expanding the C array
@@ -331,11 +352,11 @@ typedef struct function_cell {
   FunctionFrame *environment;
 } FunctionCell;
 
-#define make_function()        (put_function_tag(allocate_function()))
+#define make_function()        (put_normal_function_tag(allocate_function()))
 
-#define func_object_p(f)       (&((remove_function_tag(f))->o))
-#define func_table_entry(f)    ((remove_function_tag(f))->func_table_entry)
-#define func_environment(f)    ((remove_function_tag(f))->environment)
+#define func_object_p(f)       (&((remove_normal_function_tag(f))->o))
+#define func_table_entry(f)    ((remove_normal_function_tag(f))->func_table_entry)
+#define func_environment(f)    ((remove_normal_function_tag(f))->environment)
 
 /*
    Builtin
@@ -360,12 +381,12 @@ typedef struct builtin_cell {
   int n_args;
 } BuiltinCell;
 
-#define make_builtin()          (put_builtin_tag(allocate_builtin()))
+#define make_builtin()          (put_normal_builtin_tag(allocate_builtin()))
 
-#define builtin_object_p(f)     (&((remove_builtin_tag(f))->o))
-#define builtin_body(f)         ((remove_builtin_tag(f))->body)
-#define builtin_constructor(f)  ((remove_builtin_tag(f))->constructor)
-#define builtin_n_args(f)       ((remove_builtin_tag(f))->n_args)
+#define builtin_object_p(f)     (&((remove_normal_builtin_tag(f))->o))
+#define builtin_body(f)         ((remove_normal_builtin_tag(f))->body)
+#define builtin_constructor(f)  ((remove_normal_builtin_tag(f))->constructor)
+#define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
 
 /*
    Iterator
@@ -376,16 +397,16 @@ typedef struct iterator_cell {
   HashIterator iter;
 } IteratorCell;
 
-#define make_iterator()          (put_iterator_tag(allocate_iterator()))
+#define make_iterator()          (put_normal_iterator_tag(allocate_iterator()))
 
-#define iterator_object_p(i)     (&((remove_iterator_tag(i))->o))
+#define iterator_object_p(i)     (&((remove_normal_iterator_tag(i))->o))
 #ifdef HIDDEN_CLASS
-#define iterator_object_map(i) (hidden_map((remove_iterator_tag(i))->o.class))
+#define iterator_object_map(i) (hidden_map((remove_normal_iterator_tag(i))->o.class))
 #else
-#define iterator_object_map(i)   ((remove_iterator_tag(i))->o.map)
+#define iterator_object_map(i)   ((remove_normal_iterator_tag(i))->o.map)
 #endif
-#define iterator_object_prop_index(i,k) ((remove_iterator_tag(i))->o.prop[k])
-#define iterator_iter(i)         ((remove_iterator_tag(i))->iter)
+#define iterator_object_prop_index(i,k) ((remove_normal_iterator_tag(i))->o.prop[k])
+#define iterator_iter(i)         ((remove_normal_iterator_tag(i))->iter)
 
 #ifdef USE_REGEXP
 /*
@@ -407,15 +428,15 @@ typedef struct regexp_cell {
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
 
-#define make_regexp()          (put_regexp_tag(allocate_regexp()))
+#define make_regexp()          (put_normal_regexp_tag(allocate_regexp()))
 
-#define regexp_object_p(r)     (&((remove_regexp_tag(r))->o))
-#define regexp_pattern(r)      ((remove_regexp_tag(r))->pattern)
-#define regexp_reg(r)          ((remove_regexp_tag(r))->reg)
-#define regexp_global(r)       ((remove_regexp_tag(r))->global)
-#define regexp_ignorecase(r)   ((remove_regexp_tag(r))->ignorecase)
-#define regexp_multiline(r)    ((remove_regexp_tag(r))->multiline)
-#define regexp_lastindex(r)    ((remove_regexp_tag(r))->lastindex)
+#define regexp_object_p(r)     (&((remove_normal_regexp_tag(r))->o))
+#define regexp_pattern(r)      ((remove_normal_regexp_tag(r))->pattern)
+#define regexp_reg(r)          ((remove_normal_regexp_tag(r))->reg)
+#define regexp_global(r)       ((remove_normal_regexp_tag(r))->global)
+#define regexp_ignorecase(r)   ((remove_normal_regexp_tag(r))->ignorecase)
+#define regexp_multiline(r)    ((remove_normal_regexp_tag(r))->multiline)
+#define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
 
 #endif
 
@@ -429,19 +450,19 @@ typedef struct boxed_cell {
 } BoxedCell;
 
 #define make_number_object()					\
-  (put_number_object_tag(allocate_boxed(HTAG_BOXED_NUMBER)))
-#define number_object_value(n)      (remove_number_object_tag(n)->value)
-#define number_object_object_ptr(n) (&((remove_number_object_tag(n))->o))
+  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_NUMBER)))
+#define number_object_value(n)      (remove_normal_number_object_tag(n)->value)
+#define number_object_object_ptr(n) (&((remove_normal_number_object_tag(n))->o))
 
 #define make_boolean_object()					\
-  (put_number_object_tag(allocate_boxed(HTAG_BOXED_BOOLEAN)))
-#define boolean_object_value(b)      (remove_boolean_object_tag(b)->value)
-#define boolean_object_object_ptr(b) (&((remove_boolean_object_tag(b))->o))
+  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_BOOLEAN)))
+#define boolean_object_value(b)      (remove_normal_boolean_object_tag(b)->value)
+#define boolean_object_object_ptr(b) (&((remove_normal_boolean_object_tag(b))->o))
 
 #define make_string_object()			\
-  (put_number_object_tag(allocate_boxed(HTAG_BOXED_STRING)))
-#define string_object_value(s)      (remove_string_object_tag(s)->value)
-#define string_object_object_ptr(s) (&((remove_string_object_tag(s))->o))
+  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_STRING)))
+#define string_object_value(s)      (remove_normal_string_object_tag(s)->value)
+#define string_object_object_ptr(s) (&((remove_normal_string_object_tag(s))->o))
 
 
 
@@ -482,9 +503,7 @@ typedef struct flonum_cell {
   double value;
 } FlonumCell;
 
-#define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_STRING))
-
-#define normal_flonum_value(p)      ((remove_flonum_tag(p))->value)
+#define normal_flonum_value(p)      ((remove_normal_flonum_tag(p))->value)
 #define double_to_normal_flonum(n)  (put_normal_flonum_tag(allocate_flonum(n)))
 #define int_to_normal_flonum(i)     cint_to_flonum(i)
 #define cint_to_normal_flonum(i)    double_to_flonum((double)(i))
@@ -523,13 +542,11 @@ typedef struct string_cell {
 
 #define string_to_cstr(p) (string_value(p))
 
-#define remove_string_tag(p) ((StringCell *)remove_tag((p), T_STRING))
-
-#define normal_string_value(p)   ((remove_string_tag(p))->value)
+#define normal_string_value(p)   ((remove_normal_string_tag(p))->value)
 
 #ifdef STROBJ_HAS_HASH
-#define normal_string_hash(p)       ((remove_string_tag(p))->hash)
-#define normal_string_length(p)     ((remove_string_tag(p))->length)
+#define normal_string_hash(p)       ((remove_normal_string_tag(p))->hash)
+#define normal_string_length(p)     ((remove_normal_string_tag(p))->length)
 #else
 #define normal_string_hash(p)       (calc_hash(string_value(p)))
 #define normal_string_length(p)     (strlen(string_value(p)))
@@ -643,7 +660,6 @@ typedef uint64_t cuint;
 #define SPECIALOFFSET           (TAGOFFSET + 1)
 #define SPECIALMASK             ((uint64_t)(1 << SPECIALOFFSET) - 1)
 
-#define remove_special_tag(p)   (remove_tag((p), T_SPECIAL))
 #define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
 #define special_tag(p)          ((uint64_t)(p) & SPECIALMASK)
 #define special_equal_tag(p,t)  (special_tag((p)) == (t))
