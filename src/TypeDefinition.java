@@ -49,7 +49,7 @@ public class TypeDefinition {
 					String hTypeName = m.group(4);
 					int hTypeValue = m.group(5) == null ? 0 : Integer.parseInt(m.group(5));
 
-					TypeRepresentation r = new TypeRepresentation(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
+					TypeRepresentation r = new TypeRepresentation(dt.name, pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
 					dt.addRepresentation(r);
 
 					// structure

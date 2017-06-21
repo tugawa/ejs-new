@@ -13,7 +13,8 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 	@Override
 	String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
-//		System.out.println(dispatchRuleList);
+		System.out.println("-------- LLPlan --------");
+		System.out.println(dispatchRuleList);
 		ActionNode root = tagPairDispatch(dispatchRuleList);
 		Stream<PT[]> undispatched = dispatchRuleList.rules.stream()
 			.flatMap(r -> r.condition.stream())
@@ -23,13 +24,15 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
 //		System.out.println(nestedRuleList);
 		nestedRuleList.canonicalise();
-//		System.out.println(nestedRuleList);
+		System.out.println("-------- canonicalised nested LLPlan --------");
+		System.out.println(nestedRuleList);
 		DispatchActionNode d = nestedDispatch(nestedRuleList);
 //		System.out.println(d);
 		TagPairBranch b = new TagPairBranch(d);
 		undispatched.forEach(pt -> b.addCondition(pt[0], pt[1]));
 		((DispatchActionNode) root).add(b);
-//		System.out.println(root);
+		System.out.println("-------- unoptimised decision tree --------");
+		System.out.println(root);
 //		System.out.println("----------------");
 		root = simplify(root);
 //		System.out.println(root);
@@ -40,6 +43,8 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 //		System.out.println(root.code());
 		// TODO Auto-generated method stub
 		//tagPairDispatch(dispatchRuleList);
+		System.out.println("-------- optimised decision tree --------");
+		System.out.println(root);
 		return root.code();
 	}
 

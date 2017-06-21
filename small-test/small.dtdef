@@ -1,9 +1,9 @@
 string:  +normal_string
 normal_string:   T_STRING(100)/HTAG_STRING(4)         StringCell
-fixnum:  T_FIXNUM(111)
+fixnum:  		T_FIXNUM(111)
+flonum:  		T_GENERIC(000)/HTAG_FLONUM(3)         FlonumCell
 simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
 array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
-function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
 
 %%%
 /* for GC */

@@ -35,7 +35,7 @@ class PT {
 	
 	@Override
 	public String toString() {
-		return String.format("%s(%d/%d)", name, value, bits);
+		return String.format("%s", name);
 	}
 }
 
@@ -66,7 +66,7 @@ class HT {
 	
 	@Override
 	public String toString() {
-		return String.format("%s(%d)", name, value);
+		return String.format("%s", name);
 	}
 }
 
@@ -74,11 +74,13 @@ class HT {
 class TypeRepresentation {
 	PT pt;
 	HT ht;
+	String name;
 	
-	TypeRepresentation(String ptName, int ptValue, int ptBits, String htName, int htValue) {
+	TypeRepresentation(String name, String ptName, int ptValue, int ptBits, String htName, int htValue) {
 		pt = PT.get(ptName, ptValue, ptBits);
 		if (htName != null)
 			ht = HT.get(htName, htValue);
+		this.name = name;
 	}
 	
 	boolean hasHT() {
@@ -171,7 +173,7 @@ class DataType implements GlobalConstantOptions {
 					"fixnum",
 					"simple_object",
 					"array",
-					"function")
+					"flonum")
 				.forEach(name -> defineDataType(name));
 		} else {
 			Stream.of(

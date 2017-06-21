@@ -93,7 +93,7 @@ class LLRule {
 				condition.stream().map(c -> {
 					return (c.done ? "-" : "") +
 						Arrays.stream(c.trs)
-							.map(tr -> tr.getPT().name + (tr.hasHT() ? ("/" + tr.getHT().name) : ""))
+							.map(tr -> tr.name)
 							.collect(Collectors.joining("*"));
 				}).collect(Collectors.joining(", "))
 				+ "} -> " + action.toString() + "]";
@@ -277,15 +277,26 @@ class SwitchSynthesiser extends Synthesiser {
 	@Override
 	String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
+		if (PRINT_PASS) {
+			System.out.println("-------- LLPlan --------");
+			System.out.println(dispatchRuleList);
+		}
 //		System.out.println(dispatchRuleList);
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
 //		System.out.println(nestedRuleList)
 		nestedRuleList.canonicalise();
-//		System.out.println(nestedRuleList);
+		if (PRINT_PASS) {
+			System.out.println("-------- canonicalised nested LLPlan --------");
+			System.out.println(nestedRuleList);
+		}
 		ActionNode root = nestedDispatch(nestedRuleList);
 //		System.out.println(d);
 //		System.out.println(root);
 //		System.out.println("----------------");
+		if (PRINT_PASS) {
+			System.out.println("-------- unoptimised decision tree --------");
+			System.out.println(root);
+		}
 		root = simplify(root);
 //		System.out.println(root);
 //		System.out.println("----------------");
@@ -295,6 +306,10 @@ class SwitchSynthesiser extends Synthesiser {
 //		System.out.println(root.code());
 		// TODO Auto-generated method stub
 		//tagPairDispatch(dispatchRuleList);
+		if (PRINT_PASS) {
+			System.out.println("-------- optimised decision tree --------");
+			System.out.println(root);
+		}
 		return root.code();
 	}
 
