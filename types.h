@@ -117,8 +117,10 @@
 #define need_function 1
 
 #define need_normal_string 1
+#define need_normal_flonum 1
 
 #undef customised_string
+#undef customised_flonum
 
 #endif /* USE_TYPES_GENERATED */
 
@@ -441,6 +443,37 @@ typedef struct boxed_cell {
 #define string_object_value(s)      (remove_string_object_tag(s)->value)
 #define string_object_object_ptr(s) (&((remove_string_object_tag(s))->o))
 
+
+
+/**********************************
+ * Flonum
+ */
+#if !defined(need_flonum)
+
+#define flonum_value(p)      JS_UNDEFINED
+#define double_to_flonum(n)  JS_UNDEFINED
+#define int_to_flonum(i)     JS_UNDEFINED
+#define cint_to_flonum(i)    JS_UNDEFINED
+#define flonum_to_double(p)  0
+#define flonum_to_cint(p)    0
+#define flonum_to_int(p)     0
+#define is_nan(p) JS_FALSE
+
+#elif !defined(customised_flonum)
+
+#define flonum_value(p)      (normal_flonum_value(p))
+#define double_to_flonum(n)  (double_to_normal_flonum(n))
+#define int_to_flonum(i)     (int_to_normal_flonum(i))
+#define cint_to_flonum(i)    (cint_to_normal_flonum(i))
+#define flonum_to_double(p)  (normal_flonum_value(p))
+#define flonum_to_cint(p)    (normal_flonum_value(p))
+#define flonum_to_int(p)     (normal_flonum_value(p))
+#define is_nan(p)            (normal_flonum_is_nan(p))
+
+#endif
+
+#ifdef need_normal_flonum
+
 /*
    FlonumCell
    tag == T_FLONUM
@@ -449,30 +482,23 @@ typedef struct flonum_cell {
   double value;
 } FlonumCell;
 
-#ifdef need_flonum
-#define flonum_value(p)      ((remove_flonum_tag(p))->value)
+#define remove_flonum_tag(p) ((FlonumCell *)remove_tag((p), T_STRING))
 
-#define double_to_flonum(n)  (put_flonum_tag(allocate_flonum(n)))
-#define int_to_flonum(i)     cint_to_flonum(i)
-#define cint_to_flonum(i)    double_to_flonum((double)(i))
+#define normal_flonum_value(p)      ((remove_flonum_tag(p))->value)
+#define double_to_normal_flonum(n)  (put_normal_flonum_tag(allocate_flonum(n)))
+#define int_to_normal_flonum(i)     cint_to_flonum(i)
+#define cint_to_normal_flonum(i)    double_to_flonum((double)(i))
+#define normal_flonum_to_double(p)  flonum_value(p)
+#define normal_flonum_to_cint(p)    ((cint)(flonum_value(p)))
+#define normal_flonum_to_int(p)     ((int)(flonum_value(p)))
+#define normal_flonum_is_nan(p) (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
-#define flonum_to_double(p)  flonum_value(p)
-#define flonum_to_cint(p)    ((cint)(flonum_value(p)))
-#define flonum_to_int(p)     ((int)(flonum_value(p)))
-
-#define is_nan(p) (is_flonum((p))? isnan(flonum_to_double((p))): 0)
-#else /* need_flonum */
-#define double_to_flonum(n)  JS_UNDEFINED
-#define int_to_flonum(i)     JS_UNDEFINED
-#define cint_to_flonum(i)    JS_UNDEFINED
-
-#define flonum_to_double(p)  0
-#define flonum_to_cint(p)    0
-#define flonum_to_int(p)     0
-
-#define is_nan(p) JS_FALSE
 #endif /* need_flonum */
 
+
+/**********************************
+ * String
+ */
 #ifndef customised_string
 #define string_value(p)   (normal_string_value(p))
 #define string_hash(p)    (normal_string_hash(p))

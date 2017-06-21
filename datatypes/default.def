@@ -1,6 +1,7 @@
 string:  +normal_string
 normal_string:   T_STRING(100)/HTAG_STRING(4)         StringCell
-flonum:  T_FLONUM(101)/HTAG_FLONUM(5)                 FlonumCell
+flonum:  +normal_flonum
+normal_flonum: T_FLONUM(101)/HTAG_FLONUM(5)           FlonumCell
 special: T_SPECIAL(110)
 fixnum:  T_FIXNUM(111)
 simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
