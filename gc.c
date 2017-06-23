@@ -26,7 +26,13 @@
 #include "header.h"
 #include "log.h"
 
+#ifndef NDEBUG
 #define GC_DEBUG 1
+#define STATIC
+#else
+#undef GC_DEBUG
+#define STATIC static
+#endif
 
 //#define GCLOG(...) LOG(__VA_ARGS__)
 #define GCLOG(...)
@@ -37,7 +43,6 @@
 //#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
 #define GCLOG_SWEEP(...)
 
-#define STATIC
 
 /*
  * defined in header.h
@@ -1005,6 +1010,7 @@ STATIC void print_heap_stat(void)
   size_t jsvalues[17] = {0, };
   size_t number[17] = {0, };
   uintptr_t scan = js_space.addr;
+  size_t i;
 
   while (scan < js_space.addr + js_space.bytes) {
     header_t header = *(header_t *) scan;
@@ -1017,7 +1023,7 @@ STATIC void print_heap_stat(void)
     scan += (size << LOG_BYTES_IN_JSVALUE);
   }
 
-  for (size_t i = 0; i < 17; i++) {
+  for (i = 0; i < 17; i++) {
     printf("type %02d: num = %08d volume = %08d\n", i, number[i], jsvalues[i]);
   }
 }
