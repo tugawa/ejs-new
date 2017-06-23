@@ -3,8 +3,6 @@
 all: ejsvm
 #
 
-CC = clang
-
 ###
 ### Options
 ###
@@ -22,9 +20,11 @@ OPT_REGEXP=oniguruma
 INCLUDES=-I/opt/local/include
 LIBS=-L/opt/local/lib
 
+ifeq ($(CC),cc)
+	CC     = clang
+endif
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-format -DUSER_DEF $(INCLUDES)
-LIBS += -lm
-
+LIBS   += -lm
 
 ifeq ($(OPT_GC),native)
 	CFLAGS+=-DUSE_NATIVEGC=1
@@ -222,6 +222,6 @@ types-generated.h: $(DATATYPES)
 	java -cp ../vmgen/vmgen.jar TypesGen $< > $@
 
 clean:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
 	rm -rf insns
 
