@@ -65,7 +65,9 @@ extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
 extern IteratorCell *allocate_iterator(void);
 #ifdef USE_REGEXP
+#ifdef need_normal_regexp
 extern RegexpCell *allocate_regexp(void);
+#endif /* need_normal_regexp */
 #endif
 extern BoxedCell *allocate_boxed(uint32_t);
 
@@ -145,7 +147,9 @@ extern JSValue specstr_to_jsvalue(const char *);
 extern int add_constant_number(Context *, ConstantCell *, double);
 extern int add_constant_string(Context *, ConstantCell *, char *);
 #ifdef USE_REGEXP
+#ifdef need_regexp
 extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
+#endif /* need_regexp */
 #endif
 
 /*
@@ -270,7 +274,9 @@ extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);
 extern int get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
+#ifdef need_regexp
 extern int regexp_flag(JSValue);
+#endif /* need_regexp */
 #endif
 extern JSValue new_simple_object_without_prototype(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
@@ -281,7 +287,9 @@ extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_fu
 extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
 extern JSValue new_iterator(Context *, JSValue, int, int);
 #ifdef USE_REGEXP
+#ifdef need_regexp
 extern JSValue new_regexp(Context *, char *, int, int, int);
+#endif /* need_regexp */
 #endif // USE_REGEXP
 extern JSValue new_number_object(Context *, JSValue, int, int);
 extern JSValue new_boolean_object(Context *, JSValue, int, int);
@@ -323,7 +331,9 @@ extern void init_builtin_string(Context *);
 extern void init_builtin_boolean(Context *);
 extern void init_builtin_math(Context *);
 #ifdef USE_REGEXP
+#ifdef need_regexp
 extern void init_builtin_regexp(Context *);
+#endif /* need_regexp */
 #endif
 
 #ifdef __cplusplus

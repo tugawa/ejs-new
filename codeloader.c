@@ -220,6 +220,7 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
         }
         break;
 #ifdef USE_REGEXP
+#ifdef need_regexp
       case REGEXP:
         {
           char *str;
@@ -233,6 +234,7 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
           bytecodes[pc] = makecode_regexp(dst, index);
         }
         break;
+#endif /* need_regexp */
 #endif
       default:
         return LOAD_FAIL;
@@ -415,6 +417,7 @@ int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
 }
 
 #ifdef USE_REGEXP
+#ifdef need_regexp
 /*
    adds a regexp into the constant table.
  */
@@ -432,6 +435,7 @@ int add_constant_regexp(Context *ctx, ConstantCell *constant, char *pat, int fla
     return -1;
   }
 }
+#endif /* need_regexp */
 #endif
 
 int update_function_table(FunctionTable *ftable, int index,
@@ -469,7 +473,9 @@ int update_function_table(FunctionTable *ftable, int index,
     oc = get_opcode(bytecodes[i]);
     if (oc == STRING || oc == NUMBER || oc == ERROR
 #ifdef USE_REGEXP
+#ifdef need_regexp
         || oc == REGEXP
+#endif /* need_regexp */
 #endif
         ) {
       Subscript ss;
@@ -530,8 +536,10 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
       else if (is_string(o))
         printf("STRING \"%s\"\n", string_value(o));
 #ifdef USE_REGEXP
+#ifdef need_regexp
       else if (is_regexp(o))
         printf("REGEXP \"%s\"\n", regexp_pattern(o));
+#endif /* need_regexp */
 #endif
       else
         printf("Unexpected JSValue\n");
@@ -597,12 +605,14 @@ void print_bytecode(Instruction *insns, int j) {
           printf("Object type mismatched: tag = %d", get_tag(o));
         break;
 #ifdef USE_REGEXP
+#ifdef need_regexp
       case REGEXP:
         if (is_regexp(o))
           printf("%d %d \"%s\"", dst, regexp_flag(o), regexp_pattern(o));
         else
           printf("Object type mismatched: tag = %d", get_tag(o));
         break;
+#endif /* need_regexp */
 #endif // USE_REGEXP
       default:
         printf("???");

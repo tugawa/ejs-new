@@ -590,6 +590,7 @@ int get_next_propname(JSValue iter, JSValue *name) {
 }
 
 #ifdef USE_REGEXP
+#ifdef need_regexp
 /*
    sets a regexp's members and makes an Oniguruma's regexp object
  */
@@ -649,6 +650,7 @@ int regexp_flag(JSValue re) {
   if (regexp_multiline(re)) flag |= F_REGEXP_MULTILINE;
   return flag;
 }
+#endif /* need_regexp */
 #endif
 
 /*
@@ -852,6 +854,7 @@ JSValue new_iterator(Context *ctx, JSValue obj, int hsize, int vsize) {
 }
 
 #ifdef USE_REGEXP
+#ifdef need_regexp
 /*
    makes a new regexp
  */
@@ -870,6 +873,7 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   set___proto___none(ctx, ret, gconsts.g_regexp_proto);
   return (set_regexp_members(ctx, ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
+#endif /* need_regexp */
 #endif // USE_REGEXP
 
 /*

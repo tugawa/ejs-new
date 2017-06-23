@@ -36,10 +36,6 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#ifdef USE_REGEXP
-#include <oniguruma.h>
-#endif // USE_REGEXP
-
 #ifdef USE_BOEHMGC
 #include <gc.h>
 #endif

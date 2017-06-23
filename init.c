@@ -104,7 +104,9 @@ void init_builtin(Context *ctx) {
   init_builtin_math(ctx);
 #endif /* need_flonum */
 #ifdef USE_REGEXP
+#ifdef need_regexp
   init_builtin_regexp(ctx);
+#endif /* need_regexp */
 #endif
 
   // call init_buitin_global after gconsts is properly set up

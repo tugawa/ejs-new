@@ -409,6 +409,10 @@ typedef struct iterator_cell {
 #define iterator_iter(i)         ((remove_normal_iterator_tag(i))->iter)
 
 #ifdef USE_REGEXP
+#ifdef need_normal_regexp
+
+#include <oniguruma.h>
+
 /*
    Regexp
    tag == T_GENERIC
@@ -437,7 +441,7 @@ typedef struct regexp_cell {
 #define regexp_ignorecase(r)   ((remove_normal_regexp_tag(r))->ignorecase)
 #define regexp_multiline(r)    ((remove_normal_regexp_tag(r))->multiline)
 #define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
-
+#endif /* need_normal_regexp */
 #endif
 
 /*

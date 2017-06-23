@@ -177,12 +177,14 @@ IteratorCell *allocate_iterator(void) {
    allocates a regexp
  */
 #ifdef USE_REGEXP
+#ifdef need_normal_regexp
 RegexpCell *allocate_regexp(void)
 {
   RegexpCell *regexp =
     (RegexpCell *) gc_jsalloc_critical(sizeof(RegexpCell), HTAG_REGEXP);
   return regexp;
 }
+#endif /* need_normal_regexp */
 #endif
 
 /*

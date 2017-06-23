@@ -24,6 +24,7 @@
 #include "header.h"
 
 #ifdef USE_REGEXP
+#ifdef need_regexp
 
 int cstr_to_regexp_flag(char *cstr, int *flag) {
   bool global, ignorecase, multiline;
@@ -268,4 +269,5 @@ void init_builtin_regexp(Context *ctx)
   }
 }
 
+#endif /* need_regexp */
 #endif // USE_REGEXP

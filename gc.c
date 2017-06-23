@@ -701,9 +701,11 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     trace_HashCell(&((IteratorCell *) obj)->iter.p);
     break;
 #ifdef USE_REGEXP
+#ifdef need_normal_regexp
   case HTAG_REGEXP:
     trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
     break;
+#endif /* need_normal_regexp */
 #endif /* USE_REGEXP */
   case HTAG_BOXED_STRING:
   case HTAG_BOXED_NUMBER:
