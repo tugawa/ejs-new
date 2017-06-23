@@ -58,7 +58,9 @@
  *                    jsvalues: in the numberof JSValue's
  */
 
+#ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
+#endif
 #define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
 #define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 1)
