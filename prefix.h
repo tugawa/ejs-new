@@ -26,8 +26,10 @@
    compilation options
  */
 
+#ifndef NDEBUG
 #define DEBUG 1
 #define DEBUG_PRINT
+#endif
 
 #define STROBJ_HAS_HASH
 
