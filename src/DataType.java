@@ -171,9 +171,7 @@ class DataType implements GlobalConstantOptions {
 			Stream.of(
 					"string",
 					"fixnum",
-					"simple_object",
-					"array",
-					"flonum")
+					"array")
 				.forEach(name -> defineDataType(name));
 		} else {
 			Stream.of(

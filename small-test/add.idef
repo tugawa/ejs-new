@@ -1,28 +1,9 @@
-\inst add (v1, v2)
-
-\prologue \{
-#define dst regbase[r0]
-\}
-
-\epilogue \{
-#undef dst
-\}
-
+\inst example_insn (v1, v2)
 \when v1:fixnum && v2:fixnum \{A\}
-
-\when v1:string && (v2:fixnum || v2:flonum) \{B\}
-
-\when (v1:fixnum || v1:flonum) && v2:string \{C\}
-
+\when v1:fixnum && (v2:string || v2:array) \{B\}
+\when (v1:string || v1:array) && v2:fixnum \{C\}
 \when v1:string && v2:string \{D\}
-
-\when (v1:simple_object || v1:array) && (v2:fixnum || v2:flonum || v2:string) \{E\}
-
-\when (v2:simple_object || v2:array) && (v1:fixnum || v1:flonum || v1:string) \{F\}
-
-\when (v1:simple_object || v1:array) && (v2:simple_object || v2:array) \{G\}
-
-\otherwise \{H\}
+\otherwise \{E\}
 
 
 
