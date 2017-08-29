@@ -9,7 +9,7 @@ import ast_node.BinaryExpression;
 
 // import IASTNode.*;
 
-public class CodeGenerator {
+public class CodeGenerator extends IASTBaseVisitor {
 
     class JSLabel {
         String name;
@@ -265,11 +265,6 @@ public class CodeGenerator {
         private LinkedList<FunctionBCBuilder> fbStack = new LinkedList<FunctionBCBuilder>();
         private LinkedList<FunctionBCBuilder> fBuilders = new LinkedList<FunctionBCBuilder>();
 
-        // "bcode" of instance of JSLabel/Label within the list will refer the next pushed BCode.
-        // private LinkedList<JSLabel> jslabelsContinueDest = new LinkedList<JSLabel>();
-        // private LinkedList<JSLabel> jslabelsBreakDest = new LinkedList<JSLabel>();
-        // private LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
-
         int maxNumOfArgsOfCallingFunction = 0;
 
         void openFunctionBCBuilder() {
@@ -329,162 +324,11 @@ public class CodeGenerator {
 
     }
 
-
-    class NodeDispatcher extends IASTBaseVisitor {
-        CodeGenerator codeGen;
-        BCBuilder bcBuilder;
-        Environment env;
-        Register reg;
-        NodeDispatcher(CodeGenerator codeGen) {
-            this.codeGen = codeGen;
-        }
-        public void compile(IASTNode node, BCBuilder bcBuilder, Environment env, Register reg) {
-            this.bcBuilder = bcBuilder;
-            this.env = env;
-            this.reg = reg;
-            env.before();
-            node.accept(this);
-            env.after();
-        }
-
-        public Object visitProgram(IASTProgram node) {
-            codeGen.compileProgram(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitStringLiteral(IASTStringLiteral node) {
-            codeGen.compileStringLiteral(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitNumericLiteral(IASTNumericLiteral node) {
-            codeGen.compileNumericLiteral(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitBooleanLiteral(IASTBooleanLiteral node) {
-            codeGen.compileBooleanLiteral(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitRegExpLiteral(IASTRegExpLiteral node) {
-            codeGen.compileRegExpLiteral(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitNullLiteral(IASTNullLiteral node) {
-            codeGen.compileNullLiteral(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitIdentifier(IASTIdentifier node) {
-            codeGen.compileIdentifier(node, bcBuilder, env, reg);
-            return null;
-        }
-
-        public Object visitBlockStatement(IASTBlockStatement node) {
-            codeGen.compileBlockStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitReturnStatement(IASTReturnStatement node) {
-            codeGen.compileReturnStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitEmptyStatement(IASTEmptyStatement node) {
-            codeGen.compileEmptyStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitIfStatement(IASTIfStatement node) {
-            codeGen.compileIfStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitWithStatement(IASTWithStatement node) {
-            codeGen.compileWithStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitSwitchStatement(IASTSwitchStatement node) {
-            codeGen.compileSwitchStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitExpressionStatement(IASTExpressionStatement node) {
-            codeGen.compileExpressionStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitThrowStatement(IASTThrowStatement node) {
-            codeGen.compileThrowStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitTryCatchStatement(IASTTryCatchStatement node) {
-            codeGen.compileTryCatchStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitTryFinallyStatement(IASTTryFinallyStatement node) {
-            codeGen.compileTryFinallyStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitForStatement(IASTForStatement node) {
-            codeGen.compileForStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitWhileStatement(IASTWhileStatement node) {
-            codeGen.compileWhileStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitDoWhileStatement(IASTDoWhileStatement node) {
-            codeGen.compileDoWhileStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitForInStatement(IASTForInStatement node) {
-            codeGen.compileForInStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitBreakStatement(IASTBreakStatement node) {
-            codeGen.compileBreakStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitContinueStatement(IASTContinueStatement node) {
-            codeGen.compileContinueStatement(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitFunctionExpression(IASTFunctionExpression node) {
-            codeGen.compileFunctionExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitThisExpression(IASTThisExpression node) {
-            codeGen.compileThisExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitArrayExpression(IASTArrayExpression node) {
-            codeGen.compileArrayExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitObjectExpression(IASTObjectExpression node) {
-            codeGen.compileObjectExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitUnaryExpression(IASTUnaryExpression node) {
-            codeGen.compileUnaryExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitBinaryExpression(IASTBinaryExpression node) {
-            codeGen.compileBinaryExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitTernaryExpression(IASTTernaryExpression node) {
-            codeGen.compileTernaryExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitCallExpression(IASTCallExpression node) {
-            codeGen.compileCallExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitNewExpression(IASTNewExpression node) {
-            codeGen.compileNewExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-        public Object visitMemberExpression(IASTMemberExpression node) {
-            codeGen.compileMemberExpression(node, bcBuilder, env, reg);
-            return null;
-        }
-    }
-
-    NodeDispatcher dispatcher = new NodeDispatcher(this);
-
     public CodeGenerator() {}
+
+    BCBuilder bcBuilder;
+    Environment env;
+    Register reg;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -492,99 +336,135 @@ public class CodeGenerator {
         }
     }
 
+    void beforeCompileNode(Environment env) {
+        env.before();
+    }
+
+    void afterCompileNode(Environment env) {
+        env.after();
+    }
+
     public List<BCode> compile(IASTProgram node) {
-        BCBuilder bcBuilder = new BCBuilder();
-        Environment env = new Environment();
-        compileProgram(node, bcBuilder, env, null);
+        this.bcBuilder = new BCBuilder();
+        this.env = new Environment();
+        bcBuilder.openFunctionBCBuilder();
+        env.openFrame(new ArrayList<String>(), new ArrayList<String>());
+        compileNode(node, null);
+        env.closeFrame();
+        bcBuilder.closeFuncBCBuilder();
         // printByteCode(bcBuilder.build());
         return bcBuilder.build();
     }
 
-    void compileProgram(IASTProgram node, BCBuilder bcBuilder, Environment env, Register reg) {
-        bcBuilder.openFunctionBCBuilder();
-        env.openFrame(new ArrayList<String>(), new ArrayList<String>());
+    void compileNode(IASTNode node, Register reg) {
+        Register tmp = this.reg;
+        this.reg = reg;
+        env.before();
+        node.accept(this);
+        env.after();
+        this.reg = tmp;
+    }
+
+    @Override
+    public Object visitProgram(IASTProgram node) {
         Register globalObjReg = env.freshRegister();
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.push(new ISetfl(env.getFl()));
         Register retReg = env.freshRegister();
-        dispatcher.compile(node.program.body, bcBuilder, env, retReg);
+        compileNode(node.program.body, retReg);
         bcBuilder.push(new ISeta(retReg));
         bcBuilder.push(new IRet());
-
-        // Don't change the order.
-        env.closeFrame();
-        bcBuilder.closeFuncBCBuilder();
+        return null;
     }
 
-    void compileStringLiteral(IASTStringLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
+
+
+    @Override
+    public Object visitStringLiteral(IASTStringLiteral node) {
         if (node.value.equals("")) node.value = "\"\"";
         bcBuilder.push(new IString(reg, node.value));
+        return null;
     }
-    void compileNumericLiteral(IASTNumericLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitNumericLiteral(IASTNumericLiteral node) {
         if (node.isInteger()) {
             bcBuilder.push(new IFixnum(reg, (int) node.value));
         } else {
             bcBuilder.push(new INumber(reg, node.value));
         }
+        return null;
     }
-    void compileBooleanLiteral(IASTBooleanLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitBooleanLiteral(IASTBooleanLiteral node) {
         bcBuilder.push(new ISpecconst(reg, node.value));
+        return null;
     }
-    void compileNullLiteral(IASTNullLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitNullLiteral(IASTNullLiteral node) {
         bcBuilder.push(new ISpecconst(reg, "null"));
+        return null;
     }
-    void compileRegExpLiteral(IASTRegExpLiteral node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitRegExpLiteral(IASTRegExpLiteral node) {
         bcBuilder.push(new IRegexp(reg, 0, "\"" + node.pattern + "\""));
+        return null;
     }
 
-    void compileBlockStatement(IASTBlockStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+
+    /** Statements */
+    @Override
+    public Object visitBlockStatement(IASTBlockStatement node) {
         for (IASTStatement stmt : node.stmts) {
-            dispatcher.compile(stmt, bcBuilder, env, reg);
+            compileNode(stmt, reg);
         }
+        return null;
     }
-
-    void compileReturnStatement(IASTReturnStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitReturnStatement(IASTReturnStatement node) {
         if (node.value == null) {
             bcBuilder.push(new ISpecconst(reg, "undefined"));
         } else {
-          dispatcher.compile(node.value, bcBuilder, env, reg);
+          compileNode(node.value, reg);
         }
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
+        return null;
     }
-
-    void compileWithStatement(IASTWithStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitWithStatement(IASTWithStatement node) {
         System.out.println("non implemented.");
+        return null;
     }
-
-    void compileEmptyStatement(IASTEmptyStatement node, BCBuilder bcBuilder, Environment env, Register reg) {}
-
-    void compileIfStatement(IASTIfStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitEmptyStatement(IASTEmptyStatement node) { return null; }
+    @Override
+    public Object visitIfStatement(IASTIfStatement node) {
         Label l1 = new Label();
-        dispatcher.compile(node.test, bcBuilder, env, reg);
+        compileNode(node.test, reg);
         bcBuilder.push(new IJumpfalse(reg, l1));
-        dispatcher.compile(node.consequent, bcBuilder, env, reg);
-        if (node.alternate != null) {
+        compileNode(node.consequent, reg);
+        if (node.alternate == null) {
+            bcBuilder.push(l1);
+        } else {
             Label l2 = new Label();
             bcBuilder.push(new IJump(l2));
             bcBuilder.push(l1);
-            dispatcher.compile(node.alternate, bcBuilder, env, reg);
+            compileNode(node.alternate, reg);
             bcBuilder.push(l2);
-        } else {
-            bcBuilder.push(l1);
         }
+        return null;
     }
-
-    void compileSwitchStatement(IASTSwitchStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitSwitchStatement(IASTSwitchStatement node) {
         Register discReg = env.freshRegister();
-        dispatcher.compile(node.discriminant, bcBuilder, env, discReg);
+        compileNode(node.discriminant, discReg);
         LinkedList<Label> caseLabels = new LinkedList<Label>();
         Register testReg = env.freshRegister();
         for (IASTSwitchStatement.CaseClause caseClause : node.cases) {
             if (caseClause.test != null) {
                 Label caseLabel = new Label();
-                dispatcher.compile(caseClause.test, bcBuilder, env, testReg);
+                compileNode(caseClause.test, testReg);
                 bcBuilder.push(new IEq(reg, discReg, testReg));
                 bcBuilder.push(new IJumptrue(reg, caseLabel));
                 caseLabels.add(caseLabel);
@@ -602,35 +482,39 @@ public class CodeGenerator {
             if (caseLabel != null) {
                 bcBuilder.push(caseLabel);
             }
-            dispatcher.compile(caseClause.consequent, bcBuilder, env, testReg);
+            compileNode(caseClause.consequent, testReg);
         }
         env.popBreakLabel();
         bcBuilder.push(breakLabel);
+        return null;
     }
-
-    void compileExpressionStatement(IASTExpressionStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        dispatcher.compile(node.exp, bcBuilder, env, reg);
+    @Override
+    public Object visitExpressionStatement(IASTExpressionStatement node) {
+        compileNode(node.exp, reg);
+        return null;
     }
-
-    void compileThrowStatement(IASTThrowStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
-        // System.out.println("not implemented: ThrowStatement: in CodeGenerator");
-        dispatcher.compile(node.value, bcBuilder, env, reg);
+    @Override
+    public Object visitThrowStatement(IASTThrowStatement node) {
+        compileNode(node.value, reg);
         bcBuilder.push(new IThrow(reg));
+        return null;
     }
-
-    void compileTryCatchStatement(IASTTryCatchStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitTryCatchStatement(IASTTryCatchStatement node) {
         System.out.println("not implemented: TryCatchStatement: in CodeGenerator");
         // Label l1 = new Label();
         // bcBuilder.push(new IPushhandler(l1));
+        return null;
     }
-
-    void compileTryFinallyStatement(IASTTryFinallyStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitTryFinallyStatement(IASTTryFinallyStatement node) {
         System.out.println("not implemented: TryFinallyStatement: in CodeGenerator");
+        return null;
     }
-
-    void compileForStatement(IASTForStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitForStatement(IASTForStatement node) {
         if (node.init != null)
-            dispatcher.compile(node.init, bcBuilder, env, env.freshRegister());
+            compileNode(node.init, env.freshRegister());
         Label l1 = new Label();
         Label l2 = new Label();
         Label continueLabel = new Label();
@@ -640,25 +524,26 @@ public class CodeGenerator {
         if (node.body != null) {
             env.pushBreakLabel(node.label, breakLabel);
             env.pushContinueLabel(node.label, continueLabel);
-            dispatcher.compile(node.body, bcBuilder, env, reg);
+            compileNode(node.body, reg);
             env.popBreakLabel();
             env.popContinueLabel();
         }
         bcBuilder.push(continueLabel);
         if (node.update != null)
-            dispatcher.compile(node.update, bcBuilder, env, env.freshRegister());
+            compileNode(node.update, env.freshRegister());
         bcBuilder.push(l1);
         Register testReg = env.freshRegister();
         if (node.test != null) {
-            dispatcher.compile(node.test, bcBuilder, env, testReg);
+            compileNode(node.test, testReg);
             bcBuilder.push(new IJumptrue(testReg, l2));
         } else {
             bcBuilder.push(new IJump(l2));
         }
         bcBuilder.push(breakLabel);
+        return null;
     }
-
-    void compileWhileStatement(IASTWhileStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitWhileStatement(IASTWhileStatement node) {
         Label l1 = new Label();
         Label l2 = new Label();
         Label breakLabel = new Label();
@@ -668,19 +553,20 @@ public class CodeGenerator {
         if (node.body != null) {
             env.pushBreakLabel(node.label, breakLabel);
             env.pushContinueLabel(node.label, continueLabel);
-            dispatcher.compile(node.body, bcBuilder, env, reg);
+            compileNode(node.body, reg);
             env.popBreakLabel();
             env.popContinueLabel();
         }
         bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
         Register testReg = env.freshRegister();
-        dispatcher.compile(node.test, bcBuilder, env, testReg);
+        compileNode(node.test, testReg);
         bcBuilder.push(new IJumptrue(testReg, l2));
         bcBuilder.push(breakLabel);
+        return null;
     }
-
-    void compileDoWhileStatement(IASTDoWhileStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitDoWhileStatement(IASTDoWhileStatement node) {
         Label l1 = new Label();
         Label breakLabel = new Label();
         Label continueLabel = new Label();
@@ -689,17 +575,18 @@ public class CodeGenerator {
         if (node.body != null) {
             env.pushBreakLabel(node.label, breakLabel);
             env.pushContinueLabel(node.label, continueLabel);
-            dispatcher.compile(node.body, bcBuilder, env, reg);
+            compileNode(node.body, reg);
             env.popBreakLabel();
             env.popContinueLabel();
         }
         Register testReg = env.freshRegister();
-        dispatcher.compile(node.test, bcBuilder, env, testReg);
+        compileNode(node.test, testReg);
         bcBuilder.push(new IJumptrue(testReg, l1));
         bcBuilder.push(breakLabel);
+        return null;
     }
-
-    void compileForInStatement(IASTForInStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitForInStatement(IASTForInStatement node) {
         // System.out.println("ForInStatement: not implemented");
         Register objReg = env.freshRegister();
         Register iteReg = env.freshRegister();
@@ -707,7 +594,7 @@ public class CodeGenerator {
         Register testReg = env.freshRegister();
         Label l1 = new Label();
         Label l2 = new Label();
-        dispatcher.compile(node.object, bcBuilder, env, objReg);
+        compileNode(node.object, objReg);
         bcBuilder.push(new IMakeiterator(objReg, iteReg));
         bcBuilder.push(l1);
         bcBuilder.push(new INextpropname(objReg, iteReg, propReg));
@@ -725,30 +612,33 @@ public class CodeGenerator {
         }
         bcBuilder.push(new IIsundef(testReg, propReg));
         bcBuilder.push(new IJumptrue(testReg, l2));
-        dispatcher.compile(node.body, bcBuilder, env, reg);
+        compileNode(node.body, reg);
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(l2);
+        return null;
     }
-
-    void compileBreakStatement(IASTBreakStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitBreakStatement(IASTBreakStatement node) {
         Label label = env.getBreakLabel(node.label);
         if (label != null) {
             bcBuilder.push(new IJump(label));
         } else {
             System.out.println("ERROR: BreakStatement");
         }
+        return null;
     }
-
-    void compileContinueStatement(IASTContinueStatement node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitContinueStatement(IASTContinueStatement node) {
         Label label = env.getContinueLabel(node.label);
         if (label != null) {
             bcBuilder.push(new IJump(label));
         } else {
             System.out.println("ERROR: ContinueStatement");
         }
+        return null;
     }
-
-    void compileFunctionExpression(IASTFunctionExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitFunctionExpression(IASTFunctionExpression node) {
         bcBuilder.openFunctionBCBuilder();
         int functionIdx = bcBuilder.getFBIdx();
         env.openFrame(node.params, node.locals);
@@ -758,7 +648,7 @@ public class CodeGenerator {
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new INewargs());
         Register retReg = env.freshRegister();
-        dispatcher.compile(node.body, bcBuilder, env, retReg);
+        compileNode(node.body, retReg);
         // bcBuilder.push(new IString(reg, "\"undefined\""));
         bcBuilder.push(new ISpecconst(reg, "undefined"));
         bcBuilder.push(new ISeta(reg));
@@ -772,13 +662,15 @@ public class CodeGenerator {
         bcBuilder.closeFuncBCBuilder();
 
         bcBuilder.push(new IMakeclosure(reg, functionIdx));
+        return null;
     }
-
-    void compileThisExpression(IASTThisExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitThisExpression(IASTThisExpression node) {
         bcBuilder.push(new IMove(reg, env.getRegOfGlobalObj()));
+        return null;
     }
-
-    void compileArrayExpression(IASTArrayExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitArrayExpression(IASTArrayExpression node) {
         Register r1 = env.freshRegister();
         Register r2 = env.freshRegister();
         Register r3 = env.freshRegister();
@@ -794,12 +686,13 @@ public class CodeGenerator {
         bcBuilder.push(new IGeta(reg));
         int i = 0;
         for (IASTExpression element : node.elements) {
-            dispatcher.compile(element, bcBuilder, env, r1);
+            compileNode(element, r1);
             bcBuilder.push(new ISetarray(reg, i++, r1));
         }
+        return null;
     }
-
-    void compileObjectExpression(IASTObjectExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitObjectExpression(IASTObjectExpression node) {
         Register r1 = env.freshRegister();
         Register r2 = env.freshRegister();
         // Register r3 = env.freshRegister();
@@ -812,27 +705,28 @@ public class CodeGenerator {
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));
         for (IASTObjectExpression.Property prop : node.properties) {
-            dispatcher.compile(prop.value, bcBuilder, env, r1);
-            dispatcher.compile(prop.key, bcBuilder, env, r2);
+            compileNode(prop.value, r1);
+            compileNode(prop.key, r2);
             bcBuilder.push(new ISetprop(reg, r2, r1));
         }
+        return null;
     }
-
-    void compileUnaryExpression(IASTUnaryExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitUnaryExpression(IASTUnaryExpression node) {
         switch (node.operator) {
         case PLUS: {
-            dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+            compileNode(node.operands[0], reg);
         } break;
         case MINUS: {
             Register r1 = env.freshRegister();
             Register r2 = env.freshRegister();
-            dispatcher.compile(node.operands[0], bcBuilder, env, r1);
+            compileNode(node.operands[0], r1);
             bcBuilder.push(new IFixnum(r2, -1));
             bcBuilder.push(new IMul(reg, r1, r2));
         } break;
         case NOT: {
             Register r1 = env.freshRegister();
-            dispatcher.compile(node.operands[0], bcBuilder, env, r1);
+            compileNode(node.operands[0], r1);
             bcBuilder.push(new INot(reg, r1));
         } break;
         case INC:
@@ -840,34 +734,34 @@ public class CodeGenerator {
             if (node.prefix) {
                 Register r1 = env.freshRegister();
                 Register r2 = env.freshRegister();
-                dispatcher.compile(node.operands[0], bcBuilder, env, r1);
+                compileNode(node.operands[0], r1);
                 bcBuilder.push(new IFixnum(r2, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
                     bcBuilder.push(new IAdd(reg, r1, r2));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
                     bcBuilder.push(new ISub(reg, r1, r2));
                 }
-                compileAssignment(bcBuilder, env, node.operands[0], reg);
+                compileAssignment(node.operands[0], reg);
             } else {
                 Register r1 = env.freshRegister();
                 Register r2 = env.freshRegister();
-                dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+                compileNode(node.operands[0], reg);
                 bcBuilder.push(new IFixnum(r1, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
                     bcBuilder.push(new IAdd(r2, reg, r1));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
                     bcBuilder.push(new ISub(r2, reg, r1));
                 }
-                compileAssignment(bcBuilder, env, node.operands[0], r2);
+                compileAssignment(node.operands[0], r2);
             }
         } break;
         case BNOT: {
-        	Register r1 = env.freshRegister();
-        	dispatcher.compile(node.operands[0], bcBuilder, env, reg);
-        	bcBuilder.push(new IFixnum(r1, 0));
-        	bcBuilder.push(new ISub(reg, r1, reg));
-        	bcBuilder.push(new IFixnum(r1, 1));
-        	bcBuilder.push(new ISub(reg, reg, r1));
+            Register r1 = env.freshRegister();
+            compileNode(node.operands[0], reg);
+            bcBuilder.push(new IFixnum(r1, 0));
+            bcBuilder.push(new ISub(reg, r1, reg));
+            bcBuilder.push(new IFixnum(r1, 1));
+            bcBuilder.push(new ISub(reg, reg, r1));
         } break;
         case TYPEOF:
         	throw new Error("Unary operator not implemented : typeof");
@@ -878,9 +772,10 @@ public class CodeGenerator {
         default:
         	throw new Error("Unary operator not implemented : unknown");
         }
+        return null;
     }
-
-    void compileBinaryExpression(IASTBinaryExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitBinaryExpression(IASTBinaryExpression node) {
         Register r1 = null, r2 = null;
         switch (node.operator) {
         case ADD: case SUB: case MUL: case DIV: case MOD:
@@ -891,9 +786,9 @@ public class CodeGenerator {
         case ASSIGN_SHL: case ASSIGN_SHR: case ASSIGN_UNSIGNED_SHR:
         case ASSIGN_BAND: case ASSIGN_BOR: case ASSIGN_BXOR:
             r1 = env.freshRegister();
-            dispatcher.compile(node.operands[0], bcBuilder, env, r1);
+            compileNode(node.operands[0], r1);
             r2 = env.freshRegister();
-            dispatcher.compile(node.operands[1], bcBuilder, env, r2);
+            compileNode(node.operands[1], r2);
         }
 
 
@@ -934,29 +829,29 @@ public class CodeGenerator {
             bcBuilder.push(new IBitand(reg, r1, r2));
         } break;
         case BXOR: case ASSIGN_BXOR: {
-        	Register r3 = env.freshRegister();
-        	bcBuilder.push(new IBitor(r3, r1, r2));  // r3 = a | b
-        	bcBuilder.push(new IBitand(r1, r1, r2));  // r1 = a & b
-        	bcBuilder.push(new IFixnum(r2, 0));
-        	bcBuilder.push(new ISub(r1, r2, r1));    // r1 = -(a & b)
-        	bcBuilder.push(new IFixnum(r2, 1));
-        	bcBuilder.push(new ISub(r1, r1, r2));    // r1 = ~(a & b)
-        	bcBuilder.push(new IBitand(reg, r1, r3)); // reg = ~(a & b) & (a | b)
+            Register r3 = env.freshRegister();
+            bcBuilder.push(new IBitor(r3, r1, r2));  // r3 = a | b
+            bcBuilder.push(new IBitand(r1, r1, r2));  // r1 = a & b
+            bcBuilder.push(new IFixnum(r2, 0));
+            bcBuilder.push(new ISub(r1, r2, r1));    // r1 = -(a & b)
+            bcBuilder.push(new IFixnum(r2, 1));
+            bcBuilder.push(new ISub(r1, r1, r2));    // r1 = ~(a & b)
+            bcBuilder.push(new IBitand(reg, r1, r3)); // reg = ~(a & b) & (a | b)
         } break;
 
         // logical
         case OR: {
             Label l1 = new Label();
-            dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+            compileNode(node.operands[0], reg);
             bcBuilder.push(new IJumptrue(reg, l1));
-            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            compileNode(node.operands[1], reg);
             bcBuilder.push(l1);
         } break;
         case AND: {
             Label l1 = new Label();
-            dispatcher.compile(node.operands[0], bcBuilder, env, reg);
+            compileNode(node.operands[0], reg);
             bcBuilder.push(new IJumpfalse(reg, l1));
-            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            compileNode(node.operands[1], reg);
             bcBuilder.push(l1);
         }
 
@@ -1030,7 +925,7 @@ public class CodeGenerator {
 
         // assignment
         case ASSIGN: {
-            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            compileNode(node.operands[1], reg);
         } break;
         default: {
             System.out.println("not implemented: " + node.getClass().getSimpleName());
@@ -1043,12 +938,12 @@ public class CodeGenerator {
         case ASSIGN_SHL: case ASSIGN_SHR: case ASSIGN_UNSIGNED_SHR:
         case ASSIGN_BAND: case ASSIGN_BOR: case ASSIGN_BXOR:
         case ASSIGN: {
-            compileAssignment(bcBuilder, env, node.operands[0], reg);
+            compileAssignment(node.operands[0], reg);
         }
         }
+        return null;
     }
-
-    void compileAssignment(BCBuilder bcBuilder, Environment env, IASTExpression dst, Register srcReg) {
+    void compileAssignment(IASTExpression dst, Register srcReg) {
         if (dst instanceof IASTIdentifier) {
             String id = ((IASTIdentifier) dst).id;
             Environment.Result varLoc = env.getVar(id);
@@ -1066,111 +961,81 @@ public class CodeGenerator {
         } else if (dst instanceof IASTMemberExpression) {
             IASTMemberExpression memExp = (IASTMemberExpression) dst;
             Register objReg = env.freshRegister();
-            dispatcher.compile(memExp.object, bcBuilder, env, objReg);
+            compileNode(memExp.object, objReg);
             Register propReg = env.freshRegister();
-            dispatcher.compile(memExp.property, bcBuilder, env, propReg);
+            compileNode(memExp.property, propReg);
             bcBuilder.push(new ISetprop(objReg, propReg, srcReg));
         }
     }
-
-    void compileTernaryExpression(IASTTernaryExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitTernaryExpression(IASTTernaryExpression node) {
         switch (node.operator) {
         case COND: {
             Register testReg = env.freshRegister();
-            dispatcher.compile(node.operands[0], bcBuilder, env, testReg);
+            compileNode(node.operands[0], testReg);
             Label l1 = new Label();
             Label l2 = new Label();
             bcBuilder.push(new IJumpfalse(testReg, l1));
-            dispatcher.compile(node.operands[1], bcBuilder, env, reg);
+            compileNode(node.operands[1], reg);
             bcBuilder.push(new IJump(l2));
             bcBuilder.push(l1);
-            dispatcher.compile(node.operands[2], bcBuilder, env, reg);
+            compileNode(node.operands[2], reg);
             bcBuilder.push(l2);
         } break;
         default:
             System.out.println("ERROR: TernaryExpression.");
         }
+        return null;
     }
-
-    void compileCallExpression(IASTCallExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitCallExpression(IASTCallExpression node) {
         if (node.callee instanceof IASTIdentifier) {
             Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
             Register[] tmpRegs = new Register[argRegs.length];
             for (int i = 0; i < argRegs.length; i++) {
                 tmpRegs[i] = env.freshRegister();
-                dispatcher.compile(node.arguments.get(i), bcBuilder, env, tmpRegs[i]);
+                compileNode(node.arguments.get(i), tmpRegs[i]);
             }
             for (int i = 0; i < argRegs.length; i++) {
                 bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
             }
             Register calleeReg = env.freshRegister();
-            dispatcher.compile(node.callee, bcBuilder, env, calleeReg);
+            compileNode(node.callee, calleeReg);
             bcBuilder.push(new ICall(calleeReg, argRegs.length));
         } else if (node.callee instanceof IASTMemberExpression) {
             Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
             Register[] tmpRegs = new Register[node.arguments.size()];
             Register objReg = env.freshRegister();
-            dispatcher.compile(((IASTMemberExpression) node.callee).object, bcBuilder, env, objReg);
+            compileNode(((IASTMemberExpression) node.callee).object, objReg);
             Register propReg = env.freshRegister();
-            dispatcher.compile(((IASTMemberExpression) node.callee).property, bcBuilder, env, propReg);
+            compileNode(((IASTMemberExpression) node.callee).property, propReg);
             Register expReg = env.freshRegister();
             bcBuilder.push(new IGetprop(expReg, objReg, propReg));
             for (int i = 0; i < tmpRegs.length; i++) {
                 tmpRegs[i] = env.freshRegister();
-                dispatcher.compile(node.arguments.get(i), bcBuilder, env, tmpRegs[i]);
+                compileNode(node.arguments.get(i), tmpRegs[i]);
             }
             bcBuilder.push(new IMove(argRegs[0], objReg));
             for (int i = 0; i < tmpRegs.length; i++) {
                 bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
             }
             bcBuilder.push(new ISend(expReg, node.arguments.size()));
-        }/*
-        Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
-        Register[] tmpRegs = new Register[argRegs.length];
-        for (int i = 0; i < argRegs.length; i++) {
-            tmpRegs[i] = env.freshRegister();
-            dispatcher.compile(node.arguments.get(i), bcBuilder, env, tmpRegs[i]);
         }
-        for (int i = 0; i < argRegs.length; i++) {
-            bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
-        }
-        if (node.callee instanceof IASTIdentifier) {
-            Register calleeReg = env.freshRegister();
-            dispatcher.compile(node.callee, bcBuilder, env, calleeReg);
-            bcBuilder.push(new ICall(calleeReg, argRegs.length));
-        } else if (node.callee instanceof IASTMemberExpression) {
-            Register objReg = env.freshRegister();
-            dispatcher.compile(((IASTMemberExpression) node.callee).object, bcBuilder, env, objReg);
-            Register propReg = env.freshRegister();
-            dispatcher.compile(((IASTMemberExpression) node.callee).property, bcBuilder, env, propReg);
-            Register expReg = env.freshRegister();
-            bcBuilder.push(new IGetprop(expReg, objReg, propReg));
-            // dispatcher.compile(node.callee, bcBuilder, env, propReg);
-            bcBuilder.push(new IMove(tmpRegs[0], objReg));
-            bcBuilder.push(new ISend(expReg, argRegs.length));
-        }*/
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));
+        return null;
     }
-
-    void compileNewExpression(IASTNewExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitNewExpression(IASTNewExpression node) {
         Register constructorReg = env.freshRegister();
-        dispatcher.compile(node.constructor, bcBuilder, env, constructorReg);
+        compileNode(node.constructor, constructorReg);
         Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
         {
-            /*Register[] tmpRegs = new Register[node.arguments.size()];
-            int i = 0;
-            for (IASTExpression arg : node.arguments) {
-                tmpRegs[i] = env.freshRegister();
-                dispatcher.compile(arg, bcBuilder, env, tmpRegs[i]);
-                i++;
-            }*/
-
             List<Register> tmpRegs = new LinkedList<Register>();
             for (IASTExpression arg : node.arguments) {
                 Register tmpReg = env.freshRegister();
                 tmpRegs.add(tmpReg);
-                dispatcher.compile(arg, bcBuilder, env, tmpReg);
+                compileNode(arg, tmpReg);
             }
             int i = 1;
             for (Register r : tmpRegs) {
@@ -1193,17 +1058,19 @@ public class CodeGenerator {
         bcBuilder.push(new IJumpfalse(result, l1));
         bcBuilder.push(new IGeta(reg));
         bcBuilder.push(l1);
+        return null;
     }
-
-    void compileMemberExpression(IASTMemberExpression node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitMemberExpression(IASTMemberExpression node) {
         Register objReg = env.freshRegister();
-        dispatcher.compile(node.object, bcBuilder, env, objReg);
+        compileNode(node.object, objReg);
         Register expReg = env.freshRegister();
-        dispatcher.compile(node.property, bcBuilder, env, expReg);
+        compileNode(node.property, expReg);
         bcBuilder.push(new IGetprop(reg, objReg, expReg));
+        return null;
     }
-
-    void compileIdentifier(IASTIdentifier node, BCBuilder bcBuilder, Environment env, Register reg) {
+    @Override
+    public Object visitIdentifier(IASTIdentifier node) {
         Environment.Result id = env.getVar(node.id);
         if (id == null) {
             Register r1 = env.freshRegister();
@@ -1216,5 +1083,6 @@ public class CodeGenerator {
                 bcBuilder.push(new IGetarg(reg, id.depth, id.n));
             }
         }
+        return null;
     }
 }
