@@ -1,13 +1,7 @@
-
-
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import ast_node.BinaryExpression;
-
-// import IASTNode.*;
 
 public class CodeGenerator extends IASTBaseVisitor {
 
@@ -19,6 +13,8 @@ public class CodeGenerator extends IASTBaseVisitor {
             this.label = label;
         }
     }
+
+    class UnreachableException extends Exception {}
 
     class Environment {
 
@@ -336,22 +332,19 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    void beforeCompileNode(Environment env) {
-        env.before();
-    }
-
-    void afterCompileNode(Environment env) {
-        env.after();
-    }
-
     public List<BCode> compile(IASTProgram node) {
         this.bcBuilder = new BCBuilder();
         this.env = new Environment();
-        bcBuilder.openFunctionBCBuilder();
-        env.openFrame(new ArrayList<String>(), new ArrayList<String>());
-        compileNode(node, null);
-        env.closeFrame();
-        bcBuilder.closeFuncBCBuilder();
+        try {
+            bcBuilder.openFunctionBCBuilder();
+            env.openFrame(new ArrayList<String>(), new ArrayList<String>());
+            compileNode(node, null);
+            env.closeFrame();
+            bcBuilder.closeFuncBCBuilder();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
         // printByteCode(bcBuilder.build());
         return bcBuilder.build();
     }
@@ -411,8 +404,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         return null;
     }
 
-
-    /** Statements */
     @Override
     public Object visitBlockStatement(IASTBlockStatement node) {
         for (IASTStatement stmt : node.stmts) {
@@ -433,7 +424,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitWithStatement(IASTWithStatement node) {
-        System.out.println("non implemented.");
+        System.out.println("not implemented.");
         return null;
     }
     @Override
@@ -764,13 +755,17 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new ISub(reg, reg, r1));
         } break;
         case TYPEOF:
-        	throw new Error("Unary operator not implemented : typeof");
-        case VOID:
-        	throw new Error("Unary operator not implemented : void");
+        	throw new UnsupportedOperationException("Unary operator not implemented : typeof");
+        case VOID: {
+            Register r1 = env.freshRegister();
+            compileNode(node.operands[0], reg);
+            bcBuilder.push(new IString(r1, "\"undefined\""));
+            bcBuilder.push(new IGetglobal(reg, r1));
+        } break;
         case DELETE:
-        	throw new Error("Unary operator not implemented : delete");
+        	throw new UnsupportedOperationException("Unary operator not implemented : delete");
         default:
-        	throw new Error("Unary operator not implemented : unknown");
+        	throw new UnsupportedOperationException("Unary operator not implemented : unknown");
         }
         return null;
     }
@@ -922,14 +917,16 @@ public class CodeGenerator extends IASTBaseVisitor {
         case GTE: {
             bcBuilder.push(new ILessthanequal(reg, r2, r1));
         } break;
+        case IN:
+            throw new UnsupportedOperationException("Binary operator not implemented : in");
+        case INSTANCE_OF: {
+            bcBuilder.push(new IInstanceof(reg, r2, r1));
+        } break;
 
         // assignment
         case ASSIGN: {
             compileNode(node.operands[1], reg);
         } break;
-        default: {
-            System.out.println("not implemented: " + node.getClass().getSimpleName());
-        }
         }
 
 
