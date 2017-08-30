@@ -107,7 +107,7 @@ class IString extends BCode {
         this.str = str;
     }
     public String toString() {
-        return super.toString("string", dst, str);
+        return super.toString("string", dst, "\"" + str + "\"");
     }
 }
 class ISpecconst extends BCode {
@@ -132,7 +132,7 @@ class IRegexp extends BCode {
         this.ptn = ptn;
     }
     public String toString() {
-        return super.toString("regexp", dst, idx, ptn);
+        return super.toString("regexp", dst, idx, "\"" + ptn + "\"");
     }
 }
 
@@ -621,7 +621,30 @@ class IPushhandler extends BCode {
         return super.toString("pushhandler", label.dist(number));
     }
 }
-
+class IPophandler extends BCode {
+    public String toString() {
+        return super.toString("pophandler");
+    }
+}
+class ILocalcall extends BCode {
+    Label label;
+    ILocalcall(Label label) {
+        this.label = label;
+    }
+    public String toString() {
+        return super.toString("localcall", label.dist(number));
+    }
+}
+class ILocalret extends BCode {
+    public String toString() {
+        return super.toString("localret");
+    }
+}
+class IPoplocal extends BCode {
+    public String toString() {
+        return super.toString("poplocal");
+    }
+}
 
 
 

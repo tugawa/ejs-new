@@ -31,7 +31,7 @@ public class Identifier extends Node implements Node.IIdentifier {
     @Override
     public String getName() {
         // TODO Auto-generated method stub
-        return "\"" + name + "\"";
+        return name;
     }
 
     @Override

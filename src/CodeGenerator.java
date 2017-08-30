@@ -14,8 +14,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    class UnreachableException extends Exception {}
-
     class Environment {
 
         // Frame is made for each IASTFunction.
@@ -274,7 +272,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
 
         List<BCode> build() {
-            // System.out.println("not implemented.");
             // build fBuilders.
             List<BCode> result = new LinkedList<BCode>();
             result.add(new IFuncLength(fBuilders.size()));
@@ -375,7 +372,6 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitStringLiteral(IASTStringLiteral node) {
-        if (node.value.equals("")) node.value = "\"\"";
         bcBuilder.push(new IString(reg, node.value));
         return null;
     }
@@ -400,7 +396,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitRegExpLiteral(IASTRegExpLiteral node) {
-        bcBuilder.push(new IRegexp(reg, 0, "\"" + node.pattern + "\""));
+        bcBuilder.push(new IRegexp(reg, 0, node.pattern));
         return null;
     }
 
@@ -424,8 +420,8 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitWithStatement(IASTWithStatement node) {
-        System.out.println("not implemented.");
-        return null;
+        throw new UnsupportedOperationException("WithStatement has not been implemented yet.");
+
     }
     @Override
     public Object visitEmptyStatement(IASTEmptyStatement node) { return null; }
@@ -486,21 +482,15 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitThrowStatement(IASTThrowStatement node) {
-        compileNode(node.value, reg);
-        bcBuilder.push(new IThrow(reg));
-        return null;
+        throw new UnsupportedOperationException("ThrowStatement has not been implemented yet.");
     }
     @Override
     public Object visitTryCatchStatement(IASTTryCatchStatement node) {
-        System.out.println("not implemented: TryCatchStatement: in CodeGenerator");
-        // Label l1 = new Label();
-        // bcBuilder.push(new IPushhandler(l1));
-        return null;
+        throw new UnsupportedOperationException("TryCatchStatement has not been implemented yet.");
     }
     @Override
     public Object visitTryFinallyStatement(IASTTryFinallyStatement node) {
-        System.out.println("not implemented: TryFinallyStatement: in CodeGenerator");
-        return null;
+        throw new UnsupportedOperationException("TryFinallyStatement has not been implemented yet.");
     }
     @Override
     public Object visitForStatement(IASTForStatement node) {
@@ -578,7 +568,6 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitForInStatement(IASTForInStatement node) {
-        // System.out.println("ForInStatement: not implemented");
         Register objReg = env.freshRegister();
         Register iteReg = env.freshRegister();
         Register propReg = env.freshRegister();
@@ -614,7 +603,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (label != null) {
             bcBuilder.push(new IJump(label));
         } else {
-            System.out.println("ERROR: BreakStatement");
+            throw new Error("Compile Error ... BreakStatement");
         }
         return null;
     }
@@ -624,7 +613,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (label != null) {
             bcBuilder.push(new IJump(label));
         } else {
-            System.out.println("ERROR: ContinueStatement");
+            throw new Error("Compile Error ... ContinueStatement");
         }
         return null;
     }
@@ -640,7 +629,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new INewargs());
         Register retReg = env.freshRegister();
         compileNode(node.body, retReg);
-        // bcBuilder.push(new IString(reg, "\"undefined\""));
         bcBuilder.push(new ISpecconst(reg, "undefined"));
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
@@ -667,7 +655,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register r3 = env.freshRegister();
         Register[] argRegs = env.freshArgumentRegister(2);
         bcBuilder.push(new IFixnum(r1, node.elements.size()));
-        bcBuilder.push(new IString(r2, "\"Array\""));
+        bcBuilder.push(new IString(r2, "Array"));
         bcBuilder.push(new IGetglobal(r3, r2));
         bcBuilder.push(new INew(reg, r3));
         bcBuilder.push(new IMove(argRegs[1], r1));
@@ -686,9 +674,8 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitObjectExpression(IASTObjectExpression node) {
         Register r1 = env.freshRegister();
         Register r2 = env.freshRegister();
-        // Register r3 = env.freshRegister();
         Register[] argRegs = env.freshArgumentRegister(1);
-        bcBuilder.push(new IString(r1, "\"Object\""));
+        bcBuilder.push(new IString(r1, "Object"));
         bcBuilder.push(new IGetglobal(r2, r1));
         bcBuilder.push(new INew(reg, r2));
         bcBuilder.push(new IMove(argRegs[0], reg));
@@ -755,7 +742,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new ISub(reg, reg, r1));
         } break;
         case TYPEOF:
-        	throw new UnsupportedOperationException("Unary operator not implemented : typeof");
+            throw new UnsupportedOperationException("Unary operator not implemented : typeof");
         case VOID: {
             Register r1 = env.freshRegister();
             compileNode(node.operands[0], reg);
@@ -763,9 +750,9 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IGetglobal(reg, r1));
         } break;
         case DELETE:
-        	throw new UnsupportedOperationException("Unary operator not implemented : delete");
+            throw new UnsupportedOperationException("Unary operator not implemented : delete");
         default:
-        	throw new UnsupportedOperationException("Unary operator not implemented : unknown");
+            throw new UnsupportedOperationException("Unary operator not implemented : unknown");
         }
         return null;
     }
@@ -868,7 +855,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IEqual(r3, r1, r2));
             bcBuilder.push(new IIsundef(r4, r3));
             bcBuilder.push(new IJumpfalse(r4, l1));
-            bcBuilder.push(new IString(r5, "\"valueOf\""));
+            bcBuilder.push(new IString(r5, "valueOf"));
             bcBuilder.push(new IIsobject(r6, r1));
             bcBuilder.push(new IJumpfalse(r6, l2));
 
@@ -980,7 +967,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(l2);
         } break;
         default:
-            System.out.println("ERROR: TernaryExpression.");
+            throw new Error("Unreachable code.");
         }
         return null;
     }
@@ -1044,7 +1031,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new INewsend(constructorReg, node.arguments.size()));
         bcBuilder.push(new ISetfl(env.getFl()));
         Register strReg = env.freshRegister();
-        bcBuilder.push(new IString(strReg, "\"Object\""));
+        bcBuilder.push(new IString(strReg, "Object"));
         Register objReg = env.freshRegister();
         bcBuilder.push(new IGetglobal(objReg, strReg));
         Register resultOfNewSendReg = env.freshRegister();
