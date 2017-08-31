@@ -973,20 +973,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitCallExpression(IASTCallExpression node) {
-        if (node.callee instanceof IASTIdentifier) {
-            Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
-            Register[] tmpRegs = new Register[argRegs.length];
-            for (int i = 0; i < argRegs.length; i++) {
-                tmpRegs[i] = env.freshRegister();
-                compileNode(node.arguments.get(i), tmpRegs[i]);
-            }
-            for (int i = 0; i < argRegs.length; i++) {
-                bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
-            }
-            Register calleeReg = env.freshRegister();
-            compileNode(node.callee, calleeReg);
-            bcBuilder.push(new ICall(calleeReg, argRegs.length));
-        } else if (node.callee instanceof IASTMemberExpression) {
+        if (node.callee instanceof IASTMemberExpression) {
             Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
             Register[] tmpRegs = new Register[node.arguments.size()];
             Register objReg = env.freshRegister();
@@ -1004,6 +991,19 @@ public class CodeGenerator extends IASTBaseVisitor {
                 bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
             }
             bcBuilder.push(new ISend(expReg, node.arguments.size()));
+        } else {
+            Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
+            Register[] tmpRegs = new Register[argRegs.length];
+            for (int i = 0; i < argRegs.length; i++) {
+                tmpRegs[i] = env.freshRegister();
+                compileNode(node.arguments.get(i), tmpRegs[i]);
+            }
+            for (int i = 0; i < argRegs.length; i++) {
+                bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
+            }
+            Register calleeReg = env.freshRegister();
+            compileNode(node.callee, calleeReg);
+            bcBuilder.push(new ICall(calleeReg, argRegs.length));
         }
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));
