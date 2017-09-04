@@ -349,9 +349,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     void compileNode(IASTNode node, Register reg) {
         Register tmp = this.reg;
         this.reg = reg;
-        env.before();
         node.accept(this);
-        env.after();
         this.reg = tmp;
     }
 

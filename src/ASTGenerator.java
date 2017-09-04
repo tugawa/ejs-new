@@ -308,8 +308,10 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	@Override public Node visitCaseClause(ECMAScriptParser.CaseClauseContext ctx) {
 		IExpression test = (IExpression) visit(ctx.expressionSequence());
 		List<IStatement> consequent = new ArrayList<IStatement>();
-		for (StatementContext stmtCtx : ctx.statementList().statement()) {
-			consequent.add((IStatement) visit(stmtCtx));
+		if (ctx.statementList() != null) {
+		    for (StatementContext stmtCtx : ctx.statementList().statement()) {
+	            consequent.add((IStatement) visit(stmtCtx));
+	        }
 		}
 		return new SwitchCase(test, consequent);
 	}

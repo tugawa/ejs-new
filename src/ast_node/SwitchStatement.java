@@ -8,7 +8,7 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import ast_node.Node.*;
 
-public class SwitchStatement extends Node implements IStatement {
+public class SwitchStatement extends Node implements ISwitchStatement {
 
     IExpression discriminant;
     List<ISwitchCase> cases;

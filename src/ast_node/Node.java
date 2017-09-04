@@ -201,7 +201,7 @@ public abstract class Node {
 
     public interface ISwitchStatement extends IStatement {
         public IExpression getDiscriminant();
-        public List<SwitchCase> getCases();
+        public List<ISwitchCase> getCases();
     }
 
     public interface ISwitchCase extends INode {
@@ -396,7 +396,7 @@ public abstract class Node {
     }
 
     public void setSourceLocation(String source, Token start, Token stop) {
-        setSourceLocation(source, start.getLine(), start.getCharPositionInLine(), 
+        setSourceLocation(source, start.getLine(), start.getCharPositionInLine(),
                 stop.getLine(), stop.getCharPositionInLine() + stop.getText().length());
     }
 
