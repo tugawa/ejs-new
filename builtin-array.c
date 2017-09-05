@@ -84,7 +84,7 @@ BUILTIN_FUNCTION(array_constr)
     allocate_array_data(context, rsv, size, length);
     set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
     for (i = 0; i < length; i++)
-      array_body_index(rsv, i) = args[i];
+      array_body_index(rsv, i) = args[i + 1];
   }
   set_a(context, rsv);
   gc_pop_tmp_root(1);
