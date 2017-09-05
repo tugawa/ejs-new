@@ -1,14 +1,11 @@
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
@@ -46,23 +43,19 @@ public class TypesGen {
 			}
 		}
 		
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		sb.append("(((0");
-		for (PT pt : common) {
-//			int mask = (1 << pt.bits) - 1;
-//			sb.append(" || (((x) & "+mask+") == "+pt.value+")");
-			sb.append(" || (((x) & "+pt.name+"_MASK) == "+pt.name+")");
-		}
+		for (PT pt : common)
+			sb.append(" || ")
+			  .append(String.format("(((x) & %s_MASK) == %s)", pt.name, pt.name));
 		sb.append(") && (0");
 		for (HT ht : hts)
-			sb.append(" || (obj_header_tag(x) == "+ht.name+")");
+			sb.append(" || ")
+			  .append(String.format("(obj_header_tag(x) == %s)", ht.name));
 		sb.append("))");
-		for (PT pt : unique) {
-//			int mask = (1 << pt.bits) - 1;
-//			sb.append(" || (((x) & "+mask+") == "+pt.value+")");
-			int mask = (1 << pt.bits) - 1;
-			sb.append(" || (((x) & "+pt.name+"_MASK) == "+pt.name+")");
-		}
+		for (PT pt : unique)
+			sb.append(" || ")
+			  .append(String.format("(((x) & %s_MASK) == %s)", pt.name, pt.name));
 		sb.append(")");
 		
 		return sb.toString();
@@ -94,7 +87,7 @@ public class TypesGen {
 		return sb.toString();
 	}
 
-	void appendDataTypeFamilyPredicates(StringBuffer sb, String name, String[] dtNames) {
+	void appendDataTypeFamilyPredicates(StringBuilder sb, String name, String[] dtNames) {
 		Set<VMRepType> rts = new HashSet<VMRepType>();
 		for (String dtName: dtNames)
 			rts.addAll(VMDataType.get(dtName).getRepresentations());
@@ -104,7 +97,7 @@ public class TypesGen {
 	}
 
 	String defineDTFamilyPredicates() {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		appendDataTypeFamilyPredicates(sb,  "object", new String[] {
 			"simple_object",
 			"array",
@@ -124,7 +117,7 @@ public class TypesGen {
 	}
 
 	String defineMisc() {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 
 		sb.append("/* uniqueness of PTAG */\n");
 		Map<PT, Long> ptCount = VMRepType.all().stream()
