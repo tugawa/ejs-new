@@ -184,12 +184,11 @@ BUILTIN_FUNCTION(array_join)
   JSValue sep, ret;
 
   builtin_prologue();
-  if (na == 0)
-    sep = gconsts.g_string_comma;
-  else {
+  if (is_undefined(args[1])) {
+      sep = gconsts.g_string_comma;
+  } else {
     sep = to_string(context, args[1]);
     if (!is_string(sep))
-      /* Could it happen? */
       sep = gconsts.g_string_comma;
   }
   ret = array_to_string(context, args[0], sep);
