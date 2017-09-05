@@ -30,10 +30,6 @@ public class Plan implements GlobalConstantOptions {
 		}
 		*/
 
-		Set<VMRepType> getTypeRepresentations(TypeDefinition td, int i) {
-			return VMDataType.typeRepresentationOf(condition.stream().map(c -> c.dts[i]).distinct());
-		}
-
 		Rule(String action, Condition...  condition) {
 			this.action = action;
 			this.condition = new HashSet<Condition>();

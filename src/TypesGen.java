@@ -44,12 +44,6 @@ public class TypesGen {
 			.collect(Collectors.joining());
 	}
 
-	boolean hasUniquePT(PT pt, Collection<VMDataType> target, Collection<VMDataType> among) {
-		return VMDataType.typeRepresentationStreamOf(among)
-				.filter(tr -> tr.getPT() == pt)
-				.allMatch(tr -> VMDataType.typeRepresentationOf(target).contains(tr));
-	}
-
 	String minimumRepresentation(Collection<VMRepType> dts, Collection<VMRepType> among) {
 		if (!among.containsAll(dts))
 			throw new Error("Internal error");

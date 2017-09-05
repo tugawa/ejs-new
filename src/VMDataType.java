@@ -60,14 +60,6 @@ class VMDataType implements GlobalConstantOptions {
 	/*
 	 * utilities
 	 */
-	
-	static Set<VMRepType> typeRepresentationOf(Collection<VMDataType> dts) {
-		return typeRepresentationStreamOf(dts).collect(Collectors.toSet());
-	}
-	
-	static Set<VMRepType> typeRepresentationOf(Stream<VMDataType> dts) {
-		return typeRepresentationStreamOf(dts).collect(Collectors.toSet());
-	}
 
 	static Stream<VMRepType> typeRepresentationStreamOf(Collection<VMDataType> dts) {
 		return typeRepresentationStreamOf(dts.stream());
