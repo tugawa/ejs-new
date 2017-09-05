@@ -5,14 +5,14 @@ import java.util.Set;
 
 public class Plan implements GlobalConstantOptions {
 	static class Condition {
-		DataType[] dts;
+		VMDataType[] dts;
 
 		Condition(String tn1) {
-		    dts = new DataType[]{DataType.get(tn1)};
+		    dts = new VMDataType[]{VMDataType.get(tn1)};
 		}
 
 		Condition(String tn1, String tn2) {
-			dts = new DataType[]{DataType.get(tn1), DataType.get(tn2)};
+			dts = new VMDataType[]{VMDataType.get(tn1), VMDataType.get(tn2)};
 		}
 	};
 
@@ -20,12 +20,18 @@ public class Plan implements GlobalConstantOptions {
 		Set<Condition> condition;
 		String action;
 
+		/*
 		Set<PT> uniquePT(TypeDefinition td, int i) {
-			return DataType.uniquePT(getTypeRepresentations(td, i), DataType.allUsed(false));
+			Set<PT> unique = new HashSet<PT>();
+			for (VMRepType rt: getTypeRepresentations(td, i))
+				if (rt.hasUniquePT(VMRepType.all()))
+					unique.add(rt.getPT());
+			return unique;
 		}
+		*/
 
-		Set<TypeRepresentation> getTypeRepresentations(TypeDefinition td, int i) {
-			return DataType.typeRepresentationOf(condition.stream().map(c -> c.dts[i]).distinct());
+		Set<VMRepType> getTypeRepresentations(TypeDefinition td, int i) {
+			return VMDataType.typeRepresentationOf(condition.stream().map(c -> c.dts[i]).distinct());
 		}
 
 		Rule(String action, Condition...  condition) {

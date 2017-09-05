@@ -1,4 +1,5 @@
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -11,26 +12,28 @@ import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
-		List<PT> pts = DataType.typeRepresentationStreamOf(DataType.allUsed(true))
-						.map(tr -> tr.getPT())
-						.distinct()
-						.collect(Collectors.toList());
-		pts.sort((p1, p2) -> p1.value - p2.value);
-		return pts.stream()
-			.map(pt -> {
-				StringBuffer sb = new StringBuffer();
-				sb.append(String.format("#define %s %d\n", pt.name, pt.value));
-				sb.append(String.format("#define %s_MASK 0x%x\n", pt.name, (1 << pt.bits) - 1));
-				return sb;
-			})
-			.collect(Collectors.joining());
+		Set<PT> processed = new HashSet<PT>();
+		List<PT> pts = new ArrayList<PT>();
+		for (VMRepType rt: VMRepType.all()) {
+			PT pt = rt.getPT();
+			if (!processed.contains(pt)) {
+				pts.add(pt);
+				processed.add(pt);
+			}
+		}
+		StringBuffer sb = new StringBuffer();
+		for (PT pt: pts) {
+			sb.append(String.format("#define %s %d\n", pt.name, pt.value));
+			sb.append(String.format("#define %s_MASK 0x%x\n", pt.name, (1 << pt.bits) - 1));
+		}
+		return sb.toString();
 	}
 
 	String defineHT() {
 		/* Need to produce HT definition regardless of whether the type is used or not
 		 * because GC uses HT.
 		 */
-		List<HT> pts = DataType.typeRepresentationStreamOf(DataType.allInSpec())
+		List<HT> pts = VMDataType.typeRepresentationStreamOf(VMDataType.all())
 						.filter(tr -> tr.hasHT())
 						.map(tr -> tr.getHT())
 						.distinct()
@@ -41,80 +44,114 @@ public class TypesGen {
 			.collect(Collectors.joining());
 	}
 
-	boolean hasUniquePT(PT pt, Collection<DataType> target, Collection<DataType> among) {
-		return DataType.typeRepresentationStreamOf(among)
+	boolean hasUniquePT(PT pt, Collection<VMDataType> target, Collection<VMDataType> among) {
+		return VMDataType.typeRepresentationStreamOf(among)
 				.filter(tr -> tr.getPT() == pt)
-				.allMatch(tr -> DataType.typeRepresentationOf(target).contains(tr));
+				.allMatch(tr -> VMDataType.typeRepresentationOf(target).contains(tr));
 	}
 
-	String minimumRepresentation(Set<DataType> dts, Collection<DataType> among) {
-		return "(" +
-				DataType.typeRepresentationStreamOf(dts)
-				.map(tr -> {
-					PT pt = tr.getPT();
-					if (hasUniquePT(pt, dts, among))
-						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +")";
-					else
-						return "(((x) & "+ pt.name +"_MASK) == "+ pt.name +" && "
-								+"obj_header_tag(x) == "+ tr.getHT().name +")";
-					})
-				.distinct()
-				.collect(Collectors.joining(" || ")) +
-			   ")";
+	String minimumRepresentation(Collection<VMRepType> dts, Collection<VMRepType> among) {
+		if (!among.containsAll(dts))
+			throw new Error("Internal error");
+		
+		if (among.size() == 1)
+			return "1";
+
+		Collection<PT> unique = new HashSet<PT>();
+		Collection<PT> common = new HashSet<PT>();
+		Collection<HT> hts = new ArrayList<HT>();
+		for (VMRepType rt: dts) {
+			if (rt.hasUniquePT(among))
+				unique.add(rt.getPT());
+			else {
+				common.add(rt.getPT());
+				hts.add(rt.getHT());
+			}
+		}
+		
+		StringBuffer sb = new StringBuffer();
+		sb.append("(((0");
+		for (PT pt : common) {
+//			int mask = (1 << pt.bits) - 1;
+//			sb.append(" || (((x) & "+mask+") == "+pt.value+")");
+			sb.append(" || (((x) & "+pt.name+"_MASK) == "+pt.name+")");
+		}
+		sb.append(") && (0");
+		for (HT ht : hts)
+			sb.append(" || (obj_header_tag(x) == "+ht.name+")");
+		sb.append("))");
+		for (PT pt : unique) {
+//			int mask = (1 << pt.bits) - 1;
+//			sb.append(" || (((x) & "+mask+") == "+pt.value+")");
+			int mask = (1 << pt.bits) - 1;
+			sb.append(" || (((x) & "+pt.name+"_MASK) == "+pt.name+")");
+		}
+		sb.append(")");
+		
+		return sb.toString();
 	}
 
-	String defineDTPredicates() {
+	String defineTypePredicates() {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("/* VM types */\n");
-		for (DataType dt: DataType.allInSpec()) {
+		sb.append("/* VM-DataTypes */\n");
+		for (VMDataType dt: VMDataType.all()) {
 			sb.append("#define is_").append(dt.name).append("(x) ");
-			if (dt.reprs.isEmpty())
+			if (dt.getRepresentations().isEmpty())
 				sb.append("0  /* not used */\n");
 			else
-				sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet()), DataType.allLeaves()) +"\n");
+				sb.append(minimumRepresentation(dt.getRepresentations(), VMRepType.all()))
+				  .append("\n");
 		}
 
-		sb.append("/* custom types */\n");
-		for (DataType dt: DataType.allLeaves()) {
-			if (dt.isVMType())
-				continue;
-			sb.append("#define is_").append(dt.name).append("(x) ");
-			sb.append(minimumRepresentation(Stream.of(dt).collect(Collectors.toSet()), dt.parent.children));
-			sb.append("\n");
+		sb.append("/* VM-RepTypes */\n");
+		for (VMDataType dt: VMDataType.all()) {
+			for (VMRepType rt: dt.getRepresentations()) {
+				Set<VMRepType> rtSingleton = new HashSet<VMRepType>(1);
+				rtSingleton.add(rt);
+				sb.append("#define is_").append(rt.name).append("(x) ");
+				sb.append(minimumRepresentation(rtSingleton, dt.getRepresentations()));
+				sb.append("\n");
+			}
 		}
 		return sb.toString();
 	}
 
+	void appendDataTypeFamilyPredicates(StringBuffer sb, String name, String[] dtNames) {
+		Set<VMRepType> rts = new HashSet<VMRepType>();
+		for (String dtName: dtNames)
+			rts.addAll(VMDataType.get(dtName).getRepresentations());
+		sb.append("#define is_").append(name).append("(x) ")
+		  .append(minimumRepresentation(rts, VMRepType.all()))
+		  .append("\n");
+	}
+
 	String defineDTFamilyPredicates() {
-		final Pair<String, Set<String>>[] families = new Pair[] {
-			new Pair<String, Set<String>>("object",
-					Stream.of(
-							"simple_object",
-							"array",
-							"function",
-							"builtin",
-							"iterator",
-							"regexp",
-							"string_object",
-							"number_object",
-							"boolean_object").collect(Collectors.toSet())),
-			new Pair<String, Set<String>>("number",
-					Stream.of(
-							"fixnum",
-							"flonum").collect(Collectors.toSet()))
-		};
-		return Arrays.stream(families)
-			.map(p -> "#define is_"+ p.first() +"(x) "+ minimumRepresentation(p.second().stream().map(s -> DataType.get(s)).collect(Collectors.toSet()), DataType.allLeaves()) + "\n")
-			.collect(Collectors.joining());
+		StringBuffer sb = new StringBuffer();
+		appendDataTypeFamilyPredicates(sb,  "object", new String[] {
+			"simple_object",
+			"array",
+			"function",
+			"builtin",
+			"iterator",
+			"regexp",
+			"string_object",
+			"number_object",
+			"boolean_object"
+		});
+		appendDataTypeFamilyPredicates(sb, "number", new String[]{
+			"fixnum",
+			"flonum"
+		});
+		return sb.toString();
 	}
 
 	String defineMisc() {
 		StringBuffer sb = new StringBuffer();
 
 		sb.append("/* uniqueness of PTAG */\n");
-		Map<PT, Long> ptCount = DataType.allLeaves().stream()
-			.map(dt -> dt.getRepresentation().getPT())
+		Map<PT, Long> ptCount = VMRepType.all().stream()
+			.map(rt -> rt.getPT())
 			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
 		Set<PT> uniqPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).collect(Collectors.toSet());
 		Set<PT> commonPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).collect(Collectors.toSet());
@@ -139,20 +176,17 @@ public class TypesGen {
 
 	String defineNeed() {
 		StringBuilder sb = new StringBuilder();
-		sb.append("/* VM types */\n");
-		DataType.allUsed(false).forEach(dt -> {
-			sb.append("#define need_").append(dt.name).append(" 1\n");
-		});
+		sb.append("/* VM-DataTypes */\n");
+		for (VMDataType dt: VMDataType.all())
+			if (!dt.getRepresentations().isEmpty())
+				sb.append("#define need_").append(dt.name).append(" 1\n");
 		sb.append("/* customised types */\n");
-		DataType.allUsed(false).forEach(dt -> {
-			if (!dt.isLeaf()) {
-				if (dt.children.size() > 1)
-					sb.append("#define customised_"+dt.name+" 1\n");
-				dt.children.forEach(c -> {
-					sb.append("#define need_"+c.name+" 1\n");
-				});
-			}
-		});
+		for (VMDataType dt: VMDataType.all()) {
+			for (VMRepType rt: dt.getRepresentations())
+				sb.append("#define need_"+rt.name+" 1\n");
+			if (dt.getRepresentations().size() > 1)
+				sb.append("#define customised_"+dt.name+" 1\n");
+		}
 		return sb.toString();
 	}
 	
@@ -161,12 +195,12 @@ public class TypesGen {
 
 		/* leaf types */
 		sb.append("/* leaf types */\n");
-		for (DataType dt: DataType.allLeaves()) {
-			String ptName = dt.getRepresentation().getPT().name;
-			String cast = dt.struct == null ? "" : ("("+dt.struct+" *)");
-			sb.append("#define put_"+dt.name+"_tag(p) ")
+		for (VMRepType rt: VMRepType.all()) {
+			String ptName = rt.getPT().name;
+			String cast = rt.getStruct() == null ? "" : ("("+rt.getStruct()+" *)");
+			sb.append("#define put_"+rt.name+"_tag(p) ")
 			  .append("(put_tag((p), "+ptName+"))\n");
-			sb.append("#define remove_"+dt.name+"_tag(p) ")
+			sb.append("#define remove_"+rt.name+"_tag(p) ")
 			  .append("("+cast+"remove_tag((p), "+ptName+"))\n");
 		}
 
@@ -181,7 +215,7 @@ public class TypesGen {
 		TypesGen tg = new TypesGen();
 		System.out.println(tg.definePT());
 		System.out.println(tg.defineHT());
-		System.out.println(tg.defineDTPredicates());
+		System.out.println(tg.defineTypePredicates());
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.defineMisc());
 		System.out.println(tg.defineTagOperations());

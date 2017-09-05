@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
 
 
 class JSTypePair {
-    DataType left, right;
-    JSTypePair(DataType left, DataType right) {
+    VMDataType left, right;
+    JSTypePair(VMDataType left, VMDataType right) {
         this.left = left;
         this.right = right;
     }
@@ -61,7 +61,7 @@ public class ProcDefinition {
         if (vars.length == 1) {
             result.addAll(oneOpL);
             if (otherwise != null) {
-                for (DataType dt : DataType.allInSpec()) {
+                for (VMDataType dt : VMDataType.all()) {
                     boolean b = true;
                     for (Pair<JSTypePair,String> e : result) {
                         JSTypePair jtp = e.first();
@@ -76,8 +76,8 @@ public class ProcDefinition {
         } else if (vars.length == 2) {
             result.addAll(twoOp);
             for (Pair<JSTypePair,String> el : oneOpL) {
-                DataType left = el.first().left;
-                for (DataType right : DataType.allInSpec()) {
+                VMDataType left = el.first().left;
+                for (VMDataType right : VMDataType.all()) {
                     boolean willBeAdded = true;
                     for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
@@ -97,8 +97,8 @@ public class ProcDefinition {
                 }
             }
             for (Pair<JSTypePair,String> er : oneOpR) {
-                DataType right = er.first().right;
-                for (DataType left : DataType.allInSpec()) {
+                VMDataType right = er.first().right;
+                for (VMDataType left : VMDataType.all()) {
                     boolean willBeAdded = true;
                     for (Pair<JSTypePair,String> etwo : twoOp) {
                         if (etwo.first().left == left && etwo.first().right == right) {
@@ -118,8 +118,8 @@ public class ProcDefinition {
                 }
             }
             if (otherwise != null) {
-                for (DataType left : DataType.allInSpec()) {
-                    for (DataType right : DataType.allInSpec()) {
+                for (VMDataType left : VMDataType.all()) {
+                    for (VMDataType right : VMDataType.all()) {
                         boolean willBeAdded = true;
                         for (Pair<JSTypePair,String> e : result) {
                             if (e.first().left == left && e.first().right == right) {

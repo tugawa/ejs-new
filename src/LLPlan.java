@@ -5,12 +5,12 @@ import java.util.stream.Collectors;
 
 class LLRule {
 	static class Condition {
-		TypeRepresentation[] trs;
+		VMRepType[] trs;
 
 		int arity;
 		boolean done;
 
-		Condition(TypeRepresentation... trs) {
+		Condition(VMRepType... trs) {
 			this.trs = trs;
 			arity = trs.length;
 			done = false;
@@ -41,13 +41,13 @@ class LLRule {
 	/**
 	 * Subroutine of dtCondToTRCond.
 	 */
-	protected void dtCondToTRCondRec(DataType[] dts, Set<Condition> result, TypeRepresentation[] part, int i, int n) {
+	protected void dtCondToTRCondRec(VMDataType[] dts, Set<Condition> result, VMRepType[] part, int i, int n) {
 		if (i == n) {
 			result.add(new Condition(part.clone()));
 			return;
 		}
-		DataType dt = dts[i];
-		for (TypeRepresentation tr: dt.getRepresentations()) {
+		VMDataType dt = dts[i];
+		for (VMRepType tr: dt.getRepresentations()) {
 			part[i] = tr;
 			dtCondToTRCondRec(dts, result, part, i + 1, n);
 		}
@@ -61,13 +61,13 @@ class LLRule {
 	 * @return set of low level conditions
 	 */
 	protected Set<Condition> dtCondToTRCond(Plan.Condition dtCond, int n) {
-		TypeRepresentation[] trs = new TypeRepresentation[n];
+		VMRepType[] trs = new VMRepType[n];
 		Set<Condition> result = new HashSet<Condition>();
 		dtCondToTRCondRec(dtCond.dts, result, trs, 0, n);
 		return result;
 	}
 
-	public Condition find(TypeRepresentation... key) {
+	public Condition find(VMRepType... key) {
 		NEXT_CONDITION: for (Condition c: condition) {
 			if (c.arity != key.length)
 				continue;
@@ -123,8 +123,8 @@ public class LLPlan {
 		return pts;
 	}
 
-	public Set<TypeRepresentation> allTRNthOperand(int n) {
-		Set<TypeRepresentation> trs = new HashSet<TypeRepresentation>();
+	public Set<VMRepType> allTRNthOperand(int n) {
+		Set<VMRepType> trs = new HashSet<VMRepType>();
 		for (LLRule r: rules) {
 			for (LLRule.Condition c: r.condition)
 				trs.add(c.trs[0]);
@@ -135,7 +135,7 @@ public class LLPlan {
 	/**
 	 * Find the low level rule that matches the given condition.
 	 */
-	public LLRule find(TypeRepresentation... key) {
+	public LLRule find(VMRepType... key) {
 		for (LLRule r: rules) {
 			if (r.find(key) != null)
 				return r;
@@ -168,11 +168,11 @@ public class LLPlan {
 	 * @param redirect if true, create redirect actions
 	 * @return nested plan
 	 */
-	public LLPlan convertToNestedPlan(boolean redirect, TypeRepresentation[] dispatchVals) {
+	public LLPlan convertToNestedPlan(boolean redirect, VMRepType[] dispatchVals) {
 		int level = dispatchVals.length;
 		LLPlan outer = new LLPlan(new String[] {dispatchVars[level]});
-		for (TypeRepresentation tr: allTRNthOperand(level)) {
-			TypeRepresentation[] nextVals = new TypeRepresentation[level + 1];
+		for (VMRepType tr: allTRNthOperand(level)) {
+			VMRepType[] nextVals = new VMRepType[level + 1];
 			System.arraycopy(dispatchVals, 0, nextVals, 0, level);
 			nextVals[level] = tr;
 			if (nextVals.length == dispatchVars.length) {
@@ -196,7 +196,7 @@ public class LLPlan {
 	}
 
 	public LLPlan convertToNestedPlan(boolean redirect) {
-		return convertToNestedPlan(redirect, new TypeRepresentation[]{});
+		return convertToNestedPlan(redirect, new VMRepType[]{});
 	}
 
 	protected boolean mergable(LLRule r0, LLRule r1) {

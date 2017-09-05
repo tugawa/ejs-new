@@ -80,11 +80,11 @@ public class DslParser {
     class AtomCondition extends Condition {
         String varName;
         int varIdx;
-        DataType t;
+        VMDataType t;
         AtomCondition(String varName, String tname) {
-            this(varName, DataType.get(tname));
+            this(varName, VMDataType.get(tname));
         }
-        AtomCondition(String varName, DataType t) {
+        AtomCondition(String varName, VMDataType t) {
             this.varName = varName;
             this.t = t;
         }
@@ -238,7 +238,7 @@ public class DslParser {
             if (tks[i].id != TokenId.STRING) return null;
             if (tks[i+1].id != TokenId.COLON) return null;
             if (tks[i+2].id != TokenId.STRING) return null;
-            DataType dt = DataType.get(tks[i+2].raw);
+            VMDataType dt = VMDataType.get(tks[i+2].raw);
             if (dt == null) { System.out.println("dt is null"); throw new Exception(); }
             idx.n = i + 3;
             return new AtomCondition(tks[i].raw, tks[i+2].raw);

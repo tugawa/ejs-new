@@ -1,37 +1,28 @@
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.regex.MatchResult;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class TypeDefinition {
 	static String quoted;
 
-	static DataType parseLine(String line) {
+	static void parseLine(String line) {
 		Scanner sc = new Scanner(line);
 		try {
 			sc.findInLine("([a-zA-Z_]+)\\s*:\\s*");
 			String name = sc.match().group(1);
-			DataType dt = DataType.get(name);
+			VMDataType dt = VMDataType.get(name, true);
 
-			if (sc.hasNext("\\+.*")) {
-				if (dt.parent != null)
-					throw new Error("defining sub-sub data type:"+line);
+			if (dt != null) {
 				while (sc.hasNext("\\+[a-zA-Z_].*")) {
 					sc.findInLine("\\+([a-zA-Z_]+)");
 					MatchResult m = sc.match();
-					String subName = m.group(1);
-					DataType.add(subName, dt);
+					String rtName = m.group(1);
+					VMRepType rt = VMRepType.get(rtName, true);
+					if (rt == null)
+						rt = new VMRepType(rtName);
+					dt.addVMRepType(rt);
 				}
 			} else {
 				if (sc.hasNext("([a-zA-Z_]+)\\(([01]*)\\)(/([a-zA-Z_]+)\\((\\d+)\\))?")){
@@ -49,23 +40,22 @@ public class TypeDefinition {
 					String hTypeName = m.group(4);
 					int hTypeValue = m.group(5) == null ? 0 : Integer.parseInt(m.group(5));
 
-					TypeRepresentation r = new TypeRepresentation(dt.name, pTagName, pTagValue, pTagLength, hTypeName, hTypeValue);
-					dt.addRepresentation(r);
-
-					// structure
-					if (sc.hasNext("[a-zA-Z_]+")) {
-						sc.findInLine("[a-zA-Z_]+");
-						String struct = sc.match().group(0);
-						dt.setDataStructure(struct);
-					}
+					VMRepType rt = VMRepType.get(name, true);
+					if (rt == null)
+						rt = new VMRepType(name);
+					
+					String struct = null;
+					if (sc.hasNext())
+						struct = sc.next();
+					rt.initialise(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue, struct);
+				} else {
+					throw new Exception();
 				}
 			}
-			return dt;
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println("next = "+ sc.next());
 			System.exit(1);
-			return null;
 		}
 	}
 
@@ -96,7 +86,7 @@ public class TypeDefinition {
 	@Override
 	public String toString() {
 		String s = "";
-		for (DataType dt: DataType.allInSpec()) {
+		for (VMDataType dt: VMDataType.all()) {
 			s += dt + "\n";
 		}
 		s += quoted;
@@ -105,21 +95,6 @@ public class TypeDefinition {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition.load("datatype/new.dtdef");
-		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
-				"fixnum", "string", "array").map(n -> DataType.get(n))),
-				DataType.allUsed(false)));
-		System.out.println(DataType.uniquePT(DataType.typeRepresentationOf(Stream.of(
-				"simple_object",
-				"array",
-				"function",
-				"builtin",
-				"iterator",
-				"regexp",
-				"string_object",
-				"number_object",
-				"boolean_object",
-				"string").map(n -> DataType.get(n))),
-				DataType.allUsed(false)));
 		Plan p = new Plan();
 		new TagPairSynthesiser().synthesise(p);
 	}
