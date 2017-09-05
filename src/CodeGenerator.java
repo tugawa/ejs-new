@@ -570,6 +570,8 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register iteReg = env.freshRegister();
         Register propReg = env.freshRegister();
         Register testReg = env.freshRegister();
+        Label breakLabel = new Label();
+        Label continueLabel = new Label();
         Label l1 = new Label();
         Label l2 = new Label();
         compileNode(node.object, objReg);
@@ -590,8 +592,14 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
         bcBuilder.push(new IIsundef(testReg, propReg));
         bcBuilder.push(new IJumptrue(testReg, l2));
+        bcBuilder.push(continueLabel);
+        env.pushBreakLabel(node.label, breakLabel);
+        env.pushContinueLabel(node.label, continueLabel);
         compileNode(node.body, reg);
+        env.popBreakLabel();
+        env.popContinueLabel();
         bcBuilder.push(new IJump(l1));
+        bcBuilder.push(breakLabel);
         bcBuilder.push(l2);
         return null;
     }
