@@ -12,17 +12,8 @@ import java.util.stream.Stream;
 
 public class TypesGen {
 	String definePT() {
-		Set<PT> processed = new HashSet<PT>();
-		List<PT> pts = new ArrayList<PT>();
-		for (VMRepType rt: VMRepType.all()) {
-			PT pt = rt.getPT();
-			if (!processed.contains(pt)) {
-				pts.add(pt);
-				processed.add(pt);
-			}
-		}
-		StringBuffer sb = new StringBuffer();
-		for (PT pt: pts) {
+		StringBuilder sb = new StringBuilder();
+		for (PT pt: VMRepType.allPT()) {
 			sb.append(String.format("#define %s %d\n", pt.name, pt.value));
 			sb.append(String.format("#define %s_MASK 0x%x\n", pt.name, (1 << pt.bits) - 1));
 		}
@@ -30,18 +21,10 @@ public class TypesGen {
 	}
 
 	String defineHT() {
-		/* Need to produce HT definition regardless of whether the type is used or not
-		 * because GC uses HT.
-		 */
-		List<HT> pts = VMDataType.typeRepresentationStreamOf(VMDataType.all())
-						.filter(tr -> tr.hasHT())
-						.map(tr -> tr.getHT())
-						.distinct()
-						.collect(Collectors.toList());
-		pts.sort((h1, h2) -> h1.value - h2.value);
-		return pts.stream()
-			.map(ht -> "#define " + ht.name +" "+ ht.value + "\n")
-			.collect(Collectors.joining());
+		StringBuilder sb = new StringBuilder();
+		for (HT ht: VMRepType.allHT())
+			sb.append(String.format("#define %s %d\n",  ht.name, ht.value));
+		return sb.toString();
 	}
 
 	String minimumRepresentation(Collection<VMRepType> dts, Collection<VMRepType> among) {

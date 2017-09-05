@@ -1,10 +1,10 @@
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-class PT {
+class PT implements Comparable<PT> {
 	static Map<String, PT> internTable = new HashMap<String, PT>();
 	
 	static PT get(String name, int value, int bits) {
@@ -25,24 +25,29 @@ class PT {
 		this.name = name;
 		this.value = value;
 		this.bits = bits;
+		this.defineOrder = internTable.size();
 	}
 
 	String name;
 	int value;
 	int bits;
+	private int defineOrder;
 	
 	@Override
 	public String toString() {
 		return String.format("%s", name);
 	}
+
+	@Override
+	public int compareTo(PT that) {
+		return this.defineOrder - that.defineOrder;
+	}
 }
 
-class HT {
+class HT implements Comparable<HT> {
 	static Map<String, HT> internTable = new HashMap<String, HT>();
 	
-	static HT get(String name, int value) {
-		/* TODO: duplicate check */
-		
+	static HT create(String name, int value) {
 		HT ht = internTable.get(name);
 		if (ht != null) {
 			if (ht.value != value)
@@ -57,28 +62,50 @@ class HT {
 	private HT(String name, int value) {
 		this.name = name;
 		this.value = value;
+		this.defineOrder = internTable.size();
 	}
 
 	String name;
 	int value;
+	private int defineOrder;
 	
 	@Override
 	public String toString() {
 		return String.format("%s", name);
 	}
+
+	@Override
+	public int compareTo(HT that) {
+		return this.defineOrder - that.defineOrder;
+	}
 }
 
 
-class VMRepType {
+class VMRepType implements Comparable<VMRepType> {
 	static Map<String, VMRepType> definedVMRepType = new HashMap<String, VMRepType>();
 	
 	PT pt;
 	HT ht;
 	String name;
 	String struct;
+	private int defineOrder;
 	
-	static List<VMRepType> all() {
-		return new ArrayList<VMRepType>(definedVMRepType.values());
+	static ArrayList<VMRepType> all() {
+		ArrayList<VMRepType> lst = new ArrayList<VMRepType>(definedVMRepType.values());
+		Collections.sort(lst);
+		return lst;
+	}
+	
+	static ArrayList<PT> allPT() {
+		ArrayList<PT> lst = new ArrayList<PT>(PT.internTable.values());
+		Collections.sort(lst);
+		return lst;
+	}
+	
+	static ArrayList<HT> allHT() {
+		ArrayList<HT> lst = new ArrayList<HT>(HT.internTable.values());
+		Collections.sort(lst);
+		return lst;
 	}
 
 	static VMRepType get(String name, boolean permitNull) {
@@ -91,8 +118,9 @@ class VMRepType {
 	VMRepType(String name) {
 		if (definedVMRepType.get(name) != null)
 			throw new Error("VMRepType "+name+" redefined");
-		definedVMRepType.put(name, this);
+		this.defineOrder = definedVMRepType.size();
 		this.name = name;
+		definedVMRepType.put(name, this);
 	}
 	
 	boolean initialised() {
@@ -105,7 +133,7 @@ class VMRepType {
 
 		pt = PT.get(ptName, ptValue, ptBits);
 		if (htName != null)
-			ht = HT.get(htName, htValue);
+			ht = HT.create(htName, htValue);
 		this.struct = struct;
 	}
 	
@@ -141,5 +169,10 @@ class VMRepType {
 			return pt.toString() + "/" + ht.toString();
 		else
 			return pt.toString();
+	}
+
+	@Override
+	public int compareTo(VMRepType that) {
+		return this.defineOrder - that.defineOrder;
 	}
 }

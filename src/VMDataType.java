@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class VMDataType implements GlobalConstantOptions {
+class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 	static Map<String, VMDataType> definedVMDataTypes = new HashMap<String, VMDataType>();
 
 	static void defineVMDataType(String name) {
@@ -18,7 +18,7 @@ class VMDataType implements GlobalConstantOptions {
 	static VMDataType get(String name) {
 		return get(name, false);
 	}
-	
+
 	static VMDataType get(String name, boolean permitNull) {
 		VMDataType dt = definedVMDataTypes.get(name);
 		if (dt == null && !permitNull)
@@ -28,6 +28,7 @@ class VMDataType implements GlobalConstantOptions {
 
 	private VMDataType(String name) {
 		this.name = name;
+		this.defineOrder = definedVMDataTypes.size();
 		reptypes = new ArrayList<VMRepType>();
 	}
 
@@ -80,7 +81,7 @@ class VMDataType implements GlobalConstantOptions {
 				})
 				.collect(Collectors.toSet());
 	}
-	
+
 	/*
 	 * data type instance
 	 */
@@ -88,6 +89,7 @@ class VMDataType implements GlobalConstantOptions {
 	String name;
 	String struct;
 	List<VMRepType> reptypes;
+	private int defineOrder;
 
 	String getName() {
 		return name;
@@ -112,5 +114,10 @@ class VMDataType implements GlobalConstantOptions {
 			s += " " + r;
 		}
 		return s;
+	}
+
+	@Override
+	public int compareTo(VMDataType that) {
+		return this.defineOrder - that.defineOrder;
 	}
 }
