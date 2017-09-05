@@ -64,15 +64,15 @@ class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 
 	String name;
 	String struct;
-	List<VMRepType> reptypes;
+	ArrayList<VMRepType> reptypes;
 	private int defineOrder;
 
 	String getName() {
 		return name;
 	}
 
-	Set<VMRepType> getRepresentations() {
-		return new HashSet<VMRepType>(reptypes);
+	ArrayList<VMRepType> getVMRepTypes() {
+		return reptypes;
 	}
 
 	void addVMRepType(VMRepType r) {

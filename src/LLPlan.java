@@ -47,7 +47,7 @@ class LLRule {
 			return;
 		}
 		VMDataType dt = dts[i];
-		for (VMRepType tr: dt.getRepresentations()) {
+		for (VMRepType tr: dt.getVMRepTypes()) {
 			part[i] = tr;
 			dtCondToTRCondRec(dts, result, part, i + 1, n);
 		}

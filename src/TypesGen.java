@@ -67,20 +67,20 @@ public class TypesGen {
 		sb.append("/* VM-DataTypes */\n");
 		for (VMDataType dt: VMDataType.all()) {
 			sb.append("#define is_").append(dt.name).append("(x) ");
-			if (dt.getRepresentations().isEmpty())
+			if (dt.getVMRepTypes().isEmpty())
 				sb.append("0  /* not used */\n");
 			else
-				sb.append(minimumRepresentation(dt.getRepresentations(), VMRepType.all()))
+				sb.append(minimumRepresentation(dt.getVMRepTypes(), VMRepType.all()))
 				  .append("\n");
 		}
 
 		sb.append("/* VM-RepTypes */\n");
 		for (VMDataType dt: VMDataType.all()) {
-			for (VMRepType rt: dt.getRepresentations()) {
+			for (VMRepType rt: dt.getVMRepTypes()) {
 				Set<VMRepType> rtSingleton = new HashSet<VMRepType>(1);
 				rtSingleton.add(rt);
 				sb.append("#define is_").append(rt.name).append("(x) ");
-				sb.append(minimumRepresentation(rtSingleton, dt.getRepresentations()));
+				sb.append(minimumRepresentation(rtSingleton, dt.getVMRepTypes()));
 				sb.append("\n");
 			}
 		}
@@ -90,7 +90,7 @@ public class TypesGen {
 	void appendDataTypeFamilyPredicates(StringBuilder sb, String name, String[] dtNames) {
 		Set<VMRepType> rts = new HashSet<VMRepType>();
 		for (String dtName: dtNames)
-			rts.addAll(VMDataType.get(dtName).getRepresentations());
+			rts.addAll(VMDataType.get(dtName).getVMRepTypes());
 		sb.append("#define is_").append(name).append("(x) ")
 		  .append(minimumRepresentation(rts, VMRepType.all()))
 		  .append("\n");
@@ -148,13 +148,13 @@ public class TypesGen {
 		StringBuilder sb = new StringBuilder();
 		sb.append("/* VM-DataTypes */\n");
 		for (VMDataType dt: VMDataType.all())
-			if (!dt.getRepresentations().isEmpty())
+			if (!dt.getVMRepTypes().isEmpty())
 				sb.append("#define need_").append(dt.name).append(" 1\n");
 		sb.append("/* customised types */\n");
 		for (VMDataType dt: VMDataType.all()) {
-			for (VMRepType rt: dt.getRepresentations())
+			for (VMRepType rt: dt.getVMRepTypes())
 				sb.append("#define need_"+rt.name+" 1\n");
-			if (dt.getRepresentations().size() > 1)
+			if (dt.getVMRepTypes().size() > 1)
 				sb.append("#define customised_"+dt.name+" 1\n");
 		}
 		return sb.toString();
