@@ -59,30 +59,6 @@ class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 	}
 
 	/*
-	 * utilities
-	 */
-
-	static Stream<VMRepType> typeRepresentationStreamOf(Collection<VMDataType> dts) {
-		return typeRepresentationStreamOf(dts.stream());
-	}
-
-	static Stream<VMRepType> typeRepresentationStreamOf(Stream<VMDataType> dts) {
-		return dts.flatMap(dt -> dt.getRepresentations().stream());
-	}
-
-	static Set<PT> uniquePT(Set<VMRepType> trs, Collection<VMDataType> among) {
-		return trs.stream()
-				.map(tr -> tr.getPT())
-				.distinct()
-				.filter(pt -> {
-					return typeRepresentationStreamOf(among)
-							.filter(tr -> tr.getPT() == pt)
-							.allMatch(tr -> trs.contains(tr));
-				})
-				.collect(Collectors.toSet());
-	}
-
-	/*
 	 * data type instance
 	 */
 
