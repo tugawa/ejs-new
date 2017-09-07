@@ -11,11 +11,11 @@ public class ConditionalExpression extends Node implements IConditionalExpressio
     IExpression alternate;
     IExpression consequent;
 
-    public ConditionalExpression(IExpression test, IExpression alternate, IExpression consequent) {
+    public ConditionalExpression(IExpression test, IExpression consequent, IExpression alternate) {
         type = CONDITIONAL_EXP;
         this.test = test;
-        this.alternate = alternate;
         this.consequent = consequent;
+        this.alternate = alternate;
     }
 
     @Override

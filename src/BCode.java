@@ -1,3 +1,5 @@
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BCode {
     int number;
@@ -104,7 +106,9 @@ class IString extends BCode {
     String str;
     IString(Register dst, String str) {
         this.dst = dst;
-        this.str = str;
+        Pattern pt = Pattern.compile("\n");
+        Matcher match = pt.matcher(str);
+        this.str = match.replaceAll("\\\\n");
     }
     public String toString() {
         return super.toString("string", dst, "\"" + str + "\"");
