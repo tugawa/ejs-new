@@ -1,6 +1,5 @@
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 abstract class Branch {
 	DDNode action;
@@ -36,17 +35,25 @@ class TagPairBranch extends Branch {
 		if (isDefaultCase) {
 			return "default: \n" + action.code();
 		} else {
-			return condition.stream()
-					.map(p -> "case TAG_PAIR("+p.first().name+", "+p.second().name+"):")
-					.collect(Collectors.joining(" ")) + "\n" +
-					action.code();
+			StringBuilder sb = new StringBuilder();
+			for (Pair<PT, PT> tp : condition)
+				sb.append("case TAG_PAIR(")
+				  .append(tp.first().name).append(", ")
+				  .append(tp.second().name).append("):\n");
+			sb.append(action.code());
+			return sb.toString();
 		}
 	}
 
 	@Override
 	public String toString() {
-		String c = condition.stream().map(pair -> pair.first() + "*" + pair.second()).collect(Collectors.joining(","));
-		return "case ("+c+") -> "+action;
+		StringBuilder sb = new StringBuilder();
+		sb.append("case (");
+		for (Pair<PT, PT> tp : condition)
+			sb.append(tp.first()).append("*").append(tp.second()).append(", ");
+		sb.delete(sb.length() - 2, sb.length());
+		sb.append(") -> ").append(action);
+		return sb.toString();
 	}
 }
 
@@ -70,19 +77,25 @@ class PTBranch extends Branch {
 	@Override
 	public String code(boolean isDefaultCase) {
 		if (isDefaultCase) {
-			return "default: \n"+ action.code();
+			return "default: \n" + action.code();
 		} else {
-			return condition.stream()
-					.map(pt -> "case "+pt.name+":")
-					.collect(Collectors.joining(" ")) + "\n" +
-					action.code();
+			StringBuilder sb = new StringBuilder();
+			for (PT pt : condition)
+				sb.append("case ").append(pt.name).append(":\n");
+			sb.append(action.code());
+			return sb.toString();
 		}
 	}
 
 	@Override
 	public String toString() {
-		String c = condition.stream().map(pt -> pt.name).collect(Collectors.joining(","));
-		return "case ("+c+") -> "+action;
+		StringBuilder sb = new StringBuilder();
+		sb.append("case (");
+		for (PT pt : condition)
+			sb.append(pt).append(", ");
+		sb.delete(sb.length() - 2, sb.length());
+		sb.append(") -> ").append(action);
+		return sb.toString();
 	}
 }
 
@@ -100,25 +113,31 @@ class HTBranch extends Branch {
 	}
 
 	@Override
-	public String code(boolean isDefaultCase) {
-		if (isDefaultCase) {
-			return "default: \n"+ action.code();
-		} else {
-			return condition.stream()
-					.map(ht -> "case "+ht.name+":")
-					.collect(Collectors.joining(" ")) + "\n" +
-					action.code();
-		}
-	}
-
-	@Override
 	public int size() {
 		return condition.size();
 	}
 
 	@Override
+	public String code(boolean isDefaultCase) {
+		if (isDefaultCase) {
+			return "default: \n" + action.code();
+		} else {
+			StringBuilder sb = new StringBuilder();
+			for (HT ht : condition)
+				sb.append("case ").append(ht.name).append(":\n");
+			sb.append(action.code());
+			return sb.toString();
+		}
+	}
+
+	@Override
 	public String toString() {
-		String c = condition.stream().map(ht -> ht.name).collect(Collectors.joining(","));
-		return "case ("+c+") -> "+action;
+		StringBuilder sb = new StringBuilder();
+		sb.append("case (");
+		for (HT hp : condition)
+			sb.append(hp).append(", ");
+		sb.delete(sb.length() - 2, sb.length());
+		sb.append(") -> ").append(action);
+		return sb.toString();
 	}
 }
