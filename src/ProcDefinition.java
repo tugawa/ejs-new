@@ -1,21 +1,13 @@
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 
 
@@ -270,7 +262,7 @@ public class ProcDefinition {
                 sb.append(this.prologue + "\n");
             }
             sb.append(name + "_HEAD:\n");
-            Plan p = new Plan(Arrays.stream(dispatchVars).collect(Collectors.toList()).toArray(new String[]{}), tdDef.rules);
+            Plan p = new Plan(dispatchVars, tdDef.rules);
             sb.append(synthesiser.synthesise(p));
             if (this.epilogue != null) {
                 sb.append(this.epilogue + "\n");
