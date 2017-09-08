@@ -3,9 +3,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 abstract class Branch {
-	ActionNode action;
+	DDNode action;
 
-	Branch(ActionNode action) {
+	Branch(DDNode action) {
 		this.action = action;
 	}
 	abstract public int size();
@@ -18,7 +18,7 @@ abstract class Branch {
 class TagPairBranch extends Branch {
 	Set<Pair<PT, PT>> condition;
 
-	TagPairBranch(ActionNode action) {
+	TagPairBranch(DDNode action) {
 		super(action);
 		condition = new HashSet<Pair<PT, PT>>();
 	}
@@ -53,7 +53,7 @@ class TagPairBranch extends Branch {
 class PTBranch extends Branch {
 	Set<PT> condition;
 
-	PTBranch(ActionNode action) {
+	PTBranch(DDNode action) {
 		super(action);
 		condition = new HashSet<PT>();
 	}
@@ -89,7 +89,7 @@ class PTBranch extends Branch {
 class HTBranch extends Branch {
 	Set<HT> condition;
 
-	HTBranch(ActionNode action) {
+	HTBranch(DDNode action) {
 		super(action);
 		condition = new HashSet<HT>();
 	}

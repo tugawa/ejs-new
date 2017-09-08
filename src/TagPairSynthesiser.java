@@ -17,7 +17,7 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 			System.out.println("-------- LLPlan --------");
 			System.out.println(dispatchRuleList);
 		}
-		ActionNode root = tagPairDispatch(dispatchRuleList);
+		DDNode root = tagPairDispatch(dispatchRuleList);
 		Stream<PT[]> undispatched = dispatchRuleList.rules.stream()
 			.flatMap(r -> r.condition.stream())
 			.filter(c -> !c.done)
@@ -33,11 +33,11 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 			System.out.println("-------- canonicalised nested LLPlan --------");
 			System.out.println(nestedRuleList);
 		}
-		DispatchActionNode d = nestedDispatch(nestedRuleList);
+		DDDispatchNode d = nestedDispatch(nestedRuleList);
 //		System.out.println(d);
 		TagPairBranch b = new TagPairBranch(d);
 		undispatched.forEach(pt -> b.addCondition(pt[0], pt[1]));
-		((DispatchActionNode) root).add(b);
+		((DDDispatchNode) root).add(b);
 		if (PRINT_PASS) {
 			System.out.println("-------- unoptimised decision tree --------");
 			System.out.println(root);
@@ -59,8 +59,8 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 		return root.code();
 	}
 
-	DispatchActionNode tagPairDispatch(LLPlan llplan) {
-		DispatchActionNode disp = new DispatchActionNode(getTagPairCode(llplan.dispatchVars));
+	DDDispatchNode tagPairDispatch(LLPlan llplan) {
+		DDDispatchNode disp = new DDDispatchNode(getTagPairCode(llplan.dispatchVars));
 		Map<LLRule, TagPairBranch> revDisp = new HashMap<LLRule, TagPairBranch>();
 
 		for (LLRule r: llplan.rules) {

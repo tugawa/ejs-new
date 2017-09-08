@@ -56,7 +56,7 @@ public class InsnGen {
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	if (outDir != null)
         		System.out.println(insnDef.name);
-        	ActionNode.prefix = insnDef.name;
+        	DDNode.prefix = insnDef.name;
         	Synthesiser synth =
         			isSimple ? new SimpleSynthesiser() :
         			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :

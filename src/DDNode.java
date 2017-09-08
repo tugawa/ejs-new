@@ -61,14 +61,9 @@ class DDDispatchNode extends DDNode {
 
 class DDUnexpandedNode extends DDNode {
 	LLPlan ruleList;
-	DDNode expanded;
 
 	DDUnexpandedNode(LLPlan drs) {
 		this.ruleList = drs;
-	}
-
-	void setExpanded(DDNode expanded) {
-		this.expanded = expanded;
 	}
 
 	@Override
@@ -78,17 +73,12 @@ class DDUnexpandedNode extends DDNode {
 
 	@Override
 	public String toString() {
-		if (expanded == null)
-			return "@" + ruleList;
-		else
-			return ">!" + expanded;
+		return "@" + ruleList;
 	}
 
 	public boolean mergable(DDNode that_) {
 		if (!(that_ instanceof DDUnexpandedNode)) return false;
 		DDUnexpandedNode that = (DDUnexpandedNode) that_;
-		if (expanded != null || that.expanded != null)
-			return false;
 		for (LLRule innerRule0: ruleList.rules) {
 			NEXT_C0: for (LLRule.Condition c0: innerRule0.condition) {
 				for (LLRule innerRule1: that.ruleList.rules) {

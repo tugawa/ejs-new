@@ -18,14 +18,14 @@ class LLRule {
 	}
 
 	Set<Condition> condition;
-	ActionNode action;
+	DDNode action;
 
-	LLRule(Set<Condition> condition, ActionNode action) {
+	LLRule(Set<Condition> condition, DDNode action) {
 		this.condition = condition;
 		this.action = action;
 	}
 
-	LLRule(Condition condition, ActionNode action) {
+	LLRule(Condition condition, DDNode action) {
 		this.condition = new HashSet<Condition>();
 		this.condition.add(condition);
 		this.action = action;
@@ -35,7 +35,7 @@ class LLRule {
 		condition = r.condition.stream()
 					.flatMap(c -> dtCondToTRCond(c, n).stream())
 					.collect(Collectors.toSet());
-		action = new TerminalActionNode(r);
+		action = new DDLeaf(r);
 	}
 
 	/**
@@ -187,7 +187,7 @@ public class LLPlan {
 				outerCond.done = inner.rules.stream()
 						.flatMap(r -> r.condition.stream())
 						.allMatch(c -> c.done);
-				UnexpandedActionNode outerAction = new UnexpandedActionNode(inner);
+				DDUnexpandedNode outerAction = new DDUnexpandedNode(inner);
 				LLRule outerRule = new LLRule(outerCond, outerAction);
 				outer.rules.add(outerRule);
 			}
@@ -200,12 +200,12 @@ public class LLPlan {
 	}
 
 	protected boolean mergable(LLRule r0, LLRule r1) {
-		if (!(r0.action instanceof UnexpandedActionNode))
+		if (!(r0.action instanceof DDUnexpandedNode))
 			throw new Error("attempted to merge an ActionNode that is not an UnexpandedActionNode: "+ r0);
-		if (!(r1.action instanceof UnexpandedActionNode))
+		if (!(r1.action instanceof DDUnexpandedNode))
 			throw new Error("attempted to merge an ActionNode that is not an UnexpandedActionNode: "+ r1);
-		LLPlan llplan0 = ((UnexpandedActionNode) r0.action).ruleList;
-		LLPlan llplan1 = ((UnexpandedActionNode) r1.action).ruleList;
+		LLPlan llplan0 = ((DDUnexpandedNode) r0.action).ruleList;
+		LLPlan llplan1 = ((DDUnexpandedNode) r1.action).ruleList;
 
 		for (LLRule innerRule0: llplan0.rules) {
 			NEXT_C0: for (LLRule.Condition c0: innerRule0.condition) {
@@ -217,8 +217,8 @@ public class LLPlan {
 							if (!c0.trs[i].equals(c1.trs[i]))
 								continue NEXT_C1;
 						}
-						if (((RedirectActionNode) innerRule0.action).destination ==
-							((RedirectActionNode) innerRule1.action).destination)
+						if (((DDRedirectNode) innerRule0.action).destination ==
+							((DDRedirectNode) innerRule1.action).destination)
 							continue NEXT_C0;
 						return false;
 					}
@@ -254,8 +254,8 @@ public class LLPlan {
 			result.add(r);
 		});
 		result.forEach(r -> {
-			if (r.action instanceof UnexpandedActionNode)
-				((UnexpandedActionNode) r.action).ruleList.canonicalise();
+			if (r.action instanceof DDUnexpandedNode)
+				((DDUnexpandedNode) r.action).ruleList.canonicalise();
 		});
 		rules = result;
 	}

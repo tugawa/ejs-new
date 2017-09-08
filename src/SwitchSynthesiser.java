@@ -27,7 +27,7 @@ class SwitchSynthesiser extends Synthesiser {
 			System.out.println("-------- canonicalised nested LLPlan --------");
 			System.out.println(nestedRuleList);
 		}
-		ActionNode root = nestedDispatch(nestedRuleList);
+		DDNode root = nestedDispatch(nestedRuleList);
 //		System.out.println(d);
 //		System.out.println(root);
 //		System.out.println("----------------");
@@ -51,56 +51,47 @@ class SwitchSynthesiser extends Synthesiser {
 		return root.code();
 	}
 
-	ActionNode simplify(ActionNode n_) {
-		if (n_ instanceof DispatchActionNode) {
-			DispatchActionNode n = (DispatchActionNode) n_;
+	DDNode simplify(DDNode n_) {
+		if (n_ instanceof DDDispatchNode) {
+			DDDispatchNode n = (DDDispatchNode) n_;
 			n.branches.forEach(b -> b.action = simplify(b.action));
 			n.branches.removeIf(b -> {
 				if (b.size() == 0)
 					return true;
-				ActionNode a = b.action;
-				while (a instanceof RedirectActionNode)
-					a = ((RedirectActionNode) a).destination;
-				if (a instanceof DispatchActionNode)
-					if (((DispatchActionNode) a).branches.size() == 0)
+				DDNode a = b.action;
+				while (a instanceof DDRedirectNode)
+					a = ((DDRedirectNode) a).destination;
+				if (a instanceof DDDispatchNode)
+					if (((DDDispatchNode) a).branches.size() == 0)
 						return true;
 				return false;
 			});
 			if (n.branches.size() == 1)
 				return n.branches.iterator().next().action;
 			return n;
-		} else if (n_ instanceof RedirectActionNode) {
-			return simplify(((RedirectActionNode) n_).destination);
-		} else if (n_ instanceof TerminalActionNode)
+		} else if (n_ instanceof DDRedirectNode) {
+			return simplify(((DDRedirectNode) n_).destination);
+		} else if (n_ instanceof DDLeaf)
 			return n_;
-		else if (n_ instanceof UnexpandedActionNode) {
-			UnexpandedActionNode n = (UnexpandedActionNode) n_;
-			if (n.expanded != null)
-				return simplify(n.expanded);
-		}
+		else if (n_ instanceof DDUnexpandedNode)
+			return n_;
 		throw new Error("Undexpcted action node: "+ n_);
 	}
 
-	void arrangeTerminalNode(ActionNode root) {
-		Queue<ActionNode> queue = new LinkedList<ActionNode>();
+	void arrangeTerminalNode(DDNode root) {
+		Queue<DDNode> queue = new LinkedList<DDNode>();
 		queue.add(root);
 		while (!queue.isEmpty()) {
-			ActionNode a_ = queue.element();
+			DDNode a_ = queue.element();
 			queue.remove();
 
-			if (a_ instanceof DispatchActionNode) {
-				DispatchActionNode a = (DispatchActionNode) a_;
+			if (a_ instanceof DDDispatchNode) {
+				DDDispatchNode a = (DDDispatchNode) a_;
 				for (Branch b: a.branches) {
-					while (true) {
-						if (b.action instanceof RedirectActionNode)
-							b.action = ((RedirectActionNode) b.action).destination;
-						else if (b.action instanceof UnexpandedActionNode)
-							b.action = ((UnexpandedActionNode) b.action).expanded;
-						else
-							break;
-					}
+					while (b.action instanceof DDRedirectNode)
+						b.action = ((DDRedirectNode) b.action).destination;
 					if (b.action.arranged)
-						b.action = new RedirectActionNode(b.action);
+						b.action = new DDRedirectNode(b.action);
 					else
 						queue.add(b.action);
 					b.action.arranged = true;
@@ -109,15 +100,18 @@ class SwitchSynthesiser extends Synthesiser {
 		}
 	}
 
-	DispatchActionNode nestedDispatch(LLPlan llplan) {
-		DispatchActionNode disp = new DispatchActionNode(getPTCode(llplan.dispatchVars));
+	DDDispatchNode nestedDispatch(LLPlan llplan) {
+		DDDispatchNode disp = new DDDispatchNode(getPTCode(llplan.dispatchVars));
 		Map<LLRule, PTBranch> revDisp = new HashMap<LLRule, PTBranch>();
+		Map<DDUnexpandedNode, DDNode> cache = new HashMap<DDUnexpandedNode, DDNode>();
 
 		for (LLRule r: llplan.rules) {
-			ActionNode a = r.action;
-			if (a instanceof UnexpandedActionNode) {
-				a = nestedDispatch(((UnexpandedActionNode) a).ruleList);
-				((UnexpandedActionNode) r.action).setExpanded(a);
+			DDNode a = r.action;
+			if (a instanceof DDUnexpandedNode) {
+				DDUnexpandedNode unexpanded = (DDUnexpandedNode) a;
+				DDNode expanded = nestedDispatch(unexpanded.ruleList);
+				cache.put(unexpanded, expanded);
+				a = expanded;
 			}
 			PTBranch b = new PTBranch(a);
 			disp.add(b);
@@ -141,7 +135,7 @@ class SwitchSynthesiser extends Synthesiser {
 		/* header type */
 		llplan.canonicalise();
 		if (llplan.rules.size() > 0) {
-			DispatchActionNode htDisp = new DispatchActionNode(getHTCode(llplan.dispatchVars));
+			DDDispatchNode htDisp = new DDDispatchNode(getHTCode(llplan.dispatchVars));
 			PTBranch others = new PTBranch(htDisp);
 			disp.add(others);
 
@@ -149,9 +143,11 @@ class SwitchSynthesiser extends Synthesiser {
 			.flatMap(r -> r.condition.stream())
 			.map(c -> c.trs[0].getPT())
 			.forEach(pt -> others.addCondition(pt));
-
 			llplan.rules.forEach(r -> {
-				ActionNode a = new RedirectActionNode(r.action);
+				DDNode a = r.action;
+				if (a instanceof DDUnexpandedNode)
+					a = cache.get(a);
+				a = new DDRedirectNode(a);
 				HTBranch b = new HTBranch(a);
 				htDisp.add(b);
 				r.condition.stream().map(c -> c.trs[0].getHT()).forEach(ht -> {
