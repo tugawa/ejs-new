@@ -318,7 +318,14 @@ JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
   int32_t x1;
   cint x2;
 
-  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v1)) {
+    v1 = to_number(context, v1);
+    if (v1 == gconsts.g_flonum_infinity ||
+        v1 == gconsts.g_flonum_negative_infinity ||
+        v1 == gconsts.g_flonum_nan) {
+      v1 == FIXNUM_ZERO;
+    }
+  }
   if (!is_number(v2)) v2 = to_number(context, v2);
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
@@ -347,7 +354,14 @@ JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2) {
   int32_t x1;
   cint x2;
 
-  if (!is_number(v1)) v1 = to_number(context, v1);
+  if (!is_number(v1)) {
+    v1 = to_number(context, v1);
+    if (v1 == gconsts.g_flonum_infinity ||
+        v1 == gconsts.g_flonum_negative_infinity ||
+        v1 == gconsts.g_flonum_nan) {
+      v1 == FIXNUM_ZERO;
+    }
+  }
   if (!is_number(v2)) v2 = to_number(context, v2);
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
