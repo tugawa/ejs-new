@@ -84,14 +84,19 @@ class LLRule {
 
 	@Override
 	public String toString() {
-		return "[{" +
-				condition.stream().map(c -> {
-					return (c.done ? "-" : "") +
-						Arrays.stream(c.trs)
-							.map(tr -> tr.name)
-							.collect(Collectors.joining("*"));
-				}).collect(Collectors.joining(", "))
-				+ "} -> " + action.toString() + "]";
+		StringBuilder sb = new StringBuilder();
+		sb.append("[{");
+		for (Condition c: condition) {
+			if (c.done)
+				sb.append("(done)");
+			for (VMRepType rt: c.trs)
+				sb.append(rt.name).append("*");
+			sb.delete(sb.length() - 1, sb.length());
+			sb.append(", ");
+		}
+		sb.delete(sb.length() - 2, sb.length());
+		sb.append("} -> ").append(action).append("]");
+		return sb.toString();
 	}
 }
 
@@ -101,9 +106,9 @@ public class LLPlan {
 
 	LLPlan(Plan plan) {
 		dispatchVars = plan.dispatchVars;
-		rules = plan.getRules().stream()
-				.map(r -> new LLRule(r))
-				.collect(Collectors.toSet());
+		rules = new HashSet<LLRule>();
+		for (Plan.Rule hr: plan.getRules())
+			rules.add(new LLRule(hr));
 	}
 
 	LLPlan(String[] dispatchVars) {
