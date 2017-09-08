@@ -1,5 +1,6 @@
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -10,9 +11,29 @@ class LLRule {
 		int arity;
 		boolean done;
 
-		Condition(VMRepType... trs) {
-			this.trs = trs;
-			arity = trs.length;
+		Condition(VMRepType... rts) {
+			this.trs = rts;
+			arity = rts.length;
+			done = false;
+		}
+		
+		/**
+		 * Create a tuple of VMRepType from the given tuple of VMDataType.
+		 * A VMDataType may have multiple VMRepType.  When VMDataType_i
+		 * has n_i VMRepTypes, a tuple of VMDataType (VMDataType_0, ..., VM_DataType_{m-1})
+		 * has n_0 * ... * n_{m-1} tuples of VMRepTypes.
+		 * @param dts tuple of VMDataType (high-level condition)
+		 * @param index This constructor creates index-th tuple of VMRepType
+		 */
+		Condition(VMDataType[] dts, int index) {
+			arity = dts.length;
+			trs = new VMRepType[arity];
+			for (int i = 0; i < arity; i++) {
+				List<VMRepType> vmRepTypes = dts[i].getVMRepTypes();
+				int base = vmRepTypes.size();
+				trs[i] = vmRepTypes.get(index % base);
+				index /= base;
+			}
 			done = false;
 		}
 	}
@@ -31,41 +52,22 @@ class LLRule {
 		this.action = action;
 	}
 
-	LLRule(Plan.Rule r, int n) {
-		condition = r.condition.stream()
-					.flatMap(c -> dtCondToTRCond(c, n).stream())
-					.collect(Collectors.toSet());
+	/**
+	 * Creates LLRule from (high level) Rule
+	 * @param r (high level) Rule
+	 */
+	LLRule(Plan.Rule r) {
+		condition = new HashSet<Condition>();
+		for (Plan.Condition dtc: r.condition) {
+			int nRtc = 1;
+			for (VMDataType dt: dtc.dts)
+				nRtc *= dt.getVMRepTypes().size();
+			for (int i = 0; i < nRtc; i++)
+				condition.add(new Condition(dtc.dts, i));
+		}
 		action = new DDLeaf(r);
 	}
 
-	/**
-	 * Subroutine of dtCondToTRCond.
-	 */
-	protected void dtCondToTRCondRec(VMDataType[] dts, Set<Condition> result, VMRepType[] part, int i, int n) {
-		if (i == n) {
-			result.add(new Condition(part.clone()));
-			return;
-		}
-		VMDataType dt = dts[i];
-		for (VMRepType tr: dt.getVMRepTypes()) {
-			part[i] = tr;
-			dtCondToTRCondRec(dts, result, part, i + 1, n);
-		}
-	}
-
-	/**
-	 * Convert a high level condition (array of DataType) to a set of
-	 * low level conditions (array of TypeRepresentation).
-	 * @param dts high level condition
-	 * @param n arity
-	 * @return set of low level conditions
-	 */
-	protected Set<Condition> dtCondToTRCond(Plan.Condition dtCond, int n) {
-		VMRepType[] trs = new VMRepType[n];
-		Set<Condition> result = new HashSet<Condition>();
-		dtCondToTRCondRec(dtCond.dts, result, trs, 0, n);
-		return result;
-	}
 
 	public Condition find(VMRepType... key) {
 		NEXT_CONDITION: for (Condition c: condition) {
@@ -100,7 +102,7 @@ public class LLPlan {
 	LLPlan(Plan plan) {
 		dispatchVars = plan.dispatchVars;
 		rules = plan.getRules().stream()
-				.map(r -> new LLRule(r, plan.getArity()))
+				.map(r -> new LLRule(r))
 				.collect(Collectors.toSet());
 	}
 
