@@ -2,10 +2,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class TypesGen {
 	String definePT() {
@@ -116,34 +113,6 @@ public class TypesGen {
 		return sb.toString();
 	}
 
-	String defineMisc() {
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("/* uniqueness of PTAG */\n");
-		Map<PT, Long> ptCount = VMRepType.all().stream()
-			.map(rt -> rt.getPT())
-			.collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-		Set<PT> uniqPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) == 1).collect(Collectors.toSet());
-		Set<PT> commonPT = ptCount.keySet().stream().filter(pt -> ptCount.get(pt) > 1).collect(Collectors.toSet());
-		if (uniqPT.size() < commonPT.size()) {
-			sb.append("#define has_unique_ptag(p) (")
-			  .append(uniqPT.stream()
-					      .map(pt -> ("(((p) & "+pt.name+"_MASK) == "+pt.name+")"))
-					      .collect(Collectors.joining("||")))
-			  .append(")\n");
-			sb.append("#define has_common_ptag(p) (!has_unique_ptag(p))\n");
-		} else {
-			sb.append("#define has_common_ptag(p) (")
-			  .append(commonPT.stream()
-					      .map(pt -> ("(((p) & "+pt.name+"_MASK) == "+pt.name+")"))
-					      .collect(Collectors.joining("||")))
-			  .append(")\n");
-			sb.append("#define has_unique_ptag(p) (!has_common_ptag(p))\n");
-		}
-
-		return sb.toString();
-	}
-
 	String defineNeed() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("/* VM-DataTypes */\n");
@@ -187,7 +156,6 @@ public class TypesGen {
 		System.out.println(tg.defineHT());
 		System.out.println(tg.defineTypePredicates());
 		System.out.println(tg.defineDTFamilyPredicates());
-		System.out.println(tg.defineMisc());
 		System.out.println(tg.defineTagOperations());
 		System.out.println(tg.defineNeed());
 		System.out.println(TypeDefinition.quoted);
