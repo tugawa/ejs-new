@@ -1,7 +1,5 @@
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-
 
 abstract class DDNode implements GlobalConstantOptions {
 	static int nextLabel = 0;
@@ -55,7 +53,12 @@ class DDDispatchNode extends DDNode {
 	}
 	@Override
 	public String toString() {
-		return dispatchExpression + "{" + branches.stream().map(b -> b.toString()).collect(Collectors.joining("\n")) + "}";
+		StringBuilder sb = new StringBuilder(dispatchExpression);
+		sb.append("{\n");
+		for (Branch b: branches)
+			sb.append(b.toString()).append('\n');
+		sb.append("}\n");
+		return sb.toString();
 	}
 }
 
