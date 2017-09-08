@@ -1,12 +1,7 @@
 import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class TagPairSynthesiser extends SwitchSynthesiser {
@@ -100,19 +95,14 @@ class TagPairSynthesiser extends SwitchSynthesiser {
         	procDef.load("datatype/add.idef");
         System.out.println(procDef);
         ProcDefinition.InstDefinition instDef = (ProcDefinition.InstDefinition) procDef.instDefs.get(0);
-// <<<<<<< HEAD
-        // Plan p = new Plan(instDef.dispatchVars, instDef.toRules());
-
-        // new TagPairSynthesiser().synthesise(p);
-// =======
-        String[] dispatchVars = Arrays.stream(instDef.dispatchVars)
-        		.map(s -> s.substring(1, s.length()))
-        		.collect(Collectors.toList())
-        		.toArray(new String[]{});
+        String[] dispatchVars = new String[instDef.dispatchVars.length];
+        for (int i = 0; i < instDef.dispatchVars.length; i++) {
+        	String s = instDef.dispatchVars[i];
+        	dispatchVars[i] = s.substring(1);
+        }
         Plan p = new Plan(dispatchVars, instDef.tdDef.rules);
         Synthesiser sy = new TagPairSynthesiser();
         System.out.println(sy.synthesise(p));
-// >>>>>>> develop
 	}
 
 }
