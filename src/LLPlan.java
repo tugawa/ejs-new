@@ -1,8 +1,6 @@
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 class LLRule {
 	static class Condition {
@@ -86,15 +84,17 @@ class LLRule {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("[{");
-		for (Condition c: condition) {
-			if (c.done)
-				sb.append("(done)");
-			for (VMRepType rt: c.trs)
-				sb.append(rt.name).append("*");
-			sb.delete(sb.length() - 1, sb.length());
-			sb.append(", ");
+		if (condition.size() > 0) {
+			for (Condition c: condition) {
+				if (c.done)
+					sb.append("(done)");
+				for (VMRepType rt: c.trs)
+					sb.append(rt.name).append("*");
+				sb.delete(sb.length() - 1, sb.length());
+				sb.append(", ");
+			}
+			sb.delete(sb.length() - 2, sb.length());
 		}
-		sb.delete(sb.length() - 2, sb.length());
 		sb.append("} -> ").append(action).append("]");
 		return sb.toString();
 	}
@@ -239,36 +239,49 @@ public class LLPlan {
 	/**
 	 * Convert itself to its canonical form.
 	 * 1. Canonical form has no rules all of whose conditions has been "done".
-	 * 2. All actions of canonical form are distinct.  (Rules that has the same
+	 * 2. No rule of canonical form have conditions that are "done".
+	 * 3. All actions of canonical form are distinct.  (Rules that has the same
 	 *    action are merged.)
-	 * 3. All inner plans are in canonical form.
+	 * 4. All inner plans are in canonical form.
 	 */
 	public void canonicalise() {
 		Set<LLRule> result = new HashSet<LLRule>();
 
-		rules.stream()
-		.filter(r -> r.condition.stream().anyMatch(c -> !c.done))
-		.map(r -> {
-			Set<LLRule.Condition> cond = r.condition.stream().filter(c -> !c.done).collect(Collectors.toSet());
-			return new LLRule(cond, r.action);
-		})
-		.forEach(r -> {
-			for (LLRule newr: result)
-				if (newr.action.mergable(r.action)) {
-					newr.condition.addAll(r.condition);
-					return;
+		NEXT_RULE: for (LLRule r: rules) {
+			Set<LLRule.Condition> filteredConditions = new HashSet<LLRule.Condition>();
+			for (LLRule.Condition c: r.condition)
+				if (!c.done)
+					filteredConditions.add(c);
+
+			if (filteredConditions.size() == 0)
+				continue;  // 1.
+			else if (filteredConditions.size() < r.condition.size())
+				r = new LLRule(filteredConditions, r.action);  // 2.
+
+			for (LLRule newRule: result) {
+				if (newRule.action.mergable(r.action)) {
+					newRule.condition.addAll(r.condition);  // 3.
+					continue NEXT_RULE;
 				}
-			result.add(r);
-		});
-		result.forEach(r -> {
+			}
+
 			if (r.action instanceof DDUnexpandedNode)
-				((DDUnexpandedNode) r.action).ruleList.canonicalise();
-		});
+				((DDUnexpandedNode) r.action).ruleList.canonicalise(); // 4.
+	
+			result.add(r);
+		}
 		rules = result;
 	}
 
 	@Override
 	public String toString() {
-		return rules.stream().map(dr -> dr.toString()).collect(Collectors.joining("\n"));
+		StringBuilder sb = new StringBuilder();
+		
+		if (rules.size() > 0) {
+			for (LLRule r: rules)
+				sb.append(r).append("\n");
+			sb.delete(sb.length() - 1, sb.length());
+		}
+		return sb.toString();
 	}
 }

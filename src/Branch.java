@@ -49,9 +49,11 @@ class TagPairBranch extends Branch {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("case (");
-		for (Pair<PT, PT> tp : condition)
-			sb.append(tp.first()).append("*").append(tp.second()).append(", ");
-		sb.delete(sb.length() - 2, sb.length());
+		if (condition.size() > 0) {
+			for (Pair<PT, PT> tp : condition)
+				sb.append(tp.first()).append("*").append(tp.second()).append(", ");
+			sb.delete(sb.length() - 2, sb.length());
+		}
 		sb.append(") -> ").append(action);
 		return sb.toString();
 	}
@@ -91,9 +93,11 @@ class PTBranch extends Branch {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("case (");
-		for (PT pt : condition)
-			sb.append(pt).append(", ");
-		sb.delete(sb.length() - 2, sb.length());
+		if (condition.size() > 0) {
+			for (PT pt : condition)
+				sb.append(pt).append(", ");
+			sb.delete(sb.length() - 2, sb.length());
+		}
 		sb.append(") -> ").append(action);
 		return sb.toString();
 	}
@@ -134,9 +138,11 @@ class HTBranch extends Branch {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("case (");
-		for (HT hp : condition)
-			sb.append(hp).append(", ");
-		sb.delete(sb.length() - 2, sb.length());
+		if (condition.size() > 0) {
+			for (HT hp : condition)
+				sb.append(hp).append(", ");
+			sb.delete(sb.length() - 2, sb.length());
+		}
 		sb.append(") -> ").append(action);
 		return sb.toString();
 	}
