@@ -65,7 +65,7 @@
 
 #define remove_normal_flonum_tag(p) \
   ((FlonumCell *)remove_tag((p), T_FLONUM))
-#define remove_simple_object_tag(p)		\
+#define remove_normal_simple_object_tag(p)		\
   ((Object *)  remove_tag((p), T_GENERIC))
 #define remove_normal_array_tag(p) \
   ((ArrayCell *)   remove_tag((p), T_GENERIC))
@@ -86,7 +86,7 @@
 #define remove_normal_string_object_tag(p) \
   ((BoxedCell *)remove_tag((p), T_GENERIC))
 
-#define put_simple_object_tag(p) (put_tag(p, T_GENERIC))
+#define put_normal_simple_object_tag(p) (put_tag(p, T_GENERIC))
 #define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
 #define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
@@ -248,6 +248,9 @@ typedef struct object_cell {
 #endif
   JSValue *prop;          // array of property values
 } Object;
+
+#define remove_simple_object_tag remove_normal_simple_object_tag
+#define put_simple_object_tag    put_normal_simple_object_tag
 
 #define make_simple_object(ctx) (put_simple_object_tag(allocate_simple_object(ctx)))
 
