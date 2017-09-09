@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import vmgen.dd.DDNode;
+import vmgen.type.TypeDefinition;
 
 public class InsnGen {
 	static String typeDefFile;

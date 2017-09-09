@@ -5,12 +5,16 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import vmgen.type.TypeDefinition;
+import vmgen.type.VMDataType;
+import vmgen.type.VMRepType;
+
 public class TypesGen {
 	String definePT() {
 		StringBuilder sb = new StringBuilder();
 		for (VMRepType.PT pt: VMRepType.allPT()) {
-			sb.append(String.format("#define %s %d\n", pt.getName(), pt.value));
-			sb.append(String.format("#define %s_MASK 0x%x\n", pt.getName(), (1 << pt.bits) - 1));
+			sb.append(String.format("#define %s %d\n", pt.getName(), pt.getValue()));
+			sb.append(String.format("#define %s_MASK 0x%x\n", pt.getName(), (1 << pt.getBits()) - 1));
 		}
 		return sb.toString();
 	}
@@ -18,7 +22,7 @@ public class TypesGen {
 	String defineHT() {
 		StringBuilder sb = new StringBuilder();
 		for (VMRepType.HT ht: VMRepType.allHT())
-			sb.append(String.format("#define %s %d\n",  ht.getName(), ht.value));
+			sb.append(String.format("#define %s %d\n",  ht.getName(), ht.getValue()));
 		return sb.toString();
 	}
 
@@ -64,7 +68,7 @@ public class TypesGen {
 
 		sb.append("/* VM-DataTypes */\n");
 		for (VMDataType dt: VMDataType.all()) {
-			sb.append("#define is_").append(dt.name).append("(x) ");
+			sb.append("#define is_").append(dt.getName()).append("(x) ");
 			if (dt.getVMRepTypes().isEmpty())
 				sb.append("0  /* not used */\n");
 			else
@@ -77,7 +81,7 @@ public class TypesGen {
 			for (VMRepType rt: dt.getVMRepTypes()) {
 				Set<VMRepType> rtSingleton = new HashSet<VMRepType>(1);
 				rtSingleton.add(rt);
-				sb.append("#define is_").append(rt.name).append("(x) ");
+				sb.append("#define is_").append(rt.getName()).append("(x) ");
 				sb.append(minimumRepresentation(rtSingleton, dt.getVMRepTypes()));
 				sb.append("\n");
 			}
@@ -119,13 +123,13 @@ public class TypesGen {
 		sb.append("/* VM-DataTypes */\n");
 		for (VMDataType dt: VMDataType.all())
 			if (!dt.getVMRepTypes().isEmpty())
-				sb.append("#define need_").append(dt.name).append(" 1\n");
+				sb.append("#define need_").append(dt.getName()).append(" 1\n");
 		sb.append("/* customised types */\n");
 		for (VMDataType dt: VMDataType.all()) {
 			for (VMRepType rt: dt.getVMRepTypes())
-				sb.append("#define need_"+rt.name+" 1\n");
+				sb.append("#define need_"+rt.getName()+" 1\n");
 			if (dt.getVMRepTypes().size() > 1)
-				sb.append("#define customised_"+dt.name+" 1\n");
+				sb.append("#define customised_"+dt.getName()+" 1\n");
 		}
 		return sb.toString();
 	}
@@ -138,9 +142,9 @@ public class TypesGen {
 		for (VMRepType rt: VMRepType.all()) {
 			String ptName = rt.getPT().getName();
 			String cast = rt.getStruct() == null ? "" : ("("+rt.getStruct()+" *)");
-			sb.append("#define put_"+rt.name+"_tag(p) ")
+			sb.append("#define put_"+rt.getName()+"_tag(p) ")
 			  .append("(put_tag((p), "+ptName+"))\n");
-			sb.append("#define remove_"+rt.name+"_tag(p) ")
+			sb.append("#define remove_"+rt.getName()+"_tag(p) ")
 			  .append("("+cast+"remove_tag((p), "+ptName+"))\n");
 		}
 
@@ -159,6 +163,6 @@ public class TypesGen {
 		System.out.println(tg.defineDTFamilyPredicates());
 		System.out.println(tg.defineTagOperations());
 		System.out.println(tg.defineNeed());
-		System.out.println(TypeDefinition.quoted);
+		System.out.println(TypeDefinition.getQuoted());
 	}
 }

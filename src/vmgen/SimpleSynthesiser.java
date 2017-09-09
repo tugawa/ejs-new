@@ -3,6 +3,8 @@ import java.io.FileNotFoundException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import vmgen.type.TypeDefinition;
+
 public class SimpleSynthesiser extends Synthesiser {
 	@Override
 	String synthesise(Plan plan) {
@@ -17,7 +19,7 @@ public class SimpleSynthesiser extends Synthesiser {
 								String s = "(";
 								for (int i = 0; i < plan.dispatchVars.length; i++) {
 									if (i > 0) s += " && ";
-									s += "is_"+c.dts[i].name+"("+plan.dispatchVars[i]+")";
+									s += "is_"+c.dts[i].getName()+"("+plan.dispatchVars[i]+")";
 								}
 								return s + ")";
 							}).collect(Collectors.joining(" || ")));

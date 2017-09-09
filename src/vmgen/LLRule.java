@@ -6,6 +6,8 @@ import java.util.Set;
 
 import vmgen.dd.DDLeaf;
 import vmgen.dd.DDNode;
+import vmgen.type.VMDataType;
+import vmgen.type.VMRepType;
 
 public class LLRule {
 	public static class Condition {
@@ -94,7 +96,7 @@ public class LLRule {
 				if (c.done)
 					sb.append("(done)");
 				for (VMRepType rt: c.trs)
-					sb.append(rt.name).append("*");
+					sb.append(rt.getName()).append("*");
 				sb.delete(sb.length() - 1, sb.length());
 				sb.append(", ");
 			}

@@ -1,8 +1,11 @@
-package vmgen;
+package vmgen.type;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
+
+import vmgen.Plan;
+import vmgen.TagPairSynthesiser;
 
 
 public class TypeDefinition {
@@ -60,7 +63,7 @@ public class TypeDefinition {
 		}
 	}
 
-	static void load(String filename) throws FileNotFoundException {
+	public static void load(String filename) throws FileNotFoundException {
 		Scanner sc = new Scanner(new FileInputStream(filename));
 		while(sc.hasNextLine()) {
 			String line = sc.nextLine();
@@ -80,7 +83,7 @@ public class TypeDefinition {
 		quoted = sb.toString();
 	}
 
-	static String getQuoted() {
+	public static String getQuoted() {
 		return quoted;
 	}
 

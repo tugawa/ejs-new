@@ -19,6 +19,8 @@ import vmgen.dd.DDRedirectNode;
 import vmgen.dd.DDUnexpandedNode;
 import vmgen.dd.HTBranch;
 import vmgen.dd.PTBranch;
+import vmgen.type.TypeDefinition;
+import vmgen.type.VMRepType;
 
 
 class SwitchSynthesiser extends Synthesiser {

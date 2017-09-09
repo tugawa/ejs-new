@@ -3,6 +3,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import vmgen.type.VMDataType;
+
 
 public class Plan implements GlobalConstantOptions {
 	static class Condition {
@@ -66,7 +68,7 @@ public class Plan implements GlobalConstantOptions {
 		return dispatchVars.length;
 	}
 
-	Plan() {
+	public Plan() {
 		rules = new HashSet<Rule>();
 		dispatchVars = new String[]{"v1", "v2"};
 

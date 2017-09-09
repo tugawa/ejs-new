@@ -3,6 +3,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import vmgen.dd.DDUnexpandedNode;
+import vmgen.type.VMRepType;
 
 public class LLPlan {
 	String[] dispatchVars;

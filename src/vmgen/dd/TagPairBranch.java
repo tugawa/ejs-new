@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import vmgen.Pair;
-import vmgen.VMRepType;
+import vmgen.type.VMRepType;
 
 public class TagPairBranch extends Branch {
 	Set<Pair<VMRepType.PT, VMRepType.PT>> condition;

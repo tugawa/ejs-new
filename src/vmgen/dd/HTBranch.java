@@ -3,7 +3,7 @@ package vmgen.dd;
 import java.util.HashSet;
 import java.util.Set;
 
-import vmgen.VMRepType;
+import vmgen.type.VMRepType;
 
 public class HTBranch extends Branch {
 	Set<VMRepType.HT> condition;

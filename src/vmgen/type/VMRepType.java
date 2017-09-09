@@ -1,4 +1,4 @@
-package vmgen;
+package vmgen.type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,7 +29,7 @@ public class VMRepType implements Comparable<VMRepType> {
 		}
 	
 		private String name;
-		int value;
+		private int value;
 		private int defineOrder;
 		
 		public String getName() {
@@ -44,6 +44,14 @@ public class VMRepType implements Comparable<VMRepType> {
 		@Override
 		public int compareTo(HT that) {
 			return this.defineOrder - that.defineOrder;
+		}
+
+		public int getValue() {
+			return value;
+		}
+
+		public void setValue(int value) {
+			this.value = value;
 		}
 	}
 
@@ -72,8 +80,8 @@ public class VMRepType implements Comparable<VMRepType> {
 		}
 	
 		private String name;
-		int value;
-		int bits;
+		private int value;
+		private int bits;
 		private int defineOrder;
 		
 		@Override
@@ -89,29 +97,45 @@ public class VMRepType implements Comparable<VMRepType> {
 		public String getName() {
 			return name;
 		}
+
+		public int getValue() {
+			return value;
+		}
+
+		public void setValue(int value) {
+			this.value = value;
+		}
+
+		public int getBits() {
+			return bits;
+		}
+
+		public void setBits(int bits) {
+			this.bits = bits;
+		}
 	}
 
 	static Map<String, VMRepType> definedVMRepType = new HashMap<String, VMRepType>();
 	
 	PT pt;
 	HT ht;
-	String name;
+	private String name;
 	String struct;
 	private int defineOrder;
 	
-	static ArrayList<VMRepType> all() {
+	public static ArrayList<VMRepType> all() {
 		ArrayList<VMRepType> lst = new ArrayList<VMRepType>(definedVMRepType.values());
 		Collections.sort(lst);
 		return lst;
 	}
 	
-	static ArrayList<PT> allPT() {
+	public static ArrayList<PT> allPT() {
 		ArrayList<PT> lst = new ArrayList<PT>(PT.internTable.values());
 		Collections.sort(lst);
 		return lst;
 	}
 	
-	static ArrayList<HT> allHT() {
+	public static ArrayList<HT> allHT() {
 		ArrayList<HT> lst = new ArrayList<HT>(HT.internTable.values());
 		Collections.sort(lst);
 		return lst;
@@ -150,19 +174,23 @@ public class VMRepType implements Comparable<VMRepType> {
 		return ht != null;
 	};
 	
-	PT getPT() {
+	public PT getPT() {
 		return pt;
 	}
 	
-	HT getHT() {
+	public HT getHT() {
 		return ht;
 	}
 	
-	String getStruct() {
+	public String getStruct() {
 		return struct;
 	}
 
-	boolean hasUniquePT(Collection<VMRepType> among) {
+	public String getName() {
+		return name;
+	}
+
+	public boolean hasUniquePT(Collection<VMRepType> among) {
 		for (VMRepType other: among) {
 			if (this == other)
 				continue;

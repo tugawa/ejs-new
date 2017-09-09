@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import vmgen.type.TypeDefinition;
+
 public class InsnGenSimple {
 	public static void main(String[] args) throws FileNotFoundException {
 		if (args.length != 3) {

@@ -10,6 +10,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import vmgen.type.TypeDefinition;
+import vmgen.type.VMDataType;
+
 
 
 class JSTypePair {
@@ -20,8 +23,8 @@ class JSTypePair {
     }
     public String toString() {
         String l, r;
-        l = (left == null) ? "***" : left.name;
-        r = (right == null) ? "***" : right.name;
+        l = (left == null) ? "***" : left.getName();
+        r = (right == null) ? "***" : right.getName();
         return "(" + l + " : " + r + ")";
     }
 }

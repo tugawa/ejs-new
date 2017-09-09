@@ -1,4 +1,4 @@
-package vmgen;
+package vmgen.type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,14 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
+import vmgen.GlobalConstantOptions;
+
+public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 	static Map<String, VMDataType> definedVMDataTypes = new HashMap<String, VMDataType>();
 
 	static void defineVMDataType(String name) {
 		definedVMDataTypes.put(name, new VMDataType(name));
 	}
 
-	static VMDataType get(String name) {
+	public static VMDataType get(String name) {
 		return get(name, false);
 	}
 
@@ -53,7 +55,7 @@ class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 		}
 	}
 	
-	static List<VMDataType> all() {
+	public static List<VMDataType> all() {
 		List<VMDataType> lst = new ArrayList<VMDataType>(definedVMDataTypes.values());
 		Collections.sort(lst);
 		return lst;
@@ -68,11 +70,11 @@ class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 	ArrayList<VMRepType> reptypes;
 	private int defineOrder;
 
-	String getName() {
+	public String getName() {
 		return name;
 	}
 
-	ArrayList<VMRepType> getVMRepTypes() {
+	public ArrayList<VMRepType> getVMRepTypes() {
 		return reptypes;
 	}
 

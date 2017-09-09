@@ -8,9 +8,12 @@ import java.util.stream.Stream;
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDNode;
 import vmgen.dd.TagPairBranch;
+import vmgen.type.TypeDefinition;
+import vmgen.type.VMRepType;
 
-class TagPairSynthesiser extends SwitchSynthesiser {
+public class TagPairSynthesiser extends SwitchSynthesiser {
 	@Override
+	public
 	String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
 		if (PRINT_PASS) {
