@@ -30,7 +30,7 @@ public class LLPlan {
 		Set<VMRepType.PT> pts = new HashSet<VMRepType.PT>();
 		for (LLRule r: rules) {
 			for (LLRule.Condition c: r.condition)
-				pts.add(c.trs[0].getPT());
+				pts.add(c.trs[n].getPT());
 		}
 		return pts;
 	}
@@ -39,7 +39,7 @@ public class LLPlan {
 		Set<VMRepType> trs = new HashSet<VMRepType>();
 		for (LLRule r: rules) {
 			for (LLRule.Condition c: r.condition)
-				trs.add(c.trs[0]);
+				trs.add(c.trs[n]);
 		}
 		return trs;
 	}
