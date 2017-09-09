@@ -2,7 +2,9 @@ package vmgen;
 import java.util.HashSet;
 import java.util.Set;
 
-abstract class Branch {
+import vmgen.dd.DDNode;
+
+public abstract class Branch {
 	DDNode action;
 
 	Branch(DDNode action) {

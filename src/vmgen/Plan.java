@@ -17,9 +17,9 @@ public class Plan implements GlobalConstantOptions {
 		}
 	};
 
-	static class Rule {
+	public static class Rule {
 		Set<Condition> condition;
-		String action;
+		public String action;
 
 		/*
 		Set<PT> uniquePT(TypeDefinition td, int i) {

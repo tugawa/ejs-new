@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import vmgen.dd.DDNode;
+
 public class InsnGen {
 	static String typeDefFile;
 	static String insnDefFile;
@@ -57,7 +59,7 @@ public class InsnGen {
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	if (outDir != null)
         		System.out.println(insnDef.name);
-        	DDNode.prefix = insnDef.name;
+        	DDNode.setPrefix(insnDef.name);
         	Synthesiser synth =
         			isSimple ? new SimpleSynthesiser() :
         			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :

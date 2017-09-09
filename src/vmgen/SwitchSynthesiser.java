@@ -11,6 +11,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import vmgen.dd.DDDispatchNode;
+import vmgen.dd.DDLeaf;
+import vmgen.dd.DDNode;
+import vmgen.dd.DDRedirectNode;
+import vmgen.dd.DDUnexpandedNode;
+
 
 class SwitchSynthesiser extends Synthesiser {
 	@Override

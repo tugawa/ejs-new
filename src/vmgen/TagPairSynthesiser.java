@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import vmgen.dd.DDDispatchNode;
+import vmgen.dd.DDNode;
+
 class TagPairSynthesiser extends SwitchSynthesiser {
 	@Override
 	String synthesise(Plan plan) {

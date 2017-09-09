@@ -82,7 +82,7 @@ class HT implements Comparable<HT> {
 }
 
 
-class VMRepType implements Comparable<VMRepType> {
+public class VMRepType implements Comparable<VMRepType> {
 	static Map<String, VMRepType> definedVMRepType = new HashMap<String, VMRepType>();
 	
 	PT pt;
