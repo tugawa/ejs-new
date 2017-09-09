@@ -5,13 +5,17 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashSet;
+import java.util.Set;
 
+import vmgen.Plan.Rule;
 import vmgen.dd.DDNode;
 import vmgen.synth.SimpleSynthesiser;
 import vmgen.synth.SwitchSynthesiser;
 import vmgen.synth.Synthesiser;
 import vmgen.synth.TagPairSynthesiser;
 import vmgen.type.TypeDefinition;
+import vmgen.type.VMDataType;
 
 public class InsnGen {
 	static String typeDefFile;
@@ -52,6 +56,43 @@ public class InsnGen {
 			System.exit(1);
 		}
 	}
+	
+	static String synthesise(ProcDefinition.InstDefinition insnDef, Synthesiser synth, boolean verbose) {
+    	Set<VMDataType[]> dontCareInput = new HashSet<VMDataType[]>();
+    	dontCareInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("array")});
+    	Set<VMDataType[]> errorInput = new HashSet<VMDataType[]>();
+    	errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
+    	String errorAction = "goto UNEXPECTED_OPERAND_TYPE_ERROR;";
+    	
+		Set<Rule> rules = new HashSet<Rule>();
+		Set<Plan.Condition> removeSet = new HashSet<Plan.Condition>();
+		Set<Plan.Condition> errorConditions = new HashSet<Plan.Condition>();
+		for (VMDataType[] dts: dontCareInput)
+			removeSet.add(new Plan.Condition(dts));
+		for (VMDataType[] dts: errorInput) {
+			Plan.Condition c = new Plan.Condition(dts);
+			removeSet.add(c);
+			errorConditions.add(c);
+		}
+    	for (Rule r: insnDef.tdDef.rules)
+    		rules.add(r.filterConditions(removeSet));
+    	if (errorConditions.size() > 0) {
+    		rules.add(new Rule(errorAction, errorConditions));
+    	}
+    	
+		DDNode.setLabelPrefix(insnDef.name);
+        Plan p = new Plan(insnDef.dispatchVars, rules);
+        String dispatchCode = synth.synthesise(p);
+    	
+    	StringBuilder sb = new StringBuilder();
+    	if (insnDef.prologue != null)
+    	    sb.append(insnDef.prologue + "\n");
+		sb.append(insnDef.name + "_HEAD:\n");
+        sb.append(dispatchCode);
+        if (insnDef.epilogue != null)
+            sb.append(insnDef.epilogue + "\n");
+        return sb.toString();
+	}
 
 	public static void main(String[] args) throws FileNotFoundException {
 		parseOption(args);
@@ -60,37 +101,26 @@ public class InsnGen {
 
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);
-
+        
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-        	if (outDir != null)
-        		System.out.println(insnDef.name);
-        	DDNode.setPrefix(insnDef.name);
+        	boolean verbose = outDir != null;
         	Synthesiser synth =
         			isSimple ? new SimpleSynthesiser() :
         			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
         					new SwitchSynthesiser();
-        	StringBuilder sb = new StringBuilder();
-        	if (insnDef.prologue != null) {
-        	    sb.append(insnDef.prologue + "\n");
-        	}
-			sb.append(insnDef.name + "_HEAD:\n");
-            Plan p = new Plan(insnDef.dispatchVars, insnDef.tdDef.rules);
-            sb.append(synth.synthesise(p));
-            if (insnDef.epilogue != null) {
-                sb.append(insnDef.epilogue + "\n");
-            }
-            if (outDir == null) {
-            	System.out.println(sb.toString());
-            } else {
-	            try {
-	            	File file = new File(outDir + "/" + insnDef.name + ".inc");
+        	String code = synthesise(insnDef, synth, verbose);
+        	if (outDir == null)
+        		System.out.println(code);
+        	else {
+        		try {
+        			File file = new File(outDir + "/" + insnDef.name + ".inc");
 	                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-	                pw.print(sb.toString());
+	                pw.print(code);
 	                pw.close();
 	            }catch(IOException e){
 	                System.out.println(e);
-	            }
-            }
+        		}
+        	}
         }
 	}
 }

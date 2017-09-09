@@ -12,7 +12,7 @@ public class DDLeaf extends DDNode {
 
 	@Override
 	public String toString() {
-		return "(" + rule.action.split("\n")[0] + ")";
+		return "{" + rule.action.split("\n")[0] + "}";
 	}
 
 	@Override

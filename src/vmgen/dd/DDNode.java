@@ -6,13 +6,13 @@ public abstract class DDNode implements GlobalConstantOptions {
 	static int nextLabel;
 	static String prefix;
 	
-	public static void setPrefix(String prefix) {
+	public static void setLabelPrefix(String prefix) {
 		DDNode.prefix = prefix;
 		nextLabel = 0;
 	}
 
 	static {
-		setPrefix("");
+		setLabelPrefix("");
 	}
 
 	String label;

@@ -44,7 +44,7 @@ public class PTBranch extends Branch {
 				sb.append(pt).append(", ");
 			sb.delete(sb.length() - 2, sb.length());
 		}
-		sb.append(") -> ").append(action);
+		sb.append("): ").append(action);
 		return sb.toString();
 	}
 }

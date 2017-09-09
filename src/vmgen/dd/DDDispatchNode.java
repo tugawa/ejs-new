@@ -38,8 +38,9 @@ public class DDDispatchNode extends DDNode {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder(dispatchExpression);
-		sb.append("{\n");
+		StringBuilder sb = new StringBuilder('\n');
+		sb.append(dispatchExpression)
+		  .append("{\n");
 		for (Branch b: branches)
 			sb.append(b.toString()).append('\n');
 		sb.append("}\n");

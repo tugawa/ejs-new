@@ -45,7 +45,7 @@ public class HTBranch extends Branch {
 				sb.append(hp).append(", ");
 			sb.delete(sb.length() - 2, sb.length());
 		}
-		sb.append(") -> ").append(action);
+		sb.append("): ").append(action);
 		return sb.toString();
 	}
 }

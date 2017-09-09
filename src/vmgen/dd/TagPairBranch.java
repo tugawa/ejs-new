@@ -46,7 +46,7 @@ public class TagPairBranch extends Branch {
 				sb.append(tp.first()).append("*").append(tp.second()).append(", ");
 			sb.delete(sb.length() - 2, sb.length());
 		}
-		sb.append(") -> ").append(action);
+		sb.append("): ").append(action);
 		return sb.toString();
 	}
 }
