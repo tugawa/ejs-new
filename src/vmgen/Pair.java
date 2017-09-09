@@ -1,3 +1,4 @@
+package vmgen;
 
 public class Pair<S, T> {
 	S s;
