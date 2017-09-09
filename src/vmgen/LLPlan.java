@@ -2,7 +2,6 @@ package vmgen;
 import java.util.HashSet;
 import java.util.Set;
 
-import vmgen.dd.DDRedirectNode;
 import vmgen.dd.DDUnexpandedNode;
 
 public class LLPlan {
@@ -26,8 +25,8 @@ public class LLPlan {
 	 * @param n
 	 * @return Set of PTs
 	 */
-	public Set<PT> allPTNthOperand(int n) {
-		Set<PT> pts = new HashSet<PT>();
+	public Set<VMRepType.PT> allPTNthOperand(int n) {
+		Set<VMRepType.PT> pts = new HashSet<VMRepType.PT>();
 		for (LLRule r: rules) {
 			for (LLRule.Condition c: r.condition)
 				pts.add(c.trs[0].getPT());
@@ -58,7 +57,7 @@ public class LLPlan {
 	/**
 	 * Find the low level rule that matches the given condition.
 	 */
-	public Set<LLRule> findByPT(PT... key) {
+	public Set<LLRule> findByPT(VMRepType.PT... key) {
 		Set<LLRule> result = new HashSet<LLRule>();
 		NEXT_RULE: for (LLRule r: rules) {
 			NEXT_CONDITION: for (LLRule.Condition c: r.condition) {

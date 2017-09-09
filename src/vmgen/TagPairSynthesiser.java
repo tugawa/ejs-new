@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDNode;
+import vmgen.dd.TagPairBranch;
 
 class TagPairSynthesiser extends SwitchSynthesiser {
 	@Override
@@ -17,10 +18,10 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 			System.out.println(dispatchRuleList);
 		}
 		DDNode root = tagPairDispatch(dispatchRuleList);
-		Stream<PT[]> undispatched = dispatchRuleList.rules.stream()
+		Stream<VMRepType.PT[]> undispatched = dispatchRuleList.rules.stream()
 			.flatMap(r -> r.condition.stream())
 			.filter(c -> !c.done)
-			.map(c -> new PT[] {c.trs[0].getPT(), c.trs[1].getPT()})
+			.map(c -> new VMRepType.PT[] {c.trs[0].getPT(), c.trs[1].getPT()})
 			.distinct();
 		LLPlan nestedRuleList = dispatchRuleList.convertToNestedPlan(true);
 		if (PRINT_PASS) {
@@ -68,8 +69,8 @@ class TagPairSynthesiser extends SwitchSynthesiser {
 			revDisp.put(r, b);
 		}
 
-		for(PT pt0: llplan.allPTNthOperand(0))
-			for (PT pt1: llplan.allPTNthOperand(1)) {
+		for(VMRepType.PT pt0: llplan.allPTNthOperand(0))
+			for (VMRepType.PT pt1: llplan.allPTNthOperand(1)) {
 				Set<LLRule> match = llplan.findByPT(pt0, pt1);
 				if (match.size() == 1) {
 					LLRule r = match.iterator().next();

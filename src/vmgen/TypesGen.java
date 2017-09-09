@@ -8,17 +8,17 @@ import java.util.Set;
 public class TypesGen {
 	String definePT() {
 		StringBuilder sb = new StringBuilder();
-		for (PT pt: VMRepType.allPT()) {
-			sb.append(String.format("#define %s %d\n", pt.name, pt.value));
-			sb.append(String.format("#define %s_MASK 0x%x\n", pt.name, (1 << pt.bits) - 1));
+		for (VMRepType.PT pt: VMRepType.allPT()) {
+			sb.append(String.format("#define %s %d\n", pt.getName(), pt.value));
+			sb.append(String.format("#define %s_MASK 0x%x\n", pt.getName(), (1 << pt.bits) - 1));
 		}
 		return sb.toString();
 	}
 
 	String defineHT() {
 		StringBuilder sb = new StringBuilder();
-		for (HT ht: VMRepType.allHT())
-			sb.append(String.format("#define %s %d\n",  ht.name, ht.value));
+		for (VMRepType.HT ht: VMRepType.allHT())
+			sb.append(String.format("#define %s %d\n",  ht.getName(), ht.value));
 		return sb.toString();
 	}
 
@@ -29,9 +29,9 @@ public class TypesGen {
 		if (among.size() == 1)
 			return "1";
 
-		Collection<PT> unique = new HashSet<PT>();
-		Collection<PT> common = new HashSet<PT>();
-		Collection<HT> hts = new ArrayList<HT>();
+		Collection<VMRepType.PT> unique = new HashSet<VMRepType.PT>();
+		Collection<VMRepType.PT> common = new HashSet<VMRepType.PT>();
+		Collection<VMRepType.HT> hts = new ArrayList<VMRepType.HT>();
 		for (VMRepType rt: dts) {
 			if (rt.hasUniquePT(among))
 				unique.add(rt.getPT());
@@ -43,17 +43,17 @@ public class TypesGen {
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("(((0");
-		for (PT pt : common)
+		for (VMRepType.PT pt : common)
 			sb.append(" || ")
-			  .append(String.format("(((x) & %s_MASK) == %s)", pt.name, pt.name));
+			  .append(String.format("(((x) & %s_MASK) == %s)", pt.getName(), pt.getName()));
 		sb.append(") && (0");
-		for (HT ht : hts)
+		for (VMRepType.HT ht : hts)
 			sb.append(" || ")
-			  .append(String.format("(obj_header_tag(x) == %s)", ht.name));
+			  .append(String.format("(obj_header_tag(x) == %s)", ht.getName()));
 		sb.append("))");
-		for (PT pt : unique)
+		for (VMRepType.PT pt : unique)
 			sb.append(" || ")
-			  .append(String.format("(((x) & %s_MASK) == %s)", pt.name, pt.name));
+			  .append(String.format("(((x) & %s_MASK) == %s)", pt.getName(), pt.getName()));
 		sb.append(")");
 		
 		return sb.toString();
@@ -136,7 +136,7 @@ public class TypesGen {
 		/* leaf types */
 		sb.append("/* leaf types */\n");
 		for (VMRepType rt: VMRepType.all()) {
-			String ptName = rt.getPT().name;
+			String ptName = rt.getPT().getName();
 			String cast = rt.getStruct() == null ? "" : ("("+rt.getStruct()+" *)");
 			sb.append("#define put_"+rt.name+"_tag(p) ")
 			  .append("(put_tag((p), "+ptName+"))\n");

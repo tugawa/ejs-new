@@ -11,11 +11,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import vmgen.dd.Branch;
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDLeaf;
 import vmgen.dd.DDNode;
 import vmgen.dd.DDRedirectNode;
 import vmgen.dd.DDUnexpandedNode;
+import vmgen.dd.HTBranch;
+import vmgen.dd.PTBranch;
 
 
 class SwitchSynthesiser extends Synthesiser {
@@ -126,7 +129,7 @@ class SwitchSynthesiser extends Synthesiser {
 		}
 
 		/* pointer tag */
-		for (PT pt: llplan.allPTNthOperand(0)) {
+		for (VMRepType.PT pt: llplan.allPTNthOperand(0)) {
 			Set<LLRule> match = llplan.findByPT(pt);
 			if (match.size() == 1) {
 				LLRule r = match.iterator().next();

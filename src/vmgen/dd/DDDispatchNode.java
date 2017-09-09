@@ -3,8 +3,6 @@ package vmgen.dd;
 import java.util.HashSet;
 import java.util.Set;
 
-import vmgen.Branch;
-
 public class DDDispatchNode extends DDNode {
 	public Set<Branch> branches;
 	String dispatchExpression;

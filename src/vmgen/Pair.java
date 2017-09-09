@@ -4,16 +4,16 @@ public class Pair<S, T> {
 	S s;
 	T t;
 	
-	Pair(S s, T t) {
+	public Pair(S s, T t) {
 		this.s = s;
 		this.t = t;
 	}
 	
-	S first() {
+	public S first() {
 		return s;
 	}
 	
-	T second() {
+	public T second() {
 		return t;
 	}
 
