@@ -7,8 +7,8 @@ import vmgen.type.VMDataType;
 
 
 public class Plan implements GlobalConstantOptions {
-	static class Condition {
-		VMDataType[] dts;
+	public static class Condition {
+		public VMDataType[] dts;
 
 		Condition(String tn1) {
 		    dts = new VMDataType[]{VMDataType.get(tn1)};
@@ -20,7 +20,7 @@ public class Plan implements GlobalConstantOptions {
 	};
 
 	public static class Rule {
-		Set<Condition> condition;
+		public Set<Condition> condition;
 		public String action;
 
 		/*
@@ -57,11 +57,11 @@ public class Plan implements GlobalConstantOptions {
 	int arity;
 	String[] vars;
 =======*/
-	String[] dispatchVars;
+	private String[] dispatchVars;
 // >>>>>>> develop
 	Set<Rule> rules;
 
-	Set<Rule> getRules() {
+	public Set<Rule> getRules() {
 		return rules;
 	}
 	int getArity() {
@@ -100,5 +100,11 @@ public class Plan implements GlobalConstantOptions {
 	    this.dispatchVars = dispatchVars;
 // >>>>>>> develop
 	    this.rules = rules;
+	}
+	public String[] getDispatchVars() {
+		return dispatchVars;
+	}
+	public void setDispatchVars(String[] dispatchVars) {
+		this.dispatchVars = dispatchVars;
 	}
 }

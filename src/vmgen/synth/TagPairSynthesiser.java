@@ -1,14 +1,16 @@
-package vmgen;
-import java.io.FileNotFoundException;
+package vmgen.synth;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import vmgen.LLPlan;
+import vmgen.LLRule;
+import vmgen.Plan;
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDNode;
 import vmgen.dd.TagPairBranch;
-import vmgen.type.TypeDefinition;
 import vmgen.type.VMRepType;
 
 public class TagPairSynthesiser extends SwitchSynthesiser {
@@ -63,7 +65,7 @@ public class TagPairSynthesiser extends SwitchSynthesiser {
 	}
 
 	DDDispatchNode tagPairDispatch(LLPlan llplan) {
-		DDDispatchNode disp = new DDDispatchNode(getTagPairCode(llplan.dispatchVars));
+		DDDispatchNode disp = new DDDispatchNode(getTagPairCode(llplan.getDispatchVars()));
 		Map<LLRule, TagPairBranch> revDisp = new HashMap<LLRule, TagPairBranch>();
 
 		for (LLRule r: llplan.rules) {
@@ -89,6 +91,7 @@ public class TagPairSynthesiser extends SwitchSynthesiser {
 		return disp;
 	}
 
+	/*
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
 		if (DEBUG_WITH_SMALL)
@@ -112,5 +115,5 @@ public class TagPairSynthesiser extends SwitchSynthesiser {
         Synthesiser sy = new TagPairSynthesiser();
         System.out.println(sy.synthesise(p));
 	}
-
+	*/
 }

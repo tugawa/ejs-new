@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import vmgen.synth.Synthesiser;
 import vmgen.type.TypeDefinition;
 import vmgen.type.VMDataType;
 
@@ -296,7 +297,7 @@ public class ProcDefinition {
         return new InstDefinition(ins.id, ins.vars, null, ins.prologue, ins.epilogue, td);
     }
 
-    InstDefinition load(String fname) {
+    public InstDefinition load(String fname) {
         DslParser dslp = new DslParser();
         DslParser.InstDef parsedInst = dslp.run(fname);
         InstDefinition instDef = makeInstDefinitionFromParsedInst(parsedInst);

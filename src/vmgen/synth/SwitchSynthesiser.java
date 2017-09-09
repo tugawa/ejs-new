@@ -1,16 +1,14 @@
-package vmgen;
-import java.io.FileNotFoundException;
-import java.util.Arrays;
+package vmgen.synth;
+
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import vmgen.LLPlan;
+import vmgen.LLRule;
+import vmgen.Plan;
 import vmgen.dd.Branch;
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDLeaf;
@@ -19,13 +17,12 @@ import vmgen.dd.DDRedirectNode;
 import vmgen.dd.DDUnexpandedNode;
 import vmgen.dd.HTBranch;
 import vmgen.dd.PTBranch;
-import vmgen.type.TypeDefinition;
 import vmgen.type.VMRepType;
 
 
-class SwitchSynthesiser extends Synthesiser {
+public class SwitchSynthesiser extends Synthesiser {
 	@Override
-	String synthesise(Plan plan) {
+	public String synthesise(Plan plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
 		if (PRINT_PASS) {
 			System.out.println("-------- LLPlan --------");
@@ -113,7 +110,7 @@ class SwitchSynthesiser extends Synthesiser {
 	}
 
 	DDDispatchNode nestedDispatch(LLPlan llplan) {
-		DDDispatchNode disp = new DDDispatchNode(getPTCode(llplan.dispatchVars));
+		DDDispatchNode disp = new DDDispatchNode(getPTCode(llplan.getDispatchVars()));
 		Map<LLRule, PTBranch> revDisp = new HashMap<LLRule, PTBranch>();
 		Map<DDUnexpandedNode, DDNode> cache = new HashMap<DDUnexpandedNode, DDNode>();
 
@@ -147,7 +144,7 @@ class SwitchSynthesiser extends Synthesiser {
 		/* header type */
 		llplan.canonicalise();
 		if (llplan.rules.size() > 0) {
-			DDDispatchNode htDisp = new DDDispatchNode(getHTCode(llplan.dispatchVars));
+			DDDispatchNode htDisp = new DDDispatchNode(getHTCode(llplan.getDispatchVars()));
 			PTBranch others = new PTBranch(htDisp);
 			disp.add(others);
 
@@ -171,6 +168,7 @@ class SwitchSynthesiser extends Synthesiser {
 		return disp;
 	}
 
+	/*
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
 		if (DEBUG_WITH_SMALL)
@@ -193,5 +191,5 @@ class SwitchSynthesiser extends Synthesiser {
         Synthesiser sy = new SwitchSynthesiser();
         System.out.println(sy.synthesise(p));
 	}
-
+	*/
 }

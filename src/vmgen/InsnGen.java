@@ -7,6 +7,10 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import vmgen.dd.DDNode;
+import vmgen.synth.SimpleSynthesiser;
+import vmgen.synth.SwitchSynthesiser;
+import vmgen.synth.Synthesiser;
+import vmgen.synth.TagPairSynthesiser;
 import vmgen.type.TypeDefinition;
 
 public class InsnGen {

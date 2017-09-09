@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import vmgen.synth.SimpleSynthesiser;
+import vmgen.synth.Synthesiser;
 import vmgen.type.TypeDefinition;
 
 public class InsnGenSimple {
@@ -18,8 +20,7 @@ public class InsnGenSimple {
 		String insnDefFile = args[1];
 		String outDir = args[2];
 
-		TypeDefinition td = new TypeDefinition();
-        td.load(typeDefFile);
+        TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);

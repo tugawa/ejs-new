@@ -5,7 +5,7 @@ import java.util.Scanner;
 import java.util.regex.MatchResult;
 
 import vmgen.Plan;
-import vmgen.TagPairSynthesiser;
+import vmgen.synth.TagPairSynthesiser;
 
 
 public class TypeDefinition {

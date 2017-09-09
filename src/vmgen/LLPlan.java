@@ -6,11 +6,11 @@ import vmgen.dd.DDUnexpandedNode;
 import vmgen.type.VMRepType;
 
 public class LLPlan {
-	String[] dispatchVars;
+	private String[] dispatchVars;
 	public Set<LLRule> rules;
 
-	LLPlan(Plan plan) {
-		dispatchVars = plan.dispatchVars;
+	public LLPlan(Plan plan) {
+		dispatchVars = plan.getDispatchVars();
 		rules = new HashSet<LLRule>();
 		for (Plan.Rule hr: plan.getRules())
 			rules.add(new LLRule(hr));
@@ -190,5 +190,13 @@ public class LLPlan {
 			sb.delete(sb.length() - 1, sb.length());
 		}
 		return sb.toString();
+	}
+
+	public String[] getDispatchVars() {
+		return dispatchVars;
+	}
+
+	public void setDispatchVars(String[] dispatchVars) {
+		this.dispatchVars = dispatchVars;
 	}
 }

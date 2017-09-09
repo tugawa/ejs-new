@@ -1,13 +1,13 @@
-package vmgen;
-import java.io.FileNotFoundException;
+package vmgen.synth;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import vmgen.type.TypeDefinition;
+import vmgen.Plan;
 
 public class SimpleSynthesiser extends Synthesiser {
 	@Override
-	String synthesise(Plan plan) {
+	public String synthesise(Plan plan) {
 	    // this.plan = plan;
 		Set<Plan.Rule> rules = plan.getRules();
 		StringBuilder code = new StringBuilder();
@@ -17,9 +17,9 @@ public class SimpleSynthesiser extends Synthesiser {
 			code.append(r.condition.stream()
 							.map(c -> {
 								String s = "(";
-								for (int i = 0; i < plan.dispatchVars.length; i++) {
+								for (int i = 0; i < plan.getDispatchVars().length; i++) {
 									if (i > 0) s += " && ";
-									s += "is_"+c.dts[i].getName()+"("+plan.dispatchVars[i]+")";
+									s += "is_"+c.dts[i].getName()+"("+plan.getDispatchVars()[i]+")";
 								}
 								return s + ")";
 							}).collect(Collectors.joining(" || ")));
@@ -32,10 +32,12 @@ public class SimpleSynthesiser extends Synthesiser {
 		return code.toString();
 	}
 
+	/*
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition td = new TypeDefinition();
 		td.load("datatype/embstr.dtdef");
 		Plan plan = new Plan();
 		System.out.println(new SimpleSynthesiser().synthesise(plan));
 	}
+	*/
 }
