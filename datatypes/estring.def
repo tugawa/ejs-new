@@ -1,3 +1,4 @@
+simple_object: +normal_simple_object
 string:  +normal_string +embedded_string
 flonum:  +normal_flonum
 special: +normal_special
@@ -16,7 +17,7 @@ embedded_string: T_ESTRING(010)
 normal_flonum:  T_FLONUM(101)/HTAG_FLONUM(5)                 FlonumCell
 normal_special: T_SPECIAL(110)
 normal_fixnum:  T_FIXNUM(111)
-simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
+normal_simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
 normal_array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
 normal_function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
 normal_builtin:       T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
