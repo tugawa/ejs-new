@@ -58,13 +58,20 @@ public class InsnGen {
 	}
 	
 	static String synthesise(ProcDefinition.InstDefinition insnDef, Synthesiser synth, boolean verbose) {
-    	Set<VMDataType[]> dontCareInput = new HashSet<VMDataType[]>();
-    	dontCareInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("array")});
+		Set<VMDataType[]> dontCareInput = new HashSet<VMDataType[]>();
+    	//dontCareInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("array")});
     	Set<VMDataType[]> errorInput = new HashSet<VMDataType[]>();
-    	errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
-    	String errorAction = "goto UNEXPECTED_OPERAND_TYPE_ERROR;";
+    	//errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
+    	String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
+    	if (insnDef.name.equals("add")) {
+    		errorInput.add(new VMDataType[]{VMDataType.get("simple_object"), VMDataType.get("string")});
+    		errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("simple_object")});
+    		errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
+    	}
+    	
     	
 		Set<Rule> rules = new HashSet<Rule>();
+		Set<String> unusedActions = new HashSet<String>();
 		Set<Plan.Condition> removeSet = new HashSet<Plan.Condition>();
 		Set<Plan.Condition> errorConditions = new HashSet<Plan.Condition>();
 		for (VMDataType[] dts: dontCareInput)
@@ -74,8 +81,12 @@ public class InsnGen {
 			removeSet.add(c);
 			errorConditions.add(c);
 		}
-    	for (Rule r: insnDef.tdDef.rules)
-    		rules.add(r.filterConditions(removeSet));
+    	for (Rule r: insnDef.tdDef.rules) {
+    		r = r.filterConditions(removeSet);
+    		rules.add(r);
+    		if (r.condition.size() == 0)
+    			unusedActions.add(r.action);
+    	}
     	if (errorConditions.size() > 0) {
     		rules.add(new Rule(errorAction, errorConditions));
     	}
@@ -89,6 +100,11 @@ public class InsnGen {
     	    sb.append(insnDef.prologue + "\n");
 		sb.append(insnDef.name + "_HEAD:\n");
         sb.append(dispatchCode);
+        for (String a: unusedActions) {
+        	sb.append("if (0) {\n")
+        	  .append(a)
+        	  .append("}\n");
+        }
         if (insnDef.epilogue != null)
             sb.append(insnDef.epilogue + "\n");
         return sb.toString();

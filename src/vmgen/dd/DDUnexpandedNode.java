@@ -24,6 +24,7 @@ public class DDUnexpandedNode extends DDNode {
 		return "@" + ruleList;
 	}
 
+	/*
 	public boolean mergable(DDNode that_) {
 		if (!(that_ instanceof DDUnexpandedNode)) return false;
 		DDUnexpandedNode that = (DDUnexpandedNode) that_;
@@ -49,4 +50,5 @@ public class DDUnexpandedNode extends DDNode {
 		}
 		return true;
 	}
+	*/
 }

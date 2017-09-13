@@ -1,7 +1,10 @@
 package vmgen;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import vmgen.LLRule.Condition;
 import vmgen.dd.DDUnexpandedNode;
 import vmgen.type.VMRepType;
 
@@ -108,7 +111,41 @@ public class LLPlan {
 	}
 
 	public LLPlan convertToNestedPlan(boolean redirect) {
-		return convertToNestedPlan(redirect, new VMRepType[]{});
+		//return convertToNestedPlan(redirect, new VMRepType[]{});
+		
+		LLPlan nestedPlan = new LLPlan(new String[] {dispatchVars[0]});
+		for (LLRule r: rules) {
+			for (Condition c: r.condition) {
+				LLPlan p = nestedPlan;
+				ArrayList<LLRule.Condition> path = new ArrayList<LLRule.Condition>();
+				for (int i = 0; i < c.arity; i++) {
+					LLRule edge = p.find(c.trs[i]);
+					if (edge == null) {
+						LLRule.Condition singleCondition = new LLRule.Condition(c.trs[i]);
+						singleCondition.done = true;
+						if (i == c.arity - 1) {
+							if (!c.done) {
+								singleCondition.done = false;
+								for (LLRule.Condition cc: path)
+									cc.done = false;
+							}
+							edge = new LLRule(singleCondition, r.action);
+							p.rules.add(edge);
+							continue;
+						} else {
+							System.out.println("c.arity = "+c.arity+", i = "+i);
+							LLPlan lower = new LLPlan(new String[] {dispatchVars[i+1]});
+							DDUnexpandedNode lowerNode = new DDUnexpandedNode(lower);
+							edge = new LLRule(singleCondition, lowerNode);
+							p.rules.add(edge);
+						}
+					}
+					path.add(edge.condition.iterator().next());
+					p = ((DDUnexpandedNode) edge.action).ruleList;
+				}
+			}
+		}
+		return nestedPlan;
 	}
 
 	/*
