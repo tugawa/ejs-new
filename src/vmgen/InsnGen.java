@@ -20,6 +20,7 @@ import vmgen.type.VMDataType;
 public class InsnGen {
 	static String typeDefFile;
 	static String insnDefFile;
+	static String operandSpecFile;
 	static String outDir;
 	static boolean isSimple;
 	public static boolean DEBUG = false;
@@ -30,6 +31,7 @@ public class InsnGen {
 		if (args.length == 0) {
 			typeDefFile = "datatype/genericfloat.def";
 			insnDefFile = "idefs/div.idef";
+			operandSpecFile = null;
 			outDir = null;
 			isSimple = false;
 			DEBUG = true;
@@ -49,26 +51,31 @@ public class InsnGen {
 		try {
 			typeDefFile = args[i++];
 			insnDefFile = args[i++];
+			operandSpecFile = args[i++];
 			if (i < args.length)
 				outDir = args[i++];
 		} catch (Exception e) {
-			System.out.println("InsnGen [-simple] <type definition> <insn definition> [<out dir>]");
+			System.out.println("InsnGen [-simple] <type definition> <insn definition> <operand spec> [<out dir>]");
 			System.exit(1);
 		}
 	}
 	
-	static String synthesise(ProcDefinition.InstDefinition insnDef, Synthesiser synth, boolean verbose) {
+	static String synthesise(ProcDefinition.InstDefinition insnDef, OperandSpecifications operandSpec, Synthesiser synth, boolean verbose) {
+		/*
 		Set<VMDataType[]> dontCareInput = new HashSet<VMDataType[]>();
     	//dontCareInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("array")});
     	Set<VMDataType[]> errorInput = new HashSet<VMDataType[]>();
     	//errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
-    	String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
     	if (insnDef.name.equals("add")) {
     		errorInput.add(new VMDataType[]{VMDataType.get("simple_object"), VMDataType.get("string")});
     		errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("simple_object")});
     		errorInput.add(new VMDataType[]{VMDataType.get("string"), VMDataType.get("string")});
     	}
+    	*/
     	
+    	String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
+		Set<VMDataType[]> dontCareInput = operandSpec.getUnspecifiedOperands(insnDef.name, insnDef.dispatchVars.length);
+    	Set<VMDataType[]> errorInput = operandSpec.getErrorOperands(insnDef.name, insnDef.dispatchVars.length);
     	
 		Set<Rule> rules = new HashSet<Rule>();
 		Set<String> unusedActions = new HashSet<String>();
@@ -118,13 +125,16 @@ public class InsnGen {
         ProcDefinition procDef = new ProcDefinition();
         procDef.load(insnDefFile);
         
+        OperandSpecifications operandSpec = new OperandSpecifications();
+        operandSpec.load(operandSpecFile);
+        
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	boolean verbose = outDir != null;
         	Synthesiser synth =
         			isSimple ? new SimpleSynthesiser() :
         			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
         					new SwitchSynthesiser();
-        	String code = synthesise(insnDef, synth, verbose);
+        	String code = synthesise(insnDef, operandSpec, synth, verbose);
         	if (outDir == null)
         		System.out.println(code);
         	else {

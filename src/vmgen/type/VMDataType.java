@@ -10,8 +10,8 @@ import vmgen.GlobalConstantOptions;
 public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType> {
 	static Map<String, VMDataType> definedVMDataTypes = new HashMap<String, VMDataType>();
 
-	static void defineVMDataType(String name) {
-		definedVMDataTypes.put(name, new VMDataType(name));
+	static void defineVMDataType(String name, boolean isObject) {
+		definedVMDataTypes.put(name, new VMDataType(name, isObject));
 	}
 
 	public static VMDataType get(String name) {
@@ -25,31 +25,32 @@ public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType>
 		return dt;
 	}
 
-	private VMDataType(String name) {
+	private VMDataType(String name, boolean isObject) {
 		this.name = name;
+		this.mIsObject = isObject;
 		this.defineOrder = definedVMDataTypes.size();
 		reptypes = new ArrayList<VMRepType>();
 	}
 
 	static {
 		if (DEBUG_WITH_SMALL) {
-			defineVMDataType("string");
-			defineVMDataType("fixnum");
-			defineVMDataType("array");
+			defineVMDataType("string", false);
+			defineVMDataType("fixnum", false);
+			defineVMDataType("array", true);
 		} else {
-			defineVMDataType("string");
-			defineVMDataType("fixnum");
-			defineVMDataType("flonum");
-			defineVMDataType("special"); 
-			defineVMDataType("simple_object");
-			defineVMDataType("array");
-			defineVMDataType("function");
-			defineVMDataType("builtin");
-			defineVMDataType("iterator");
-			defineVMDataType("regexp");
-			defineVMDataType("string_object");
-			defineVMDataType("number_object");
-			defineVMDataType("boolean_object");
+			defineVMDataType("string", false);
+			defineVMDataType("fixnum", false);
+			defineVMDataType("flonum", false);
+			defineVMDataType("special", false); 
+			defineVMDataType("simple_object", true);
+			defineVMDataType("array", true);
+			defineVMDataType("function", true);
+			defineVMDataType("builtin", true);
+			defineVMDataType("iterator", true);
+			defineVMDataType("regexp", true);
+			defineVMDataType("string_object", true);
+			defineVMDataType("number_object", true);
+			defineVMDataType("boolean_object", true);
 		}
 	}
 	
@@ -65,6 +66,7 @@ public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType>
 
 	String name;
 	String struct;
+	boolean mIsObject;
 	ArrayList<VMRepType> reptypes;
 	private int defineOrder;
 
@@ -84,6 +86,10 @@ public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType>
 		this.struct = struct;
 	}
 
+	public boolean isObject() {
+		return mIsObject;
+	}
+	
 	@Override
 	public String toString() {
 		String s = name + " =";
