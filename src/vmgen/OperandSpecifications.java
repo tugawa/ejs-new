@@ -34,19 +34,25 @@ public class OperandSpecifications {
 
 	void load(Scanner sc) {
 		final String P_SYMBOL = "[a-zA-Z_]+";
-		final String P_INSN = P_SYMBOL;
-		final String P_OPERAND = "(:?("+P_SYMBOL+")|(-)|_)";
-		final String P_OPERAND_SEQ ="\\(\\s*"+P_OPERAND+"\\s*(:?,\\s*"+P_OPERAND+"\\s*)*\\s*\\)";
-		final String P_BEHAVIOUR = "(accept|error|unspecified)";
-		final Pattern P_OSR = Pattern.compile(P_INSN+"\\s+"+P_OPERAND_SEQ+"\\s+"+P_BEHAVIOUR+"\\s*$");
+		final String P_OPERANDS = "\\(\\s*([^)]+)\\s*\\)";
+		final String P_BEHAVIOUR = "accept|error|unspecified";
+		final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+"+P_OPERANDS+"\\s+("+P_BEHAVIOUR+")\\s*$");
 		while (sc.hasNextLine()) {
 			String line = sc.nextLine();
-			Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+\\(\\s*([^)]+)\\s*\\)\\s+(accept|error|unspecified)\\s*$");
 			Matcher matcher = splitter.matcher(line);
 			if (matcher.matches()) {
 				MatchResult m = matcher.toMatchResult();
 				String insnName = m.group(1);
-				String[] operandTypes = m.group(2).split("\\s*,\\s*");
+				String[] allOps = m.group(2).split("\\s*,\\s*");
+				int n = 0;
+				for (String s: allOps)
+					if (!s.equals("-"))
+						n++;
+				String[] operandTypes = new String[n];
+				int i = 0;
+				for (String s: allOps)
+					if (!s.equals("-"))
+						operandTypes[i++] = s;
 				OperandSpecificationRecord.Behaviour behaviour;
 				if (m.group(3).equals("accept"))
 					behaviour = OperandSpecificationRecord.Behaviour.ACCEPT;
