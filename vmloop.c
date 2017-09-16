@@ -31,6 +31,25 @@ static int lcall_stack_pop(Context* context, int *pc);
 #define NOT_IMPLEMENTED()						\
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
 
+#ifdef PRINT_INSN_COUNT
+static char *typename(JSValue v) {
+  if (is_fixnum(v)) return "fixnum";
+  if (is_flonum(v)) return "flonum";
+  if (is_string(v)) return "stirng";
+  if (is_boolean(v)) return "boolean";
+  if (is_special(v)) return "special";
+  if (is_array(v)) return "array";
+  return "other_object";
+}
+#define INSN_COUNT1(insn, v0)			\
+  printf("OPERAND: %s %s\n", #insn, typename(v0));
+#define INSN_COUNT2(insn, v0, v1)		\
+  printf("OPERAND: %s %s %s\n", #insn, typename(v0), typename(v1));
+#else
+#define INSN_COUNT1(insn, v0)
+#define INSN_COUNT2(insn, v0, v1)
+#endif
+
 inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
   int i, n_insns;
   Instruction *insns;
