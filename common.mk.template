@@ -149,7 +149,7 @@ else
 endif
 
 ifndef $(INSNGEN)
-INSNGEN=java -cp ../vmgen/vmgen.jar InsnGen $(INSNGEN_FLAGS)
+INSNGEN=java -cp ../vmgen/vmgen.jar vmgen.InsnGen $(INSNGEN_FLAGS)
 endif
 
 INSN_FILES = $(INSN_GENERATED) $(INSN_HANDCRAFT)
@@ -199,7 +199,7 @@ insns/%.inc: ../insns-handcraft/%.inc
 else
 $(INSN_GENERATED):insns/%.inc: ../insns-def/%.idef
 	mkdir -p insns
-	$(INSNGEN) $(DATATYPES) $< insns
+	$(INSNGEN) $(DATATYPES) $< $(OPERANDSPEC) insns
 
 $(INSN_HANDCRAFT):insns/%.inc: ../insns-handcraft/%.inc
 	mkdir -p insns
@@ -219,7 +219,7 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 types-generated.h: $(DATATYPES)
-	java -cp ../vmgen/vmgen.jar TypesGen $< > $@
+	java -cp ../vmgen/vmgen.jar vmgen.TypesGen $< > $@
 
 clean:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
