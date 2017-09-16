@@ -105,6 +105,10 @@ public class InsnGen {
     	StringBuilder sb = new StringBuilder();
     	if (insnDef.prologue != null)
     	    sb.append(insnDef.prologue + "\n");
+    	sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
+    	for (String rand: insnDef.dispatchVars)
+    		sb.append(",").append(rand);
+    	sb.append(");");
 		sb.append(insnDef.name + "_HEAD:\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
