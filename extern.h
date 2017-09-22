@@ -69,7 +69,7 @@ extern IteratorCell *allocate_iterator(void);
 extern RegexpCell *allocate_regexp(void);
 #endif /* need_normal_regexp */
 #endif
-extern BoxedCell *allocate_boxed(uint32_t);
+extern BoxedCell *allocate_boxed(Context *,uint32_t);
 
 #define allocate_array_data_critical(a,s,l)	\
   allocate_array_data(NULL,(a),(s),(l))

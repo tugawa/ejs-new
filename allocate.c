@@ -190,8 +190,8 @@ RegexpCell *allocate_regexp(void)
 /*
    allocates a boxed object
  */
-BoxedCell *allocate_boxed(uint32_t type)
+BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
 {
-  BoxedCell *box = (BoxedCell *) gc_jsalloc_critical(sizeof(BoxedCell), type);
+  BoxedCell *box = (BoxedCell *) gc_jsalloc(ctx, sizeof(BoxedCell), type);
   return box;
 }

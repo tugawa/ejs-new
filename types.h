@@ -456,18 +456,18 @@ typedef struct boxed_cell {
   JSValue value;   // boxed value; it is number, boolean, or string
 } BoxedCell;
 
-#define make_number_object()					\
-  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_NUMBER)))
+#define make_number_object(ctx)					\
+  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_NUMBER)))
 #define number_object_value(n)      (remove_normal_number_object_tag(n)->value)
 #define number_object_object_ptr(n) (&((remove_normal_number_object_tag(n))->o))
 
-#define make_boolean_object()					\
-  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_BOOLEAN)))
+#define make_boolean_object(ctx)					\
+  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_BOOLEAN)))
 #define boolean_object_value(b)      (remove_normal_boolean_object_tag(b)->value)
 #define boolean_object_object_ptr(b) (&((remove_normal_boolean_object_tag(b))->o))
 
-#define make_string_object()			\
-  (put_normal_number_object_tag(allocate_boxed(HTAG_BOXED_STRING)))
+#define make_string_object(ctx)			\
+  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_STRING)))
 #define string_object_value(s)      (remove_normal_string_object_tag(s)->value)
 #define string_object_object_ptr(s) (&((remove_normal_string_object_tag(s))->o))
 

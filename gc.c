@@ -121,6 +121,10 @@ int generation = 0;
 int gc_sec;
 int gc_usec; 
 
+#ifdef GC_DEBUG
+STATIC void **top;
+#endif /* GC_DEBUG */
+
 /*
  * prototype
  */
@@ -345,6 +349,10 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   void * addr;
   //  return malloc(request_bytes);
 
+#ifdef GC_DEBUG
+  top = &ctx;
+#endif /* GC_DEBUG */
+
   if (check_gc_request(ctx))
     garbage_collect(ctx);
   addr = space_alloc(&malloc_space, request_bytes, type);
@@ -365,6 +373,9 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   JSValue *addr;
+#ifdef GC_DEBUG
+  top = &ctx;
+#endif /* GC_DEBUG */
 
   if (check_gc_request(ctx))
     garbage_collect(ctx);
@@ -373,9 +384,9 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 	      request_bytes, type, addr);
 #ifdef GC_DEBUG
   {
-    header_t *hdrp = (header_t *) (addr - HEADER_JSVALUES);
-    header_t *shadow = get_shadow(hdrp);
-    *shadow = *hdrp;
+  header_t *hdrp = (header_t *) (addr - HEADER_JSVALUES);
+  header_t *shadow = get_shadow(hdrp);
+  *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
   return addr;
@@ -388,6 +399,10 @@ void disable_gc(void)
 
 void enable_gc(Context *ctx)
 {
+#ifdef GC_DEBUG
+  top = &ctx;
+#endif /* GC_DEBUG */
+
   if (--gc_disabled == 0) {
     if (check_gc_request(ctx))
       garbage_collect(ctx);
@@ -700,7 +715,8 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
   case HTAG_ITERATOR:
     /* TODO: call scanHashIterator */
-    trace_HashCell(&((IteratorCell *) obj)->iter.p);
+    if (((IteratorCell *) obj)->iter.p != NULL)
+      trace_HashCell(&((IteratorCell *) obj)->iter.p);
     break;
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
@@ -948,6 +964,7 @@ STATIC void sweep_space(struct space *space)
 STATIC void sweep(void)
 {
 #ifdef GC_DEBUG
+  sanity_check();
   check_invariant();
 #endif /* GC_DEBUG */
   sweep_space(&malloc_space);
@@ -1031,3 +1048,34 @@ STATIC void print_heap_stat(void)
     printf("type %02d: num = %08d volume = %08d\n", i, number[i], jsvalues[i]);
   }
 }
+
+#ifdef GC_DEBUG
+extern void** stack_start;
+STATIC void sanity_check()
+{
+#if 0
+  void **p;
+
+  for (p = top; p < stack_start; p++) {
+    /* JSValue ptr */
+    if (in_js_space(*p)) {
+      if (is_object(*p) || is_string(*p) || is_flonum(*p)) {
+	if (!is_marked_cell(remove_object_tag(*p))){
+	  printf("%p -> %p (unmarked)\n", p, *p);
+	  *(int*)p = 0xdeadbeef;
+	}
+      }
+    }
+    if (in_malloc_space(*p)) {
+      if ((((uintptr_t) *p) & 7) == 0) {
+	if (!is_marked_cell(*p)) {
+	  printf("%p -> %p (unmarked)\n", p, *p);
+	  *(int*)p = 0xdeadbeef;
+	}
+      }
+    }
+  }
+  printf("sanity check done\n");
+#endif 
+}
+#endif /* GC_DEBUG */

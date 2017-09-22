@@ -172,6 +172,11 @@ void print_cputime(time_t sec, suseconds_t usec) {
 #endif
 }
 
+
+#ifndef NDEBUG
+void **stack_start;
+#endif /* NDEBUG */
+
 /*
    main function
  */
@@ -180,6 +185,10 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   struct rusage ru0, ru1;
   int k;
+
+#ifndef NDEBUG
+  stack_start = (void **) &fp;
+#endif /* NDEBUG */
 
   log_stream = stderr;
   lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
