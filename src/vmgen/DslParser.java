@@ -368,7 +368,7 @@ public class DslParser {
             Token op1 = tks.pollFirst();
             Token t = tks.pollFirst();
             String[] vars = null;
-            if (t.id == TokenId.CAMMA) {
+            if (t.id == TokenId.COMMA) {
                 Token op2 = tks.pollFirst();
                 checkToken(op1, TokenId.STRING);
                 checkToken(op2, TokenId.STRING);
@@ -417,8 +417,9 @@ public class DslParser {
     }
 
     enum TokenId {
+    	COMMENT,
         COLON,
-        CAMMA,
+        COMMA,
         PARENTHESES,
         KEY_INST,
         KEY_PROLOGUE,
@@ -429,7 +430,7 @@ public class DslParser {
         COND_OP,
         CPROGRAM,
     }
-    class Token {
+    static class Token {
         TokenId id;
         String raw;
         Token(TokenId id, String raw) {
@@ -440,43 +441,87 @@ public class DslParser {
             return "id: " + id + ", " + "raw: " + raw;
         }
     }
+    
+    static class Tokenizer {
+    	static class TokenizeRule {
+    		Pattern compiled;
+    		String pattern;
+    		TokenId id;
+    		public TokenizeRule(TokenId id, String pattern) {
+    			this.compiled = Pattern.compile(pattern, Pattern.MULTILINE);
+    			this.pattern = pattern;
+    			this.id = id;
+    		}
+    		boolean match(String str) {
+    			return compiled.matcher(str).matches();
+    		}
+    		public Token makeTokenIfMatch(String str) {
+    			if (match(str))
+    				return new Token(id, str);
+    			return null;
+    		}
+    		public String getPattern() {
+    			return pattern;
+    		}
+    		public TokenId getId() {
+    			return id;
+    		}
+    	}
+    	
+    	static class CProgramTokenizeRule extends TokenizeRule{
+			public CProgramTokenizeRule(TokenId id, String pattern) {
+				super(id, pattern);
+			}
+    		@Override
+    		public Token makeTokenIfMatch(String str) {
+    			if (match(str))
+    				return new Token(id, str.substring(2, str.length() - 2));
+    			return null;
+    		}
 
-    class Tokenizer {
-        static final String tks = "\\\\\\\\.*$|,|:|&&|\\|\\||\\(|\\)|\\\\\\{(.|\\n)*?\\\\\\}|\\\\inst|\\\\prologue|\\\\epilogue|\\\\when|\\\\otherwise|\\w+";
-        final Pattern ptn = Pattern.compile(tks, Pattern.MULTILINE);
+    	}
+    	
+    	static TokenizeRule[] rules = new TokenizeRule[] {
+    			new TokenizeRule(TokenId.COMMENT, "\\\\\\\\.*$"),
+    			new TokenizeRule(TokenId.COMMA, ","),
+    			new TokenizeRule(TokenId.COLON, ":"),
+    			new TokenizeRule(TokenId.COND_OP, "&&"),
+    			new TokenizeRule(TokenId.COND_OP, "\\|\\|"),
+    			new TokenizeRule(TokenId.PARENTHESES, "\\("),
+    			new TokenizeRule(TokenId.PARENTHESES, "\\)"),
+    			new CProgramTokenizeRule(TokenId.CPROGRAM, "\\\\\\{(.|\\n)*?\\\\\\}"),
+    			new TokenizeRule(TokenId.KEY_INST, "\\\\inst"),
+    			new TokenizeRule(TokenId.KEY_PROLOGUE, "\\\\prologue"),
+    			new TokenizeRule(TokenId.KEY_EPILOGUE, "\\\\epilogue"),
+    			new TokenizeRule(TokenId.KEY_WHEN, "\\\\when"),
+    			new TokenizeRule(TokenId.KEY_OTHERWISE, "\\\\otherwise"),
+    			new TokenizeRule(TokenId.STRING, "\\w+")
+    	};
+
+    	static final Pattern ptn;
+
+    	static {
+        	StringBuilder tksBuilder = new StringBuilder();
+        	for (TokenizeRule r: rules)
+        		tksBuilder.append(r.getPattern()).append("|");
+        	String tks = tksBuilder.substring(0, tksBuilder.length() - 1);
+            ptn = Pattern.compile(tks, Pattern.MULTILINE);
+    	}
+    	
         List<Token> tokenize(String all) {
             List<Token> tks = new LinkedList<Token>();
             Matcher m = ptn.matcher(all);
             while (m.find()) {
-                Token tk = null;
                 String s = m.group();
-                if (s.matches("\\\\\\\\.*")) {
-                } else if (s.equals(",")) {
-                    tk = new Token(TokenId.CAMMA, s);
-                } else if (s.equals(":")) {
-                    tk = new Token(TokenId.COLON, s);
-                } else if (s.matches("\\(|\\)")) {
-                    tk = new Token(TokenId.PARENTHESES, s);
-                } else if (s.matches("&&|\\|\\|")) {
-                    tk = new Token(TokenId.COND_OP, s);
-                } else if (s.equals("\\inst")) {
-                    tk = new Token(TokenId.KEY_INST, s);
-                } else if (s.equals("\\prologue")) {
-                    tk = new Token(TokenId.KEY_PROLOGUE, s);
-                } else if (s.equals("\\epilogue")) {
-                    tk = new Token(TokenId.KEY_EPILOGUE, s);
-                } else if (s.equals("\\when")) {
-                    tk = new Token(TokenId.KEY_WHEN, s);
-                } else if (s.equals("\\otherwise")) {
-                    tk = new Token(TokenId.KEY_OTHERWISE, s);
-                } else if (s.matches("\\w+")) {
-                    tk = new Token(TokenId.STRING, s);
-                } else if (s.matches("\\\\\\{(.|\n)*\\\\\\}")) {
-                    tk = new Token(TokenId.CPROGRAM, s.substring(2, s.length() - 2));
-                } else {
-                    System.out.println("error: " + s);
+                Token tk = null;
+                for (TokenizeRule r: rules) {
+                	tk = r.makeTokenIfMatch(s);
+                	if (tk != null)
+                		break;
                 }
-                if (tk != null) tks.add(tk);
+                if (tk == null)
+                    throw new Error("Parse error: " + s);
+                tks.add(tk);
             }
             return tks;
         }
