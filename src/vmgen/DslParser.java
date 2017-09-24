@@ -12,6 +12,11 @@ import vmgen.type.VMDataType;
 
 
 public class DslParser {
+	static class ParseErrorException extends Exception {
+		public ParseErrorException(String msg) {
+			super("Instruction DSL parser: "+msg);
+		}
+	}
 
     static class WhenClause {
         Condition condition;
@@ -98,16 +103,15 @@ public class DslParser {
 
     class Idx { int n; Idx(int n) { this.n = n; } }
 
-    void checkToken(Token tk, TokenId tkId) throws Exception {
+    void checkToken(Token tk, TokenId tkId) throws ParseErrorException {
         checkToken(tk, tkId, null);
     }
-    void checkToken(Token tk, TokenId tkId, String raw) throws Exception {
+    void checkToken(Token tk, TokenId tkId, String raw) throws ParseErrorException {
         if (tk != null && tk.id == tkId) {
             if (raw == null) return;
             else if (raw.equals(tk.raw)) return;
         }
-        System.out.println("parse error!!!!!");
-        throw new Exception();
+        throw new ParseErrorException("unexpected token: "+tk.raw);
     }
 
     private void convertConditionToDNFStep2(Condition condition) {
@@ -357,10 +361,9 @@ public class DslParser {
         return c;
     }
 
-    InstDef parse(List<Token> _tks) {
+    InstDef parse(List<Token> _tks) throws ParseErrorException {
         InstDef instDef = null;
         LinkedList<Token> tks = new LinkedList<Token>(_tks);
-        try {
             checkToken(tks.pollFirst(), TokenId.KEY_INST);
             Token id = tks.pollFirst();
             checkToken(id, TokenId.STRING);
@@ -406,13 +409,97 @@ public class DslParser {
                 } break;
                 case KEY_INST: break;
                 default: {
-                    System.out.println("parse error!!!!" + tk.raw);
+                	throw new ParseErrorException("unexpected token: "+ tk.raw);
                 }
                 }
             }
-        } catch (Exception e) {
-            System.out.println(e);
+        return instDef;
+    }
+    
+    void appendParamDefIfNecessary(StringBuilder prologue, StringBuilder epilogue, String name, String def) {
+    	if (name.equals(def))
+    		return;
+    	prologue.append("#define ")
+    	        .append(name)
+    	        .append(" ")
+    	        .append(def)
+    	        .append("\n");
+    	epilogue.append("#undef ")
+    	        .append(name)
+    	        .append("\n");
+    }
+    InstDef newParse(List<Token> _tks) throws ParseErrorException {
+        InstDef instDef = null;
+        LinkedList<Token> tks = new LinkedList<Token>(_tks);
+        checkToken(tks.pollFirst(), TokenId.KEY_INST);
+        Token id = tks.pollFirst();
+        checkToken(id, TokenId.STRING);
+
+        checkToken(tks.pollFirst(), TokenId.PARENTHESES, "(");
+        List<String> valVars = new LinkedList<String>();
+        StringBuilder prologue = new StringBuilder();
+        StringBuilder epilogue = new StringBuilder();
+        String[] vars = null;
+        for (int order = 0; ; order++) {
+        	Token t = tks.pollFirst();            	
+        	if (t.id == TokenId.STRING) {
+        		Token n = tks.pollFirst();
+        		checkToken(n, TokenId.STRING);
+        		if (t.raw.equals("Register"))
+        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "regbase[r"+order+"]");
+        		else if (t.raw.equals("Value")) {
+        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "v"+order);
+        			valVars.add(n.raw);
+        		} else if (t.raw.equals("Subscript"))
+        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "s"+order);
+        		else if (t.raw.equals("Immediate"))
+        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "i"+order);
+        		else if (t.raw.equals("Displacement"))
+        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "d"+order);
+        		else
+        			throw new ParseErrorException("invalid parameter type: "+n.raw);
+        		t = tks.pollFirst();
+        	}            			
+        	if (t.raw.equals(")")) {
+        		vars = valVars.toArray(new String[]{});
+        		break;
+        	}
+        	checkToken(t, TokenId.COMMA);
         }
+        instDef = new InstDef(id.raw, vars);
+
+        while (!tks.isEmpty()) {
+            Token tk = tks.pollFirst();
+            switch (tk.id) {
+            case KEY_WHEN: {
+                Condition c = parseConditionTokens(vars, tks);
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.whenClauses.add(new WhenClause(c, cprog.raw));
+            } break;
+            case KEY_OTHERWISE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.whenClauses.add(new WhenClause(null, cprog.raw));
+            } break;
+            case KEY_PROLOGUE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                prologue.append(cprog.raw);
+            } break;
+            case KEY_EPILOGUE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                epilogue.append(cprog.raw);
+            } break;
+            case KEY_INST: break;
+            default: {
+            	throw new ParseErrorException("unexpected token: "+ tk.raw);
+            }
+            }
+        }
+        instDef.prologue = prologue.toString();
+        instDef.epilogue = epilogue.toString();
         return instDef;
     }
 
@@ -544,14 +631,24 @@ public class DslParser {
     public InstDef run(String fname) {
         String all = readAll(fname);
         List<Token> tks = new Tokenizer().tokenize(all);
-        InstDef instDef = parse(tks);
-        return instDef;
+        try {
+        	InstDef instDef = parse(tks);
+        	return instDef;
+        } catch(ParseErrorException e) {
+        	try {
+        		InstDef instDef = newParse(tks);
+        		return instDef;
+        	} catch (ParseErrorException e2) {
+        		e.printStackTrace();
+        		return null;
+        	}
+        }
     }
 
     public static void main(String[] args) {
         DslParser dslp = new DslParser();
         InstDef instDef = dslp.run("idefs/add.idef");
-        // System.out.println(instDef);
+         System.out.println(instDef);
         /*
         String all = dslp.readAll("idefs/sample.idef");
         System.out.println(all);
