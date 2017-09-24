@@ -2,7 +2,9 @@ package vmgen;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import vmgen.type.TypeDefinition;
@@ -26,22 +28,43 @@ public class TypesGen {
 		return sb.toString();
 	}
 
+	@SuppressWarnings("serial")
+	static class ClassifiedVMRepTypes extends HashMap<VMRepType.PT, Set<VMRepType>> {
+		public ClassifiedVMRepTypes(Collection<VMRepType> rts) {
+			for (VMRepType rt: rts) {
+				VMRepType.PT pt = rt.getPT();
+				Set<VMRepType> set = this.get(pt);
+				if (set == null) {
+					set = new HashSet<VMRepType>();
+					this.put(pt, set);
+				}
+				set.add(rt);
+			}
+		}
+	}
+
 	String minimumRepresentation(Collection<VMRepType> dts, Collection<VMRepType> among) {
 		if (!among.containsAll(dts))
 			throw new Error("Internal error");
-		
-		if (among.size() == 1)
+
+		if (dts.containsAll(among))
 			return "1";
+		
+		ClassifiedVMRepTypes targetMap = new ClassifiedVMRepTypes(dts);
+		ClassifiedVMRepTypes amongMap = new ClassifiedVMRepTypes(among);
 
 		Collection<VMRepType.PT> unique = new HashSet<VMRepType.PT>();
 		Collection<VMRepType.PT> common = new HashSet<VMRepType.PT>();
 		Collection<VMRepType.HT> hts = new ArrayList<VMRepType.HT>();
-		for (VMRepType rt: dts) {
-			if (rt.hasUniquePT(among))
-				unique.add(rt.getPT());
+		for (VMRepType.PT pt: targetMap.keySet()) {
+			Set<VMRepType> targetSet = targetMap.get(pt);
+			Set<VMRepType> amongSet = amongMap.get(pt);
+			if (targetSet.containsAll(amongSet))
+				unique.add(pt);
 			else {
-				common.add(rt.getPT());
-				hts.add(rt.getHT());
+				common.add(pt);
+				for (VMRepType rt: targetSet)
+					hts.add(rt.getHT());
 			}
 		}
 		
