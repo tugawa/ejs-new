@@ -324,7 +324,7 @@ public class DslParser {
         }
     }
 
-    void assignVarIdx(String[] vars, Condition cond) {
+    void assignVarIdx(String[] vars, Condition cond) throws ParseErrorException {
         if (cond instanceof AtomCondition) {
             AtomCondition c = (AtomCondition) cond;
             c.varIdx = -1;
@@ -332,7 +332,7 @@ public class DslParser {
                 if (c.varName.equals(vars[i]))
                     c.varIdx = i;
             }
-            if (c.varIdx == -1) System.out.println("assignVarIdx: error");
+            if (c.varIdx == -1) throw new ParseErrorException("assignVarIdx error: "+c.varName);
         } else if (cond instanceof CompoundCondition) {
             CompoundCondition c = (CompoundCondition) cond;
             if (c.op == ConditionalOp.AND || c.op == ConditionalOp.OR) {
@@ -344,7 +344,7 @@ public class DslParser {
         }
     }
 
-    Condition parseConditionTokens(String[] vars, LinkedList<Token> tks) {
+    Condition parseConditionTokens(String[] vars, LinkedList<Token> tks) throws ParseErrorException {
         LinkedList<Token> conditionTks = new LinkedList<Token>();
         while (tks.getFirst().id != TokenId.CPROGRAM) {
             conditionTks.add(tks.pollFirst());
@@ -636,10 +636,11 @@ public class DslParser {
         	return instDef;
         } catch(ParseErrorException e) {
         	try {
+        		System.out.println("new DSL syntax");
         		InstDef instDef = newParse(tks);
         		return instDef;
         	} catch (ParseErrorException e2) {
-        		e.printStackTrace();
+        		e2.printStackTrace();
         		return null;
         	}
         }
