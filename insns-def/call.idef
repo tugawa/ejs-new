@@ -1,19 +1,12 @@
-\inst call (v0)
+\inst call (Value fn, Immediate nargs)
 
 \prologue \{
-#define fn v0
-#define nargs i1
   Opcode op = get_opcode(insn);
   int sendp = (op != CALL)? TRUE: FALSE;
   int newp = (op == NEWSEND) ? TRUE: FALSE;
 \}
 
-\epilogue \{
-#undef fn
-#undef nargs
-\}
-
-\when v0:function \{
+\when fn:function \{
   set_fp(context, fp);
   set_pc(context, pc);
   call_function(context, fn, nargs, sendp);
@@ -21,7 +14,7 @@
   NEXT_INSN_NOINCPC();
 \}
 
-\when v0:builtin \{
+\when fn:builtin \{
   set_fp(context, fp);
   set_pc(context, pc);
   call_builtin(context, fn, nargs, sendp, newp);

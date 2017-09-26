@@ -1,16 +1,6 @@
-\inst new (v1)
+\inst new (Register dst, Value con)
 
-\prologue \{
-#define dst regbase[r0]
-#define con v1
-\}
-
-\epilogue \{
-#undef dst
-#undef con
-\}
-
-\when v1:function \{
+\when con:function \{
   JSValue o, p;
   save_context();
   o = new_normal_object(context);

@@ -1,17 +1,10 @@
-\inst tailcall (v0)
+\inst tailcall (Value fn, Immediate nargs)
 
 \prologue \{
-#define fn v0
-#define nargs i1
   int sendp = (get_opcode(insn) == TAILSEND)? TRUE: FALSE;
 \}
 
-\epilogue \{
-#undef fn
-#undef nargs
-\}
-
-\when v0:function \{
+\when fn:function \{
   set_fp(context, fp);
   set_pc(context, pc);
   tailcall_function(context, fn, nargs, sendp);
@@ -19,7 +12,7 @@
   NEXT_INSN_NOINCPC();
 \}
 
-\when v0:builtin \{
+\when fn:builtin \{
   set_fp(context, fp);
   set_pc(context, pc);
   tailcall_builtin(context, fn, nargs, sendp, FALSE);

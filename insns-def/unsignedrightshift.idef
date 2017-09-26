@@ -1,12 +1,4 @@
-\inst unsignedrightshift (v1, v2)
-
-\prologue \{
-#define dst regbase[r0]
-\}
-
-\epilogue \{
-#undef dst
-\}
+\inst unsignedrightshift (Register dst, Value v1, Value v2)
 
 \when v1:fixnum && v2:fixnum \{
   uint32_t x1 = (uint32_t) fixnum_to_cint(v1);

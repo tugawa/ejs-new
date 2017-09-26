@@ -1,22 +1,18 @@
-\inst getprop (v1)
+\inst getprop (Register dst, Value obj)
 
 \prologue \{
-#define dst regbase[r0]
-#define obj v1
-#define prop v2
+#define prop v2     /* TODO: add Value v2 to parameters */
 \}
 
 \epilogue \{
-#undef dst
-#undef obj
 #undef prop
 \}
 
-\when v1:array \{
+\when obj:array \{
   dst = get_array_prop(context, obj, prop);
 \}
 
-\when (v1:regexp || v1:number_object || v1:boolean_object || v1:string_object || v1:builtin || v1:simple_object || v1:iterator || v1:function) \{
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:iterator || obj:function) \{
   dst = get_object_prop(context, obj, prop);
 \}
 
