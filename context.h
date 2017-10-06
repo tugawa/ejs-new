@@ -44,12 +44,10 @@ typedef struct function_table {
  */
 typedef struct function_frame {
   struct function_frame *prev_frame;
-  JSValue arguments;
   JSValue locals[];
 } FunctionFrame;
 
 #define fframe_prev(fr)           ((fr)->prev_frame)
-#define fframe_arguments(fr)      ((fr)->arguments)
 #define fframe_locals(fr)         ((fr)->locals)
 #define fframe_locals_idx(fr, i)  ((fr)->locals[i])
 

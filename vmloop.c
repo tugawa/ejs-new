@@ -548,6 +548,13 @@ I_NEWARGS:
   }
   NEXT_INSN_INCPC();
 
+I_NEWFRAME:
+  ENTER_INSN(__LINE__);
+  {
+#include "insns/newframe.def"
+  }
+  NEXT_INSN_INCPC();
+
 I_RET:
   ENTER_INSN(__LINE__);
   {
@@ -586,16 +593,6 @@ I_JUMPFALSE:
   }
   NEXT_INSN_INCPC();
 
-I_GETARG:
-  ENTER_INSN(__LINE__);
-  {
-    Register dst = get_first_operand_reg(insn);
-    int link = get_second_operand_int(insn);
-    Subscript index = get_third_operand_subscr(insn);
-#include "insns/getarg.def"
-  }
-  NEXT_INSN_INCPC();
-
 I_GETLOCAL:
   ENTER_INSN(__LINE__);
   {
@@ -603,16 +600,6 @@ I_GETLOCAL:
     int link = get_second_operand_int(insn);
     Subscript index = get_third_operand_subscr(insn);
 #include "insns/getlocal.def"
-  }
-  NEXT_INSN_INCPC();
-
-I_SETARG:
-  ENTER_INSN(__LINE__);
-  {
-    int link = get_first_operand_int(insn);
-    Subscript index = get_second_operand_subscr(insn);
-    Register src = get_third_operand_reg(insn);
-#include "insns/setarg.def"
   }
   NEXT_INSN_INCPC();
 

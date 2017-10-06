@@ -42,9 +42,7 @@ nop                   ZEROOP
 jump                  UNCONDJUMP     Displacement
 jumptrue              CONDJUMP       JSValue    Displacement
 jumpfalse             CONDJUMP       JSValue    Displacement
-getarg                GETVAR         Register   int          Subscript
 getlocal              GETVAR         Register   int          Subscript
-setarg                SETVAR         int        Subscript    JSValue
 setlocal              SETVAR         int        Subscript    JSValue
 makeclosure           MAKECLOSUREOP  Register   Subscript
 makeiterator          TWOOP          JSValue    Register
