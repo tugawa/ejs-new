@@ -325,6 +325,15 @@ class INewargs extends BCode {
         return super.toString("newargs");
     }
 }
+class INewframe extends BCode {
+    int len;
+    INewframe(int len) {
+        this.len = len;
+    }
+    public String toString() {
+        return super.toString("newframe", len);
+    }
+}
 class IGetglobal extends BCode {
     Register dst, lit;
     IGetglobal(Register dst, Register lit) {
