@@ -378,18 +378,6 @@ class ISetlocal extends BCode {
         return super.toString("setlocal", depth, n, src);
     }
 }
-class IGetarg extends BCode {
-    Register dst;
-    int depth, n;
-    IGetarg(Register dst, int depth, int n) {
-        this.dst = dst;
-        this.depth = depth;
-        this.n = n;
-    }
-    public String toString() {
-        return super.toString("getarg", dst, depth, n);
-    }
-}
 class ISetarg extends BCode {
     int depth, n;
     Register src;
