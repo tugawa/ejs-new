@@ -36,6 +36,7 @@ geta                  ONEOP          Register
 geterr                ONEOP          Register
 getglobalobj          ONEOP          Register
 newargs               ZEROOP
+newframe              ONEOP          int
 ret                   ZEROOP
 nop                   ZEROOP
 jump                  UNCONDJUMP     Displacement
