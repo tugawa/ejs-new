@@ -360,10 +360,12 @@ class IASTFunctionExpression extends IASTExpression {
 	List<String> params;
 	List<String> locals;
 	IASTStatement body;
+    public boolean needNewargs;
 	IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body) {
 		this.params = params;
 		this.locals = locals;
 		this.body = body;
+		this.needNewargs = true;
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {

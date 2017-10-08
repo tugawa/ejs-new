@@ -27,6 +27,7 @@ public class Main {
 
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
+        boolean optPrintAnalyzer = false;
         boolean optHelp = false;
 
         static Info parseOption(String[] args) {
@@ -39,6 +40,9 @@ public class Main {
                         break;
                     case "--iast":
                         info.optPrintIAST = true;
+                        break;
+                    case "--analyzer":
+                        info.optPrintAnalyzer = true;
                         break;
                     case "--help":
                         info.optHelp = true;
@@ -111,9 +115,9 @@ public class Main {
 
         // normalize ESTree.
         new ESTreeNormalizer().normalize(ast);
-        if (info.optPrintESTree) {
-            System.out.println(ast.getEsTree());
-        }
+//        if (info.optPrintESTree) {
+//            System.out.println(ast.getEsTree());
+//        }
 
         // convert ESTree into iAST.
         IASTGenerator iastgen = new IASTGenerator();
@@ -121,10 +125,18 @@ public class Main {
         if (info.optPrintIAST) {
             new IASTPrinter().print(iast);
         }
+        
+        // iAST newargs analyzer
+        NewargsAnalyzer analyzer = new NewargsAnalyzer();
+        analyzer.analyze(iast);
+        if (info.optPrintAnalyzer) {
+            new IASTPrinter().print(iast);
+        }
 
         // convert iAST into ByteCode.
         CodeGenerator codegen = new CodeGenerator();
         List<BCode> bcodes = codegen.compile((IASTProgram) iast);
+//        List<BCode> bcodes = codegen.compile((IASTProgram) iast_opt);
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
