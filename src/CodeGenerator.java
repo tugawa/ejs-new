@@ -1012,14 +1012,14 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
             bcBuilder.push(new ISend(expReg, node.arguments.size()));
         } else {
-            Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
-            Register[] tmpRegs = new Register[argRegs.length];
-            for (int i = 0; i < argRegs.length; i++) {
+            Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
+            Register[] tmpRegs = new Register[node.arguments.size()];
+            for (int i = 0; i < tmpRegs.length; i++) {
                 tmpRegs[i] = env.freshRegister();
                 compileNode(node.arguments.get(i), tmpRegs[i]);
             }
-            for (int i = 0; i < argRegs.length; i++) {
-                bcBuilder.push(new IMove(argRegs[i], tmpRegs[i]));
+            for (int i = 0; i < tmpRegs.length; i++) {
+                bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
             }
             Register calleeReg = env.freshRegister();
             compileNode(node.callee, calleeReg);
