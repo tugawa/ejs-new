@@ -25,14 +25,14 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         NewargsAnalyzer analyzer = new NewargsAnalyzer();
         node.body.accept(analyzer);
         useArguments = analyzer.useArguments;
-        boolean emptyLocals = node.locals.isEmpty();
-        node.needNewargs = useArguments && emptyLocals;
+        boolean hasLocals = !node.locals.isEmpty();
+        node.needNewargs = useArguments || hasLocals;
         return null;
     }
     @Override
     public Object visitIdentifier(IASTIdentifier node) {
         if (node.id != null) {
-            if (node.id == "arguments")
+            if (node.id.equals("arguments"))
                 useArguments = true;
         }
         return null;
