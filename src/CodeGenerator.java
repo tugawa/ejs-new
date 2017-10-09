@@ -318,11 +318,14 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     }
 
-    public CodeGenerator() {}
+    public CodeGenerator() {
+        needNewargs = false;
+    }
 
     BCBuilder bcBuilder;
     Environment env;
     Register reg;
+    boolean needNewargs;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -630,20 +633,28 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
+        boolean tmp = needNewargs;
+        needNewargs = node.needNewargs;
         bcBuilder.openFunctionBCBuilder();
         int functionIdx = bcBuilder.getFBIdx();
         LinkedList<String> locals = new LinkedList<String>(node.locals);
-        locals.addFirst("arguments");
+        if (needNewargs) {
+            locals.addFirst("arguments");
+        }
         env.openFrame(node.params, locals);
         Register globalObjReg = env.freshRegister();
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
-        bcBuilder.push(new INewargs());
-        bcBuilder.push(new INewframe(locals.size()));
+        if (needNewargs) {
+            bcBuilder.push(new INewargs());
+            bcBuilder.push(new INewframe(locals.size()));
+        }
         bcBuilder.push(new ISetfl(env.getFl()));
-        Register argsReg = env.freshRegister();
-        bcBuilder.push(new IGeta(argsReg));
-        bcBuilder.push(new ISetlocal(0, 0, argsReg));
+        if (needNewargs) {
+            Register argsReg = env.freshRegister();
+            bcBuilder.push(new IGeta(argsReg));
+            bcBuilder.push(new ISetlocal(0, 0, argsReg));
+        }
         Register retReg = env.freshRegister();
         compileNode(node.body, retReg);
         bcBuilder.push(new ISpecconst(reg, "undefined"));
@@ -658,6 +669,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.closeFuncBCBuilder();
 
         bcBuilder.push(new IMakeclosure(reg, functionIdx));
+        needNewargs = tmp;
         return null;
     }
     @Override
@@ -1083,13 +1095,20 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IGetglobal(reg, r1));
         } else {
             if (id.isLocal) {
-                bcBuilder.push(new IGetlocal(reg, id.depth, id.idx));
+                int depth = needNewargs ? id.depth : id.depth - 1;
+                bcBuilder.push(new IGetlocal(reg, depth, id.idx));
             } else {
-                Register r1 = env.freshRegister();
-                Register r2 = env.freshRegister();
-                bcBuilder.push(new IGetlocal(r1, id.depth, 0));
-                bcBuilder.push(new IFixnum(r2, id.idx));
-                bcBuilder.push(new IGetprop(reg, r1, r2));
+                if (needNewargs || id.depth != 0) {
+                    int depth = needNewargs ? id.depth : id.depth - 1;
+                    Register r1 = env.freshRegister();
+                    Register r2 = env.freshRegister();
+                    bcBuilder.push(new IGetlocal(r1, depth, 0));
+                    bcBuilder.push(new IFixnum(r2, id.idx));
+                    bcBuilder.push(new IGetprop(reg, r1, r2));
+                } else {
+                    Register r1 = new Register(id.idx + 2);
+                    bcBuilder.push(new IMove(reg, r1));
+                }
             }
         }
         return null;
