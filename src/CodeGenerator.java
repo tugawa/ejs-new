@@ -75,6 +75,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 return fl;
             }
             void close() {
+                // fl = numOfRequiredRegisters + numOfUsingArgumentRegisters + 1(register for 'this')
                 fl.n = numOfRequiredRegisters + numOfUsingArgumentRegisters;
                 for (int i = 0, n = fl.n; i < numOfUsingArgumentRegisters; i++, n--) {
                     argumentRegisters.get(i).n = n;
@@ -997,7 +998,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     @Override
     public Object visitCallExpression(IASTCallExpression node) {
         if (node.callee instanceof IASTMemberExpression) {
-            Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
+            Register[] argRegs = env.freshArgumentRegister(node.arguments.size());
             Register[] tmpRegs = new Register[node.arguments.size()];
             Register objReg = env.freshRegister();
             compileNode(((IASTMemberExpression) node.callee).object, objReg);
