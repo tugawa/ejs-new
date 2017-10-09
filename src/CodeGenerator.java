@@ -1023,7 +1023,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
             Register calleeReg = env.freshRegister();
             compileNode(node.callee, calleeReg);
-            bcBuilder.push(new ICall(calleeReg, argRegs.length));
+            bcBuilder.push(new ICall(calleeReg, node.arguments.size()));
         }
         bcBuilder.push(new ISetfl(env.getFl()));
         bcBuilder.push(new IGeta(reg));
