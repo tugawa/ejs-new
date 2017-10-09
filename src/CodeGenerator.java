@@ -635,6 +635,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         locals.addFirst("arguments");
         env.openFrame(node.params, locals);
         Register globalObjReg = env.freshRegister();
+        for (String param : node.params) {
+            env.freshRegister();
+        }
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.push(new INewargs());
