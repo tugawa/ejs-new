@@ -4,9 +4,11 @@ import java.util.List;
 
 public class NewargsAnalyzer extends IASTBaseVisitor {
     public boolean useArguments;
+    public boolean useFunction;
 
     public NewargsAnalyzer() {
         useArguments = false;
+        useFunction = false;
     }
     
     public void analyze(IASTNode node) {
@@ -22,11 +24,13 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
     }
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
+        useFunction = true;
         NewargsAnalyzer analyzer = new NewargsAnalyzer();
         node.body.accept(analyzer);
-        useArguments = analyzer.useArguments;
+        boolean useArg = analyzer.useArguments;
+        boolean useFunc = analyzer.useFunction;
         boolean hasLocals = !node.locals.isEmpty();
-        node.needNewargs = useArguments || hasLocals;
+        node.needNewargs = useArg || useFunc || hasLocals;
         return null;
     }
     @Override
