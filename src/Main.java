@@ -29,6 +29,7 @@ public class Main {
         boolean optPrintIAST = false;
         boolean optPrintAnalyzer = false;
         boolean optHelp = false;
+        boolean optOmitArguments = false;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -49,6 +50,9 @@ public class Main {
                         break;
                     case "-o":
                         info.outputFileName = args[++i];
+                        break;
+                    case "-omit-arguments":
+                        info.optOmitArguments = true;
                         break;
                     }
                 } else {
@@ -126,11 +130,13 @@ public class Main {
             new IASTPrinter().print(iast);
         }
         
-        // iAST newargs analyzer
-        NewargsAnalyzer analyzer = new NewargsAnalyzer();
-        analyzer.analyze(iast);
-        if (info.optPrintAnalyzer) {
-            new IASTPrinter().print(iast);
+        if (info.optOmitArguments) {
+            // iAST newargs analyzer
+            NewargsAnalyzer analyzer = new NewargsAnalyzer();
+            analyzer.analyze(iast);
+            if (info.optPrintAnalyzer) {
+                new IASTPrinter().print(iast);
+            }
         }
 
         // convert iAST into ByteCode.

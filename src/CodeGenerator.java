@@ -968,13 +968,19 @@ public class CodeGenerator extends IASTBaseVisitor {
                 bcBuilder.push(new ISetglobal(r1, srcReg));
             } else {
                 if (varLoc.isLocal) {
-                    bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
+                    int depth = needNewargs ? varLoc.depth : varLoc.depth - 1;
+                    bcBuilder.push(new ISetlocal(depth, varLoc.idx, srcReg));
                 } else {
-                    Register r1 = env.freshRegister();
-                    Register r2 = env.freshRegister();
-                    bcBuilder.push(new IGetlocal(r1, varLoc.depth, 0));
-                    bcBuilder.push(new IFixnum(r2, varLoc.idx));
-                    bcBuilder.push(new ISetprop(r1, r2, srcReg));
+                    if (needNewargs || varLoc.depth != 0) {
+                        int depth = needNewargs ? varLoc.depth : varLoc.depth - 1;
+                        Register r1 = env.freshRegister();
+                        Register r2 = env.freshRegister();
+                        bcBuilder.push(new IGetlocal(r1, depth, 0));
+                        bcBuilder.push(new IFixnum(r2, varLoc.idx));
+                        bcBuilder.push(new ISetprop(r1, r2, srcReg));
+                    } else {
+                        bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
+                    }
                 }
             }
         } else if (dst instanceof IASTMemberExpression) {
