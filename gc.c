@@ -61,11 +61,8 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
-#define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 1)
 //#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
-//#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -107,10 +104,6 @@ struct space {
  */
 STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
-STATIC struct space malloc_space;
-#ifdef GC_DEBUG
-STATIC struct space debug_malloc_shadow;
-#endif /* GC_DEBUG */
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
@@ -297,21 +290,16 @@ STATIC int check_gc_request(Context *ctx)
   if (ctx == NULL) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
-    if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: ctx == NULL\n");
     return 0;
   }
   if (gc_disabled) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: GC disabled\n");
-    if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: GC disabled\n");
     return 0;
   }
   if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
     return 1;
-  GCLOG_TRIGGER("no GC needed js %d malloc %d\n",
-		js_space.free_bytes, malloc_space.free_bytes);
+  GCLOG_TRIGGER("no GC needed (%d bytes free)\n", js_space.free_bytes);
   return 0;
 }
 
@@ -957,7 +945,6 @@ STATIC void print_memory_status(void)
 {
   GCLOG("  gc_disabled = %d\n", gc_disabled);
   GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
-  GCLOG("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
 }
 
 STATIC void print_heap_stat(void)
