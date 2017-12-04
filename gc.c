@@ -709,15 +709,20 @@ STATIC void trace_slot(JSValue* ptr)
   }
 }
 
-STATIC void trace_malloc_pointer(void **ptrp)
+STATIC void trace_root_pointer(void **ptrp)
 {
   void *ptr = *ptrp;
 
+  if ((((uintptr_t) ptr) & TAGMASK) != 0) {
+    trace_slot((JSValue *) ptrp);
+    return;
+  }
+
   switch (obj_header_tag(ptr)) {
   case HTAG_PROP:
-    printf("HTAG_PROP in trace_malloc_pointer\n"); break;
+    printf("HTAG_PROP in trace_root_pointer\n"); break;
   case HTAG_ARRAY_DATA:
-    printf("HTAG_ARRAY_DATA in trace_malloc_pointer\n"); break;
+    printf("HTAG_ARRAY_DATA in trace_root_pointer\n"); break;
   case HTAG_FUNCTION_FRAME:
     trace_FunctionFrame((FunctionFrame **)ptrp); break;
   case HTAG_HASH_BODY:
@@ -727,11 +732,14 @@ STATIC void trace_malloc_pointer(void **ptrp)
   case HTAG_CONTEXT:
     trace_Context((Context **)ptrp); break;
   case HTAG_STACK:
-    printf("HTAG_STACK in trace_malloc_pointer\n"); break;
+    printf("HTAG_STACK in trace_root_pointer\n"); break;
 #ifdef HIDDEN_CLASS
   case HTAG_HIDDEN_CLASS:
     trace_HiddenClass((HiddenClass **)ptrp); break;
 #endif
+  default:
+    trace_slot((JSValue *) ptrp);
+    return;
   }
 }
 
@@ -773,7 +781,7 @@ STATIC void scan_roots(Context *ctx)
    * tmp root
    */
   for (i = 0; i <= tmp_roots_sp; i++)
-    trace_slot((JSValue *) tmp_roots[i]);
+    trace_root_pointer((void **) tmp_roots[i]);
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
