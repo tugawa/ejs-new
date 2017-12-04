@@ -108,7 +108,9 @@ struct space {
 STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
 STATIC struct space malloc_space;
+#ifdef GC_DEBUG
 STATIC struct space debug_malloc_shadow;
+#endif /* GC_DEBUG */
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
@@ -129,9 +131,9 @@ STATIC void sanity_check();
 /* space */
 STATIC void create_space(struct space *space, size_t bytes, char* name);
 STATIC int in_js_space(void *addr_);
+#ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr);
-STATIC void* do_malloc(size_t request_bytes, cell_type_t type);
-STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type);
+#endif /* GC_DEBUG */
 /* GC */
 STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
@@ -147,9 +149,11 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+#ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
+#endif /* GC_DEBUG */
 
 /*
  *  Space
@@ -177,6 +181,7 @@ STATIC int in_js_space(void *addr_)
   return (js_space.addr <= addr && addr < js_space.addr + js_space.bytes);
 }
 
+#ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr)
 {
   if (in_js_space(ptr)) {
@@ -186,6 +191,7 @@ STATIC header_t *get_shadow(void *ptr)
   } else
     return NULL;
 }
+#endif /* GC_DEBUG */
 
 /*
  * Returns a pointer to the first address of the memory area
@@ -419,12 +425,6 @@ STATIC void unmark_cell_header(header_t *hdrp)
   *hdrp &= ~GC_MARK_BIT;
 }
 
-STATIC void unmark_cell(void *ref)
-{
-  header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
-  unmark_cell_header(hdrp);
-}
-
 STATIC int is_marked_cell_header(header_t *hdrp)
 {
 #if HEADER0_GC_OFFSET <= 4 * 8  /* BITS_IN_INT */
@@ -517,15 +517,6 @@ STATIC void scan_FunctionTable(FunctionTable *ptr)
   /* trace constant pool */
   trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->body_size);
   trace_leaf_object((uintptr_t *) &ptr->insn_ptr);
-}
-
-STATIC void trace_FunctionTable(FunctionTable **ptrp)
-{
-  /* TODO: see calling site */
-  FunctionTable *ptr = *ptrp;
-  if (test_and_mark_cell(ptr))
-    return;
-  scan_FunctionTable(ptr);
 }
 
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
@@ -916,6 +907,7 @@ STATIC void sweep(void)
   sweep_space(&js_space);
 }
 
+#ifdef GC_DEBUG
 STATIC void check_invariant_nobw_space(struct space *space)
 {
   uintptr_t scan = space->addr;
@@ -991,7 +983,6 @@ STATIC void print_heap_stat(void)
   }
 }
 
-#ifdef GC_DEBUG
 extern void** stack_start;
 STATIC void sanity_check()
 {
