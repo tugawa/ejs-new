@@ -318,13 +318,15 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
 
     public CodeGenerator() {
-        needNewargs = false;
+        needArguments = false;
+        needNewframe = false;
     }
 
     BCBuilder bcBuilder;
     Environment env;
     Register reg;
-    boolean needNewargs;
+    boolean needArguments;
+    boolean needNewframe;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -632,12 +634,14 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
-        boolean tmp = needNewargs;
-        needNewargs = node.needNewargs;
+        boolean tmpArguments = needArguments;
+        boolean tmpNewframe = needNewframe;
+        needArguments = node.needArguments;
+        needNewframe = node.needNewframe;
         bcBuilder.openFunctionBCBuilder();
         int functionIdx = bcBuilder.getFBIdx();
         LinkedList<String> locals = new LinkedList<String>(node.locals);
-        if (needNewargs) {
+        if (needArguments) {
             locals.addFirst("arguments");
         }
         env.openFrame(node.params, locals);
@@ -647,12 +651,12 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
-        if (needNewargs) {
+        if (needArguments)
             bcBuilder.push(new INewargs());
+        if (needNewframe)
             bcBuilder.push(new INewframe(locals.size()));
-        }
         bcBuilder.push(new ISetfl(env.getFl()));
-        if (needNewargs) {
+        if (needArguments) {
             Register argsReg = env.freshRegister();
             bcBuilder.push(new IGeta(argsReg));
             bcBuilder.push(new ISetlocal(0, 0, argsReg));
@@ -671,7 +675,8 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.closeFuncBCBuilder();
 
         bcBuilder.push(new IMakeclosure(reg, functionIdx));
-        needNewargs = tmp;
+        needArguments = tmpArguments;
+        needNewframe = tmpNewframe;
         return null;
     }
     @Override
@@ -962,24 +967,34 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (dst instanceof IASTIdentifier) {
             String id = ((IASTIdentifier) dst).id;
             Environment.Result varLoc = env.getVar(id);
+            Register r1 = env.freshRegister();
+            Register r2 = env.freshRegister();
             if (varLoc == null) {
-                Register r1 = env.freshRegister();
                 bcBuilder.push(new IString(r1, id));
                 bcBuilder.push(new ISetglobal(r1, srcReg));
             } else {
-                if (varLoc.isLocal) {
-                    int depth = needNewargs ? varLoc.depth : varLoc.depth - 1;
-                    bcBuilder.push(new ISetlocal(depth, varLoc.idx, srcReg));
+                // Check if it is an inner function
+                if (varLoc.depth == 0) {
+                    if (varLoc.isLocal) {
+                        if (!needNewframe)
+                            throw new Error("internal error");
+                        bcBuilder.push(new ISetlocal(0, varLoc.idx, srcReg));
+                    } else {
+                        if (needArguments) {
+                            bcBuilder.push(new IGetlocal(r1, 0, 0));
+                            bcBuilder.push(new IFixnum(r2, varLoc.idx));
+                            bcBuilder.push(new ISetprop(r1, r2, srcReg));
+                        } else {
+                            bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
+                        }
+                    }
                 } else {
-                    if (needNewargs || varLoc.depth != 0) {
-                        int depth = needNewargs ? varLoc.depth : varLoc.depth - 1;
-                        Register r1 = env.freshRegister();
-                        Register r2 = env.freshRegister();
-                        bcBuilder.push(new IGetlocal(r1, depth, 0));
+                    if (varLoc.isLocal) {
+                        bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
+                    } else {
+                        bcBuilder.push(new IGetlocal(r1, varLoc.depth, 0));
                         bcBuilder.push(new IFixnum(r2, varLoc.idx));
                         bcBuilder.push(new ISetprop(r1, r2, srcReg));
-                    } else {
-                        bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
                     }
                 }
             }
@@ -1097,25 +1112,34 @@ public class CodeGenerator extends IASTBaseVisitor {
     @Override
     public Object visitIdentifier(IASTIdentifier node) {
         Environment.Result id = env.getVar(node.id);
+        Register r1 = env.freshRegister();
+        Register r2 = env.freshRegister();
         if (id == null) {
-            Register r1 = env.freshRegister();
             bcBuilder.push(new IString(r1, node.id));
             bcBuilder.push(new IGetglobal(reg, r1));
         } else {
-            if (id.isLocal) {
-                int depth = needNewargs ? id.depth : id.depth - 1;
-                bcBuilder.push(new IGetlocal(reg, depth, id.idx));
+            // Check if it is an inner function
+            if (id.depth == 0) {
+                if (id.isLocal) {
+                    if (!needNewframe)
+                        throw new Error("internal error");
+                    bcBuilder.push(new IGetlocal(reg, 0, id.idx));
+                } else {
+                    if (needArguments) {
+                        bcBuilder.push(new IGetlocal(r1, 0, 0));
+                        bcBuilder.push(new IFixnum(r2, id.idx));
+                        bcBuilder.push(new IGetprop(reg, r1, r2));
+                    } else {
+                        bcBuilder.push(new IMove(reg, new Register(id.idx + 2)));
+                    }
+                }
             } else {
-                if (needNewargs || id.depth != 0) {
-                    int depth = needNewargs ? id.depth : id.depth - 1;
-                    Register r1 = env.freshRegister();
-                    Register r2 = env.freshRegister();
-                    bcBuilder.push(new IGetlocal(r1, depth, 0));
+                if (id.isLocal) {
+                    bcBuilder.push(new IGetlocal(reg, id.depth, id.idx));
+                } else {
+                    bcBuilder.push(new IGetlocal(r1, id.depth, 0));
                     bcBuilder.push(new IFixnum(r2, id.idx));
                     bcBuilder.push(new IGetprop(reg, r1, r2));
-                } else {
-                    Register r1 = new Register(id.idx + 2);
-                    bcBuilder.push(new IMove(reg, r1));
                 }
             }
         }

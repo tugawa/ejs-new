@@ -3,10 +3,12 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class NewargsAnalyzer extends IASTBaseVisitor {
+    public boolean optOmitNewframe;
     public boolean useArguments;
     public boolean useFunction;
 
-    public NewargsAnalyzer() {
+    public NewargsAnalyzer(boolean optOmitNewframe) {
+        this.optOmitNewframe = optOmitNewframe;
         useArguments = false;
         useFunction = false;
     }
@@ -17,20 +19,27 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
 
     @Override
     public Object visitProgram(IASTProgram node) {
-        NewargsAnalyzer analyzer = new NewargsAnalyzer();
+        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optOmitNewframe);
         node.program.body.accept(analyzer);
-        node.program.needNewargs = false;
+        node.program.needArguments = false;
+        node.program.needNewframe = false;
         return null;
     }
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
-        useFunction = true;
-        NewargsAnalyzer analyzer = new NewargsAnalyzer();
+        this.useFunction = true;
+        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optOmitNewframe);
         node.body.accept(analyzer);
         boolean useArg = analyzer.useArguments;
         boolean useFunc = analyzer.useFunction;
         boolean hasLocals = !node.locals.isEmpty();
-        node.needNewargs = useArg || useFunc || hasLocals;
+        if (this.optOmitNewframe) {
+            node.needArguments = useArg || useFunc;
+            node.needNewframe = node.needArguments || hasLocals;
+        } else {
+            node.needArguments = useArg || useFunc || hasLocals;
+            node.needNewframe = node.needArguments;
+        }
         return null;
     }
     @Override

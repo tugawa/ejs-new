@@ -30,6 +30,7 @@ public class Main {
         boolean optPrintAnalyzer = false;
         boolean optHelp = false;
         boolean optOmitArguments = false;
+        boolean optOmitNewframe = false;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -53,6 +54,9 @@ public class Main {
                         break;
                     case "-omit-arguments":
                         info.optOmitArguments = true;
+                        break;
+                    case "-omit-newframe":
+                        info.optOmitNewframe = true;
                         break;
                     }
                 } else {
@@ -130,9 +134,9 @@ public class Main {
             new IASTPrinter().print(iast);
         }
         
-        if (info.optOmitArguments) {
+        if (info.optOmitArguments || info.optOmitNewframe) {
             // iAST newargs analyzer
-            NewargsAnalyzer analyzer = new NewargsAnalyzer();
+            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitNewframe);
             analyzer.analyze(iast);
             if (info.optPrintAnalyzer) {
                 new IASTPrinter().print(iast);
