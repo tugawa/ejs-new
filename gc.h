@@ -30,9 +30,6 @@ extern void gc_push_tmp_root(JSValue *loc);
 extern void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2);
 extern void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3);
 extern void gc_pop_tmp_root(int n);
-extern void gc_push_tmp_root_malloc(void **loc);
-extern void gc_push_tmp_root_malloc2(void **loc1, void **loc2);
-extern void gc_pop_tmp_root_malloc(int n);
 
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
@@ -58,9 +55,6 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
 #define gc_push_tmp_root2(x, y)
 #define gc_push_tmp_root3(x, y, z)
 #define gc_pop_tmp_root(x)
-#define gc_push_tmp_root_malloc(x)
-#define gc_push_tmp_root_malloc2(x, y)
-#define gc_pop_tmp_root_malloc(x)
 #define enable_gc()
 #define disable_gc()
 static cell_type_t gc_obj_header_type(void *p)

@@ -61,11 +61,8 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
-#define MALLOC_SPACE_BYTES (100 * 1024 * 1024)
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 1)
 //#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
-//#define MALLOC_SPACE_GC_THREASHOLD (MALLOC_SPACE_BYTES >> 4)
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -107,14 +104,9 @@ struct space {
  */
 STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
-STATIC struct space malloc_space;
-STATIC struct space debug_malloc_shadow;
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
-#define MAX_TMP_ROOTS_MALLOC 100
-STATIC void **tmp_roots_malloc[MAX_TMP_ROOTS_MALLOC];
-STATIC int tmp_roots_malloc_sp;
 STATIC int gc_disabled = 1;
 
 int generation = 0;
@@ -123,6 +115,7 @@ int gc_usec;
 
 #ifdef GC_DEBUG
 STATIC void **top;
+STATIC void sanity_check();
 #endif /* GC_DEBUG */
 
 /*
@@ -131,10 +124,9 @@ STATIC void **top;
 /* space */
 STATIC void create_space(struct space *space, size_t bytes, char* name);
 STATIC int in_js_space(void *addr_);
-STATIC int in_malloc_space(void *addr_);
+#ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr);
-STATIC void* do_malloc(size_t request_bytes, cell_type_t type);
-STATIC JSValue* do_jsalloc(size_t request_bytes, cell_type_t type);
+#endif /* GC_DEBUG */
 /* GC */
 STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
@@ -150,9 +142,11 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+#ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
+#endif /* GC_DEBUG */
 
 /*
  *  Space
@@ -180,26 +174,17 @@ STATIC int in_js_space(void *addr_)
   return (js_space.addr <= addr && addr < js_space.addr + js_space.bytes);
 }
 
-STATIC int in_malloc_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return (malloc_space.addr <= addr &&
-	  addr < malloc_space.addr + malloc_space.bytes);
-}
-
+#ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr)
 {
   if (in_js_space(ptr)) {
     uintptr_t a = (uintptr_t) ptr;
     uintptr_t off = a - js_space.addr;
     return (header_t *) (debug_js_shadow.addr + off);
-  } else if (in_malloc_space(ptr)) {
-    uintptr_t a = (uintptr_t) ptr;
-    uintptr_t off = a - malloc_space.addr;
-    return (header_t *) (debug_malloc_shadow.addr + off);
   } else
     return NULL;
 }
+#endif /* GC_DEBUG */
 
 /*
  * Returns a pointer to the first address of the memory area
@@ -263,11 +248,8 @@ STATIC void* space_alloc(struct space *space,
 void init_memory()
 {
   create_space(&js_space, JS_SPACE_BYTES, "js_space");
-  create_space(&malloc_space, MALLOC_SPACE_BYTES, "malloc_space");
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
-  create_space(&debug_malloc_shadow, MALLOC_SPACE_BYTES, "debug_malloc_shadow");
   tmp_roots_sp = -1;
-  tmp_roots_malloc_sp = -1;
   gc_disabled = 0;
   generation = 1;
   gc_sec = 0;
@@ -297,22 +279,6 @@ void gc_pop_tmp_root(int n)
   tmp_roots_sp -= n;
 }
 
-void gc_push_tmp_root_malloc(void **loc)
-{
-  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc;
-}
-
-void gc_push_tmp_root_malloc2(void **loc1, void **loc2)
-{
-  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc1;
-  tmp_roots_malloc[++tmp_roots_malloc_sp] = loc2;
-}
-
-void gc_pop_tmp_root_malloc(int n)
-{
-  tmp_roots_malloc_sp -= n;
-}
-
 cell_type_t gc_obj_header_type(void *p)
 {
   header_t *hdrp = ((header_t *) p) - 1;
@@ -324,57 +290,29 @@ STATIC int check_gc_request(Context *ctx)
   if (ctx == NULL) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
-    if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: ctx == NULL\n");
     return 0;
   }
   if (gc_disabled) {
     if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: GC disabled\n");
-    if (malloc_space.free_bytes < JS_SPACE_GC_THREASHOLD)
-      GCLOG_TRIGGER("Needed gc for malloc_space -- cancelled: GC disabled\n");
     return 0;
   }
   if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
     return 1;
-  if (malloc_space.free_bytes < MALLOC_SPACE_GC_THREASHOLD)
-    return 1;
-  GCLOG_TRIGGER("no GC needed js %d malloc %d\n",
-		js_space.free_bytes, malloc_space.free_bytes);
+  GCLOG_TRIGGER("no GC needed (%d bytes free)\n", js_space.free_bytes);
   return 0;
 }
 
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
-  void * addr;
-  //  return malloc(request_bytes);
-
-#ifdef GC_DEBUG
-  top = &ctx;
-#endif /* GC_DEBUG */
-
-  if (check_gc_request(ctx))
-    garbage_collect(ctx);
-  addr = space_alloc(&malloc_space, request_bytes, type);
-  GCLOG_ALLOC("gc_malloc: req %x bytes => %p (%x)\n",
-	      request_bytes, addr, addr - malloc_space.addr);
-#ifdef GC_DEBUG
-  {
-    header_t *hdrp = (header_t *) (addr - HEADER_BYTES);
-    header_t *shadow = get_shadow(hdrp);
-    *shadow = *hdrp;
-  }
-  memset(addr, generation,
-	 (HEADER0_GET_SIZE(((uint64_t *)addr)[-1]) - HEADER_JSVALUES) * 8);
-#endif /* GC_DEBUG */
-  return addr;
+  return gc_jsalloc(ctx, request_bytes, type);
 }
 
 JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   JSValue *addr;
 #ifdef GC_DEBUG
-  top = &ctx;
+  top = (void**) &ctx;
 #endif /* GC_DEBUG */
 
   if (check_gc_request(ctx))
@@ -400,7 +338,7 @@ void disable_gc(void)
 void enable_gc(Context *ctx)
 {
 #ifdef GC_DEBUG
-  top = &ctx;
+  top = (void**) &ctx;
 #endif /* GC_DEBUG */
 
   if (--gc_disabled == 0) {
@@ -475,12 +413,6 @@ STATIC void unmark_cell_header(header_t *hdrp)
   *hdrp &= ~GC_MARK_BIT;
 }
 
-STATIC void unmark_cell(void *ref)
-{
-  header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
-  unmark_cell_header(hdrp);
-}
-
 STATIC int is_marked_cell_header(header_t *hdrp)
 {
 #if HEADER0_GC_OFFSET <= 4 * 8  /* BITS_IN_INT */
@@ -498,7 +430,7 @@ STATIC int is_marked_cell(void *ref)
 
 STATIC int test_and_mark_cell(void *ref)
 {
-  if (in_js_space(ref) || in_malloc_space(ref)) {
+  if (in_js_space(ref)) {
     header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
     if (is_marked_cell_header(hdrp))
       return 1;
@@ -514,7 +446,7 @@ STATIC int test_and_mark_cell(void *ref)
 STATIC void trace_leaf_object(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
-  if (in_js_space((void *) ptr) || in_malloc_space((void *) ptr))
+  if (in_js_space((void *) ptr))
     mark_cell((void *) ptr);
 }
 
@@ -575,15 +507,6 @@ STATIC void scan_FunctionTable(FunctionTable *ptr)
   trace_leaf_object((uintptr_t *) &ptr->insn_ptr);
 }
 
-STATIC void trace_FunctionTable(FunctionTable **ptrp)
-{
-  /* TODO: see calling site */
-  FunctionTable *ptr = *ptrp;
-  if (test_and_mark_cell(ptr))
-    return;
-  scan_FunctionTable(ptr);
-}
-
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
 {
   FunctionTable *ptr = *ptrp;
@@ -602,7 +525,6 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   size_t   i;
   if (test_and_mark_cell(ptr))
     return;
-  assert(in_malloc_space(ptr));
 
   if (ptr->prev_frame != NULL)
     trace_FunctionFrame(&ptr->prev_frame);
@@ -739,10 +661,7 @@ STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
   JSValue *ptr = *ptrp;
   size_t i;
 
-  /* never be JS object */
-  assert(!in_js_space(ptr));
-
-  if (in_malloc_space(ptr)) {
+  if (in_js_space(ptr)) {
     if (test_and_mark_cell(ptr))
       return;
   }
@@ -768,15 +687,20 @@ STATIC void trace_slot(JSValue* ptr)
   }
 }
 
-STATIC void trace_malloc_pointer(void **ptrp)
+STATIC void trace_root_pointer(void **ptrp)
 {
   void *ptr = *ptrp;
 
+  if ((((uintptr_t) ptr) & TAGMASK) != 0) {
+    trace_slot((JSValue *) ptrp);
+    return;
+  }
+
   switch (obj_header_tag(ptr)) {
   case HTAG_PROP:
-    printf("HTAG_PROP in trace_malloc_pointer\n"); break;
+    printf("HTAG_PROP in trace_root_pointer\n"); break;
   case HTAG_ARRAY_DATA:
-    printf("HTAG_ARRAY_DATA in trace_malloc_pointer\n"); break;
+    printf("HTAG_ARRAY_DATA in trace_root_pointer\n"); break;
   case HTAG_FUNCTION_FRAME:
     trace_FunctionFrame((FunctionFrame **)ptrp); break;
   case HTAG_HASH_BODY:
@@ -786,11 +710,14 @@ STATIC void trace_malloc_pointer(void **ptrp)
   case HTAG_CONTEXT:
     trace_Context((Context **)ptrp); break;
   case HTAG_STACK:
-    printf("HTAG_STACK in trace_malloc_pointer\n"); break;
+    printf("HTAG_STACK in trace_root_pointer\n"); break;
 #ifdef HIDDEN_CLASS
   case HTAG_HIDDEN_CLASS:
     trace_HiddenClass((HiddenClass **)ptrp); break;
 #endif
+  default:
+    trace_slot((JSValue *) ptrp);
+    return;
   }
 }
 
@@ -832,9 +759,7 @@ STATIC void scan_roots(Context *ctx)
    * tmp root
    */
   for (i = 0; i <= tmp_roots_sp; i++)
-    trace_slot((JSValue *) tmp_roots[i]);
-  for (i = 0; i <= tmp_roots_malloc_sp; i++)
-    trace_malloc_pointer(tmp_roots_malloc[i]);
+    trace_root_pointer((void **) tmp_roots[i]);
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
@@ -966,10 +891,10 @@ STATIC void sweep(void)
   sanity_check();
   check_invariant();
 #endif /* GC_DEBUG */
-  sweep_space(&malloc_space);
   sweep_space(&js_space);
 }
 
+#ifdef GC_DEBUG
 STATIC void check_invariant_nobw_space(struct space *space)
 {
   uintptr_t scan = space->addr;
@@ -1002,8 +927,6 @@ STATIC void check_invariant_nobw_space(struct space *space)
 	}
 	if (in_js_space((void *)(x & ~7))) {
 	  assert(is_marked_cell((void *) (x & ~7)));
-	} else if (in_malloc_space((void *) x)) {
-	  assert(is_marked_cell((void *) x));
 	}
       }
     }
@@ -1013,7 +936,6 @@ STATIC void check_invariant_nobw_space(struct space *space)
 
 STATIC void check_invariant(void)
 {
-  check_invariant_nobw_space(&malloc_space);
   check_invariant_nobw_space(&js_space);
 }
 
@@ -1022,7 +944,6 @@ STATIC void print_memory_status(void)
 {
   GCLOG("  gc_disabled = %d\n", gc_disabled);
   GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
-  GCLOG("  malloc_space.free_bytes = %d\n", malloc_space.free_bytes);
 }
 
 STATIC void print_heap_stat(void)
@@ -1048,7 +969,6 @@ STATIC void print_heap_stat(void)
   }
 }
 
-#ifdef GC_DEBUG
 extern void** stack_start;
 STATIC void sanity_check()
 {
@@ -1060,14 +980,6 @@ STATIC void sanity_check()
     if (in_js_space(*p)) {
       if (is_object(*p) || is_string(*p) || is_flonum(*p)) {
 	if (!is_marked_cell(remove_object_tag(*p))){
-	  printf("%p -> %p (unmarked)\n", p, *p);
-	  *(int*)p = 0xdeadbeef;
-	}
-      }
-    }
-    if (in_malloc_space(*p)) {
-      if ((((uintptr_t) *p) & 7) == 0) {
-	if (!is_marked_cell(*p)) {
 	  printf("%p -> %p (unmarked)\n", p, *p);
 	  *(int*)p = 0xdeadbeef;
 	}

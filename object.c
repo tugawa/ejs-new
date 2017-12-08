@@ -319,16 +319,16 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
         nexth = new_hidden_class(ctx, oh);
         gc_pop_tmp_root(3);
         // print_hidden_class("transit_hidden_class: to (before put)", nexth);
-        gc_push_tmp_root_malloc2((void **)&nexth, (void **)&oh);
+        gc_push_tmp_root2((JSValue*) &nexth, (JSValue*) &oh);
         r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
         if (r != HASH_PUT_SUCCESS) {
-          gc_pop_tmp_root_malloc(2);
+          gc_pop_tmp_root(2);
           return FAIL;
         }
         hidden_n_entries(nexth)++;
         hash_put_with_attribute(hidden_map(oh), name, (HashData)nexth,
                           ATTR_NONE | ATTR_TRANSITION);
-        gc_pop_tmp_root_malloc(2);
+        gc_pop_tmp_root(2);
         hidden_n_entries(oh)++;
       }
       hidden_n_exit(obj_hidden_class(obj))++;
@@ -338,9 +338,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       n_enter_hc++;
     } else {                  // hidden_htype(oh) == HTYPE_GROW
       nexth = oh;
-      gc_push_tmp_root_malloc((void **)&nexth);
+      gc_push_tmp_root((JSValue*) &nexth);
       r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
-      gc_pop_tmp_root_malloc(1);
+      gc_pop_tmp_root(1);
       if (r != HASH_PUT_SUCCESS) return FAIL;
       hidden_n_entries(nexth)++;
     }
@@ -960,9 +960,9 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  gc_push_tmp_root_malloc((void **)&c);
+  gc_push_tmp_root((JSValue *)&c);
   enable_gc(ctx);
-  gc_pop_tmp_root_malloc(1);
+  gc_pop_tmp_root(1);
   n_hc++;
   return c;
 }
@@ -985,9 +985,9 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  gc_push_tmp_root_malloc((void **)&c);
+  gc_push_tmp_root((JSValue *)&c);
   enable_gc(ctx);
-  gc_pop_tmp_root_malloc(1);
+  gc_pop_tmp_root(1);
   n_hc++;
   return c;
 }
