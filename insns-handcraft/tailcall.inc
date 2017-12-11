@@ -11,6 +11,7 @@
   fn = regbase[get_first_operand_reg(insn)];
   set_fp(context, fp);
   set_pc(context, pc);
+  try_gc(context);
 
   if (is_function(fn)) {
 #ifdef CALC_CALL

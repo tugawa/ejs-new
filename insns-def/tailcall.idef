@@ -7,6 +7,7 @@
 \when fn:function \{
   set_fp(context, fp);
   set_pc(context, pc);
+  try_gc(context);
   tailcall_function(context, fn, nargs, sendp);
   update_context();
   NEXT_INSN_NOINCPC();
@@ -15,6 +16,7 @@
 \when fn:builtin \{
   set_fp(context, fp);
   set_pc(context, pc);
+  try_gc(context);
   tailcall_builtin(context, fn, nargs, sendp, FALSE);
   update_context();
   NEXT_INSN_INCPC();
