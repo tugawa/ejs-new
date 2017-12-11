@@ -1029,33 +1029,41 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitCallExpression(IASTCallExpression node) {
+        /*
+         * argRegs[0~3] are used for saving special registers.
+         * argRegs[4] is used for saving `this` object.
+         * We use argRegs[5~] for arguments.
+         */
+        final int IDX_OF_THIS_OBJECT = 4;
+        final int IDX_OF_FIRST_ARGUMENT = 5;
+        Register[] argRegs = env.freshArgumentRegister(node.arguments.size()
+                + 1/* for `this` object*/ + 4/* for special registers */);
+
         if (node.callee instanceof IASTMemberExpression) {
-            Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
-            Register[] tmpRegs = new Register[node.arguments.size()];
             Register objReg = env.freshRegister();
             compileNode(((IASTMemberExpression) node.callee).object, objReg);
             Register propReg = env.freshRegister();
             compileNode(((IASTMemberExpression) node.callee).property, propReg);
             Register expReg = env.freshRegister();
             bcBuilder.push(new IGetprop(expReg, objReg, propReg));
+            Register[] tmpRegs = new Register[node.arguments.size()];
             for (int i = 0; i < tmpRegs.length; i++) {
                 tmpRegs[i] = env.freshRegister();
                 compileNode(node.arguments.get(i), tmpRegs[i]);
             }
-            bcBuilder.push(new IMove(argRegs[0], objReg));
+            bcBuilder.push(new IMove(argRegs[IDX_OF_THIS_OBJECT], objReg));
             for (int i = 0; i < tmpRegs.length; i++) {
-                bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
+                bcBuilder.push(new IMove(argRegs[IDX_OF_FIRST_ARGUMENT + i], tmpRegs[i]));
             }
             bcBuilder.push(new ISend(expReg, node.arguments.size()));
         } else {
-            Register[] argRegs = env.freshArgumentRegister(node.arguments.size() + 1);
             Register[] tmpRegs = new Register[node.arguments.size()];
             for (int i = 0; i < tmpRegs.length; i++) {
                 tmpRegs[i] = env.freshRegister();
                 compileNode(node.arguments.get(i), tmpRegs[i]);
             }
             for (int i = 0; i < tmpRegs.length; i++) {
-                bcBuilder.push(new IMove(argRegs[i + 1], tmpRegs[i]));
+                bcBuilder.push(new IMove(argRegs[IDX_OF_FIRST_ARGUMENT + i], tmpRegs[i]));
             }
             Register calleeReg = env.freshRegister();
             compileNode(node.callee, calleeReg);
