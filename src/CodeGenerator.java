@@ -969,13 +969,24 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new ISetglobal(r1, srcReg));
         } else {
             if (varLoc.isLocal) {
-                if (varLoc.depth == 0 && !needFrame)
+                if (needFrame)
+                    bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
+                else if (varLoc.depth > 0)
+                    bcBuilder.push(new ISetlocal(varLoc.depth - 1, varLoc.idx, srcReg));
+                else
                     throw new Error("internal error");
-                bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
             } else {
-                if (varLoc.depth == 0 && !needArguments) {
+                if (!needArguments && varLoc.depth == 0)
                     bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
+                else if (!needFrame && varLoc.depth > 0) {
+                    Register r1 = env.freshRegister();
+                    Register r2 = env.freshRegister();
+                    bcBuilder.push(new IGetlocal(r1, varLoc.depth - 1, 0));
+                    bcBuilder.push(new IFixnum(r2, varLoc.idx));
+                    bcBuilder.push(new ISetprop(r1, r2, srcReg));
                 } else {
+                    if (!(needArguments || (needFrame && varLoc.depth > 0)))
+                        throw new Error("internal error");
                     Register r1 = env.freshRegister();
                     Register r2 = env.freshRegister();
                     bcBuilder.push(new IGetlocal(r1, varLoc.depth, 0));
@@ -993,13 +1004,24 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IGetglobal(dstReg, r1));
         } else {
             if (varLoc.isLocal) {
-                if (varLoc.depth == 0 && !needFrame)
+                if (needFrame)
+                    bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
+                else if (varLoc.depth > 0)
+                    bcBuilder.push(new IGetlocal(dstReg, varLoc.depth - 1, varLoc.idx));
+                else
                     throw new Error("internal error");
-                bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
             } else {
-                if (varLoc.depth == 0 && !needArguments) {
+                if (!needArguments && varLoc.depth == 0)
                     bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2)));
+                else if (!needFrame && varLoc.depth > 0) {
+                    Register r1 = env.freshRegister();
+                    Register r2 = env.freshRegister();
+                    bcBuilder.push(new IGetlocal(r1, varLoc.depth - 1, 0));
+                    bcBuilder.push(new IFixnum(r2, varLoc.idx));
+                    bcBuilder.push(new IGetprop(dstReg, r1, r2));
                 } else {
+                    if (!(needArguments || (needFrame && varLoc.depth > 0)))
+                        throw new Error("internal error");
                     Register r1 = env.freshRegister();
                     Register r2 = env.freshRegister();
                     bcBuilder.push(new IGetlocal(r1, varLoc.depth, 0));
