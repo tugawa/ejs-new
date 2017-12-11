@@ -361,13 +361,13 @@ class IASTFunctionExpression extends IASTExpression {
 	List<String> locals;
 	IASTStatement body;
 	public boolean needArguments;
-	public boolean needNewframe;
+	public boolean needFrame;
 	IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body) {
 		this.params = params;
 		this.locals = locals;
 		this.body = body;
 		this.needArguments = true;
-		this.needNewframe = true;
+		this.needFrame = true;
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {

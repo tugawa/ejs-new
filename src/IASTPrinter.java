@@ -308,7 +308,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 		jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
 		// needArguments
 		jb.add(KEY_NEED_ARGUMENTS, node.needArguments);
-		jb.add(KEY_NEED_NEWFRAME, node.needNewframe);
+		jb.add(KEY_NEED_NEWFRAME, node.needFrame);
 		return jb.build();
 	}
 	public Object visitOperatorExpression(IASTOperatorExpression node) {
