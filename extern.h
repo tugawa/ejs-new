@@ -155,7 +155,7 @@ extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
 /*
  * context.c
  */
-extern FunctionFrame *new_frame(FunctionTable *, FunctionFrame *, int);
+extern FunctionFrame *new_frame(Context *, FunctionTable *, FunctionFrame *, int);
 extern void pop_special_registers(Context *, int, JSValue *);
 extern void init_context(FunctionTable *, JSValue, Context **);
 

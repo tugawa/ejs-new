@@ -27,15 +27,17 @@ static Context *allocate_context(size_t);
 
 // creates a new function frame
 //
-FunctionFrame *new_frame(FunctionTable *ft, FunctionFrame *env, int nl) {
+FunctionFrame *new_frame(Context *ctx, FunctionTable *ft, FunctionFrame *env, int nl) {
   FunctionFrame *frame;
   JSValue *locals;
   int i;
 
   nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
+  gc_push_tmp_root(&env);
   frame = (FunctionFrame *)
-    gc_malloc_critical(sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
+    gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
 		       HTAG_FUNCTION_FRAME);
+  gc_pop_tmp_root(1);
   frame->prev_frame = env;
   locals = frame->locals;
   for (i = 0; i < nl; i++)
@@ -79,7 +81,7 @@ void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   c->global = glob;
 
   set_cf(c, ftab);
-  set_lp(c, new_frame(ftab, NULL, 0));
+  set_lp(c, new_frame(NULL, ftab, NULL, 0));
 
 #ifdef USE_FFI
   initForeignFunctionInterface(c);
