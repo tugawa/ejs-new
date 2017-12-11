@@ -33,6 +33,7 @@ extern void gc_pop_tmp_root(int n);
 
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
+extern void try_gc(Context *ctx);
 
 extern cell_type_t gc_obj_header_type(void *p);
 

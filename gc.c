@@ -347,6 +347,12 @@ void enable_gc(Context *ctx)
   }
 }
 
+void try_gc(Context *ctx)
+{
+  if (check_gc_request(ctx))
+    garbage_collect(ctx);
+}
+
 STATIC void garbage_collect(Context *ctx)
 {
   struct rusage ru0, ru1;

@@ -14,6 +14,7 @@
   newp = (op == NEWSEND)? TRUE: FALSE;
   set_fp(context, fp);
   set_pc(context, pc);
+  try_gc(context);
   if (is_function(fn)) {
 #ifdef CALC_CALL
     callcount++;
