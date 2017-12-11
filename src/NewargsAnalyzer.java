@@ -7,12 +7,12 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
     public boolean useArguments;
     public boolean useFunction;
 
-    public NewargsAnalyzer(boolean optOmitNewframe) {
-        this.optOmitFrame = optOmitNewframe;
+    public NewargsAnalyzer(boolean optOmitFrame) {
+        this.optOmitFrame = optOmitFrame;
         useArguments = false;
         useFunction = false;
     }
-    
+
     public void analyze(IASTNode node) {
         node.accept(this);
     }
@@ -50,5 +50,4 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         }
         return null;
     }
-
 }

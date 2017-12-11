@@ -30,7 +30,7 @@ public class Main {
         boolean optPrintAnalyzer = false;
         boolean optHelp = false;
         boolean optOmitArguments = false;
-        boolean optOmitNewframe = false;
+        boolean optOmitFrame = false;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -55,8 +55,8 @@ public class Main {
                     case "-omit-arguments":
                         info.optOmitArguments = true;
                         break;
-                    case "-omit-newframe":
-                        info.optOmitNewframe = true;
+                    case "-omit-frame":
+                        info.optOmitFrame = true;
                         break;
                     }
                 } else {
@@ -133,10 +133,10 @@ public class Main {
         if (info.optPrintIAST) {
             new IASTPrinter().print(iast);
         }
-        
-        if (info.optOmitArguments || info.optOmitNewframe) {
+
+        if (info.optOmitArguments || info.optOmitFrame) {
             // iAST newargs analyzer
-            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitNewframe);
+            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitFrame);
             analyzer.analyze(iast);
             if (info.optPrintAnalyzer) {
                 new IASTPrinter().print(iast);
@@ -146,7 +146,6 @@ public class Main {
         // convert iAST into ByteCode.
         CodeGenerator codegen = new CodeGenerator();
         List<BCode> bcodes = codegen.compile((IASTProgram) iast);
-//        List<BCode> bcodes = codegen.compile((IASTProgram) iast_opt);
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }

@@ -12,7 +12,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 	public static final String KEY_LOCALS           = "locals";
 	public static final String KEY_BODY             = "body";
 	public static final String KEY_NEED_ARGUMENTS   = "needArguments";
-	public static final String KEY_NEED_NEWFRAME    = "needNewframe";
+	public static final String KEY_NEED_FRAME       = "needFrame";
 	public static final String KEY_STMTS            = "stmts";
 	public static final String KEY_VALUE            = "value";
 	public static final String KEY_TEST             = "test";
@@ -306,9 +306,9 @@ public class IASTPrinter extends IASTBaseVisitor {
 		jb.add(KEY_LOCALS, jaLocals);
 		// body
 		jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
-		// needArguments
+		// needArguments and needFrame
 		jb.add(KEY_NEED_ARGUMENTS, node.needArguments);
-		jb.add(KEY_NEED_NEWFRAME, node.needFrame);
+		jb.add(KEY_NEED_FRAME, node.needFrame);
 		return jb.build();
 	}
 	public Object visitOperatorExpression(IASTOperatorExpression node) {
