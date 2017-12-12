@@ -366,6 +366,8 @@ class IASTFunctionExpression extends IASTExpression {
 		this.params = params;
 		this.locals = locals;
 		this.body = body;
+		this.needArguments = true;
+		this.needFrame = true;
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
