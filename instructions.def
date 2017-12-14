@@ -17,6 +17,8 @@ lessthan              THREEOP        Register   JSValue   JSValue
 lessthanequal         THREEOP        Register   JSValue   JSValue
 eq                    THREEOP        Register   JSValue   JSValue
 equal                 THREEOP        Register   JSValue   JSValue
+getarg                THREEOP        Register   int       Subscript
+setarg                THREEOP        int        Subscript JSValue
 getprop               THREEOP        Register   JSValue   JSValue
 setprop               THREEOP        JSValue    JSValue   JSValue
 setarray              THREEOP        JSValue    Subscript JSValue
@@ -35,8 +37,7 @@ seta                  ONEOP          JSValue
 geta                  ONEOP          Register
 geterr                ONEOP          Register
 getglobalobj          ONEOP          Register
-newargs               ZEROOP
-newframe              ONEOP          int
+newframe              TWOOP          int        int
 ret                   ZEROOP
 nop                   ZEROOP
 jump                  UNCONDJUMP     Displacement
