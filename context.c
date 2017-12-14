@@ -39,6 +39,7 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft, FunctionFrame *env, in
 		       HTAG_FUNCTION_FRAME);
   gc_pop_tmp_root(1);
   frame->prev_frame = env;
+  frame->arguments = JS_UNDEFINED;
   locals = frame->locals;
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;
