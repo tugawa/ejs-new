@@ -42,6 +42,10 @@ public class BCode {
         return opcode + " " + op1;
     }
 
+    String toString(String opcode, int op1, int op2) {
+        return opcode + " " + op1 + op2;
+    }
+
     String toString(String opcode, Register op1, int op2, String op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
@@ -333,7 +337,7 @@ class INewframe extends BCode {
         this.status = status;
     }
     public String toString() {
-        return super.toString("newframe", len);
+        return super.toString("newframe", len, status);
     }
 }
 class IGetglobal extends BCode {

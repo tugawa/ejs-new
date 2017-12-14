@@ -640,7 +640,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         if (needArguments)
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NEED));
-        if (needFrame)
+        else if (needFrame)
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NOT_NEED));
         bcBuilder.push(new ISetfl(env.getFl()));
         Register retReg = env.freshRegister();
