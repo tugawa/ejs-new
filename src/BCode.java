@@ -43,7 +43,7 @@ public class BCode {
     }
 
     String toString(String opcode, int op1, int op2) {
-        return opcode + " " + op1 + op2;
+        return opcode + " " + op1 + " " + op2;
     }
 
     String toString(String opcode, Register op1, int op2, String op3) {
