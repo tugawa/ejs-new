@@ -327,8 +327,10 @@ class INewargs extends BCode {
 }
 class INewframe extends BCode {
     int len;
-    INewframe(int len) {
+    int status;
+    INewframe(int len, int status) {
         this.len = len;
+        this.status = status;
     }
     public String toString() {
         return super.toString("newframe", len);
@@ -376,6 +378,30 @@ class ISetlocal extends BCode {
     }
     public String toString() {
         return super.toString("setlocal", depth, n, src);
+    }
+}
+class IGetarg extends BCode {
+    Register dst;
+    int depth, n;
+    IGetarg(Register dst, int depth, int n) {
+        this.dst = dst;
+        this.depth = depth;
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("getarg", dst, depth, n);
+    }
+}
+class ISetarg extends BCode {
+    int depth, n;
+    Register src;
+    ISetarg(int depth, int n, Register src) {
+        this.depth = depth;
+        this.n = n;
+        this.src = src;
+    }
+    public String toString() {
+        return super.toString("setarg", depth, n, src);
     }
 }
 class IGetprop extends BCode {
