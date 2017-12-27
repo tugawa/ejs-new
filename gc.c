@@ -534,8 +534,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
 
   if (ptr->prev_frame != NULL)
     trace_FunctionFrame(&ptr->prev_frame);
-  if (ptr->arguments != NULL)
-    trace_slot(&ptr->arguments);
+  trace_slot(&ptr->arguments);
   /* locals */
   header = *(((uint64_t *) ptr) - HEADER_JSVALUES);
   length = HEADER0_GET_SIZE(header);
