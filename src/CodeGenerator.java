@@ -246,7 +246,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    public List<BCode> compile(IASTProgram node) {
+    public BCBuilder compile(IASTProgram node) {
         this.bcBuilder = new BCBuilder();
         this.env = new Environment();
         try {
@@ -259,8 +259,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             e.printStackTrace();
             System.exit(1);
         }
-        // printByteCode(bcBuilder.build());
-        return bcBuilder.build();
+        return bcBuilder;
     }
 
     void compileNode(IASTNode node, Register reg) {

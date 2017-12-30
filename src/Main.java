@@ -100,6 +100,7 @@ public class Main {
             return;
         }
 
+        // Parse JavaScript File
         ANTLRInputStream antlrInStream;
         try {
             InputStream inStream;
@@ -134,6 +135,7 @@ public class Main {
             new IASTPrinter().print(iast);
         }
 
+        // iAST level optimisation
         if (info.optOmitArguments || info.optOmitFrame) {
             // iAST newargs analyzer
             NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitFrame);
@@ -143,9 +145,12 @@ public class Main {
             }
         }
 
-        // convert iAST into ByteCode.
+        // convert iAST into low level code.
         CodeGenerator codegen = new CodeGenerator();
-        List<BCode> bcodes = codegen.compile((IASTProgram) iast);
+        BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
+
+        // resolve jump destinations
+        List<BCode> bcodes = bcBuilder.build();
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
