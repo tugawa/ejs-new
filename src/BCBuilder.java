@@ -26,11 +26,16 @@ class BCBuilder {
         	}
         	@Override
         	public String toString() {
-        		String s ="@MACRO call";
+        		String s ="@MACRO ";
+
         		if (isTail)
-        			s += " [tail]";
-        		s += (receiver == null ? " function" : (" method " + receiver));
-        		s += " " + function;
+        			s += "tail";
+        		if (isNew)
+        			s += "new " + receiver + " " + function;
+        		else if (receiver == null)
+        			s += "call " + function;
+        		else
+        			s += "send " + receiver + " " + function;
         		for (Register r: args)
         			s += " " + r;
         		return s;
@@ -58,8 +63,7 @@ class BCBuilder {
 
         LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
 
-        List<BCode> build() {
-            List<BCode> result = new LinkedList<BCode>();
+        void expandMacro() {
             int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
             int totalNumberOfRegisters = numberOfGPRegisters + numberOfOutRegisters;
             
@@ -69,7 +73,6 @@ class BCBuilder {
             
             for (int number = 0; number < bcodes.size(); ) {
             	BCode bcode = bcodes.get(number);
-            	/* macro expansion */
             	if (bcode instanceof MSetfl) {
             		MSetfl msetfl = (MSetfl) bcode;
             		ISetfl isetfl = new ISetfl(totalNumberOfRegisters);
@@ -95,11 +98,17 @@ class BCBuilder {
             		bcodes.get(number).addLabels(mcall.getLabels());
             		continue;
             	}
-            	/* set address */
-                bcode.number = number;
-                number++;
+            	number++;
             }
-            
+        }
+
+        void assignAddress() {
+            for (int number = 0; number < bcodes.size(); number++)
+                bcodes.get(number).number = number;
+        }
+
+        List<BCode> build() {
+            List<BCode> result = new LinkedList<BCode>();
             result.add(new ICallentry(callentry));
             result.add(new ISendentry(sendentry));
             result.add(new INumberOfLocals(numberOfLocals));
@@ -110,6 +119,14 @@ class BCBuilder {
         
         void setNumberOfGPRegisters(int gpregs) {
         	numberOfGPRegisters = gpregs;
+        }
+        
+        @Override
+        public String toString() {
+        	StringBuffer sb = new StringBuffer();
+        	for (BCode i: bcodes)
+        		sb.append(i.number).append(": ").append(i).append("\n");
+        	return sb.toString();
         }
     }
 
@@ -130,6 +147,16 @@ class BCBuilder {
         fbStack.pop();
     }
 
+    void expandMacro() {
+    	for (FunctionBCBuilder f: fBuilders)
+    		f.expandMacro();
+    }
+ 
+    void assignAddress() {
+    	for (FunctionBCBuilder f: fBuilders)
+    		f.assignAddress();    	
+    }
+    
     List<BCode> build() {
         // build fBuilders.
         List<BCode> result = new LinkedList<BCode>();
@@ -176,5 +203,14 @@ class BCBuilder {
 
     void setNumberOfGPRegisters(int gpregs) {
     	fbStack.getFirst().setNumberOfGPRegisters(gpregs);
+    }
+
+    @Override
+    public String toString() {
+    	StringBuffer sb = new StringBuffer();
+    	for (FunctionBCBuilder f: fBuilders)
+    		sb.append(f.toString()).append("\n");
+    		  
+    	return sb.toString();
     }
 }

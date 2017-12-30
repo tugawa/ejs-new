@@ -9,7 +9,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import antlr.*;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -28,6 +27,7 @@ public class Main {
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
         boolean optPrintAnalyzer = false;
+        boolean optPrintLowLevelCode = false;
         boolean optHelp = false;
         boolean optOmitArguments = false;
         boolean optOmitFrame = false;
@@ -46,6 +46,9 @@ public class Main {
                     case "--analyzer":
                         info.optPrintAnalyzer = true;
                         break;
+                    case "--llcode":
+                    	info.optPrintLowLevelCode = true;
+                    	break;
                     case "--help":
                         info.optHelp = true;
                         break;
@@ -149,7 +152,16 @@ public class Main {
         CodeGenerator codegen = new CodeGenerator();
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
+        if (info.optPrintLowLevelCode) {
+        	bcBuilder.assignAddress();
+        	System.out.print(bcBuilder);
+        }
+        
+        // macro instruction expansion
+        bcBuilder.expandMacro();
+        
         // resolve jump destinations
+    	bcBuilder.assignAddress();
         List<BCode> bcodes = bcBuilder.build();
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
