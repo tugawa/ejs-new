@@ -5,7 +5,7 @@ import java.util.List;
 
 public class CodeGenerator extends IASTBaseVisitor {
 
-    class JSLabel {
+    static class JSLabel {
         String name;
         Label label;
         JSLabel(String name, Label label) {
@@ -14,10 +14,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    class Environment {
+    static class Environment {
 
         // Frame is made for each IASTFunction.
-        class Frame {
+        static class Frame {
             List<String> args;
             List<String> staticLocals;
             LinkedList<String> dynamicLocals;
@@ -110,38 +110,38 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
 
         // "getVar" method fetch arg/local's storage location from given identifier.
-        // For example: if Result is { isLocal:true, depth:1, n:2 },
+        // For example: if Location is { isLocal:true, depth:1, n:2 },
         //              you can push a bytecode "setlocal 1 2 x" or "getlocal y 1 2".
-        class Result {
+        static class Location {
             boolean isLocal; // ARG -> false, LOCAL -> true
             int depth;
             int idx;
-            Result(boolean isLocal, int depth, int idx) {
+            Location(boolean isLocal, int depth, int idx) {
                 this.isLocal = isLocal; this.depth = depth; this.idx = idx;
             }
         }
-        Result getVar(String id) {
+        Location getVar(String id) {
             int depth = 0;
             for (Frame ve : frameList) {
                 int cnt = 0;
                 for (String lo : ve.dynamicLocals) {
                     if (id.equals(lo)) {
                         int n = ve.dynamicLocals.size() - cnt - 1 + ve.staticLocals.size();
-                        return new Result(true, depth, n);
+                        return new Location(true, depth, n);
                     }
                     cnt++;
                 }
                 cnt = 0;
                 for (String lo : ve.staticLocals) {
                     if (id.equals(lo)) {
-                        return new Result(true, depth, cnt);
+                        return new Location(true, depth, cnt);
                     }
                     cnt++;
                 }
                 cnt = 0;
                 for (String arg : ve.args) {
                     if (id.equals(arg)) {
-                        return new Result(false, depth, cnt);
+                        return new Location(false, depth, cnt);
                     }
                     cnt++;
                 }
@@ -859,7 +859,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
     void compileSetVariable(String varName, Register srcReg) {
-        Environment.Result varLoc = env.getVar(varName);
+        Environment.Location varLoc = env.getVar(varName);
         if (varLoc == null) {
             Register r1 = env.freshRegister();
             bcBuilder.push(new IString(r1, varName));
@@ -886,7 +886,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
     void compileGetVariable(String varName, Register dstReg) {
-        Environment.Result varLoc = env.getVar(varName);
+        Environment.Location varLoc = env.getVar(varName);
         if (varLoc == null) {
             Register r1 = env.freshRegister();
             bcBuilder.push(new IString(r1, varName));
