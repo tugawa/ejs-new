@@ -3,12 +3,9 @@ import java.util.List;
 
 class BCBuilder {
 
-    class FunctionBCBuilder {
-        class MSetfl extends BCode {
-        	FunctionBCBuilder function;
-        	MSetfl(FunctionBCBuilder function) {
-        		this.function = function;
-        	}
+    static class FunctionBCBuilder {
+        static class MSetfl extends BCode {
+        	MSetfl() {}
         	@Override
 			public String toString() {
         		return "@MACRO setfl";
@@ -16,7 +13,7 @@ class BCBuilder {
         }
 
         MSetfl createMSetfl() {
-        	return new MSetfl(this);
+        	return new MSetfl();
         }
 
         int callentry = 0;
