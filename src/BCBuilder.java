@@ -4,9 +4,27 @@ import java.util.List;
 class BCBuilder {
 
     class FunctionBCBuilder {
+        class MSetfl extends BCode {
+        	FunctionBCBuilder function;
+        	MSetfl(FunctionBCBuilder function) {
+        		this.function = function;
+        	}
+        	@Override
+			public String toString() {
+        		return "@MACRO setfl";
+        	}
+        }
+
+        MSetfl createMSetfl() {
+        	return new MSetfl(this);
+        }
+
         int callentry = 0;
         int sendentry = 0;
         int numberOfLocals = 0;
+        int numberOfGPRegisters;
+        int numberOfArgumentRegisters;
+        
         LinkedList<BCode> bcodes = new LinkedList<BCode>();
 
         LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
@@ -14,10 +32,14 @@ class BCBuilder {
         List<BCode> build() {
             int numberOfInstruction = bcodes.size();
             List<BCode> result = new LinkedList<BCode>();
-            int number = 0;
-            for (BCode bcode : bcodes) {
+            
+            for (int number = 0; number < bcodes.size(); number++) {
+            	BCode bcode = bcodes.get(number);
+            	if (bcode instanceof MSetfl) {
+            		bcode = new ISetfl(numberOfGPRegisters + numberOfArgumentRegisters);
+            		bcodes.set(number, bcode);
+            	}
                 bcode.number = number;
-                number++;
             }
             result.add(new ICallentry(callentry));
             result.add(new ISendentry(sendentry));
@@ -26,6 +48,16 @@ class BCBuilder {
             result.addAll(bcodes);
             return result;
         }
+        
+        void setNumberofRegisters(int gpregs, int argregs) {
+        	numberOfGPRegisters = gpregs;
+        	numberOfArgumentRegisters = argregs;
+        }
+        
+        int getNumberOfRegisters() {
+        	return numberOfGPRegisters + numberOfArgumentRegisters;
+        }
+        
     }
 
     private LinkedList<FunctionBCBuilder> fbStack = new LinkedList<FunctionBCBuilder>();
@@ -64,6 +96,10 @@ class BCBuilder {
         fbStack.getFirst().bcodes.add(bcode);
     }
 
+    void pushMsetfl() {
+    	push(fbStack.getFirst().createMSetfl());
+    }
+    
     BCode getLastBCode() {
         return this.fbStack.getFirst().bcodes.getLast();
     }
@@ -80,4 +116,7 @@ class BCBuilder {
         this.fbStack.getFirst().numberOfLocals = n;
     }
 
+    void setNumberOfRegisters(int gpregs, int argregs) {
+    	fbStack.getFirst().setNumberofRegisters(gpregs, argregs);
+    }
 }

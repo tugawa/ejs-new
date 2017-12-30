@@ -23,16 +23,12 @@ public class CodeGenerator extends IASTBaseVisitor {
             LinkedList<String> dynamicLocals;
 
             private int maxNumOfDynamicLocals = 0;
-            private int numOfUsingRegisters = 0;
-            private int numOfRequiredRegisters = numOfUsingRegisters;
+            private int numOfRegisters = 0;
             private final static int MAX_OF_STACK_OF_USING_REGISTERS = 256;
-            private int[] stackOfUsingRegisters = new int[MAX_OF_STACK_OF_USING_REGISTERS];
-            private int stackPointerOfUsingRegisters = 0;
 
-            private int numOfUsingArgumentRegisters = 0;
+            private int numOfArgumentRegisters = 0;
             private List<Register> argumentRegisters = new LinkedList<Register>();
 
-            private Fl fl = new Fl();
             LinkedList<JSLabel> breakLabels = new LinkedList<JSLabel>();
             LinkedList<JSLabel> continueLabels = new LinkedList<JSLabel>();
 
@@ -49,20 +45,12 @@ public class CodeGenerator extends IASTBaseVisitor {
                     maxNumOfDynamicLocals = dynamicLocals.size();
                 }
             }
-            void pushCurNumOfUsingRegister() {
-                stackOfUsingRegisters[stackPointerOfUsingRegisters++] = numOfUsingRegisters;
-            }
-            void popCurNumOfUsingRegister() {
-                numOfUsingRegisters = stackOfUsingRegisters[--stackPointerOfUsingRegisters];
-            }
             Register newRegister() {
-                numOfUsingRegisters++;
-                if (numOfRequiredRegisters <= numOfUsingRegisters)
-                    numOfRequiredRegisters = numOfUsingRegisters;
-                return new Register(numOfUsingRegisters);
+                numOfRegisters++;
+                return new Register(numOfRegisters);
             }
             Register[] newArgumentRegister(int n) {
-                for (; numOfUsingArgumentRegisters < n; numOfUsingArgumentRegisters++) {
+                for (; numOfArgumentRegisters < n; numOfArgumentRegisters++) {
                     argumentRegisters.add(new Register());
                 }
                 Register[] ret = new Register[n];
@@ -71,18 +59,22 @@ public class CodeGenerator extends IASTBaseVisitor {
                 }
                 return ret;
             }
-            Fl getFl() {
-                return fl;
-            }
             void close() {
-                fl.n = numOfRequiredRegisters + numOfUsingArgumentRegisters;
-                for (int i = 0, n = fl.n; i < numOfUsingArgumentRegisters; i++, n--) {
-                    argumentRegisters.get(i).n = n;
+                for (int i = 0; i < numOfArgumentRegisters; i++) {
+                    argumentRegisters.get(i).n = numOfRegisters + numOfArgumentRegisters - i;
                 }
             }
 
             int getNumberOfLocals() {
                 return this.staticLocals.size() + this.maxNumOfDynamicLocals;
+            }
+            
+            int getNumberOfGPRegisters() {
+            	return numOfRegisters;
+            }
+            
+            int getNumberOfArgumentRegisters() {
+            	 return numOfArgumentRegisters;
             }
         }
 
@@ -158,14 +150,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             return null;
         }
 
-        // You must call these methods before/after compiling each IASTNode.
-        void before() {
-            this.frameList.getFirst().pushCurNumOfUsingRegister();
-        }
-        void after() {
-            this.frameList.getFirst().popCurNumOfUsingRegister();
-        }
-
         void pushBreakLabel(String name, Label label) {
             frameList.getFirst().breakLabels.push(new JSLabel(name, label));
         }
@@ -210,12 +194,16 @@ public class CodeGenerator extends IASTBaseVisitor {
             return this.frameList.getFirst().newArgumentRegister(n);
         }
 
-        Fl getFl() {
-            return this.frameList.getFirst().getFl();
-        }
-
         int getNumberOfLocals() {
             return this.frameList.getFirst().getNumberOfLocals();
+        }
+
+        int getNumberOfGPRegisters() {
+        	return this.frameList.getFirst().getNumberOfGPRegisters();
+        }
+        
+        int getNumberOfArgumentRegisters() {
+        	return this.frameList.getFirst().getNumberOfArgumentRegisters();
         }
 
         void setRegOfGlobalObj(Register reg) {
@@ -253,6 +241,8 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.openFunctionBCBuilder();
             env.openFrame(new ArrayList<String>(), new ArrayList<String>());
             compileNode(node, null);
+            bcBuilder.setNumberOfLocals(0);
+            bcBuilder.setNumberOfRegisters(env.getNumberOfGPRegisters(), env.getNumberOfArgumentRegisters());
             env.closeFrame();
             bcBuilder.closeFuncBCBuilder();
         } catch (Exception e) {
@@ -274,7 +264,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register globalObjReg = env.freshRegister();
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         Register retReg = env.freshRegister();
         compileNode(node.program.body, retReg);
         bcBuilder.push(new ISeta(retReg));
@@ -551,7 +541,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NEED));
         else if (needFrame)
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NOT_NEED));
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         Register retReg = env.freshRegister();
         compileNode(node.body, retReg);
         bcBuilder.push(new ISpecconst(reg, "undefined"));
@@ -560,6 +550,7 @@ public class CodeGenerator extends IASTBaseVisitor {
 
         bcBuilder.setSendentry(1);
         bcBuilder.setNumberOfLocals(env.getNumberOfLocals());
+        bcBuilder.setNumberOfRegisters(env.getNumberOfGPRegisters(), env.getNumberOfArgumentRegisters());
 
         // Don't change the order.
         env.closeFrame();
@@ -588,7 +579,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IMove(argRegs[1], r1));
         bcBuilder.push(new IMove(argRegs[0], reg));
         bcBuilder.push(new INewsend(r3, 1));
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(reg));
         int i = 0;
         for (IASTExpression element : node.elements) {
@@ -607,7 +598,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new INew(reg, r2));
         bcBuilder.push(new IMove(argRegs[0], reg));
         bcBuilder.push(new INewsend(r2, 0));
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(reg));
         for (IASTObjectExpression.Property prop : node.properties) {
             compileNode(prop.value, r1);
@@ -983,7 +974,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(node.callee, calleeReg);
             bcBuilder.push(new ICall(calleeReg, node.arguments.size()));
         }
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(reg));
         return null;
     }
@@ -1007,7 +998,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new INew(reg, constructorReg));
         bcBuilder.push(new IMove(argRegs[0], reg));
         bcBuilder.push(new INewsend(constructorReg, node.arguments.size()));
-        bcBuilder.push(new ISetfl(env.getFl()));
+        bcBuilder.pushMsetfl();
         Register strReg = env.freshRegister();
         bcBuilder.push(new IString(strReg, "Object"));
         Register objReg = env.freshRegister();

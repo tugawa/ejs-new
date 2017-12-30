@@ -18,4 +18,4 @@ compiler.jar: src $(MANIFEST)
 
 clean:
 	rm -r ./bin
-	rm compiler.jar
+	rm newejsc.jar

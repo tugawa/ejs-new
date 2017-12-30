@@ -63,16 +63,6 @@ class Register {
         return Integer.toString(n);
     }
 }
-class Fl {
-    int n;
-    Fl() {}
-    Fl(int n) {
-        this.n = n;
-    }
-    public String toString() {
-        return Integer.toString(n);
-    }
-}
 class Label {
     BCode bcode;
     Label() {}
@@ -668,10 +658,10 @@ class IPoplocal extends BCode {
 
 
 class ISetfl extends BCode {
-    Fl fl;
-    ISetfl(Fl fl) { this.fl = fl; }
+    int fl;
+    ISetfl(int fl) { this.fl = fl; }
     public String toString() {
-        return super.toString("setfl", fl.n);
+        return super.toString("setfl", fl);
     }
 }
 
