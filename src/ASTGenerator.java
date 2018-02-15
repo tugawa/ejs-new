@@ -607,6 +607,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
 	@Override public Node visitFunctionExpression(ECMAScriptParser.FunctionExpressionContext ctx) {
 		List<IPattern> params = new ArrayList<IPattern>();
+		Identifier id = ctx.Identifier() != null ? new Identifier(ctx.Identifier().getText()) : null;
 		FormalParameterListContext fplist = ctx.formalParameterList();
 		if (fplist != null) {
 			for (TerminalNode t : fplist.Identifier()) {
@@ -614,7 +615,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			}
 		}
 		BlockStatement body = (BlockStatement) visit(ctx.functionBody());
-		return new FunctionExpression(null, params, body);
+		return new FunctionExpression(id, params, body);
 	}
 
 	@Override public Node visitBitShiftExpression(ECMAScriptParser.BitShiftExpressionContext ctx) {
