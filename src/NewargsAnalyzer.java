@@ -36,6 +36,7 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         if (this.optOmitFrame) {
             node.needArguments = useArg || useFunc;
             node.needFrame = node.needArguments || hasLocals;
+            node.eraseParams = node.needArguments && node.needFrame && !useArg;
         } else {
             node.needArguments = useArg || useFunc || hasLocals;
             node.needFrame = node.needArguments;

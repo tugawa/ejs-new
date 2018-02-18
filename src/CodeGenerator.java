@@ -329,6 +329,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     final static int ARGUMENTS_NOT_NEED = 0;
     boolean needArguments;
     boolean needFrame;
+    boolean eraseParams;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -623,26 +624,42 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitFunctionExpression(IASTFunctionExpression node) {
         boolean savedNeedArguments = needArguments;
         boolean savedNeedFrame = needFrame;
+        boolean savedEraseParams = eraseParams;
         needArguments = node.needArguments;
         needFrame = node.needFrame;
+        eraseParams = node.eraseParams;
         bcBuilder.openFunctionBCBuilder();
         int functionIdx = bcBuilder.getFBIdx();
         LinkedList<String> locals = new LinkedList<String>(node.locals);
         if (needArguments) {
             locals.addFirst("arguments");
         }
-        env.openFrame(node.params, locals);
+        if (eraseParams) {
+            locals.addAll(node.params);
+            env.openFrame(null, locals);
+        } else {
+            env.openFrame(node.params, locals);
+        }
         Register globalObjReg = env.freshRegister();
         for (String param : node.params) {
             env.freshRegister();
         }
         env.setRegOfGlobalObj(globalObjReg);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
-        if (needArguments)
+        if (eraseParams)
+            bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NOT_NEED));
+        else if (needArguments)
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NEED));
         else if (needFrame)
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NOT_NEED));
         bcBuilder.push(new ISetfl(env.getFl()));
+        if (eraseParams) {
+            for (int i = 0; i < node.params.size(); i++) {
+                String name = node.params.get(i);
+                Environment.Result varLoc = env.getVar(name);
+                bcBuilder.push(new ISetlocal(0, varLoc.idx, new Register(i + 2)));
+            }
+        }
         Register retReg = env.freshRegister();
         compileNode(node.body, retReg);
         bcBuilder.push(new ISpecconst(reg, "undefined"));
@@ -659,6 +676,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IMakeclosure(reg, functionIdx));
         needArguments = savedNeedArguments;
         needFrame = savedNeedFrame;
+        eraseParams = savedEraseParams;
         return null;
     }
     @Override
