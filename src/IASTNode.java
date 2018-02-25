@@ -1,5 +1,6 @@
 
 
+import java.util.LinkedList;
 import java.util.List;
 
 abstract public class IASTNode {
@@ -359,6 +360,7 @@ class IASTObjectExpression extends IASTExpression {
 class IASTFunctionExpression extends IASTExpression {
 	List<String> params;
 	List<String> locals;
+	List<String> innerUseVariables;
 	IASTStatement body;
 	public boolean needArguments;
 	public boolean needFrame;
@@ -370,6 +372,7 @@ class IASTFunctionExpression extends IASTExpression {
 		this.needArguments = true;
 		this.needFrame = true;
 		this.eraseParams = false;
+		this.innerUseVariables = new LinkedList<String>();
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {

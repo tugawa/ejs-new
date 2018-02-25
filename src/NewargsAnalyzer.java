@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -6,11 +5,15 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
     public boolean optOmitFrame;
     public boolean useArguments;
     public boolean useFunction;
+    public List<String> variables;
+    public List<String> innerUseVariables;
 
     public NewargsAnalyzer(boolean optOmitFrame) {
         this.optOmitFrame = optOmitFrame;
         useArguments = false;
         useFunction = false;
+        variables = new LinkedList<String>();
+        innerUseVariables = new LinkedList<String>();
     }
 
     public void analyze(IASTNode node) {
@@ -41,13 +44,29 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
             node.needArguments = useArg || useFunc || hasLocals;
             node.needFrame = node.needArguments;
         }
+        for (String var : analyzer.variables) {
+            if (node.params.contains(var) || node.locals.contains(var))
+                continue;
+            if (this.innerUseVariables.contains(var))
+                continue;
+            this.innerUseVariables.add(var);
+        }
+        for (String var : analyzer.innerUseVariables) {
+            if (node.params.contains(var) || node.locals.contains(var))
+                node.innerUseVariables.add(var);
+            else
+                this.innerUseVariables.add(var);
+        }
         return null;
     }
     @Override
     public Object visitIdentifier(IASTIdentifier node) {
         if (node.id != null) {
-            if (node.id.equals("arguments"))
+            if (node.id.equals("arguments")) {
                 useArguments = true;
+            } else {
+                variables.add(node.id);
+            }
         }
         return null;
     }
