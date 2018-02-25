@@ -636,7 +636,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
         if (eraseParams) {
             locals.addAll(node.params);
-            env.openFrame(null, locals);
+            env.openFrame(new LinkedList<String>(), locals);
         } else {
             env.openFrame(node.params, locals);
         }
