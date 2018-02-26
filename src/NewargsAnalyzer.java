@@ -36,14 +36,7 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         boolean useArg = analyzer.useArguments;
         boolean useFunc = analyzer.useFunction;
         boolean hasLocals = !node.locals.isEmpty();
-        if (this.optOmitFrame) {
-            node.needArguments = useArg || useFunc;
-            node.needFrame = node.needArguments || hasLocals;
-            node.eraseParams = node.needArguments && node.needFrame && !useArg;
-        } else {
-            node.needArguments = useArg || useFunc || hasLocals;
-            node.needFrame = node.needArguments;
-        }
+
         for (String var : analyzer.variables) {
             if (node.params.contains(var) || node.locals.contains(var))
                 continue;
@@ -52,10 +45,23 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
             this.innerUseVariables.add(var);
         }
         for (String var : analyzer.innerUseVariables) {
-            if (node.params.contains(var) || node.locals.contains(var))
-                node.innerUseVariables.add(var);
+            if (node.locals.contains(var))
+                node.innerUseLocals.add(var);
             else
                 this.innerUseVariables.add(var);
+        }
+
+        if (this.optOmitFrame) {
+            boolean isInnerFuncUseParams = false;
+            for (String var : analyzer.innerUseVariables)
+                if (node.params.contains(var)) isInnerFuncUseParams = true;
+
+            node.needArguments = useArg || isInnerFuncUseParams;
+            node.needFrame = node.needArguments || hasLocals;
+            node.eraseParams = node.needArguments && node.needFrame && !useArg;
+        } else {
+            node.needArguments = useArg || useFunc || hasLocals;
+            node.needFrame = node.needArguments;
         }
         return null;
     }
