@@ -45,20 +45,16 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
             this.innerUseVariables.add(var);
         }
         for (String var : analyzer.innerUseVariables) {
-            if (node.locals.contains(var))
+            if (node.params.contains(var) || node.locals.contains(var))
                 node.innerUseLocals.add(var);
             else
                 this.innerUseVariables.add(var);
         }
 
         if (this.optOmitFrame) {
-            boolean isInnerFuncUseParams = false;
-            for (String var : analyzer.innerUseVariables)
-                if (node.params.contains(var)) isInnerFuncUseParams = true;
-
-            node.needArguments = useArg || isInnerFuncUseParams;
-            node.needFrame = node.needArguments || hasLocals;
-            node.eraseParams = node.needArguments && node.needFrame && !useArg;
+            node.eraseParams = !useArg;
+            node.needArguments = !node.eraseParams && (useArg || useFunc);
+            node.needFrame = node.eraseParams || node.needArguments || hasLocals;
         } else {
             node.needArguments = useArg || useFunc || hasLocals;
             node.needFrame = node.needArguments;

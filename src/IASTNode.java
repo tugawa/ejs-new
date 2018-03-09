@@ -360,7 +360,7 @@ class IASTObjectExpression extends IASTExpression {
 class IASTFunctionExpression extends IASTExpression {
 	List<String> params;
 	List<String> locals;
-	List<String> innerUseLocals;
+	LinkedList<String> innerUseLocals;
 	IASTStatement body;
 	public boolean needArguments;
 	public boolean needFrame;
