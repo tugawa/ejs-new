@@ -21,6 +21,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             List<String> args;
             List<String> staticLocals;
             LinkedList<String> dynamicLocals;
+            boolean useLocalFrame;
 
             private int maxNumOfDynamicLocals = 0;
             private int numOfUsingRegisters = 0;
@@ -38,10 +39,11 @@ public class CodeGenerator extends IASTBaseVisitor {
 
             Register registerOfGlobalObj = null;
 
-            Frame(List<String> args, List<String> locals) {
+            Frame(List<String> args, List<String> locals, boolean useLocalFrame) {
                 this.args = args; // created by FunctionDeclaration
                 this.staticLocals = locals; // created by VariableDeclaration and FunctionDeclaration
                 this.dynamicLocals = new LinkedList<String>(); // created by CatchClause and WithStatement
+                this.useLocalFrame = useLocalFrame;
             }
             void addLocal(String s) {
                 dynamicLocals.addFirst(s);
@@ -94,8 +96,8 @@ public class CodeGenerator extends IASTBaseVisitor {
 
         // It's necessary to call the method before
         // compiling IASTProgram and IASTFunction.
-        void openFrame(List<String> args, List<String> locals) {
-            this.frameList.addFirst(new Frame(args, locals));
+        void openFrame(List<String> args, List<String> locals, boolean useLocalFrame) {
+            this.frameList.addFirst(new Frame(args, locals, useLocalFrame));
         }
 
         // It's necessary to call the method after
@@ -122,38 +124,43 @@ public class CodeGenerator extends IASTBaseVisitor {
         //              you can push a bytecode "setlocal 1 2 x" or "getlocal y 1 2".
         class Result {
             boolean isLocal; // ARG -> false, LOCAL -> true, REG -> false
+            boolean isOuterFunc;
             int depth;
             int idx;
-            Result(boolean isLocal, int depth, int idx) {
-                this.isLocal = isLocal; this.depth = depth; this.idx = idx;
+            Result(boolean isLocal, boolean isOuterFunc, int depth, int idx) {
+                this.isLocal = isLocal; this.isOuterFunc = isOuterFunc;
+                this.depth = depth; this.idx = idx;
             }
         }
         Result getVar(String id) {
             int depth = 0;
+            boolean isOuterFunc = false;
             for (Frame ve : frameList) {
                 int cnt = 0;
                 for (String lo : ve.dynamicLocals) {
                     if (id.equals(lo)) {
                         int n = ve.dynamicLocals.size() - cnt - 1 + ve.staticLocals.size();
-                        return new Result(true, depth, n);
+                        return new Result(true, isOuterFunc, depth, n);
                     }
                     cnt++;
                 }
                 cnt = 0;
                 for (String lo : ve.staticLocals) {
                     if (id.equals(lo)) {
-                        return new Result(true, depth, cnt);
+                        return new Result(true, isOuterFunc, depth, cnt);
                     }
                     cnt++;
                 }
                 cnt = 0;
                 for (String arg : ve.args) {
                     if (id.equals(arg)) {
-                        return new Result(false, depth, cnt);
+                        return new Result(false, isOuterFunc, depth, cnt);
                     }
                     cnt++;
                 }
-                depth++;
+                if (ve.useLocalFrame)
+                    depth++;
+                isOuterFunc = true;
             }
             return null;
         }
@@ -328,6 +335,8 @@ public class CodeGenerator extends IASTBaseVisitor {
     Register reg;
     final static int ARGUMENTS_NEED = 1;
     final static int ARGUMENTS_NOT_NEED = 0;
+    final static boolean LOCAL_FRAME_NEED = true;
+    final static boolean LOCAL_FRAME_NOT_NEED = false;
     boolean needArguments;
     boolean needFrame;
     LinkedList<String> innerUseLocals;
@@ -343,7 +352,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         this.env = new Environment();
         try {
             bcBuilder.openFunctionBCBuilder();
-            env.openFrame(new ArrayList<String>(), new ArrayList<String>());
+            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), LOCAL_FRAME_NEED);
             compileNode(node, null);
             env.closeFrame();
             bcBuilder.closeFuncBCBuilder();
@@ -642,7 +651,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             params.clear();
         }
 
-        env.openFrame(params, locals);
+        env.openFrame(params, locals, needFrame);
         Register globalObjReg = env.freshRegister();
 
         for (String param : params)
@@ -664,7 +673,8 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new INewframe(locals.size(), ARGUMENTS_NOT_NEED));
         bcBuilder.push(new ISetfl(env.getFl()));
 
-        if (!needArguments) {
+        // set arguments into locals
+        if (!needArguments && needFrame) {
             for (int i = 0; i < node.params.size(); i++) {
                 String name = node.params.get(i);
                 Environment.Result varLoc = env.getVar(name);
@@ -996,32 +1006,18 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new ISetglobal(r1, srcReg));
         } else {
             if (varLoc.isLocal) {
-                if (!needArguments && needFrame && varLoc.depth == 0) {
-                    if (innerUseLocals.contains(varName))
-                        bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
-                    else
-                        bcBuilder.push(new IMove(new Register(varLoc.idx + 2 - innerUseLocals.size()), srcReg));
-                } else if (!needFrame) {
-                    if (varLoc.depth > 0)
-                        bcBuilder.push(new ISetlocal(varLoc.depth - 1, varLoc.idx, srcReg));
-                    else
-                        throw new Error("internal error");
+                if (!needArguments && !innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
+                    bcBuilder.push(new IMove(new Register(varLoc.idx + 2 - innerUseLocals.size()), srcReg));
+                } else if (!needFrame && innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
+                    throw new Error("internal error");
                 } else {
                     bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
                 }
             } else {
-                if (!needArguments && needFrame) {
-                    if (!innerUseLocals.contains(varName) && varLoc.depth == 0)
-                        bcBuilder.push(new IMove(new Register(varLoc.idx + 2 - innerUseLocals.size()), srcReg));
-                    else
-                        bcBuilder.push(new ISetlocal(varLoc.depth, varLoc.idx, srcReg));
-                } else if (needArguments && needFrame) {
-                    bcBuilder.push(new ISetarg(varLoc.depth, varLoc.idx, srcReg));
+                if (!needArguments && !varLoc.isOuterFunc) {
+                    throw new Error("internal error");
                 } else {
-                    if (varLoc.depth > 0)
-                        bcBuilder.push(new ISetarg(varLoc.depth - 1, varLoc.idx, srcReg));
-                    else
-                        bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
+                    bcBuilder.push(new ISetarg(varLoc.depth, varLoc.idx, srcReg));
                 }
             }
         }
@@ -1034,32 +1030,18 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IGetglobal(dstReg, r1));
         } else {
             if (varLoc.isLocal) {
-                if (!needArguments && needFrame && varLoc.depth == 0) {
-                    if (innerUseLocals.contains(varName))
-                        bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
-                    else
-                        bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2 - innerUseLocals.size())));
-                } else if (!needFrame) {
-                    if (varLoc.depth > 0)
-                        bcBuilder.push(new IGetlocal(dstReg, varLoc.depth - 1, varLoc.idx));
-                    else
-                        throw new Error("internal error");
+                if (!needArguments && !innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
+                    bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2 - innerUseLocals.size())));
+                } else if (!needFrame && innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
+                    throw new Error("internal error");
                 } else {
-                       bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
+                    bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
                 }
             } else {
-                if (!needArguments && needFrame) {
-                    if (!innerUseLocals.contains(varName) && varLoc.depth == 0)
-                        bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2 - innerUseLocals.size())));
-                    else
-                        bcBuilder.push(new IGetlocal(dstReg, varLoc.depth, varLoc.idx));
-                } else if (needArguments && needFrame) {
-                    bcBuilder.push(new IGetarg(dstReg, varLoc.depth, varLoc.idx));
+                if (!needArguments && !varLoc.isOuterFunc) {
+                    throw new Error("internal error");
                 } else {
-                    if (varLoc.depth > 0)
-                        bcBuilder.push(new IGetarg(dstReg, varLoc.depth - 1, varLoc.idx));
-                    else
-                        bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2)));
+                    bcBuilder.push(new IGetarg(dstReg, varLoc.depth, varLoc.idx));
                 }
             }
         }
