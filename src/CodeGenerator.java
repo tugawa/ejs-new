@@ -658,10 +658,8 @@ public class CodeGenerator extends IASTBaseVisitor {
             env.freshRegister();
 
         if (!needArguments) {
-            for (String local : locals) {
-                if (!innerUseLocals.contains(local))
-                    env.freshRegister();
-            }
+            for (String local : locals)
+                env.freshRegister();
         }
 
         env.setRegOfGlobalObj(globalObjReg);
@@ -1007,7 +1005,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         } else {
             if (varLoc.isLocal) {
                 if (!needArguments && !innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
-                    bcBuilder.push(new IMove(new Register(varLoc.idx + 2 - innerUseLocals.size()), srcReg));
+                    bcBuilder.push(new IMove(new Register(varLoc.idx + 2), srcReg));
                 } else if (!needFrame && innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
                     throw new Error("internal error");
                 } else {
@@ -1031,7 +1029,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         } else {
             if (varLoc.isLocal) {
                 if (!needArguments && !innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
-                    bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2 - innerUseLocals.size())));
+                    bcBuilder.push(new IMove(dstReg, new Register(varLoc.idx + 2)));
                 } else if (!needFrame && innerUseLocals.contains(varName) && !varLoc.isOuterFunc) {
                     throw new Error("internal error");
                 } else {
