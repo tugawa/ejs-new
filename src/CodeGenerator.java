@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             List<String> args;
             List<String> staticLocals;
             List<String> regLocals;
+            HashMap<String, Register> regHash;
             LinkedList<String> dynamicLocals;
             boolean hasFrame;
 
@@ -40,10 +42,11 @@ public class CodeGenerator extends IASTBaseVisitor {
 
             Register registerOfGlobalObj = null;
 
-            Frame(List<String> args, List<String> locals, List<String> regLocals, boolean hasFrame) {
+            Frame(List<String> args, List<String> locals, List<String> regLocals, HashMap<String, Register> regHash, boolean hasFrame) {
                 this.args = args; // created by FunctionDeclaration
                 this.staticLocals = locals; // created by VariableDeclaration and FunctionDeclaration
                 this.regLocals = regLocals;
+                this.regHash = regHash;
                 this.dynamicLocals = new LinkedList<String>(); // created by CatchClause and WithStatement
                 this.hasFrame = hasFrame;
             }
@@ -98,8 +101,8 @@ public class CodeGenerator extends IASTBaseVisitor {
 
         // It's necessary to call the method before
         // compiling IASTProgram and IASTFunction.
-        void openFrame(List<String> args, List<String> locals, List<String> regLocals, boolean hasFrame) {
-            this.frameList.addFirst(new Frame(args, locals, regLocals, hasFrame));
+        void openFrame(List<String> args, List<String> locals, List<String> regLocals, HashMap<String, Register> regHash, boolean hasFrame) {
+            this.frameList.addFirst(new Frame(args, locals, regLocals, regHash, hasFrame));
         }
 
         // It's necessary to call the method after
@@ -154,7 +157,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             
             /* register */
             {
-                int n = frameList.get(0).regLocals.indexOf(id);
+                int n = frameList.getFirst().regLocals.indexOf(id);
                 if (n >= 0)
                     return new Result(Result.IN_REGISTER, true, 0, n);
             }
@@ -176,6 +179,11 @@ public class CodeGenerator extends IASTBaseVisitor {
                 isLocal = false;
             }
             return null;
+        }
+
+        /* get register */
+        Register getReg(String id) {
+            return frameList.getFirst().regHash.get(id);
         }
 
         // You must call these methods before/after compiling each IASTNode.
@@ -363,7 +371,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         this.env = new Environment();
         try {
             bcBuilder.openFunctionBCBuilder();
-            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), LOCAL_FRAME_NEED);
+            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new HashMap<String, Register>(), LOCAL_FRAME_NEED);
             compileNode(node, null);
             env.closeFrame();
             bcBuilder.closeFuncBCBuilder();
@@ -375,10 +383,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         return bcBuilder.build();
     }
 
-    int indexToRegNumber(int idx) {
-        return idx + 2;  // 1 origin, r1 is used for "this".
-    }
-    
     void compileNode(IASTNode node, Register reg) {
         Register tmp = this.reg;
         this.reg = reg;
@@ -677,15 +681,15 @@ public class CodeGenerator extends IASTBaseVisitor {
                 regLocals.add(var);
         }
 
-        env.openFrame(params, locals, regLocals, needFrame);
+        HashMap<String, Register> regHash = new HashMap<String, Register>();
+        env.openFrame(params, locals, regLocals, regHash, needFrame);
         Register globalObjReg = env.freshRegister();
 
-        if (params.size() > regLocals.size()) {
-            for (String param : params)
-                env.freshRegister();
-        } else {
-            for (String reg : regLocals)
-                env.freshRegister();
+        for (String param : node.params)
+            regHash.put(param, env.freshRegister());
+        for (String reg : regLocals) {
+            if (node.locals.contains(reg))
+                regHash.put(reg, env.freshRegister());
         }
 
         env.setRegOfGlobalObj(globalObjReg);
@@ -701,9 +705,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 String name = node.params.get(i);
                 Environment.Result varLoc = env.getVar(name);
                 if (varLoc.inFrame())
-                    bcBuilder.push(new ISetlocal(0, varLoc.idx, new Register(indexToRegNumber(i))));
-                else if (varLoc.inReg() && varLoc.idx != i)
-                    bcBuilder.push(new IMove(new Register(indexToRegNumber(varLoc.idx)), new Register(indexToRegNumber(i))));
+                    bcBuilder.push(new ISetlocal(0, varLoc.idx, env.getReg(name)));
             }
         }
 
@@ -1030,7 +1032,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new ISetglobal(r1, srcReg));
         } else {
             if (varLoc.inReg()) {
-                bcBuilder.push(new IMove(new Register(indexToRegNumber(varLoc.idx)), srcReg));
+                bcBuilder.push(new IMove(env.getReg(varName), srcReg));
             } else if (varLoc.inFrame()) {
                 if (!needArguments && !needFrame && varLoc.isLocal())
                     throw new Error("internal error");
@@ -1050,7 +1052,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IGetglobal(dstReg, r1));
         } else {
             if (varLoc.inReg()) {
-                bcBuilder.push(new IMove(dstReg, new Register(indexToRegNumber(varLoc.idx))));
+                bcBuilder.push(new IMove(dstReg, env.getReg(varName)));
             } else if (varLoc.inFrame()) {
                 if (!needArguments && !needFrame && varLoc.isLocal())
                     throw new Error("internal error");
