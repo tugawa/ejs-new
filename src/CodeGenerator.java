@@ -345,7 +345,8 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     }
 
-    public CodeGenerator() {
+    public CodeGenerator(boolean optOmitFrame) {
+        this.optOmitFrame = optOmitFrame;
         needArguments = false;
         needFrame = false;
     }
@@ -353,10 +354,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     BCBuilder bcBuilder;
     Environment env;
     Register reg;
-    final static int ARGUMENTS_NEED = 1;
-    final static int ARGUMENTS_NOT_NEED = 0;
-    final static boolean LOCAL_FRAME_NEED = true;
-    final static boolean LOCAL_FRAME_NOT_NEED = false;
+    boolean optOmitFrame;
     boolean needArguments;
     boolean needFrame;
 
@@ -371,7 +369,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         this.env = new Environment();
         try {
             bcBuilder.openFunctionBCBuilder();
-            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new HashMap<String, Register>(), LOCAL_FRAME_NEED);
+            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new HashMap<String, Register>(), true);
             compileNode(node, null);
             env.closeFrame();
             bcBuilder.closeFuncBCBuilder();
@@ -675,10 +673,14 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
         }
         for (String var : node.locals) {
-            if (node.innerUsedLocals.contains(var))
+            if (optOmitFrame) {
+                if (node.innerUsedLocals.contains(var))
+                    locals.add(var);
+                else
+                    regLocals.add(var);
+            } else {
                 locals.add(var);
-            else
-                regLocals.add(var);
+            }
         }
 
         HashMap<String, Register> regHash = new HashMap<String, Register>();

@@ -144,7 +144,7 @@ public class Main {
         }
 
         // convert iAST into ByteCode.
-        CodeGenerator codegen = new CodeGenerator();
+        CodeGenerator codegen = new CodeGenerator(info.optOmitFrame);
         List<BCode> bcodes = codegen.compile((IASTProgram) iast);
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
