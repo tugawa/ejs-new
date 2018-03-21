@@ -6,41 +6,41 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 public class IASTPrinter extends IASTBaseVisitor {
-	public static final String KEY_NAME             = "name";
-	public static final String KEY_PROGRAM          = "program";
-	public static final String KEY_PARAMS           = "params";
-	public static final String KEY_LOCALS           = "locals";
-	public static final String KEY_INNER_USE_LOCALS = "innerUseLocals";
-	public static final String KEY_BODY             = "body";
-	public static final String KEY_NEED_ARGUMENTS   = "needArguments";
-	public static final String KEY_NEED_FRAME       = "needFrame";
-	public static final String KEY_STMTS            = "stmts";
-	public static final String KEY_VALUE            = "value";
-	public static final String KEY_TEST             = "test";
-	public static final String KEY_CONSEQUENT       = "consequent";
-	public static final String KEY_ALTERNATE        = "alternate";
-	public static final String KEY_DISCRIMINANT     = "discriminant";
-	public static final String KEY_CASES            = "cases";
-	public static final String KEY_HANDLER          = "handler";
-	public static final String KEY_FINALISER        = "finaliser";
-	public static final String KEY_INIT             = "init";
-	public static final String KEY_UPDATE           = "update";
-	public static final String KEY_EXP              = "exp";
-	public static final String KEY_OBJECT           = "object";
-	public static final String KEY_ELEMENTS         = "elements";
-	public static final String KEY_KEY              = "key";
-	public static final String KEY_PROPERTIES       = "properties";
-	public static final String KEY_OPERANDS         = "operands";
-	public static final String KEY_OPERATOR         = "operator";
-	public static final String KEY_PREFIX           = "prefix";
-	public static final String KEY_CALLEE           = "callee";
-	public static final String KEY_ARGUMENTS        = "arguments";
-	public static final String KEY_CONSTRUCTOR      = "constructor";
-	public static final String KEY_PROPERTY         = "property";
-	public static final String KEY_ID               = "id";
-	public static final String KEY_LABEL            = "label";
-	public static final String KEY_EXPRESSIONS      = "expressions";
-	public static final String KEY_VAR              = "var";
+	public static final String KEY_NAME              = "name";
+	public static final String KEY_PROGRAM           = "program";
+	public static final String KEY_PARAMS            = "params";
+	public static final String KEY_LOCALS            = "locals";
+	public static final String KEY_INNER_USED_LOCALS = "innerUsedLocals";
+	public static final String KEY_BODY              = "body";
+	public static final String KEY_NEED_ARGUMENTS    = "needArguments";
+	public static final String KEY_NEED_FRAME        = "needFrame";
+	public static final String KEY_STMTS             = "stmts";
+	public static final String KEY_VALUE             = "value";
+	public static final String KEY_TEST              = "test";
+	public static final String KEY_CONSEQUENT        = "consequent";
+	public static final String KEY_ALTERNATE         = "alternate";
+	public static final String KEY_DISCRIMINANT      = "discriminant";
+	public static final String KEY_CASES             = "cases";
+	public static final String KEY_HANDLER           = "handler";
+	public static final String KEY_FINALISER         = "finaliser";
+	public static final String KEY_INIT              = "init";
+	public static final String KEY_UPDATE            = "update";
+	public static final String KEY_EXP               = "exp";
+	public static final String KEY_OBJECT            = "object";
+	public static final String KEY_ELEMENTS          = "elements";
+	public static final String KEY_KEY               = "key";
+	public static final String KEY_PROPERTIES        = "properties";
+	public static final String KEY_OPERANDS          = "operands";
+	public static final String KEY_OPERATOR          = "operator";
+	public static final String KEY_PREFIX            = "prefix";
+	public static final String KEY_CALLEE            = "callee";
+	public static final String KEY_ARGUMENTS         = "arguments";
+	public static final String KEY_CONSTRUCTOR       = "constructor";
+	public static final String KEY_PROPERTY          = "property";
+	public static final String KEY_ID                = "id";
+	public static final String KEY_LABEL             = "label";
+	public static final String KEY_EXPRESSIONS       = "expressions";
+	public static final String KEY_VAR               = "var";
 
 	public void print(IASTNode iast) {
 		JsonObject json = (JsonObject) iast.accept(this);
@@ -305,12 +305,12 @@ public class IASTPrinter extends IASTBaseVisitor {
 			jaLocals.add(local);
 		}
 		jb.add(KEY_LOCALS, jaLocals);
-		// innerUseLocals
+		// innerUsedLocals
 		JsonArrayBuilder jaInnerUseLocals = Json.createArrayBuilder();
 		for (String local : node.innerUsedLocals) {
 			jaInnerUseLocals.add(local);
 		}
-		jb.add(KEY_INNER_USE_LOCALS, jaInnerUseLocals);
+		jb.add(KEY_INNER_USED_LOCALS, jaInnerUseLocals);
 		// body
 		jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
 		// needArguments and needFrame

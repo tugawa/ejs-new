@@ -4,7 +4,7 @@ import java.util.List;
 
 
 public class CodeGenerator extends IASTBaseVisitor {
-	
+
     class JSLabel {
         String name;
         Label label;
@@ -125,25 +125,25 @@ public class CodeGenerator extends IASTBaseVisitor {
         // For example: if Result is { isLocal:true, depth:1, n:2 },
         //              you can push a bytecode "setlocal 1 2 x" or "getlocal y 1 2".
         class Result {
-        	static final int IN_FRAME = 0;
-        	static final int IN_ARGUMENTS = 1;
-        	static final int IN_REGISTER = 2;
-        	int locationType;
-        	boolean _isLocal;
+            static final int IN_FRAME = 0;
+            static final int IN_ARGUMENTS = 1;
+            static final int IN_REGISTER = 2;
+            int locationType;
+            boolean _isLocal;
             int depth;
             int idx;
             boolean inFrame() {
-            	return locationType == IN_FRAME;
+                return locationType == IN_FRAME;
             }
             boolean inReg() {
-            	return locationType == IN_REGISTER;
+                return locationType == IN_REGISTER;
             }
             boolean isLocal() {
-            	return _isLocal;
+                return _isLocal;
             }
             Result(int locationType, boolean isLocal, int depth, int idx) {
-            	this.locationType = locationType;
-            	this._isLocal = isLocal;
+                this.locationType = locationType;
+                this._isLocal = isLocal;
                 this.depth = depth;
                 this.idx = idx;
             }
@@ -154,23 +154,23 @@ public class CodeGenerator extends IASTBaseVisitor {
             
             /* register */
             {
-	            int n = frameList.get(0).regLocals.indexOf(id);
-	            if (n >= 0)
+                int n = frameList.get(0).regLocals.indexOf(id);
+                if (n >= 0)
                     return new Result(Result.IN_REGISTER, true, 0, n);
             }
 
             /* frame and arguemnts */
             for (Frame ve : frameList) {
-            	int n;
-            	
-            	if ((n = ve.dynamicLocals.indexOf(id)) >= 0) {
-            		 n = ve.dynamicLocals.size() - n - 1 + ve.staticLocals.size();
+                int n;
+
+                if ((n = ve.dynamicLocals.indexOf(id)) >= 0) {
+                     n = ve.dynamicLocals.size() - n - 1 + ve.staticLocals.size();
                      return new Result(Result.IN_FRAME, isLocal, depth, n);
-            	}
-            	if ((n = ve.staticLocals.indexOf(id)) >= 0)
+                }
+                if ((n = ve.staticLocals.indexOf(id)) >= 0)
                     return new Result(Result.IN_FRAME, isLocal, depth, n);
-            	if ((n = ve.args.indexOf(id)) >= 0)
-            		return new Result(Result.IN_ARGUMENTS, isLocal, depth, n);
+                if ((n = ve.args.indexOf(id)) >= 0)
+                    return new Result(Result.IN_ARGUMENTS, isLocal, depth, n);
                 if (ve.hasFrame)
                     depth++;
                 isLocal = false;
@@ -376,7 +376,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
 
     int indexToRegNumber(int idx) {
-    	return idx + 2;  // 1 origin, r1 is used for "this".
+        return idx + 2;  // 1 origin, r1 is used for "this".
     }
     
     void compileNode(IASTNode node, Register reg) {
