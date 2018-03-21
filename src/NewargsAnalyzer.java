@@ -1,19 +1,21 @@
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 public class NewargsAnalyzer extends IASTBaseVisitor {
     public boolean optOmitFrame;
     public boolean useArguments;
     public boolean useFunction;
-    public List<String> variables;
-    public List<String> innerUseVariables;
+    public Set<String> variables;
+    public Set<String> freeVariables;
 
     public NewargsAnalyzer(boolean optOmitFrame) {
         this.optOmitFrame = optOmitFrame;
         useArguments = false;
         useFunction = false;
-        variables = new LinkedList<String>();
-        innerUseVariables = new LinkedList<String>();
+        variables = new HashSet<String>();
+        freeVariables = new HashSet<String>();
     }
 
     public void analyze(IASTNode node) {
@@ -40,20 +42,18 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         for (String var : analyzer.variables) {
             if (node.params.contains(var) || node.locals.contains(var))
                 continue;
-            if (this.innerUseVariables.contains(var))
-                continue;
-            this.innerUseVariables.add(var);
+            this.freeVariables.add(var);
         }
-        for (String var : analyzer.innerUseVariables) {
+        for (String var : analyzer.freeVariables) {
             if (node.params.contains(var) || node.locals.contains(var))
-                node.innerUseLocals.add(var);
+                node.innerUsedLocals.add(var);
             else
-                this.innerUseVariables.add(var);
+                this.freeVariables.add(var);
         }
 
         if (this.optOmitFrame) {
             node.needArguments = useArg;
-            node.needFrame = node.needArguments || !node.innerUseLocals.isEmpty();
+            node.needFrame = node.needArguments || !node.innerUsedLocals.isEmpty();
         } else {
             node.needArguments = useArg || useFunc || hasLocals;
             node.needFrame = node.needArguments;

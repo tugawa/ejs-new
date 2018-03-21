@@ -307,7 +307,7 @@ public class IASTPrinter extends IASTBaseVisitor {
 		jb.add(KEY_LOCALS, jaLocals);
 		// innerUseLocals
 		JsonArrayBuilder jaInnerUseLocals = Json.createArrayBuilder();
-		for (String local : node.innerUseLocals) {
+		for (String local : node.innerUsedLocals) {
 			jaInnerUseLocals.add(local);
 		}
 		jb.add(KEY_INNER_USE_LOCALS, jaInnerUseLocals);

@@ -360,7 +360,7 @@ class IASTObjectExpression extends IASTExpression {
 class IASTFunctionExpression extends IASTExpression {
 	List<String> params;
 	List<String> locals;
-	LinkedList<String> innerUseLocals;
+	LinkedList<String> innerUsedLocals;
 	IASTStatement body;
 	public boolean needArguments;
 	public boolean needFrame;
@@ -370,7 +370,7 @@ class IASTFunctionExpression extends IASTExpression {
 		this.body = body;
 		this.needArguments = true;
 		this.needFrame = true;
-		this.innerUseLocals = new LinkedList<String>();
+		this.innerUsedLocals = new LinkedList<String>();
 	}
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
