@@ -9,7 +9,6 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import antlr.*;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -28,6 +27,7 @@ public class Main {
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
         boolean optPrintAnalyzer = false;
+        boolean optPrintLowLevelCode = false;
         boolean optHelp = false;
         boolean optOmitArguments = false;
         boolean optOmitFrame = false;
@@ -46,6 +46,9 @@ public class Main {
                     case "--analyzer":
                         info.optPrintAnalyzer = true;
                         break;
+                    case "--llcode":
+                    	info.optPrintLowLevelCode = true;
+                    	break;
                     case "--help":
                         info.optHelp = true;
                         break;
@@ -100,6 +103,7 @@ public class Main {
             return;
         }
 
+        // Parse JavaScript File
         ANTLRInputStream antlrInStream;
         try {
             InputStream inStream;
@@ -134,6 +138,7 @@ public class Main {
             new IASTPrinter().print(iast);
         }
 
+        // iAST level optimisation
         if (info.optOmitArguments || info.optOmitFrame) {
             // iAST newargs analyzer
             NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitFrame);
@@ -143,9 +148,21 @@ public class Main {
             }
         }
 
-        // convert iAST into ByteCode.
+        // convert iAST into low level code.
         CodeGenerator codegen = new CodeGenerator(info.optOmitFrame);
-        List<BCode> bcodes = codegen.compile((IASTProgram) iast);
+        BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
+
+        if (info.optPrintLowLevelCode) {
+        	bcBuilder.assignAddress();
+        	System.out.print(bcBuilder);
+        }
+        
+        // macro instruction expansion
+        bcBuilder.expandMacro();
+        
+        // resolve jump destinations
+    	bcBuilder.assignAddress();
+        List<BCode> bcodes = bcBuilder.build();
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }

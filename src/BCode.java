@@ -1,8 +1,23 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BCode {
     int number;
+    ArrayList<Label> labels = new ArrayList<Label>();
+    
+    void addLabels(List<Label> labels) {
+    	this.labels = new ArrayList<Label>(labels.size());
+    	for (Label l: labels) {
+    		l.bcode = this;
+    		this.labels.add(l);
+    	}
+    }
+
+    ArrayList<Label> getLabels() {
+    	return labels;
+    }
 
     String toString(String opcode) {
         return opcode;
@@ -63,20 +78,12 @@ class Register {
         return Integer.toString(n);
     }
 }
-class Fl {
-    int n;
-    Fl() {}
-    Fl(int n) {
-        this.n = n;
-    }
-    public String toString() {
-        return Integer.toString(n);
-    }
-}
 class Label {
     BCode bcode;
     Label() {}
-    Label(BCode bcode) { this.bcode = bcode; }
+    Label(BCode bcode) { 
+    	this.bcode = bcode;
+    }
     public int dist(int number) {
         return bcode.number - number;
     }
@@ -668,10 +675,10 @@ class IPoplocal extends BCode {
 
 
 class ISetfl extends BCode {
-    Fl fl;
-    ISetfl(Fl fl) { this.fl = fl; }
+    int fl;
+    ISetfl(int fl) { this.fl = fl; }
     public String toString() {
-        return super.toString("setfl", fl.n);
+        return super.toString("setfl", fl);
     }
 }
 
