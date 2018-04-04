@@ -33,7 +33,7 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft, FunctionFrame *env, in
   int i;
 
   nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
-  gc_push_tmp_root(&env);
+  gc_push_tmp_root((JSValue*) &env);
   frame = (FunctionFrame *)
     gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
 		       HTAG_FUNCTION_FRAME);

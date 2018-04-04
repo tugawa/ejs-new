@@ -619,7 +619,7 @@ typedef uint64_t cuint;
 
 // #define int_to_fixnum(f) ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
 #define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
-#define cint_to_fixnum(f)   put_tag(((f) << TAGOFFSET), T_FIXNUM)
+#define cint_to_fixnum(f)   put_tag(((uint64_t)(f) << TAGOFFSET), T_FIXNUM)
 
 // #define double_to_fixnum(f) int_to_fixnum((int64_t)(f))
 #define double_to_fixnum(f) cint_to_fixnum((cint)(f))
