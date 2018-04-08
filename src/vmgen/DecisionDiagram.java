@@ -74,11 +74,9 @@ public class DecisionDiagram {
 		void addLeaf(TreeDigger digger, T tag, Leaf leaf) {
 			tagToChild.put(tag, leaf);
 		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
-			if (otherx.getClass() != this.getClass())
+		boolean hasCompatibleBranches(TagNode<T> other) {
+			if (opIndex != other.opIndex)
 				return false;
-			TagNode<T> other = (TagNode<T>) otherx;
 			HashSet<T> union = new HashSet<T>(tagToChild.keySet());
 			union.addAll(other.tagToChild.keySet());
 			for (T tag: union) {
@@ -88,6 +86,22 @@ public class DecisionDiagram {
 					return false;
 			}
 			return true;
+		}
+		void makeMergedNode(TagNode<T> n1, TagNode<T> n2) {
+			HashSet<T> union = new HashSet<T>(n1.tagToChild.keySet());
+			union.addAll(n2.tagToChild.keySet());
+			for (T tag: union) {
+				Node c1 = n1.tagToChild.get(tag);
+				Node c2 = n2.tagToChild.get(tag);
+				if (c1 == null)
+					tagToChild.put(tag, c2);
+				else if (c2 == null)
+					tagToChild.put(tag, c1);
+				else {
+					Node child = c1.merge(c2);
+					tagToChild.put(tag, child);
+				}
+			}
 		}
 		HashMap<Node, HashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
 			HashMap<Node, HashSet<T>> childToTags = new HashMap<Node, HashSet<T>>();
@@ -187,6 +201,22 @@ public class DecisionDiagram {
 			super(opIndex);
 		}
 		@Override
+		boolean isCompatibleTo(Node otherx) {
+			if (!(otherx instanceof PTNode))
+				return false;
+			PTNode other = (PTNode) otherx;
+			if (opIndex != other.opIndex)
+				return false;
+			return hasCompatibleBranches(other);
+		}
+		@Override
+		Node merge(Node otherx) {
+			PTNode other = (PTNode) otherx;
+			PTNode merged = new PTNode(opIndex);
+			merged.makeMergedNode(this, other);
+			return merged;
+		}
+		@Override
 		void toCode(StringBuffer sb, String varNames[]) {
 			HashMap<Node, HashSet<PT>> childToTags = makeChildToTagsMap(tagToChild);
 			sb.append("switch(GET_PTAG("+varNames[opIndex]+")){\n");
@@ -197,35 +227,6 @@ public class DecisionDiagram {
 				sb.append("break;\n");
 			}
 			sb.append("}\n");
-		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
-			if (!(otherx instanceof PTNode))
-				return false;
-			PTNode other = (PTNode) otherx;
-			if (opIndex != other.opIndex)
-				return false;
-			return super.isCompatibleTo(otherx);
-		}
-		@Override
-		Node merge(Node otherx) {
-			PTNode other = (PTNode) otherx;
-			PTNode merged = new PTNode(opIndex);
-			HashSet<PT> union = new HashSet<PT>(tagToChild.keySet());
-			union.addAll(other.tagToChild.keySet());
-			for (PT tag: union) {
-				Node thisChild = tagToChild.get(tag);
-				Node otherChild = other.tagToChild.get(tag);
-				if (thisChild == null)
-					merged.tagToChild.put(tag, otherChild);
-				else if (otherChild == null)
-					merged.tagToChild.put(tag, thisChild);
-				else {
-					Node mergedChild = thisChild.merge(otherChild);
-					merged.tagToChild.put(tag, mergedChild);
-				}
-			}
-			return merged;
 		}
 	}
 	static class HTNode extends TagNode<HT> {
@@ -265,7 +266,7 @@ public class DecisionDiagram {
 				return false;
 			if (noHT && this.child.isCompatibleTo(other.child))
 				return true;
-			return super.isCompatibleTo(otherx);
+			return hasCompatibleBranches(other);
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -277,20 +278,7 @@ public class DecisionDiagram {
 				return merged;
 			}
 			HTNode merged = new HTNode(opIndex);
-			HashSet<HT> union = new HashSet<HT>(tagToChild.keySet());
-			union.addAll(other.tagToChild.keySet());
-			for (HT tag: union) {
-				Node thisChild = tagToChild.get(tag);
-				Node otherChild = other.tagToChild.get(tag);
-				if (thisChild == null)
-					merged.tagToChild.put(tag, otherChild);
-				else if (otherChild == null)
-					merged.tagToChild.put(tag, thisChild);
-				else {
-					Node mergedChild = thisChild.merge(otherChild);
-					merged.tagToChild.put(tag, mergedChild);
-				}
-			}
+			merged.makeMergedNode(this, other);
 			return merged;
 		}
 		@Override
