@@ -18,7 +18,7 @@ import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Set;
 
-import vmgen.Plan.Rule;
+import vmgen.RuleSet.Rule;
 import vmgen.dd.DDNode;
 import vmgen.synth.SimpleSynthesiser;
 import vmgen.synth.SwitchSynthesiser;
@@ -89,12 +89,12 @@ public class InsnGen {
     	
 		Set<Rule> rules = new HashSet<Rule>();
 		Set<String> unusedActions = new HashSet<String>();
-		Set<Plan.Condition> removeSet = new HashSet<Plan.Condition>();
-		Set<Plan.Condition> errorConditions = new HashSet<Plan.Condition>();
+		Set<RuleSet.Condition> removeSet = new HashSet<RuleSet.Condition>();
+		Set<RuleSet.Condition> errorConditions = new HashSet<RuleSet.Condition>();
 		for (VMDataType[] dts: dontCareInput)
-			removeSet.add(new Plan.Condition(dts));
+			removeSet.add(new RuleSet.Condition(dts));
 		for (VMDataType[] dts: errorInput) {
-			Plan.Condition c = new Plan.Condition(dts);
+			RuleSet.Condition c = new RuleSet.Condition(dts);
 			removeSet.add(c);
 			errorConditions.add(c);
 		}
@@ -109,7 +109,7 @@ public class InsnGen {
     	}
     	
 		DDNode.setLabelPrefix(insnDef.name);
-        Plan p = new Plan(insnDef.dispatchVars, rules);
+        RuleSet p = new RuleSet(insnDef.dispatchVars, rules);
         String dispatchCode = synth.synthesise(p);
     	
     	StringBuilder sb = new StringBuilder();
@@ -144,10 +144,10 @@ public class InsnGen {
         
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	boolean verbose = outDir != null;
-        	Synthesiser synth =
-        			isSimple ? new SimpleSynthesiser() :
-        			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
-        					new SwitchSynthesiser();
+        	Synthesiser synth = new NewSynthesiser();
+//        			isSimple ? new SimpleSynthesiser() :
+//       			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
+//        					new SwitchSynthesiser();
         	String code = synthesise(insnDef, operandSpec, synth, verbose);
         	if (outDir == null)
         		System.out.println(code);

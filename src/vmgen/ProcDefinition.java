@@ -45,8 +45,8 @@ public class ProcDefinition {
 
     static class TypeDispatchDefinition {
         String[] vars;
-        Set<Plan.Rule> rules;
-        TypeDispatchDefinition(String[] vars, Set<Plan.Rule> rules) {
+        Set<RuleSet.Rule> rules;
+        TypeDispatchDefinition(String[] vars, Set<RuleSet.Rule> rules) {
             this.vars = vars;
             this.rules = rules;
         }
@@ -143,25 +143,25 @@ public class ProcDefinition {
         }
         return new ProcDefinition.TypeDispatchDefinition(vars, partsToRules(vars, result));
     }
-    private Set<Plan.Rule> partsToRules(String[] vars, List<Pair<JSTypePair,String>> parts) {
+    private Set<RuleSet.Rule> partsToRules(String[] vars, List<Pair<JSTypePair,String>> parts) {
         List<Pair<JSTypePair,String>> _parts = new LinkedList<Pair<JSTypePair,String>>(parts);
-        Set<Plan.Rule> rules = new HashSet<Plan.Rule>();
+        Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
         for (Pair<JSTypePair,String> e : parts) {
             if (_parts.contains(e)) {
-                Set<Plan.Condition> conditions = new HashSet<Plan.Condition>();
+                Set<RuleSet.Condition> conditions = new HashSet<RuleSet.Condition>();
                 List<Pair<JSTypePair,String>> rmList = new LinkedList<Pair<JSTypePair,String>>();
                 for (Pair<JSTypePair,String> _e : _parts) {
                     if (e.second() == _e.second()) {
                         if (vars.length == 1) {
-                            conditions.add(new Plan.Condition(_e.first().left.getName()));
+                            conditions.add(new RuleSet.Condition(_e.first().left.getName()));
                         } else if (vars.length == 2) {
-                            conditions.add(new Plan.Condition(_e.first().left.getName(), _e.first().right.getName()));
+                            conditions.add(new RuleSet.Condition(_e.first().left.getName(), _e.first().right.getName()));
                         }
                         rmList.add(_e);
                     }
                 }
                 _parts.removeAll(rmList);
-                rules.add(new Plan.Rule(e.second(), conditions));
+                rules.add(new RuleSet.Rule(e.second(), conditions));
             }
         }
         return rules;
@@ -277,7 +277,7 @@ public class ProcDefinition {
                 sb.append(this.prologue + "\n");
             }
             sb.append(name + "_HEAD:\n");
-            Plan p = new Plan(dispatchVars, tdDef.rules);
+            RuleSet p = new RuleSet(dispatchVars, tdDef.rules);
             sb.append(synthesiser.synthesise(p));
             if (this.epilogue != null) {
                 sb.append(this.epilogue + "\n");

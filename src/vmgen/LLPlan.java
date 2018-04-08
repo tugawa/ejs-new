@@ -22,10 +22,10 @@ public class LLPlan {
 	private String[] dispatchVars;
 	public Set<LLRule> rules;
 
-	public LLPlan(Plan plan) {
+	public LLPlan(RuleSet plan) {
 		dispatchVars = plan.getDispatchVars();
 		rules = new HashSet<LLRule>();
-		for (Plan.Rule hr: plan.getRules())
+		for (RuleSet.Rule hr: plan.getRules())
 			rules.add(new LLRule(hr));
 	}
 

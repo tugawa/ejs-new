@@ -45,7 +45,7 @@ public class InsnGenSimple {
 				String dv = insnDef.dispatchVars[i];
 				dispatchVars[i] = dv.substring(1, dv.length());
 			}
-            Plan p = new Plan(dispatchVars, insnDef.tdDef.rules);
+            RuleSet p = new RuleSet(dispatchVars, insnDef.tdDef.rules);
             sb.append(synth.synthesise(p));
             try {
             	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");

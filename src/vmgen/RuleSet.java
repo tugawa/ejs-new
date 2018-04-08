@@ -1,5 +1,9 @@
 /*
+<<<<<<< Updated upstream:src/vmgen/Plan.java
    Plan.java
+=======
+   RuleSet.java
+>>>>>>> Stashed changes:src/vmgen/RuleSet.java
 
    eJS Project
      Kochi University of Technology
@@ -9,6 +13,7 @@
      Hideya Iwasaki, 2016-18
 */
 package vmgen;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -18,7 +23,7 @@ import java.util.Set;
 import vmgen.type.VMDataType;
 
 
-public class Plan implements GlobalConstantOptions {
+public class RuleSet implements GlobalConstantOptions {
 	public static class Condition {
 		public VMDataType[] dts;
 
@@ -68,11 +73,15 @@ public class Plan implements GlobalConstantOptions {
 		}
 		
 		Rule filterConditions(Collection<Condition> remove) {
-    		Set<Condition> filteredCondition = new HashSet<Plan.Condition>();
+    		Set<Condition> filteredCondition = new HashSet<RuleSet.Condition>();
     		for (Condition c: condition)
 	    		if (!remove.contains(c))
 	    			filteredCondition.add(c);
 	    	return new Rule(action, filteredCondition);
+		}
+		
+		public Set<Condition> getCondition() {
+			return condition;
 		}
 	}
 
@@ -87,11 +96,11 @@ public class Plan implements GlobalConstantOptions {
 	public Set<Rule> getRules() {
 		return rules;
 	}
-	int getArity() {
+	public int getArity() {
 		return dispatchVars.length;
 	}
 
-	public Plan() {
+	public RuleSet() {
 		rules = new HashSet<Rule>();
 		dispatchVars = new String[]{"v1", "v2"};
 
@@ -119,7 +128,7 @@ public class Plan implements GlobalConstantOptions {
 	    this.arity = vars.length;
 	    this.vars = vars;
 =======*/
-	Plan(String[] dispatchVars, Set<Rule> rules) {
+	RuleSet(String[] dispatchVars, Set<Rule> rules) {
 	    this.dispatchVars = dispatchVars;
 // >>>>>>> develop
 	    this.rules = rules;

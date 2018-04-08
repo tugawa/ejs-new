@@ -8,7 +8,7 @@ import java.util.Set;
 
 import vmgen.LLPlan;
 import vmgen.LLRule;
-import vmgen.Plan;
+import vmgen.RuleSet;
 import vmgen.dd.Branch;
 import vmgen.dd.DDDispatchNode;
 import vmgen.dd.DDLeaf;
@@ -22,7 +22,7 @@ import vmgen.type.VMRepType;
 
 public class SwitchSynthesiser extends Synthesiser {
 	@Override
-	public String synthesise(Plan plan) {
+	public String synthesise(RuleSet plan) {
 		LLPlan dispatchRuleList = new LLPlan(plan);
 		if (PRINT_PASS) {
 			System.out.println("-------- LLPlan --------");

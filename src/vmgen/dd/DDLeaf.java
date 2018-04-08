@@ -10,13 +10,13 @@
 */
 package vmgen.dd;
 
-import vmgen.Plan;
-import vmgen.Plan.Rule;
+import vmgen.RuleSet;
+import vmgen.RuleSet.Rule;
 
 public class DDLeaf extends DDNode {
-	Plan.Rule rule;
+	RuleSet.Rule rule;
 
-	public DDLeaf(Plan.Rule rule) {
+	public DDLeaf(RuleSet.Rule rule) {
 		this.rule = rule;
 	}
 

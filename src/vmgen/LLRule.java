@@ -71,9 +71,9 @@ public class LLRule {
 	 * Creates LLRule from (high level) Rule
 	 * @param r (high level) Rule
 	 */
-	LLRule(Plan.Rule r) {
+	LLRule(RuleSet.Rule r) {
 		condition = new HashSet<Condition>();
-		for (Plan.Condition dtc: r.condition) {
+		for (RuleSet.Condition dtc: r.condition) {
 			int nRtc = 1;
 			for (VMDataType dt: dtc.dts)
 				nRtc *= dt.getVMRepTypes().size();

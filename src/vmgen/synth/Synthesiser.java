@@ -1,10 +1,10 @@
 package vmgen.synth;
 
 import vmgen.GlobalConstantOptions;
-import vmgen.Plan;
+import vmgen.RuleSet;
 
 public abstract class Synthesiser implements GlobalConstantOptions {
-	public abstract String synthesise(Plan plan);
+	public abstract String synthesise(RuleSet plan);
 
 	String getPTCode(String dispatchVar) {
 		return "get_tag("+dispatchVar+")";

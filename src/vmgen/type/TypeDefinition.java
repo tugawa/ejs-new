@@ -24,7 +24,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
 
-import vmgen.Plan;
+import vmgen.RuleSet;
 import vmgen.synth.TagPairSynthesiser;
 
 
@@ -119,7 +119,7 @@ public class TypeDefinition {
 
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition.load("datatype/new.dtdef");
-		Plan p = new Plan();
+		RuleSet p = new RuleSet();
 		new TagPairSynthesiser().synthesise(p);
 	}
 }
