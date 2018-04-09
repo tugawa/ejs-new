@@ -1,13 +1,15 @@
 package vmgen;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 public class DecisionDiagram {
+	public static final boolean DEBUG_COMMENT = true;
+	
 	static final int DISPATCH_TAGPAIR = 0;
 	static final int DISPATCH_PT_BASE = 10;
 	static final int DISPATCH_HT_BASE = 20;
@@ -41,9 +43,12 @@ public class DecisionDiagram {
 		boolean isCompatibleTo(Node otherx) {
 			if (otherx instanceof Leaf) {
 				Leaf other = (Leaf) otherx;
-				if (rule.getHLRule() == other.getRule().getHLRule())
+				if (rule.getHLRule() == other.getRule().getHLRule()) {
+					System.out.println("isCompatible("+this+","+otherx+") = true");
 					return true;
+				}
 			}
+			System.out.println("isCompatible("+this+","+otherx+") => false");
 			return false;
 		}
 		@Override
@@ -58,7 +63,13 @@ public class DecisionDiagram {
 		}
 		@Override
 		void toCode(StringBuffer sb, String varNames[]) {
-			sb.append("{").append(rule.getHLRule().action).append("}\n");
+			sb.append("{");
+			if (DEBUG_COMMENT) {
+				sb.append(" //");
+				for (VMRepType rt: rule.getVMRepTypes())
+					sb.append(" ").append(rt.getName());
+			}
+			sb.append(rule.getHLRule().action).append("}\n");
 		}
 	}
 	static abstract class TagNode<T> extends Node {
@@ -82,7 +93,7 @@ public class DecisionDiagram {
 		boolean hasCompatibleBranches(TagNode<T> other) {
 			if (opIndex != other.opIndex)
 				return false;
-			HashSet<T> union = new HashSet<T>(branches.keySet());
+			LinkedHashSet<T> union = new LinkedHashSet<T>(branches.keySet());
 			union.addAll(other.branches.keySet());
 			for (T tag: union) {
 				Node thisChild = branches.get(tag);
@@ -93,7 +104,7 @@ public class DecisionDiagram {
 			return true;
 		}
 		void makeMergedNode(TagNode<T> n1, TagNode<T> n2) {
-			HashSet<T> union = new HashSet<T>(n1.branches.keySet());
+			LinkedHashSet<T> union = new LinkedHashSet<T>(n1.branches.keySet());
 			union.addAll(n2.branches.keySet());
 			for (T tag: union) {
 				Node c1 = n1.branches.get(tag);
@@ -108,13 +119,13 @@ public class DecisionDiagram {
 				}
 			}
 		}
-		HashMap<Node, HashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
-			HashMap<Node, HashSet<T>> childToTags = new HashMap<Node, HashSet<T>>();
+		HashMap<Node, LinkedHashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
+			HashMap<Node, LinkedHashSet<T>> childToTags = new HashMap<Node, LinkedHashSet<T>>();
 			for (T tag: tagToChild.keySet()) {
 				Node child = tagToChild.get(tag);
-				HashSet<T> tags = childToTags.get(child);
+				LinkedHashSet<T> tags = childToTags.get(child);
 				if (tags == null) {
-					tags = new HashSet<T>();
+					tags = new LinkedHashSet<T>();
 					childToTags.put(child, tags);
 				}
 				tags.add(tag);
@@ -123,7 +134,7 @@ public class DecisionDiagram {
 		}
 		@Override
 		void mergeChildren() {
-			HashMap<Node, HashSet<T>> childToTags = makeChildToTagsMap(branches);	
+			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);	
 			Node[] children = new Node[childToTags.size()];
 			boolean[] hasMerged = new boolean[children.length];
 			{
@@ -137,7 +148,7 @@ public class DecisionDiagram {
 			for (int i = 0; i < children.length; i++) {
 				if (hasMerged[i])
 					continue;
-				HashSet<T> edge = childToTags.get(children[i]);
+				LinkedHashSet<T> edge = childToTags.get(children[i]);
 				Node merged = children[i];
 				hasMerged[i] = true;
 				for (int j = i + 1; j < children.length; j++) {
@@ -153,7 +164,7 @@ public class DecisionDiagram {
 		}
 		@Override
 		Node skipNoChoice() {
-			HashMap<Node, HashSet<T>> childToTags = makeChildToTagsMap(branches);	
+			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);	
 			if (childToTags.size() == 1) {
 				return childToTags.keySet().iterator().next().skipNoChoice();
 			}
@@ -207,29 +218,40 @@ public class DecisionDiagram {
 		}
 		@Override
 		void toCode(StringBuffer sb, String varNames[]) {
-			HashMap<Node, HashSet<TagPair>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(TAG_PAIR("+varNames[0]+","+varNames[1]+")){ // "+this+"\n");
+			HashMap<Node, LinkedHashSet<TagPair>> childToTags = makeChildToTagsMap(branches);
+			sb.append("switch(TAG_PAIR("+varNames[0]+","+varNames[1]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
 			for (Node child: childToTags.keySet()) {
 				for (TagPair tag: childToTags.get(child))
 					sb.append("case TAG_PAIR("+tag.op1.getName()+","+tag.op2.getName()+"):\n");
 				child.toCode(sb, varNames);
 				sb.append("break;\n");
 			}
-			sb.append("}\n");
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this);
+			sb.append('\n');
 		}
 	}
 	static class PTNode extends TagNode<PT> {
 		PTNode(int opIndex) {
 			super(opIndex);
 		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
+		boolean doIsCompatibleTo(Node otherx) {
 			if (!(otherx instanceof PTNode))
 				return false;
 			PTNode other = (PTNode) otherx;
 			if (opIndex != other.opIndex)
 				return false;
-			return hasCompatibleBranches(other);
+			return hasCompatibleBranches(other);		
+		}
+		@Override
+		boolean isCompatibleTo(Node otherx) {
+			boolean result = doIsCompatibleTo(otherx);
+			System.out.println("isCompatible("+this+","+otherx+") = "+result);
+			return result;
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -240,15 +262,21 @@ public class DecisionDiagram {
 		}
 		@Override
 		void toCode(StringBuffer sb, String varNames[]) {
-			HashMap<Node, HashSet<PT>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(GET_PTAG("+varNames[opIndex]+")){ // "+this+"\n");
+			HashMap<Node, LinkedHashSet<PT>> childToTags = makeChildToTagsMap(branches);
+			sb.append("switch(GET_PTAG("+varNames[opIndex]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
 			for (Node child: childToTags.keySet()) {
 				for (PT tag: childToTags.get(child))
 					sb.append("case "+tag.getName()+":\n");
 				child.toCode(sb, varNames);
 				sb.append("break;\n");
 			}
-			sb.append("} // "+this+"\n");
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this);
+			sb.append('\n');
 		}
 	}
 	static class HTNode extends TagNode<HT> {
@@ -263,7 +291,7 @@ public class DecisionDiagram {
 			if (noHT) {
 				if (tag != null)
 					throw new Error("invalid tag assignment");
-				this.child = digger.dig(this.child);
+				child = digger.dig(child);
 				return;
 			}
 			super.addBranch(digger, tag);
@@ -272,13 +300,12 @@ public class DecisionDiagram {
 		void addLeaf(TreeDigger digger, HT tag, Leaf leaf) {
 			if (tag == null) {
 				noHT = true;
-				child = digger.dig(null);
+				child = leaf;
 				return;
 			}
 			super.addLeaf(digger, tag, leaf);
 		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
+		boolean doIsCompatibleTo(Node otherx) {
 			if (!(otherx instanceof HTNode))
 				return false;
 			HTNode other = (HTNode) otherx;
@@ -288,7 +315,13 @@ public class DecisionDiagram {
 				return false;
 			if (noHT && this.child.isCompatibleTo(other.child))
 				return true;
-			return hasCompatibleBranches(other);
+			return hasCompatibleBranches(other);			
+		}
+		@Override
+		boolean isCompatibleTo(Node otherx) {
+			boolean result = doIsCompatibleTo(otherx);
+			System.out.println("isCompatible("+this+","+otherx+") = "+result);
+			return result;
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -322,15 +355,21 @@ public class DecisionDiagram {
 				child.toCode(sb, varNames);
 				return;
 			}
-			HashMap<Node, HashSet<HT>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(GET_HTAG("+varNames[opIndex]+")){ // "+this+"("+childToTags.size()+")\n");
+			HashMap<Node, LinkedHashSet<HT>> childToTags = makeChildToTagsMap(branches);
+			sb.append("switch(GET_HTAG("+varNames[opIndex]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
 			for (Node child: childToTags.keySet()) {
 				for (HT tag: childToTags.get(child)) 
 					sb.append("case "+tag.getName()+":\n");
 				child.toCode(sb, varNames);
 				sb.append("break;\n");
 			}
-			sb.append("} // "+this+"\n");
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append("// "+this);
+			sb.append('\n');
 		}
 	}
 	
@@ -366,7 +405,7 @@ public class DecisionDiagram {
 				if (nodex instanceof Leaf) {
 					if (((Leaf) nodex).getRule() == rule) {
 						throw new Error("LL-Rule duplicate");
-						// return nodex;
+						//return nodex;
 					}
 					node = new TagPairNode();
 					Leaf leaf = (Leaf) nodex;
@@ -384,7 +423,7 @@ public class DecisionDiagram {
 				if (nodex instanceof Leaf) {
 					if (((Leaf) nodex).getRule() == rule) {
 						throw new Error("LL-Rule duplicate");
-						// return nodex;
+						//return nodex;
 					}
 					node = new PTNode(opIndex);
 					Leaf leaf = (Leaf) nodex;
@@ -400,8 +439,8 @@ public class DecisionDiagram {
 				HTNode node;
 				if (nodex instanceof Leaf) {
 					if (((Leaf) nodex).getRule() == rule) {
-						// throw new Error("LL-Rule duplicate");
-						return nodex;
+						throw new Error("LL-Rule duplicate "+rule);
+						//return nodex;
 					}
 					node = new HTNode(opIndex);
 					Leaf leaf = (Leaf) nodex;
@@ -426,11 +465,15 @@ public class DecisionDiagram {
 			root = digger.dig(root);
 		}
 		
-		root.mergeChildren();
-				
-		root = root.skipNoChoice();
+		System.out.println(generateCode(new String[] {"b1", "b2"}));
 
 		root.mergeChildren();
+		
+		System.out.println(generateCode(new String[] {"a1", "a2"}));
+		
+		root = root.skipNoChoice();
+
+		//root.mergeChildren();
 }
 	
 	public String generateCode(String[] varNames) {
