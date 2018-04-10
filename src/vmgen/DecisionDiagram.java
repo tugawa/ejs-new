@@ -93,6 +93,7 @@ public class DecisionDiagram {
 		boolean hasCompatibleBranches(TagNode<T> other) {
 			if (opIndex != other.opIndex)
 				return false;
+			System.out.println("hasCompatibleBranches("+this+", "+other+")");
 			LinkedHashSet<T> union = new LinkedHashSet<T>(branches.keySet());
 			union.addAll(other.branches.keySet());
 			for (T tag: union) {
@@ -118,6 +119,7 @@ public class DecisionDiagram {
 					branches.put(tag, child);
 				}
 			}
+			mergeChildren();
 		}
 		HashMap<Node, LinkedHashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
 			HashMap<Node, LinkedHashSet<T>> childToTags = new HashMap<Node, LinkedHashSet<T>>();
@@ -152,9 +154,11 @@ public class DecisionDiagram {
 				Node merged = children[i];
 				hasMerged[i] = true;
 				for (int j = i + 1; j < children.length; j++) {
+					System.out.println("mergeing");
 					if (!hasMerged[j] && merged.isCompatibleTo(children[j])) {
 						edge.addAll(childToTags.get(children[j]));
 						merged = merged.merge(children[j]);
+						System.out.println(" => "+merged);
 						hasMerged[j] = true;
 					}
 				}
