@@ -9,6 +9,7 @@ import vmgen.type.VMRepType.PT;
 
 public class DecisionDiagram {
 	public static final boolean DEBUG_COMMENT = true;
+	public static final int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 	
 	static final int DISPATCH_TAGPAIR = 0;
 	static final int DISPATCH_PT_BASE = 10;
@@ -22,7 +23,12 @@ public class DecisionDiagram {
 	};
 	
 	static abstract class Node {
+		// returns the number of distinct destinations
+		abstract int size();
 		abstract boolean isCompatibleTo(Node other);
+		abstract boolean isSingleLeafTree();
+		// slt should be SIngelLeafTree
+		abstract boolean isAbsobable(Node slt);
 		// returns a merged node
 		// other should be compatible with this
 		// this method does not mutate this object
@@ -40,6 +46,10 @@ public class DecisionDiagram {
 			return rule;
 		}
 		@Override
+		int size() {
+			return 0;
+		}
+		@Override
 		boolean isCompatibleTo(Node otherx) {
 			if (otherx instanceof Leaf) {
 				Leaf other = (Leaf) otherx;
@@ -50,6 +60,14 @@ public class DecisionDiagram {
 			}
 			System.out.println("isCompatible("+this+","+otherx+") => false");
 			return false;
+		}
+		@Override
+		boolean isSingleLeafTree() {
+			return true;
+		}
+		@Override
+		boolean isAbsobable(Node otherx) {
+			return isCompatibleTo(otherx);
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -90,6 +108,10 @@ public class DecisionDiagram {
 		void addLeaf(TreeDigger digger, T tag, Leaf leaf) {
 			branches.put(tag, leaf);
 		}
+		@Override
+		int size() {
+			return makeChildToTagsMap(branches).size();
+		}
 		boolean hasCompatibleBranches(TagNode<T> other) {
 			if (opIndex != other.opIndex)
 				return false;
@@ -101,6 +123,35 @@ public class DecisionDiagram {
 				Node otherChild = other.branches.get(tag);
 				if (thisChild != null && otherChild != null && !thisChild.isCompatibleTo(otherChild))
 					return false;
+			}
+			return true;
+		}
+		@Override
+		boolean isSingleLeafTree() {
+			if (size() == 1)
+				return branches.values().iterator().next().isSingleLeafTree();
+			return false;
+		}
+		@Override
+		boolean isAbsobable(Node sltx) {
+			TagNode<T> slt = (TagNode<T>) sltx;
+			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);
+			for (T tag: slt.branches.keySet()) {
+				Node sltChild = slt.branches.get(tag);
+				if (branches.get(tag) != null) {
+					Node child = branches.get(tag);
+					if (!child.isAbsobable(sltChild))
+						return false;
+				} else {
+					boolean found = false;
+					for (Node child: childToTags.keySet())
+						if (child.isAbsobable(sltChild)) {
+							found = true;
+							break;
+						}
+					if (!found)
+						return false;
+				}
 			}
 			return true;
 		}
@@ -156,9 +207,11 @@ public class DecisionDiagram {
 				for (int j = i + 1; j < children.length; j++) {
 					System.out.println("mergeing");
 					if (!hasMerged[j] && merged.isCompatibleTo(children[j])) {
+						if (!checkMergeCriteria(children[j], merged))
+							continue;
+						Node newMerged = merged.merge(children[j]);
 						edge.addAll(childToTags.get(children[j]));
-						merged = merged.merge(children[j]);
-						System.out.println(" => "+merged);
+						System.out.println(" => "+newMerged);
 						hasMerged[j] = true;
 					}
 				}
@@ -478,11 +531,26 @@ public class DecisionDiagram {
 		root = root.skipNoChoice();
 
 		//root.mergeChildren();
-}
+	}
 	
 	public String generateCode(String[] varNames) {
 		StringBuffer sb = new StringBuffer();
 		root.toCode(sb, varNames);
 		return sb.toString();
+	}
+	
+	// precondition: a.isCompatibleTo(b)
+	static boolean checkMergeCriteria(Node a, Node b) {
+		if (a.isSingleLeafTree() && b.isSingleLeafTree())
+			return a.isAbsobable(b);
+		if (MERGE_LEVEL == 0) {
+			return !(a.isSingleLeafTree() || b.isSingleLeafTree());
+		} else if (MERGE_LEVEL <= 1) {
+			if (a.isSingleLeafTree())
+				return b.isAbsobable(a);
+			if (b.isSingleLeafTree())
+				return a.isAbsobable(a);
+		}
+		return true;
 	}
 }
