@@ -8,7 +8,7 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
-package vmgen.dd;
+package vmgen.synth;
 
 public abstract class Branch {
 	public DDNode action;

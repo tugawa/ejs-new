@@ -8,14 +8,15 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
-package vmgen;
+package vmgen.synth;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import vmgen.LLRule.Condition;
-import vmgen.dd.DDUnexpandedNode;
+import vmgen.RuleSet;
+import vmgen.RuleSet.Rule;
+import vmgen.synth.LLRule.Condition;
 import vmgen.type.VMRepType;
 
 public class LLPlan {

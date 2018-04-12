@@ -19,10 +19,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 import vmgen.RuleSet.Rule;
-import vmgen.dd.DDNode;
+import vmgen.newsynth.NewSynthesiser;
+import vmgen.synth.DDNode;
 import vmgen.synth.SimpleSynthesiser;
 import vmgen.synth.SwitchSynthesiser;
-import vmgen.synth.Synthesiser;
 import vmgen.synth.TagPairSynthesiser;
 import vmgen.type.TypeDefinition;
 import vmgen.type.VMDataType;

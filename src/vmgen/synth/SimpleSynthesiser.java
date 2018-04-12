@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import vmgen.RuleSet;
+import vmgen.Synthesiser;
 
 public class SimpleSynthesiser extends Synthesiser {
 	@Override

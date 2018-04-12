@@ -20,7 +20,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import vmgen.synth.Synthesiser;
 import vmgen.type.TypeDefinition;
 import vmgen.type.VMDataType;
 

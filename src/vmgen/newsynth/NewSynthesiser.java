@@ -1,6 +1,7 @@
-package vmgen;
+package vmgen.newsynth;
 
-import vmgen.synth.Synthesiser;
+import vmgen.RuleSet;
+import vmgen.Synthesiser;
 
 public class NewSynthesiser extends Synthesiser {
 	@Override

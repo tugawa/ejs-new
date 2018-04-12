@@ -8,10 +8,7 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
-package vmgen.dd;
-
-import vmgen.LLPlan;
-import vmgen.LLRule;
+package vmgen.synth;
 
 public class DDUnexpandedNode extends DDNode {
 	public LLPlan ruleList;

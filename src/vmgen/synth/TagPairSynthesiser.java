@@ -5,12 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import vmgen.LLPlan;
-import vmgen.LLRule;
 import vmgen.RuleSet;
-import vmgen.dd.DDDispatchNode;
-import vmgen.dd.DDNode;
-import vmgen.dd.TagPairBranch;
 import vmgen.type.VMRepType;
 
 public class TagPairSynthesiser extends SwitchSynthesiser {

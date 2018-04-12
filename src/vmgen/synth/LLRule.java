@@ -8,14 +8,15 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
-package vmgen;
+package vmgen.synth;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import vmgen.dd.DDLeaf;
-import vmgen.dd.DDNode;
+import vmgen.RuleSet;
+import vmgen.RuleSet.Condition;
+import vmgen.RuleSet.Rule;
 import vmgen.type.VMDataType;
 import vmgen.type.VMRepType;
 

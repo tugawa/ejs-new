@@ -6,17 +6,8 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import vmgen.LLPlan;
-import vmgen.LLRule;
 import vmgen.RuleSet;
-import vmgen.dd.Branch;
-import vmgen.dd.DDDispatchNode;
-import vmgen.dd.DDLeaf;
-import vmgen.dd.DDNode;
-import vmgen.dd.DDRedirectNode;
-import vmgen.dd.DDUnexpandedNode;
-import vmgen.dd.HTBranch;
-import vmgen.dd.PTBranch;
+import vmgen.Synthesiser;
 import vmgen.type.VMRepType;
 
 

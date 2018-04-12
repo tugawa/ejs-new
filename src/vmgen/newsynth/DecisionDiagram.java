@@ -1,8 +1,11 @@
-package vmgen;
+package vmgen.newsynth;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 
+import vmgen.RuleSet;
+import vmgen.RuleSet.Rule;
+import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;

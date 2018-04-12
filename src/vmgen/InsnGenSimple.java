@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import vmgen.synth.SimpleSynthesiser;
-import vmgen.synth.Synthesiser;
 import vmgen.type.TypeDefinition;
 
 public class InsnGenSimple {
