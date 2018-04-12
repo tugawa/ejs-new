@@ -26,6 +26,8 @@ public class DecisionDiagram {
 	};
 	
 	static abstract class Node {
+		abstract Object accept(NodeVisitor visitor);
+
 		// returns the number of distinct destinations
 		abstract int size();
 		abstract boolean isCompatibleTo(Node other);
@@ -40,6 +42,25 @@ public class DecisionDiagram {
 		abstract Node skipNoChoice();
 		abstract void toCode(StringBuffer sb, String varNames[]);
 	}
+	
+	static class NodeVisitor {
+		Object visitLeaf(Leaf node) {
+			return null;
+		}
+		Object visitTagNode(TagNode<?> node) {
+			return null;
+		}
+		Object visitTagPairNode(TagPairNode node) {
+			return visitTagNode(node);
+		}
+		Object visitPTNode(PTNode node) {
+			return visitPTNode(node);
+		}
+		Object visitHTNode(HTNode node) {
+			return visitHTNode(node);
+		}
+	}
+	
 	static class Leaf extends Node {
 		LLRuleSet.LLRule rule;
 		Leaf(LLRuleSet.LLRule rule) {
@@ -47,6 +68,10 @@ public class DecisionDiagram {
 		}
 		LLRuleSet.LLRule getRule() {
 			return rule;
+		}
+		@Override
+		Object accept(NodeVisitor visitor) {
+			return visitor.visitLeaf(this);
 		}
 		@Override
 		int size() {
@@ -112,8 +137,15 @@ public class DecisionDiagram {
 			branches.put(tag, leaf);
 		}
 		@Override
+		Object accept(NodeVisitor visitor) {
+			return visitor.visitTagNode(this);
+		}
+		@Override
 		int size() {
 			return makeChildToTagsMap(branches).size();
+		}
+		int getOpIndex() {
+			return opIndex;
 		}
 		boolean hasCompatibleBranches(TagNode<T> other) {
 			if (opIndex != other.opIndex)
@@ -187,6 +219,9 @@ public class DecisionDiagram {
 				tags.add(tag);
 			}
 			return childToTags;
+		}
+		HashMap<Node, LinkedHashSet<T>> getChildToTagsMap() {
+			return makeChildToTagsMap(branches);
 		}
 		@Override
 		void mergeChildren() {
@@ -266,6 +301,10 @@ public class DecisionDiagram {
 			super(-1);
 		}
 		@Override
+		Object accept(NodeVisitor visitor) {
+			return visitor.visitTagPairNode(this);
+		}
+		@Override
 		boolean isCompatibleTo(Node otherx) {
 			// Since TagPair is used only as a root node, if any, isCompatibleTo will
 			// not be called.
@@ -298,6 +337,10 @@ public class DecisionDiagram {
 	static class PTNode extends TagNode<PT> {
 		PTNode(int opIndex) {
 			super(opIndex);
+		}
+		@Override
+		Object accept(NodeVisitor visitor) {
+			return visitor.visitPTNode(this);
 		}
 		boolean doIsCompatibleTo(Node otherx) {
 			if (!(otherx instanceof PTNode))
@@ -364,6 +407,16 @@ public class DecisionDiagram {
 				return;
 			}
 			super.addLeaf(digger, tag, leaf);
+		}
+		@Override
+		Object accept(NodeVisitor visitor) {
+			return visitor.visitHTNode(this);
+		}
+		boolean isNoHT() {
+			return noHT;
+		}
+		Node getChild() {
+			return child;
 		}
 		boolean doIsCompatibleTo(Node otherx) {
 			if (!(otherx instanceof HTNode))
@@ -537,9 +590,9 @@ public class DecisionDiagram {
 	}
 	
 	public String generateCode(String[] varNames) {
-		StringBuffer sb = new StringBuffer();
-		root.toCode(sb, varNames);
-		return sb.toString();
+		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames);
+		root.accept(gen);
+		return gen.toString();
 	}
 	
 	// precondition: a.isCompatibleTo(b)
@@ -555,5 +608,89 @@ public class DecisionDiagram {
 				return a.isAbsobable(a);
 		}
 		return true;
+	}
+	
+	static class CodeGenerateVisitor extends NodeVisitor {
+		StringBuffer sb = new StringBuffer();
+		String[] varNames;
+		public CodeGenerateVisitor(String[] varNames) {
+			this.varNames = varNames;
+		}
+		@Override
+		public String toString() {
+			return sb.toString();
+		}
+		@Override
+		Object visitLeaf(Leaf node) {
+			sb.append("{");
+			if (DEBUG_COMMENT) {
+				sb.append(" //");
+				for (VMRepType rt: node.getRule().getVMRepTypes())
+					sb.append(" ").append(rt.getName());
+			}
+			sb.append(node.getRule().getHLRule().action).append("}\n");
+			return null;
+		}
+		@Override
+		Object visitTagPairNode(TagPairNode node) {
+			HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
+			sb.append("switch(TAG_PAIR("+varNames[0]+","+varNames[1]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
+			for (Node child: childToTags.keySet()) {
+				for (TagPairNode.TagPair tag: childToTags.get(child))
+					sb.append("case TAG_PAIR("+tag.op1.getName()+","+tag.op2.getName()+"):\n");
+				child.toCode(sb, varNames);
+				sb.append("break;\n");
+			}
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this);
+			sb.append('\n');
+			return null;
+		}
+		@Override
+		Object visitPTNode(PTNode node) {
+			HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
+			sb.append("switch(GET_PTAG("+varNames[node.getOpIndex()]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
+			for (Node child: childToTags.keySet()) {
+				for (PT tag: childToTags.get(child))
+					sb.append("case "+tag.getName()+":\n");
+				child.toCode(sb, varNames);
+				sb.append("break;\n");
+			}
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this);
+			sb.append('\n');
+			return null;
+		}
+		@Override
+		Object visitHTNode(HTNode node) {
+			if (node.isNoHT()) {
+				node.getChild().toCode(sb, varNames);
+				return null;
+			}
+			HashMap<Node, LinkedHashSet<HT>> childToTags = node.getChildToTagsMap();
+			sb.append("switch(GET_HTAG("+varNames[node.getOpIndex()]+")){");
+			if (DEBUG_COMMENT)
+				sb.append(" // "+this+"("+childToTags.size()+")");
+			sb.append('\n');
+			for (Node child: childToTags.keySet()) {
+				for (HT tag: childToTags.get(child)) 
+					sb.append("case "+tag.getName()+":\n");
+				child.toCode(sb, varNames);
+				sb.append("break;\n");
+			}
+			sb.append("}");
+			if (DEBUG_COMMENT)
+				sb.append("// "+this);
+			sb.append('\n');
+			return null;
+		}
 	}
 }
