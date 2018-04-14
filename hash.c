@@ -250,6 +250,21 @@ int init_hash_iterator(HashTable *t, HashIterator *h) {
     if (t->body[i] != NULL) {
       h->p = t->body[i];
       h->index = i;
+      return TRUE;
+    }
+  }
+  h->p = NULL;
+  return FALSE;
+}
+
+int init_hash_simple_iterator(HashTable *t, HashIterator *h) {
+  int i, size;
+
+  size = t->size;
+  for (i = 0; i < size; i++) {
+    if (t->body[i] != NULL) {
+      h->p = t->body[i];
+      h->index = i;
       // printf("init_hash_iterator: h->index = %d, h->p = %p\n", h->index, h->p);
       return TRUE;
     }
@@ -275,6 +290,17 @@ HashIterator createHashIterator(HashTable *table) {
 
 //
 int hash_next(HashTable *table, HashIterator *iter, HashData *data) {
+  HashEntry e;
+  int r;
+
+  if ((r = __hashNext(table, iter, &e)) == SUCCESS) {
+    // printf("hash next: %016lx ", e.data); simple_print(e.data); printf("\n");
+    *data = e.data;
+  }
+  return r;
+}
+
+int hash_next_simple(HashTable *table, HashIterator *iter, HashData *data) {
   HashEntry e;
   int r;
 
@@ -347,6 +373,20 @@ int __hashNext(HashTable *table, HashIterator *iter, HashEntry *ep) {
   }
   iter->p = NULL;
   return SUCCESS;
+}
+
+int __hashNextIdx(HashTable *table, int *idx, HashEntry *ep) {
+  
+  int i;
+  
+  for(i = *idx+1; i < table->size; i++) {
+    if(table->body[i] != NULL) {
+      *idx = i;
+      *ep = table->body[i]->entry;
+      return SUCCESS;
+    }
+  }
+  return FAIL;
 }
 
 //

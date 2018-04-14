@@ -47,7 +47,9 @@ setarg                SETVAR         int        Subscript    JSValue
 setlocal              SETVAR         int        Subscript    JSValue
 makeclosure           MAKECLOSUREOP  Register   Subscript
 makeiterator          TWOOP          JSValue    Register
+makesimpleiterator    TWOOP          JSValue    Register
 nextpropname          THREEOP        JSValue    JSValue      Register
+nextpropnameidx       TWOOP          JSValue    Register
 send                  CALLOP         LABELONLY
 newsend               CALLOP         LABELONLY
 call                  CALLOP         JSValue    int

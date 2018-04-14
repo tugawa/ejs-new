@@ -643,6 +643,15 @@ I_MAKEITERATOR:
 #include "insns/makeiterator.def"
   }
   NEXT_INSN_INCPC();
+  
+I_MAKESIMPLEITERATOR:
+  ENTER_INSN(__LINE__);
+  {
+    Register r0 = get_first_operand_reg(insn);
+    Register r1 = get_second_operand_reg(insn);
+#include "insns/makesimpleiterator.def"
+  }
+  NEXT_INSN_INCPC();
 
 I_NEXTPROPNAME:
   ENTER_INSN(__LINE__);
@@ -654,6 +663,15 @@ I_NEXTPROPNAME:
   }
   NEXT_INSN_INCPC();
 
+I_NEXTPROPNAMEIDX:
+  ENTER_INSN(__LINE__);
+  {
+    Register r0 = get_first_operand_reg(insn);
+    Register r1 = get_second_operand_reg(insn);
+#include "insns/nextpropnameidx.def"
+  }
+  NEXT_INSN_INCPC();
+  
 I_SEND:
 I_NEWSEND:
 I_CALL:

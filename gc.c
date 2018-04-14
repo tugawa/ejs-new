@@ -718,6 +718,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     if (((IteratorCell *) obj)->iter.p != NULL)
       trace_HashCell(&((IteratorCell *) obj)->iter.p);
     break;
+  case HTAG_SIMPLE_ITERATOR:
+    /* TODO: call scanHashIterator */
+    break;
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
   case HTAG_REGEXP:

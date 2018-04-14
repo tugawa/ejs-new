@@ -121,12 +121,14 @@ INSN_FILES = \
          insns/localret.inc \
          insns/makeclosure.inc \
          insns/makeiterator.inc \
+         insns/makesimpleiterator.inc \
          insns/mod.inc \
          insns/move.inc \
          insns/mul.inc \
          insns/new.inc \
          insns/newargs.inc \
          insns/nextpropname.inc \
+         insns/nextpropnameidx.inc \
          insns/nop.inc \
          insns/not.inc \
          insns/number.inc \
