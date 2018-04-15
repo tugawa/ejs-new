@@ -1,5 +1,6 @@
 package vmgen.newsynth;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 
@@ -26,10 +27,20 @@ public class DecisionDiagram {
 	};
 	
 	static abstract class Node {
-		abstract Object accept(NodeVisitor visitor);
-
+		abstract Object accept(NodeVisitor visitor);		
 		// returns the number of distinct destinations
 		abstract int size();
+		int depth() {
+			int max = 0;
+			for (Node child: getChildren()) {
+				int d = child.depth();
+				if (d > max)
+					max = d;
+			}
+			return max + 1;
+		}
+		abstract ArrayList<Node> getChildren();
+		
 		abstract boolean isCompatibleTo(Node other);
 		abstract boolean isSingleLeafTree();
 		// slt should be SIngelLeafTree
@@ -51,12 +62,15 @@ public class DecisionDiagram {
 			return null;
 		}
 		Object visitTagPairNode(TagPairNode node) {
+//			return null;
 			return visitTagNode(node);
 		}
 		Object visitPTNode(PTNode node) {
+//			return null;
 			return visitPTNode(node);
 		}
 		Object visitHTNode(HTNode node) {
+//			return null;
 			return visitHTNode(node);
 		}
 	}
@@ -76,6 +90,10 @@ public class DecisionDiagram {
 		@Override
 		int size() {
 			return 0;
+		}
+		@Override
+		ArrayList<Node> getChildren() {
+			return new ArrayList<Node>();
 		}
 		@Override
 		boolean isCompatibleTo(Node otherx) {
@@ -127,14 +145,8 @@ public class DecisionDiagram {
 		}
 		void addBranch(TreeDigger digger, T tag) {
 			Node child = branches.get(tag);
-			if (child == null)
-				child = digger.leaf();
-			else
-				child = digger.dig(child);
+			child = digger.dig(child);
 			branches.put(tag, child);
-		}
-		void addLeaf(TreeDigger digger, T tag, Leaf leaf) {
-			branches.put(tag, leaf);
 		}
 		@Override
 		Object accept(NodeVisitor visitor) {
@@ -143,6 +155,13 @@ public class DecisionDiagram {
 		@Override
 		int size() {
 			return makeChildToTagsMap(branches).size();
+		}
+		@Override
+		ArrayList<Node> getChildren() {
+			LinkedHashSet<Node> s = new LinkedHashSet<Node>();
+			for (T tag: branches.keySet())
+				s.add(branches.get(tag));
+			return new ArrayList<Node>(s);
 		}
 		int getOpIndex() {
 			return opIndex;
@@ -169,6 +188,14 @@ public class DecisionDiagram {
 		}
 		@Override
 		boolean isAbsobable(Node sltx) {
+			if (sltx.getClass() != getClass()) {
+				System.out.println("------\n");
+				System.out.println(generateCodeForNode(this, new String[] {"a1", "a2"}));
+				System.out.println("---\n");
+				System.out.println(generateCodeForNode(sltx, new String[] {"b1", "b2"}));
+				System.out.println("------\n");
+				throw new Error("class mismatch");
+			}
 			TagNode<T> slt = (TagNode<T>) sltx;
 			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);
 			for (T tag: slt.branches.keySet()) {
@@ -391,26 +418,26 @@ public class DecisionDiagram {
 		}
 		@Override
 		void addBranch(TreeDigger digger, HT tag) {
-			if (noHT) {
-				if (tag != null)
-					throw new Error("invalid tag assignment");
-				child = digger.dig(child);
-				return;
-			}
-			super.addBranch(digger, tag);
-		}
-		@Override
-		void addLeaf(TreeDigger digger, HT tag, Leaf leaf) {
 			if (tag == null) {
+				if (branches.size() != 0)
+					throw new Error("invalid tag assignment");
 				noHT = true;
-				child = leaf;
-				return;
-			}
-			super.addLeaf(digger, tag, leaf);
+				child = digger.dig(child);
+			} else
+				super.addBranch(digger, tag);
 		}
 		@Override
 		Object accept(NodeVisitor visitor) {
 			return visitor.visitHTNode(this);
+		}
+		@Override
+		ArrayList<Node> getChildren() {
+			if (noHT) {
+				ArrayList<Node> r = new ArrayList<Node>(1);
+				r.add(child);
+				return r;
+			}
+			return super.getChildren();
 		}
 		boolean isNoHT() {
 			return noHT;
@@ -490,77 +517,35 @@ public class DecisionDiagram {
 		final LLRuleSet.LLRule rule;
 		final VMRepType[] rts;
 		final int arity;
-		final RuleSet.Rule hlr;
 		int planIndex;
 		
 		TreeDigger(LLRuleSet.LLRule r) {
 			rule = r;
 			rts = r.getVMRepTypes();
 			arity = rts.length;
-			hlr = r.getHLRule();
 			planIndex = 0;
-		}
-		
-		Node leaf() {
-			return new Leaf(rule);
 		}
 		
 		Node dig(Node nodex) {
 			if (planIndex == DISPATCH_PLAN.length)
-				throw new Error("ambigous" + rule.rts[0].getName() + rule.rts[1].getName());
+				return new Leaf(rule);
 			
-			if (nodex == null)
-				return leaf();
-
 			int dispatchType = DISPATCH_PLAN[planIndex++];
 			if (dispatchType == DISPATCH_TAGPAIR && arity == 2) {
-				TagPairNode node;
-				if (nodex instanceof Leaf) {
-					if (((Leaf) nodex).getRule() == rule) {
-						throw new Error("LL-Rule duplicate");
-						//return nodex;
-					}
-					node = new TagPairNode();
-					Leaf leaf = (Leaf) nodex;
-					VMRepType[] leafRTS = leaf.getRule().getVMRepTypes();
-					node.addLeaf(this, new TagPairNode.TagPair(leafRTS[0].getPT(), leafRTS[1].getPT()), (Leaf) nodex);
-				} else
-					node = (TagPairNode) nodex;
+				TagPairNode node = nodex == null ? new TagPairNode() : (TagPairNode) nodex;
 				node.addBranch(this, new TagPairNode.TagPair(rts[0].getPT(), rts[1].getPT()));
 				return node;
 			} else if (DISPATCH_PT_BASE <= dispatchType &&
 					   dispatchType < DISPATCH_HT_BASE &&
 					   dispatchType - DISPATCH_PT_BASE < arity) {
 				int opIndex = dispatchType - DISPATCH_PT_BASE;
-				PTNode node;
-				if (nodex instanceof Leaf) {
-					if (((Leaf) nodex).getRule() == rule) {
-						throw new Error("LL-Rule duplicate");
-						//return nodex;
-					}
-					node = new PTNode(opIndex);
-					Leaf leaf = (Leaf) nodex;
-					VMRepType[] leafRTS = leaf.getRule().getVMRepTypes();
-					node.addLeaf(this, leafRTS[opIndex].getPT(), leaf);
-				} else
-					node = (PTNode) nodex;
+				PTNode node = nodex == null ? new PTNode(opIndex) : (PTNode) nodex;
 				node.addBranch(this, rts[opIndex].getPT());
 				return node;
 			} else if (DISPATCH_HT_BASE <= dispatchType &&
 					   dispatchType - DISPATCH_HT_BASE < arity) {
 				int opIndex = dispatchType - DISPATCH_HT_BASE;
-				HTNode node;
-				if (nodex instanceof Leaf) {
-					if (((Leaf) nodex).getRule() == rule) {
-						throw new Error("LL-Rule duplicate "+rule);
-						//return nodex;
-					}
-					node = new HTNode(opIndex);
-					Leaf leaf = (Leaf) nodex;
-					VMRepType[] leafRTS = leaf.getRule().getVMRepTypes();
-					node.addLeaf(this, leafRTS[opIndex].getHT(), leaf);
-				} else
-					node = (HTNode) nodex;
+				HTNode node = nodex == null ? new HTNode(opIndex) : (HTNode) nodex;
 				node.addBranch(this, rts[opIndex].getHT());
 				return node;
 			} else
@@ -578,11 +563,11 @@ public class DecisionDiagram {
 			root = digger.dig(root);
 		}
 		
-		System.out.println(generateCode(new String[] {"b1", "b2"}));
+//		System.out.println(generateCode(new String[] {"b1", "b2"}));
 
 		root.mergeChildren();
 		
-		System.out.println(generateCode(new String[] {"a1", "a2"}));
+//		System.out.println(generateCode(new String[] {"a1", "a2"}));
 		
 		root = root.skipNoChoice();
 
@@ -590,15 +575,33 @@ public class DecisionDiagram {
 	}
 	
 	public String generateCode(String[] varNames) {
+		return generateCodeForNode(root, varNames);
+	}
+	
+	static String generateCodeForNode(Node node, String[] varNames) {
 		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames);
-		root.accept(gen);
-		return gen.toString();
+		node.accept(gen);
+//		return gen.toString();
+		StringBuffer sb = new StringBuffer();
+		node.toCode(sb, varNames);
+		return sb.toString();
 	}
 	
 	// precondition: a.isCompatibleTo(b)
 	static boolean checkMergeCriteria(Node a, Node b) {
 		if (a.isSingleLeafTree() && b.isSingleLeafTree())
-			return a.isAbsobable(b);
+			try {
+				if (a.depth() != b.depth())
+					throw new Error("depth does not match");
+				return a.isAbsobable(b);
+			} catch (Error e) {
+				System.out.println("-----\n");
+				System.out.println(generateCodeForNode(a, new String[]{"a", "b"}));
+				System.out.println("---\n");
+				System.out.println(generateCodeForNode(b, new String[]{"a", "b"}));
+				System.out.println("-----\n");
+				throw e;
+			}
 		if (MERGE_LEVEL == 0) {
 			return !(a.isSingleLeafTree() || b.isSingleLeafTree());
 		} else if (MERGE_LEVEL <= 1) {
