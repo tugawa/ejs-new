@@ -51,7 +51,6 @@ public class DecisionDiagram {
 		abstract Node merge(Node other);
 		abstract void mergeChildren();
 		abstract Node skipNoChoice();
-		abstract void toCode(StringBuffer sb, String varNames[]);
 	}
 	
 	static class NodeVisitor {
@@ -62,15 +61,12 @@ public class DecisionDiagram {
 			return null;
 		}
 		Object visitTagPairNode(TagPairNode node) {
-//			return null;
 			return visitTagNode(node);
 		}
 		Object visitPTNode(PTNode node) {
-//			return null;
 			return visitPTNode(node);
 		}
 		Object visitHTNode(HTNode node) {
-//			return null;
 			return visitHTNode(node);
 		}
 	}
@@ -124,16 +120,6 @@ public class DecisionDiagram {
 		@Override
 		Node skipNoChoice() {
 			return this;
-		}
-		@Override
-		void toCode(StringBuffer sb, String varNames[]) {
-			sb.append("{");
-			if (DEBUG_COMMENT) {
-				sb.append(" //");
-				for (VMRepType rt: rule.getVMRepTypes())
-					sb.append(" ").append(rt.getName());
-			}
-			sb.append(rule.getHLRule().action).append("}\n");
 		}
 	}
 	static abstract class TagNode<T> extends Node {
@@ -342,24 +328,6 @@ public class DecisionDiagram {
 		Node merge(Node otherx) {
 			throw new Error("merge for TagPairNode is called");
 		}
-		@Override
-		void toCode(StringBuffer sb, String varNames[]) {
-			HashMap<Node, LinkedHashSet<TagPair>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(TAG_PAIR("+varNames[0]+","+varNames[1]+")){");
-			if (DEBUG_COMMENT)
-				sb.append(" // "+this+"("+childToTags.size()+")");
-			sb.append('\n');
-			for (Node child: childToTags.keySet()) {
-				for (TagPair tag: childToTags.get(child))
-					sb.append("case TAG_PAIR("+tag.op1.getName()+","+tag.op2.getName()+"):\n");
-				child.toCode(sb, varNames);
-				sb.append("break;\n");
-			}
-			sb.append("}");
-			if (DEBUG_COMMENT)
-				sb.append(" // "+this);
-			sb.append('\n');
-		}
 	}
 	static class PTNode extends TagNode<PT> {
 		PTNode(int opIndex) {
@@ -389,24 +357,6 @@ public class DecisionDiagram {
 			PTNode merged = new PTNode(opIndex);
 			merged.makeMergedNode(this, other);
 			return merged;
-		}
-		@Override
-		void toCode(StringBuffer sb, String varNames[]) {
-			HashMap<Node, LinkedHashSet<PT>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(GET_PTAG("+varNames[opIndex]+")){");
-			if (DEBUG_COMMENT)
-				sb.append(" // "+this+"("+childToTags.size()+")");
-			sb.append('\n');
-			for (Node child: childToTags.keySet()) {
-				for (PT tag: childToTags.get(child))
-					sb.append("case "+tag.getName()+":\n");
-				child.toCode(sb, varNames);
-				sb.append("break;\n");
-			}
-			sb.append("}");
-			if (DEBUG_COMMENT)
-				sb.append(" // "+this);
-			sb.append('\n');
 		}
 	}
 	static class HTNode extends TagNode<HT> {
@@ -489,28 +439,6 @@ public class DecisionDiagram {
 				return child.skipNoChoice();
 			return super.skipNoChoice();
 		}
-		@Override
-		void toCode(StringBuffer sb, String varNames[]) {
-			if (noHT) {
-				child.toCode(sb, varNames);
-				return;
-			}
-			HashMap<Node, LinkedHashSet<HT>> childToTags = makeChildToTagsMap(branches);
-			sb.append("switch(GET_HTAG("+varNames[opIndex]+")){");
-			if (DEBUG_COMMENT)
-				sb.append(" // "+this+"("+childToTags.size()+")");
-			sb.append('\n');
-			for (Node child: childToTags.keySet()) {
-				for (HT tag: childToTags.get(child)) 
-					sb.append("case "+tag.getName()+":\n");
-				child.toCode(sb, varNames);
-				sb.append("break;\n");
-			}
-			sb.append("}");
-			if (DEBUG_COMMENT)
-				sb.append("// "+this);
-			sb.append('\n');
-		}
 	}
 	
 	static class TreeDigger {
@@ -581,10 +509,7 @@ public class DecisionDiagram {
 	static String generateCodeForNode(Node node, String[] varNames) {
 		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames);
 		node.accept(gen);
-//		return gen.toString();
-		StringBuffer sb = new StringBuffer();
-		node.toCode(sb, varNames);
-		return sb.toString();
+		return gen.toString();
 	}
 	
 	// precondition: a.isCompatibleTo(b)
@@ -644,7 +569,7 @@ public class DecisionDiagram {
 			for (Node child: childToTags.keySet()) {
 				for (TagPairNode.TagPair tag: childToTags.get(child))
 					sb.append("case TAG_PAIR("+tag.op1.getName()+","+tag.op2.getName()+"):\n");
-				child.toCode(sb, varNames);
+				child.accept(this);
 				sb.append("break;\n");
 			}
 			sb.append("}");
@@ -663,7 +588,7 @@ public class DecisionDiagram {
 			for (Node child: childToTags.keySet()) {
 				for (PT tag: childToTags.get(child))
 					sb.append("case "+tag.getName()+":\n");
-				child.toCode(sb, varNames);
+				child.accept(this);
 				sb.append("break;\n");
 			}
 			sb.append("}");
@@ -675,7 +600,7 @@ public class DecisionDiagram {
 		@Override
 		Object visitHTNode(HTNode node) {
 			if (node.isNoHT()) {
-				node.getChild().toCode(sb, varNames);
+				node.getChild().accept(this);
 				return null;
 			}
 			HashMap<Node, LinkedHashSet<HT>> childToTags = node.getChildToTagsMap();
@@ -686,7 +611,7 @@ public class DecisionDiagram {
 			for (Node child: childToTags.keySet()) {
 				for (HT tag: childToTags.get(child)) 
 					sb.append("case "+tag.getName()+":\n");
-				child.toCode(sb, varNames);
+				child.accept(this);
 				sb.append("break;\n");
 			}
 			sb.append("}");
