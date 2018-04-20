@@ -43,7 +43,7 @@ public class DecisionDiagram {
 		
 //		abstract boolean isSingleLeafTree();
 		// slt should be SIngelLeafTree
-		abstract boolean isAbsobable(Node slt);
+//		abstract boolean isAbsobable(Node slt);
 		// returns a merged node
 		// other should be compatible with this
 		// this method does not mutate this object
@@ -70,10 +70,6 @@ public class DecisionDiagram {
 		}
 		boolean hasSameHLRule(Leaf other) {
 			return getRule().getHLRule() == other.getRule().getHLRule();
-		}
-		@Override
-		boolean isAbsobable(Node otherx) {
-			return hasSameHLRule((Leaf) otherx);
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -115,31 +111,6 @@ public class DecisionDiagram {
 		}
 		int getOpIndex() {
 			return opIndex;
-		}
-		@Override
-		boolean isAbsobable(Node sltx) {
-			if (sltx.getClass() != getClass())
-				throw new Error("class mismatch");
-			TagNode<T> slt = (TagNode<T>) sltx;
-			ArrayList<Node> children = getChildren();
-			for (T tag: slt.branches.keySet()) {
-				Node sltChild = slt.branches.get(tag);
-				if (branches.get(tag) != null) {
-					Node child = branches.get(tag);
-					if (!child.isAbsobable(sltChild))
-						return false;
-				} else {
-					boolean found = false;
-					for (Node child: children)
-						if (child.isAbsobable(sltChild)) {
-							found = true;
-							break;
-						}
-					if (!found)
-						return false;
-				}
-			}
-			return true;
 		}
 		void makeMergedNode(TagNode<T> n1, TagNode<T> n2) {
 			LinkedHashSet<T> union = new LinkedHashSet<T>(n1.branches.keySet());
@@ -277,17 +248,6 @@ public class DecisionDiagram {
 		}
 		Node getChild() {
 			return child;
-		}
-		@Override
-		boolean isAbsobable(Node sltx) {
-			HTNode slt = (HTNode) sltx;
-			if (slt.isNoHT()) {
-				ArrayList<Node> children = getChildren();
-				if (children.size() == 1)
-					return children.get(0).isAbsobable(slt.getChild());
-				return false;
-			}
-			return super.isAbsobable(sltx);
 		}
 		@Override
 		Node merge(Node otherx) {

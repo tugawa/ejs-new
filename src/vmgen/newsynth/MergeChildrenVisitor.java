@@ -27,6 +27,61 @@ public class MergeChildrenVisitor extends NodeVisitor {
 			return false;
 		}
 	}
+	
+	static class IsAbsobableVisitor extends NodeVisitor {
+		Node absoberx;
+		
+		IsAbsobableVisitor(Node absober) {
+			this.absoberx = absober;
+		}
+		
+		@Override
+		Object visitLeaf(Leaf slt) {
+			return ((Leaf) absoberx).hasSameHLRule(slt);
+		}
+		
+		@Override
+		<T> Object visitTagNode(TagNode<T> slt) {
+			if (absoberx.getClass() != slt.getClass())
+				throw new Error("class mismatch");
+			TagNode<T> absober = (TagNode<T>) absoberx;
+			ArrayList<Node> children = absober.getChildren();
+			for (T tag: slt.branches.keySet()) {
+				Node sltChild = slt.branches.get(tag);
+				Node child = absober.getChild(tag);
+				if (child != null) {
+					absoberx = child;
+					if (!(Boolean) sltChild.accept(this))
+						return false;
+				} else {
+					boolean found = false;
+					for (Node c: children) {
+						absoberx = c;
+						if ((Boolean) sltChild.accept(this)) {
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+						return false;
+				}
+			}
+			return true;
+		}
+		
+		@Override
+		Object visitHTNode(HTNode slt) {
+			if (slt.isNoHT()) {
+				ArrayList<Node> children = absoberx.getChildren();
+				if (children.size() == 1) {
+					absoberx = children.get(0);
+					return slt.getChild().accept(this);
+				}
+				return false;
+			}
+			return visitTagNode(slt);
+		}
+	}
 
 	@Override
 	Object visitLeaf(Leaf node) {
@@ -128,21 +183,26 @@ public class MergeChildrenVisitor extends NodeVisitor {
 		IsSingleLeafTreeVisitor v = new IsSingleLeafTreeVisitor();
 		return (Boolean) node.accept(v);
 	}
+	
+	static boolean isAbsobable(Node absober, Node absobee) {
+		IsAbsobableVisitor v = new IsAbsobableVisitor(absober);
+		return (Boolean) absobee.accept(v);
+	}
 
 	// precondition: a.isCompatibleTo(b)
 	static boolean checkMergeCriteria(Node a, Node b) {
 		if (isSingleLeafTree(a) && isSingleLeafTree(b)) {
 			if (a.depth() != b.depth())
 				throw new Error("depth does not match");
-			return a.isAbsobable(b);
+			return isAbsobable(a, b);
 		}
 		if (DecisionDiagram.MERGE_LEVEL == 0) {
 			return !(isSingleLeafTree(a) || isSingleLeafTree(b));
 		} else if (DecisionDiagram.MERGE_LEVEL <= 1) {
 			if (isSingleLeafTree(a))
-				return b.isAbsobable(a);
+				return isAbsobable(b, a);
 			if (isSingleLeafTree(b))
-				return a.isAbsobable(a);
+				return isAbsobable(a, a);
 		}
 		return true;
 	}
