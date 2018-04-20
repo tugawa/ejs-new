@@ -84,9 +84,6 @@ public class DecisionDiagram {
 		}
 		@Override
 		boolean isAbsobable(Node otherx) {
-			System.out.println("isAbsobable "+this+" "+otherx+" => "+isCompatibleTo(otherx));
-			System.out.println(generateCodeForNode(this, new String[] {"a","b"}));
-			System.out.println(generateCodeForNode(otherx, new String[] {"a","b"}));
 			return isCompatibleTo(otherx);
 		}
 		@Override
@@ -148,14 +145,8 @@ public class DecisionDiagram {
 		}
 		@Override
 		boolean isAbsobable(Node sltx) {
-			if (sltx.getClass() != getClass()) {
-				System.out.println("------\n");
-				System.out.println(generateCodeForNode(this, new String[] {"a1", "a2"}));
-				System.out.println("---\n");
-				System.out.println(generateCodeForNode(sltx, new String[] {"b1", "b2"}));
-				System.out.println("------\n");
+			if (sltx.getClass() != getClass())
 				throw new Error("class mismatch");
-			}
 			TagNode<T> slt = (TagNode<T>) sltx;
 			ArrayList<Node> children = getChildren();
 			for (T tag: slt.branches.keySet()) {
@@ -230,43 +221,27 @@ public class DecisionDiagram {
 					child.mergeChildren();
 					children[i++] = child;
 				}
-				System.out.println("mergeChildren on "+this+" ("+i+")");
 			}
 			branches = new HashMap<T, Node>();
 			for (int i = 0; i < children.length; i++) {
 				if (hasMerged[i])
 					continue;
-				System.out.println("i = "+children[i]);
 				LinkedHashSet<T> edge = childToTags.get(children[i]);
 				Node merged = children[i];
 				hasMerged[i] = true;
 				for (int j = i + 1; j < children.length; j++) {
-					System.out.println("j = "+children[j]);
-//					if (!hasMerged[j] && merged.isCompatibleTo(children[j])) {
 					if (!hasMerged[j] && isCompatible(merged, children[j])) {
-						System.out.println("compatible");
-						if (this instanceof TagPairNode)
-							System.out.println("Merging");
 						if (!checkMergeCriteria(children[j], merged))
 							continue;
-						if (this instanceof TagPairNode) {
-							System.out.println(children[j].isSingleLeafTree());
-							System.out.println(merged.isSingleLeafTree());
-							System.out.println(children[j].isAbsobable(merged));
-							System.out.println(generateCodeForNode(children[j], new String[] {"a","b"}));
-							System.out.println("---");
-							System.out.println(generateCodeForNode(merged, new String[] {"a","b"}));
-							
-						}
 						merged = merged.merge(children[j]);
 						edge.addAll(childToTags.get(children[j]));
 						hasMerged[j] = true;
-						System.out.println("merged");
 					}
 				}
 				for (T tag: edge)
 					branches.put(tag, merged);
 			}
+			/*
 			if (branches.values().size() == 2) {
 				Iterator<Node> it = branches.values().iterator();
 				Node a = it.next();
@@ -290,6 +265,7 @@ public class DecisionDiagram {
 					}
 				}
 			}
+			*/
 		}
 		@Override
 		Node skipNoChoice() {
