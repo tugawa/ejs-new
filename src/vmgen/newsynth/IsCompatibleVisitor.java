@@ -36,7 +36,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 	Object visitLeaf(Leaf other) {
 		if (currentNodex instanceof Leaf) {
 			Leaf currentNode = (Leaf) currentNodex;
-			return currentNode.getRule().getHLRule() == other.getRule().getHLRule();
+			return currentNode.hasSameHLRule(other);
 		}
 		return false;
 	}

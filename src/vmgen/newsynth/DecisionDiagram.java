@@ -40,7 +40,6 @@ public class DecisionDiagram {
 		}
 		abstract ArrayList<Node> getChildren();
 		
-		abstract boolean isCompatibleTo(Node other);
 		abstract boolean isSingleLeafTree();
 		// slt should be SIngelLeafTree
 		abstract boolean isAbsobable(Node slt);
@@ -68,15 +67,8 @@ public class DecisionDiagram {
 		ArrayList<Node> getChildren() {
 			return new ArrayList<Node>();
 		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
-			if (otherx instanceof Leaf) {
-				Leaf other = (Leaf) otherx;
-				if (rule.getHLRule() == other.getRule().getHLRule()) {
-					return true;
-				}
-			}
-			return false;
+		boolean hasSameHLRule(Leaf other) {
+			return getRule().getHLRule() == other.getRule().getHLRule();
 		}
 		@Override
 		boolean isSingleLeafTree() {
@@ -84,7 +76,7 @@ public class DecisionDiagram {
 		}
 		@Override
 		boolean isAbsobable(Node otherx) {
-			return isCompatibleTo(otherx);
+			return hasSameHLRule((Leaf) otherx);
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -131,7 +123,7 @@ public class DecisionDiagram {
 			for (T tag: union) {
 				Node thisChild = branches.get(tag);
 				Node otherChild = other.branches.get(tag);
-				if (thisChild != null && otherChild != null && !thisChild.isCompatibleTo(otherChild))
+				if (thisChild != null && otherChild != null && !isCompatible(thisChild, otherChild))
 					return false;
 			}
 			return true;
@@ -315,13 +307,6 @@ public class DecisionDiagram {
 			return visitor.visitTagPairNode(this);
 		}
 		@Override
-		boolean isCompatibleTo(Node otherx) {
-			// Since TagPair is used only as a root node, if any, isCompatibleTo will
-			// not be called.
-			throw new Error("isCompatibleTo for TagPairNode is called");
-			//return false;
-		}
-		@Override
 		Node merge(Node otherx) {
 			throw new Error("merge for TagPairNode is called");
 		}
@@ -333,19 +318,6 @@ public class DecisionDiagram {
 		@Override
 		Object accept(NodeVisitor visitor) {
 			return visitor.visitPTNode(this);
-		}
-		boolean doIsCompatibleTo(Node otherx) {
-			if (!(otherx instanceof PTNode))
-				return false;
-			PTNode other = (PTNode) otherx;
-			if (opIndex != other.opIndex)
-				return false;
-			return hasCompatibleBranches(other);		
-		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
-			boolean result = doIsCompatibleTo(otherx);
-			return result;
 		}
 		@Override
 		Node merge(Node otherx) {
@@ -390,23 +362,6 @@ public class DecisionDiagram {
 		}
 		Node getChild() {
 			return child;
-		}
-		boolean doIsCompatibleTo(Node otherx) {
-			if (!(otherx instanceof HTNode))
-				return false;
-			HTNode other = (HTNode) otherx;
-			if (opIndex != other.opIndex)
-				return false;
-			if (noHT != other.noHT)
-				return false;
-			if (noHT && this.child.isCompatibleTo(other.child))
-				return true;
-			return hasCompatibleBranches(other);			
-		}
-		@Override
-		boolean isCompatibleTo(Node otherx) {
-			boolean result = doIsCompatibleTo(otherx);
-			return result;
 		}
 		@Override
 		boolean isAbsobable(Node sltx) {
@@ -521,12 +476,7 @@ public class DecisionDiagram {
 	
 	static String generateCodeForNode(Node node, String[] varNames) {
 		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames);
-		try {
-			node.accept(gen);
-		} catch (Error e) {
-			System.out.println(gen.toString());
-			throw e;
-		}
+		node.accept(gen);
 		return gen.toString();
 	}
 
