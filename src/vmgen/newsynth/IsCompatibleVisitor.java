@@ -41,7 +41,6 @@ class IsCompatibleVisitor extends NodeVisitor {
 		return false;
 	}
 
-	int lv = 0;
 	@Override
 	<T> Object visitTagNode(TagNode<T> other) {
 		if (currentNodex.getClass() == other.getClass()) {

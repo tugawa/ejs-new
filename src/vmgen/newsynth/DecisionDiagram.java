@@ -41,15 +41,10 @@ public class DecisionDiagram {
 		}
 		abstract ArrayList<Node> getChildren();
 		
-//		abstract boolean isSingleLeafTree();
-		// slt should be SIngelLeafTree
-//		abstract boolean isAbsobable(Node slt);
 		// returns a merged node
 		// other should be compatible with this
 		// this method does not mutate this object
 		abstract Node merge(Node other);
-//		abstract void mergeChildren();
-//		abstract Node skipNoChoice();
 	}
 	
 	static class Leaf extends Node {
@@ -326,5 +321,10 @@ public class DecisionDiagram {
 	static Node skipNoChoice(Node node) {
 		SkipNoChoiceVisitor v = new SkipNoChoiceVisitor();
 		return (Node) node.accept(v);
+	}
+	
+	public LLRule search(VMRepType[] rts) {
+		SearchVisitor v = new SearchVisitor(rts);
+		return (LLRule) root.accept(v);
 	}
 }
