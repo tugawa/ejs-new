@@ -184,6 +184,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 		return (Boolean) node.accept(v);
 	}
 	
+	// absobee must be a single leaf tree
 	static boolean isAbsobable(Node absober, Node absobee) {
 		IsAbsobableVisitor v = new IsAbsobableVisitor(absober);
 		return (Boolean) absobee.accept(v);

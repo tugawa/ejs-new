@@ -49,7 +49,7 @@ public class DecisionDiagram {
 		// this method does not mutate this object
 		abstract Node merge(Node other);
 //		abstract void mergeChildren();
-		abstract Node skipNoChoice();
+//		abstract Node skipNoChoice();
 	}
 	
 	static class Leaf extends Node {
@@ -73,10 +73,6 @@ public class DecisionDiagram {
 		}
 		@Override
 		Node merge(Node otherx) {
-			return this;
-		}
-		@Override
-		Node skipNoChoice() {
 			return this;
 		}
 	}
@@ -106,6 +102,9 @@ public class DecisionDiagram {
 		Set<T> getEdges() {
 			return branches.keySet();
 		}
+		void replaceChild(T tag, Node child) {
+			branches.replace(tag, child);
+		}
 		Node getChild(T tag) {
 			return branches.get(tag);
 		}
@@ -129,10 +128,10 @@ public class DecisionDiagram {
 			}
 			mergeChildren(this);
 		}
-		HashMap<Node, LinkedHashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
+		HashMap<Node, LinkedHashSet<T>> getChildToTagsMap() {
 			HashMap<Node, LinkedHashSet<T>> childToTags = new HashMap<Node, LinkedHashSet<T>>();
-			for (T tag: tagToChild.keySet()) {
-				Node child = tagToChild.get(tag);
+			for (T tag: branches.keySet()) {
+				Node child = branches.get(tag);
 				LinkedHashSet<T> tags = childToTags.get(child);
 				if (tags == null) {
 					tags = new LinkedHashSet<T>();
@@ -141,26 +140,6 @@ public class DecisionDiagram {
 				tags.add(tag);
 			}
 			return childToTags;
-		}
-		HashMap<Node, LinkedHashSet<T>> getChildToTagsMap() {
-			return makeChildToTagsMap(branches);
-		}
-		@Override
-		Node skipNoChoice() {
-			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);	
-			if (childToTags.size() == 1) {
-				return childToTags.keySet().iterator().next().skipNoChoice();
-			}
-			HashMap<Node, Node> replace = new HashMap<Node, Node>();
-			for (Node before: childToTags.keySet()) {
-				Node after = before.skipNoChoice();
-				replace.put(before, after);
-			}
-			for (T tag: branches.keySet()) {
-				Node before = branches.get(tag);
-				branches.replace(tag, replace.get(before));
-			}
-			return this;
 		}
 	}
 	static class TagPairNode extends TagNode<TagPairNode.TagPair> {
@@ -262,12 +241,6 @@ public class DecisionDiagram {
 			merged.makeMergedNode(this, other);
 			return merged;
 		}
-		@Override
-		Node skipNoChoice() {
-			if (noHT)
-				return child.skipNoChoice();
-			return super.skipNoChoice();
-		}
 	}
 	
 	static class TreeDigger {
@@ -326,7 +299,7 @@ public class DecisionDiagram {
 		
 //		System.out.println(generateCode(new String[] {"a1", "a2"}));
 		
-		root = root.skipNoChoice();
+		root = skipNoChoice(root);
 
 	}
 	
@@ -348,5 +321,10 @@ public class DecisionDiagram {
 	static void mergeChildren(Node node) {
 		MergeChildrenVisitor v = new MergeChildrenVisitor();
 		node.accept(v);
+	}
+	
+	static Node skipNoChoice(Node node) {
+		SkipNoChoiceVisitor v = new SkipNoChoiceVisitor();
+		return (Node) node.accept(v);
 	}
 }
