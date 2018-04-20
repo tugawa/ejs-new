@@ -13,7 +13,8 @@ import vmgen.type.VMRepType;
 
 public class SwitchSynthesiser extends Synthesiser {
 	@Override
-	public String synthesise(RuleSet plan) {
+	public String synthesise(RuleSet plan, String prefix) {
+		DDNode.setLabelPrefix(prefix);
 		LLPlan dispatchRuleList = new LLPlan(plan);
 		if (PRINT_PASS) {
 			System.out.println("-------- LLPlan --------");

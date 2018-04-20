@@ -223,6 +223,9 @@ public class DecisionDiagram {
 		Node getChild() {
 			return child;
 		}
+		void replaceChild(Node node) {
+			child = node;
+		}
 		@Override
 		Node merge(Node otherx) {
 			HTNode other = (HTNode) otherx;
@@ -294,6 +297,8 @@ public class DecisionDiagram {
 		
 //		System.out.println(generateCode(new String[] {"a1", "a2"}));
 		
+		mergeRelative(root);
+		
 		root = skipNoChoice(root);
 
 	}
@@ -330,5 +335,10 @@ public class DecisionDiagram {
 	public LLRule search(VMRepType[] rts) {
 		SearchVisitor v = new SearchVisitor(rts);
 		return (LLRule) root.accept(v);
+	}
+	
+	public void mergeRelative(Node node) {
+		RelativeMerger m = new RelativeMerger();
+		m.mergeRelative(node);
 	}
 }

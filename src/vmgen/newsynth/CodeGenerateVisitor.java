@@ -14,7 +14,10 @@ import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor {
+	static final boolean USE_GOTO = true;
 	static class Macro {
+		int nextLabel = 0;
+
 		String getPTCode(String var) {
 			return "GET_PTAG("+var+")";
 		}
@@ -27,11 +30,15 @@ class CodeGenerateVisitor extends NodeVisitor {
 		String composeTagPairLiteral(String... vars) {
 			return "TAG_PAIR("+vars[0]+", "+vars[1]+")";
 		}
+		String getLabel() {
+			return String.format("L%d", nextLabel++);
+		}
 	}
 	
 	StringBuffer sb = new StringBuffer();
 	Macro tagMacro;
 	String[] varNames;
+	HashMap<Node, String> labels = new HashMap<Node, String>();
 	
 	public CodeGenerateVisitor(String[] varNames, Macro tagMacro) {
 		this.varNames = varNames;
@@ -42,8 +49,25 @@ class CodeGenerateVisitor extends NodeVisitor {
 	public String toString() {
 		return sb.toString();
 	}
+	
+	boolean processSharedNode(Node node) {
+		if (USE_GOTO) {
+			String label = labels.get(node);
+			if (label != null) {
+				sb.append("goto ").append(label).append(";\n");
+				return true;
+			}
+			label = tagMacro.getLabel();
+			labels.put(node, label);
+			sb.append(label).append(":");
+		}
+		return false;
+	}
+	
 	@Override
 	Object visitLeaf(Leaf node) {
+		if (processSharedNode(node))
+			return null;
 		sb.append("{");
 		if (DecisionDiagram.DEBUG_COMMENT) {
 			sb.append(" //");
@@ -56,6 +80,8 @@ class CodeGenerateVisitor extends NodeVisitor {
 	}
 	@Override
 	Object visitTagPairNode(TagPairNode node) {
+		if (processSharedNode(node))
+			return null;
 		HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
 		sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
 		if (DecisionDiagram.DEBUG_COMMENT)
@@ -75,6 +101,8 @@ class CodeGenerateVisitor extends NodeVisitor {
 	}
 	@Override
 	Object visitPTNode(PTNode node) {
+		if (processSharedNode(node))
+			return null;
 		HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
 		sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
 		if (DecisionDiagram.DEBUG_COMMENT)
@@ -94,6 +122,8 @@ class CodeGenerateVisitor extends NodeVisitor {
 	}
 	@Override
 	Object visitHTNode(HTNode node) {
+		if (processSharedNode(node))
+			return null;
 		if (node.isNoHT()) {
 			node.getChild().accept(this);
 			return null;

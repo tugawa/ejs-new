@@ -277,7 +277,7 @@ public class ProcDefinition {
             }
             sb.append(name + "_HEAD:\n");
             RuleSet p = new RuleSet(dispatchVars, tdDef.rules);
-            sb.append(synthesiser.synthesise(p));
+            sb.append(synthesiser.synthesise(p, "none"));
             if (this.epilogue != null) {
                 sb.append(this.epilogue + "\n");
             }

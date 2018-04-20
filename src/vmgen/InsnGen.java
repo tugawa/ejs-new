@@ -108,9 +108,8 @@ public class InsnGen {
     		rules.add(new Rule(errorAction, errorConditions));
     	}
     	
-		DDNode.setLabelPrefix(insnDef.name);
         RuleSet p = new RuleSet(insnDef.dispatchVars, rules);
-        String dispatchCode = synth.synthesise(p);
+        String dispatchCode = synth.synthesise(p, insnDef.name);
     	
     	StringBuilder sb = new StringBuilder();
     	if (insnDef.prologue != null)

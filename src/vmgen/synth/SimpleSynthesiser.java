@@ -8,7 +8,9 @@ import vmgen.Synthesiser;
 
 public class SimpleSynthesiser extends Synthesiser {
 	@Override
-	public String synthesise(RuleSet plan) {
+	public String synthesise(RuleSet plan, String prefix) {
+		DDNode.setLabelPrefix(prefix);
+
 	    // this.plan = plan;
 		Set<RuleSet.Rule> rules = plan.getRules();
 		StringBuilder code = new StringBuilder();

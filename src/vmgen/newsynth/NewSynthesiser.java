@@ -8,7 +8,6 @@ import vmgen.type.VMRepType;
 
 public class NewSynthesiser extends Synthesiser {
 	class TagMacro extends CodeGenerateVisitor.Macro {
-
 		@Override
 		String getPTCode(String var) {
 			return NewSynthesiser.this.getPTCode(var);
@@ -28,11 +27,20 @@ public class NewSynthesiser extends Synthesiser {
 		String composeTagPairLiteral(String... lits) {
 			return NewSynthesiser.this.composeTagPairCode(lits);
 		}
+		
+		@Override
+		String getLabel() {
+			return String.format("L%s%d", NewSynthesiser.this.labelPrefix, nextLabel++);
+		}
 	}
 	
 	static final boolean DEBUG_VERIFY_DIAGRAM = true;
+	
+	String labelPrefix;
+	
 	@Override
-	public String synthesise(RuleSet hlrs) {
+	public String synthesise(RuleSet hlrs, String labelPrefix) {
+		this.labelPrefix = labelPrefix;
 		LLRuleSet llrs = new LLRuleSet(hlrs);
 		DecisionDiagram dd = new DecisionDiagram(llrs);
 		if (DEBUG_VERIFY_DIAGRAM) {
