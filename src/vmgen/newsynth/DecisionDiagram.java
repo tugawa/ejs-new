@@ -47,7 +47,7 @@ public class DecisionDiagram {
 		// other should be compatible with this
 		// this method does not mutate this object
 		abstract Node merge(Node other);
-		abstract void mergeChildren();
+//		abstract void mergeChildren();
 		abstract Node skipNoChoice();
 	}
 	
@@ -82,8 +82,6 @@ public class DecisionDiagram {
 		Node merge(Node otherx) {
 			return this;
 		}
-		@Override
-		void mergeChildren() {}
 		@Override
 		Node skipNoChoice() {
 			return this;
@@ -175,7 +173,7 @@ public class DecisionDiagram {
 					branches.put(tag, child);
 				}
 			}
-			mergeChildren();
+			mergeChildren(this);
 		}
 		HashMap<Node, LinkedHashSet<T>> makeChildToTagsMap(HashMap<T, Node> tagToChild) {
 			HashMap<Node, LinkedHashSet<T>> childToTags = new HashMap<Node, LinkedHashSet<T>>();
@@ -192,72 +190,6 @@ public class DecisionDiagram {
 		}
 		HashMap<Node, LinkedHashSet<T>> getChildToTagsMap() {
 			return makeChildToTagsMap(branches);
-		}
-		@Override
-		void mergeChildren() {
-			/*
-			if (this instanceof TagPairNode) {
-				for (T tag: branches.keySet()) {
-					Node child = branches.get(tag);
-					child.mergeChildren();
-				}
-				return;
-			}
-			*/
-			HashMap<Node, LinkedHashSet<T>> childToTags = makeChildToTagsMap(branches);	
-			Node[] children = new Node[childToTags.size()];
-			boolean[] hasMerged = new boolean[children.length];
-			{
-				int i = 0;
-				for (Node child: childToTags.keySet()) {
-					child.mergeChildren();
-					children[i++] = child;
-				}
-			}
-			branches = new HashMap<T, Node>();
-			for (int i = 0; i < children.length; i++) {
-				if (hasMerged[i])
-					continue;
-				LinkedHashSet<T> edge = childToTags.get(children[i]);
-				Node merged = children[i];
-				hasMerged[i] = true;
-				for (int j = i + 1; j < children.length; j++) {
-					if (!hasMerged[j] && isCompatible(merged, children[j])) {
-						if (!checkMergeCriteria(children[j], merged))
-							continue;
-						merged = merged.merge(children[j]);
-						edge.addAll(childToTags.get(children[j]));
-						hasMerged[j] = true;
-					}
-				}
-				for (T tag: edge)
-					branches.put(tag, merged);
-			}
-			/*
-			if (branches.values().size() == 2) {
-				Iterator<Node> it = branches.values().iterator();
-				Node a = it.next();
-				Node b = it.next();
-				if (a instanceof HTNode && b instanceof HTNode) {
-					HTNode hta = (HTNode) a;
-					HTNode htb = (HTNode) b;
-					if (htb.isNoHT()) {
-						HTNode t = hta;
-						hta = htb;
-						htb = t;
-					}
-					if (!htb.isNoHT() && htb.getChildren().size() == 1) {
-						System.out.println("special merge "+hta+" "+htb);
-						if (isCompatible(hta.getChild(), htb.getChildren().get(0))) {
-							Node merged = hta.superMerge(htb);
-							for (T tag: branches.keySet())
-								branches.replace(tag, merged);
-							System.out.println("success");
-						}
-					}
-				}
-			}
-			*/
 		}
 		@Override
 		Node skipNoChoice() {
@@ -395,13 +327,6 @@ public class DecisionDiagram {
 			return merged;
 		}
 		@Override
-		void mergeChildren() {
-			if (noHT)
-				child.mergeChildren();
-			else
-				super.mergeChildren();
-		}
-		@Override
 		Node skipNoChoice() {
 			if (noHT)
 				return child.skipNoChoice();
@@ -461,7 +386,7 @@ public class DecisionDiagram {
 		
 //		System.out.println(generateCode(new String[] {"b1", "b2"}));
 
-		root.mergeChildren();
+		mergeChildren(root);
 		
 //		System.out.println(generateCode(new String[] {"a1", "a2"}));
 		
@@ -483,6 +408,11 @@ public class DecisionDiagram {
 	static boolean isCompatible(Node a, Node b) {
 		IsCompatibleVisitor v = new IsCompatibleVisitor(a);
 		return (Boolean) b.accept(v);
+	}
+	
+	static void mergeChildren(Node node) {
+		MergeChildrenVisitor v = new MergeChildrenVisitor();
+		node.accept(v);
 	}
 	
 	// precondition: a.isCompatibleTo(b)
