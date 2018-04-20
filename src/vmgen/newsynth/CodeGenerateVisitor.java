@@ -8,12 +8,11 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.PTNode;
 import vmgen.newsynth.DecisionDiagram.TagPairNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode.TagPair;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
-class CodeGenerateVisitor extends NodeVisitor {
+class CodeGenerateVisitor extends NodeVisitor<Void> {
 	static final boolean USE_GOTO = true;
 	static class Macro {
 		int nextLabel = 0;
@@ -65,7 +64,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 	}
 	
 	@Override
-	Object visitLeaf(Leaf node) {
+	Void visitLeaf(Leaf node) {
 		if (processSharedNode(node))
 			return null;
 		sb.append("{");
@@ -79,7 +78,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 		return null;
 	}
 	@Override
-	Object visitTagPairNode(TagPairNode node) {
+	Void visitTagPairNode(TagPairNode node) {
 		if (processSharedNode(node))
 			return null;
 		HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
@@ -100,7 +99,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 		return null;
 	}
 	@Override
-	Object visitPTNode(PTNode node) {
+	Void visitPTNode(PTNode node) {
 		if (processSharedNode(node))
 			return null;
 		HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
@@ -121,7 +120,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 		return null;
 	}
 	@Override
-	Object visitHTNode(HTNode node) {
+	Void visitHTNode(HTNode node) {
 		if (processSharedNode(node))
 			return null;
 		if (node.isNoHT()) {

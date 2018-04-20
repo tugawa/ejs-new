@@ -6,20 +6,20 @@ import vmgen.newsynth.DecisionDiagram.PTNode;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 import vmgen.newsynth.DecisionDiagram.TagPairNode;
 
-class NodeVisitor {
-	Object visitLeaf(Leaf node) {
+class NodeVisitor<R> {
+	R visitLeaf(Leaf node) {
 		return null;
 	}
-	<T> Object visitTagNode(TagNode<T> other) {
+	<T> R visitTagNode(TagNode<T> other) {
 		return null;
 	}
-	Object visitTagPairNode(TagPairNode node) {
+	R visitTagPairNode(TagPairNode node) {
 		return visitTagNode(node);
 	}
-	Object visitPTNode(PTNode node) {
+	R visitPTNode(PTNode node) {
 		return visitTagNode(node);
 	}
-	Object visitHTNode(HTNode node) {
+	R visitHTNode(HTNode node) {
 		return visitTagNode(node);
 	}
 }

@@ -7,15 +7,15 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
-public class SkipNoChoiceVisitor extends NodeVisitor {
+public class SkipNoChoiceVisitor extends NodeVisitor<Node> {
 
 	@Override
-	Object visitLeaf(Leaf node) {
+	Node visitLeaf(Leaf node) {
 		return node;
 	}
 
 	@Override
-	<T> Object visitTagNode(TagNode<T> node) {
+	<T> Node visitTagNode(TagNode<T> node) {
 		ArrayList<Node> children = node.getChildren();
 		if (children.size() == 1)
 			return children.get(0).accept(this);

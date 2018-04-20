@@ -2,12 +2,9 @@ package vmgen.newsynth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import vmgen.RuleSet;
-import vmgen.RuleSet.Rule;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
@@ -29,7 +26,7 @@ public class DecisionDiagram {
 	};
 	
 	static abstract class Node {
-		abstract Object accept(NodeVisitor visitor);		
+		abstract <R> R accept(NodeVisitor<R> visitor);		
 		int depth() {
 			int max = 0;
 			for (Node child: getChildren()) {
@@ -56,7 +53,7 @@ public class DecisionDiagram {
 			return rule;
 		}
 		@Override
-		Object accept(NodeVisitor visitor) {
+		<R> R accept(NodeVisitor<R> visitor) {
 			return visitor.visitLeaf(this);
 		}
 		@Override
@@ -84,7 +81,7 @@ public class DecisionDiagram {
 			branches.put(tag, child);
 		}
 		@Override
-		Object accept(NodeVisitor visitor) {
+		<R> R accept(NodeVisitor<R> visitor) {
 			return visitor.visitTagNode(this);
 		}
 		@Override
@@ -163,7 +160,7 @@ public class DecisionDiagram {
 			super(-1);
 		}
 		@Override
-		Object accept(NodeVisitor visitor) {
+		<R> R accept(NodeVisitor<R> visitor) {
 			return visitor.visitTagPairNode(this);
 		}
 		@Override
@@ -176,7 +173,7 @@ public class DecisionDiagram {
 			super(opIndex);
 		}
 		@Override
-		Object accept(NodeVisitor visitor) {
+		<R> R accept(NodeVisitor<R> visitor) {
 			return visitor.visitPTNode(this);
 		}
 		@Override
@@ -205,7 +202,7 @@ public class DecisionDiagram {
 				super.addBranch(digger, tag);
 		}
 		@Override
-		Object accept(NodeVisitor visitor) {
+		<R> R accept(NodeVisitor<R> visitor) {
 			return visitor.visitHTNode(this);
 		}
 		@Override

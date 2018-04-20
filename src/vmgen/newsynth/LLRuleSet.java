@@ -3,8 +3,6 @@ package vmgen.newsynth;
 import java.util.ArrayList;
 
 import vmgen.RuleSet;
-import vmgen.RuleSet.Condition;
-import vmgen.RuleSet.Rule;
 import vmgen.type.VMDataType;
 import vmgen.type.VMRepType;
 

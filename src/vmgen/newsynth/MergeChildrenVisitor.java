@@ -10,17 +10,17 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
-public class MergeChildrenVisitor extends NodeVisitor {
+public class MergeChildrenVisitor extends NodeVisitor<Void> {
 
-	static class IsSingleLeafTreeVisitor extends NodeVisitor {
+	static class IsSingleLeafTreeVisitor extends NodeVisitor<Boolean> {
 
 		@Override
-		Object visitLeaf(Leaf node) {
+		Boolean visitLeaf(Leaf node) {
 			return true;
 		}
 
 		@Override
-		<T> Object visitTagNode(TagNode<T> node) {
+		<T> Boolean visitTagNode(TagNode<T> node) {
 			ArrayList<Node> children = node.getChildren();
 			if (children.size() == 1)
 				return children.get(0).accept(this);
@@ -28,7 +28,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 		}
 	}
 	
-	static class IsAbsobableVisitor extends NodeVisitor {
+	static class IsAbsobableVisitor extends NodeVisitor<Boolean> {
 		Node absoberx;
 		
 		IsAbsobableVisitor(Node absober) {
@@ -36,12 +36,12 @@ public class MergeChildrenVisitor extends NodeVisitor {
 		}
 		
 		@Override
-		Object visitLeaf(Leaf slt) {
+		Boolean visitLeaf(Leaf slt) {
 			return ((Leaf) absoberx).hasSameHLRule(slt);
 		}
 		
 		@Override
-		<T> Object visitTagNode(TagNode<T> slt) {
+		<T> Boolean visitTagNode(TagNode<T> slt) {
 			if (absoberx.getClass() != slt.getClass())
 				throw new Error("class mismatch");
 			TagNode<T> absober = (TagNode<T>) absoberx;
@@ -51,13 +51,13 @@ public class MergeChildrenVisitor extends NodeVisitor {
 				Node child = absober.getChild(tag);
 				if (child != null) {
 					absoberx = child;
-					if (!(Boolean) sltChild.accept(this))
+					if (!sltChild.accept(this))
 						return false;
 				} else {
 					boolean found = false;
 					for (Node c: children) {
 						absoberx = c;
-						if ((Boolean) sltChild.accept(this)) {
+						if (sltChild.accept(this)) {
 							found = true;
 							break;
 						}
@@ -70,7 +70,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 		}
 		
 		@Override
-		Object visitHTNode(HTNode slt) {
+		Boolean visitHTNode(HTNode slt) {
 			if (slt.isNoHT()) {
 				ArrayList<Node> children = absoberx.getChildren();
 				if (children.size() == 1) {
@@ -84,7 +84,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 	}
 
 	@Override
-	Object visitLeaf(Leaf node) {
+	Void visitLeaf(Leaf node) {
 		return null;
 	}
 
@@ -103,7 +103,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 	}
 
 	@Override
-	<T> Object visitTagNode(TagNode<T> node) {
+	<T> Void visitTagNode(TagNode<T> node) {
 		HashMap<Node, LinkedHashSet<T>> childToTags = node.getChildToTagsMap();
 		ArrayList<Node> children = new ArrayList<Node>(childToTags.keySet());
 		boolean[] hasMerged = new boolean[children.size()];
@@ -172,7 +172,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 	}
 
 	@Override
-	Object visitHTNode(HTNode node) {
+	Void visitHTNode(HTNode node) {
 		if (node.isNoHT())
 			return node.getChild().accept(this);
 		else
@@ -181,13 +181,13 @@ public class MergeChildrenVisitor extends NodeVisitor {
 	
 	static boolean isSingleLeafTree(Node node) {
 		IsSingleLeafTreeVisitor v = new IsSingleLeafTreeVisitor();
-		return (Boolean) node.accept(v);
+		return node.accept(v);
 	}
 	
 	// absobee must be a single leaf tree
 	static boolean isAbsobable(Node absober, Node absobee) {
 		IsAbsobableVisitor v = new IsAbsobableVisitor(absober);
-		return (Boolean) absobee.accept(v);
+		return absobee.accept(v);
 	}
 
 	// precondition: a.isCompatibleTo(b)

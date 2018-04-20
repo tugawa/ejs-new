@@ -8,7 +8,7 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
-class IsCompatibleVisitor extends NodeVisitor {
+class IsCompatibleVisitor extends NodeVisitor<Boolean> {
 	Node root;
 	Node currentNodex;
 	
@@ -25,7 +25,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 			Node otherChild = other.branches.get(tag);
 			if (thisChild != null && otherChild != null) {
 				currentNodex = thisChild;
-				if (!(Boolean) otherChild.accept(this))
+				if (!otherChild.accept(this))
 					return false;
 			}
 		}
@@ -33,7 +33,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 	}
 
 	@Override
-	Object visitLeaf(Leaf other) {
+	Boolean visitLeaf(Leaf other) {
 		if (currentNodex instanceof Leaf) {
 			Leaf currentNode = (Leaf) currentNodex;
 			return currentNode.hasSameHLRule(other);
@@ -42,7 +42,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 	}
 
 	@Override
-	<T> Object visitTagNode(TagNode<T> other) {
+	<T> Boolean visitTagNode(TagNode<T> other) {
 		if (currentNodex.getClass() == other.getClass()) {
 			TagNode<T> currentNode = (TagNode<T>) currentNodex;
 			if (currentNode.getOpIndex() != other.getOpIndex())
@@ -53,7 +53,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 	}
 
 	@Override
-	Object visitHTNode(HTNode other) {
+	Boolean visitHTNode(HTNode other) {
 		if (currentNodex instanceof HTNode) {
 			HTNode currentNode = (HTNode) currentNodex;
 			if (currentNode.getOpIndex() != other.getOpIndex())
