@@ -120,6 +120,6 @@ public class TypeDefinition {
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition.load("datatype/new.dtdef");
 		RuleSet p = new RuleSet();
-		new TagPairSynthesiser().synthesise(p);
+		new TagPairSynthesiser().synthesise(p, "none");
 	}
 }
