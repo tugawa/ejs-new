@@ -41,7 +41,7 @@ public class DecisionDiagram {
 		}
 		abstract ArrayList<Node> getChildren();
 		
-		abstract boolean isSingleLeafTree();
+//		abstract boolean isSingleLeafTree();
 		// slt should be SIngelLeafTree
 		abstract boolean isAbsobable(Node slt);
 		// returns a merged node
@@ -70,10 +70,6 @@ public class DecisionDiagram {
 		}
 		boolean hasSameHLRule(Leaf other) {
 			return getRule().getHLRule() == other.getRule().getHLRule();
-		}
-		@Override
-		boolean isSingleLeafTree() {
-			return true;
 		}
 		@Override
 		boolean isAbsobable(Node otherx) {
@@ -119,13 +115,6 @@ public class DecisionDiagram {
 		}
 		int getOpIndex() {
 			return opIndex;
-		}
-		@Override
-		boolean isSingleLeafTree() {
-			ArrayList<Node> children = getChildren();
-			if (children.size() == 1)
-				return children.get(0).isSingleLeafTree();
-			return false;
 		}
 		@Override
 		boolean isAbsobable(Node sltx) {
@@ -401,19 +390,23 @@ public class DecisionDiagram {
 		node.accept(v);
 	}
 	
+	static boolean isSingleLeafTree(Node node) {
+		IsSingleLeafTreeVisitor v = new IsSingleLeafTreeVisitor();
+		return (Boolean) node.accept(v);
+	}
 	// precondition: a.isCompatibleTo(b)
 	static boolean checkMergeCriteria(Node a, Node b) {
-		if (a.isSingleLeafTree() && b.isSingleLeafTree()) {
+		if (isSingleLeafTree(a) && isSingleLeafTree(b)) {
 			if (a.depth() != b.depth())
 				throw new Error("depth does not match");
 			return a.isAbsobable(b);
 		}
 		if (MERGE_LEVEL == 0) {
-			return !(a.isSingleLeafTree() || b.isSingleLeafTree());
+			return !(isSingleLeafTree(a) || isSingleLeafTree(b));
 		} else if (MERGE_LEVEL <= 1) {
-			if (a.isSingleLeafTree())
+			if (isSingleLeafTree(a))
 				return b.isAbsobable(a);
-			if (b.isSingleLeafTree())
+			if (isSingleLeafTree(b))
 				return a.isAbsobable(a);
 		}
 		return true;

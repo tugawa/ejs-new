@@ -12,6 +12,22 @@ import vmgen.newsynth.DecisionDiagram.TagNode;
 
 public class MergeChildrenVisitor extends NodeVisitor {
 
+	static class IsSingleLeafTreeVisitor extends NodeVisitor {
+
+		@Override
+		Object visitLeaf(Leaf node) {
+			return true;
+		}
+
+		@Override
+		<T> Object visitTagNode(TagNode<T> node) {
+			ArrayList<Node> children = node.getChildren();
+			if (children.size() == 1)
+				return children.get(0).accept(this);
+			return false;
+		}
+	}
+
 	@Override
 	Object visitLeaf(Leaf node) {
 		return null;
@@ -53,7 +69,7 @@ public class MergeChildrenVisitor extends NodeVisitor {
 				Node cj = children.get(j);
 				if (!DecisionDiagram.isCompatible(merged, cj))
 					continue;
-				if (!DecisionDiagram.checkMergeCriteria(cj, merged))
+				if (!checkMergeCriteria(cj, merged))
 					continue;
 				merged = merged.merge(cj);
 				edge.addAll(childToTags.get(cj));
@@ -106,5 +122,28 @@ public class MergeChildrenVisitor extends NodeVisitor {
 			return node.getChild().accept(this);
 		else
 			return visitTagNode(node);
+	}
+	
+	static boolean isSingleLeafTree(Node node) {
+		IsSingleLeafTreeVisitor v = new IsSingleLeafTreeVisitor();
+		return (Boolean) node.accept(v);
+	}
+
+	// precondition: a.isCompatibleTo(b)
+	static boolean checkMergeCriteria(Node a, Node b) {
+		if (isSingleLeafTree(a) && isSingleLeafTree(b)) {
+			if (a.depth() != b.depth())
+				throw new Error("depth does not match");
+			return a.isAbsobable(b);
+		}
+		if (DecisionDiagram.MERGE_LEVEL == 0) {
+			return !(isSingleLeafTree(a) || isSingleLeafTree(b));
+		} else if (DecisionDiagram.MERGE_LEVEL <= 1) {
+			if (isSingleLeafTree(a))
+				return b.isAbsobable(a);
+			if (isSingleLeafTree(b))
+				return a.isAbsobable(a);
+		}
+		return true;
 	}
 }
