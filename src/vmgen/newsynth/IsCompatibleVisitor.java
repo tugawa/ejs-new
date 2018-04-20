@@ -36,18 +36,7 @@ class IsCompatibleVisitor extends NodeVisitor {
 	Object visitLeaf(Leaf other) {
 		if (currentNodex instanceof Leaf) {
 			Leaf currentNode = (Leaf) currentNodex;
-			for (int i = 0; i < lv; i++) System.out.print("  ");
-			System.out.println("leaf--"+currentNode+" "+other);
-			for (int i = 0; i < lv; i++) System.out.print("  ");
-			if (currentNode.getRule().getHLRule() == other.getRule().getHLRule())
-				System.out.println(true);
-			else 
-				System.out.println(false);
-
-			if (currentNode.getRule().getHLRule() == other.getRule().getHLRule())
-				return true;
-			else 
-				return false;
+			return currentNode.getRule().getHLRule() == other.getRule().getHLRule();
 		}
 		return false;
 	}
@@ -59,17 +48,6 @@ class IsCompatibleVisitor extends NodeVisitor {
 			TagNode<T> currentNode = (TagNode<T>) currentNodex;
 			if (currentNode.getOpIndex() != other.getOpIndex())
 				throw new Error("opIndex mismatch");
-			
-			if (true) {
-				for (int i = 0; i < lv; i++) System.out.print("  ");
-				System.out.println("hasCompatibleBranches--"+currentNode+" "+other);
-				lv++;
-				boolean ret = hasCompatibleBranches(currentNode, other);
-				lv--;
-				for (int i = 0; i < lv; i++) System.out.print("  ");
-				System.out.println("==> "+ret);
-				return ret;
-			}				
 			return hasCompatibleBranches(currentNode, other);
 		}
 		return false;
@@ -101,19 +79,8 @@ class IsCompatibleVisitor extends NodeVisitor {
 					return other.getChild().accept(this);
 				} else
 					return false;
-			} else {
-				if (true) {
-					for (int i = 0; i < lv; i++) System.out.print("  ");
-					System.out.println("hasCompatibleBranches--"+currentNode+" "+other);
-					lv++;
-					boolean ret = hasCompatibleBranches(currentNode, other);
-					lv--;
-					for (int i = 0; i < lv; i++) System.out.print("  ");
-					System.out.println("==> "+ret);
-					return ret;
-				}				
+			} else
 				return hasCompatibleBranches(currentNode, other);
-			}
 		}
 		return false;
 	}
