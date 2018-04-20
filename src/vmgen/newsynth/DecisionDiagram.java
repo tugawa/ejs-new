@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
 import vmgen.RuleSet;
 import vmgen.RuleSet.Rule;
@@ -110,21 +111,14 @@ public class DecisionDiagram {
 				s.add(branches.get(tag));
 			return new ArrayList<Node>(s);
 		}
+		Set<T> getEdges() {
+			return branches.keySet();
+		}
+		Node getChild(T tag) {
+			return branches.get(tag);
+		}
 		int getOpIndex() {
 			return opIndex;
-		}
-		boolean hasCompatibleBranches(TagNode<T> other) {
-			if (opIndex != other.opIndex)
-				return false;
-			LinkedHashSet<T> union = new LinkedHashSet<T>(branches.keySet());
-			union.addAll(other.branches.keySet());
-			for (T tag: union) {
-				Node thisChild = branches.get(tag);
-				Node otherChild = other.branches.get(tag);
-				if (thisChild != null && otherChild != null && !isCompatible(thisChild, otherChild))
-					return false;
-			}
-			return true;
 		}
 		@Override
 		boolean isSingleLeafTree() {
@@ -319,13 +313,6 @@ public class DecisionDiagram {
 			merged.makeMergedNode(this, other);
 			return merged;
 		}
-		// this.noTH == true && other.noTH == false
-		Node superMerge(HTNode other) {
-			HTNode merged = new HTNode(opIndex);
-			merged.noHT = true;
-			merged.branches = other.branches;
-			return merged;
-		}
 		@Override
 		Node skipNoChoice() {
 			if (noHT)
@@ -392,7 +379,6 @@ public class DecisionDiagram {
 		
 		root = root.skipNoChoice();
 
-		//root.mergeChildren();
 	}
 	
 	public String generateCode(String[] varNames) {

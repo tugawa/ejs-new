@@ -3,6 +3,7 @@ package vmgen.newsynth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Set;
 
 import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
@@ -14,6 +15,20 @@ public class MergeChildrenVisitor extends NodeVisitor {
 	@Override
 	Object visitLeaf(Leaf node) {
 		return null;
+	}
+
+	<T> boolean hasCompatibleBranches(TagNode<T> na, TagNode<T> nb) {
+		if (na.getOpIndex() != nb.getOpIndex())
+			throw new Error("opIndex mismatch");
+		Set<T> union = na.getEdges();
+		union.addAll(nb.getEdges());
+		for (T tag: union) {
+			Node ca = na.getChild(tag);
+			Node cb = nb.getChild(tag);
+			if (ca != null && cb != null && !DecisionDiagram.isCompatible(ca, cb))
+				return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -72,6 +87,15 @@ public class MergeChildrenVisitor extends NodeVisitor {
 				}
 			}
 		}
+		
+		// this.noTH == true && other.noTH == false
+		// Node superMerge(HTNode other) {
+		//	HTNode merged = new HTNode(opIndex);
+		//	merged.noHT = true;
+		//	merged.branches = other.branches;
+		//  return merged;
+		// }
+
 		*/
 		return null;
 	}
