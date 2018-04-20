@@ -389,26 +389,4 @@ public class DecisionDiagram {
 		MergeChildrenVisitor v = new MergeChildrenVisitor();
 		node.accept(v);
 	}
-	
-	static boolean isSingleLeafTree(Node node) {
-		IsSingleLeafTreeVisitor v = new IsSingleLeafTreeVisitor();
-		return (Boolean) node.accept(v);
-	}
-	// precondition: a.isCompatibleTo(b)
-	static boolean checkMergeCriteria(Node a, Node b) {
-		if (isSingleLeafTree(a) && isSingleLeafTree(b)) {
-			if (a.depth() != b.depth())
-				throw new Error("depth does not match");
-			return a.isAbsobable(b);
-		}
-		if (MERGE_LEVEL == 0) {
-			return !(isSingleLeafTree(a) || isSingleLeafTree(b));
-		} else if (MERGE_LEVEL <= 1) {
-			if (isSingleLeafTree(a))
-				return b.isAbsobable(a);
-			if (isSingleLeafTree(b))
-				return a.isAbsobable(a);
-		}
-		return true;
-	}
 }
