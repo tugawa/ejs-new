@@ -274,7 +274,7 @@ public class DecisionDiagram {
 				node.addBranch(this, rts[opIndex].getHT());
 				return node;
 			} else
-				throw new Error("invalid dispatch plan:"+dispatchType);
+				return dig(nodex);
 		}
 	}
 	
@@ -298,14 +298,18 @@ public class DecisionDiagram {
 
 	}
 	
-	public String generateCode(String[] varNames) {
-		return generateCodeForNode(root, varNames);
+	public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
+		return generateCodeForNode(root, varNames, tagMacro);
 	}
 	
-	static String generateCodeForNode(Node node, String[] varNames) {
-		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames);
+	static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
+		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro);
 		node.accept(gen);
 		return gen.toString();
+	}
+
+	static String generateCodeForNode(Node node) {
+		return generateCodeForNode(node, new String[] {"a", "b"}, new CodeGenerateVisitor.Macro());
 	}
 
 	static boolean isCompatible(Node a, Node b) {

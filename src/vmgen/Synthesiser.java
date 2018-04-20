@@ -3,7 +3,7 @@ package vmgen;
 public abstract class Synthesiser implements GlobalConstantOptions {
 	public abstract String synthesise(RuleSet plan);
 
-	String getPTCode(String dispatchVar) {
+	public String getPTCode(String dispatchVar) {
 		return "get_tag("+dispatchVar+")";
 	}
 
@@ -11,7 +11,7 @@ public abstract class Synthesiser implements GlobalConstantOptions {
 		return getPTCode(dispatchVars[0]);
 	}
 
-	String getHTCode(String dispatchVar) {
+	public String getHTCode(String dispatchVar) {
 		return "gc_obj_header_type((void*) clear_tag("+dispatchVar+"))";
 	}
 
@@ -19,8 +19,8 @@ public abstract class Synthesiser implements GlobalConstantOptions {
 		return getHTCode(dispatchVars[0]);
 	}
 
-	String composeTagPairCode(String... ptcode) {
-		return "TAG_PAIR("+ptcode[0]+", "+ptcode[1]+")";
+	public String composeTagPairCode(String... ptcodes) {
+		return "TAG_PAIR("+ptcodes[0]+", "+ptcodes[1]+")";
 	}
 
 	protected String getTagPairCode(String[] dispatchVars) {

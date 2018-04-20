@@ -14,11 +14,30 @@ import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor {
-	StringBuffer sb = new StringBuffer();
-	String[] varNames;
-	public CodeGenerateVisitor(String[] varNames) {
-		this.varNames = varNames;
+	static class Macro {
+		String getPTCode(String var) {
+			return "GET_PTAG("+var+")";
+		}
+		String getHTCode(String var) {
+			return "GET_HTAG("+var+"))";
+		}
+		String composeTagPairCode(String... vars) {
+			return "TAG_PAIR("+vars[0]+", "+vars[1]+")";
+		}
+		String composeTagPairLiteral(String... vars) {
+			return "TAG_PAIR("+vars[0]+", "+vars[1]+")";
+		}
 	}
+	
+	StringBuffer sb = new StringBuffer();
+	Macro tagMacro;
+	String[] varNames;
+	
+	public CodeGenerateVisitor(String[] varNames, Macro tagMacro) {
+		this.varNames = varNames;
+		this.tagMacro = tagMacro;
+	}
+	
 	@Override
 	public String toString() {
 		return sb.toString();
@@ -38,13 +57,13 @@ class CodeGenerateVisitor extends NodeVisitor {
 	@Override
 	Object visitTagPairNode(TagPairNode node) {
 		HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
-		sb.append("switch(TAG_PAIR("+varNames[0]+","+varNames[1]+")){");
+		sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
 		for (Node child: childToTags.keySet()) {
 			for (TagPairNode.TagPair tag: childToTags.get(child))
-				sb.append("case TAG_PAIR("+tag.op1.getName()+","+tag.op2.getName()+"):\n");
+				sb.append("case ").append(tagMacro.composeTagPairLiteral(tag.op1.getName(), tag.op2.getName())).append(":\n");
 			child.accept(this);
 			sb.append("break;\n");
 		}
@@ -57,7 +76,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 	@Override
 	Object visitPTNode(PTNode node) {
 		HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
-		sb.append("switch(GET_PTAG("+varNames[node.getOpIndex()]+")){");
+		sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
@@ -80,7 +99,7 @@ class CodeGenerateVisitor extends NodeVisitor {
 			return null;
 		}
 		HashMap<Node, LinkedHashSet<HT>> childToTags = node.getChildToTagsMap();
-		sb.append("switch(GET_HTAG("+varNames[node.getOpIndex()]+")){");
+		sb.append("switch(").append(tagMacro.getHTCode(varNames[node.getOpIndex()])).append("){");
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');

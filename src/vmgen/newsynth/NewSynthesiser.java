@@ -7,6 +7,29 @@ import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
 public class NewSynthesiser extends Synthesiser {
+	class TagMacro extends CodeGenerateVisitor.Macro {
+
+		@Override
+		String getPTCode(String var) {
+			return NewSynthesiser.this.getPTCode(var);
+		}
+
+		@Override
+		String getHTCode(String var) {
+			return NewSynthesiser.this.getHTCode(var);
+		}
+
+		@Override
+		String composeTagPairCode(String... vars) {
+			return NewSynthesiser.this.composeTagPairCode(getPTCode(vars[0]), getPTCode(vars[1]));
+		}
+		
+		@Override
+		String composeTagPairLiteral(String... lits) {
+			return NewSynthesiser.this.composeTagPairCode(lits);
+		}
+	}
+	
 	static final boolean DEBUG_VERIFY_DIAGRAM = true;
 	@Override
 	public String synthesise(RuleSet hlrs) {
@@ -20,6 +43,6 @@ public class NewSynthesiser extends Synthesiser {
 					throw new Error("wrong decision diagram");
 			}
 		}		
-		return dd.generateCode(hlrs.getDispatchVars());
+		return dd.generateCode(hlrs.getDispatchVars(), new TagMacro());
 	}
 }
