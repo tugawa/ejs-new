@@ -10,17 +10,17 @@ public class NewSynthesiser extends Synthesiser {
 	class TagMacro extends CodeGenerateVisitor.Macro {
 		@Override
 		String getPTCode(String var) {
-			return NewSynthesiser.this.getPTCode(var);
+			return "(unsigned int) "+NewSynthesiser.this.getPTCode(var);
 		}
 
 		@Override
 		String getHTCode(String var) {
-			return NewSynthesiser.this.getHTCode(var);
+			return "(unsigned int) "+NewSynthesiser.this.getHTCode(var);
 		}
 
 		@Override
 		String composeTagPairCode(String... vars) {
-			return NewSynthesiser.this.composeTagPairCode(getPTCode(vars[0]), getPTCode(vars[1]));
+			return "(unsigned int) "+NewSynthesiser.this.composeTagPairCode(getPTCode(vars[0]), getPTCode(vars[1]));
 		}
 		
 		@Override

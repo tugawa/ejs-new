@@ -1,5 +1,6 @@
 package vmgen.newsynth;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 
@@ -8,12 +9,14 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.PTNode;
 import vmgen.newsynth.DecisionDiagram.TagPairNode;
+import vmgen.newsynth.DecisionDiagram.TagPairNode.TagPair;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
 	static final boolean USE_GOTO = true;
+	static final boolean PAD_CASES = false;
 	static class Macro {
 		int nextLabel = 0;
 
@@ -21,7 +24,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			return "GET_PTAG("+var+")";
 		}
 		String getHTCode(String var) {
-			return "GET_HTAG("+var+"))";
+			return "GET_HTAG("+var+")";
 		}
 		String composeTagPairCode(String... vars) {
 			return "TAG_PAIR("+vars[0]+", "+vars[1]+")";
@@ -86,9 +89,29 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
+		
+		LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+		int max = 0;
+		for (TagPair tag: node.getEdges()) {
+			int v = tag.getValue();
+			tagValues.add(v);
+			if (v > max)
+				max = v;
+		}
+
 		for (Node child: childToTags.keySet()) {
-			for (TagPairNode.TagPair tag: childToTags.get(child))
+			for (TagPairNode.TagPair tag: childToTags.get(child)) {
 				sb.append("case ").append(tagMacro.composeTagPairLiteral(tag.op1.getName(), tag.op2.getName())).append(":\n");
+				if (PAD_CASES) {
+					for (int v = tag.getValue() - 1; v >= 0; v--) {
+						if (tagValues.contains(v))
+							break;
+						sb.append("case "+v+":\n");
+					}
+					if (tag.getValue() == max)
+						sb.append("default:\n");
+				}
+			}
 			child.accept(this);
 			sb.append("break;\n");
 		}
@@ -107,9 +130,29 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
+		
+		LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+		int max = 0;
+		for (PT tag: node.getEdges()) {
+			int v = tag.getValue();
+			tagValues.add(v);
+			if (v > max)
+				max = v;
+		}
+		
 		for (Node child: childToTags.keySet()) {
-			for (PT tag: childToTags.get(child))
+			for (PT tag: childToTags.get(child)) {
 				sb.append("case "+tag.getName()+":\n");
+				if (PAD_CASES) {
+					for (int v = tag.getValue() - 1; v >= 0; v--) {
+						if (tagValues.contains(v))
+							break;
+						sb.append("case "+v+":\n");
+					}
+					if (tag.getValue() == max)
+						sb.append("default:\n");
+				}
+			}
 			child.accept(this);
 			sb.append("break;\n");
 		}
@@ -132,9 +175,29 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 		if (DecisionDiagram.DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
+		
+		LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+		int max = 0;
+		for (HT tag: node.getEdges()) {
+			int v = tag.getValue();
+			tagValues.add(v);
+			if (v > max)
+				max = v;
+		}
+		
 		for (Node child: childToTags.keySet()) {
-			for (HT tag: childToTags.get(child)) 
+			for (HT tag: childToTags.get(child))  {
 				sb.append("case "+tag.getName()+":\n");
+				if (PAD_CASES) {
+					for (int v = tag.getValue() - 1; v >= 0; v--) {
+						if (tagValues.contains(v))
+							break;
+						sb.append("case "+v+":\n");
+					}
+					if (tag.getValue() == max)
+						sb.append("default:\n");
+				}
+			}
 			child.accept(this);
 			sb.append("break;\n");
 		}

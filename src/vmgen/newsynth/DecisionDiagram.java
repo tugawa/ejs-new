@@ -149,6 +149,9 @@ public class DecisionDiagram {
 				TagPair other = (TagPair) obj;
 				return op1 == other.op1 && op2 == other.op2;
 			}
+			public int getValue() {
+				return (op2.getValue() << 3 | op1.getValue());
+			}
 			PT op1;
 			PT op2;
 			TagPair(PT op1, PT op2) {
