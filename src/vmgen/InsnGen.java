@@ -20,7 +20,6 @@ import java.util.Set;
 
 import vmgen.RuleSet.Rule;
 import vmgen.newsynth.NewSynthesiser;
-import vmgen.synth.DDNode;
 import vmgen.synth.SimpleSynthesiser;
 import vmgen.synth.SwitchSynthesiser;
 import vmgen.synth.TagPairSynthesiser;
@@ -32,27 +31,34 @@ public class InsnGen {
 	static String insnDefFile;
 	static String operandSpecFile;
 	static String outDir;
-	static boolean isSimple;
-	public static boolean DEBUG = false;
+	static int compiler;
 	
+	public static final int COMPILER_DEFAULT = 0;
+	public static final int COMPILER_SIMPLE = 1;
+	public static final int COMPILER_OLD = 2;
+	
+	public static boolean DEBUG = false;
+
 	static void parseOption(String[] args) {
 		int i = 0;
+		
+		compiler = COMPILER_DEFAULT;
 		
 		if (args.length == 0) {
 			typeDefFile = "datatype/genericfloat.def";
 			insnDefFile = "idefs/div.idef";
 			operandSpecFile = null;
 			outDir = null;
-			isSimple = false;
 			DEBUG = true;
 			return;
 		}
-
-		isSimple = false;
 		
 		while (true) {
 			if (args[i].equals("-simple")) {
-				isSimple = true;
+				compiler = COMPILER_SIMPLE;
+				i++;
+			} else if (args[i].equals("-old")) {
+				compiler = COMPILER_OLD;
 				i++;
 			} else
 				break;
@@ -65,7 +71,7 @@ public class InsnGen {
 			if (i < args.length)
 				outDir = args[i++];
 		} catch (Exception e) {
-			System.out.println("InsnGen [-simple] <type definition> <insn definition> <operand spec> [<out dir>]");
+			System.out.println("InsnGen [-simple|-old] <type definition> <insn definition> <operand spec> [<out dir>]");
 			System.exit(1);
 		}
 	}
@@ -143,10 +149,22 @@ public class InsnGen {
         
         for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	boolean verbose = outDir != null;
-        	Synthesiser synth = new NewSynthesiser();
-//        			isSimple ? new SimpleSynthesiser() :
-//       			insnDef.dispatchVars.length == 2 ? new TagPairSynthesiser() :
-//        					new SwitchSynthesiser();
+        	Synthesiser synth;
+        	switch (compiler) {
+        	case COMPILER_DEFAULT:
+        		synth = new NewSynthesiser();
+        		break;
+        	case COMPILER_SIMPLE:
+        		synth = new SimpleSynthesiser();
+        		break;
+        	case COMPILER_OLD:
+        		synth = insnDef.dispatchVars.length == 2 ?
+        					new TagPairSynthesiser() :
+       					new SwitchSynthesiser();
+        		break;
+        	default:
+        		throw new Error("unknown compiler type");
+        	}
         	String code = synthesise(insnDef, operandSpec, synth, verbose);
         	if (outDir == null)
         		System.out.println(code);

@@ -7,20 +7,21 @@ import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
 public class NewSynthesiser extends Synthesiser {
+	static final boolean UNSIGNED = false;
 	class TagMacro extends CodeGenerateVisitor.Macro {
 		@Override
 		String getPTCode(String var) {
-			return "(unsigned int) "+NewSynthesiser.this.getPTCode(var);
+			return (UNSIGNED ? "(unsigned int) " : "")+NewSynthesiser.this.getPTCode(var);
 		}
 
 		@Override
 		String getHTCode(String var) {
-			return "(unsigned int) "+NewSynthesiser.this.getHTCode(var);
+			return (UNSIGNED ? "(unsigned int) " : "")+NewSynthesiser.this.getHTCode(var);
 		}
 
 		@Override
 		String composeTagPairCode(String... vars) {
-			return "(unsigned int) "+NewSynthesiser.this.composeTagPairCode(getPTCode(vars[0]), getPTCode(vars[1]));
+			return (UNSIGNED ? "(unsigned int) " : "")+NewSynthesiser.this.composeTagPairCode(getPTCode(vars[0]), getPTCode(vars[1]));
 		}
 		
 		@Override

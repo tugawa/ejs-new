@@ -1,6 +1,5 @@
 package vmgen.newsynth;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 
@@ -17,6 +16,7 @@ import vmgen.type.VMRepType.PT;
 class CodeGenerateVisitor extends NodeVisitor<Void> {
 	static final boolean USE_GOTO = true;
 	static final boolean PAD_CASES = false;
+	static final boolean USE_DEFAULT = true;
 	static class Macro {
 		int nextLabel = 0;
 
@@ -98,6 +98,15 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			if (v > max)
 				max = v;
 		}
+		Node defaultChild = null;
+		int defaultChildCases = 0;
+		for (Node child: childToTags.keySet()) {
+			LinkedHashSet<?> tags = childToTags.get(child);
+			if (tags.size() > defaultChildCases) {
+				defaultChild = child;
+				defaultChildCases = tags.size();
+			}
+		}
 
 		for (Node child: childToTags.keySet()) {
 			for (TagPairNode.TagPair tag: childToTags.get(child)) {
@@ -112,7 +121,10 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 						sb.append("default:\n");
 				}
 			}
-			child.accept(this);
+			if (USE_DEFAULT) {
+				if (child == defaultChild)
+					sb.append("default:\n");
+			}			child.accept(this);
 			sb.append("break;\n");
 		}
 		sb.append("}");
@@ -139,6 +151,15 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			if (v > max)
 				max = v;
 		}
+		Node defaultChild = null;
+		int defaultChildCases = 0;
+		for (Node child: childToTags.keySet()) {
+			LinkedHashSet<?> tags = childToTags.get(child);
+			if (tags.size() > defaultChildCases) {
+				defaultChild = child;
+				defaultChildCases = tags.size();
+			}
+		}
 		
 		for (Node child: childToTags.keySet()) {
 			for (PT tag: childToTags.get(child)) {
@@ -152,6 +173,10 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 					if (tag.getValue() == max)
 						sb.append("default:\n");
 				}
+			}
+			if (USE_DEFAULT) {
+				if (child == defaultChild)
+					sb.append("default:\n");
 			}
 			child.accept(this);
 			sb.append("break;\n");
@@ -184,6 +209,15 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			if (v > max)
 				max = v;
 		}
+		Node defaultChild = null;
+		int defaultChildCases = 0;
+		for (Node child: childToTags.keySet()) {
+			LinkedHashSet<?> tags = childToTags.get(child);
+			if (tags.size() > defaultChildCases) {
+				defaultChild = child;
+				defaultChildCases = tags.size();
+			}
+		}
 		
 		for (Node child: childToTags.keySet()) {
 			for (HT tag: childToTags.get(child))  {
@@ -197,6 +231,10 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 					if (tag.getValue() == max)
 						sb.append("default:\n");
 				}
+			}
+			if (USE_DEFAULT) {
+				if (child == defaultChild)
+					sb.append("default:\n");
 			}
 			child.accept(this);
 			sb.append("break;\n");
