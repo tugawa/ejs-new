@@ -15,8 +15,8 @@ import vmgen.type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
 	static final boolean USE_GOTO = true;
-	static final boolean PAD_CASES = false;
-	static final boolean USE_DEFAULT = true;
+	static final boolean PAD_CASES = true;
+	static final boolean USE_DEFAULT = false;  // add default by the same strategy as -old (exclusive to PAD_CASES)
 	static class Macro {
 		int nextLabel = 0;
 
