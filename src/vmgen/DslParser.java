@@ -5,6 +5,7 @@
      Kochi University of Technology
      the University of Electro-communications
 
+     Takafumi Kataoka, 2016-18
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */

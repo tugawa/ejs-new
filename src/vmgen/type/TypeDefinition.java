@@ -8,16 +8,6 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
-/*
-   TypeDefinition.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
-*/
 package vmgen.type;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -120,6 +110,6 @@ public class TypeDefinition {
 	public static void main(String[] args) throws FileNotFoundException {
 		TypeDefinition.load("datatype/new.dtdef");
 		RuleSet p = new RuleSet();
-		new TagPairSynthesiser().synthesise(p, "none");
+		new TagPairSynthesiser().synthesise(p, "none", new vmgen.InsnGen.Option());
 	}
 }

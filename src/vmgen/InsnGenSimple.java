@@ -45,7 +45,7 @@ public class InsnGenSimple {
 				dispatchVars[i] = dv.substring(1, dv.length());
 			}
             RuleSet p = new RuleSet(dispatchVars, insnDef.tdDef.rules);
-            sb.append(synth.synthesise(p, "none"));
+            sb.append(synth.synthesise(p, "none", new InsnGen.Option()));
             try {
             	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
                 PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));

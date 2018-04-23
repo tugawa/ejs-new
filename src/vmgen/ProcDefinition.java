@@ -5,7 +5,8 @@
      Kochi University of Technology
      the University of Electro-communications
 
-     Tomoharu Ugawa, 2016-18
+     Takafumi Kataoka, 2016-18
+	 Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
 */
 package vmgen;
@@ -277,7 +278,7 @@ public class ProcDefinition {
             }
             sb.append(name + "_HEAD:\n");
             RuleSet p = new RuleSet(dispatchVars, tdDef.rules);
-            sb.append(synthesiser.synthesise(p, "none"));
+            sb.append(synthesiser.synthesise(p, "none", null));
             if (this.epilogue != null) {
                 sb.append(this.epilogue + "\n");
             }

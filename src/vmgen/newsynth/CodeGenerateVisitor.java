@@ -3,6 +3,7 @@ package vmgen.newsynth;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 
+import vmgen.InsnGen.Option;
 import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
@@ -14,9 +15,10 @@ import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
-	static final boolean USE_GOTO = true;
-	static final boolean PAD_CASES = true;
-	static final boolean USE_DEFAULT = false;  // add default by the same strategy as -old (exclusive to PAD_CASES)
+	static boolean USE_GOTO = true;
+	static boolean PAD_CASES = true;
+	static boolean USE_DEFAULT = false;  // add default by the same strategy as -old (exclusive to PAD_CASES)
+	static boolean DEBUG_COMMENT = true;
 	static class Macro {
 		int nextLabel = 0;
 
@@ -42,9 +44,13 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 	String[] varNames;
 	HashMap<Node, String> labels = new HashMap<Node, String>();
 	
-	public CodeGenerateVisitor(String[] varNames, Macro tagMacro) {
+	public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option) {
 		this.varNames = varNames;
 		this.tagMacro = tagMacro;
+		USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
+		PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
+		USE_DEFAULT = option.getOption(Option.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
+		DEBUG_COMMENT = option.getOption(Option.AvailableOptions.GEN_DEBUG_COMMENT, DEBUG_COMMENT);
 	}
 	
 	@Override
@@ -71,7 +77,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 		if (processSharedNode(node))
 			return null;
 		sb.append("{");
-		if (DecisionDiagram.DEBUG_COMMENT) {
+		if (DEBUG_COMMENT) {
 			sb.append(" //");
 			for (VMRepType rt: node.getRule().getVMRepTypes())
 				sb.append(" ").append(rt.getName());
@@ -86,7 +92,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			return null;
 		HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
 		sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
 		
@@ -128,7 +134,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			sb.append("break;\n");
 		}
 		sb.append("}");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append(" // "+node);
 		sb.append('\n');
 		return null;
@@ -139,7 +145,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			return null;
 		HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
 		sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
 		
@@ -182,7 +188,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			sb.append("break;\n");
 		}
 		sb.append("}");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append(" // "+node);
 		sb.append('\n');
 		return null;
@@ -197,7 +203,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 		}
 		HashMap<Node, LinkedHashSet<HT>> childToTags = node.getChildToTagsMap();
 		sb.append("switch(").append(tagMacro.getHTCode(varNames[node.getOpIndex()])).append("){");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append(" // "+node+"("+childToTags.size()+")");
 		sb.append('\n');
 		
@@ -240,7 +246,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 			sb.append("break;\n");
 		}
 		sb.append("}");
-		if (DecisionDiagram.DEBUG_COMMENT)
+		if (DEBUG_COMMENT)
 			sb.append("// "+node);
 		sb.append('\n');
 		return null;

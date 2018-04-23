@@ -2,12 +2,12 @@ package vmgen.newsynth;
 
 import vmgen.RuleSet;
 import vmgen.Synthesiser;
-import vmgen.newsynth.DecisionDiagram.Node;
+import vmgen.InsnGen.Option;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
 public class NewSynthesiser extends Synthesiser {
-	static final boolean UNSIGNED = false;
+	static final boolean UNSIGNED = true;
 	class TagMacro extends CodeGenerateVisitor.Macro {
 		@Override
 		String getPTCode(String var) {
@@ -35,16 +35,14 @@ public class NewSynthesiser extends Synthesiser {
 		}
 	}
 	
-	static final boolean DEBUG_VERIFY_DIAGRAM = true;
-	
 	String labelPrefix;
 	
 	@Override
-	public String synthesise(RuleSet hlrs, String labelPrefix) {
+	public String synthesise(RuleSet hlrs, String labelPrefix, vmgen.InsnGen.Option option) {
 		this.labelPrefix = labelPrefix;
 		LLRuleSet llrs = new LLRuleSet(hlrs);
-		DecisionDiagram dd = new DecisionDiagram(llrs);
-		if (DEBUG_VERIFY_DIAGRAM) {
+		DecisionDiagram dd = new DecisionDiagram(llrs, option);
+		if (option.getOption(Option.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
 			for (LLRule llr: llrs.getRules()) {
 				VMRepType[] rts = llr.getVMRepTypes();
 				LLRule found = dd.search(rts);

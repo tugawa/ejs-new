@@ -1,3 +1,13 @@
+/*
+   RuleSet.java
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-18
+     Hideya Iwasaki, 2016-18
+*/
 package vmgen.newsynth;
 
 import java.util.ArrayList;
@@ -5,14 +15,15 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import vmgen.InsnGen.Option;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 public class DecisionDiagram {
-	public static final boolean DEBUG_COMMENT = true;
-	public static final int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
+	static Option option;
+	public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 	
 	static final int DISPATCH_TAGPAIR = 0;
 	static final int DISPATCH_PT_BASE = 10;
@@ -229,10 +240,10 @@ public class DecisionDiagram {
 		@Override
 		Node merge(Node otherx) {
 			HTNode other = (HTNode) otherx;
-			if (noHT) {
+			if (noHT || other.noHT) {
 				HTNode merged = new HTNode(opIndex);
 				merged.noHT = true;
-				merged.child = child.merge(other.getChildren().get(0));
+				merged.child = getChildren().get(0).merge(other.getChildren().get(0));
 				return merged;
 			}
 			HTNode merged = new HTNode(opIndex);
@@ -283,7 +294,9 @@ public class DecisionDiagram {
 	
 	Node root;
 	
-	public DecisionDiagram(LLRuleSet rs) {
+	public DecisionDiagram(LLRuleSet rs, Option option) {
+		this.option = option;
+		
 		if (rs.getRules().size() == 0)
 			return;
 		for (LLRuleSet.LLRule r : rs.getRules()) {
@@ -291,11 +304,11 @@ public class DecisionDiagram {
 			root = digger.dig(root);
 		}
 		
-//		System.out.println(generateCode(new String[] {"b1", "b2"}));
+//		System.out.println(generateCodeForNode(root));
 
 		mergeChildren(root);
 		
-//		System.out.println(generateCode(new String[] {"a1", "a2"}));
+//		System.out.println(generateCodeForNode(root));
 		
 		mergeRelative(root);
 		
@@ -308,7 +321,7 @@ public class DecisionDiagram {
 	}
 	
 	static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro);
+		CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option);
 		node.accept(gen);
 		return gen.toString();
 	}

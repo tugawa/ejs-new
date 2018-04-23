@@ -1,9 +1,5 @@
 /*
-<<<<<<< Updated upstream:src/vmgen/Plan.java
-   Plan.java
-=======
    RuleSet.java
->>>>>>> Stashed changes:src/vmgen/RuleSet.java
 
    eJS Project
      Kochi University of Technology

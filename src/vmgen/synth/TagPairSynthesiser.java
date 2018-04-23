@@ -1,3 +1,13 @@
+/*
+   TagPairSynthesiser.java
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Tomoharu Ugawa, 2016-18
+     Hideya Iwasaki, 2016-18
+*/
 package vmgen.synth;
 
 import java.util.HashMap;
@@ -5,13 +15,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import vmgen.InsnGen;
 import vmgen.RuleSet;
 import vmgen.type.VMRepType;
 
 public class TagPairSynthesiser extends SwitchSynthesiser {
 	@Override
 	public
-	String synthesise(RuleSet plan, String prefix) {
+	String synthesise(RuleSet plan, String prefix, InsnGen.Option option) {
 		DDNode.setLabelPrefix(prefix);
 
 		LLPlan dispatchRuleList = new LLPlan(plan);
