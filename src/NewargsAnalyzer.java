@@ -4,14 +4,14 @@ import java.util.List;
 import java.util.Set;
 
 public class NewargsAnalyzer extends IASTBaseVisitor {
-    public boolean optOmitFrame;
+    Main.Info.OptLocals optLocals;
     public boolean useArguments;
     public boolean useFunction;
     public Set<String> variables;
     public Set<String> freeVariables;
 
-    public NewargsAnalyzer(boolean optOmitFrame) {
-        this.optOmitFrame = optOmitFrame;
+    public NewargsAnalyzer(Main.Info.OptLocals optLocals) {
+    		this.optLocals = optLocals;
         useArguments = false;
         useFunction = false;
         variables = new HashSet<String>();
@@ -24,7 +24,7 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
 
     @Override
     public Object visitProgram(IASTProgram node) {
-        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optOmitFrame);
+        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
         node.program.body.accept(analyzer);
         node.program.needArguments = false;
         node.program.needFrame = false;
@@ -32,8 +32,9 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
     }
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
+        node.innerUsedLocals = new HashSet<String>();
         this.useFunction = true;
-        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optOmitFrame);
+        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
         node.body.accept(analyzer);
         boolean useArg = analyzer.useArguments;
         boolean useFunc = analyzer.useFunction;
@@ -50,13 +51,28 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
             else
                 this.freeVariables.add(var);
         }
+        if (optLocals == Main.Info.OptLocals.G1) {
+            node.innerUsedLocals.addAll(node.params);
+        	    node.innerUsedLocals.addAll(node.locals);
+        } else if (optLocals == Main.Info.OptLocals.PROSYM) {
+        	    node.innerUsedLocals.addAll(node.locals);
+        }
 
-        if (this.optOmitFrame) {
+        switch (this.optLocals) {
+        case NONE:
+        		throw new Error("NewargsAnalyzer is called with optLocals == NONE");
+        case PROSYM:
+            node.needArguments = useArg || useFunc;
+            node.needFrame = node.needArguments || hasLocals;
+            break;
+        case G1:
+            node.needArguments = useArg;
+            node.needFrame = true;
+            break;
+        case G3:
             node.needArguments = useArg;
             node.needFrame = node.needArguments || !node.innerUsedLocals.isEmpty();
-        } else {
-            node.needArguments = useArg || useFunc || hasLocals;
-            node.needFrame = node.needArguments;
+            break;
         }
         return null;
     }

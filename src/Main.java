@@ -23,14 +23,19 @@ public class Main {
     static class Info {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
+		enum OptLocals {
+				NONE,
+				PROSYM,
+				G1,
+				G3;
+		}
 
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
         boolean optPrintAnalyzer = false;
         boolean optPrintLowLevelCode = false;
         boolean optHelp = false;
-        boolean optOmitArguments = false;
-        boolean optOmitFrame = false;
+		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -56,10 +61,16 @@ public class Main {
                         info.outputFileName = args[++i];
                         break;
                     case "-omit-arguments":
-                        info.optOmitArguments = true;
-                        break;
+							throw new Error("obsolete option: -omit-arguments");
+					case "-opt-prosym":
                     case "-omit-frame":
-                        info.optOmitFrame = true;
+						info.optLocals = OptLocals.PROSYM;
+						break;
+					case "-opt-g1":
+						info.optLocals = OptLocals.G1;
+						break;
+					case "-opt-g3":
+						info.optLocals = OptLocals.G3;
                         break;
                     }
                 } else {
@@ -139,9 +150,9 @@ public class Main {
         }
 
         // iAST level optimisation
-        if (info.optOmitArguments || info.optOmitFrame) {
+		if (info.optLocals != Info.OptLocals.NONE) {
             // iAST newargs analyzer
-            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optOmitFrame);
+			NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
             analyzer.analyze(iast);
             if (info.optPrintAnalyzer) {
                 new IASTPrinter().print(iast);
@@ -149,7 +160,7 @@ public class Main {
         }
 
         // convert iAST into low level code.
-        CodeGenerator codegen = new CodeGenerator(info.optOmitFrame);
+		CodeGenerator codegen = new CodeGenerator(info.optLocals);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
         if (info.optPrintLowLevelCode) {
