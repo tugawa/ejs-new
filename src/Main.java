@@ -1,3 +1,26 @@
+/*
+   Main.java
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Takafumi Kataoka, 2017-18
+     Tomoya Nonaka, 2018
+     Tomoharu Ugawa, 2017-18
+     Hideya Iwasaki, 2017-18
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
+
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -167,10 +190,10 @@ public class Main {
         	bcBuilder.assignAddress();
         	System.out.print(bcBuilder);
         }
-        
+
         // macro instruction expansion
         bcBuilder.expandMacro();
-        
+
         // resolve jump destinations
     	bcBuilder.assignAddress();
         List<BCode> bcodes = bcBuilder.build();
