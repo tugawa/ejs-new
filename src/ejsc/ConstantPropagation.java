@@ -1,85 +1,49 @@
 package ejsc;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
+import ejsc.BCodeEvaluator.FixnumValue;
+import ejsc.BCodeEvaluator.NumberValue;
+import ejsc.BCodeEvaluator.StringValue;
+import ejsc.BCodeEvaluator.Value;
 
 public class ConstantPropagation {
-	static interface ConstantValue {
-		abstract public BCode createInstruction(BCode bc);
-	}
-
-	static class FixnumValue implements ConstantValue {
-		private int n;
-		FixnumValue(int n) {
-			this.n = n;
+	static class ConstantEvaluator extends BCodeEvaluator {
+		class Environment extends BCodeEvaluator.Environment {			
+			@Override
+			public BCodeEvaluator.Value lookup(BCode bc, Register r) {
+				return findAndEvalDefinition(bc, r);
+			}
+						
+			private BCode findDefinition(BCode bc, Register src) {
+				BCode result = null;
+				for (BCode def: rdefa.getReachingDefinitions(bc)) {
+					if (def.getDestRegister() == src) {
+						if (result == null)
+							result = def;
+						else
+							return null;
+					}
+				}
+				return result;
+			}
+			
+			private Value findAndEvalDefinition(BCode bc, Register src) {
+				BCode def = findDefinition(bc, src);
+				if (def == null)
+					return null;
+				return eval(def);
+			}
 		}
-		int getValue() {
-			return n;
-		}
-		@Override
-		public BCode createInstruction(BCode bc) {
-			BCode newBC = new IFixnum(bc.getDestRegister(), n);
-			newBC.addLabels(bc.getLabels());
-			return newBC;
-		}
-	}
-	
-	static class ConstantEvaluator {
+		
 		ReachingDefinition rdefa;
 		
 		ConstantEvaluator(ReachingDefinition rdefa) {
 			this.rdefa = rdefa;
 		}
 		
-		ConstantValue eval(BCode bcx) {
-			if (bcx instanceof IMove) {
-				IMove bc = (IMove) bcx;
-				Register src = bc.src;
-				return findAndEvalDefinition(bc, src);
-			} else if (bcx instanceof IAdd) {
-				IAdd bc = (IAdd) bcx;
-				Register src1 = bc.src1;
-				Register src2 = bc.src2;
-				ConstantValue v1 = findAndEvalDefinition(bc, src1);
-				if (v1 == null)
-					return null;
-				ConstantValue v2 = findAndEvalDefinition(bc, src2);
-				if (v2 == null)
-					return null;
-				if (v1 instanceof FixnumValue && v2 instanceof FixnumValue) {
-					long n1 = ((FixnumValue) v1).getValue();
-					long n2 = ((FixnumValue) v2).getValue();
-					if (n1 + n2 < Integer.MIN_VALUE || n1 + n2 > Integer.MAX_VALUE)
-						return null;
-					return new FixnumValue((int) (n1 + n2));
-				} else
-					return null;
-			} else if (bcx instanceof IFixnum) {
-				IFixnum bc = (IFixnum) bcx;
-				return new FixnumValue(bc.n);
-			} else {
-				return null;
-			}
-		}
-		
-		private BCode findDefinition(BCode bc, Register src) {
-			BCode result = null;
-			for (BCode def: rdefa.getReachingDefinitions(bc)) {
-				if (def.getDestRegister() == src) {
-					if (result == null)
-						result = def;
-					else
-						return null;
-				}
-			}
-			return result;
-		}
-		
-		private ConstantValue findAndEvalDefinition(BCode bc, Register src) {
-			BCode def = findDefinition(bc, src);
-			if (def == null)
-				return null;
-			return eval(def);
+		Value eval(BCode bc) {
+			return eval(new Environment(), bc);
 		}
 	}
 	
@@ -91,20 +55,33 @@ public class ConstantPropagation {
 		rdefa = new ReachingDefinition(bcodes);
 	}
 	
-	private ConstantValue computeConstant(BCode bc) {
+	private Value computeConstant(BCode bc) {
 		ConstantEvaluator evaluator = new ConstantEvaluator(rdefa);
 		return evaluator.eval(bc);
 	}
 	
+	private BCode createConstantInstruction(Register r, Value v) {
+		if (v instanceof FixnumValue)
+			return new IFixnum(r, ((FixnumValue) v).getIntValue());
+		if (v instanceof NumberValue)
+			return new INumber(r, ((NumberValue) v).getDoubleValue());
+		if (v instanceof StringValue)
+			return new IString(r, ((StringValue) v).getStringValue());
+		return null;
+	}
+		
 	public List<BCode> exec() {
 		List<BCode> newBCodes = new ArrayList<BCode>(bcodes.size());
 
 		for (BCode bc: bcodes) {
-			ConstantValue v = computeConstant(bc);
+			Value v = computeConstant(bc);
 			if (v == null)
 				newBCodes.add(bc);
-			else
-				newBCodes.add(v.createInstruction(bc));
+			else {
+				BCode newBC = createConstantInstruction(bc.getDestRegister(), v);
+				newBC.addLabels(bc.getLabels());
+				newBCodes.add(newBC);
+			}
 		}
 		
 		return newBCodes;
