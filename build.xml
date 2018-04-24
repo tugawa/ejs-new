@@ -3,12 +3,12 @@
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. --><project basedir="." default="build" name="ejs_compiler">
+              as the first entry and export the buildfile again. --><project basedir="." default="build" name="ejsc">
     <property environment="env"/>
     <property name="debuglevel" value="source,lines,vars"/>
     <property name="target" value="1.8"/>
     <property name="source" value="1.8"/>
-    <path id="ejs_compiler.classpath">
+    <path id="ejsc.classpath">
         <pathelement location="bin"/>
         <pathelement location="libs/antlr-4.5.3-complete.jar"/>
         <pathelement location="libs/javax.json-1.0.4.jar"/>
@@ -31,30 +31,26 @@
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
             <src path="src"/>
-            <classpath refid="ejs_compiler.classpath"/>
+            <classpath refid="ejsc.classpath"/>
         </javac>
     </target>
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target name="CodeGenerator">
-        <java classname="CodeGenerator" failonerror="true" fork="yes">
-            <classpath refid="ejs_compiler.classpath"/>
-        </java>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
     </target>
-    <target name="Main (5)">
-        <java classname="Main" failonerror="true" fork="yes">
-            <arg line="--estree&#10;--iast&#10;test.js"/>
-            <classpath refid="ejs_compiler.classpath"/>
-        </java>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
     </target>
     <target name="Main">
-        <java classname="ejs_compiler.Main" failonerror="true" fork="yes">
-            <classpath refid="ejs_compiler.classpath"/>
-        </java>
-    </target>
-    <target name="PredictionMode.AltAndContextMap">
-        <java classname="org.antlr.v4.runtime.atn.PredictionMode$AltAndContextMap" failonerror="true" fork="yes">
-            <arg line="5"/>
-            <classpath refid="ejs_compiler.classpath"/>
+        <java classname="ejsc.Main" failonerror="true" fork="yes">
+            <classpath refid="ejsc.classpath"/>
         </java>
     </target>
 </project>

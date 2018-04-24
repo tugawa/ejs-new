@@ -1,3 +1,3 @@
 eclipse.preferences.version=1
-encoding//src/ASTGenerator.java=UTF-8
-encoding//src/ast_node/Literal.java=UTF-8
+encoding//src/ejsc/ASTGenerator.java=UTF-8
+encoding//src/ejsc/ast_node/Literal.java=UTF-8
