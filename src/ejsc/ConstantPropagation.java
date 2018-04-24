@@ -9,9 +9,15 @@ import ejsc.BCodeEvaluator.Value;
 
 public class ConstantPropagation {
 	static class ConstantEvaluator extends BCodeEvaluator {
-		class Environment extends BCodeEvaluator.Environment {			
+		class Environment extends BCodeEvaluator.Environment {
+			BCode bc;
+			
+			Environment(BCode bc) {
+				this.bc = bc;
+			}
+			
 			@Override
-			public BCodeEvaluator.Value lookup(BCode bc, Register r) {
+			public BCodeEvaluator.Value lookup(Register r) {
 				return findAndEvalDefinition(bc, r);
 			}
 						
@@ -43,7 +49,7 @@ public class ConstantPropagation {
 		}
 		
 		Value eval(BCode bc) {
-			return eval(new Environment(), bc);
+			return eval(new Environment(bc), bc);
 		}
 	}
 	

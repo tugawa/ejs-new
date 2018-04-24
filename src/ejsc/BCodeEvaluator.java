@@ -2,7 +2,7 @@ package ejsc;
 
 public class BCodeEvaluator {
 	static abstract class Environment {
-		abstract Value lookup(BCode bc, Register r);
+		abstract Value lookup(Register r);
 	}
 
 	static class Value {
@@ -66,14 +66,14 @@ public class BCodeEvaluator {
 	}
 	
 	protected Value evalIMove(Environment env, IMove bc) {
-		return env.lookup(bc, bc.src);
+		return env.lookup(bc.src);
 	}
 
 	protected Value evalIAdd(Environment env, IAdd bc) {
-		Value v1 = env.lookup(bc, bc.src1);
+		Value v1 = env.lookup(bc.src1);
 		if (v1 == null)
 			return null;
-		Value v2 = env.lookup(bc, bc.src2);
+		Value v2 = env.lookup(bc.src2);
 		if (v2 == null)
 			return null;
 
