@@ -24,46 +24,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 class BCBuilder {
-    static class FunctionBCBuilder {
-        static class MSetfl extends BCode {
-        	MSetfl() {}
-        	@Override
-			public String toString() {
-        		return "@MACRO setfl";
-        	}
-        }
+	static final boolean DEBUG_CONSTANT_PROPAGATION = false;
 
-        static class MCall extends BCode {
-        	Register receiver;
-        	Register function;
-        	Register[] args;
-        	boolean isNew;
-        	boolean isTail;
-        	MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-        		this.receiver = receiver;
-        		this.function = function;
-        		this.args = args;
-        		this.isNew = isNew;
-        		this.isTail = isTail;
-        	}
-        	@Override
-        	public String toString() {
-        		String s ="@MACRO ";
-
-        		if (isTail)
-        			s += "tail";
-        		if (isNew)
-        			s += "new " + receiver + " " + function;
-        		else if (receiver == null)
-        			s += "call " + function;
-        		else
-        			s += "send " + receiver + " " + function;
-        		for (Register r: args)
-        			s += " " + r;
-        		return s;
-        	}
-        }
-        
+	static class FunctionBCBuilder {
         MSetfl createMSetfl() {
         	return new MSetfl();
         }
@@ -81,9 +44,9 @@ class BCBuilder {
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
         
-        LinkedList<BCode> bcodes = new LinkedList<BCode>();
+        List<BCode> bcodes = new LinkedList<BCode>();
 
-        LinkedList<Label>   labelsSetJumpDest   = new LinkedList<Label>();
+        List<Label>   labelsSetJumpDest   = new LinkedList<Label>();
 
         void expandMacro() {
             int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
@@ -190,7 +153,7 @@ class BCBuilder {
     }
 
     void push(Label label) {
-        fbStack.getFirst().labelsSetJumpDest.push(label);
+        fbStack.getFirst().labelsSetJumpDest.add(label);
     }
 
     void push(BCode bcode) {
@@ -208,7 +171,8 @@ class BCBuilder {
     }
     
     BCode getLastBCode() {
-        return this.fbStack.getFirst().bcodes.getLast();
+    		List<BCode> bcodes = fbStack.getFirst().bcodes;
+        return bcodes.get(bcodes.size() - 1);
     }
 
     int getFBIdx() {
@@ -234,5 +198,48 @@ class BCBuilder {
     		sb.append(f.toString()).append("\n");
     		  
     	return sb.toString();
+    }
+    
+    // optimisation method
+    void optimisation() {
+    		boolean global = true;
+       	for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
+       		if (global) {
+       			global = false;
+       			continue;
+       		}
+       		
+       		if (DEBUG_CONSTANT_PROPAGATION) {
+	       		Register reg1 = new Register(1);
+	       		Register reg2 = new Register(2);
+	       		Register reg3 = new Register(3);
+	       		Register reg4 = new Register(4);
+	       		Register reg5 = new Register(5);
+	       		Register reg6 = new Register(6);
+	       		Register reg7 = new Register(7);
+	       		Register reg8 = new Register(8);
+	       		
+	       		fb.bcodes.clear();
+	       		fb.bcodes.add(new IFixnum(reg7, 1));
+	       		fb.bcodes.add(new IMove(reg2, reg7));
+	       		fb.bcodes.add(new IFixnum(reg7, 2));
+	       		fb.bcodes.add(new IMove(reg3, reg7));
+	       		fb.bcodes.add(new IMove(reg4, reg2));
+	       		fb.bcodes.add(new IMove(reg5, reg3));
+	       		fb.bcodes.add(new IAdd(reg7, reg4, reg5));
+	       		fb.bcodes.add(new IMove(reg6, reg7));
+	       		fb.bcodes.add(new IAdd(reg7, reg6, reg5));
+	       		fb.bcodes.add(new IMove(reg8, reg7));
+	       		fb.bcodes.add(new IRet());
+	       	}
+       		/*
+       		assignAddress();
+        		ControlFlowGraph graph = new ControlFlowGraph(fb.bcodes);
+        		ArrivalDefinition adef = new ArrivalDefinition(fb.bcodes, graph);
+        		new ConstantPropagation(fb.bcodes, adef);
+        		*/
+       		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
+       		fb.bcodes = cp.exec();
+        	}
     }
 }

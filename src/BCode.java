@@ -27,18 +27,37 @@ import java.util.regex.Pattern;
 
 public class BCode {
     int number;
+    protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
     
+    BCode() {}
+    
+    BCode(Register dst) {
+    		this.dst = dst;
+    }
+    
     void addLabels(List<Label> labels) {
-    	this.labels = new ArrayList<Label>(labels.size());
-    	for (Label l: labels) {
-    		l.bcode = this;
-    		this.labels.add(l);
-    	}
+    		this.labels = new ArrayList<Label>(labels.size());
+	    	for (Label l: labels) {
+	    		l.replaceDestBCode(this);
+	    		this.labels.add(l);
+	    	}
     }
 
     ArrayList<Label> getLabels() {
     	return labels;
+    }
+
+    public boolean isFallThroughInstruction() {
+    		return true;
+    }
+    
+    public BCode getBranchTarget() {
+    		return null;
+    }
+
+    public Register getDestRegister() {
+    		return dst;
     }
 
     String toString(String opcode) {
@@ -101,22 +120,27 @@ class Register {
     }
 }
 class Label {
-    BCode bcode;
+    private BCode bcode;
     Label() {}
     Label(BCode bcode) { 
-    	this.bcode = bcode;
+    		this.bcode = bcode;
     }
     public int dist(int number) {
         return bcode.number - number;
+    }
+    public BCode getDestBCode() {
+    		return bcode;
+    }
+    public void replaceDestBCode(BCode bcode) {
+    		this.bcode = bcode;
     }
 }
 
 
 class IFixnum extends BCode {
-    Register dst;
     int n;
     IFixnum(Register dst, int n) {
-        this.dst = dst;
+    		super(dst);
         this.n = n;
     }
     public String toString() {
@@ -124,10 +148,9 @@ class IFixnum extends BCode {
     }
 }
 class INumber extends BCode {
-    Register dst;
     double n;
     INumber(Register dst, double n) {
-        this.dst = dst;
+    		super(dst);
         this.n = n;
     }
     public String toString() {
@@ -135,10 +158,9 @@ class INumber extends BCode {
     }
 }
 class IString extends BCode {
-    Register dst;
     String str;
     IString(Register dst, String str) {
-        this.dst = dst;
+    		super(dst);
         Pattern pt = Pattern.compile("\n");
         Matcher match = pt.matcher(str);
         this.str = match.replaceAll("\\\\n");
@@ -148,11 +170,12 @@ class IString extends BCode {
     }
 }
 class ISpecconst extends BCode {
-    Register dst;
     String val;
-    ISpecconst(Register dst, boolean val) { this(dst, Boolean.toString(val)); }
+    ISpecconst(Register dst, boolean val) {
+    		this(dst, Boolean.toString(val));
+    	}
     ISpecconst(Register dst, String val) {
-        this.dst = dst;
+    		super(dst);
         this.val = val;
     }
     public String toString() {
@@ -160,11 +183,10 @@ class ISpecconst extends BCode {
     }
 }
 class IRegexp extends BCode {
-    Register dst;
     int idx;
     String ptn;
     IRegexp(Register dst, int idx, String ptn) {
-        this.dst = dst;
+    		super(dst);
         this.idx = idx;
         this.ptn = ptn;
     }
@@ -176,9 +198,9 @@ class IRegexp extends BCode {
 
 
 class IAdd extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+    		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -187,9 +209,9 @@ class IAdd extends BCode {
     }
 }
 class ISub extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     ISub(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+    		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -198,9 +220,9 @@ class ISub extends BCode {
     }
 }
 class IMul extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IMul(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+    		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -209,10 +231,10 @@ class IMul extends BCode {
     }
 }
 class IDiv extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IDiv(Register dst, Register src1, Register src2) {
-        this.dst = dst;
-        this.src1 = src1;
+    		super(dst);
+    		this.src1 = src1;
         this.src2 = src2;
     }
     public String toString() {
@@ -220,9 +242,9 @@ class IDiv extends BCode {
     }
 }
 class IMod extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IMod(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -231,9 +253,9 @@ class IMod extends BCode {
     }
 }
 class IBitor extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IBitor(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+    		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -242,9 +264,9 @@ class IBitor extends BCode {
     }
 }
 class IBitand extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IBitand(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -253,9 +275,9 @@ class IBitand extends BCode {
     }
 }
 class ILeftshift extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -264,9 +286,9 @@ class ILeftshift extends BCode {
     }
 }
 class IRightshift extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IRightshift(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -275,9 +297,9 @@ class IRightshift extends BCode {
     }
 }
 class IUnsignedrightshift extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IUnsignedrightshift(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -288,9 +310,9 @@ class IUnsignedrightshift extends BCode {
 
 // relation
 class IEqual extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IEqual(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -299,9 +321,9 @@ class IEqual extends BCode {
     }
 }
 class IEq extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IEq(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -310,9 +332,9 @@ class IEq extends BCode {
     }
 }
 class ILessthan extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     ILessthan(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -321,9 +343,9 @@ class ILessthan extends BCode {
     }
 }
 class ILessthanequal extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     ILessthanequal(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -332,9 +354,9 @@ class ILessthanequal extends BCode {
     }
 }
 class INot extends BCode {
-    Register dst, src;
+    Register src;
     INot(Register dst, Register src) {
-        this.dst = dst;
+		super(dst);
         this.src = src;
     }
     public String toString() {
@@ -346,14 +368,16 @@ class INot extends BCode {
 
 
 class IGetglobalobj extends BCode {
-    Register dst;
-    IGetglobalobj(Register dst) { this.dst = dst; }
+    IGetglobalobj(Register dst) {
+		super(dst);
+    }
     public String toString() {
         return super.toString("getglobalobj", dst);
     }
 }
 class INewargs extends BCode {
-    INewargs() {}
+    INewargs() {
+    }
     public String toString() {
         return super.toString("newargs");
     }
@@ -362,7 +386,7 @@ class INewframe extends BCode {
     int len;
     int status;
     INewframe(int len, int status) {
-        this.len = len;
+		this.len = len;
         this.status = status;
     }
     public String toString() {
@@ -370,9 +394,9 @@ class INewframe extends BCode {
     }
 }
 class IGetglobal extends BCode {
-    Register dst, lit;
+    Register lit;
     IGetglobal(Register dst, Register lit) {
-        this.dst = dst;
+		super(dst);
         this.lit = lit;
     }
     public String toString() {
@@ -390,10 +414,9 @@ class ISetglobal extends BCode {
     }
 }
 class IGetlocal extends BCode {
-    Register dst;
     int depth, n;
     IGetlocal(Register dst, int depth, int n) {
-        this.dst = dst;
+		super(dst);
         this.depth = depth;
         this.n = n;
     }
@@ -414,10 +437,9 @@ class ISetlocal extends BCode {
     }
 }
 class IGetarg extends BCode {
-    Register dst;
     int depth, n;
     IGetarg(Register dst, int depth, int n) {
-        this.dst = dst;
+		super(dst);
         this.depth = depth;
         this.n = n;
     }
@@ -438,9 +460,9 @@ class ISetarg extends BCode {
     }
 }
 class IGetprop extends BCode {
-    Register dst, obj, prop;
+    Register obj, prop;
     IGetprop(Register dst, Register obj, Register prop) {
-        this.dst = dst;
+		super(dst);
         this.obj = obj;
         this.prop = prop;
     }
@@ -475,10 +497,9 @@ class ISetarray extends BCode {
 
 
 class IMakeclosure extends BCode {
-    Register dst;
     int idx;
     IMakeclosure(Register dst, int idx) {
-        this.dst = dst;
+		super(dst);
         this.idx = idx;
     }
     public String toString() {
@@ -488,31 +509,39 @@ class IMakeclosure extends BCode {
 
 
 class IGeta extends BCode {
-    Register dst;
-    IGeta(Register dst) { this.dst = dst; }
+    IGeta(Register dst) {
+		super(dst);
+    }
     public String toString() {
         return super.toString("geta", dst);
     }
 }
 class ISeta extends BCode {
     Register src;
-    ISeta(Register src) { this.src = src; }
+    ISeta(Register src) {
+    		this.src = src;
+    	}
     public String toString() {
         return super.toString("seta", src);
     }
 }
 
 class IRet extends BCode {
-    IRet() {}
+    IRet() {
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+    		return false;
+    }
     public String toString() {
         return super.toString("ret");
     }
 }
 
 class IMove extends BCode {
-    Register dst, src;
+    Register src;
     IMove(Register dst, Register src) {
-        this.dst = dst;
+		super(dst);
         this.src = src;
     }
     public String toString() {
@@ -521,9 +550,9 @@ class IMove extends BCode {
 }
 
 class IIsundef extends BCode {
-    Register dst, src;
+    Register src;
     IIsundef(Register dst, Register src) {
-        this.dst = dst;
+		super(dst);
         this.src = src;
     }
     public String toString() {
@@ -531,9 +560,9 @@ class IIsundef extends BCode {
     }
 }
 class IIsobject extends BCode {
-    Register dst, src;
+    Register src;
     IIsobject(Register dst, Register src) {
-        this.dst = dst;
+		super(dst);
         this.src = src;
     }
     public String toString() {
@@ -541,9 +570,9 @@ class IIsobject extends BCode {
     }
 }
 class IInstanceof extends BCode {
-    Register dst, src1, src2;
+    Register src1, src2;
     IInstanceof(Register dst, Register src1, Register src2) {
-        this.dst = dst;
+		super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -576,9 +605,9 @@ class ISend extends BCode {
     }
 }
 class INew extends BCode {
-    Register dst, constructor;
+    Register constructor;
     INew(Register dst, Register constructor) {
-        this.dst = dst;
+		super(dst);
         this.constructor = constructor;
     }
     public String toString() {
@@ -597,21 +626,21 @@ class INewsend extends BCode {
     }
 }
 class IMakeiterator extends BCode {
-    Register obj, dst;
+    Register obj;
     IMakeiterator(Register obj, Register dst) {
+		super(dst);
         this.obj = obj;
-        this.dst = dst;
     }
     public String toString() {
         return super.toString("makeiterator", obj, dst);
     }
 }
 class INextpropname extends BCode {
-    Register obj, ite, dst;
+    Register obj, ite;
     INextpropname(Register obj, Register ite, Register dst) {
+		super(dst);
         this.obj = obj;
         this.ite = ite;
-        this.dst = dst;
     }
     public String toString() {
         return super.toString("nextpropname", obj, ite, dst);
@@ -622,7 +651,17 @@ class INextpropname extends BCode {
 // Jump instructions
 class IJump extends BCode {
     Label label;
-    IJump(Label label) { this.label = label; }
+    IJump(Label label) {
+    		this.label = label;
+    	}
+    @Override
+    public boolean isFallThroughInstruction() {
+    		return false;
+    }
+    @Override
+    public BCode getBranchTarget() {
+    		return label.getDestBCode();
+    }
     public String toString() {
         return super.toString("jump", label.dist(number));
     }
@@ -633,6 +672,10 @@ class IJumptrue extends BCode {
     IJumptrue(Register test, Label label) {
         this.test = test;
         this.label = label;
+    }
+    @Override
+    public BCode getBranchTarget() {
+    		return label.getDestBCode();
     }
     public String toString() {
         return super.toString("jumptrue", test, label.dist(number));
@@ -645,6 +688,10 @@ class IJumpfalse extends BCode {
         this.test = test;
         this.label = label;
     }
+    @Override
+    public BCode getBranchTarget() {
+    		return label.getDestBCode();
+    }
     public String toString() {
         return super.toString("jumpfalse", test, label.dist(number));
     }
@@ -655,6 +702,10 @@ class IThrow extends BCode {
     Register reg;
     IThrow(Register reg) {
         this.reg = reg;
+    }
+    @Override
+    public boolean isFallThroughInstruction()  {
+    		return false;
     }
     public String toString() {
         return super.toString("throw", reg);
@@ -670,6 +721,8 @@ class IPushhandler extends BCode {
     }
 }
 class IPophandler extends BCode {
+	IPophandler() {
+	}
     public String toString() {
         return super.toString("pophandler");
     }
@@ -684,11 +737,19 @@ class ILocalcall extends BCode {
     }
 }
 class ILocalret extends BCode {
+	ILocalret() {
+	}
+	@Override
+	public boolean isFallThroughInstruction() {
+		return false;
+	}
     public String toString() {
         return super.toString("localret");
     }
 }
 class IPoplocal extends BCode {
+	IPoplocal() {
+	}
     public String toString() {
         return super.toString("poplocal");
     }
@@ -698,7 +759,9 @@ class IPoplocal extends BCode {
 
 class ISetfl extends BCode {
     int fl;
-    ISetfl(int fl) { this.fl = fl; }
+    ISetfl(int fl) {
+    		this.fl = fl;
+    	}
     public String toString() {
         return super.toString("setfl", fl);
     }
@@ -707,35 +770,45 @@ class ISetfl extends BCode {
 
 class IFuncLength extends BCode {
     int n;
-    IFuncLength(int n) { this.n = n; }
+    IFuncLength(int n) {
+    		this.n = n;
+    	}
     public String toString() {
         return super.toString("funcLength", n);
     }
 }
 class ICallentry extends BCode {
     int n;
-    ICallentry(int n) { this.n = n; }
+    ICallentry(int n) {
+    		this.n = n;
+    	}
     public String toString() {
         return super.toString("callentry", n);
     }
 }
 class ISendentry extends BCode {
     int n;
-    ISendentry(int n) { this.n = n; }
+    ISendentry(int n) {
+    		this.n = n;
+    	}
     public String toString() {
         return super.toString("sendentry", n);
     }
 }
 class INumberOfLocals extends BCode {
     int n;
-    INumberOfLocals(int n) { this.n = n; }
+    INumberOfLocals(int n) {
+    		this.n = n;
+    }
     public String toString() {
         return super.toString("numberOfLocals", n);
     }
 }
 class INumberOfInstruction extends BCode {
     int n;
-    INumberOfInstruction(int n) { this.n = n; }
+    INumberOfInstruction(int n) {
+    		this.n = n;
+    }
     public String toString() {
         return super.toString("numberOfInstruction", n);
     }
@@ -743,13 +816,55 @@ class INumberOfInstruction extends BCode {
 
 
 class IError extends BCode {
-    Register dst;
     String str;
     IError(Register dst, String str) {
-        this.dst = dst;
+		super(dst);
         this.str = str;
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+    		return false;
     }
     public String toString() {
         return super.toString("error", dst, str);
     }
+}
+
+class MSetfl extends BCode {
+	MSetfl() {}
+	@Override
+	public String toString() {
+		return "@MACRO setfl";
+	}
+}
+
+class MCall extends BCode {
+	Register receiver;
+	Register function;
+	Register[] args;
+	boolean isNew;
+	boolean isTail;
+	MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
+		this.receiver = receiver;
+		this.function = function;
+		this.args = args;
+		this.isNew = isNew;
+		this.isTail = isTail;
+	}
+	@Override
+	public String toString() {
+		String s ="@MACRO ";
+
+		if (isTail)
+			s += "tail";
+		if (isNew)
+			s += "new " + receiver + " " + function;
+		else if (receiver == null)
+			s += "call " + function;
+		else
+			s += "send " + receiver + " " + function;
+		for (Register r: args)
+			s += " " + r;
+		return s;
+	}
 }
