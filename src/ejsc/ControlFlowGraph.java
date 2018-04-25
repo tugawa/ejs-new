@@ -24,6 +24,9 @@ public class ControlFlowGraph {
 		public HashSet<CFGNode> getPreds() {
 			return pred;
 		}
+		public HashSet<CFGNode> getSuccs() {
+			return succ;
+		}
 	}
 	private HashMap<BCode, CFGNode> cfg = new HashMap<BCode, CFGNode>();
 	

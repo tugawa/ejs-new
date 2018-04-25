@@ -202,7 +202,7 @@ class BCBuilder {
     }
     
     // optimisation method
-    void optimisation() {
+    void optimisation(Main.Info info) {
     		boolean global = true;
        	for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
        		if (global) {
@@ -239,8 +239,15 @@ class BCBuilder {
         		ArrivalDefinition adef = new ArrivalDefinition(fb.bcodes, graph);
         		new ConstantPropagation(fb.bcodes, adef);
         		*/
-       		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
-       		fb.bcodes = cp.exec();
+       		if (info.optConstantPropagation) {
+	       		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
+	       		fb.bcodes = cp.exec();
+       		}
+       		
+       		if (info.optRedunantInstructionElimination) {
+       			RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
+       			fb.bcodes = rie.exec();
+       		}
         	}
     }
 }

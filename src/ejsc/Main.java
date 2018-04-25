@@ -55,6 +55,8 @@ public class Main {
         boolean optPrintAnalyzer = false;
         boolean optPrintLowLevelCode = false;
         boolean optHelp = false;
+        boolean optRedunantInstructionElimination = false;
+        boolean optConstantPropagation = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -92,6 +94,12 @@ public class Main {
 					case "-opt-g3":
 						info.optLocals = OptLocals.G3;
                         break;
+					case "-opt-const":
+						info.optConstantPropagation = true;
+						break;
+					case "-opt-rie":
+						info.optRedunantInstructionElimination = true;
+						break;
                     }
                 } else {
                     info.inputFileName = args[i];
@@ -183,6 +191,8 @@ public class Main {
 		CodeGenerator codegen = new CodeGenerator(info.optLocals);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
+        bcBuilder.optimisation(info);
+        
         if (info.optPrintLowLevelCode) {
         	bcBuilder.assignAddress();
         	System.out.print(bcBuilder);

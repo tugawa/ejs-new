@@ -1,4 +1,3 @@
-package ejsc;
 /*
    BCode.java
 
@@ -21,7 +20,10 @@ package ejsc;
      Hideya Iwasaki, 2012-14
 */
 
+package ejsc;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -61,6 +63,22 @@ public class BCode {
     		return dst;
     }
 
+    public HashSet<Register> getSrcRegisters() {
+	    	HashSet<Register> srcs = new HashSet<Register>();
+	    	Class<? extends BCode> c = getClass();
+	    	for (Field f: c.getDeclaredFields()) {
+	    		if (f.getType() == Register.class) {
+	    			try {
+	    				srcs.add((Register) f.get(this));
+	    			} catch (Exception e) {
+	    				throw new Error(e);
+	    			}
+	    		}
+	    	}
+	    	
+	    	return srcs;
+    	}
+    
     String toString(String opcode) {
         return opcode;
     }
@@ -851,6 +869,16 @@ class MCall extends BCode {
 		this.args = args;
 		this.isNew = isNew;
 		this.isTail = isTail;
+	}
+	@Override
+	public HashSet<Register> getSrcRegisters() {
+		HashSet<Register> srcs = new HashSet<Register>();
+		if (receiver != null)
+			srcs.add(receiver);
+		srcs.add(function);
+		for (Register r: args)
+			srcs.add(r);
+		return srcs;
 	}
 	@Override
 	public String toString() {
