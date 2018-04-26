@@ -50,6 +50,8 @@ public class BCodeEvaluator {
 			return evalIMove(env, (IMove) bc);
 		if (bc instanceof IAdd)
 			return evalIAdd(env, (IAdd) bc);
+		if (bc instanceof ISub)
+			return evalISub(env, (ISub) bc);
 		return null;
 	}
 	
@@ -94,4 +96,26 @@ public class BCodeEvaluator {
 		
 		return null;
 	}
+	
+	protected Value evalISub(Environment env, ISub bc) {
+		Value v1 = env.lookup(bc.src1);
+		if (v1 == null)
+			return null;
+		Value v2 = env.lookup(bc.src2);
+		if (v2 == null)
+			return null;
+
+		if (v1 instanceof NumberValue && v2 instanceof NumberValue) {
+			double n1 = ((NumberValue) v1).getDoubleValue();
+			double n2 = ((NumberValue) v2).getDoubleValue();
+			double n = n1 + n2;
+			if (NumberValue.inFixnumRange(n))
+				return new FixnumValue((int) n);
+			else
+				return new NumberValue(n);
+		}
+		
+		return null;
+	}
+
 }
