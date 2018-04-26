@@ -869,3 +869,13 @@ class MCall extends BCode {
 		return s;
 	}
 }
+
+class MParameter extends BCode {
+	MParameter(Register dst) {
+		super(dst);
+	}
+	@Override
+	public String toString() {
+		return "@MACRO param "+dst;
+	}
+}

@@ -670,6 +670,10 @@ public class CodeGenerator extends IASTBaseVisitor {
 
         Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
         env.setRegOfGlobalObj(globalObjReg);
+        
+        bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER)));
+        for (String var: node.params)
+        		bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(var)));
         bcBuilder.push(new IGetglobalobj(globalObjReg));
 
         if (needFrame)

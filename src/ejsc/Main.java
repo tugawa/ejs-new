@@ -187,6 +187,7 @@ public class Main {
 		CodeGenerator codegen = new CodeGenerator(info.optLocals);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
+
         // optimisation
         if (info.optConstantPropagation) {
          	bcBuilder.assignAddress();
