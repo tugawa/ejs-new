@@ -13,10 +13,13 @@ public class ReachingDefinition {
 	}
 
 	public ReachingDefinition(List<BCode> bcodes) {
-		ControlFlowGraph cfg = new ControlFlowGraph(bcodes);
-		for (BCode bc: bcodes) {
+		this(new ControlFlowGraph(bcodes));
+	}
+	
+	public ReachingDefinition(ControlFlowGraph cfg) {
+		for (ControlFlowGraph.CFGNode n: cfg.getNodes()) {
+			BCode bc = n.getBCode();
 			inMap.put(bc, new HashSet<BCode>());
-			
 			Set<BCode> out = new HashSet<BCode>();
 			if (bc.getDestRegister() != null)
 				out.add(bc);  // gen

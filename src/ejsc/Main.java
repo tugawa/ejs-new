@@ -57,6 +57,7 @@ public class Main {
         boolean optHelp = false;
         boolean optRedunantInstructionElimination = false;
         boolean optConstantPropagation = false;
+        boolean optCopyPropagation = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -100,6 +101,11 @@ public class Main {
 					case "-opt-rie":
 						info.optRedunantInstructionElimination = true;
 						break;
+					case "-opt-copy":
+						info.optCopyPropagation = true;
+						break;
+					default:
+						throw new Error("unknown option: "+args[i]);
                     }
                 } else {
                     info.inputFileName = args[i];

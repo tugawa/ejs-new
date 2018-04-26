@@ -55,4 +55,8 @@ public class ControlFlowGraph {
 	public Collection<CFGNode> getNodes() {
 		return cfg.values();
 	}
+	
+	public CFGNode get(BCode bc) {
+		return cfg.get(bc);
+	}
 }

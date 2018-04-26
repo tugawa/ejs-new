@@ -258,6 +258,11 @@ class BCBuilder {
 	       		fb.bcodes = cp.exec();
        		}
        		
+       		if (info.optCopyPropagation) {
+       			CopyPropagation cp = new CopyPropagation(fb.bcodes);
+       			cp.exec();
+       		}
+
        		if (info.optRedunantInstructionElimination) {
        			RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
        			fb.bcodes = rie.exec();
