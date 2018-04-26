@@ -183,6 +183,8 @@ public class Main {
 		CodeGenerator codegen = new CodeGenerator(info.optLocals);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
+        bcBuilder.optimisation();
+        
         if (info.optPrintLowLevelCode) {
         	bcBuilder.assignAddress();
         	System.out.print(bcBuilder);

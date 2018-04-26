@@ -83,6 +83,9 @@ class BCBuilder {
             			bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
             		bcodes.get(number).addLabels(mcall.getLabels());
             		continue;
+            	} else if (bcode instanceof MParameter) {
+            		bcodes.remove(number);
+            		continue;
             	}
             	number++;
             }
@@ -239,6 +242,7 @@ class BCBuilder {
         		ArrivalDefinition adef = new ArrivalDefinition(fb.bcodes, graph);
         		new ConstantPropagation(fb.bcodes, adef);
         		*/
+       		
        		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
        		fb.bcodes = cp.exec();
         	}
