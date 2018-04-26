@@ -39,8 +39,8 @@ class BCBuilder {
         	return new MCall(receiver, function, args, isNew, isTail);
         }
 
-        int callentry = 0;
-        int sendentry = 0;
+        Label callEntry;
+        Label sendEntry;
         int numberOfLocals;
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
@@ -85,6 +85,7 @@ class BCBuilder {
             		continue;
             	} else if (bcode instanceof MParameter) {
             		bcodes.remove(number);
+            		bcodes.get(number).addLabels(bcode.getLabels());
             		continue;
             	}
             	number++;
@@ -98,12 +99,17 @@ class BCBuilder {
 
         List<BCode> build() {
             List<BCode> result = new LinkedList<BCode>();
-            result.add(new ICallentry(callentry));
-            result.add(new ISendentry(sendentry));
+            result.add(new ICallentry(callEntry.dist(0)));
+            result.add(new ISendentry(sendEntry.dist(0)));
             result.add(new INumberOfLocals(numberOfLocals));
             result.add(new INumberOfInstruction(bcodes.size()));
             result.addAll(bcodes);
             return result;
+        }
+        
+        void setEntry(Label call, Label send) {
+        		callEntry = call;
+        		sendEntry = send;
         }
         
         void setNumberOfGPRegisters(int gpregs) {
@@ -113,6 +119,10 @@ class BCBuilder {
         @Override
         public String toString() {
         	StringBuffer sb = new StringBuffer();
+        	if (callEntry != null)
+        		sb.append("callEntry: ").append(callEntry.dist(0)).append(": ").append(callEntry.getDestBCode()).append("\n");
+        	if (sendEntry != null)
+            	sb.append("sendEntry: ").append(sendEntry.dist(0)).append(": ").append(sendEntry.getDestBCode()).append("\n");
         	for (BCode i: bcodes)
         		sb.append(i.number).append(": ").append(i).append("\n");
         	return sb.toString();
@@ -183,8 +193,8 @@ class BCBuilder {
         return fBuilders.size() - 2;
     }
 
-    void setSendentry(int n) {
-        this.fbStack.getFirst().sendentry = n;
+    void setEntry(Label call, Label send) {
+        this.fbStack.getFirst().setEntry(call, send);
     }
 
     void setNumberOfLocals(int n) {

@@ -356,6 +356,11 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitProgram(IASTProgram node) {
         Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
         env.setRegOfGlobalObj(globalObjReg);
+        Label callEntry = new Label();
+        Label sendEntry = new Label();
+        bcBuilder.setEntry(callEntry, sendEntry);
+        bcBuilder.push(callEntry);
+        bcBuilder.push(sendEntry);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.pushMsetfl();
         Register retReg = env.getCurrentFrame().freshRegister();
@@ -674,7 +679,12 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER)));
         for (String var: node.params)
         		bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(var)));
+        Label callEntry = new Label();
+        Label sendEntry = new Label();
+        bcBuilder.setEntry(callEntry, sendEntry);
+        bcBuilder.push(callEntry);
         bcBuilder.push(new IGetglobalobj(globalObjReg));
+        bcBuilder.push(sendEntry);
 
         if (needFrame)
 			bcBuilder.push(new INewframe(locals.size(), needArguments ? 1 : 0));
@@ -698,7 +708,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
 
-        bcBuilder.setSendentry(1);
         bcBuilder.setNumberOfLocals(env.getNumberOfLocals());
         bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
 

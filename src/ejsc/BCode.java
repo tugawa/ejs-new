@@ -40,8 +40,7 @@ public class BCode {
     }
     
     void addLabels(List<Label> labels) {
-    		this.labels = new ArrayList<Label>(labels.size());
-	    	for (Label l: labels) {
+    		for (Label l: labels) {
 	    		l.replaceDestBCode(this);
 	    		this.labels.add(l);
 	    	}

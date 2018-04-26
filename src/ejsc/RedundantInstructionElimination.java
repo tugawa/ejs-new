@@ -40,13 +40,13 @@ public class RedundantInstructionElimination {
 		List<BCode> newBCodes = new ArrayList<BCode>(bcodes.size());
 		
 		ArrayList<Label> labels = new ArrayList<Label>();
-		int entryCount = 2;
+//		int entryCount = 2;
 		for (BCode bc: bcodes) {
-			if (entryCount > 0) {
-				entryCount--;
-				newBCodes.add(bc);
-				continue;
-			}
+//			if (entryCount > 0) {
+//				entryCount--;
+//				newBCodes.add(bc);
+//				continue;
+//			}
 			if (isRedundant(bc)) {
 				labels.addAll(bc.getLabels());
 				continue;

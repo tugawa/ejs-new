@@ -203,6 +203,12 @@ public class Main {
 
         // resolve jump destinations
     	bcBuilder.assignAddress();
+
+    		if (info.optPrintLowLevelCode) {
+        	bcBuilder.assignAddress();
+        	System.out.print(bcBuilder);
+        }
+
         List<BCode> bcodes = bcBuilder.build();
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
