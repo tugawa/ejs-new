@@ -1,5 +1,6 @@
 package ejsc;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +11,7 @@ public class CopyPropagation {
 	List<BCode> bcodes;
 	ControlFlowGraph cfg;
 	ReachingDefinition rda;
+	
 	CopyPropagation(List<BCode> bcodes) {
 		this.bcodes = bcodes;
 		cfg = new ControlFlowGraph(bcodes);
@@ -20,10 +22,11 @@ public class CopyPropagation {
 		BCode def = findDefinition(bc, src);
 		if (def instanceof IMove) {
 			Register defSrc = ((IMove) def).src;
-			if (!isDefinedOnAnyPath(def, bc, defSrc))
+			if (!isDefinedOnAnyPath(def, bc, defSrc)) {
 				return defSrc;
+			}
 		}
-		return src;
+		return null;
 	}
 	
 	private BCode findDefinition(BCode bc, Register src) {
@@ -64,16 +67,36 @@ public class CopyPropagation {
 	}
 	
 	public void exec() {
-		for (ControlFlowGraph.CFGNode n: cfg.getNodes()) {
-			BCode bcx = n.getBCode();
-			
-			if (bcx instanceof IGetprop) {
-				IGetprop bc = (IGetprop) bcx;
-				bc.obj = getReplaceRegister(bc, bc.obj);
-				bc.prop = getReplaceRegister(bc, bc.prop);
-			} else if (bcx instanceof IMove) {
-				IMove bc = (IMove) bcx;
-				bc.src = getReplaceRegister(bc, bc.src);
+		boolean update = true;
+		while (update) {
+			update = false;
+			for (ControlFlowGraph.CFGNode n: cfg.getNodes()) {
+				BCode bcx = n.getBCode();
+				try {
+					Class<? extends BCode> c = bcx.getClass();
+					for (Field f: c.getDeclaredFields()) {
+						if (f.getType() == Register.class) {
+							Register r = (Register) f.get(bcx);
+							Register rr = getReplaceRegister(bcx, r);
+							if (rr != null) {
+								update = true;
+								f.set(bcx, rr);
+							}
+						} else if (f.getType() == Register[].class) {
+							Register[] rs = (Register[]) f.get(bcx);
+							for (int i = 0; i < rs.length; i++) {
+								Register r = rs[i];
+								Register rr = getReplaceRegister(bcx, r);
+								if (rr != null) {
+									update = true;
+									rs[i] = rr;
+								}
+							}
+						}
+					}
+				} catch (Exception e) {
+					throw new Error(e);
+				}
 			}
 		}
 	}

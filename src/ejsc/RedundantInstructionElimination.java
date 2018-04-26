@@ -11,6 +11,8 @@ public class RedundantInstructionElimination {
 	RedundantInstructionElimination(List<BCode> bcodes) {
 		this.bcodes = bcodes;
 		lra = new LiveRegisterAnalyser(bcodes);
+		if (DEBUG)
+			lra.print(bcodes);
 	}
 	
 	private boolean isRedundant(BCode bc) {
