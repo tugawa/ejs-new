@@ -1,7 +1,9 @@
 package ejsc;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,12 +32,14 @@ public class RegisterAssignment {
         }
     }
     
+    final boolean removeMove;
     RegisterFactory rf = new RegisterFactory();
     List<BCode> bcodes;
     LiveRegisterAnalyser lra;
     HashMap<Register, RealRegister> assign = new HashMap<Register, RealRegister>();
     
-    public RegisterAssignment(List<BCode> bcodes) {
+    public RegisterAssignment(List<BCode> bcodes, boolean removeMove) {
+        this.removeMove = removeMove;
         this.bcodes = bcodes;
         lra = new LiveRegisterAnalyser(bcodes);
     }
@@ -143,7 +147,10 @@ public class RegisterAssignment {
         }
     }
 
-    private void replaceRegisters() {
+    private List<BCode> replaceRegisters() {
+        ArrayList<BCode> newBCodes = new ArrayList<BCode>(bcodes.size());
+        List<Label> labels = new ArrayList<Label>();
+        
         for (BCode bcx: bcodes) {
 //            System.out.print(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx+" => ");
             try {
@@ -155,15 +162,31 @@ public class RegisterAssignment {
                         replaceRegisterArrayField(bcx, f);
                 }
                 replaceDstRegister(bcx);
+                
+                if (removeMove) {
+                    if (bcx instanceof IMove) {
+                        IMove bc = (IMove) bcx;
+                        if (bc.src == bc.dst) {
+                            labels.addAll(bc.getLabels());
+                            continue;
+                        }
+                    }
+                }
+                bcx.addLabels(labels);
+                labels.clear();
+                
+                newBCodes.add(bcx);
             } catch (Exception e) {
                 throw new Error(e);
             }
         }
+
+        return newBCodes;
     }
     
-    public void exec() {
+    public List<BCode> exec() {
         makeAssignment();
-        replaceRegisters();
+        return replaceRegisters();
     }
     
     public int getMaxRegNum() {

@@ -269,8 +269,8 @@ class BCBuilder {
        		}
        		
        		if (info.optRegisterAssignment) {
-       		    RegisterAssignment ra = new RegisterAssignment(fb.bcodes);
-       		    ra.exec();
+       		    RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
+       		    fb.bcodes = ra.exec();
        		    int maxr = ra.getMaxRegNum();
        		    fb.numberOfGPRegisters = maxr;
        		}
