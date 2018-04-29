@@ -58,7 +58,8 @@ public class Main {
         boolean optRedunantInstructionElimination = false;
         boolean optConstantPropagation = false;
         boolean optCopyPropagation = false;
-		OptLocals optLocals = OptLocals.NONE;
+        boolean optRegisterAssignment = false;
+	OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -104,6 +105,9 @@ public class Main {
 					case "-opt-copy":
 						info.optCopyPropagation = true;
 						break;
+					case "-opt-reg":
+					    info.optRegisterAssignment = true;
+					    break;
 					default:
 						throw new Error("unknown option: "+args[i]);
                     }

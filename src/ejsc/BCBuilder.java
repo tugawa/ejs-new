@@ -267,6 +267,13 @@ class BCBuilder {
        			RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
        			fb.bcodes = rie.exec();
        		}
+       		
+       		if (info.optRegisterAssignment) {
+       		    RegisterAssignment ra = new RegisterAssignment(fb.bcodes);
+       		    ra.exec();
+       		    int maxr = ra.getMaxRegNum();
+       		    fb.numberOfGPRegisters = maxr;
+       		}
         	}
     }
 }

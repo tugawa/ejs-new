@@ -129,9 +129,11 @@ public class BCode {
 
 class Register {
     int n;
-    Register() {}
     Register(int n) {
         this.n = n;
+    }
+    public int getRegisterNumber() {
+        return n;
     }
     public String toString() {
         return Integer.toString(n);

@@ -140,27 +140,12 @@ public class CodeGenerator extends IASTBaseVisitor {
 				return paramRegisters[index + 1];
 			}
 
-            Register[] newArgumentRegister(int n) {
-                for (; numOfArgumentRegisters < n; numOfArgumentRegisters++) {
-                    argumentRegisters.add(new Register());
-                }
-                Register[] ret = new Register[n];
-                for (int i = 0, j = n - 1; i < n; i++, j--) {
-                    ret[j] = argumentRegisters.get(i);
-                }
-                return ret;
-            }
-
             int getNumberOfLocals() {
                 return this.staticLocals.size() + this.maxNumOfDynamicLocals;
             }
 
             int getNumberOfGPRegisters() {
             	return numOfRegisters;
-            }
-            
-            int getNumberOfArgumentRegisters() {
-            	 return numOfArgumentRegisters;
             }
         }
 
@@ -282,10 +267,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             return null;
         }
 
-        Register[] freshArgumentRegister(int n) {
-            return this.getCurrentFrame().newArgumentRegister(n);
-        }
-
         int getNumberOfLocals() {
             return this.getCurrentFrame().getNumberOfLocals();
         }
@@ -294,10 +275,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         	return this.getCurrentFrame().getNumberOfGPRegisters();
         }
         
-        int getNumberOfArgumentRegisters() {
-        	return this.getCurrentFrame().getNumberOfArgumentRegisters();
-        }
-
         void setRegOfGlobalObj(Register reg) {
             this.getCurrentFrame().registerOfGlobalObj = reg;
         }
@@ -932,7 +909,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r8 = env.getCurrentFrame().freshRegister();
             Register r9 = env.getCurrentFrame().freshRegister();
             // Register r10 = node.operator == IASTBinaryExpression.Operator.EQUAL ? reg : env.freshRegister();
-            Register ar1 = env.freshArgumentRegister(1)[0];
             Label l1 = new Label();
             Label l2 = new Label();
             Label l3 = new Label();
@@ -945,8 +921,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IJumpfalse(r6, l2));
 
             bcBuilder.push(new IGetprop(r7, r1, r5));
-            bcBuilder.push(new IMove(ar1, r1));
-            bcBuilder.push(new ISend(r7, 0));
+            bcBuilder.push(new MCall(r1, r7, new Register[] {}, false, false));
             bcBuilder.push(new IGeta(r8));
             bcBuilder.push(new IMove(r9, r2));
 
@@ -954,8 +929,7 @@ public class CodeGenerator extends IASTBaseVisitor {
 
             bcBuilder.push(l2);
             bcBuilder.push(new IGetprop(r7, r2, r5));
-            bcBuilder.push(new IMove(ar1, r2));
-            bcBuilder.push(new ISend(r7, 0));
+            bcBuilder.push(new MCall(r2, r7, new Register[] {}, false, false));
             bcBuilder.push(new IGeta(r9));
             bcBuilder.push(new IMove(r8, r1));
 
