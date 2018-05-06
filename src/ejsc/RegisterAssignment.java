@@ -94,8 +94,18 @@ public class RegisterAssignment {
                 Register dst = bc.dst;
                 if (assign.get(dst) == null) {
                     RealRegister rsrc = assign.get(bc.src);
-                    if (!checkConflict(bc, dst, rsrc)) {
-                        assign.put(dst, rsrc);
+                    if (rsrc != null) {
+                        if (!checkConflict(bc, dst, rsrc)) {
+                            assign.put(dst, rsrc);
+                            continue;
+                        }
+                    } else {
+                        int n = 1;
+                        for (; n < used.length; n++)
+                            if (!used[n] && !checkConflict(bc, dst, rf.get(n)) && !checkConflict(bc, bc.src, rf.get(n)))
+                                break;
+                        assign.put(dst, rf.get(n));
+                        assign.put(bc.src, rf.get(n));
                         continue;
                     }
                 }
@@ -108,8 +118,7 @@ public class RegisterAssignment {
                 for (; n < used.length; n++)
                     if (!used[n] && !checkConflict(bcx, dst, rf.get(n)))
                         break;
-                RealRegister rdst = rf.get(n);
-                assign.put(dst, rdst);
+                assign.put(dst, rf.get(n));
             }
         }
     }
@@ -152,7 +161,7 @@ public class RegisterAssignment {
         List<Label> labels = new ArrayList<Label>();
         
         for (BCode bcx: bcodes) {
-//            System.out.print(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx+" => ");
+            //System.out.println(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx+" => ");
             try {
                 Class<? extends BCode> c = bcx.getClass();
                 for (Field f: c.getDeclaredFields()) {
