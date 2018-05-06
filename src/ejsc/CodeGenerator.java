@@ -365,13 +365,13 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitBooleanLiteral(IASTBooleanLiteral node) {
-        bcBuilder.push(new ISpecconst(reg, node.value));
+        bcBuilder.push(new IBooleanconst(reg, node.value));
         return null;
     }
 
     @Override
     public Object visitNullLiteral(IASTNullLiteral node) {
-        bcBuilder.push(new ISpecconst(reg, "null"));
+        bcBuilder.push(new INullconst(reg));
         return null;
     }
 
@@ -392,7 +392,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     @Override
     public Object visitReturnStatement(IASTReturnStatement node) {
         if (node.value == null) {
-            bcBuilder.push(new ISpecconst(reg, "undefined"));
+            bcBuilder.push(new IUndefinedconst(reg));
         } else {
           compileNode(node.value, reg);
         }
@@ -681,7 +681,7 @@ public class CodeGenerator extends IASTBaseVisitor {
 
         Register retReg = env.getCurrentFrame().freshRegister();
         compileNode(node.body, retReg);
-        bcBuilder.push(new ISpecconst(reg, "undefined"));
+        bcBuilder.push(new IUndefinedconst(reg));
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
 

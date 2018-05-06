@@ -59,6 +59,7 @@ public class Main {
         boolean optConstantPropagation = false;
         boolean optCopyPropagation = false;
         boolean optRegisterAssignment = false;
+        boolean optCommonConstantElimination = false;
 	OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -102,6 +103,9 @@ public class Main {
 					case "-opt-rie":
 						info.optRedunantInstructionElimination = true;
 						break;
+					case "-opt-cce":
+					    info.optCommonConstantElimination = true;
+					    break;
 					case "-opt-copy":
 						info.optCopyPropagation = true;
 						break;

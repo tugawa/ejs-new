@@ -189,17 +189,30 @@ class IString extends BCode {
         return super.toString("string", dst, "\"" + str + "\"");
     }
 }
-class ISpecconst extends BCode {
-    String val;
-    ISpecconst(Register dst, boolean val) {
-    		this(dst, Boolean.toString(val));
-    	}
-    ISpecconst(Register dst, String val) {
-    		super(dst);
-        this.val = val;
+class IBooleanconst extends BCode {
+    boolean b;
+    IBooleanconst(Register dst, boolean b) {
+        super(dst);
+        this.b = b;
     }
     public String toString() {
-        return super.toString("specconst", dst, val);
+        return super.toString("specconst", dst, b ? "true" : "false");
+    }
+}
+class INullconst extends BCode {
+    INullconst(Register dst) {
+        super(dst);
+    }
+    public String toString() {
+        return super.toString("specconst", dst, "null");
+    }
+}
+class IUndefinedconst extends BCode {
+    IUndefinedconst(Register dst) {
+        super(dst);
+    }
+    public String toString() {
+        return super.toString("specconst", dst, "undefined");
     }
 }
 class IRegexp extends BCode {
