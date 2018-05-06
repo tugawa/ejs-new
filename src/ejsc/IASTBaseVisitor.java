@@ -1,4 +1,3 @@
-package ejsc;
 /*
    IASTBaseVisitor.java
 
@@ -21,6 +20,7 @@ package ejsc;
      Hideya Iwasaki, 2012-14
 */
 
+package ejsc;
 
 public class IASTBaseVisitor {
 	public Object visitNode(IASTNode node) {

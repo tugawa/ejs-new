@@ -1,4 +1,3 @@
-package ejsc;
 /*
    IASTNode.java
 
@@ -21,7 +20,7 @@ package ejsc;
      Hideya Iwasaki, 2012-14
 */
 
-
+package ejsc;
 import java.util.HashSet;
 import java.util.List;
 

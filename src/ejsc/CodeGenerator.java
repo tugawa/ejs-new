@@ -1,4 +1,3 @@
-package ejsc;
 /*
    CodeGenerator.java
 
@@ -21,7 +20,7 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
+package ejsc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;

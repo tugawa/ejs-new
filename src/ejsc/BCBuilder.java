@@ -1,4 +1,3 @@
-package ejsc;
 /*
    BCBuilder.java
 
@@ -20,7 +19,7 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
+package ejsc;
 import java.util.LinkedList;
 import java.util.List;
 

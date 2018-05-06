@@ -1,5 +1,24 @@
-package ejsc;
+/*
+AvailableExpressionAnalyser.java
 
+eJS Project
+  Kochi University of Technology
+  the University of Electro-communications
+
+  Tomoharu Ugawa, 2018
+  Hideya Iwasaki, 2018
+
+The eJS Project is the successor of the SSJS Project at the University of
+Electro-communications, which was contributed by the following members.
+
+  Sho Takada, 2012-13
+  Akira Tanimura, 2012-13
+  Akihiro Urushihara, 2013-14
+  Ryota Fujii, 2013-14
+  Tomoharu Ugawa, 2012-14
+  Hideya Iwasaki, 2012-14
+*/
+package ejsc;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -163,18 +182,12 @@ public class AvailableExpressionAnalyser {
         }
     }
     
-    List<BCode> bcodes;
     ControlFlowGraph cfg;
     HashMap<BCode, AvailableVals> ins = new HashMap<BCode, AvailableVals>();
     HashMap<BCode, AvailableVals> outs = new HashMap<BCode, AvailableVals>();
     
     public AvailableExpressionAnalyser(List<BCode> bcodes) {
         this(new ControlFlowGraph(bcodes));
-        this.bcodes = bcodes;
-        //for (BCode bc: bcodes) {
-        //    System.out.println(bc+"      "+ins.get(bc));
-        //}
-
     }
     
     public AvailableExpressionAnalyser(ControlFlowGraph cfg) {
@@ -197,13 +210,11 @@ public class AvailableExpressionAnalyser {
             for (CFGNode node: cfg.getNodes()) {
                 BCode bc = node.getBCode();
                 AvailableVals out = outs.get(bc);
-                //System.out.println(bc);
                 // in = ¥cap pred.out
                 AvailableVals in = new AvailableVals();
                 boolean first = true;
                 for (CFGNode pred: node.getPreds()) {
                     AvailableVals predOut = outs.get(pred.getBCode());
-                    //System.out.println("out "+predOut);
                     if (first) {
                         for (Value v: predOut.keySet())
                             in.put(v, new HashSet<Register>(predOut.get(v)));
@@ -226,7 +237,6 @@ public class AvailableExpressionAnalyser {
                         in.remove(v);
                 }
                 ins.put(bc, new AvailableVals(in));
-                //System.out.println("in "+in);
                 
                 // out += in - <?, destReg>
                 Register dst = bc.getDestRegister();

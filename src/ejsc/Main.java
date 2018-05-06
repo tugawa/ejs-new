@@ -1,4 +1,3 @@
-package ejsc;
 /*
    Main.java
 
@@ -21,7 +20,7 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
+package ejsc;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
