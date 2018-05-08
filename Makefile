@@ -6,10 +6,16 @@ newejsc.jar: src $(MANIFEST)
 	ant
 	jar cvfm $@ $(MANIFEST) -C bin .
 	@echo '***********************************************************'
-	@echo '** WARNING: I created newejsc.jar'
-	@echo '**          You need to speficy the make target explicitly'
-	@echo '**          to create compiler.jar, e.g., type:'
-	@echo '**            > make compiler.jar'
+	@echo '** newejsc.jar is created.'
+	@echo '**'
+	@echo '** WARNING: compiler.jar is no longer created automatically.'
+	@echo '**          When you are developing ejsc, you should use'
+	@echo '**          newejsc.jar, which is not tracked by git.'
+	@echo '**          DO NOT CHANGE compiler.jar except when you merged'
+	@echo '**          your change to the develop branch.  Latest stable'
+	@echo '**          version of compiler.jar should be tracked by git'
+	@echo '**          so that ejsvm can always be tested with a stable'
+	@echo '**          compiler.'
 	@echo '***********************************************************'
 
 compiler.jar: src $(MANIFEST)

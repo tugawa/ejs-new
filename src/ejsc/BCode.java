@@ -1,4 +1,3 @@
-package ejsc;
 /*
    BCode.java
 
@@ -21,7 +20,10 @@ package ejsc;
      Hideya Iwasaki, 2012-14
 */
 
+package ejsc;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,8 +40,7 @@ public class BCode {
     }
     
     void addLabels(List<Label> labels) {
-    		this.labels = new ArrayList<Label>(labels.size());
-	    	for (Label l: labels) {
+    		for (Label l: labels) {
 	    		l.replaceDestBCode(this);
 	    		this.labels.add(l);
 	    	}
@@ -61,6 +62,22 @@ public class BCode {
     		return dst;
     }
 
+    public HashSet<Register> getSrcRegisters() {
+	    	HashSet<Register> srcs = new HashSet<Register>();
+	    	Class<? extends BCode> c = getClass();
+	    	for (Field f: c.getDeclaredFields()) {
+	    		if (f.getType() == Register.class) {
+	    			try {
+	    				srcs.add((Register) f.get(this));
+	    			} catch (Exception e) {
+	    				throw new Error(e);
+	    			}
+	    		}
+	    	}
+	    	
+	    	return srcs;
+    	}
+    
     String toString(String opcode) {
         return opcode;
     }
@@ -112,9 +129,11 @@ public class BCode {
 
 class Register {
     int n;
-    Register() {}
     Register(int n) {
         this.n = n;
+    }
+    public int getRegisterNumber() {
+        return n;
     }
     public String toString() {
         return Integer.toString(n);
@@ -170,17 +189,30 @@ class IString extends BCode {
         return super.toString("string", dst, "\"" + str + "\"");
     }
 }
-class ISpecconst extends BCode {
-    String val;
-    ISpecconst(Register dst, boolean val) {
-    		this(dst, Boolean.toString(val));
-    	}
-    ISpecconst(Register dst, String val) {
-    		super(dst);
-        this.val = val;
+class IBooleanconst extends BCode {
+    boolean b;
+    IBooleanconst(Register dst, boolean b) {
+        super(dst);
+        this.b = b;
     }
     public String toString() {
-        return super.toString("specconst", dst, val);
+        return super.toString("specconst", dst, b ? "true" : "false");
+    }
+}
+class INullconst extends BCode {
+    INullconst(Register dst) {
+        super(dst);
+    }
+    public String toString() {
+        return super.toString("specconst", dst, "null");
+    }
+}
+class IUndefinedconst extends BCode {
+    IUndefinedconst(Register dst) {
+        super(dst);
+    }
+    public String toString() {
+        return super.toString("specconst", dst, "undefined");
     }
 }
 class IRegexp extends BCode {
@@ -851,6 +883,16 @@ class MCall extends BCode {
 		this.args = args;
 		this.isNew = isNew;
 		this.isTail = isTail;
+	}
+	@Override
+	public HashSet<Register> getSrcRegisters() {
+		HashSet<Register> srcs = new HashSet<Register>();
+		if (receiver != null)
+			srcs.add(receiver);
+		srcs.add(function);
+		for (Register r: args)
+			srcs.add(r);
+		return srcs;
 	}
 	@Override
 	public String toString() {

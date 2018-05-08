@@ -1,4 +1,3 @@
-package ejsc;
 /*
    Main.java
 
@@ -21,7 +20,7 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
+package ejsc;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -55,7 +54,11 @@ public class Main {
         boolean optPrintAnalyzer = false;
         boolean optPrintLowLevelCode = false;
         boolean optHelp = false;
+        boolean optRedunantInstructionElimination = false;
         boolean optConstantPropagation = false;
+        boolean optCopyPropagation = false;
+        boolean optRegisterAssignment = false;
+        boolean optCommonConstantElimination = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -93,9 +96,23 @@ public class Main {
 					case "-opt-g3":
 						info.optLocals = OptLocals.G3;
                         break;
-					case "-const":
+					case "-opt-const":
 						info.optConstantPropagation = true;
 						break;
+					case "-opt-rie":
+						info.optRedunantInstructionElimination = true;
+						break;
+					case "-opt-cce":
+					    info.optCommonConstantElimination = true;
+					    break;
+					case "-opt-copy":
+						info.optCopyPropagation = true;
+						break;
+					case "-opt-reg":
+					    info.optRegisterAssignment = true;
+					    break;
+					default:
+						throw new Error("unknown option: "+args[i]);
                     }
                 } else {
                     info.inputFileName = args[i];
@@ -187,12 +204,7 @@ public class Main {
 		CodeGenerator codegen = new CodeGenerator(info.optLocals);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
-
-        // optimisation
-        if (info.optConstantPropagation) {
-         	bcBuilder.assignAddress();
-         	bcBuilder.optimisation();
-         }
+        bcBuilder.optimisation(info);
 
         if (info.optPrintLowLevelCode) {
         	bcBuilder.assignAddress();
@@ -204,6 +216,12 @@ public class Main {
 
         // resolve jump destinations
     	bcBuilder.assignAddress();
+
+    		if (info.optPrintLowLevelCode) {
+        	bcBuilder.assignAddress();
+        	System.out.print(bcBuilder);
+        }
+
         List<BCode> bcodes = bcBuilder.build();
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);

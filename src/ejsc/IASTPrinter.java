@@ -1,4 +1,3 @@
-package ejsc;
 /*
    IASTPrinter.java
 
@@ -20,8 +19,7 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
-
+package ejsc;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;

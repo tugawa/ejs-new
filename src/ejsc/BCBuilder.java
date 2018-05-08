@@ -1,4 +1,3 @@
-package ejsc;
 /*
    BCBuilder.java
 
@@ -20,13 +19,11 @@ package ejsc;
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
 */
-
+package ejsc;
 import java.util.LinkedList;
 import java.util.List;
 
 class BCBuilder {
-	static final boolean DEBUG_CONSTANT_PROPAGATION = false;
-
 	static class FunctionBCBuilder {
         MSetfl createMSetfl() {
         	return new MSetfl();
@@ -39,8 +36,8 @@ class BCBuilder {
         	return new MCall(receiver, function, args, isNew, isTail);
         }
 
-        int callentry = 0;
-        int sendentry = 0;
+        Label callEntry;
+        Label sendEntry;
         int numberOfLocals;
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
@@ -85,6 +82,7 @@ class BCBuilder {
             		continue;
             	} else if (bcode instanceof MParameter) {
             		bcodes.remove(number);
+            		bcodes.get(number).addLabels(bcode.getLabels());
             		continue;
             	}
             	number++;
@@ -98,12 +96,17 @@ class BCBuilder {
 
         List<BCode> build() {
             List<BCode> result = new LinkedList<BCode>();
-            result.add(new ICallentry(callentry));
-            result.add(new ISendentry(sendentry));
+            result.add(new ICallentry(callEntry.dist(0)));
+            result.add(new ISendentry(sendEntry.dist(0)));
             result.add(new INumberOfLocals(numberOfLocals));
             result.add(new INumberOfInstruction(bcodes.size()));
             result.addAll(bcodes);
             return result;
+        }
+        
+        void setEntry(Label call, Label send) {
+        		callEntry = call;
+        		sendEntry = send;
         }
         
         void setNumberOfGPRegisters(int gpregs) {
@@ -113,6 +116,10 @@ class BCBuilder {
         @Override
         public String toString() {
         	StringBuffer sb = new StringBuffer();
+        	if (callEntry != null)
+        		sb.append("callEntry: ").append(callEntry.dist(0)).append(": ").append(callEntry.getDestBCode()).append("\n");
+        	if (sendEntry != null)
+            	sb.append("sendEntry: ").append(sendEntry.dist(0)).append(": ").append(sendEntry.getDestBCode()).append("\n");
         	for (BCode i: bcodes)
         		sb.append(i.number).append(": ").append(i).append("\n");
         	return sb.toString();
@@ -183,8 +190,8 @@ class BCBuilder {
         return fBuilders.size() - 2;
     }
 
-    void setSendentry(int n) {
-        this.fbStack.getFirst().sendentry = n;
+    void setEntry(Label call, Label send) {
+        this.fbStack.getFirst().setEntry(call, send);
     }
 
     void setNumberOfLocals(int n) {
@@ -205,46 +212,40 @@ class BCBuilder {
     }
     
     // optimisation method
-    void optimisation() {
+    void optimisation(Main.Info info) {
     		boolean global = true;
        	for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
        		if (global) {
        			global = false;
        			continue;
        		}
+
+       		if (info.optConstantPropagation) {
+	       		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
+	       		fb.bcodes = cp.exec();
+       		}
        		
-       		if (DEBUG_CONSTANT_PROPAGATION) {
-	       		Register reg1 = new Register(1);
-	       		Register reg2 = new Register(2);
-	       		Register reg3 = new Register(3);
-	       		Register reg4 = new Register(4);
-	       		Register reg5 = new Register(5);
-	       		Register reg6 = new Register(6);
-	       		Register reg7 = new Register(7);
-	       		Register reg8 = new Register(8);
-	       		
-	       		fb.bcodes.clear();
-	       		fb.bcodes.add(new IFixnum(reg7, 1));
-	       		fb.bcodes.add(new IMove(reg2, reg7));
-	       		fb.bcodes.add(new IFixnum(reg7, 2));
-	       		fb.bcodes.add(new IMove(reg3, reg7));
-	       		fb.bcodes.add(new IMove(reg4, reg2));
-	       		fb.bcodes.add(new IMove(reg5, reg3));
-	       		fb.bcodes.add(new IAdd(reg7, reg4, reg5));
-	       		fb.bcodes.add(new IMove(reg6, reg7));
-	       		fb.bcodes.add(new IAdd(reg7, reg6, reg5));
-	       		fb.bcodes.add(new IMove(reg8, reg7));
-	       		fb.bcodes.add(new IRet());
-	       	}
-       		/*
-       		assignAddress();
-        		ControlFlowGraph graph = new ControlFlowGraph(fb.bcodes);
-        		ArrivalDefinition adef = new ArrivalDefinition(fb.bcodes, graph);
-        		new ConstantPropagation(fb.bcodes, adef);
-        		*/
+       		if (info.optCommonConstantElimination) {
+       		    CommonConstantElimination cce = new CommonConstantElimination(fb.bcodes);
+       		    fb.bcodes = cce.exec();
+       		}
        		
-       		ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
-       		fb.bcodes = cp.exec();
+       		if (info.optCopyPropagation) {
+       			CopyPropagation cp = new CopyPropagation(fb.bcodes);
+       			cp.exec();
+       		}
+
+       		if (info.optRedunantInstructionElimination) {
+       			RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
+       			fb.bcodes = rie.exec();
+       		}
+       		
+       		if (info.optRegisterAssignment) {
+       		    RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
+       		    fb.bcodes = ra.exec();
+       		    int maxr = ra.getMaxRegNum();
+       		    fb.numberOfGPRegisters = maxr;
+       		}
         	}
     }
 }

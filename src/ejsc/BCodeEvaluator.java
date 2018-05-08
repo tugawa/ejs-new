@@ -1,3 +1,25 @@
+/*
+BCodeEvaluator.java
+
+eJS Project
+  Kochi University of Technology
+  the University of Electro-communications
+
+  Taiki Fujimoto, 2018
+  Tomoya Nonaka, 2018
+  Tomoharu Ugawa, 2018
+  Hideya Iwasaki, 2018
+
+The eJS Project is the successor of the SSJS Project at the University of
+Electro-communications, which was contributed by the following members.
+
+  Sho Takada, 2012-13
+  Akira Tanimura, 2012-13
+  Akihiro Urushihara, 2013-14
+  Ryota Fujii, 2013-14
+  Tomoharu Ugawa, 2012-14
+  Hideya Iwasaki, 2012-14
+*/
 package ejsc;
 
 public class BCodeEvaluator {

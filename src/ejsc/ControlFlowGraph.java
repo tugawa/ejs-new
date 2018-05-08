@@ -1,3 +1,24 @@
+/*
+   ControlFlowGraph.java
+
+   eJS Project
+     Kochi University of Technology
+     the University of Electro-communications
+
+     Taiki Fujimoto, 2018
+     Tomoharu Ugawa, 2018
+     Hideya Iwasaki, 2018
+
+   The eJS Project is the successor of the SSJS Project at the University of
+   Electro-communications, which was contributed by the following members.
+
+     Sho Takada, 2012-13
+     Akira Tanimura, 2012-13
+     Akihiro Urushihara, 2013-14
+     Ryota Fujii, 2013-14
+     Tomoharu Ugawa, 2012-14
+     Hideya Iwasaki, 2012-14
+*/
 package ejsc;
 import java.util.Collection;
 import java.util.HashMap;
@@ -23,6 +44,9 @@ public class ControlFlowGraph {
 		}
 		public HashSet<CFGNode> getPreds() {
 			return pred;
+		}
+		public HashSet<CFGNode> getSuccs() {
+			return succ;
 		}
 	}
 	private HashMap<BCode, CFGNode> cfg = new HashMap<BCode, CFGNode>();
@@ -51,5 +75,9 @@ public class ControlFlowGraph {
 	
 	public Collection<CFGNode> getNodes() {
 		return cfg.values();
+	}
+	
+	public CFGNode get(BCode bc) {
+		return cfg.get(bc);
 	}
 }
