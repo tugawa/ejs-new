@@ -53,6 +53,7 @@ public class Main {
         boolean optPrintIAST = false;
         boolean optPrintAnalyzer = false;
         boolean optPrintLowLevelCode = false;
+        boolean optPrintOptimisation = false;
         boolean optHelp = false;
         boolean optRedunantInstructionElimination = false;
         boolean optConstantPropagation = false;
@@ -75,9 +76,12 @@ public class Main {
                     case "--analyzer":
                         info.optPrintAnalyzer = true;
                         break;
-                    case "--llcode":
+                    case "--show-llcode":
                     	info.optPrintLowLevelCode = true;
                     	break;
+                    case "--show-opt":
+                        info.optPrintOptimisation = true;
+                        break;
                     case "--help":
                         info.optHelp = true;
                         break;

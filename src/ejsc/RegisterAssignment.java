@@ -84,6 +84,10 @@ public class RegisterAssignment {
                 if (assign.get(r) == to)
                     return true;
             }
+            Register dst = bc.getDestRegister();
+            if (dst != null)
+                if (assign.get(dst) == to)
+                    return true;
         }
         return false;
     }
