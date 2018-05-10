@@ -382,9 +382,9 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitBlockStatement(IASTBlockStatement node) {
-        for (IASTStatement stmt : node.stmts) {
+        bcBuilder.push(new IUndefinedconst(reg));
+        for (IASTStatement stmt : node.stmts)
             compileNode(stmt, reg);
-        }
         return null;
     }
 

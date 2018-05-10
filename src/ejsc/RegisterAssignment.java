@@ -84,6 +84,10 @@ public class RegisterAssignment {
                 if (assign.get(r) == to)
                     return true;
             }
+            Register dst = bc.getDestRegister();
+            if (dst != null)
+                if (assign.get(dst) == to)
+                    return true;
         }
         return false;
     }
@@ -180,7 +184,7 @@ public class RegisterAssignment {
         List<Label> labels = new ArrayList<Label>();
         
         for (BCode bcx: bcodes) {
-            //System.out.println(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx+" => ");
+            //System.out.println(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx);
             try {
                 Class<? extends BCode> c = bcx.getClass();
                 for (Field f: c.getDeclaredFields()) {
