@@ -562,6 +562,16 @@ class IMakeiterator extends BCode {
         return super.toString("makeiterator", obj, dst);
     }
 }
+class IMakesimpleiterator extends BCode {
+    Register obj, dst;
+    IMakesimpleiterator(Register obj, Register dst) {
+        this.obj = obj;
+        this.dst = dst;
+    }
+    public String toString() {
+        return super.toString("makesimpleiterator", obj, dst);
+    }
+}
 class INextpropname extends BCode {
     Register obj, ite, dst;
     INextpropname(Register obj, Register ite, Register dst) {
@@ -574,7 +584,16 @@ class INextpropname extends BCode {
     }
 }
 
-
+class INextpropnameidx extends BCode {
+    Register ite, dst;
+    INextpropnameidx(Register ite, Register dst) {
+        this.ite = ite;
+        this.dst = dst;
+    }
+    public String toString() {
+        return super.toString("nextpropnameidx", ite, dst);
+    }
+}
 // Jump instructions
 class IJump extends BCode {
     Label label;

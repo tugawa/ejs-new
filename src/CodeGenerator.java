@@ -575,9 +575,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         Label l1 = new Label();
         Label l2 = new Label();
         compileNode(node.object, objReg);
-        bcBuilder.push(new IMakeiterator(objReg, iteReg));
+        bcBuilder.push(new IMakesimpleiterator(objReg, iteReg));
         bcBuilder.push(l1);
-        bcBuilder.push(new INextpropname(objReg, iteReg, propReg));
+        bcBuilder.push(new INextpropnameidx(iteReg, propReg));
         Environment.Result id = env.getVar(node.var);
         if (id == null) {
             Register r1 = env.freshRegister();
