@@ -1,5 +1,5 @@
 /*
-   RuleSet.java
+   SearchVisitor.java
 
    eJS Project
      Kochi University of Technology
@@ -7,7 +7,7 @@
 
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
-*/
+ */
 package vmgen.newsynth;
 
 import vmgen.newsynth.DecisionDiagram.HTNode;
@@ -22,38 +22,38 @@ import vmgen.type.VMRepType.HT;
 import vmgen.type.VMRepType.PT;
 
 public class SearchVisitor extends NodeVisitor<LLRule> {
-	
-	VMRepType[] rts;
-	
-	SearchVisitor(VMRepType[] rts) {
-		this.rts = rts;
-	}
 
-	@Override
-	LLRule visitLeaf(Leaf node) {
-		return node.getRule();
-	}
+    VMRepType[] rts;
 
-	@Override
-	LLRule visitTagPairNode(TagPairNode node) {
-		TagPair tag = new TagPair(rts[0].getPT(), rts[1].getPT());
-		Node next = node.getChild(tag);
-		return next.accept(this);
-	}
+    SearchVisitor(VMRepType[] rts) {
+        this.rts = rts;
+    }
 
-	@Override
-	LLRule visitPTNode(PTNode node) {
-		PT tag = rts[node.opIndex].getPT();
-		Node next = node.getChild(tag);
-		return next.accept(this);
-	}
+    @Override
+    LLRule visitLeaf(Leaf node) {
+        return node.getRule();
+    }
 
-	@Override
-	LLRule visitHTNode(HTNode node) {
-		if (node.isNoHT())
-			return node.getChild().accept(this);
-		HT tag = rts[node.opIndex].getHT();
-		Node next = node.getChild(tag);
-		return next.accept(this);
-	}
+    @Override
+    LLRule visitTagPairNode(TagPairNode node) {
+        TagPair tag = new TagPair(rts[0].getPT(), rts[1].getPT());
+        Node next = node.getChild(tag);
+        return next.accept(this);
+    }
+
+    @Override
+    LLRule visitPTNode(PTNode node) {
+        PT tag = rts[node.opIndex].getPT();
+        Node next = node.getChild(tag);
+        return next.accept(this);
+    }
+
+    @Override
+    LLRule visitHTNode(HTNode node) {
+        if (node.isNoHT())
+            return node.getChild().accept(this);
+        HT tag = rts[node.opIndex].getHT();
+        Node next = node.getChild(tag);
+        return next.accept(this);
+    }
 }
