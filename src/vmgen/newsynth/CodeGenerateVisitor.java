@@ -49,6 +49,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         }
     }
 
+    Option option;
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
@@ -57,6 +58,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option) {
         this.varNames = varNames;
         this.tagMacro = tagMacro;
+        this.option = option;
         USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
         PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
         USE_DEFAULT = option.getOption(Option.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
@@ -65,7 +67,14 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 
     @Override
     public String toString() {
-        return sb.toString();
+        if (option.getOption(Option.AvailableOptions.GEN_MAGIC_COMMENT, false)) {
+            return sb.toString() +
+                    "/* Local Variables: */\n" +
+                    "/* mode: c */\n" +
+                    "/* c-basic-offset: 4 */\n" +
+                    "/* End: */\n";
+        } else
+            return sb.toString();
     }
 
     boolean processSharedNode(Node node) {

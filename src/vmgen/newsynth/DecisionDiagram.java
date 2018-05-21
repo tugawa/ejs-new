@@ -337,31 +337,32 @@ public class DecisionDiagram {
             TreeDigger digger = new TreeDigger(r);
             root = digger.dig(root);
         }
-
-        //		System.out.println(generateCodeForNode(root));
-
-        mergeChildren(root);
-
-        //		System.out.println(generateCodeForNode(root));
-
-        mergeRelative(root);
-
-        root = skipNoChoice(root);
-
     }
 
     public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
         return generateCodeForNode(root, varNames, tagMacro);
     }
 
+    public void mergeChildren() {
+        mergeChildren(root);
+    }
+
+    public void skipNoChoice() {
+        root = skipNoChoice(root);
+    }
+
+    public void mergeRelative() {
+        mergeRelative(root);
+    }
+
+    ////
+    // static method
+    ////
+
     static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
         CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option);
         node.accept(gen);
         return gen.toString();
-    }
-
-    static String debugGenerateCodeForNode(Node node) {
-        return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
     }
 
     static boolean isCompatible(Node a, Node b) {
@@ -379,13 +380,21 @@ public class DecisionDiagram {
         return (Node) node.accept(v);
     }
 
+    static public void mergeRelative(Node node) {
+        RelativeMerger m = new RelativeMerger();
+        m.mergeRelative(node);
+    }
+
+    ////
+    // Debug Code
+    ////
+
     public LLRule search(VMRepType[] rts) {
         SearchVisitor v = new SearchVisitor(rts);
         return (LLRule) root.accept(v);
     }
 
-    public void mergeRelative(Node node) {
-        RelativeMerger m = new RelativeMerger();
-        m.mergeRelative(node);
+    static String debugGenerateCodeForNode(Node node) {
+        return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
     }
 }

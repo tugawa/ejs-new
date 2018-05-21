@@ -54,18 +54,7 @@ public class NewSynthesiser extends Synthesiser {
     @Override
     public String synthesise(RuleSet hlrs, String labelPrefix, vmgen.InsnGen.Option option) {
         this.labelPrefix = labelPrefix;
-        /*
-        static final int DISPATCH_TAGPAIR = 0;
-        static final int DISPATCH_PT_BASE = 10;
-        static final int DISPATCH_HT_BASE = 20;
-        static final int[] DISPATCH_PLAN = {
-                DISPATCH_TAGPAIR,
-                DISPATCH_PT_BASE + 0,
-                DISPATCH_PT_BASE + 1,
-                DISPATCH_HT_BASE + 0,
-                DISPATCH_HT_BASE + 1
-        };
-        */
+
         ArrayList<DecisionDiagram.DispatchCriterion> dispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>();
         if (option.getOption(Option.AvailableOptions.CMP_USE_TAGPAIR, true))
             dispatchPlan.add(new DecisionDiagram.TagPairDispatch());
@@ -76,6 +65,16 @@ public class NewSynthesiser extends Synthesiser {
 
         LLRuleSet llrs = new LLRuleSet(hlrs);
         DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
+
+        // optimize
+        String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MC:MR:S");
+        for (String pass: passes.split(":")) {
+            switch(pass) {
+            case "MC": dd.mergeChildren(); break;
+            case "MR": dd.mergeRelative(); break;
+            case "S":  dd.skipNoChoice();  break;
+            }
+        }
 
         if (option.getOption(Option.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
             for (LLRule llr: llrs.getRules()) {

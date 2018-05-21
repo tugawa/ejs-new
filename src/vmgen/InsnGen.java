@@ -35,9 +35,11 @@ public class InsnGen {
 			CMP_MERGE_LEVEL("cmp:merge_level", Integer.class),
 			CMP_VERIFY_DIAGRAM("cmp:verify_diagram", Boolean.class),
 			CMP_USE_TAGPAIR("cmp:use_tagpair", Boolean.class),
+			CMP_OPT_PASS("cmp:opt_pass", String.class),
 			GEN_USE_GOTO("gen:use_goto", Boolean.class),
 			GEN_PAD_CASES("gen:pad_cases", Boolean.class),
 			GEN_USE_DEFAULT("gen:use_default", Boolean.class),
+			GEN_MAGIC_COMMENT("gen:magic_comment", Boolean.class),
 			GEN_DEBUG_COMMENT("gen:debug_comment", Boolean.class);
 			
 			String key;
