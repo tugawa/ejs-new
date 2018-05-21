@@ -366,7 +366,7 @@ public class DecisionDiagram {
     }
 
     static boolean isCompatible(Node a, Node b) {
-        IsCompatibleVisitor v = new IsCompatibleVisitor(a);
+        IsCompatibleVisitor v = new IsCompatibleVisitor(a, option);
         return (Boolean) b.accept(v);
     }
 

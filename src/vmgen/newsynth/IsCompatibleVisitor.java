@@ -13,16 +13,19 @@ package vmgen.newsynth;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 
+import vmgen.InsnGen.Option;
 import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
 class IsCompatibleVisitor extends NodeVisitor<Boolean> {
+    Option option;
     Node root;
     Node currentNodex;
 
-    IsCompatibleVisitor(Node root) {
+    IsCompatibleVisitor(Node root, Option option) {
+        this.option = option;
         this.root = root;
         currentNodex = root;
     }
@@ -57,6 +60,22 @@ class IsCompatibleVisitor extends NodeVisitor<Boolean> {
             TagNode<T> currentNode = (TagNode<T>) currentNodex;
             if (currentNode.getOpIndex() != other.getOpIndex())
                 throw new Error("opIndex mismatch");
+
+            if (!option.getOption(Option.AvailableOptions.CMP_SIZE_INCREASING_MERGE, false)) {
+                int currentNChildren = currentNode.getChildren().size();
+                int otherNChildren = other.getChildren().size();
+                // branch increasing
+                if ((currentNChildren == 1 && otherNChildren > 1) ||
+                    (currentNChildren > 1 && otherNChildren == 1))
+                    return false;
+                if (currentNChildren == 1 && otherNChildren == 1) {
+                    T currentTag = currentNode.branches.keySet().iterator().next();
+                    T otherTag = other.branches.keySet().iterator().next();
+                    if (currentTag != otherTag)
+                        return false;
+                }
+            }
+
             return hasCompatibleBranches(currentNode, other);
         }
         return false;
@@ -89,7 +108,7 @@ class IsCompatibleVisitor extends NodeVisitor<Boolean> {
                 } else
                     return false;
             } else
-                return hasCompatibleBranches(currentNode, other);
+                return visitTagNode(other);
         }
         return false;
     }

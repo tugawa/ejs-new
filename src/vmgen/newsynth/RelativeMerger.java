@@ -114,8 +114,6 @@ public class RelativeMerger {
                 Node nj = nodes.get(j);
                 if (!DecisionDiagram.isCompatible(merged, nj))
                     continue;
-                if (!MergeChildrenVisitor.checkMergeCriteria(nj, merged))
-                    continue;
                 merged = merged.merge(nj);
                 subjects.add(nj);
                 hasMerged[j] = true;
