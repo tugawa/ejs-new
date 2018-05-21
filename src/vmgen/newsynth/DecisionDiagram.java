@@ -13,6 +13,7 @@ package vmgen.newsynth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import vmgen.InsnGen.Option;
@@ -25,16 +26,44 @@ public class DecisionDiagram {
     static Option option;
     public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 
-    static final int DISPATCH_TAGPAIR = 0;
-    static final int DISPATCH_PT_BASE = 10;
-    static final int DISPATCH_HT_BASE = 20;
-    static final int[] DISPATCH_PLAN = {
-            DISPATCH_TAGPAIR,
-            DISPATCH_PT_BASE + 0,
-            DISPATCH_PT_BASE + 1,
-            DISPATCH_HT_BASE + 0,
-            DISPATCH_HT_BASE + 1
-    };
+    static abstract class DispatchCriterion {
+        abstract public boolean available(int arity);
+    }
+
+    static class TagPairDispatch extends DispatchCriterion {
+        @Override
+        public boolean available(int arity) {
+            return arity == 2;
+        }
+    }
+
+    static class PTDispatch extends DispatchCriterion  {
+        int opIndex;
+        public PTDispatch(int n) {
+            opIndex = n;
+        }
+        @Override
+        public boolean available(int arity) {
+            return opIndex < arity;
+        }
+        int getOpIndex() {
+            return opIndex;
+        }
+    }
+
+    static class HTDispatch extends DispatchCriterion {
+        int opIndex;
+        public HTDispatch(int n) {
+            opIndex = n;
+        }
+        @Override
+        public boolean available(int arity) {
+            return opIndex < arity;
+        }
+        int getOpIndex() {
+            return opIndex;
+        }
+    }
 
     static abstract class Node {
         abstract <R> R accept(NodeVisitor<R> visitor);		
@@ -79,6 +108,7 @@ public class DecisionDiagram {
             return this;
         }
     }
+
     static abstract class TagNode<T> extends Node {
         int opIndex;
         HashMap<T, Node> branches = new HashMap<T, Node>();
@@ -145,6 +175,7 @@ public class DecisionDiagram {
             return childToTags;
         }
     }
+
     static class TagPairNode extends TagNode<TagPairNode.TagPair> {
         static class TagPair {
             @Override
@@ -182,6 +213,7 @@ public class DecisionDiagram {
             throw new Error("merge for TagPairNode is called");
         }
     }
+
     static class PTNode extends TagNode<PT> {
         PTNode(int opIndex) {
             super(opIndex);
@@ -198,6 +230,7 @@ public class DecisionDiagram {
             return merged;
         }
     }
+
     static class HTNode extends TagNode<HT> {
         boolean noHT;
         Node child;
@@ -252,7 +285,7 @@ public class DecisionDiagram {
         }
     }
 
-    static class TreeDigger {
+    class TreeDigger {
         final LLRuleSet.LLRule rule;
         final VMRepType[] rts;
         final int arity;
@@ -266,24 +299,23 @@ public class DecisionDiagram {
         }
 
         Node dig(Node nodex) {
-            if (planIndex == DISPATCH_PLAN.length)
+            if (planIndex == dispatchPlan.size())
                 return new Leaf(rule);
 
-            int dispatchType = DISPATCH_PLAN[planIndex++];
-            if (dispatchType == DISPATCH_TAGPAIR && arity == 2) {
+            DispatchCriterion dispatchCriterion = dispatchPlan.get(planIndex++);
+            if (!dispatchCriterion.available(arity))
+                return dig(nodex);
+            if (dispatchCriterion instanceof TagPairDispatch) {
                 TagPairNode node = nodex == null ? new TagPairNode() : (TagPairNode) nodex;
                 node.addBranch(this, new TagPairNode.TagPair(rts[0].getPT(), rts[1].getPT()));
                 return node;
-            } else if (DISPATCH_PT_BASE <= dispatchType &&
-                    dispatchType < DISPATCH_HT_BASE &&
-                    dispatchType - DISPATCH_PT_BASE < arity) {
-                int opIndex = dispatchType - DISPATCH_PT_BASE;
+            } else if (dispatchCriterion instanceof PTDispatch) {
+                int opIndex = ((PTDispatch) dispatchCriterion).getOpIndex();
                 PTNode node = nodex == null ? new PTNode(opIndex) : (PTNode) nodex;
                 node.addBranch(this, rts[opIndex].getPT());
                 return node;
-            } else if (DISPATCH_HT_BASE <= dispatchType &&
-                    dispatchType - DISPATCH_HT_BASE < arity) {
-                int opIndex = dispatchType - DISPATCH_HT_BASE;
+            } else if (dispatchCriterion instanceof HTDispatch) {
+                int opIndex = ((HTDispatch) dispatchCriterion).getOpIndex();
                 HTNode node = nodex == null ? new HTNode(opIndex) : (HTNode) nodex;
                 node.addBranch(this, rts[opIndex].getHT());
                 return node;
@@ -293,8 +325,10 @@ public class DecisionDiagram {
     }
 
     Node root;
+    List<DispatchCriterion> dispatchPlan;
 
-    public DecisionDiagram(LLRuleSet rs, Option option) {
+    public DecisionDiagram(List<DispatchCriterion> dispatchPlan, LLRuleSet rs, Option option) {
+        this.dispatchPlan = dispatchPlan;
         this.option = option;
 
         if (rs.getRules().size() == 0)
@@ -326,8 +360,8 @@ public class DecisionDiagram {
         return gen.toString();
     }
 
-    static String generateCodeForNode(Node node) {
-        return generateCodeForNode(node, new String[] {"a", "b"}, new CodeGenerateVisitor.Macro());
+    static String debugGenerateCodeForNode(Node node) {
+        return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
     }
 
     static boolean isCompatible(Node a, Node b) {

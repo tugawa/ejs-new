@@ -12,7 +12,11 @@ package vmgen.newsynth;
 
 import vmgen.RuleSet;
 import vmgen.Synthesiser;
+
+import java.util.ArrayList;
+
 import vmgen.InsnGen.Option;
+import vmgen.newsynth.DecisionDiagram.DispatchCriterion;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
@@ -50,8 +54,29 @@ public class NewSynthesiser extends Synthesiser {
     @Override
     public String synthesise(RuleSet hlrs, String labelPrefix, vmgen.InsnGen.Option option) {
         this.labelPrefix = labelPrefix;
+        /*
+        static final int DISPATCH_TAGPAIR = 0;
+        static final int DISPATCH_PT_BASE = 10;
+        static final int DISPATCH_HT_BASE = 20;
+        static final int[] DISPATCH_PLAN = {
+                DISPATCH_TAGPAIR,
+                DISPATCH_PT_BASE + 0,
+                DISPATCH_PT_BASE + 1,
+                DISPATCH_HT_BASE + 0,
+                DISPATCH_HT_BASE + 1
+        };
+        */
+        ArrayList<DecisionDiagram.DispatchCriterion> dispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>();
+        if (option.getOption(Option.AvailableOptions.CMP_USE_TAGPAIR, true))
+            dispatchPlan.add(new DecisionDiagram.TagPairDispatch());
+        for (int i = 0; i < 5; i++)
+            dispatchPlan.add(new DecisionDiagram.PTDispatch(i));
+        for (int i = 0; i < 5; i++)
+            dispatchPlan.add(new DecisionDiagram.HTDispatch(i));
+
         LLRuleSet llrs = new LLRuleSet(hlrs);
-        DecisionDiagram dd = new DecisionDiagram(llrs, option);
+        DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
+
         if (option.getOption(Option.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
             for (LLRule llr: llrs.getRules()) {
                 VMRepType[] rts = llr.getVMRepTypes();
