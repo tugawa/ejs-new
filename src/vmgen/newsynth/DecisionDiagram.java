@@ -1,5 +1,5 @@
 /*
-   RuleSet.java
+   DecisionDiagram.java
 
    eJS Project
      Kochi University of Technology
