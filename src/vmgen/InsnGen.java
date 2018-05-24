@@ -37,6 +37,8 @@ public class InsnGen {
 			CMP_USE_TAGPAIR("cmp:use_tagpair", Boolean.class),
 			CMP_OPT_PASS("cmp:opt_pass", String.class),
 			CMP_SIZE_INCREASING_MERGE("cmp:size_increasing_merge", Boolean.class),
+			CMP_CORRECT_COMPATIBILITY("cmp:correct_compatibility", Boolean.class),
+			CMP_RAND_SEED("cmp:rand_seed", Integer.class),
 			GEN_USE_GOTO("gen:use_goto", Boolean.class),
 			GEN_PAD_CASES("gen:pad_cases", Boolean.class),
 			GEN_USE_DEFAULT("gen:use_default", Boolean.class),

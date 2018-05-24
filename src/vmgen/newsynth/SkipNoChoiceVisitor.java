@@ -12,6 +12,7 @@ package vmgen.newsynth;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeMap;
 
 import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
@@ -29,7 +30,7 @@ public class SkipNoChoiceVisitor extends NodeVisitor<Node> {
         ArrayList<Node> children = node.getChildren();
         if (children.size() == 1)
             return children.get(0).accept(this);
-        HashMap<Node, Node> replace = new HashMap<Node, Node>();
+        TreeMap<Node, Node> replace = new TreeMap<Node, Node>();
         for (Node before: children) {
             Node after = (Node) before.accept(this);
             replace.put(before, after);

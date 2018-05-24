@@ -10,8 +10,8 @@
  */
 package vmgen.newsynth;
 
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import vmgen.InsnGen.Option;
 import vmgen.newsynth.DecisionDiagram.HTNode;
@@ -53,7 +53,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
-    HashMap<Node, String> labels = new HashMap<Node, String>();
+    TreeMap<Node, String> labels = new TreeMap<Node, String>();
 
     public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option) {
         this.varNames = varNames;
@@ -109,13 +109,13 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitTagPairNode(TagPairNode node) {
         if (processSharedNode(node))
             return null;
-        HashMap<Node, LinkedHashSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
+        TreeMap<Node, TreeSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
         if (DEBUG_COMMENT)
             sb.append(" // "+node+"("+childToTags.size()+")");
         sb.append('\n');
 
-        LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+        TreeSet<Integer> tagValues = new TreeSet<Integer>();
         int max = 0;
         for (TagPair tag: node.getEdges()) {
             int v = tag.getValue();
@@ -126,7 +126,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         Node defaultChild = null;
         int defaultChildCases = 0;
         for (Node child: childToTags.keySet()) {
-            LinkedHashSet<?> tags = childToTags.get(child);
+            TreeSet<?> tags = childToTags.get(child);
             if (tags.size() > defaultChildCases) {
                 defaultChild = child;
                 defaultChildCases = tags.size();
@@ -162,13 +162,13 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitPTNode(PTNode node) {
         if (processSharedNode(node))
             return null;
-        HashMap<Node, LinkedHashSet<PT>> childToTags = node.getChildToTagsMap();
+        TreeMap<Node, TreeSet<PT>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
         if (DEBUG_COMMENT)
             sb.append(" // "+node+"("+childToTags.size()+")");
         sb.append('\n');
 
-        LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+        TreeSet<Integer> tagValues = new TreeSet<Integer>();
         int max = 0;
         for (PT tag: node.getEdges()) {
             int v = tag.getValue();
@@ -179,7 +179,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         Node defaultChild = null;
         int defaultChildCases = 0;
         for (Node child: childToTags.keySet()) {
-            LinkedHashSet<?> tags = childToTags.get(child);
+            TreeSet<?> tags = childToTags.get(child);
             if (tags.size() > defaultChildCases) {
                 defaultChild = child;
                 defaultChildCases = tags.size();
@@ -220,13 +220,13 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
             node.getChild().accept(this);
             return null;
         }
-        HashMap<Node, LinkedHashSet<HT>> childToTags = node.getChildToTagsMap();
+        TreeMap<Node, TreeSet<HT>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.getHTCode(varNames[node.getOpIndex()])).append("){");
         if (DEBUG_COMMENT)
             sb.append(" // "+node+"("+childToTags.size()+")");
         sb.append('\n');
 
-        LinkedHashSet<Integer> tagValues = new LinkedHashSet<Integer>();
+        TreeSet<Integer> tagValues = new TreeSet<Integer>();
         int max = 0;
         for (HT tag: node.getEdges()) {
             int v = tag.getValue();
@@ -237,7 +237,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         Node defaultChild = null;
         int defaultChildCases = 0;
         for (Node child: childToTags.keySet()) {
-            LinkedHashSet<?> tags = childToTags.get(child);
+            TreeSet<?> tags = childToTags.get(child);
             if (tags.size() > defaultChildCases) {
                 defaultChild = child;
                 defaultChildCases = tags.size();

@@ -11,8 +11,9 @@
 package vmgen.newsynth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.Comparator;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
@@ -56,9 +57,9 @@ public class RelativeMerger {
 
     static class ReplaceVisitor extends NodeVisitor<Void> {
         int depth;
-        HashMap<Node, Node> replace;
+        TreeMap<Node, Node> replace;
 
-        ReplaceVisitor(int depth, HashMap<Node, Node> replace) {
+        ReplaceVisitor(int depth, TreeMap<Node, Node> replace) {
             this.depth = depth;
             this.replace = replace;
         }
@@ -97,11 +98,11 @@ public class RelativeMerger {
         }
     }
 
-    protected HashMap<Node, Node> mergeNodes(ArrayList<Node> nodes) {
-        HashMap<Node, Node> replace = new HashMap<Node, Node>();
+    protected TreeMap<Node, Node> mergeNodes(ArrayList<Node> nodes) {
+        TreeMap<Node, Node> replace = new TreeMap<Node, Node>();
         boolean[] hasMerged = new boolean[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
-            LinkedHashSet<Node> subjects = new LinkedHashSet<Node>();
+            TreeSet<Node> subjects = new TreeSet<Node>();
             if (hasMerged[i])
                 continue;
             Node ni = nodes.get(i);
@@ -131,8 +132,41 @@ public class RelativeMerger {
             root.accept(gv);
             ArrayList<Node> nodes = gv.get();
 
+            
+            /* sort */
+            /*
+            nodes.sort(new Comparator<Node>() {
+                @Override
+                public int compare(Node ax, Node bx) {
+                    NodeVisitor<Integer> v = new NodeVisitor<Integer>() {
+                        @Override
+                        Integer visitLeaf(Leaf n) {
+                            return 0;
+                        }
+                        @Override
+                        <T> Integer visitTagNode(TagNode<T> n) {
+                            int sz = n.getChildren().size() > 1 ? 1 : 0;
+                            for (Node child: n.getChildren())
+                                sz += child.accept(this);
+                            return sz;
+                        }
+                    };
+                    int a = ax.accept(v);
+                    int b = bx.accept(v);
+                    
+                    return a - b;
+                }
+            });
+            */
+            nodes.sort(new Comparator<Node>() {
+                @Override
+                public int compare(Node o1, Node o2) {
+                    return o1.compareTo(o2);
+                }
+            });
+
             /* merge */
-            HashMap<Node, Node> replace = mergeNodes(nodes);
+            TreeMap<Node, Node> replace = mergeNodes(nodes);
 
             /* do replace */
             ReplaceVisitor rv = new ReplaceVisitor(i, replace);

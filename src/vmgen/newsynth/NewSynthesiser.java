@@ -16,7 +16,6 @@ import vmgen.Synthesiser;
 import java.util.ArrayList;
 
 import vmgen.InsnGen.Option;
-import vmgen.newsynth.DecisionDiagram.DispatchCriterion;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
@@ -55,6 +54,11 @@ public class NewSynthesiser extends Synthesiser {
     public String synthesise(RuleSet hlrs, String labelPrefix, vmgen.InsnGen.Option option) {
         this.labelPrefix = labelPrefix;
 
+        int srand;
+        if ((srand = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, -1)) >= 0) {
+            DecisionDiagram.Node.srand(srand);
+        }
+        
         ArrayList<DecisionDiagram.DispatchCriterion> dispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>();
         if (option.getOption(Option.AvailableOptions.CMP_USE_TAGPAIR, true))
             dispatchPlan.add(new DecisionDiagram.TagPairDispatch());
@@ -67,7 +71,7 @@ public class NewSynthesiser extends Synthesiser {
         DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
 
         // optimize
-        String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MC:MR:S");
+        String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MR:S");
         for (String pass: passes.split(":")) {
             switch(pass) {
             case "MC": dd.mergeChildren(); break;
@@ -81,7 +85,7 @@ public class NewSynthesiser extends Synthesiser {
                 VMRepType[] rts = llr.getVMRepTypes();
                 LLRule found = dd.search(rts);
                 if (llr.getHLRule() != found.getHLRule())
-                    throw new Error("wrong decision diagram");
+                    System.out.println("wrong decision diagram: " + rts[0] + "," + rts[1]);
             }
         }		
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro());

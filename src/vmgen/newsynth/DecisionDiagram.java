@@ -11,10 +11,10 @@
 package vmgen.newsynth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import vmgen.InsnGen.Option;
 import vmgen.newsynth.LLRuleSet.LLRule;
@@ -65,7 +65,24 @@ public class DecisionDiagram {
         }
     }
 
-    static abstract class Node {
+    static abstract class Node implements Comparable<Node> {
+        static int lastId = 0;
+        static java.util.Random r = new java.util.Random();
+        static {
+            r.setSeed(0);
+        }
+        static void srand(int n) {
+            r.setSeed(n);
+        }
+
+        int id = r.nextInt(10000); //lastId++;
+        int genOrder = lastId++;
+
+        @Override
+        public int hashCode() {
+            return id;
+        }
+
         abstract <R> R accept(NodeVisitor<R> visitor);		
         int depth() {
             int max = 0;
@@ -82,6 +99,14 @@ public class DecisionDiagram {
         // other should be compatible with this
         // this method does not mutate this object
         abstract Node merge(Node other);
+
+        @Override
+        public int compareTo(Node other) {
+            if (this.id == other.id) {
+                return this.genOrder - other.genOrder;
+            }
+            return this.id - other.id;
+        }
     }
 
     static class Leaf extends Node {
@@ -111,7 +136,7 @@ public class DecisionDiagram {
 
     static abstract class TagNode<T> extends Node {
         int opIndex;
-        HashMap<T, Node> branches = new HashMap<T, Node>();
+        TreeMap<T, Node> branches = new TreeMap<T, Node>();
 
         TagNode(int opIndex) {
             this.opIndex = opIndex;
@@ -127,7 +152,7 @@ public class DecisionDiagram {
         }
         @Override
         ArrayList<Node> getChildren() {
-            LinkedHashSet<Node> s = new LinkedHashSet<Node>();
+            TreeSet<Node> s = new TreeSet<Node>();
             for (T tag: branches.keySet())
                 s.add(branches.get(tag));
             return new ArrayList<Node>(s);
@@ -145,7 +170,7 @@ public class DecisionDiagram {
             return opIndex;
         }
         void makeMergedNode(TagNode<T> n1, TagNode<T> n2) {
-            LinkedHashSet<T> union = new LinkedHashSet<T>(n1.branches.keySet());
+            TreeSet<T> union = new TreeSet<T>(n1.branches.keySet());
             union.addAll(n2.branches.keySet());
             for (T tag: union) {
                 Node c1 = n1.branches.get(tag);
@@ -159,15 +184,14 @@ public class DecisionDiagram {
                     branches.put(tag, child);
                 }
             }
-            mergeChildren(this);
         }
-        HashMap<Node, LinkedHashSet<T>> getChildToTagsMap() {
-            HashMap<Node, LinkedHashSet<T>> childToTags = new HashMap<Node, LinkedHashSet<T>>();
+        TreeMap<Node, TreeSet<T>> getChildToTagsMap() {
+            TreeMap<Node, TreeSet<T>> childToTags = new TreeMap<Node, TreeSet<T>>();
             for (T tag: branches.keySet()) {
                 Node child = branches.get(tag);
-                LinkedHashSet<T> tags = childToTags.get(child);
+                TreeSet<T> tags = childToTags.get(child);
                 if (tags == null) {
-                    tags = new LinkedHashSet<T>();
+                    tags = new TreeSet<T>();
                     childToTags.put(child, tags);
                 }
                 tags.add(tag);
@@ -177,7 +201,7 @@ public class DecisionDiagram {
     }
 
     static class TagPairNode extends TagNode<TagPairNode.TagPair> {
-        static class TagPair {
+        static class TagPair implements Comparable<TagPair> {
             @Override
             public int hashCode() {
                 return (op1.getValue() << 8) + op2.getValue();
@@ -190,6 +214,10 @@ public class DecisionDiagram {
                     return false;
                 TagPair other = (TagPair) obj;
                 return op1 == other.op1 && op2 == other.op2;
+            }
+            @Override
+            public int compareTo(TagPair other) {
+                return this.hashCode() - other.hashCode();
             }
             public int getValue() {
                 return (op2.getValue() << 3 | op1.getValue());

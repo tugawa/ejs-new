@@ -11,8 +11,8 @@
 package vmgen.newsynth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
@@ -27,18 +27,18 @@ public class MergeChildrenVisitor extends NodeVisitor<Void> {
 
     @Override
     <T> Void visitTagNode(TagNode<T> node) {
-        HashMap<Node, LinkedHashSet<T>> childToTags = node.getChildToTagsMap();
+        TreeMap<Node, TreeSet<T>> childToTags = node.getChildToTagsMap();
         ArrayList<Node> children = new ArrayList<Node>(childToTags.keySet());
         boolean[] hasMerged = new boolean[children.size()];
         for (Node child: children)
             child.accept(this);
 
-        HashMap<T, Node> newBranches = new HashMap<T, Node>();
+        TreeMap<T, Node> newBranches = new TreeMap<T, Node>();
         for (int i = 0; i < children.size(); i++) {
             if (hasMerged[i])
                 continue;
             Node ci = children.get(i);
-            LinkedHashSet<T> edge = new LinkedHashSet<T>(childToTags.get(ci));
+            TreeSet<T> edge = new TreeSet<T>(childToTags.get(ci));
             Node merged = ci;
             hasMerged[i] = true;
             for (int j = i + 1; j < children.size(); j++) {

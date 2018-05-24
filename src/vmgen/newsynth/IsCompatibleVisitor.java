@@ -11,7 +11,7 @@
 package vmgen.newsynth;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.TreeSet;
 
 import vmgen.InsnGen.Option;
 import vmgen.newsynth.DecisionDiagram.HTNode;
@@ -31,7 +31,7 @@ class IsCompatibleVisitor extends NodeVisitor<Boolean> {
     }
 
     <T> boolean hasCompatibleBranches(TagNode<T> currentNode, TagNode<T> other) {
-        LinkedHashSet<T> union = new LinkedHashSet<T>(currentNode.branches.keySet());
+        TreeSet<T> union = new TreeSet<T>(currentNode.branches.keySet());
         union.addAll(other.branches.keySet());
         for (T tag: union) {
             Node thisChild = currentNode.branches.get(tag);
@@ -69,10 +69,15 @@ class IsCompatibleVisitor extends NodeVisitor<Boolean> {
                     (currentNChildren > 1 && otherNChildren == 1))
                     return false;
                 if (currentNChildren == 1 && otherNChildren == 1) {
-                    T currentTag = currentNode.branches.keySet().iterator().next();
-                    T otherTag = other.branches.keySet().iterator().next();
-                    if (currentTag != otherTag)
-                        return false;
+                    if (option.getOption(Option.AvailableOptions.CMP_CORRECT_COMPATIBILITY, true)) {
+                        currentNodex = currentNode.getChildren().get(0);
+                        return other.getChildren().get(0).accept(this);
+                    } else {
+                        T currentTag = currentNode.branches.keySet().iterator().next();
+                        T otherTag = other.branches.keySet().iterator().next();
+                        if (currentTag != otherTag)
+                            return false;
+                    }
                 }
             }
 
