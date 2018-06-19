@@ -102,7 +102,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
                 sb.append(" ").append(rt.getName());
             sb.append(" ").append(node);
         }
-        sb.append(node.getRule().getHLRule().action).append("}\n");
+        sb.append('\n').append(node.getRule().getHLRule().action).append("}\n");
         return null;
     }
     @Override
