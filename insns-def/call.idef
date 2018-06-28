@@ -27,8 +27,10 @@
 \otherwise \{
   set_fp(context, fp);
   set_pc(context, pc);
+#ifdef DEBUG
   print_value_simple(context, fn);
   printf(" is called in CALL instruction\n");
+#endif /* DEBUG */
   LOG_EXIT("CALL\n");
 \}
 

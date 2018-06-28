@@ -68,6 +68,7 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
 #define INCEXECUTECOUNT() insns->executeCount++
 //#define INSNLOAD()   insn = insns->code
 //#define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
+#ifdef DEBUG
 #define INSNLOAD()                                                   \
   do {                                                               \
     insn = insns->code;                                              \
@@ -75,6 +76,9 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
       printf("pc = %d, insn = %s, fp = %d\n",                        \
              pc, insn_nemonic(get_opcode(insn)), fp);                \
   } while (0)
+#else /* DEBUG */
+#define INSNLOAD() (insn = insns->code)
+#endif /* DEBUG */
 
 // defines ENTER_INSN(x)
 //
