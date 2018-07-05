@@ -95,10 +95,9 @@ public class DecisionDiagram {
         }
         abstract ArrayList<Node> getChildren();
 
-        // returns a merged node
-        // other should be compatible with this
+        // other should be consistent with this
         // this method does not mutate this object
-        abstract Node merge(Node other);
+        abstract Node combine(Node other);
 
         @Override
         public int compareTo(Node other) {
@@ -129,7 +128,7 @@ public class DecisionDiagram {
             return getRule().getHLRule() == other.getRule().getHLRule();
         }
         @Override
-        Node merge(Node otherx) {
+        Node combine(Node otherx) {
             return this;
         }
     }
@@ -169,20 +168,16 @@ public class DecisionDiagram {
         int getOpIndex() {
             return opIndex;
         }
-        void makeMergedNode(TagNode<T> n1, TagNode<T> n2) {
+        void makeCombinedNode(TagNode<T> n1, TagNode<T> n2) {
             TreeSet<T> union = new TreeSet<T>(n1.branches.keySet());
             union.addAll(n2.branches.keySet());
             for (T tag: union) {
                 Node c1 = n1.branches.get(tag);
                 Node c2 = n2.branches.get(tag);
-                if (c1 == null)
-                    branches.put(tag, c2);
-                else if (c2 == null)
+                if (c1 != null)
                     branches.put(tag, c1);
-                else {
-                    Node child = c1.merge(c2);
-                    branches.put(tag, child);
-                }
+                else
+                    branches.put(tag, c2);
             }
         }
         TreeMap<Node, TreeSet<T>> getChildToTagsMap() {
@@ -237,8 +232,8 @@ public class DecisionDiagram {
             return visitor.visitTagPairNode(this);
         }
         @Override
-        Node merge(Node otherx) {
-            throw new Error("merge for TagPairNode is called");
+        Node combine(Node otherx) {
+            throw new Error("combine for TagPairNode is called");
         }
     }
 
@@ -251,11 +246,11 @@ public class DecisionDiagram {
             return visitor.visitPTNode(this);
         }
         @Override
-        Node merge(Node otherx) {
+        Node combine(Node otherx) {
             PTNode other = (PTNode) otherx;
-            PTNode merged = new PTNode(opIndex);
-            merged.makeMergedNode(this, other);
-            return merged;
+            PTNode combined = new PTNode(opIndex);
+            combined.makeCombinedNode(this, other);
+            return combined;
         }
     }
 
@@ -299,17 +294,17 @@ public class DecisionDiagram {
             child = node;
         }
         @Override
-        Node merge(Node otherx) {
+        Node combine(Node otherx) {
             HTNode other = (HTNode) otherx;
             if (noHT || other.noHT) {
-                HTNode merged = new HTNode(opIndex);
-                merged.noHT = true;
-                merged.child = getChildren().get(0).merge(other.getChildren().get(0));
-                return merged;
+                HTNode combined = new HTNode(opIndex);
+                combined.noHT = true;
+                combined.child = getChildren().get(0);
+                return combined;
             }
-            HTNode merged = new HTNode(opIndex);
-            merged.makeMergedNode(this, other);
-            return merged;
+            HTNode combined = new HTNode(opIndex);
+            combined.makeCombinedNode(this, other);
+            return combined;
         }
     }
 
@@ -366,21 +361,21 @@ public class DecisionDiagram {
             root = digger.dig(root);
         }
     }
+    
+    public boolean isEmpty() {
+        return root == null;
+    }
 
     public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
         return generateCodeForNode(root, varNames, tagMacro);
     }
 
-    public void mergeChildren() {
-        mergeChildren(root);
+    public void skipBranchless() {
+        root = skipBranchless(root);
     }
 
-    public void skipNoChoice() {
-        root = skipNoChoice(root);
-    }
-
-    public void mergeRelative() {
-        mergeRelative(root);
+    public void combineRelative() {
+        combineRelative(root);
     }
 
     ////
@@ -393,24 +388,19 @@ public class DecisionDiagram {
         return gen.toString();
     }
 
-    static boolean isCompatible(Node a, Node b) {
-        IsCompatibleVisitor v = new IsCompatibleVisitor(a, option);
-        return (Boolean) b.accept(v);
+    static boolean isConsistent(Node a, Node b) {
+        IsConsistentVisitor v = new IsConsistentVisitor(a, option);
+        return  (Boolean) b.accept(v);
     }
 
-    static void mergeChildren(Node node) {
-        MergeChildrenVisitor v = new MergeChildrenVisitor();
-        node.accept(v);
-    }
-
-    static Node skipNoChoice(Node node) {
-        SkipNoChoiceVisitor v = new SkipNoChoiceVisitor();
+    static Node skipBranchless(Node node) {
+        SkipBranchlessVisitor v = new SkipBranchlessVisitor();
         return (Node) node.accept(v);
     }
 
-    static public void mergeRelative(Node node) {
-        RelativeMerger m = new RelativeMerger();
-        m.mergeRelative(node);
+    static public void combineRelative(Node node) {
+        RelativeCombine m = new RelativeCombine();
+        m.combineRelative(node);
     }
 
     ////

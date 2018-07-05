@@ -18,7 +18,7 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
-public class SkipNoChoiceVisitor extends NodeVisitor<Node> {
+public class SkipBranchlessVisitor extends NodeVisitor<Node> {
 
     @Override
     Node visitLeaf(Leaf node) {
