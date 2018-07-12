@@ -22,10 +22,13 @@
 package ejsc.ast_node;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
+
+import ejsc.ast_node.Node.IStatement;
 
 public class Program extends Node implements Node.IProgram {
 
@@ -38,6 +41,17 @@ public class Program extends Node implements Node.IProgram {
 
     public List<IStatement> getBody() {
         return body;
+    }
+
+    static public Program mergePrograms(List<Program> programs) {
+        if (programs.size() == 1) {
+            return programs.get(0);
+        }
+        List<IStatement> li = new ArrayList<IStatement>();
+        for (Program pg : programs) {
+            li.addAll(pg.getBody());
+        }
+        return new Program(li);
     }
     
     @Override

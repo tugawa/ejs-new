@@ -35,13 +35,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.LinkedList;
 
 
 public class Main {
 
     static class Info {
-        String inputFileName;   // .js
+        List<String> inputFileNames = new LinkedList<String>();   // .js
         String outputFileName;  // .sbc
+        String testFileName;    // -test.js
 		enum OptLocals {
 				NONE,
 				PROSYM,
@@ -60,6 +62,7 @@ public class Main {
         boolean optCopyPropagation = false;
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
+        boolean optEnableTesting = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -115,21 +118,29 @@ public class Main {
 					case "-opt-reg":
 					    info.optRegisterAssignment = true;
 					    break;
+                    case "-test":
+                        i++;
+                        if (i >= args.length) {
+                            throw new Error("failed to parse arguments: -test");
+                        }
+                        info.testFileName = args[i];
+                        info.optEnableTesting = true;
 					default:
 						throw new Error("unknown option: "+args[i]);
                     }
                 } else {
-                    info.inputFileName = args[i];
+                    info.inputFileNames.add(args[i]);
                 }
             }
-            if (info.inputFileName == null) {
+            if (info.inputFileNames.size() == 0) {
                 info.optHelp = true;
             } else if (info.outputFileName == null) {
-                int pos = info.inputFileName.lastIndexOf(".");
+                String firstInputFileName = info.inputFileNames.get(0);
+                int pos = firstInputFileName.lastIndexOf(".");
                 if (pos != -1) {
-                    info.outputFileName = info.inputFileName.substring(0, pos) + ".sbc";
+                    info.outputFileName = firstInputFileName.substring(0, pos) + ".sbc";
                 } else {
-                    info.outputFileName = info.inputFileName + ".sbc";
+                    info.outputFileName = firstInputFileName + ".sbc";
                 }
             }
             return info;
@@ -149,34 +160,39 @@ public class Main {
         }
     }
 
-
     void run(String[] args) {
 
         // Parse command line option.
         Info info = Info.parseOption(args);
-        if (info.optHelp && info.inputFileName == null) {
+        if (info.optHelp && info.inputFileNames.size() == 0) {
             // TODO print how to use ...
             return;
         }
 
-        // Parse JavaScript File
-        ANTLRInputStream antlrInStream;
-        try {
-            InputStream inStream;
-            inStream = new FileInputStream(info.inputFileName);
-            antlrInStream = new ANTLRInputStream(inStream);
-        } catch (IOException e) {
-            System.out.println(e);
-            return;
-        }
-        ECMAScriptLexer lexer = new ECMAScriptLexer(antlrInStream);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        ECMAScriptParser parser = new ECMAScriptParser(tokens);
-        ParseTree tree = parser.program();
+        List<ejsc.ast_node.Program> programs = new LinkedList<ejsc.ast_node.Program>();
+        for (String fname : info.inputFileNames) {
+            // Parse JavaScript File
+            ANTLRInputStream antlrInStream;
+            try {
+                InputStream inStream;
+                inStream = new FileInputStream(fname);
+                antlrInStream = new ANTLRInputStream(inStream);
+            } catch (IOException e) {
+                System.out.println(e);
+                return;
+            }
+            ECMAScriptLexer lexer = new ECMAScriptLexer(antlrInStream);
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            ECMAScriptParser parser = new ECMAScriptParser(tokens);
+            ParseTree tree = parser.program();
 
-        // convert ANTLR's parse tree into ESTree.
-        ASTGenerator astgen = new ASTGenerator();
-        ejsc.ast_node.Node ast = astgen.visit(tree);
+            // convert ANTLR's parse tree into ESTree.
+            ASTGenerator astgen = new ASTGenerator();
+            programs.add((ejsc.ast_node.Program) astgen.visit(tree));
+        }
+
+        ejsc.ast_node.Program ast = ejsc.ast_node.Program.mergePrograms(programs);
+
         if (info.optPrintESTree) {
             System.out.println(ast.getEsTree());
         }
@@ -190,6 +206,7 @@ public class Main {
         // convert ESTree into iAST.
         IASTGenerator iastgen = new IASTGenerator();
         IASTNode iast = iastgen.gen(ast);
+
         if (info.optPrintIAST) {
             new IASTPrinter().print(iast);
         }
