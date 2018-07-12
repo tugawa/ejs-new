@@ -60,6 +60,7 @@ public class Main {
         boolean optCopyPropagation = false;
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
+        boolean optSuperInstruction = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -115,6 +116,9 @@ public class Main {
 					case "-opt-reg":
 					    info.optRegisterAssignment = true;
 					    break;
+					case "-opt-sie":
+						info.optSuperInstruction = true;
+						break;
 					default:
 						throw new Error("unknown option: "+args[i]);
                     }
@@ -209,7 +213,6 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
         bcBuilder.optimisation(info);
-
         if (info.optPrintLowLevelCode) {
         	bcBuilder.assignAddress();
         	System.out.print(bcBuilder);

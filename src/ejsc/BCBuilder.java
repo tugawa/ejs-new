@@ -306,7 +306,41 @@ class BCBuilder {
                     System.out.println(fb);
                 }
             }
-
-        	}
+        }
+		for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
+			if (info.optSuperInstruction) {
+				SuperInstructionElimination sie = new SuperInstructionElimination(fb.bcodes);
+				fb.bcodes = sie.exec();
+				if (info.optPrintOptimisation) {
+					System.out.println("====== after sie ======");
+					System.out.println(fb);
+				}
+			}
+			if (info.optRedunantInstructionElimination) {
+				fb.assignAddress();
+				RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
+				fb.bcodes = rie.exec();
+				if (info.optPrintOptimisation) {
+					System.out.println("====== after rie ======");
+					System.out.println(fb);
+				}
+			}
+			if (info.optRegisterAssignment) {
+				DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
+				fb.bcodes = dce.exec();
+				if (info.optPrintOptimisation) {
+					System.out.println("====== after dead code elimination ======");
+					System.out.println(fb);
+				}
+				RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
+				fb.bcodes = ra.exec();
+				int maxr = ra.getMaxRegNum();
+				fb.numberOfGPRegisters = maxr;
+				if (info.optPrintOptimisation) {
+					System.out.println("====== after reg ======");
+					System.out.println(fb);
+				}
+			}
+		}
     }
 }
