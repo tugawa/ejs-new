@@ -242,6 +242,7 @@ STATIC void* space_alloc(struct space *space,
     }
   }
 
+  printf("memory exhausted\n");
   return NULL;
 }
 
