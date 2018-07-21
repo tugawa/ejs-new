@@ -1,28 +1,36 @@
-## Uncomment after editing options and paths
-#
-all: ejsvm
-#
-
 ###
 ### Options
 ###
 
+ifeq ($(OPT_GC),)
 # GC=native|boehmgc|none
-OPT_GC=native
+	OPT_GC=native
+endif
 
+ifeq ($(OPT_REGEXP),)
 # REGEXP=oniguruma|none
-OPT_REGEXP=oniguruma
-
-###
-### Paths
-###
+	OPT_REGEXP=none
+endif
 
 INCLUDES=-I/opt/local/include
 LIBS=-L/opt/local/lib
 
-ifeq ($(CC),cc)
-	CC     = clang
+SED = gsed
+RUBY = ruby
+
+######################################################
+
+ifeq ($(EJSVM_DIR),)
+	EJSVM_DIR=$(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 endif
+
+ifeq ($(CC),cc)
+	CC = clang
+endif
+
+INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
+TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
+
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-format -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
 
@@ -148,10 +156,6 @@ else
 	GENERATED_HFILES += types-generated.h
 endif
 
-ifndef $(INSNGEN)
-INSNGEN=java -cp ../vmgen/vmgen.jar vmgen.InsnGen $(INSNGEN_FLAGS)
-endif
-
 INSN_FILES = $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 SEDCOM_GEN_INSN_OPCODE = \
@@ -160,56 +164,46 @@ SEDCOM_GEN_INSN_TABLE = \
   -e 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/' -e '/^\/\/.*/d'
 SEDCOM_GEN_INSN_LABEL = \
   -e 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/' -e '/^\/\/.*/d'
-SED = gsed
-RUBY = ruby
-
-message:
-	@echo "This is a template of Makefile.  Copy Makefile to your own"
-	@echo "Makefile such as Makefile.mine, edit it, and make with your"
-	@echo "own Makefile."
-	@echo "   make -f Makefile.mine"
-
-ejsvm-with-suffix: ejsvm$(SUFFIX)
 
 ejsvm :: $(OFILES)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-instructions-opcode.h: ../instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_OPCODE) ../instructions.def > $@
+instructions-opcode.h: $(EJSVM_DIR)/instructions.def
+	$(SED) $(SEDCOM_GEN_INSN_OPCODE) $< > $@
 
-instructions-table.h: ../instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_TABLE) ../instructions.def > $@
+instructions-table.h: $(EJSVM_DIR)/instructions.def
+	$(SED) $(SEDCOM_GEN_INSN_TABLE) $< > $@
 
-instructions-label.h: ../instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_LABEL) ../instructions.def > $@
+instructions-label.h: $(EJSVM_DIR)/instructions.def
+	$(SED) $(SEDCOM_GEN_INSN_LABEL) $< > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 
-cell-header.h: ../cell-header.def
+cell-header.h: $(EJSVM_DIR)/cell-header.def
 	$(RUBY) $< > $@
 
-vmloop-cases.inc: ../instructions.def ../gen-vmloop-cases.rb
-	$(RUBY) ../gen-vmloop-cases.rb < ../instructions.def > $@
+vmloop-cases.inc: $(EJSVM_DIR)/instructions.def $(EJSVM_DIR)/gen-vmloop-cases.rb
+	$(RUBY) $(EJSVM_DIR)/gen-vmloop-cases.rb < $(EJSVM_DIR)/instructions.def > $@
 
 
 ifeq ($(DATATYPES),)
-insns/%.inc: ../insns-handcraft/%.inc
+insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 else
-$(INSN_GENERATED):insns/%.inc: ../insns-def/%.idef
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
-	$(INSNGEN) $(DATATYPES) $< $(OPERANDSPEC) insns
+	$(INSNGEN) $(INSNGEN_FLAGS) $(DATATYPES) $< $(OPERANDSPEC) insns
 
-$(INSN_HANDCRAFT):insns/%.inc: ../insns-handcraft/%.inc
+$(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 endif
 
-%.c: ../%.c
+%.c: $(EJSVM_DIR)/%.c
 	cp $< $@
 
-%.h: ../%.h
+%.h: $(EJSVM_DIR)/%.h
 	cp $< $@
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
@@ -219,7 +213,7 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 types-generated.h: $(DATATYPES)
-	java -cp ../vmgen/vmgen.jar vmgen.TypesGen $< > $@
+	$(TYPESGEN) $< > $@
 
 clean:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
