@@ -144,7 +144,14 @@ public class InsnGen {
     	}
     	*/
     	
-    	String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
+    	//String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
+        StringBuilder errsb = new StringBuilder();
+        errsb.append("INSN_COUNT_FORCE"+insnDef.dispatchVars.length+"("+insnDef.name);
+    	for (String rand: insnDef.dispatchVars)
+    		errsb.append(",").append(rand);
+    	errsb.append(");\n");
+        errsb.append("LOG_EXIT(\"unexpected operand type\\n\");\n");
+        String errorAction = new String(errsb);
 		Set<VMDataType[]> dontCareInput = operandSpec.getUnspecifiedOperands(insnDef.name, insnDef.dispatchVars.length);
     	Set<VMDataType[]> errorInput = operandSpec.getErrorOperands(insnDef.name, insnDef.dispatchVars.length);
     	
@@ -175,11 +182,14 @@ public class InsnGen {
     	StringBuilder sb = new StringBuilder();
     	if (insnDef.prologue != null)
     	    sb.append(insnDef.prologue + "\n");
+		sb.append(insnDef.name + "_HEAD:\n");
+        sb.append("#ifdef PRINT_INSN_COUNT\n");
+        sb.append("if (get_opcode(insn) == "+insnDef.name.toUpperCase()+"_LOG)");
     	sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
     	for (String rand: insnDef.dispatchVars)
     		sb.append(",").append(rand);
     	sb.append(");");
-		sb.append(insnDef.name + "_HEAD:\n");
+        sb.append("\n#endif /* PRINT_INSN_COUNT */\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
         	sb.append("if (0) {\n")
