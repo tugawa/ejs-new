@@ -279,8 +279,8 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
   HiddenClass *nexth, *oh;
 #endif // HIDDEN_CLASS
 
-  // printf("set_prop_with_attribute: obj = %p, name = %s, v = %p\n",
-  //        obj, string_to_cstr(name), v);
+   //printf("set_prop_with_attribute: obj = %p, name = %s, v = %p\n",
+   //       obj, string_to_cstr(name), v);
   index = prop_index(obj, name);
   // printf("set_prop_with_index: index = %d\n", index);
   if (index == -1) {
@@ -575,18 +575,60 @@ int next_propname(JSValue obj, HashIterator *iter, HashKey *key)
   return SUCCESS;
 }
 
+int next_propname_idx(JSValue obj, int *idx, HashKey *key)
+{
+  HashEntry e;
+  int r;
+  Map *a;
+
+#ifdef HIDDEN_CLASS
+  a = obj_hidden_class_map(obj);
+
+  while ((r = __hashNextIdx(a, idx, &e)) != FAIL &&
+         ((e.attr & ATTR_DE) || (e.attr & ATTR_TRANSITION)));
+#else
+  a = obj_map(obj);
+  while ((r = __hashNextIdx(a, idx, &e)) != FAIL && (e.attr & ATTR_DE));
+#endif
+
+  if (r == FAIL) return FAIL;
+  *key = e.key;
+  return SUCCESS;
+}
+
 /*
    obtains the next property name in an iterator
  */
 int get_next_propname(JSValue iter, JSValue *name) {
   if (hash_next(iterator_object_map(iter), &(iterator_iter(iter)), name) == SUCCESS) {
-    // printf("in get_next_propname 0: name = %016lx: ", *name); simple_print(*name); printf("\n");
+     //printf("in get_next_propname 0: name = %016lx: ", *name); simple_print(*name); printf("\n");
     *name = iterator_object_prop_index(iter, (int)(*name));
-    // printf("in get_next_propname 1: name = %016lx: ", *name); simple_print(*name); printf("\n");
+     //printf("in get_next_propname 1: name = %016lx: ", *name); simple_print(*name); printf("\n");
     return SUCCESS;
   }
   *name = JS_UNDEFINED;
   return FAIL;
+}
+
+/*
+   obtains the next property name in a simple iterator
+   iter:SimpleIterator
+ */
+int get_next_propname_simple_iterator(JSValue iter, JSValue *name) {
+  //fprintf( stderr, "Check:get_nextpropname_simple_iterator\n" );
+  int size = simple_iterator_size(iter);
+  //fprintf(stderr,"size:%d\n",size);
+  int index = simple_iterator_index(iter);
+  //fprintf(stderr,"index:%d\n",index);
+  if(index<size){
+    *name = simple_iterator_body_index(iter,index++);
+     //printf("in get_next_propname_simple 1: name = %016lx: ", *name); simple_print(*name); printf("\n");
+    simple_iterator_index(iter) = index;
+    return SUCCESS;
+  }else{
+    *name = JS_UNDEFINED;
+    return FAIL;
+  }
 }
 
 #ifdef USE_REGEXP
@@ -834,6 +876,7 @@ JSValue new_iterator(Context *ctx, JSValue obj, int hsize, int vsize) {
 #endif
     while (next_propname(obj, hi, &key)) {
       set_prop_none(ctx, ret, key, key);
+            printf("%s\n",string_to_cstr(key));
     }
     /*
     if (is_array(obj)) {
@@ -849,7 +892,44 @@ JSValue new_iterator(Context *ctx, JSValue obj, int hsize, int vsize) {
     */
   } while (get___proto__(obj, &obj) == SUCCESS);
   init_hash_iterator(iterator_object_map(ret), hi);
-  // print_object_properties(ret);
+   //print_object_properties(ret);
+  return ret;
+}
+
+/*
+   makes a simple iterator object
+ */
+JSValue new_simple_iterator(Context *ctx, JSValue obj) {
+  JSValue ret;
+  HashKey key;
+  int idx = 0;
+  int index = 0;
+  int size = 0;
+
+  gc_push_tmp_root(&obj);
+  ret = make_simple_iterator();
+  JSValue tmpobj = obj;
+  gc_push_tmp_root(&ret);
+
+  //allocate simple itearator
+  do {
+      //printf("Object %016lx: (type = %ld, n_props = %ld)\n",
+      // obj, obj_header_tag(obj), obj_n_props(obj));
+      size += obj_n_props(obj);
+     } while (get___proto__(obj, &obj) == SUCCESS);
+  allocate_simple_iterator_data(ctx, ret, size);
+
+  obj = tmpobj;
+  
+  //regist object prop to simple itearator
+  do {
+    idx = 0;
+    while (next_propname_idx(obj, &idx, &key)) {
+      simple_iterator_body_index(ret, index++) = key;
+    }
+  } while (get___proto__(obj, &obj) == SUCCESS);
+  
+  gc_pop_tmp_root(2);
   return ret;
 }
 

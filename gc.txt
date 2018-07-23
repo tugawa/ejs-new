@@ -37,6 +37,7 @@ JS-space に置くデータ型
   FunctionFrame *environment       -- malloc_space
 - struct builtin_cell / BuiltinCell
 - struct iterator_cell / IteratorCell
+- struct simple_iterator / SimpleIterator
 - struct regexp_cell / RegexpCell
   char     *pattern  -- malloc-space
   regext_t *reg      -- finaliser

@@ -174,6 +174,34 @@ IteratorCell *allocate_iterator(void) {
 }
 
 /*
+   allocates an iterator
+ */
+SimpleIterator *allocate_simple_iterator(void) {
+  SimpleIterator *iter =
+    (SimpleIterator *) gc_jsalloc_critical(sizeof(SimpleIterator), HTAG_SIMPLE_ITERATOR);
+  return iter;
+}
+
+/*
+   allocates a simple iterator body
+     size : number of elements in the body (size >= len)
+     index  :reference number in the body
+ */
+void allocate_simple_iterator_data(Context *ctx, JSValue a, int size)
+{
+  JSValue *body;
+  int i;
+  gc_push_tmp_root(&a);
+  body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
+			       HTAG_ARRAY_DATA);
+  for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
+  simple_iterator_body(a) = body;
+  simple_iterator_size(a) = size;
+  simple_iterator_index(a) = 0;
+  gc_pop_tmp_root(1);
+}
+
+/*
    allocates a regexp
  */
 #ifdef USE_REGEXP

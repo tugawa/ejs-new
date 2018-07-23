@@ -54,6 +54,7 @@
 #define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)
 #define is_builtin(p)            is_obj_header_tag((p), HTAG_BUILTIN)
 #define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
+#define is_simple_iterator(p)           is_obj_header_tag((p), HTAG_SIMPLE_ITERATOR)
 #define is_regexp(r)             is_obj_header_tag((r), HTAG_REGEXP)
 #define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
 #define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
@@ -75,6 +76,8 @@
   ((BuiltinCell *) remove_tag((p), T_GENERIC))
 #define remove_normal_iterator_tag(p) \
   ((IteratorCell *)remove_tag((p), T_GENERIC))
+#define remove_normal_simple_iterator_tag(p) \
+  ((SimpleIterator *)remove_tag((p), T_GENERIC))
 #define remove_normal_string_tag(p) \
   ((StringCell *)remove_tag((p), T_STRING))
 #define remove_normal_regexp_tag(p)		\
@@ -91,6 +94,7 @@
 #define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
 #define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
+#define put_normal_simple_iterator_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_string_tag(p)         (put_tag((p), T_STRING))
 #define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
 #define put_normal_flonum_tag(p)        (put_tag(p, T_FLONUM))
@@ -112,6 +116,7 @@
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
+#define HTAG_SIMPLE_ITERATOR (0xf)
 
 #define is_pointer(p)     (((p) & 2) == 0)
 #define is_leaf_object(p) (((p) & 6) == 4)
@@ -311,6 +316,7 @@ typedef struct object_cell {
 #define new_normal_boolean_object(ctx, v) new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_string_object(ctx, v) new_string_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_iterator(ctx, o) new_iterator(ctx, o, HHH, PSIZE_NORMAL)
+#define new_normal_simple_iterator(ctx, o) new_simple_iterator(ctx, o)
 
 #ifdef USE_REGEXP
 #define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
@@ -410,6 +416,23 @@ typedef struct iterator_cell {
 #endif
 #define iterator_object_prop_index(i,k) ((remove_normal_iterator_tag(i))->o.prop[k])
 #define iterator_iter(i)         ((remove_normal_iterator_tag(i))->iter)
+
+/*
+   SimpleIterator
+   tag == T_GENERIC
+ */
+typedef struct simple_iterator {
+  uint64_t size;        // array size
+  uint64_t index;       // array index
+  JSValue *body;        // pointer to a C array
+} SimpleIterator;
+
+#define make_simple_iterator()          (put_normal_simple_iterator_tag(allocate_simple_iterator()))
+
+#define simple_iterator_size(i)          ((remove_normal_simple_iterator_tag(i))->size)
+#define simple_iterator_index(i)         ((remove_normal_simple_iterator_tag(i))->index)
+#define simple_iterator_body(i)         ((remove_normal_simple_iterator_tag(i))->body)
+#define simple_iterator_body_index(a,i) ((remove_normal_simple_iterator_tag(a))->body[i])
 
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp

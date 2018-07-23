@@ -121,9 +121,11 @@ INSN_HANDCRAFT = \
          insns/localret.inc \
          insns/makeclosure.inc \
          insns/makeiterator.inc \
+         insns/makesimpleiterator.inc \
          insns/move.inc \
 				 insns/newframe.inc \
          insns/nextpropname.inc \
+         insns/nextpropnameidx.inc \
          insns/nop.inc \
          insns/not.inc \
          insns/number.inc \
