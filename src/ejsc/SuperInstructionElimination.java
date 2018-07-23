@@ -26,8 +26,12 @@ public class SuperInstructionElimination {
 							return null;
 					}
 				}
-				if (result instanceof IFixnum)
-					return result;
+				if (result instanceof IFixnum) {
+					if (((IFixnum) result).n < (1 << 24))
+						return result;
+					else
+						return null;
+				}
 				return null;
 			}
 		}
@@ -54,22 +58,14 @@ public class SuperInstructionElimination {
 			BCode b = env.lookup(bc.src2);
 			if (b == null)
 				return null;
-			int val = ((IFixnum) b).n;
-			if (val < (1 << 24))
-				return new IAddFixnum(bc.dst, bc.src1, ((IFixnum) b).n);
-			else
-				return null;
+			return new IAddFixnum(bc.dst, bc.src1, ((IFixnum) b).n);
 		}
 
 		protected BCode evalIGetprop(Environment env, IGetprop bc) {
 			BCode b = env.lookup(bc.prop);
 			if (b == null)
 				return null;
-			int val = ((IFixnum) b).n;
-			if (val < (1 << 24))
-				return new IGetpropFix(bc.dst, bc.obj, ((IFixnum) b).n);
-			else
-				return null;
+			return new IGetpropFix(bc.dst, bc.obj, ((IFixnum) b).n);
 		}
 	}
 
