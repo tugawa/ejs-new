@@ -27,7 +27,7 @@ public class SuperInstructionElimination {
 					}
 				}
 				if (result instanceof IFixnum) {
-					if (((IFixnum) result).n < (1 << 24))
+					if (((IFixnum) result).n < (1 << 16))
 						return result;
 					else
 						return null;
