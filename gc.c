@@ -34,13 +34,16 @@
 #define STATIC static
 #endif
 
-//#define GCLOG(...) LOG(__VA_ARGS__)
+/*
+#define GCLOG(...) LOG(__VA_ARGS__)
+#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+*/
+
 #define GCLOG(...)
-//#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
 #define GCLOG_TRIGGER(...)
-//#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
 #define GCLOG_ALLOC(...)
-//#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
 #define GCLOG_SWEEP(...)
 
 
@@ -103,7 +106,9 @@ struct space {
  * variables
  */
 STATIC struct space js_space;
+#ifdef GC_DEBUG
 STATIC struct space debug_js_shadow;
+#endif /* GC_DEBUG */
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
@@ -237,6 +242,7 @@ STATIC void* space_alloc(struct space *space,
     }
   }
 
+  printf("memory exhausted\n");
   return NULL;
 }
 
@@ -248,7 +254,9 @@ STATIC void* space_alloc(struct space *space,
 void init_memory()
 {
   create_space(&js_space, JS_SPACE_BYTES, "js_space");
+#ifdef GC_DEBUG
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
+#endif /* GC_DEBUG */
   tmp_roots_sp = -1;
   gc_disabled = 0;
   generation = 1;

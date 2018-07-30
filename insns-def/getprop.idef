@@ -17,7 +17,8 @@
 \}
 
 \otherwise \{
-  if (obj == JS_UNDEFINED) printf("GETPROP: !!!!\n");
+  if (obj == JS_UNDEFINED)
+     LOG_EXIT("GETPROP: !!!!\n");
   obj = to_object(context, obj);
   goto getprop_HEAD;
 \}
