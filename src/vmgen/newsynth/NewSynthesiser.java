@@ -69,14 +69,15 @@ public class NewSynthesiser extends Synthesiser {
 
         LLRuleSet llrs = new LLRuleSet(hlrs);
         DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
-
+        if (dd.isEmpty())
+            return "";
+        
         // optimize
         String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MR:S");
         for (String pass: passes.split(":")) {
             switch(pass) {
-            case "MC": dd.mergeChildren(); break;
-            case "MR": dd.mergeRelative(); break;
-            case "S":  dd.skipNoChoice();  break;
+            case "MR": dd.combineRelative(); break;
+            case "S":  dd.skipBranchless();  break;
             }
         }
 
@@ -84,8 +85,11 @@ public class NewSynthesiser extends Synthesiser {
             for (LLRule llr: llrs.getRules()) {
                 VMRepType[] rts = llr.getVMRepTypes();
                 LLRule found = dd.search(rts);
-                if (llr.getHLRule() != found.getHLRule())
-                    System.out.println("wrong decision diagram: " + rts[0] + "," + rts[1]);
+                if (llr.getHLRule() != found.getHLRule()) {
+                    System.out.println("wrong decision diagram: ");
+                    for (VMRepType r: rts)
+                        System.out.println(" "+r);
+                }
             }
         }		
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro());
