@@ -669,10 +669,10 @@ class IMakeiterator extends BCode {
     }
 }
 class IMakesimpleiterator extends BCode {
-    Register obj, dst;
+    Register obj;
     IMakesimpleiterator(Register obj, Register dst) {
+        super(dst);
         this.obj = obj;
-        this.dst = dst;
     }
     public String toString() {
         return super.toString("makesimpleiterator", obj, dst);
@@ -691,10 +691,10 @@ class INextpropname extends BCode {
 }
 
 class INextpropnameidx extends BCode {
-    Register ite, dst;
+    Register ite;
     INextpropnameidx(Register ite, Register dst) {
+        super(dst);
         this.ite = ite;
-        this.dst = dst;
     }
     public String toString() {
         return super.toString("nextpropnameidx", ite, dst);
