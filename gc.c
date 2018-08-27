@@ -1000,7 +1000,7 @@ STATIC void print_heap_stat(void)
   }
 
   for (i = 0; i < 17; i++) {
-    printf("type %02d: num = %08d volume = %08d\n", i, number[i], jsvalues[i]);
+    printf("type %02zu: num = %08zu volume = %08zu\n", i, number[i], jsvalues[i]);
   }
 }
 
