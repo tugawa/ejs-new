@@ -30,9 +30,9 @@
 #define LOG_EXIT(...) do { LOG_FUNC; fprintf(log_stream, __VA_ARGS__); exit(1); } while (0)
 
 #else
-#define LOG
+#define LOG(...)
 #define LOG_FUNC
-#define LOG_ERR
+#define LOG_ERR(...)
 #define LOG_EXIT(...) exit(1)
 
 #endif // DEBUG
