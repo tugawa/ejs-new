@@ -674,6 +674,18 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   }
 }
 
+STATIC void trace_simple_iterator(SimpleIterator **ptrp)
+{
+  SimpleIterator *obj = *ptrp;
+
+  assert(in_js_space((void *) obj));
+  if (is_marked_cell((void *) obj))
+    return;
+  mark_cell((void *) obj);
+  if (obj->size > 0)
+    trace_JSValue_array(&obj->body, obj->size);
+}
+
 STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
 {
   JSValue *ptr = *ptrp;
@@ -696,6 +708,11 @@ STATIC void trace_slot(JSValue* ptr)
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_leaf_object((uintptr_t *) &jsv);
+    *ptr = jsv | tag;
+  } else if (is_simple_iterator(jsv)) {
+    uint8_t tag = jsv & TAGMASK;
+    jsv &= ~TAGMASK;
+    trace_simple_iterator((SimpleIterator **) &jsv);
     *ptr = jsv | tag;
   } else if (is_pointer(jsv)) {
     uint8_t tag = jsv & TAGMASK;

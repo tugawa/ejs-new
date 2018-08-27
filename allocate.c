@@ -179,6 +179,9 @@ IteratorCell *allocate_iterator(void) {
 SimpleIterator *allocate_simple_iterator(void) {
   SimpleIterator *iter =
     (SimpleIterator *) gc_jsalloc_critical(sizeof(SimpleIterator), HTAG_SIMPLE_ITERATOR);
+  simple_iterator_body(iter) = NULL;
+  simple_iterator_size(iter) = 0;
+  simple_iterator_index(iter) = 0;
   return iter;
 }
 
