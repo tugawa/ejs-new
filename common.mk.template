@@ -117,7 +117,6 @@ INSN_HANDCRAFT = \
          insns/geterr.inc \
          insns/getglobal.inc \
          insns/getglobalobj.inc \
-         insns/getidx.inc \
          insns/getlocal.inc \
          insns/instanceof.inc \
          insns/isobject.inc \
