@@ -29,7 +29,7 @@ move                  TWOOP          Register   JSValue
 typeof                TWOOP          Register   Register
 not                   TWOOP          Register   JSValue
 new                   TWOOP          Register   JSValue
-getidx                TWOOP          Register   Register
+// getidx                TWOOP          Register   Register
 isundef               TWOOP          Register   JSValue
 isobject              TWOOP          Register   JSValue
 setfl                 ONEOP          int

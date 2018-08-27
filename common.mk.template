@@ -31,7 +31,7 @@ endif
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
 
-CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-format -DUSER_DEF $(INCLUDES)
+CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
 
 ifeq ($(OPT_GC),native)
