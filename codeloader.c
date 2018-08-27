@@ -524,13 +524,13 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("n_insns: %d\n", ftable[i].n_insns);
     printf("body_size: %d\n", ftable[i].body_size);
     for (j = 0; j < ftable[i].n_insns; j++) {
-      printf("%03d: %016lx --- ", j, ftable[i].insns[j].code);
+      printf("%03d: %016"PRIu64" --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
     }
     for (; j < ftable[i].body_size; j++) {
       JSValue o;
       o = ftable[i].insns[j].code;
-      printf("%03d: %016lx --- ", j, o);
+      printf("%03d: %016"PRIu64" --- ", j, o);
       if (is_flonum(o))
         printf("FLONUM %lf\n", flonum_value(o));
       else if (is_string(o))
