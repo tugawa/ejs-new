@@ -752,7 +752,8 @@ BUILTIN_FUNCTION(array_debugarray)
   size = array_size(a);
   length = array_length(a);
   to = length < size? length: size;
-  printf("debugarray: size = %ld, length = %ld, to = %ld\n", size, length, to);
+  printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
+	 size, length, to);
   for (i = 0; i < to; i++) {
     printf("i = %d: ", i);
     print_value_simple(context, array_body_index(a, i));

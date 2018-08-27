@@ -417,9 +417,9 @@ void print_hash_table(HashTable *tab) {
     ec++;
     do {
       printf(" (%d: (", i);
-      printf("%p = ", p->entry.key); simple_print(p->entry.key);
+      printf("0x%"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
       printf(", ");
-      printf("%p", p->entry.data);
+      printf("0x%"PRIx64, p->entry.data);
       printf("))\n");
     } while ((p = p->next) != NULL);
     // if (ec >= tab->entry_count) break;
@@ -443,7 +443,7 @@ void print_object_properties(JSValue o) {
 #else
   tab = obj_map(o);
 #endif
-  printf("Object %016lx: (type = %ld, n_props = %ld, map = %p)\n",
+  printf("Object %016"PRIx64": (type = %x, n_props = %"PRIu64", map = %p)\n",
          o, obj_header_tag(o), obj_n_props(o), tab);
   ec = 0;
   for (i = 0; i < tab->size; i++) {
@@ -451,12 +451,12 @@ void print_object_properties(JSValue o) {
     do {
       ec++;
       printf(" (%d: (", i);
-      printf("%016lx = ", p->entry.key); simple_print(p->entry.key);
+      printf("%016"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
       printf(", ");
-      printf("%016lx = ", p->entry.data); simple_print(p->entry.data);
+      printf("%016"PRIx64" = ", p->entry.data); simple_print(p->entry.data);
       printf(", ");
       v = obj_prop_index(o, (int)p->entry.data);
-      printf("%016lx = ", v); simple_print(v);
+      printf("%016"PRIx64" = ", v); simple_print(v);
       printf("))");
     } while ((p = p->next) != NULL);
     if (ec >= tab->entry_count) break;

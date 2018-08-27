@@ -180,7 +180,7 @@ BUILTIN_FUNCTION(builtin_address)
 
   builtin_prologue();
   obj = args[1];
-  printf("0x%lx\n", obj);
+  printf("0x%"PRIx64"\n", obj);
   set_a(context, JS_UNDEFINED);
 }
 
