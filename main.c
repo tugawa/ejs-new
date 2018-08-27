@@ -355,7 +355,7 @@ void print_value_verbose(Context *context, JSValue v) {
 
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
-    printf("%016llx (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
+    printf("%016"PRIu64" (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
 
   if (is_string(v))
     /* do nothing */;
