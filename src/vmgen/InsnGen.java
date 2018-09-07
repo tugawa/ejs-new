@@ -143,7 +143,7 @@ public class InsnGen {
     	
     	//String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
         StringBuilder errsb = new StringBuilder();
-        errsb.append("INSN_COUNT_FORCE"+insnDef.dispatchVars.length+"("+insnDef.name);
+        errsb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
     	for (String rand: insnDef.dispatchVars)
     		errsb.append(",").append(rand);
     	errsb.append(");\n");
@@ -182,7 +182,7 @@ public class InsnGen {
 		sb.append(insnDef.name + "_HEAD:\n");
         sb.append("#ifdef PROFILE\n");
         sb.append("if (is_log_insn)");
-    	sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
+    	sb.append("INSN_LOG"+insnDef.dispatchVars.length+"("+insnDef.name);
     	for (String rand: insnDef.dispatchVars)
     		sb.append(",").append(rand);
     	sb.append(");");
