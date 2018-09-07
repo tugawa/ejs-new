@@ -236,6 +236,46 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
   return ret;
 }
 
+JSValue invoke_function(Context *context, JSValue receiver, JSValue fn, int sendp, JSValue *args, int nargs) {
+  FunctionTable *t;
+  JSValue *stack, ret;
+  int sp, newfp, pos, oldfp, oldsp, i;
+
+  // printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
+  stack = &get_stack(context, 0);
+  oldsp = sp = get_sp(context);
+  oldfp = get_fp(context);
+  pos = sp + 1;          // place where cf register will be saved
+  sp += 5;               // makes room for cf, pc, lp, and fp
+  newfp = sp++;
+  stack[newfp] = receiver;
+  for (i = 0; i < nargs; i++) {
+    stack[sp++] = args[i];
+  }
+  save_special_registers(context, stack, pos);
+
+
+  // sets special registers
+  set_fp(context, newfp);
+  set_sp(context, sp);
+  set_ac(context, nargs);
+  set_lp(context, func_environment(fn));
+  t = func_table_entry(fn);
+  set_cf(context, t);
+  if (sendp == TRUE)
+    set_pc(context, ftab_send_entry(t));
+  else
+    set_pc(context, ftab_call_entry(t));
+  vmrun_threaded(context, newfp);
+  ret = get_a(context);
+  // printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
+  // print_value_verbose(context, ret); putchar('\n');
+  restore_special_registers(context, stack, pos);
+  set_fp(context, oldfp);
+  set_sp(context, oldsp);
+  return ret;
+}
+
 /*
    calls a builtin with no arguments
  */

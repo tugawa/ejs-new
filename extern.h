@@ -123,6 +123,11 @@ extern BUILTIN_FUNCTION(object_constr);
 extern BUILTIN_FUNCTION(object_toString);
 
 /*
+ * builtin-function.c
+ */
+extern BUILTIN_FUNCTION(function_apply);
+
+/*
  * call.c
  */
 extern void call_function(Context *, JSValue, int, int);
@@ -130,6 +135,7 @@ extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
 extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
+extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue *, int);
 JSValue call_builtin0(Context *, JSValue, JSValue, int);
 
 
@@ -334,6 +340,7 @@ extern int vmrun_threaded(Context *, int);
 extern void init_builtin_global(Context *);
 extern void init_builtin_object(Context *);
 extern void init_builtin_array(Context *);
+extern void init_builtin_function(Context *);
 extern void init_builtin_number(Context *);
 extern void init_builtin_string(Context *);
 extern void init_builtin_boolean(Context *);
