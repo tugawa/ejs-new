@@ -183,13 +183,13 @@ public class InsnGen {
     	if (insnDef.prologue != null)
     	    sb.append(insnDef.prologue + "\n");
 		sb.append(insnDef.name + "_HEAD:\n");
-        sb.append("#ifdef PRINT_INSN_COUNT\n");
-        sb.append("if (get_opcode(insn) == "+insnDef.name.toUpperCase()+"_LOG)");
+        sb.append("#ifdef PROFILE\n");
+        sb.append("if (is_log_insn)");
     	sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
     	for (String rand: insnDef.dispatchVars)
     		sb.append(",").append(rand);
     	sb.append(");");
-        sb.append("\n#endif /* PRINT_INSN_COUNT */\n");
+        sb.append("\n#endif /* PROFILE */\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
         	sb.append("if (0) {\n")
