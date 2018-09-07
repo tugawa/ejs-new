@@ -20,7 +20,7 @@ import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.DecisionDiagram.TagNode;
 
-public class RelativeMerger {
+public class RelativeCombine {
     static class LayerGatherVisitor extends NodeVisitor<Void> {
         ArrayList<Node> nodes = new ArrayList<Node>();
         int depth;
@@ -98,35 +98,35 @@ public class RelativeMerger {
         }
     }
 
-    protected TreeMap<Node, Node> mergeNodes(ArrayList<Node> nodes) {
+    protected TreeMap<Node, Node> combineNodes(ArrayList<Node> nodes) {
         TreeMap<Node, Node> replace = new TreeMap<Node, Node>();
-        boolean[] hasMerged = new boolean[nodes.size()];
+        boolean[] hasCombined = new boolean[nodes.size()];
         for (int i = 0; i < nodes.size(); i++) {
             TreeSet<Node> subjects = new TreeSet<Node>();
-            if (hasMerged[i])
+            if (hasCombined[i])
                 continue;
             Node ni = nodes.get(i);
-            Node merged = ni;
+            Node combined = ni;
             subjects.add(ni);
-            hasMerged[i] = true;
+            hasCombined[i] = true;
             for (int j = i + 1; j < nodes.size(); j++) {
-                if (hasMerged[j])
+                if (hasCombined[j])
                     continue;
                 Node nj = nodes.get(j);
-                if (!DecisionDiagram.isCompatible(merged, nj))
+                if (!DecisionDiagram.isConsistent(combined, nj))
                     continue;
-                merged = merged.merge(nj);
+                combined = combined.combine(nj);
                 subjects.add(nj);
-                hasMerged[j] = true;
+                hasCombined[j] = true;
             }
             if (subjects.size() > 1)
                 for (Node before: subjects)
-                    replace.put(before, merged);
+                    replace.put(before, combined);
         }
         return replace;
     }
 
-    void mergeRelative(Node root) {
+    void combineRelative(Node root) {
         for (int i = root.depth() - 1; i >= 1; i--) {
             LayerGatherVisitor gv = new LayerGatherVisitor(i);
             root.accept(gv);
@@ -166,7 +166,7 @@ public class RelativeMerger {
             });
 
             /* merge */
-            TreeMap<Node, Node> replace = mergeNodes(nodes);
+            TreeMap<Node, Node> replace = combineNodes(nodes);
 
             /* do replace */
             ReplaceVisitor rv = new ReplaceVisitor(i, replace);
