@@ -552,29 +552,6 @@ static inline void setArrayBody(JSValue array, int size)
 }
 #endif
 
-/*
-   obtains the next key of the property
- */
-int next_propname(JSValue obj, HashIterator *iter, HashKey *key)
-{
-  HashEntry e;
-  int r;
-  Map *a;
-
-#ifdef HIDDEN_CLASS
-  a = obj_hidden_class_map(obj);
-  while ((r = __hashNext(a, iter, &e)) != FAIL &&
-         ((e.attr & ATTR_DE) || (e.attr & ATTR_TRANSITION)));
-#else
-  a = obj_map(obj);
-  while ((r = __hashNext(a, iter, &e)) != FAIL && (e.attr & ATTR_DE));
-#endif
-
-  if (r == FAIL) return FAIL;
-  *key = e.key;
-  return SUCCESS;
-}
-
 int next_propname_idx(JSValue obj, int *idx, HashKey *key)
 {
   HashEntry e;
@@ -594,20 +571,6 @@ int next_propname_idx(JSValue obj, int *idx, HashKey *key)
   if (r == FAIL) return FAIL;
   *key = e.key;
   return SUCCESS;
-}
-
-/*
-   obtains the next property name in an iterator
- */
-int get_next_propname(JSValue iter, JSValue *name) {
-  if (hash_next(iterator_object_map(iter), &(iterator_iter(iter)), name) == SUCCESS) {
-     //printf("in get_next_propname 0: name = %016lx: ", *name); simple_print(*name); printf("\n");
-    *name = iterator_object_prop_index(iter, (int)(*name));
-     //printf("in get_next_propname 1: name = %016lx: ", *name); simple_print(*name); printf("\n");
-    return SUCCESS;
-  }
-  *name = JS_UNDEFINED;
-  return FAIL;
 }
 
 /*

@@ -29,7 +29,6 @@ move                  TWOOP          Register   JSValue
 typeof                TWOOP          Register   Register
 not                   TWOOP          Register   JSValue
 new                   TWOOP          Register   JSValue
-// getidx                TWOOP          Register   Register
 isundef               TWOOP          Register   JSValue
 isobject              TWOOP          Register   JSValue
 setfl                 ONEOP          int
@@ -47,7 +46,6 @@ getlocal              GETVAR         Register   int          Subscript
 setlocal              SETVAR         int        Subscript    JSValue
 makeclosure           MAKECLOSUREOP  Register   Subscript
 makesimpleiterator    TWOOP          JSValue    Register
-nextpropname          THREEOP        JSValue    JSValue      Register
 nextpropnameidx       TWOOP          JSValue    Register
 send                  CALLOP         LABELONLY
 newsend               CALLOP         LABELONLY
