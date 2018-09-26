@@ -647,7 +647,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
       } else {
         len = a->size;
       }
-      trace_JSValue_array(&((ArrayCell *) obj)->body, len);
+      trace_JSValue_array(&a->body, len);
     }
     break;
   case HTAG_FUNCTION:
