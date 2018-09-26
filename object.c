@@ -855,48 +855,6 @@ JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize, int p
 }
 
 /*
-   makes an iterator object
- */
-JSValue new_iterator(Context *ctx, JSValue obj, int hsize, int vsize) {
-  JSValue ret;
-  HashIterator *hi;
-  HashKey key;
-
-  ret = make_iterator();
-  set_object_members(iterator_object_p(ret), hsize, vsize);
-  hi = &(iterator_iter(ret));
-  do {
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_DEBUG
-    print_hidden_class("do in new_iterator", obj_hidden_class(obj));
-#endif
-    init_hash_iterator(obj_hidden_class_map(obj), hi);
-#else
-    init_hash_iterator(obj_map(obj), hi);
-#endif
-    while (next_propname(obj, hi, &key)) {
-      set_prop_none(ctx, ret, key, key);
-            printf("%s\n",string_to_cstr(key));
-    }
-    /*
-    if (is_array(obj)) {
-      int len, i;
-#define N 100;
-      char ind[N];
-      len = array_length(obj);
-      for (i = 0; i < len; i++) {
-        snprintf(&ind[0], N - 1, "%d", i);
-      }
-#undef N
-    }
-    */
-  } while (get___proto__(obj, &obj) == SUCCESS);
-  init_hash_iterator(iterator_object_map(ret), hi);
-   //print_object_properties(ret);
-  return ret;
-}
-
-/*
    makes a simple iterator object
  */
 JSValue new_simple_iterator(Context *ctx, JSValue obj) {
