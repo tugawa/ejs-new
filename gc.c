@@ -639,8 +639,16 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   case HTAG_SIMPLE_OBJECT:
     break;
   case HTAG_ARRAY:
-    trace_JSValue_array(&((ArrayCell *) obj)->body,
-			((ArrayCell *) obj)->length);
+    {
+      ArrayCell *a = (ArrayCell *) obj;
+      size_t len = 0;
+      if (a->length < a->size) {
+        len = a->length;
+      } else {
+        len = a->size;
+      }
+      trace_JSValue_array(&((ArrayCell *) obj)->body, len);
+    }
     break;
   case HTAG_FUNCTION:
     /* TODO: func_table_entry holds an inner pointer */
