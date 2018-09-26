@@ -217,6 +217,7 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn, int sen
 
   // sets special registers
   set_fp(context, sp);
+  set_sp(context, sp);
   set_ac(context, 0);
   set_lp(context, func_environment(fn));
   t = func_table_entry(fn);
