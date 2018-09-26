@@ -113,7 +113,7 @@ INSN_HANDCRAFT = \
          insns/error.inc \
          insns/fixnum.inc \
          insns/geta.inc \
-				 insns/getarg.inc \
+	 insns/getarg.inc \
          insns/geterr.inc \
          insns/getglobal.inc \
          insns/getglobalobj.inc \
@@ -127,11 +127,9 @@ INSN_HANDCRAFT = \
          insns/localcall.inc \
          insns/localret.inc \
          insns/makeclosure.inc \
-         insns/makeiterator.inc \
          insns/makesimpleiterator.inc \
          insns/move.inc \
-				 insns/newframe.inc \
-         insns/nextpropname.inc \
+	 insns/newframe.inc \
          insns/nextpropnameidx.inc \
          insns/nop.inc \
          insns/not.inc \
@@ -141,7 +139,7 @@ INSN_HANDCRAFT = \
          insns/pushhandler.inc \
          insns/ret.inc \
          insns/seta.inc \
-				 insns/setarg.inc \
+	 insns/setarg.inc \
          insns/setarray.inc \
          insns/setfl.inc \
          insns/setglobal.inc \
