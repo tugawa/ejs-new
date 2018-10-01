@@ -127,6 +127,18 @@ public class InsnGen {
 			System.exit(1);
 		}
 	}
+
+    static void emitHeadLabel(StringBuilder sb, ProcDefinition.InstDefinition insnDef) {
+		sb.append(insnDef.name + "_HEAD:\n");
+    }
+
+    static void emitPrologue(StringBuilder sb, ProcDefinition.InstDefinition insnDef) {
+        if (insnDef.prologue != null) sb.append(insnDef.prologue + "\n");
+    }
+
+    static void emitEpilogue(StringBuilder sb, ProcDefinition.InstDefinition insnDef) {
+        if (insnDef.epilogue != null) sb.append(insnDef.epilogue + "\n");
+    }
 	
 	static String synthesise(ProcDefinition.InstDefinition insnDef, OperandSpecifications operandSpec, Synthesiser synth, boolean verbose) {
 		/*
@@ -141,6 +153,24 @@ public class InsnGen {
     	}
     	*/
     	
+        if (operandSpec.numOfMatchingOperands(insnDef.name) == 0) {
+            Set<RuleSet.Rule> rules = insnDef.tdDef.rules;
+            if (rules.size() != 1) {
+                throw new Error("The insn has no matching variables, and number of actions should be 1.");
+            }
+            StringBuilder sb = new StringBuilder();
+            emitPrologue(sb, insnDef);
+            if (operandSpec.isAccepted(insnDef.name, new VMDataType[0])) {
+                emitHeadLabel(sb, insnDef);
+                RuleSet.Rule rule = rules.iterator().next();
+                sb.append("\n{\n");
+                sb.append(rule.action);
+                sb.append("\n}\n");
+            }
+            emitEpilogue(sb, insnDef);
+            return sb.toString();
+        }
+
     	String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
 		Set<VMDataType[]> dontCareInput = operandSpec.getUnspecifiedOperands(insnDef.name, insnDef.dispatchVars.length);
     	Set<VMDataType[]> errorInput = operandSpec.getErrorOperands(insnDef.name, insnDef.dispatchVars.length);
@@ -170,21 +200,19 @@ public class InsnGen {
         String dispatchCode = synth.synthesise(p, insnDef.name, option);
     	
     	StringBuilder sb = new StringBuilder();
-    	if (insnDef.prologue != null)
-    	    sb.append(insnDef.prologue + "\n");
+        emitPrologue(sb, insnDef);
     	sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
     	for (String rand: insnDef.dispatchVars)
     		sb.append(",").append(rand);
     	sb.append(");");
-		sb.append(insnDef.name + "_HEAD:\n");
+        emitHeadLabel(sb, insnDef);
         sb.append(dispatchCode);
         for (String a: unusedActions) {
         	sb.append("if (0) {\n")
         	  .append(a)
         	  .append("}\n");
         }
-        if (insnDef.epilogue != null)
-            sb.append(insnDef.epilogue + "\n");
+        emitEpilogue(sb, insnDef);
         return sb.toString();
 	}
 
