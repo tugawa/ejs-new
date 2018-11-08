@@ -65,7 +65,12 @@ public class ProcDefinition {
 
         String otherwise = otherwisep.second();
         List<Pair<JSTypePair,String>> result = new LinkedList<Pair<JSTypePair,String>>();
-        if (vars.length == 1) {
+        if (vars.length == 0) {
+            if (twoOp.size() != 0 || oneOpL.size() != 0 || oneOpR.size() != 0) {
+                throw new Error("Only `otherwise` statement is accepted because there is no operands that type is JSValue.");
+            }
+            result.add(otherwisep);
+        } else if (vars.length == 1) {
             result.addAll(oneOpL);
             if (otherwise != null) {
                 for (VMDataType dt : VMDataType.all()) {

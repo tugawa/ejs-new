@@ -44,7 +44,7 @@ public class OperandSpecifications {
 
 	void load(Scanner sc) {
 		final String P_SYMBOL = "[a-zA-Z_]+";
-		final String P_OPERANDS = "\\(\\s*([^)]+)\\s*\\)";
+		final String P_OPERANDS = "\\(\\s*([^)]*)\\s*\\)";
 		final String P_BEHAVIOUR = "accept|error|unspecified";
 		final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+"+P_OPERANDS+"\\s+("+P_BEHAVIOUR+")\\s*$");
 		while (sc.hasNextLine()) {
@@ -53,16 +53,24 @@ public class OperandSpecifications {
 			if (matcher.matches()) {
 				MatchResult m = matcher.toMatchResult();
 				String insnName = m.group(1);
-				String[] allOps = m.group(2).split("\\s*,\\s*");
-				int n = 0;
-				for (String s: allOps)
-					if (!s.equals("-"))
-						n++;
-				String[] operandTypes = new String[n];
-				int i = 0;
-				for (String s: allOps)
-					if (!s.equals("-"))
-						operandTypes[i++] = s;
+
+				String[] operandTypes = null;
+
+                if (!m.group(2).equals("")) {
+                    int n = 0;
+                    String[] allOps = m.group(2).split("\\s*,\\s*");
+                    for (String s: allOps)
+                        if (!s.equals("-"))
+                            n++;
+                    operandTypes = new String[n];
+                    int i = 0;
+                    for (String s: allOps)
+                        if (!s.equals("-"))
+                            operandTypes[i++] = s;
+                } else {
+                    operandTypes = new String[0];
+                }
+
 				OperandSpecificationRecord.Behaviour behaviour;
 				if (m.group(3).equals("accept"))
 					behaviour = OperandSpecificationRecord.Behaviour.ACCEPT;
@@ -135,4 +143,26 @@ public class OperandSpecifications {
 	public Set<VMDataType[]> getErrorOperands(String insnName, int arity) {
 		return getOperands(insnName, arity, OperandSpecificationRecord.Behaviour.ERROR);
 	}
+
+    public boolean isAccepted(String insnName, VMDataType[] types) {
+        return findSpecificationRecord(insnName, types).behaviour == OperandSpecificationRecord.Behaviour.ACCEPT;
+    }
+    public boolean isUnspecified(String insnName, VMDataType[] types) {
+        return findSpecificationRecord(insnName, types).behaviour == OperandSpecificationRecord.Behaviour.UNSPECIFIED;
+    }
+    public boolean isError(String insnName, VMDataType[] types) {
+        return findSpecificationRecord(insnName, types).behaviour == OperandSpecificationRecord.Behaviour.ERROR;
+    }
+
+    public int numOfMatchingOperands(String insnName) {
+        int ret = -1;
+        for (OperandSpecificationRecord rc : spec) {
+            if (rc.insnName.equals(insnName)) {
+                if (ret == -1) ret = rc.operandTypes.length;
+                else if (ret != rc.operandTypes.length) throw new Error();
+            }
+        }
+        if (ret == -1) throw new Error();
+        return ret;
+    }
 }
