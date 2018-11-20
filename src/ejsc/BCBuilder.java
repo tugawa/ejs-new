@@ -90,8 +90,12 @@ class BCBuilder {
         }
 
         void assignAddress() {
-            for (int number = 0; number < bcodes.size(); number++)
-                bcodes.get(number).number = number;
+            int number = 0;
+            for (BCode bcode : bcodes) {
+                bcode.number = number;
+                // opecode + argument num
+                number += 1 + bcode.getArgsNum();
+            }
         }
 
         List<BCode> build() {
