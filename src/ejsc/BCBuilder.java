@@ -104,6 +104,11 @@ class BCBuilder {
             result.add(new ISendentry(sendEntry.dist(0)));
             result.add(new INumberOfLocals(numberOfLocals));
             result.add(new INumberOfInstruction(bcodes.size()));
+            int sum = 0;
+            for (BCode bcode : bcodes) {
+                sum += bcode.getArgsNum();
+            }
+            result.add(new INumberOfArgument(sum));
             result.addAll(bcodes);
             return result;
         }

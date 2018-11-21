@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 
 public class BCode {
     static enum LoadArgType {
-        NONE, REGISTER, LITERAL,
+        NONE, REGISTER, LITERAL, SHORTLITERAL,
         GLOBAL, LOCAL, PROP, ARGS, A,
         SPECCONST, NUMBER, STRING, REGEXP;
 
@@ -38,9 +38,9 @@ public class BCode {
             switch(this) {
             case NONE: case A:
                 return 0;
-            case REGISTER: case LITERAL: case GLOBAL: case SPECCONST:
+            case REGISTER: case SHORTLITERAL: case GLOBAL: case SPECCONST:
                 return 1;
-            case LOCAL: case PROP: case ARGS:
+            case LITERAL: case LOCAL: case PROP: case ARGS:
                 return 2;
             case NUMBER: case STRING: case REGEXP:
                 return 4;
@@ -211,6 +211,19 @@ class Label {
     }
 }
 
+class IShortFixnum extends BCode {
+    int n;
+    IShortFixnum(Register dst, int n) {
+        super(dst);
+        this.n = n;
+        this.store = StoreArgType.REGISTER;
+        this.load1 = LoadArgType.SHORTLITERAL;
+        this.load2 = LoadArgType.NONE;
+    }
+    public String toString() {
+        return super.toString("fixnum", dst, n);
+    }
+}
 
 class IFixnum extends BCode {
     int n;
@@ -1070,6 +1083,15 @@ class INumberOfInstruction extends BCode {
     }
     public String toString() {
         return super.toString("numberOfInstruction", n);
+    }
+}
+class INumberOfArgument extends BCode {
+    int n;
+    INumberOfArgument(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("numberOfArgument", n);
     }
 }
 
