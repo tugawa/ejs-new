@@ -38,12 +38,11 @@ public class BCode {
             switch(this) {
             case NONE: case A:
                 return 0;
-            case REGISTER: case SHORTLITERAL: case GLOBAL: case SPECCONST:
+            case REGISTER: case SHORTLITERAL: case GLOBAL:
+            case SPECCONST: case NUMBER: case STRING: case REGEXP:
                 return 1;
             case LITERAL: case LOCAL: case PROP: case ARGS:
                 return 2;
-            case NUMBER: case STRING: case REGEXP:
-                return 4;
             default:
                 throw new Error("undefined enum type: " + this.name());
             }
