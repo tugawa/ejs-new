@@ -27,6 +27,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class CodeGenerator extends IASTBaseVisitor {
+    static final int CHAR_MAX = 127;
+    static final int CHAR_MIN = -128;
 
     static class JSLabel {
         String name;
@@ -356,7 +358,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitNumericLiteral(IASTNumericLiteral node) {
         if (node.isInteger()) {
             int value = (int) node.value;
-            if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
+            if (value >= CHAR_MIN && value <= CHAR_MAX)
                 bcBuilder.push(new IShortFixnum(reg, value));
             else
                 bcBuilder.push(new IFixnum(reg, value));
@@ -716,7 +718,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IString(r1, "Array"));
         bcBuilder.push(new IGetglobal(constructorReg, r1));
         int value = node.elements.size();
-        if (value >= Short.MIN_VALUE && value <= Short.MAX_VALUE)
+        if (value >= CHAR_MIN && value <= CHAR_MAX)
             bcBuilder.push(new IShortFixnum(tmpRegs[0], value));
         else
             bcBuilder.push(new IFixnum(tmpRegs[0], value));

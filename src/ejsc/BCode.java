@@ -38,11 +38,13 @@ public class BCode {
             switch(this) {
             case NONE: case A:
                 return 0;
-            case REGISTER: case SHORTLITERAL: case GLOBAL:
-            case SPECCONST: case NUMBER: case STRING: case REGEXP:
+            case SHORTLITERAL: case SPECCONST:
                 return 1;
-            case LITERAL: case LOCAL: case PROP: case ARGS:
+            case REGISTER: case GLOBAL:
+            case NUMBER: case STRING: case REGEXP:
                 return 2;
+            case LITERAL: case LOCAL: case PROP: case ARGS:
+                return 4;
             default:
                 throw new Error("undefined enum type: " + this.name());
             }
@@ -58,9 +60,9 @@ public class BCode {
             case NONE: case A:
                 return 0;
             case REGISTER: case GLOBAL:
-                return 1;
-            case LOCAL: case PROP: case ARGS: case ARRAY:
                 return 2;
+            case LOCAL: case PROP: case ARGS: case ARRAY:
+                return 4;
             default:
                 throw new Error("undefined enum type: " + this.name());
             }
@@ -200,7 +202,7 @@ class Label {
         return bcode.number - number;
     }
     public int dist(int number, int argoffset) {
-        return bcode.number - number - argoffset;
+        return bcode.number - number - (argoffset + 1);
     }
     public BCode getDestBCode() {
     		return bcode;

@@ -94,7 +94,7 @@ class BCBuilder {
             for (BCode bcode : bcodes) {
                 bcode.number = number;
                 // opecode + argument num
-                number += 1 + bcode.getArgsNum();
+                number += 2 + bcode.getArgsNum();
             }
         }
 
