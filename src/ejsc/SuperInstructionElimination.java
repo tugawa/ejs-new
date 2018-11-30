@@ -58,14 +58,16 @@ public class SuperInstructionElimination {
 			BCode b = env.lookup(bc.src2);
 			if (b == null)
 				return null;
-			return new IAddFixnum(bc.dst, bc.src1, ((IFixnum) b).n);
+			//return new IAddFixnum(bc.dst, bc.src1, ((IFixnum) b).n);
+			return null;
 		}
 
 		protected BCode evalIGetprop(Environment env, IGetprop bc) {
 			BCode b = env.lookup(bc.prop);
 			if (b == null)
 				return null;
-			return new IGetpropFix(bc.dst, bc.obj, ((IFixnum) b).n);
+			//return new IGetpropFix(bc.dst, bc.obj, ((IFixnum) b).n);
+			return null;
 		}
 	}
 
