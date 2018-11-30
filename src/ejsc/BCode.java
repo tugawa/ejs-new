@@ -176,6 +176,10 @@ public class BCode {
     String toString(String opcode, Register op1, int op2, String op3) {
         return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
     }
+
+    String toString(String opcode, Register op1, Register op2, int op3) {
+        return opcode + " " + op1 + " " + op2 + " " + op3;
+    }
 }
 
 
@@ -317,9 +321,30 @@ class IRegexp extends BCode {
         return super.toString("regexp", dst, idx, "\"" + ptn + "\"");
     }
 }
-
-
-
+class IAddFixnum extends BCode {
+	Register src;
+	int value;
+	IAddFixnum(Register dst, Register src, int value) {
+		super(dst);
+		this.src = src;
+		this.value = value;
+	}
+	public String toString() {
+		return super.toString("addfixnum", dst, src, value);
+	}
+}
+class IGetpropFix extends BCode {
+	Register obj;
+	int prop;
+	IGetpropFix(Register dst, Register obj, int prop) {
+		super(dst);
+		this.obj = obj;
+		this.prop = prop;
+	}
+	public String toString() {
+		return super.toString("getpropfix", dst, obj, prop);
+	}
+}
 class IAdd extends BCode {
     Register src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
