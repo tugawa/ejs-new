@@ -61,6 +61,7 @@ public class Main {
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
         boolean optSuperInstruction = false;
+        boolean optCompactByteCode = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -118,6 +119,9 @@ public class Main {
 					    break;
 					case "-opt-sie":
 						info.optSuperInstruction = true;
+						break;
+					case "-opt-cbc":
+						info.optCompactByteCode = true;
 						break;
 					default:
 						throw new Error("unknown option: "+args[i]);
@@ -213,23 +217,45 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
         bcBuilder.optimisation(info);
+
+        // Change bytecode to Compact bytecode
+        if (info.optCompactByteCode) {
+            bcBuilder.transCBC();
+            bcBuilder.optimisationCBC(info);
+        }
+
         if (info.optPrintLowLevelCode) {
-        	bcBuilder.assignAddress();
-        	System.out.print(bcBuilder);
+            if (info.optCompactByteCode)
+                bcBuilder.assignAddress();
+            else
+                bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
+        }
+
+        if (info.optCompactByteCode) {
+            bcBuilder.assignAddressCBC();
+        } else {
+            bcBuilder.assignAddress();
         }
 
         // macro instruction expansion
-        bcBuilder.expandMacro();
+        bcBuilder.expandMacro(info);
 
         // resolve jump destinations
-    	bcBuilder.assignAddress();
+        if (info.optCompactByteCode)
+            bcBuilder.assignAddressCBC();
+        else
+            bcBuilder.assignAddress();
 
-    		if (info.optPrintLowLevelCode) {
-        	bcBuilder.assignAddress();
-        	System.out.print(bcBuilder);
+        if (info.optPrintLowLevelCode) {
+            if (info.optCompactByteCode)
+                bcBuilder.assignAddress();
+            else
+                bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
         }
 
-        List<BCode> bcodes = bcBuilder.build();
+        List<BCode> bcodes = bcBuilder.build(info);
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
