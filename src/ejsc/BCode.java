@@ -167,17 +167,6 @@ class Label {
     }
 }
 
-class IShortFixnum extends BCode {
-    int n;
-    IShortFixnum(Register dst, int n) {
-        super(dst);
-        this.n = n;
-    }
-    public String toString() {
-        return super.toString("fixnum", dst, n);
-    }
-}
-
 class IFixnum extends BCode {
     int n;
     IFixnum(Register dst, int n) {

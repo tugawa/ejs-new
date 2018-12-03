@@ -105,6 +105,22 @@ class BCBuilder {
             }
         }
 
+        void setJumpDist() {
+            // set jump dist
+            for (BCode bcode : bcodes) {
+                if (bcode instanceof ICBCJump)
+                    ((ICBCJump) bcode).resolveJumpDist();
+                if (bcode instanceof ICBCJumptrue)
+                    ((ICBCJumptrue) bcode).resolveJumpDist();
+                if (bcode instanceof ICBCJumpfalse)
+                    ((ICBCJumpfalse) bcode).resolveJumpDist();
+                if (bcode instanceof ICBCPushhandler)
+                    ((ICBCPushhandler) bcode).resolveJumpDist();
+                if (bcode instanceof ICBCLocalcall)
+                    ((ICBCLocalcall) bcode).resolveJumpDist();
+            }
+        }
+
         void assignAddressCBC() {
             int number = 0;
             for (BCode bcode : bcodes) {
@@ -225,6 +241,11 @@ class BCBuilder {
     void expandMacro(Main.Info info) {
         for (FunctionBCBuilder f: fBuilders)
             f.expandMacro(info);
+    }
+
+    void setJumpDist() {
+        for (FunctionBCBuilder f: fBuilders)
+            f.setJumpDist();
     }
  
     void assignAddressCBC() {
@@ -437,8 +458,6 @@ class BCBuilder {
     }
 
     CBCode changeCBC(BCode bc) {
-        if (bc instanceof IShortFixnum)
-            return new ICBCShortFixnum((IShortFixnum) bc);
         if (bc instanceof IFixnum)
             return new ICBCFixnum((IFixnum) bc);
         if (bc instanceof INumber)

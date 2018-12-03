@@ -27,8 +27,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class CodeGenerator extends IASTBaseVisitor {
-    static final int CHAR_MAX = 127;
-    static final int CHAR_MIN = -128;
 
     static class JSLabel {
         String name;
@@ -357,11 +355,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     @Override
     public Object visitNumericLiteral(IASTNumericLiteral node) {
         if (node.isInteger()) {
-            int value = (int) node.value;
-            if (value >= CHAR_MIN && value <= CHAR_MAX)
-                bcBuilder.push(new IShortFixnum(reg, value));
-            else
-                bcBuilder.push(new IFixnum(reg, value));
+            bcBuilder.push(new IFixnum(reg, (int) node.value));
         } else {
             bcBuilder.push(new INumber(reg, node.value));
         }
@@ -717,11 +711,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         tmpRegs[0] = env.getCurrentFrame().freshRegister();
         bcBuilder.push(new IString(r1, "Array"));
         bcBuilder.push(new IGetglobal(constructorReg, r1));
-        int value = node.elements.size();
-        if (value >= CHAR_MIN && value <= CHAR_MAX)
-            bcBuilder.push(new IShortFixnum(tmpRegs[0], value));
-        else
-            bcBuilder.push(new IFixnum(tmpRegs[0], value));
+        bcBuilder.push(new IFixnum(tmpRegs[0], node.elements.size()));
         bcBuilder.push(new INew(reg, constructorReg));
         bcBuilder.pushMCall(reg, constructorReg, tmpRegs, true, false);
         bcBuilder.pushMsetfl();
@@ -764,7 +754,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r1 = env.getCurrentFrame().freshRegister();
             Register r2 = env.getCurrentFrame().freshRegister();
             compileNode(node.operands[0], r1);
-            bcBuilder.push(new IShortFixnum(r2, -1));
+            bcBuilder.push(new IFixnum(r2, -1));
             bcBuilder.push(new IMul(reg, r1, r2));
 		}
 			break;
@@ -780,7 +770,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 Register r1 = env.getCurrentFrame().freshRegister();
                 Register r2 = env.getCurrentFrame().freshRegister();
                 compileNode(node.operands[0], r1);
-                bcBuilder.push(new IShortFixnum(r2, 1));
+                bcBuilder.push(new IFixnum(r2, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
                     bcBuilder.push(new IAdd(reg, r1, r2));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
@@ -791,7 +781,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 Register r1 = env.getCurrentFrame().freshRegister();
                 Register r2 = env.getCurrentFrame().freshRegister();
                 compileNode(node.operands[0], reg);
-                bcBuilder.push(new IShortFixnum(r1, 1));
+                bcBuilder.push(new IFixnum(r1, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
                     bcBuilder.push(new IAdd(r2, reg, r1));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
@@ -804,9 +794,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         case BNOT: {
             Register r1 = env.getCurrentFrame().freshRegister();
             compileNode(node.operands[0], reg);
-            bcBuilder.push(new IShortFixnum(r1, 0));
+            bcBuilder.push(new IFixnum(r1, 0));
             bcBuilder.push(new ISub(reg, r1, reg));
-            bcBuilder.push(new IShortFixnum(r1, 1));
+            bcBuilder.push(new IFixnum(r1, 1));
             bcBuilder.push(new ISub(reg, reg, r1));
 		}
 			break;
@@ -884,9 +874,9 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r3 = env.getCurrentFrame().freshRegister();
             bcBuilder.push(new IBitor(r3, r1, r2));  // r3 = a | b
             bcBuilder.push(new IBitand(r1, r1, r2));  // r1 = a & b
-            bcBuilder.push(new IShortFixnum(r2, 0));
+            bcBuilder.push(new IFixnum(r2, 0));
             bcBuilder.push(new ISub(r1, r2, r1));    // r1 = -(a & b)
-            bcBuilder.push(new IShortFixnum(r2, 1));
+            bcBuilder.push(new IFixnum(r2, 1));
             bcBuilder.push(new ISub(r1, r1, r2));    // r1 = ~(a & b)
             bcBuilder.push(new IBitand(reg, r1, r3)); // reg = ~(a & b) & (a | b)
         } break;

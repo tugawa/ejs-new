@@ -2,12 +2,38 @@ package ejsc;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CBCode extends BCode {
-    static enum LoadArgType {
-        NONE, REGISTER, LITERAL, SHORTLITERAL,
-        GLOBAL, LOCAL, PROP, ARGS, A,
-        SPECCONST, NUMBER, STRING, REGEXP;
+import ejsc.Argument.ArgType;
 
+public class CBCode extends BCode {
+    protected Argument store, load1, load2;
+
+    CBCode() {}
+
+    int getArgsNum() {
+        return this.store.getArgNum() + this.load1.getArgNum() + this.load2.getArgNum();
+    }
+
+    String toStringArgs() {
+        return this.store.type.name() + "_" + this.load1.type.name() + "_" + this.load2.type.name();
+    }
+
+    String toString(String op) {
+        String s = op + " " + toStringArgs();
+        if (store.getArgNum() != 0)
+            s += " " + store.toString();
+        if (load1.getArgNum() != 0)
+            s += " " + load1.toString();
+        if (load2.getArgNum() != 0)
+            s += " " + load2.toString();
+        return s;
+    }
+}
+
+class Argument {
+    static enum ArgType {
+        NONE, REGISTER, LITERAL, SHORTLITERAL,
+        GLOBAL, LOCAL, PROP, ARGS, ARRAY, A,
+        SPECCONST, NUMBER, STRING, REGEXP;
         public int getArgNum() {
             switch(this) {
             case NONE: case A:
@@ -17,619 +43,541 @@ public class CBCode extends BCode {
             case REGISTER: case GLOBAL:
             case NUMBER: case STRING: case REGEXP:
                 return 2;
-            case LITERAL: case LOCAL: case PROP: case ARGS:
+            case LITERAL: case LOCAL:
+            case PROP: case ARGS: case ARRAY:
                 return 4;
             default:
                 throw new Error("undefined enum type: " + this.name());
             }
         }
     }
-    static enum StoreArgType {
-        REGISTER, GLOBAL,
-        LOCAL, PROP, A,
-        ARRAY, ARGS, NONE;
 
-        public int getArgNum() {
-            switch(this) {
-            case NONE: case A:
-                return 0;
-            case REGISTER: case GLOBAL:
-                return 2;
-            case LOCAL: case PROP: case ARGS: case ARRAY:
-                return 4;
-            default:
-                throw new Error("undefined enum type: " + this.name());
-            }
-        }
-    }
-    StoreArgType store;
-    LoadArgType  load1, load2;
+    static final int CHAR_MAX = 127;
+    static final int CHAR_MIN = -128;
 
-    CBCode() {}
+    ArgType type;
 
-    CBCode(Register dst) {
-        super(dst);
+    Argument() {
+        this.type = ArgType.NONE;
     }
 
-    int getArgsNum() {
-        return this.store.getArgNum() + this.load1.getArgNum() + this.load2.getArgNum();
+    Argument(ArgType type) {
+        this.type = type;
     }
 
-    String toStringArgs() {
-        if (store == null)
-            return "";
-        return " " + store.toString() +
-               "_" + load1.toString() +
-               "_" + load2.toString();
+    int getArgNum() {
+        return type.getArgNum();
     }
-    
-    String toString(String opcode) {
-        return opcode + toStringArgs();
+
+    boolean isShortRange(int n) {
+        return (n >= CHAR_MIN && n <= CHAR_MAX);
     }
-    String toString(String opcode, Register op1) {
-        return opcode + toStringArgs() + " " + op1;
-    }
-    String toString(String opcode, Register op1, Register op2) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2;
-    }
-    String toString(String opcode, Register op1, Register op2, Register op3) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, Register op1, String op2) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2;
-    }
-    String toString(String opcode, Register op1, int op2) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2;
-    }
-    String toString(String opcode, Register op1, double op2) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2;
-    }
-    String toString(String opcode, Register op1, int op2, int op3) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, Register op1, int op2, Register op3) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, int op1, int op2, Register op3) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, int op1) {
-        return opcode + toStringArgs() + " " + op1;
-    }
-    String toString(String opcode, int op1, int op2) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2;
-    }
-    String toString(String opcode, Register op1, int op2, String op3) {
-        return opcode + toStringArgs() + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, Register op1, Register op2, int op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+
+    public String toString() {
+        return "";
     }
 }
 
-class ICBCShortFixnum extends CBCode {
+class ALiteral extends Argument {
     int n;
-    ICBCShortFixnum(IShortFixnum bc) {
-        super(bc.dst);
-        this.n = bc.n;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.SHORTLITERAL;
-        this.load2 = LoadArgType.NONE;
+    ALiteral(int n) {
+        super(ArgType.LITERAL);
+        if (isShortRange(n))
+            type = ArgType.SHORTLITERAL;
+        this.n = n;
+    }
+
+    // Use to jump label
+    ALiteral() {
+        super(ArgType.LITERAL);
+        this.n = 0;
+    }
+    void replaceJampDist(int n) {
+        this.n = n;
+    }
+
+    public String toString() {
+        return Integer.toString(n);
+    }
+}
+class AString extends Argument {
+    String s;
+    AString(String s) {
+        super(ArgType.STRING);
+        this.s = s;
     }
     public String toString() {
-        return super.toString("fixnum", dst, n);
+        return "\"" + s + "\"";
+    }
+}
+class ARegexp extends Argument {
+    int idx;
+    String ptn;
+    ARegexp(int idx, String ptn) {
+        super(ArgType.REGEXP);
+        this.idx = idx;
+        this.ptn = ptn;
+    }
+    public String toString() {
+        return idx + " " + "\"" + ptn + "\"";
+    }
+}
+class ANumber extends Argument {
+    double n;
+    ANumber(double n) {
+        super(ArgType.NUMBER);
+        this.n = n;
+    }
+    public String toString() {
+        return Double.toString(n);
+    }
+}
+class ASpecial extends Argument {
+    String s;
+    ASpecial(String s) {
+        super(ArgType.SPECCONST);
+        this.s = s;
+    }
+    public String toString() {
+        return s;
+    }
+}
+class ARegister extends Argument {
+    Register reg;
+    ARegister(Register reg) {
+        super(ArgType.REGISTER);
+        this.reg = reg;
+    }
+    ARegister(Register reg, ArgType type) {
+        super(type);
+        this.reg = reg;
+    }
+    public String toString() {
+        return reg.toString();
+    }
+}
+class ARegPair extends Argument {
+    Register reg1, reg2;
+    ARegPair(Register reg1, Register reg2, ArgType type) {
+        super(type);
+        this.reg1 = reg1;
+        this.reg2 = reg2;
+    }
+    public String toString() {
+        return reg1 + " " + reg2;
+    }
+}
+class ALitPair extends Argument {
+    int lit1, lit2;
+    ALitPair(int lit1, int lit2, ArgType type) {
+        super(type);
+        this.lit1 = lit1;
+        this.lit2 = lit2;
+    }
+    public String toString() {
+        return lit1 + " " + lit2;
+    }
+}
+class ARegLitPair extends Argument {
+    Register reg;
+    int lit;
+    ARegLitPair(Register reg, int lit, ArgType type) {
+        super(type);
+        this.reg = reg;
+        this.lit = lit;
+    }
+    public String toString() {
+        return reg + " " + lit;
     }
 }
 
 class ICBCFixnum extends CBCode {
-    int n;
     ICBCFixnum(IFixnum bc) {
-        super(bc.dst);
-        this.n = bc.n;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ALiteral(bc.n);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("fixnum", dst, n);
+        return super.toString("fixnum");
     }
 }
 class ICBCNumber extends CBCode {
-    double n;
     ICBCNumber(INumber bc) {
-        super(bc.dst);
-        this.n = bc.n;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.NUMBER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ANumber(bc.n);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("number", dst, n);
+        return super.toString("number");
     }
 }
 class ICBCString extends CBCode {
-    String str;
     ICBCString(IString bc) {
-        super(bc.dst);
         Pattern pt = Pattern.compile("\n");
         Matcher match = pt.matcher(bc.str);
-        this.str = match.replaceAll("\\\\n");
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.STRING;
-        this.load2 = LoadArgType.NONE;
+        String str = match.replaceAll("\\\\n");
+        store = new ARegister(bc.dst);
+        load1 = new AString(str);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("string", dst, "\"" + str + "\"");
+        return super.toString("string");
     }
 }
 class ICBCBooleanconst extends CBCode {
-    boolean b;
     ICBCBooleanconst(IBooleanconst bc) {
-        super(bc.dst);
-        this.b = bc.b;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.SPECCONST;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ASpecial(bc.b ? "true" : "false");
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("specconst", dst, b ? "true" : "false");
+        return super.toString("specconst");
     }
 }
 class ICBCNullconst extends CBCode {
     ICBCNullconst(INullconst bc) {
-        super(bc.dst);
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.SPECCONST;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ASpecial("null");
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("specconst", dst, "null");
+        return super.toString("specconst");
     }
 }
 class ICBCUndefinedconst extends CBCode {
     ICBCUndefinedconst(IUndefinedconst bc) {
-        super(bc.dst);
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.SPECCONST;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ASpecial("undefined");
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("specconst", dst, "undefined");
+        return super.toString("specconst");
     }
 }
 class ICBCRegexp extends CBCode {
     int idx;
     String ptn;
     ICBCRegexp(IRegexp bc) {
-        super(bc.dst);
         this.idx = bc.idx;
         this.ptn = bc.ptn;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGEXP;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegexp(bc.idx, bc.ptn);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("regexp", dst, idx, "\"" + ptn + "\"");
+        return super.toString("regexp");
     }
 }
 class ICBCAdd extends CBCode {
-    Register src1, src2;
     ICBCAdd(IAdd bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("add", dst, src1, src2);
+        return super.toString("add");
     }
 }
 class ICBCSub extends CBCode {
-    Register src1, src2;
     ICBCSub(ISub bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("sub", dst, src1, src2);
+        return super.toString("sub");
     }
 }
 class ICBCMul extends CBCode {
-    Register src1, src2;
     ICBCMul(IMul bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("mul", dst, src1, src2);
+        return super.toString("mul");
     }
 }
 class ICBCDiv extends CBCode {
-    Register src1, src2;
     ICBCDiv(IDiv bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("div", dst, src1, src2);
+        return super.toString("div");
     }
 }
 class ICBCMod extends CBCode {
-    Register src1, src2;
     ICBCMod(IMod bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("mod", dst, src1, src2);
+        return super.toString("mod");
     }
 }
 class ICBCBitor extends CBCode {
-    Register src1, src2;
     ICBCBitor(IBitor bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("bitor", dst, src1, src2);
+        return super.toString("bitor");
     }
 }
 class ICBCBitand extends CBCode {
-    Register src1, src2;
     ICBCBitand(IBitand bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("bitand", dst, src1, src2);
+        return super.toString("bitand");
     }
 }
 class ICBCLeftshift extends CBCode {
-    Register src1, src2;
     ICBCLeftshift(ILeftshift bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("leftshift", dst, src1, src2);
+        return super.toString("leftshift");
     }
 }
 class ICBCRightshift extends CBCode {
-    Register src1, src2;
     ICBCRightshift(IRightshift bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("rightshift", dst, src1, src2);
+        return super.toString("rightshift");
     }
 }
 class ICBCUnsignedrightshift extends CBCode {
-    Register src1, src2;
     ICBCUnsignedrightshift(IUnsignedrightshift bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("unsignedrightshift", dst, src1, src2);
+        return super.toString("unsignedrightshift");
     }
 }
 
 
 // relation
 class ICBCEqual extends CBCode {
-    Register src1, src2;
     ICBCEqual(IEqual bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("equal", dst, src1, src2);
+        return super.toString("equal");
     }
 }
 class ICBCEq extends CBCode {
-    Register src1, src2;
     ICBCEq(IEq bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("eq", dst, src1, src2);
+        return super.toString("eq");
     }
 }
 class ICBCLessthan extends CBCode {
-    Register src1, src2;
     ICBCLessthan(ILessthan bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("lessthan", dst, src1, src2);
+        return super.toString("lessthan");
     }
 }
 class ICBCLessthanequal extends CBCode {
-    Register src1, src2;
     ICBCLessthanequal(ILessthanequal bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("lessthanequal", dst, src1, src2);
+        return super.toString("lessthanequal");
     }
 }
 
 
 class ICBCNot extends CBCode {
-    Register src;
     ICBCNot(INot bc) {
-        super(bc.dst);
-        this.src = bc.src;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("not", dst, src);
+        return super.toString("not");
     }
 }
 class ICBCGetglobalobj extends CBCode {
     ICBCGetglobalobj(IGetglobalobj bc) {
-        super(bc.dst);
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new Argument();
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("getglobalobj", dst);
+        return super.toString("getglobalobj");
     }
 }
 class ICBCNewargs extends CBCode {
     ICBCNewargs() {
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
     }
     public String toString() {
         return super.toString("newargs");
     }
 }
 class ICBCNewframe extends CBCode {
-    int len;
-    int status;
     ICBCNewframe(INewframe bc) {
-        this.len = bc.len;
-        this.status = bc.status;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.LITERAL;
+        store = new Argument();
+        load1 = new ALiteral(bc.len);
+        load2 = new ALiteral(bc.status);
     }
     public String toString() {
-        return super.toString("newframe", len, status);
+        return super.toString("newframe");
     }
 }
 class ICBCGetglobal extends CBCode {
-    Register lit;
     ICBCGetglobal(IGetglobal bc) {
-        super(bc.dst);
-        this.lit = bc.lit;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.GLOBAL;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.lit, ArgType.GLOBAL);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("getglobal", dst, lit);
+        return super.toString("getglobal");
     }
 }
 class ICBCSetglobal extends CBCode {
-    Register lit, src;
     ICBCSetglobal(ISetglobal bc) {
-        this.lit = bc.lit;
-        this.src = bc.src;
-        this.store = StoreArgType.GLOBAL;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.lit, ArgType.GLOBAL);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setglobal", lit, src);
+        return super.toString("setglobal");
     }
 }
 class ICBCGetlocal extends CBCode {
-    int depth, n;
     ICBCGetlocal(IGetlocal bc) {
-        super(bc.dst);
-        this.depth = bc.depth;
-        this.n = bc.n;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.LOCAL;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ALitPair(bc.depth, bc.n, ArgType.LOCAL);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("getlocal", dst, depth, n);
+        return super.toString("getlocal");
     }
 }
 class ICBCSetlocal extends CBCode {
-    int depth, n;
-    Register src;
     ICBCSetlocal(ISetlocal bc) {
-        this.depth = bc.depth;
-        this.n = bc.n;
-        this.src = bc.src;
-        this.store = StoreArgType.LOCAL;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ALitPair(bc.depth, bc.n, ArgType.LOCAL);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setlocal", depth, n, src);
+        return super.toString("setlocal");
     }
 }
 class ICBCGetarg extends CBCode {
-    int depth, n;
     ICBCGetarg(IGetarg bc) {
-        super(bc.dst);
-        this.depth = bc.depth;
-        this.n = bc.n;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.ARGS;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ALitPair(bc.depth, bc.n, ArgType.ARGS);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("getarg", dst, depth, n);
+        return super.toString("getarg");
     }
 }
 class ICBCSetarg extends CBCode {
-    int depth, n;
-    Register src;
     ICBCSetarg(ISetarg bc) {
-        this.depth = bc.depth;
-        this.n = bc.n;
-        this.src = bc.src;
-        this.store = StoreArgType.ARGS;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ALitPair(bc.depth, bc.n, ArgType.ARGS);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setarg", depth, n, src);
+        return super.toString("setarg");
     }
 }
 class ICBCGetprop extends CBCode {
-    Register obj, prop;
     ICBCGetprop(IGetprop bc) {
-        super(bc.dst);
-        this.obj = bc.obj;
-        this.prop = bc.prop;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.PROP;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegPair(bc.obj, bc.prop, ArgType.PROP);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("getprop", dst, obj, prop);
+        return super.toString("getprop");
     }
 }
 class ICBCSetprop extends CBCode {
-    Register obj, prop, src;
     ICBCSetprop(ISetprop bc) {
-        this.obj = bc.obj;
-        this.prop = bc.prop;
-        this.src = bc.src;
-        this.store = StoreArgType.PROP;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegPair(bc.obj, bc.prop, ArgType.PROP);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setprop", obj, prop, src);
+        return super.toString("setprop");
     }
 }
 class ICBCSetarray extends CBCode {
-    Register ary;
-    int n;
-    Register src;
     ICBCSetarray(ISetarray bc) {
-        this.ary = bc.ary;
-        this.n = bc.n;
-        this.src = bc.src;
-        this.store = StoreArgType.ARRAY;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegLitPair(bc.ary, bc.n, ArgType.ARRAY);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setarray", ary, n, src);
+        return super.toString("setarray");
     }
 }
 class ICBCMakeclosure extends CBCode {
-    int idx;
     ICBCMakeclosure(IMakeclosure bc) {
-        super(bc.dst);
-        this.idx = bc.idx;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ALiteral(bc.idx);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("makeclosure", dst, idx);
+        return super.toString("makeclosure");
     }
 }
 class ICBCGeta extends CBCode {
     ICBCGeta(IGeta bc) {
-        super(bc.dst);
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.A;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new Argument(ArgType.A);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("geta", dst);
+        return super.toString("geta");
     }
 }
 class ICBCSeta extends CBCode {
-    Register src;
     ICBCSeta(ISeta bc) {
-        this.src = bc.src;
-        this.store = StoreArgType.A;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument(ArgType.A);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("seta", src);
+        return super.toString("seta");
     }
 }
 class ICBCRet extends CBCode {
     ICBCRet() {
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
     }
     @Override
     public boolean isFallThroughInstruction() {
@@ -640,137 +588,103 @@ class ICBCRet extends CBCode {
     }
 }
 class ICBCMove extends CBCode {
-    Register src;
     ICBCMove(IMove bc) {
-        super(bc.dst);
-        this.src = bc.src;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("move", dst, src);
+        return super.toString("move");
     }
 }
 class ICBCIsundef extends CBCode {
-    Register src;
     ICBCIsundef(IIsundef bc) {
-        super(bc.dst);
-        this.src = bc.src;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("isundef", dst, src);
+        return super.toString("isundef");
     }
 }
 class ICBCIsobject extends CBCode {
-    Register src;
     ICBCIsobject(IIsobject bc) {
-        super(bc.dst);
-        this.src = bc.src;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("isobject", dst, src);
+        return super.toString("isobject");
     }
 }
 class ICBCInstanceof extends CBCode {
-    Register src1, src2;
     ICBCInstanceof(IInstanceof bc) {
-        super(bc.dst);
-        this.src1 = bc.src1;
-        this.src2 = bc.src2;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.REGISTER;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.src1);
+        load2 = new ARegister(bc.src2);
     }
     public String toString() {
-        return super.toString("instanceof", dst, src1, src2);
+        return super.toString("instanceof");
     }
 }
 class ICBCCall extends CBCode {
-    Register callee;
-    int numOfArgs;
     ICBCCall(ICall bc) {
-        this.callee = bc.callee;
-        this.numOfArgs = bc.numOfArgs;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.LITERAL;
+        store = new Argument();
+        load1 = new ARegister(bc.callee);
+        load2 = new ALiteral(bc.numOfArgs);
     }
     public String toString() {
-        return super.toString("call", callee, numOfArgs);
+        return super.toString("call");
     }
 }
 class ICBCSend extends CBCode {
-    Register callee;
-    int numOfArgs;
     ICBCSend(ISend bc) {
-        this.callee = bc.callee;
-        this.numOfArgs = bc.numOfArgs;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.LITERAL;
+        store = new Argument();
+        load1 = new ARegister(bc.callee);
+        load2 = new ALiteral(bc.numOfArgs);
     }
     public String toString() {
-        return super.toString("send", callee, numOfArgs);
+        return super.toString("send");
     }
 }
 class ICBCNew extends CBCode {
-    Register constructor;
     ICBCNew(INew bc) {
-        super(bc.dst);
-        this.constructor = bc.constructor;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.constructor);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("new", dst, constructor);
+        return super.toString("new");
     }
 }
 class ICBCNewsend extends CBCode {
-    Register constructor;
-    int numOfArgs;
     ICBCNewsend(INewsend bc) {
-        this.constructor = bc.constructor;
-        this.numOfArgs = bc.numOfArgs;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.LITERAL;
+        store = new Argument();
+        load1 = new ARegister(bc.constructor);
+        load2 = new ALiteral(bc.numOfArgs);
     }
     public String toString() {
-        return super.toString("newsend", constructor, numOfArgs);
+        return super.toString("newsend");
     }
 }
 class ICBCMakesimpleiterator extends CBCode {
-    Register obj;
     ICBCMakesimpleiterator(IMakesimpleiterator bc) {
-        super(bc.obj);
-        this.obj = bc.dst;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.obj);
+        load1 = new ARegister(bc.dst);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("makesimpleiterator", dst, obj);
+        return super.toString("makesimpleiterator");
     }
 }
 class ICBCNextpropnameidx extends CBCode {
-    Register ite;
     ICBCNextpropnameidx(INextpropnameidx bc) {
-        super(bc.ite);
-        this.ite = bc.dst;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.ite);
+        load1 = new ARegister(bc.dst);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("nextpropnameidx", dst, ite);
+        return super.toString("nextpropnameidx");
     }
 }
 
@@ -779,74 +693,80 @@ class ICBCNextpropnameidx extends CBCode {
 class ICBCJump extends CBCode {
     Label label;
     ICBCJump(IJump bc) {
+        store = new Argument();
+        load1 = new ALiteral();
+        load2 = new Argument();
         this.label = bc.label;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+    }
+    void resolveJumpDist() {
+        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
     }
     public String toString() {
-        return super.toString("jump", label.dist(number, this.getArgsNum()));
+        return super.toString("jump");
     }
 }
 class ICBCJumptrue extends CBCode {
-    Register test;
     Label label;
     ICBCJumptrue(IJumptrue bc) {
-        this.test = bc.test;
+        store = new Argument();
+        load1 = new ARegister(bc.test);
+        load2 = new ALiteral();
         this.label = bc.label;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.LITERAL;
+    }
+    void resolveJumpDist() {
+        ((ALiteral) load2).replaceJampDist(label.dist(number, this.getArgsNum()));
     }
     public String toString() {
-        return super.toString("jumptrue", test, label.dist(number, this.getArgsNum()));
+        return super.toString("jumptrue");
     }
 }
 class ICBCJumpfalse extends CBCode {
-    Register test;
     Label label;
     ICBCJumpfalse(IJumpfalse bc) {
-        this.test = bc.test;
+        store = new Argument();
+        load1 = new ARegister(bc.test);
+        load2 = new ALiteral();
         this.label = bc.label;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.LITERAL;
+    }
+    void resolveJumpDist() {
+        ((ALiteral) load2).replaceJampDist(label.dist(number, this.getArgsNum()));
     }
     public String toString() {
-        return super.toString("jumpfalse", test, label.dist(number, this.getArgsNum()));
+        return super.toString("jumpfalse");
     }
 }
 
 
 class ICBCThrow extends CBCode {
-    Register reg;
     ICBCThrow(IThrow bc) {
-        this.reg = bc.reg;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.REGISTER;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new ARegister(bc.reg);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("throw", reg);
+        return super.toString("throw");
     }
 }
 class ICBCPushhandler extends CBCode {
     Label label;
     ICBCPushhandler(IPushhandler bc) {
+        store = new Argument();
+        load1 = new ALiteral();
+        load2 = new Argument();
         this.label = bc.label;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+    }
+    void resolveJumpDist() {
+        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
     }
     public String toString() {
-        return super.toString("pushhandler", label.dist(number, this.getArgsNum()));
+        return super.toString("pushhandler");
     }
 }
 class ICBCPophandler extends CBCode {
     ICBCPophandler() {
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
     }
     public String toString() {
         return super.toString("pophandler");
@@ -855,20 +775,23 @@ class ICBCPophandler extends CBCode {
 class ICBCLocalcall extends CBCode {
     Label label;
     ICBCLocalcall(ILocalcall bc) {
+        store = new Argument();
+        load1 = new ALiteral();
+        load2 = new Argument();
         this.label = bc.label;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+    }
+    void resolveJumpDist() {
+        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
     }
     public String toString() {
-        return super.toString("localcall", label.dist(number, this.getArgsNum()));
+        return super.toString("localcall");
     }
 }
 class ICBCLocalret extends CBCode {
     ICBCLocalret() {
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
     }
     public String toString() {
         return super.toString("localret");
@@ -876,36 +799,31 @@ class ICBCLocalret extends CBCode {
 }
 class ICBCPoplocal extends CBCode {
     ICBCPoplocal() {
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.NONE;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
     }
     public String toString() {
         return super.toString("poplocal");
     }
 }
 class ICBCSetfl extends CBCode {
-    int fl;
     ICBCSetfl(ISetfl bc) {
-        this.fl = bc.fl;
-        this.store = StoreArgType.NONE;
-        this.load1 = LoadArgType.LITERAL;
-        this.load2 = LoadArgType.NONE;
+        store = new Argument();
+        load1 = new ALiteral(bc.fl);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("setfl", fl);
+        return super.toString("setfl");
     }
 }
 class ICBCError extends CBCode {
-    String str;
     ICBCError(IError bc) {
-        super(bc.dst);
-        this.str = bc.str;
-        this.store = StoreArgType.REGISTER;
-        this.load1 = LoadArgType.STRING;
-        this.load2 = LoadArgType.NONE;
+        store = new ARegister(bc.dst);
+        load1 = new AString(bc.str);
+        load2 = new Argument();
     }
     public String toString() {
-        return super.toString("error", dst, str);
+        return super.toString("error");
     }
 }

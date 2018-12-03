@@ -255,6 +255,9 @@ public class Main {
             System.out.print(bcBuilder);
         }
 
+        if (info.optCompactByteCode)
+            bcBuilder.setJumpDist();
+
         List<BCode> bcodes = bcBuilder.build(info);
 
         writeBCodeToSBCFile(bcodes, info.outputFileName);
