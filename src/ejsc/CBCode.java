@@ -33,17 +33,19 @@ class Argument {
     static enum ArgType {
         NONE, REGISTER, LITERAL, SHORTLITERAL,
         GLOBAL, LOCAL, PROP, ARGS, ARRAY, A,
-        SPECCONST, NUMBER, STRING, REGEXP;
+        SPECCONST, NUMBER, STRING, REGEXP,
+        SHORTFIXNUM, FIXNUM;
         public int getArgNum() {
             switch(this) {
             case NONE: case A:
                 return 0;
             case SHORTLITERAL: case SPECCONST:
+            case SHORTFIXNUM:
                 return 1;
             case REGISTER: case GLOBAL:
             case NUMBER: case STRING: case REGEXP:
                 return 2;
-            case LITERAL: case LOCAL:
+            case LITERAL: case FIXNUM: case LOCAL:
             case PROP: case ARGS: case ARRAY:
                 return 4;
             default:
@@ -93,6 +95,19 @@ class ALiteral extends Argument {
         this.n = 0;
     }
     void replaceJampDist(int n) {
+        this.n = n;
+    }
+
+    public String toString() {
+        return Integer.toString(n);
+    }
+}
+class AFixnum extends Argument {
+    int n;
+    AFixnum(int n) {
+        super(ArgType.FIXNUM);
+        if (isShortRange(n))
+            type = ArgType.SHORTFIXNUM;
         this.n = n;
     }
 
@@ -194,7 +209,7 @@ class ARegLitPair extends Argument {
 class ICBCFixnum extends CBCode {
     ICBCFixnum(IFixnum bc) {
         store = new ARegister(bc.dst);
-        load1 = new ALiteral(bc.n);
+        load1 = new AFixnum(bc.n);
         load2 = new Argument();
     }
     public String toString() {
