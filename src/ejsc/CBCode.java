@@ -1,16 +1,52 @@
 package ejsc;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import ejsc.Argument.ArgType;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
-public class CBCode extends BCode {
+public class CBCode {
+    int number;
     protected Argument store, load1, load2;
+
+    ArrayList<CBCLabel> labels = new ArrayList<CBCLabel>();
 
     CBCode() {}
 
+    CBCode(Argument store, Argument load1, Argument load2) {
+        this.store = store;
+        this.load1 = load1;
+        this.load2 = load2;
+    }
+
+    void addLabels(List<CBCLabel> labels) {
+        for (CBCLabel l: labels) {
+            l.replaceDestCBCode(this);
+            this.labels.add(l);
+        }
+    }
+
+    ArrayList<CBCLabel> getLabels() {
+        return labels;
+    }
+
+    public boolean isFallThroughInstruction() {
+        return true;
+    }
+
+    public CBCode getBranchTarget() {
+        return null;
+    }
+
     int getArgsNum() {
         return this.store.getArgNum() + this.load1.getArgNum() + this.load2.getArgNum();
+    }
+
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        srcs.addAll(store.getSrcRegisters());
+        srcs.addAll(load1.getSrcRegisters());
+        srcs.addAll(load2.getSrcRegisters());
+        return srcs;
     }
 
     String toStringArgs() {
@@ -26,6 +62,36 @@ public class CBCode extends BCode {
         if (load2.getArgNum() != 0)
             s += " " + load2.toString();
         return s;
+    }
+
+    String toString(String op, int n) {
+        return op + " " + n;
+    }
+
+    public Register getStoreRegister() {
+        if (store.type == Argument.ArgType.REGISTER)
+            return ((ARegister) store).reg;
+        return null;
+    }
+}
+
+class CBCLabel {
+    private CBCode bcode;
+    CBCLabel() {}
+    CBCLabel(CBCode bcode) {
+        this.bcode = bcode;
+    }
+    public int dist(int number) {
+        return bcode.number - number;
+    }
+    public int dist(int number, int argoffset) {
+        return bcode.number - number - (argoffset + 1);
+    }
+    public CBCode getDestCBCode() {
+        return bcode;
+    }
+    public void replaceDestCBCode(CBCode bcode) {
+        this.bcode = bcode;
     }
 }
 
@@ -78,6 +144,19 @@ class Argument {
     public String toString() {
         return "";
     }
+    public HashSet<Register> getSrcRegisters() {
+        return new HashSet<Register>();
+    }
+
+    public boolean isConstant() {
+        switch(type) {
+        case SPECCONST: case SHORTFIXNUM:
+        case NUMBER: case FIXNUM:
+            return true;
+        default:
+            return false;
+        }
+    }
 }
 
 class ALiteral extends Argument {
@@ -94,7 +173,7 @@ class ALiteral extends Argument {
         super(ArgType.LITERAL);
         this.n = 0;
     }
-    void replaceJampDist(int n) {
+    void replaceJumpDist(int n) {
         this.n = n;
     }
 
@@ -170,6 +249,11 @@ class ARegister extends Argument {
     public String toString() {
         return reg.toString();
     }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> src = new HashSet<Register>();
+        src.add(reg);
+        return src;
+    }
 }
 class ARegPair extends Argument {
     Register reg1, reg2;
@@ -180,6 +264,12 @@ class ARegPair extends Argument {
     }
     public String toString() {
         return reg1 + " " + reg2;
+    }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        srcs.add(reg1);
+        srcs.add(reg2);
+        return srcs;
     }
 }
 class ALitPair extends Argument {
@@ -204,86 +294,30 @@ class ARegLitPair extends Argument {
     public String toString() {
         return reg + " " + lit;
     }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> src = new HashSet<Register>();
+        src.add(reg);
+        return src;
+    }
 }
 
-class ICBCFixnum extends CBCode {
-    ICBCFixnum(IFixnum bc) {
-        store = new ARegister(bc.dst);
-        load1 = new AFixnum(bc.n);
-        load2 = new Argument();
+class ICBCNop extends CBCode {
+    ICBCNop(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    ICBCNop(Argument store, Argument load1) {
+        this.store = store;
+        this.load1 = load1;
+        this.load2 = new Argument();
     }
     public String toString() {
-        return super.toString("fixnum");
-    }
-}
-class ICBCNumber extends CBCode {
-    ICBCNumber(INumber bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ANumber(bc.n);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("number");
-    }
-}
-class ICBCString extends CBCode {
-    ICBCString(IString bc) {
-        Pattern pt = Pattern.compile("\n");
-        Matcher match = pt.matcher(bc.str);
-        String str = match.replaceAll("\\\\n");
-        store = new ARegister(bc.dst);
-        load1 = new AString(str);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("string");
-    }
-}
-class ICBCBooleanconst extends CBCode {
-    ICBCBooleanconst(IBooleanconst bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ASpecial(bc.b ? "true" : "false");
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("specconst");
-    }
-}
-class ICBCNullconst extends CBCode {
-    ICBCNullconst(INullconst bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ASpecial("null");
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("specconst");
-    }
-}
-class ICBCUndefinedconst extends CBCode {
-    ICBCUndefinedconst(IUndefinedconst bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ASpecial("undefined");
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("specconst");
-    }
-}
-class ICBCRegexp extends CBCode {
-    int idx;
-    String ptn;
-    ICBCRegexp(IRegexp bc) {
-        this.idx = bc.idx;
-        this.ptn = bc.ptn;
-        store = new ARegister(bc.dst);
-        load1 = new ARegexp(bc.idx, bc.ptn);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("regexp");
+        return super.toString("nop");
     }
 }
 class ICBCAdd extends CBCode {
+    ICBCAdd(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCAdd(IAdd bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -294,6 +328,9 @@ class ICBCAdd extends CBCode {
     }
 }
 class ICBCSub extends CBCode {
+    ICBCSub(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCSub(ISub bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -304,6 +341,9 @@ class ICBCSub extends CBCode {
     }
 }
 class ICBCMul extends CBCode {
+    ICBCMul(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCMul(IMul bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -314,6 +354,9 @@ class ICBCMul extends CBCode {
     }
 }
 class ICBCDiv extends CBCode {
+    ICBCDiv(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCDiv(IDiv bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -324,6 +367,9 @@ class ICBCDiv extends CBCode {
     }
 }
 class ICBCMod extends CBCode {
+    ICBCMod(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCMod(IMod bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -334,6 +380,9 @@ class ICBCMod extends CBCode {
     }
 }
 class ICBCBitor extends CBCode {
+    ICBCBitor(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCBitor(IBitor bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -344,6 +393,9 @@ class ICBCBitor extends CBCode {
     }
 }
 class ICBCBitand extends CBCode {
+    ICBCBitand(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCBitand(IBitand bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -354,6 +406,9 @@ class ICBCBitand extends CBCode {
     }
 }
 class ICBCLeftshift extends CBCode {
+    ICBCLeftshift(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCLeftshift(ILeftshift bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -364,6 +419,9 @@ class ICBCLeftshift extends CBCode {
     }
 }
 class ICBCRightshift extends CBCode {
+    ICBCRightshift(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCRightshift(IRightshift bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -374,6 +432,9 @@ class ICBCRightshift extends CBCode {
     }
 }
 class ICBCUnsignedrightshift extends CBCode {
+    ICBCUnsignedrightshift(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCUnsignedrightshift(IUnsignedrightshift bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -387,6 +448,9 @@ class ICBCUnsignedrightshift extends CBCode {
 
 // relation
 class ICBCEqual extends CBCode {
+    ICBCEqual(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCEqual(IEqual bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -397,6 +461,9 @@ class ICBCEqual extends CBCode {
     }
 }
 class ICBCEq extends CBCode {
+    ICBCEq(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCEq(IEq bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -407,6 +474,9 @@ class ICBCEq extends CBCode {
     }
 }
 class ICBCLessthan extends CBCode {
+    ICBCLessthan(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCLessthan(ILessthan bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -417,6 +487,9 @@ class ICBCLessthan extends CBCode {
     }
 }
 class ICBCLessthanequal extends CBCode {
+    ICBCLessthanequal(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCLessthanequal(ILessthanequal bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -429,6 +502,9 @@ class ICBCLessthanequal extends CBCode {
 
 
 class ICBCNot extends CBCode {
+    ICBCNot(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNot(INot bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
@@ -439,6 +515,9 @@ class ICBCNot extends CBCode {
     }
 }
 class ICBCGetglobalobj extends CBCode {
+    ICBCGetglobalobj(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCGetglobalobj(IGetglobalobj bc) {
         store = new ARegister(bc.dst);
         load1 = new Argument();
@@ -449,6 +528,9 @@ class ICBCGetglobalobj extends CBCode {
     }
 }
 class ICBCNewargs extends CBCode {
+    ICBCNewargs(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNewargs() {
         store = new Argument();
         load1 = new Argument();
@@ -459,6 +541,9 @@ class ICBCNewargs extends CBCode {
     }
 }
 class ICBCNewframe extends CBCode {
+    ICBCNewframe(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNewframe(INewframe bc) {
         store = new Argument();
         load1 = new ALiteral(bc.len);
@@ -468,97 +553,10 @@ class ICBCNewframe extends CBCode {
         return super.toString("newframe");
     }
 }
-class ICBCGetglobal extends CBCode {
-    ICBCGetglobal(IGetglobal bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.lit, ArgType.GLOBAL);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("getglobal");
-    }
-}
-class ICBCSetglobal extends CBCode {
-    ICBCSetglobal(ISetglobal bc) {
-        store = new ARegister(bc.lit, ArgType.GLOBAL);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("setglobal");
-    }
-}
-class ICBCGetlocal extends CBCode {
-    ICBCGetlocal(IGetlocal bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ALitPair(bc.depth, bc.n, ArgType.LOCAL);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("getlocal");
-    }
-}
-class ICBCSetlocal extends CBCode {
-    ICBCSetlocal(ISetlocal bc) {
-        store = new ALitPair(bc.depth, bc.n, ArgType.LOCAL);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("setlocal");
-    }
-}
-class ICBCGetarg extends CBCode {
-    ICBCGetarg(IGetarg bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ALitPair(bc.depth, bc.n, ArgType.ARGS);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("getarg");
-    }
-}
-class ICBCSetarg extends CBCode {
-    ICBCSetarg(ISetarg bc) {
-        store = new ALitPair(bc.depth, bc.n, ArgType.ARGS);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("setarg");
-    }
-}
-class ICBCGetprop extends CBCode {
-    ICBCGetprop(IGetprop bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ARegPair(bc.obj, bc.prop, ArgType.PROP);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("getprop");
-    }
-}
-class ICBCSetprop extends CBCode {
-    ICBCSetprop(ISetprop bc) {
-        store = new ARegPair(bc.obj, bc.prop, ArgType.PROP);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("setprop");
-    }
-}
-class ICBCSetarray extends CBCode {
-    ICBCSetarray(ISetarray bc) {
-        store = new ARegLitPair(bc.ary, bc.n, ArgType.ARRAY);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("setarray");
-    }
-}
 class ICBCMakeclosure extends CBCode {
+    ICBCMakeclosure(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCMakeclosure(IMakeclosure bc) {
         store = new ARegister(bc.dst);
         load1 = new ALiteral(bc.idx);
@@ -568,27 +566,10 @@ class ICBCMakeclosure extends CBCode {
         return super.toString("makeclosure");
     }
 }
-class ICBCGeta extends CBCode {
-    ICBCGeta(IGeta bc) {
-        store = new ARegister(bc.dst);
-        load1 = new Argument(ArgType.A);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("geta");
-    }
-}
-class ICBCSeta extends CBCode {
-    ICBCSeta(ISeta bc) {
-        store = new Argument(ArgType.A);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("seta");
-    }
-}
 class ICBCRet extends CBCode {
+    ICBCRet(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCRet() {
         store = new Argument();
         load1 = new Argument();
@@ -602,17 +583,10 @@ class ICBCRet extends CBCode {
         return super.toString("ret");
     }
 }
-class ICBCMove extends CBCode {
-    ICBCMove(IMove bc) {
-        store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src);
-        load2 = new Argument();
-    }
-    public String toString() {
-        return super.toString("move");
-    }
-}
 class ICBCIsundef extends CBCode {
+    ICBCIsundef(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCIsundef(IIsundef bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
@@ -623,6 +597,9 @@ class ICBCIsundef extends CBCode {
     }
 }
 class ICBCIsobject extends CBCode {
+    ICBCIsobject(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCIsobject(IIsobject bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
@@ -633,6 +610,9 @@ class ICBCIsobject extends CBCode {
     }
 }
 class ICBCInstanceof extends CBCode {
+    ICBCInstanceof(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCInstanceof(IInstanceof bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src1);
@@ -643,6 +623,9 @@ class ICBCInstanceof extends CBCode {
     }
 }
 class ICBCCall extends CBCode {
+    ICBCCall(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCCall(ICall bc) {
         store = new Argument();
         load1 = new ARegister(bc.callee);
@@ -653,6 +636,9 @@ class ICBCCall extends CBCode {
     }
 }
 class ICBCSend extends CBCode {
+    ICBCSend(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCSend(ISend bc) {
         store = new Argument();
         load1 = new ARegister(bc.callee);
@@ -663,6 +649,9 @@ class ICBCSend extends CBCode {
     }
 }
 class ICBCNew extends CBCode {
+    ICBCNew(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNew(INew bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.constructor);
@@ -673,6 +662,9 @@ class ICBCNew extends CBCode {
     }
 }
 class ICBCNewsend extends CBCode {
+    ICBCNewsend(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNewsend(INewsend bc) {
         store = new Argument();
         load1 = new ARegister(bc.constructor);
@@ -683,9 +675,12 @@ class ICBCNewsend extends CBCode {
     }
 }
 class ICBCMakesimpleiterator extends CBCode {
+    ICBCMakesimpleiterator(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCMakesimpleiterator(IMakesimpleiterator bc) {
-        store = new ARegister(bc.obj);
-        load1 = new ARegister(bc.dst);
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.obj);
         load2 = new Argument();
     }
     public String toString() {
@@ -693,9 +688,12 @@ class ICBCMakesimpleiterator extends CBCode {
     }
 }
 class ICBCNextpropnameidx extends CBCode {
+    ICBCNextpropnameidx(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCNextpropnameidx(INextpropnameidx bc) {
-        store = new ARegister(bc.ite);
-        load1 = new ARegister(bc.dst);
+        store = new ARegister(bc.dst);
+        load1 = new ARegister(bc.ite);
         load2 = new Argument();
     }
     public String toString() {
@@ -706,45 +704,70 @@ class ICBCNextpropnameidx extends CBCode {
 
 // Jump instructions
 class ICBCJump extends CBCode {
-    Label label;
+    ICBCJump(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    CBCLabel label;
     ICBCJump(IJump bc) {
         store = new Argument();
         load1 = new ALiteral();
         load2 = new Argument();
-        this.label = bc.label;
+        label = new CBCLabel();
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+        return false;
+    }
+    @Override
+    public CBCode getBranchTarget() {
+        return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
+        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jump");
     }
 }
 class ICBCJumptrue extends CBCode {
-    Label label;
+    ICBCJumptrue(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    CBCLabel label;
     ICBCJumptrue(IJumptrue bc) {
         store = new Argument();
         load1 = new ARegister(bc.test);
         load2 = new ALiteral();
-        this.label = bc.label;
+        label = new CBCLabel();
+    }
+    @Override
+    public CBCode getBranchTarget() {
+        return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load2).replaceJampDist(label.dist(number, this.getArgsNum()));
+        ((ALiteral) load2).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumptrue");
     }
 }
 class ICBCJumpfalse extends CBCode {
-    Label label;
+    ICBCJumpfalse(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    CBCLabel label;
     ICBCJumpfalse(IJumpfalse bc) {
         store = new Argument();
         load1 = new ARegister(bc.test);
         load2 = new ALiteral();
-        this.label = bc.label;
+        label = new CBCLabel();
+    }
+    @Override
+    public CBCode getBranchTarget() {
+        return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load2).replaceJampDist(label.dist(number, this.getArgsNum()));
+        ((ALiteral) load2).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumpfalse");
@@ -753,31 +776,44 @@ class ICBCJumpfalse extends CBCode {
 
 
 class ICBCThrow extends CBCode {
+    ICBCThrow(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCThrow(IThrow bc) {
         store = new Argument();
         load1 = new ARegister(bc.reg);
         load2 = new Argument();
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+        return false;
     }
     public String toString() {
         return super.toString("throw");
     }
 }
 class ICBCPushhandler extends CBCode {
-    Label label;
+    ICBCPushhandler(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    CBCLabel label;
     ICBCPushhandler(IPushhandler bc) {
         store = new Argument();
         load1 = new ALiteral();
         load2 = new Argument();
-        this.label = bc.label;
+        label = new CBCLabel();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
+        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("pushhandler");
     }
 }
 class ICBCPophandler extends CBCode {
+    ICBCPophandler(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCPophandler() {
         store = new Argument();
         load1 = new Argument();
@@ -788,31 +824,44 @@ class ICBCPophandler extends CBCode {
     }
 }
 class ICBCLocalcall extends CBCode {
-    Label label;
+    ICBCLocalcall(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
+    CBCLabel label;
     ICBCLocalcall(ILocalcall bc) {
         store = new Argument();
         load1 = new ALiteral();
         load2 = new Argument();
-        this.label = bc.label;
+        label = new CBCLabel();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJampDist(label.dist(number, this.getArgsNum()));
+        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("localcall");
     }
 }
 class ICBCLocalret extends CBCode {
+    ICBCLocalret(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCLocalret() {
         store = new Argument();
         load1 = new Argument();
         load2 = new Argument();
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+        return false;
     }
     public String toString() {
         return super.toString("localret");
     }
 }
 class ICBCPoplocal extends CBCode {
+    ICBCPoplocal(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCPoplocal() {
         store = new Argument();
         load1 = new Argument();
@@ -823,6 +872,9 @@ class ICBCPoplocal extends CBCode {
     }
 }
 class ICBCSetfl extends CBCode {
+    ICBCSetfl(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCSetfl(ISetfl bc) {
         store = new Argument();
         load1 = new ALiteral(bc.fl);
@@ -832,13 +884,152 @@ class ICBCSetfl extends CBCode {
         return super.toString("setfl");
     }
 }
+
+
+class ICBCFuncLength extends CBCode {
+    int n;
+    ICBCFuncLength(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("funcLength", n);
+    }
+}
+class ICBCCallentry extends CBCode {
+    int n;
+    ICBCCallentry(int n) {
+            this.n = n;
+    }
+    public String toString() {
+        return super.toString("callentry", n);
+    }
+}
+class ICBCSendentry extends CBCode {
+    int n;
+    ICBCSendentry(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("sendentry", n);
+    }
+}
+class ICBCNumberOfLocals extends CBCode {
+    int n;
+    ICBCNumberOfLocals(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("numberOfLocals", n);
+    }
+}
+class ICBCNumberOfInstruction extends CBCode {
+    int n;
+    ICBCNumberOfInstruction(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("numberOfInstruction", n);
+    }
+}
+class ICBCNumberOfArgument extends CBCode {
+    int n;
+    ICBCNumberOfArgument(int n) {
+        this.n = n;
+    }
+    public String toString() {
+        return super.toString("numberOfArgument", n);
+    }
+}
+
+
 class ICBCError extends CBCode {
+    ICBCError(Argument store, Argument load1, Argument load2) {
+        super(store, load1, load2);
+    }
     ICBCError(IError bc) {
         store = new ARegister(bc.dst);
         load1 = new AString(bc.str);
         load2 = new Argument();
     }
+    @Override
+    public boolean isFallThroughInstruction() {
+        return false;
+    }
     public String toString() {
         return super.toString("error");
+    }
+}
+
+class MCBCSetfl extends CBCode {
+    MCBCSetfl() {
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
+    }
+    @Override
+    public String toString() {
+        return "@MACRO cbc setfl";
+    }
+}
+
+class MCBCCall extends CBCode {
+    Register receiver;
+    Register function;
+    Register[] args;
+    boolean isNew;
+    boolean isTail;
+    MCBCCall(MCall bc) {
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
+        this.receiver = bc.receiver;
+        this.function = bc.function;
+        this.args = bc.args;
+        this.isNew = bc.isNew;
+        this.isTail = bc.isTail;
+    }
+    @Override
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        if (receiver != null)
+            srcs.add(receiver);
+        srcs.add(function);
+        for (Register r: args)
+            srcs.add(r);
+        return srcs;
+    }
+    @Override
+    public String toString() {
+        String s ="@MACRO cbc ";
+
+        if (isTail)
+            s += "tail";
+        if (isNew)
+            s += "new " + receiver + " " + function;
+        else if (receiver == null)
+            s += "call " + function;
+        else
+            s += "send " + receiver + " " + function;
+        for (Register r: args)
+            s += " " + r;
+        return s;
+    }
+}
+
+class MCBCParameter extends CBCode {
+    Register dst;
+    MCBCParameter(MParameter bc) {
+        store = new Argument();
+        load1 = new Argument();
+        load2 = new Argument();
+        this.dst = bc.dst;
+    }
+    @Override
+    public Register getStoreRegister() {
+        return dst;
+    }
+    @Override
+    public String toString() {
+        return "@MACRO cbc param";
     }
 }

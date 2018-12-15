@@ -667,7 +667,7 @@ class INewsend extends BCode {
 }
 class IMakesimpleiterator extends BCode {
     Register obj;
-    IMakesimpleiterator(Register dst, Register obj) {
+    IMakesimpleiterator(Register obj, Register dst) {
         super(dst);
         this.obj = obj;
     }
@@ -677,7 +677,7 @@ class IMakesimpleiterator extends BCode {
 }
 class INextpropnameidx extends BCode {
     Register ite;
-    INextpropnameidx(Register dst, Register ite) {
+    INextpropnameidx(Register ite, Register dst) {
         super(dst);
         this.ite = ite;
     }
@@ -848,15 +848,6 @@ class INumberOfInstruction extends BCode {
     }
     public String toString() {
         return super.toString("numberOfInstruction", n);
-    }
-}
-class INumberOfArgument extends BCode {
-    int n;
-    INumberOfArgument(int n) {
-        this.n = n;
-    }
-    public String toString() {
-        return super.toString("numberOfArgument", n);
     }
 }
 

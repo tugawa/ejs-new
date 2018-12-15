@@ -22,6 +22,11 @@
 package ejsc;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import ejsc.Argument.ArgType;
+import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class BCBuilder {
 	static class FunctionBCBuilder {
@@ -59,10 +64,7 @@ class BCBuilder {
             	if (bcode instanceof MSetfl) {
             		MSetfl msetfl = (MSetfl) bcode;
             		ISetfl isetfl = new ISetfl(totalNumberOfRegisters);
-                    if (info.optCompactByteCode)
-                        bcodes.set(number, new ICBCSetfl(isetfl));
-                    else
-                        bcodes.set(number, isetfl);
+                    bcodes.set(number, isetfl);
             		bcodes.get(number).addLabels(msetfl.getLabels());
             		continue;
             	} else if (bcode instanceof MCall) {
@@ -71,29 +73,16 @@ class BCBuilder {
             		int nUseArgReg = mcall.args.length + 1;
             		int thisRegOffset = numberOfArgumentRegisters + 1 - nUseArgReg; /* + 1 because of 1-origin */
             		bcodes.remove(number);
-                    if (info.optCompactByteCode) {
-                        if (mcall.receiver != null)
-                            bcodes.add(pc++, new ICBCMove(new IMove(argRegs[thisRegOffset], mcall.receiver)));
-                        for (int i = 0; i < mcall.args.length; i++)
-                            bcodes.add(pc++, new ICBCMove(new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i])));
-                        if (mcall.isNew)
-                            bcodes.add(pc++, new ICBCNewsend(new INewsend(mcall.function, mcall.args.length)));
-                        else if (mcall.receiver == null)
-                            bcodes.add(pc++, new ICBCCall(new ICall(mcall.function, mcall.args.length)));
-                        else
-                            bcodes.add(pc++, new ICBCSend(new ISend(mcall.function, mcall.args.length)));
-                    } else {
-                        if (mcall.receiver != null)
-                            bcodes.add(pc++, new IMove(argRegs[thisRegOffset], mcall.receiver));
-                        for (int i = 0; i < mcall.args.length; i++)
-                            bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]));
-                        if (mcall.isNew)
-                            bcodes.add(pc++, new INewsend(mcall.function, mcall.args.length));
-                        else if (mcall.receiver == null)
-                            bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
-                        else
-                            bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
-                    }
+                    if (mcall.receiver != null)
+                        bcodes.add(pc++, new IMove(argRegs[thisRegOffset], mcall.receiver));
+                    for (int i = 0; i < mcall.args.length; i++)
+                        bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]));
+                    if (mcall.isNew)
+                        bcodes.add(pc++, new INewsend(mcall.function, mcall.args.length));
+                    else if (mcall.receiver == null)
+                        bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
+                    else
+                        bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
             		bcodes.get(number).addLabels(mcall.getLabels());
             		continue;
             	} else if (bcode instanceof MParameter) {
@@ -102,31 +91,6 @@ class BCBuilder {
             		continue;
             	}
             	number++;
-            }
-        }
-
-        void setJumpDist() {
-            // set jump dist
-            for (BCode bcode : bcodes) {
-                if (bcode instanceof ICBCJump)
-                    ((ICBCJump) bcode).resolveJumpDist();
-                if (bcode instanceof ICBCJumptrue)
-                    ((ICBCJumptrue) bcode).resolveJumpDist();
-                if (bcode instanceof ICBCJumpfalse)
-                    ((ICBCJumpfalse) bcode).resolveJumpDist();
-                if (bcode instanceof ICBCPushhandler)
-                    ((ICBCPushhandler) bcode).resolveJumpDist();
-                if (bcode instanceof ICBCLocalcall)
-                    ((ICBCLocalcall) bcode).resolveJumpDist();
-            }
-        }
-
-        void assignAddressCBC() {
-            int number = 0;
-            for (BCode bcode : bcodes) {
-                bcode.number = number;
-                // opecode + argument num
-                number += 2 + bcode.getArgsNum();
             }
         }
 
@@ -143,13 +107,6 @@ class BCBuilder {
             result.add(new ISendentry(sendEntry.dist(0)));
             result.add(new INumberOfLocals(numberOfLocals));
             result.add(new INumberOfInstruction(bcodes.size()));
-            if (info.optCompactByteCode) {
-                int sum = 0;
-                for (BCode bcode : bcodes) {
-                    sum += bcode.getArgsNum();
-                }
-                result.add(new INumberOfArgument(sum));
-            }
             result.addAll(bcodes);
             return result;
         }
@@ -193,66 +150,76 @@ class BCBuilder {
         fbStack.pop();
     }
 
-    void transCBC() {
-        assignAddress();
-        for (FunctionBCBuilder f: fBuilders) {
-            for (int i = 0; i < f.bcodes.size(); i++) {
-                BCode bcode = f.bcodes.get(i);
-                CBCode cbc = changeCBC(bcode);
-                if (cbc != null)
-                    f.bcodes.set(i, cbc);
+    CBCBuilder convertBCode() {
+        CBCBuilder cbcBuilder = new CBCBuilder();
+        this.assignAddress();
+        for (int i = 0; i < fBuilders.size(); i++) {
+            FunctionBCBuilder f = fBuilders.get(i);
+            cbcBuilder.openFunctionBCBuilder(f);
+            FunctionCBCBuilder fCBCBuilder = cbcBuilder.getFunctionCBCBuilder(i);
+            for (BCode bcode: f.bcodes) {
+                CBCode cbc = changeToCompactBCode(bcode);
+                if (cbc == null)
+                    throw new Error("undefined cbc code:" + bcode.toString());
+                fCBCBuilder.bcodes.add(cbc);
             }
             // Replace label
-            for (int i = 0; i < f.bcodes.size(); i++) {
-                BCode bcode = f.bcodes.get(i);
-                if (bcode instanceof ICBCJump) {
-                    ICBCJump cbc = (ICBCJump) bcode;
-                    BCode bc = f.bcodes.get(cbc.label.getDestBCode().number);
-                    cbc.label.replaceDestBCode(bc);
+            for (int j = 0; j < fCBCBuilder.bcodes.size(); j++) {
+                BCode bcode = f.bcodes.get(j);
+                CBCode cbcode = fCBCBuilder.bcodes.get(j);
+                if (cbcode instanceof ICBCJump) {
+                    ICBCJump cbc = (ICBCJump) cbcode;
+                    IJump bc = (IJump) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
                 }
-                if (bcode instanceof ICBCJumptrue) {
-                    ICBCJumptrue cbc = (ICBCJumptrue) bcode;
-                    BCode bc = f.bcodes.get(cbc.label.getDestBCode().number);
-                    cbc.label.replaceDestBCode(bc);
+                if (cbcode instanceof ICBCJumptrue) {
+                    ICBCJumptrue cbc = (ICBCJumptrue) cbcode;
+                    IJumptrue bc = (IJumptrue) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
                 }
-                if (bcode instanceof ICBCJumpfalse) {
-                    ICBCJumpfalse cbc = (ICBCJumpfalse) bcode;
-                    BCode bc = f.bcodes.get(cbc.label.getDestBCode().number);
-                    cbc.label.replaceDestBCode(bc);
+                if (cbcode instanceof ICBCJumpfalse) {
+                    ICBCJumpfalse cbc = (ICBCJumpfalse) cbcode;
+                    IJumpfalse bc = (IJumpfalse) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
                 }
-                if (bcode instanceof ICBCPushhandler) {
-                    ICBCPushhandler cbc = (ICBCPushhandler) bcode;
-                    BCode bc = f.bcodes.get(cbc.label.getDestBCode().number);
-                    cbc.label.replaceDestBCode(bc);
+                if (cbcode instanceof ICBCPushhandler) {
+                    ICBCPushhandler cbc = (ICBCPushhandler) cbcode;
+                    IPushhandler bc = (IPushhandler) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
                 }
-                if (bcode instanceof ICBCLocalcall) {
-                    ICBCLocalcall cbc = (ICBCLocalcall) bcode;
-                    BCode bc = f.bcodes.get(cbc.label.getDestBCode().number);
-                    cbc.label.replaceDestBCode(bc);
+                if (cbcode instanceof ICBCLocalcall) {
+                    ICBCLocalcall cbc = (ICBCLocalcall) cbcode;
+                    ILocalcall bc = (ILocalcall) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
                 }
             }
             // Replace callEntry and sendEntry
-            Label send = new Label(f.bcodes.get(f.sendEntry.getDestBCode().number));
-            Label call = new Label(f.bcodes.get(f.callEntry.getDestBCode().number));
-            f.setEntry(call, send);
+            fCBCBuilder.setEntry(new CBCLabel(), new CBCLabel());
+            CBCode send = fCBCBuilder.bcodes.get(f.sendEntry.getDestBCode().number);
+            fCBCBuilder.sendEntry.replaceDestCBCode(send);
+            send.labels.add(fCBCBuilder.sendEntry);
+            CBCode call = fCBCBuilder.bcodes.get(f.callEntry.getDestBCode().number);
+            fCBCBuilder.callEntry.replaceDestCBCode(call);
+            call.labels.add(fCBCBuilder.callEntry);
         }
+        return cbcBuilder;
     }
 
     void expandMacro(Main.Info info) {
         for (FunctionBCBuilder f: fBuilders)
             f.expandMacro(info);
     }
-
-    void setJumpDist() {
-        for (FunctionBCBuilder f: fBuilders)
-            f.setJumpDist();
-    }
  
-    void assignAddressCBC() {
-        for (FunctionBCBuilder f: fBuilders)
-            f.assignAddressCBC();
-    }
-
     void assignAddress() {
     	for (FunctionBCBuilder f: fBuilders)
     		f.assignAddress();    	
@@ -414,66 +381,7 @@ class BCBuilder {
         }
     }
 
-    void optimisationCBC(Main.Info info) {
-        for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
-            if (info.optPrintOptimisation) {
-                System.out.println("====== before optimisation CBC ======");
-                System.out.println(fb);
-            }
-
-            if (info.optSuperInstruction) {
-                SuperInstructionElimination sie = new SuperInstructionElimination(fb.bcodes);
-                fb.bcodes = sie.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after sie ======");
-                    System.out.println(fb);
-                }
-            }
-            if (info.optRedunantInstructionElimination) {
-                fb.assignAddress();
-                RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
-                fb.bcodes = rie.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after rie ======");
-                    System.out.println(fb);
-                }
-            }
-            if (info.optRegisterAssignment) {
-                DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
-                fb.bcodes = dce.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after dead code elimination ======");
-                    System.out.println(fb);
-                }
-                RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
-                fb.bcodes = ra.exec();
-                int maxr = ra.getMaxRegNum();
-                fb.numberOfGPRegisters = maxr;
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after reg ======");
-                    System.out.println(fb);
-                }
-            }
-        }
-    }
-
-    CBCode changeCBC(BCode bc) {
-        if (bc instanceof IFixnum)
-            return new ICBCFixnum((IFixnum) bc);
-        if (bc instanceof INumber)
-            return new ICBCNumber((INumber) bc);
-        if (bc instanceof INumber)
-            return new ICBCNumber((INumber) bc);
-        if (bc instanceof IString)
-            return new ICBCString((IString) bc);
-        if (bc instanceof IBooleanconst)
-            return new ICBCBooleanconst((IBooleanconst) bc);
-        if (bc instanceof INullconst)
-            return new ICBCNullconst((INullconst) bc);
-        if (bc instanceof IUndefinedconst)
-            return new ICBCUndefinedconst((IUndefinedconst) bc);
-        if (bc instanceof IRegexp)
-            return new ICBCRegexp((IRegexp) bc);
+    CBCode changeToCompactBCode(BCode bc) {
         if (bc instanceof IAdd)
             return new ICBCAdd((IAdd) bc);
         if (bc instanceof ISub)
@@ -510,34 +418,10 @@ class BCBuilder {
             return new ICBCNewargs();
         if (bc instanceof INewframe)
             return new ICBCNewframe((INewframe) bc);
-        if (bc instanceof IGetglobal)
-            return new ICBCGetglobal((IGetglobal) bc);
-        if (bc instanceof ISetglobal)
-            return new ICBCSetglobal((ISetglobal) bc);
-        if (bc instanceof IGetlocal)
-            return new ICBCGetlocal((IGetlocal) bc);
-        if (bc instanceof ISetlocal)
-            return new ICBCSetlocal((ISetlocal) bc);
-        if (bc instanceof IGetarg)
-            return new ICBCGetarg((IGetarg) bc);
-        if (bc instanceof ISetarg)
-            return new ICBCSetarg((ISetarg) bc);
-        if (bc instanceof IGetprop)
-            return new ICBCGetprop((IGetprop) bc);
-        if (bc instanceof ISetprop)
-            return new ICBCSetprop((ISetprop) bc);
-        if (bc instanceof ISetarray)
-            return new ICBCSetarray((ISetarray) bc);
         if (bc instanceof IMakeclosure)
             return new ICBCMakeclosure((IMakeclosure) bc);
-        if (bc instanceof IGeta)
-            return new ICBCGeta((IGeta) bc);
-        if (bc instanceof ISeta)
-            return new ICBCSeta((ISeta) bc);
         if (bc instanceof IRet)
             return new ICBCRet();
-        if (bc instanceof IMove)
-            return new ICBCMove((IMove) bc);
         if (bc instanceof IIsundef)
             return new ICBCIsundef((IIsundef) bc);
         if (bc instanceof IIsobject)
@@ -576,14 +460,97 @@ class BCBuilder {
             return new ICBCPoplocal();
         if (bc instanceof ISetfl)
             return new ICBCSetfl((ISetfl) bc);
-        if (bc instanceof INumberOfLocals)
-            return new ICBCNumber((INumber) bc);
-        if (bc instanceof INumberOfInstruction)
-            return new ICBCNumber((INumber) bc);
-        if (bc instanceof INumberOfArgument)
-            return new ICBCNumber((INumber) bc);
         if (bc instanceof IError)
             return new ICBCError((IError) bc);
+
+        // MACRO code
+        if (bc instanceof MSetfl)
+            return new MCBCSetfl();
+        if (bc instanceof MCall)
+            return new MCBCCall((MCall) bc);
+        if (bc instanceof MParameter)
+            return new MCBCParameter((MParameter) bc);
+
+        // convart nop instruction
+        if (bc instanceof IFixnum) {
+            IFixnum b = (IFixnum) bc;
+            return new ICBCNop(new ARegister(b.dst), new AFixnum(b.n));
+        }
+        if (bc instanceof IString) {
+            IString b = (IString) bc;
+            Pattern pt = Pattern.compile("\n");
+            Matcher match = pt.matcher(b.str);
+            String str = match.replaceAll("\\\\n");
+            return new ICBCNop(new ARegister(b.dst), new AString(str));
+        }
+        if (bc instanceof INumber) {
+            INumber b = (INumber) bc;
+            return new ICBCNop(new ARegister(b.dst), new ANumber(b.n));
+        }
+        if (bc instanceof IBooleanconst) {
+            IBooleanconst b = (IBooleanconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial(b.b ? "true" : "false"));
+        }
+        if (bc instanceof INullconst) {
+            INullconst b = (INullconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial("null"));
+        }
+        if (bc instanceof IUndefinedconst) {
+            IUndefinedconst b = (IUndefinedconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial("undefined"));
+        }
+        if (bc instanceof IRegexp) {
+            IRegexp b = (IRegexp) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegexp(b.idx, b.ptn));
+        }
+        if (bc instanceof IGetglobal) {
+            IGetglobal b = (IGetglobal) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegister(b.lit, ArgType.GLOBAL));
+        }
+        if (bc instanceof ISetglobal) {
+            ISetglobal b = (ISetglobal) bc;
+            return new ICBCNop(new ARegister(b.lit, ArgType.GLOBAL), new ARegister(b.src));
+        }
+        if (bc instanceof IGetlocal) {
+            IGetlocal b = (IGetlocal) bc;
+            return new ICBCNop(new ARegister(b.dst), new ALitPair(b.depth, b.n, ArgType.LOCAL));
+        }
+        if (bc instanceof ISetlocal) {
+            ISetlocal b = (ISetlocal) bc;
+            return new ICBCNop(new ALitPair(b.depth, b.n, ArgType.LOCAL), new ARegister(b.src));
+        }
+        if (bc instanceof IGetarg) {
+            IGetarg b = (IGetarg) bc;
+            return new ICBCNop(new ARegister(b.dst), new ALitPair(b.depth, b.n, ArgType.ARGS));
+        }
+        if (bc instanceof ISetarg) {
+            ISetarg b = (ISetarg) bc;
+            return new ICBCNop(new ALitPair(b.depth, b.n, ArgType.ARGS), new ARegister(b.src));
+        }
+        if (bc instanceof IGetprop) {
+            IGetprop b = (IGetprop) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegPair(b.obj, b.prop, ArgType.PROP));
+        }
+        if (bc instanceof ISetprop) {
+            ISetprop b = (ISetprop) bc;
+            return new ICBCNop(new ARegPair(b.obj, b.prop, ArgType.PROP), new ARegister(b.src));
+        }
+        if (bc instanceof ISetarray) {
+            ISetarray b = (ISetarray) bc;
+            return new ICBCNop(new ARegLitPair(b.ary, b.n, ArgType.ARRAY), new ARegister(b.src));
+        }
+        if (bc instanceof IMove) {
+            IMove b = (IMove) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegister(b.src));
+        }
+        if (bc instanceof IGeta) {
+            IGeta b = (IGeta) bc;
+            return new ICBCNop(new ARegister(b.dst), new Argument(ArgType.A));
+        }
+        if (bc instanceof ISeta) {
+            ISeta b = (ISeta) bc;
+            return new ICBCNop(new Argument(ArgType.A), new ARegister(b.src));
+        }
         return null;
     }
 }

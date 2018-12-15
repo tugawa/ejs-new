@@ -3,99 +3,106 @@ package ejsc;
 import java.util.ArrayList;
 import java.util.List;
 
+import ejsc.Argument.ArgType;
+
 public class SuperInstructionElimination {
-	public class SuperInstructionEmulator {
-		class Environment {
-			BCode bc;
+    public class SuperInstructionEmulator {
+        class Environment {
+            CBCode bc;
 
-			Environment(BCode bc) {
-				this.bc = bc;
-			}
+            Environment(CBCode bc) {
+                this.bc = bc;
+            }
 
-			public BCode lookup(Register r) {
-				return findDefinition(bc, r);
-			}
+            public CBCode lookup(ARegister load) {
+                return findDefinition(bc, load);
+            }
 
-			private BCode findDefinition(BCode bc, Register src) {
-				BCode result = null;
-				for (BCode def : rdefa.getReachingDefinitions(bc)) {
-					if (def.getDestRegister() == src) {
-						if (result == null)
-							result = def;
-						else
-							return null;
-					}
-				}
-				if (result instanceof IFixnum) {
-					if (((IFixnum) result).n < (1 << 16))
-						return result;
-					else
-						return null;
-				}
-				return null;
-			}
-		}
+            private CBCode findDefinition(CBCode bc, ARegister load) {
+                CBCode result = null;
+                for (CBCode def : rdefa.getReachingDefinitions(bc)) {
+                    Register arg = def.getStoreRegister();
+                    if (arg == null)
+                        continue;
+                    if (arg == load.reg) {
+                        if (result == null)
+                            result = def;
+                        else
+                            return null;
+                    }
+                }
+                return result;
+            }
+        }
 
-		ReachingDefinition rdefa;
+        CBCReachingDefinition rdefa;
 
-		SuperInstructionEmulator(ReachingDefinition rdefa) {
-			this.rdefa = rdefa;
-		}
+        SuperInstructionEmulator(CBCReachingDefinition rdefa) {
+            this.rdefa = rdefa;
+        }
 
-		BCode eval(BCode bc) {
-			return eval(new Environment(bc), bc);
-		}
+        CBCode eval(CBCode bc) {
+            return eval(new Environment(bc), bc);
+        }
 
-		public BCode eval(Environment env, BCode bc) {
-			if (bc instanceof IGetprop)
-				return evalIGetprop(env, (IGetprop) bc);
-			if (bc instanceof IAdd)
-				return evalIAdd(env, (IAdd) bc);
-			return null;
-		}
+        public CBCode eval(Environment env, CBCode bc) {
+//            if (bc instanceof ICBCNop)
+//                return evalICBCNop(env, (ICBCNop) bc);
+            return evalCBCode(env, bc);
+        }
 
-		protected BCode evalIAdd(Environment env, IAdd bc) {
-			BCode b = env.lookup(bc.src2);
-			if (b == null)
-				return null;
-			//return new IAddFixnum(bc.dst, bc.src1, ((IFixnum) b).n);
-			return null;
-		}
+        protected CBCode evalCBCode(Environment env, CBCode bc) {
+            if (bc.load1.type != Argument.ArgType.REGISTER)
+                return null;
+            CBCode b = env.lookup((ARegister)bc.load1);
+            if (b instanceof ICBCNop) {
+                if (b.load1.isConstant())
+                    bc.load1 = b.load1;
+            }
+            return bc;
+        }
 
-		protected BCode evalIGetprop(Environment env, IGetprop bc) {
-			BCode b = env.lookup(bc.prop);
-			if (b == null)
-				return null;
-			//return new IGetpropFix(bc.dst, bc.obj, ((IFixnum) b).n);
-			return null;
-		}
-	}
+        protected CBCode evalICBCNop(Environment env, ICBCNop bc) {
+            if (bc.load1.type != ArgType.REGISTER)
+                return null;
+            CBCode b = env.lookup((ARegister)bc.load1);
+            if (b != null) {
+                try {
+                    return b.getClass().getDeclaredConstructor(Argument.class, Argument.class, Argument.class)
+                            .newInstance(bc.store, b.load1, b.load2);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+    }
 
-	List<BCode> bcodes;
-	ReachingDefinition rdefa;
+    List<CBCode> bcodes;
+    CBCReachingDefinition rdefa;
 
-	SuperInstructionElimination(List<BCode> bcodes) {
-		this.bcodes = bcodes;
-		rdefa = new ReachingDefinition(bcodes);
-	}
+    SuperInstructionElimination(List<CBCode> bcodes) {
+        this.bcodes = bcodes;
+        rdefa = new CBCReachingDefinition(bcodes);
+    }
 
-	private BCode computeSuperInst(BCode bc) {
-		SuperInstructionEmulator emulator = new SuperInstructionEmulator(rdefa);
-		return emulator.eval(bc);
-	}
+    private CBCode computeSuperInst(CBCode bc) {
+        SuperInstructionEmulator emulator = new SuperInstructionEmulator(rdefa);
+        return emulator.eval(bc);
+    }
 
-	public List<BCode> exec() {
-		List<BCode> newBCodes = new ArrayList<BCode>(bcodes.size());
+    public List<CBCode> exec() {
+        List<CBCode> newBCodes = new ArrayList<CBCode>(bcodes.size());
 
-		for (BCode bc : bcodes) {
-			BCode newBC = computeSuperInst(bc);
-			if (newBC == null || bc.equals(newBC))
-				newBCodes.add(bc);
-			else {
-				newBC.addLabels(bc.getLabels());
-				newBCodes.add(newBC);
-			}
-		}
-		return newBCodes;
-	}
+        for (CBCode bc : bcodes) {
+            CBCode newBC = computeSuperInst(bc);
+            if (newBC == null || bc.equals(newBC))
+                newBCodes.add(bc);
+            else {
+                newBC.addLabels(bc.getLabels());
+                newBCodes.add(newBC);
+            }
+        }
+        return newBCodes;
+    }
 }
