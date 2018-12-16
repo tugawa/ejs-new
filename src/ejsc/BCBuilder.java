@@ -77,11 +77,11 @@ class BCBuilder {
                     for (int i = 0; i < mcall.args.length; i++)
                         bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]));
                     if (mcall.isNew)
-                        bcodes.add(pc++, new INewsend(mcall.function, mcall.args.length));
+                        bcodes.add(pc++, new INewsend(mcall.args.length, mcall.function));
                     else if (mcall.receiver == null)
-                        bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
+                        bcodes.add(pc++, new ICall(mcall.args.length, mcall.function));
                     else
-                        bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
+                        bcodes.add(pc++, new ISend(mcall.args.length, mcall.function));
             		bcodes.get(number).addLabels(mcall.getLabels());
             		continue;
             	} else if (bcode instanceof MParameter) {

@@ -56,11 +56,11 @@ class CBCBuilder {
                         bcodes.add(pc++, new ICBCNop(new ARegister(bc.dst), new ARegister(bc.src)));
                     }
                     if (mcall.isNew)
-                        bcodes.add(pc++, new ICBCNewsend(new INewsend(mcall.function, mcall.args.length)));
+                        bcodes.add(pc++, new ICBCNewsend(new INewsend(mcall.args.length, mcall.function)));
                     else if (mcall.receiver == null)
-                        bcodes.add(pc++, new ICBCCall(new ICall(mcall.function, mcall.args.length)));
+                        bcodes.add(pc++, new ICBCCall(new ICall(mcall.args.length, mcall.function)));
                     else
-                        bcodes.add(pc++, new ICBCSend(new ISend(mcall.function, mcall.args.length)));
+                        bcodes.add(pc++, new ICBCSend(new ISend(mcall.args.length, mcall.function)));
                     bcodes.get(number).addLabels(mcall.getLabels());
                     continue;
                 } else if (bcode instanceof MCBCParameter) {

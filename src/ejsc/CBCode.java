@@ -559,7 +559,7 @@ class ICBCNewframe extends CBCode {
     ICBCNewframe(INewframe bc) {
         store = new ANone();
         load1 = newLiteralArgument(bc.len);
-        load2 = newLiteralArgument(bc.status);
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("newframe");
@@ -640,8 +640,8 @@ class ICBCCall extends CBCode {
     }
     ICBCCall(ICall bc) {
         store = new ANone();
-        load1 = new ARegister(bc.callee);
-        load2 = newLiteralArgument(bc.numOfArgs);
+        load1 = newLiteralArgument(bc.numOfArgs);
+        load2 = new ARegister(bc.callee);
     }
     public String toString() {
         return super.toString("call");
@@ -653,8 +653,8 @@ class ICBCSend extends CBCode {
     }
     ICBCSend(ISend bc) {
         store = new ANone();
-        load1 = new ARegister(bc.callee);
-        load2 = newLiteralArgument(bc.numOfArgs);
+        load1 = newLiteralArgument(bc.numOfArgs);
+        load2 = new ARegister(bc.callee);
     }
     public String toString() {
         return super.toString("send");
@@ -679,8 +679,8 @@ class ICBCNewsend extends CBCode {
     }
     ICBCNewsend(INewsend bc) {
         store = new ANone();
-        load1 = new ARegister(bc.constructor);
-        load2 = newLiteralArgument(bc.numOfArgs);
+        load1 = newLiteralArgument(bc.numOfArgs);
+        load2 = new ARegister(bc.constructor);
     }
     public String toString() {
         return super.toString("newsend");
@@ -748,8 +748,8 @@ class ICBCJumptrue extends CBCode {
     CBCLabel label;
     ICBCJumptrue(IJumptrue bc) {
         store = new ANone();
-        load1 = new ARegister(bc.test);
-        load2 = new ALiteral(0);
+        load1 = new ALiteral(0);
+        load2 = new ARegister(bc.test);
         label = new CBCLabel();
     }
     @Override
@@ -757,7 +757,7 @@ class ICBCJumptrue extends CBCode {
         return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load2).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumptrue");
@@ -770,8 +770,8 @@ class ICBCJumpfalse extends CBCode {
     CBCLabel label;
     ICBCJumpfalse(IJumpfalse bc) {
         store = new ANone();
-        load1 = new ARegister(bc.test);
-        load2 = new ALiteral(0);
+        load1 = new ALiteral(0);
+        load2 = new ARegister(bc.test);
         label = new CBCLabel();
     }
     @Override
@@ -779,7 +779,7 @@ class ICBCJumpfalse extends CBCode {
         return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load2).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumpfalse");

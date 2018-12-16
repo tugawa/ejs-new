@@ -415,7 +415,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitIfStatement(IASTIfStatement node) {
         Label l1 = new Label();
         compileNode(node.test, reg);
-        bcBuilder.push(new IJumpfalse(reg, l1));
+        bcBuilder.push(new IJumpfalse(l1, reg));
         compileNode(node.consequent, reg);
         if (node.alternate == null) {
             bcBuilder.push(l1);
@@ -440,7 +440,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 Label caseLabel = new Label();
                 compileNode(caseClause.test, testReg);
                 bcBuilder.push(new IEq(reg, discReg, testReg));
-                bcBuilder.push(new IJumptrue(reg, caseLabel));
+                bcBuilder.push(new IJumptrue(caseLabel, reg));
                 caseLabels.add(caseLabel);
             } else {
                 Label caseLabel = new Label();
@@ -508,7 +508,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register testReg = env.getCurrentFrame().freshRegister();
         if (node.test != null) {
             compileNode(node.test, testReg);
-            bcBuilder.push(new IJumptrue(testReg, l2));
+            bcBuilder.push(new IJumptrue(l2, testReg));
         } else {
             bcBuilder.push(new IJump(l2));
         }
@@ -535,7 +535,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(l1);
         Register testReg = env.getCurrentFrame().freshRegister();
         compileNode(node.test, testReg);
-        bcBuilder.push(new IJumptrue(testReg, l2));
+        bcBuilder.push(new IJumptrue(l2, testReg));
         bcBuilder.push(breakLabel);
         return null;
     }
@@ -556,7 +556,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
         Register testReg = env.getCurrentFrame().freshRegister();
         compileNode(node.test, testReg);
-        bcBuilder.push(new IJumptrue(testReg, l1));
+        bcBuilder.push(new IJumptrue(l1, testReg));
         bcBuilder.push(breakLabel);
         return null;
     }
@@ -577,7 +577,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new INextpropnameidx(iteReg, propReg));
         compileSetVariable(node.var, propReg);
         bcBuilder.push(new IIsundef(testReg, propReg));
-        bcBuilder.push(new IJumptrue(testReg, l2));
+        bcBuilder.push(new IJumptrue(l2, testReg));
         bcBuilder.push(continueLabel);
         env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
         env.getCurrentFrame().pushContinueLabel(node.label, continueLabel);
@@ -662,8 +662,11 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.push(sendEntry);
 
-        if (needFrame)
-			bcBuilder.push(new INewframe(locals.size(), needArguments ? 1 : 0));
+        if (needFrame) {
+            bcBuilder.push(new INewframe(locals.size()));
+            if (needArguments)
+                bcBuilder.push(new INewargs());
+        }
         bcBuilder.pushMsetfl();
 
 		/*
@@ -885,7 +888,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         case OR: {
             Label l1 = new Label();
             compileNode(node.operands[0], reg);
-            bcBuilder.push(new IJumptrue(reg, l1));
+            bcBuilder.push(new IJumptrue(l1, reg));
             compileNode(node.operands[1], reg);
             bcBuilder.push(l1);
 		}
@@ -893,7 +896,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         case AND: {
             Label l1 = new Label();
             compileNode(node.operands[0], reg);
-            bcBuilder.push(new IJumpfalse(reg, l1));
+            bcBuilder.push(new IJumpfalse(l1, reg));
             compileNode(node.operands[1], reg);
             bcBuilder.push(l1);
         }
@@ -914,10 +917,10 @@ public class CodeGenerator extends IASTBaseVisitor {
             Label l4 = new Label();
             bcBuilder.push(new IEqual(r3, r1, r2));
             bcBuilder.push(new IIsundef(r4, r3));
-            bcBuilder.push(new IJumpfalse(r4, l1));
+            bcBuilder.push(new IJumpfalse(l1, r4));
             bcBuilder.push(new IString(r5, "valueOf"));
             bcBuilder.push(new IIsobject(r6, r1));
-            bcBuilder.push(new IJumpfalse(r6, l2));
+            bcBuilder.push(new IJumpfalse(l2, r6));
 
             bcBuilder.push(new IGetprop(r7, r1, r5));
             bcBuilder.push(new MCall(r1, r7, new Register[] {}, false, false));
@@ -935,7 +938,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(l3);
             bcBuilder.push(new IEqual(r3, r8, r9));
             bcBuilder.push(new IIsundef(r5, r3));
-            bcBuilder.push(new IJumpfalse(r5, l4));
+            bcBuilder.push(new IJumpfalse(l4, r5));
             bcBuilder.push(new IError(r3, "\"EQUAL_GETTOPRIMITIVE\""));
             bcBuilder.push(l1);
             bcBuilder.push(l4);
@@ -1049,7 +1052,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(node.operands[0], testReg);
             Label l1 = new Label();
             Label l2 = new Label();
-            bcBuilder.push(new IJumpfalse(testReg, l1));
+            bcBuilder.push(new IJumpfalse(l1, testReg));
             compileNode(node.operands[1], reg);
             bcBuilder.push(new IJump(l2));
             bcBuilder.push(l1);
@@ -1122,7 +1125,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register result = env.getCurrentFrame().freshRegister();
         bcBuilder.push(new IInstanceof(result, resultOfNewSendReg, objReg));
         Label l1 = new Label();
-        bcBuilder.push(new IJumpfalse(result, l1));
+        bcBuilder.push(new IJumpfalse(l1, result));
         bcBuilder.push(new IGeta(reg));
         bcBuilder.push(l1);
         return null;

@@ -100,9 +100,6 @@ public class BCode {
         return opcode + " " + op1 + " " + op2;
     }
 
-    String toString(String opcode, Register op1, int op2) {
-        return opcode + " " + op1 + " " + op2;
-    }
     String toString(String opcode, Register op1, double op2) {
         return opcode + " " + op1 + " " + op2;
     }
@@ -111,6 +108,9 @@ public class BCode {
     }
     String toString(String opcode, Register op1, int op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
+    }
+    String toString(String opcode, int op1, Register op2) {
+        return opcode + " " + op1 + " " + op2;
     }
     String toString(String opcode, int op1, int op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
@@ -424,13 +424,11 @@ class INewargs extends BCode {
 }
 class INewframe extends BCode {
     int len;
-    int status;
-    INewframe(int len, int status) {
+    INewframe(int len) {
 		this.len = len;
-        this.status = status;
     }
     public String toString() {
-        return super.toString("newframe", len, status);
+        return super.toString("newframe", len);
     }
 }
 class IGetglobal extends BCode {
@@ -625,23 +623,23 @@ class IInstanceof extends BCode {
 class ICall extends BCode {
     Register callee;
     int numOfArgs;
-    ICall(Register callee, int numOfArgs) {
-        this.callee = callee;
+    ICall(int numOfArgs, Register callee) {
         this.numOfArgs = numOfArgs;
+        this.callee = callee;
     }
     public String toString() {
-        return super.toString("call", callee, numOfArgs);
+        return super.toString("call", numOfArgs, callee);
     }
 }
 class ISend extends BCode {
     Register callee;
     int numOfArgs;
-    ISend(Register callee, int numOfArgs) {
-        this.callee = callee;
+    ISend(int numOfArgs, Register callee) {
         this.numOfArgs = numOfArgs;
+        this.callee = callee;
     }
     public String toString() {
-        return super.toString("send", callee, numOfArgs);
+        return super.toString("send", numOfArgs, callee);
     }
 }
 class INew extends BCode {
@@ -657,12 +655,12 @@ class INew extends BCode {
 class INewsend extends BCode {
     Register constructor;
     int numOfArgs;
-    INewsend(Register constructor, int numOfArgs) {
-        this.constructor = constructor;
+    INewsend(int numOfArgs, Register constructor) {
         this.numOfArgs = numOfArgs;
+        this.constructor = constructor;
     }
     public String toString() {
-        return super.toString("newsend", constructor, numOfArgs);
+        return super.toString("newsend", numOfArgs, constructor);
     }
 }
 class IMakesimpleiterator extends BCode {
@@ -706,31 +704,31 @@ class IJump extends BCode {
 class IJumptrue extends BCode {
     Register test;
     Label label;
-    IJumptrue(Register test, Label label) {
-        this.test = test;
+    IJumptrue(Label label, Register test) {
         this.label = label;
+        this.test = test;
     }
     @Override
     public BCode getBranchTarget() {
     		return label.getDestBCode();
     }
     public String toString() {
-        return super.toString("jumptrue", test, label.dist(number));
+        return super.toString("jumptrue", label.dist(number), test);
     }
 }
 class IJumpfalse extends BCode {
     Register test;
     Label label;
-    IJumpfalse(Register test, Label label) {
-        this.test = test;
+    IJumpfalse(Label label, Register test) {
         this.label = label;
+        this.test = test;
     }
     @Override
     public BCode getBranchTarget() {
     		return label.getDestBCode();
     }
     public String toString() {
-        return super.toString("jumpfalse", test, label.dist(number));
+        return super.toString("jumpfalse", label.dist(number), test);
     }
 }
 
