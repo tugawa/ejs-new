@@ -34,7 +34,7 @@ public class CBCLiveRegisterAnalyser {
                 }
                 /* out += in - kill */
                 for (Register r: in) {
-                    Register storeReg = bc.getStoreRegister();
+                    Register storeReg = bc.getDestRegister();
                     if (r == storeReg) // kill
                         continue;
                     if (out.add(r))

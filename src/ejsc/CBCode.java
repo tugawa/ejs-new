@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 
 public class CBCode {
+    static final int MAX_CHAR = 127;
+    static final int MIN_CHAR = -128;
+
     int number;
     protected Argument store, load1, load2;
 
@@ -37,29 +40,43 @@ public class CBCode {
         return null;
     }
 
-    int getArgsNum() {
-        return this.store.getArgNum() + this.load1.getArgNum() + this.load2.getArgNum();
+    public Register getDestRegister() {
+        if (!(store instanceof ARegister))
+            return null;
+        ARegister s = (ARegister) store;
+        return s.r;
     }
 
     public HashSet<Register> getSrcRegisters() {
         HashSet<Register> srcs = new HashSet<Register>();
-        srcs.addAll(store.getSrcRegisters());
+        if (!(store instanceof ARegister))
+            srcs.addAll(store.getSrcRegisters());
         srcs.addAll(load1.getSrcRegisters());
         srcs.addAll(load2.getSrcRegisters());
         return srcs;
     }
 
+    Argument newLiteralArgument(int n) {
+        if (n >= MIN_CHAR && n <= MAX_CHAR)
+            return new AShortLiteral(n);
+        return new ALiteral(n);
+    }
+
+    int getArgsNum() {
+        return store.byteLength + load1.byteLength + load2.byteLength;
+    }
+
     String toStringArgs() {
-        return this.store.type.name() + "_" + this.load1.type.name() + "_" + this.load2.type.name();
+        return store.argStr + "_" + load1.argStr + "_" + load2.argStr;
     }
 
     String toString(String op) {
         String s = op + " " + toStringArgs();
-        if (store.getArgNum() != 0)
+        if (store.byteLength != 0)
             s += " " + store.toString();
-        if (load1.getArgNum() != 0)
+        if (load1.byteLength != 0)
             s += " " + load1.toString();
-        if (load2.getArgNum() != 0)
+        if (load2.byteLength != 0)
             s += " " + load2.toString();
         return s;
     }
@@ -67,13 +84,9 @@ public class CBCode {
     String toString(String op, int n) {
         return op + " " + n;
     }
-
-    public Register getStoreRegister() {
-        if (store.type == Argument.ArgType.REGISTER)
-            return ((ARegister) store).reg;
-        return null;
-    }
 }
+
+
 
 class CBCLabel {
     private CBCode bcode;
@@ -95,88 +108,162 @@ class CBCLabel {
     }
 }
 
+
+
 class Argument {
-    static enum ArgType {
-        NONE, REGISTER, LITERAL, SHORTLITERAL,
-        GLOBAL, LOCAL, PROP, ARGS, ARRAY, A,
-        SPECCONST, NUMBER, STRING, REGEXP,
-        SHORTFIXNUM, FIXNUM;
-        public int getArgNum() {
-            switch(this) {
-            case NONE: case A:
-                return 0;
-            case SHORTLITERAL: case SPECCONST:
-            case SHORTFIXNUM:
-                return 1;
-            case REGISTER: case GLOBAL:
-            case NUMBER: case STRING: case REGEXP:
-                return 2;
-            case LITERAL: case FIXNUM: case LOCAL:
-            case PROP: case ARGS: case ARRAY:
-                return 4;
-            default:
-                throw new Error("undefined enum type: " + this.name());
-            }
-        }
+    int byteLength;
+    String argStr;
+    boolean isConstant;
+
+    Argument(int byteLength, String argStr, boolean isConstant) {
+        this.byteLength = byteLength;
+        this.argStr = argStr;
+        this.isConstant = isConstant;
     }
 
-    static final int CHAR_MAX = 127;
-    static final int CHAR_MIN = -128;
-
-    ArgType type;
-
-    Argument() {
-        this.type = ArgType.NONE;
-    }
-
-    Argument(ArgType type) {
-        this.type = type;
-    }
-
-    int getArgNum() {
-        return type.getArgNum();
-    }
-
-    boolean isShortRange(int n) {
-        return (n >= CHAR_MIN && n <= CHAR_MAX);
+    public HashSet<Register> getSrcRegisters() {
+        return new HashSet<Register>();
     }
 
     public String toString() {
         return "";
     }
-    public HashSet<Register> getSrcRegisters() {
-        return new HashSet<Register>();
-    }
-
-    public boolean isConstant() {
-        switch(type) {
-        case SPECCONST: case SHORTFIXNUM:
-        case NUMBER: case FIXNUM:
-            return true;
-        default:
-            return false;
-        }
+}
+class ANone extends Argument {
+    ANone() {
+        super(0, "NONE", false);
     }
 }
-
+class ARegister extends Argument {
+    Register r;
+    ARegister(Register r) {
+        super(2, "REGISTER", false);
+        this.r = r;
+    }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> src = new HashSet<Register>();
+        src.add(r);
+        return src;
+    }
+    public String toString() {
+        return r.toString();
+    }
+}
+class AShortLiteral extends Argument {
+    int n;
+    AShortLiteral(int n) {
+        super(1, "SHORTLITERAL", false);
+        this.n = n;
+    }
+    public String toString() {
+        return Integer.toString(n);
+    }
+}
 class ALiteral extends Argument {
     int n;
     ALiteral(int n) {
-        super(ArgType.LITERAL);
-        if (isShortRange(n))
-            type = ArgType.SHORTLITERAL;
+        super(4, "LITERAL", false);
         this.n = n;
-    }
-
-    // Use to jump label
-    ALiteral() {
-        super(ArgType.LITERAL);
-        this.n = 0;
     }
     void replaceJumpDist(int n) {
         this.n = n;
     }
-
+    public String toString() {
+        return Integer.toString(n);
+    }
+}
+class AGlobal extends Argument {
+    Register r;
+    AGlobal(Register r) {
+        super(2, "GLOBAL", false);
+        this.r = r;
+    }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> src = new HashSet<Register>();
+        src.add(r);
+        return src;
+    }
+    public String toString() {
+        return r.toString();
+    }
+}
+class ALocal extends Argument {
+    int link, idx;
+    ALocal(int link, int idx) {
+        super(4, "LOCAL", false);
+        this.link = link;
+        this.idx = idx;
+    }
+    public String toString() {
+        return link + " " + idx;
+    }
+}
+class AArgs extends Argument {
+    int link, idx;
+    AArgs(int link, int idx) {
+        super(4, "ARGS", false);
+        this.link = link;
+        this.idx = idx;
+    }
+    public String toString() {
+        return link + " " + idx;
+    }
+}
+class AProp extends Argument {
+    Register obj, prop;
+    AProp(Register obj, Register prop) {
+        super(4, "PROP", false);
+        this.obj = obj;
+        this.prop = prop;
+    }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        srcs.add(obj);
+        srcs.add(prop);
+        return srcs;
+    }
+    public String toString() {
+        return obj.toString() + " " + prop.toString();
+    }
+}
+class AArray extends Argument {
+    Register obj;
+    int idx;
+    AArray(Register obj, int idx) {
+        super(4, "ARRAY", false);
+        this.obj = obj;
+        this.idx = idx;
+    }
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        srcs.add(obj);
+        return srcs;
+    }
+    public String toString() {
+        return obj.toString() + " " + idx;
+    }
+}
+class AAreg extends Argument {
+    AAreg() {
+        super(0, "A", false);
+    }
+}
+class ASpecial extends Argument {
+    String s;
+    ASpecial(String s) {
+        super(1, "SPECCONST", true);
+        this.s = s;
+    }
+    public String toString() {
+        return s;
+    }
+}
+class AShortFixnum extends Argument {
+    int n;
+    AShortFixnum(int n) {
+        super(1, "SHORTFIXNUM", true);
+        this.n = n;
+    }
     public String toString() {
         return Integer.toString(n);
     }
@@ -184,12 +271,9 @@ class ALiteral extends Argument {
 class AFixnum extends Argument {
     int n;
     AFixnum(int n) {
-        super(ArgType.FIXNUM);
-        if (isShortRange(n))
-            type = ArgType.SHORTFIXNUM;
+        super(4, "FIXNUM", true);
         this.n = n;
     }
-
     public String toString() {
         return Integer.toString(n);
     }
@@ -197,7 +281,7 @@ class AFixnum extends Argument {
 class AString extends Argument {
     String s;
     AString(String s) {
-        super(ArgType.STRING);
+        super(2, "STRING", false);
         this.s = s;
     }
     public String toString() {
@@ -208,7 +292,7 @@ class ARegexp extends Argument {
     int idx;
     String ptn;
     ARegexp(int idx, String ptn) {
-        super(ArgType.REGEXP);
+        super(2, "REGEXP", false);
         this.idx = idx;
         this.ptn = ptn;
     }
@@ -219,87 +303,15 @@ class ARegexp extends Argument {
 class ANumber extends Argument {
     double n;
     ANumber(double n) {
-        super(ArgType.NUMBER);
+        super(2, "NUMBER", true);
         this.n = n;
     }
     public String toString() {
         return Double.toString(n);
     }
 }
-class ASpecial extends Argument {
-    String s;
-    ASpecial(String s) {
-        super(ArgType.SPECCONST);
-        this.s = s;
-    }
-    public String toString() {
-        return s;
-    }
-}
-class ARegister extends Argument {
-    Register reg;
-    ARegister(Register reg) {
-        super(ArgType.REGISTER);
-        this.reg = reg;
-    }
-    ARegister(Register reg, ArgType type) {
-        super(type);
-        this.reg = reg;
-    }
-    public String toString() {
-        return reg.toString();
-    }
-    public HashSet<Register> getSrcRegisters() {
-        HashSet<Register> src = new HashSet<Register>();
-        src.add(reg);
-        return src;
-    }
-}
-class ARegPair extends Argument {
-    Register reg1, reg2;
-    ARegPair(Register reg1, Register reg2, ArgType type) {
-        super(type);
-        this.reg1 = reg1;
-        this.reg2 = reg2;
-    }
-    public String toString() {
-        return reg1 + " " + reg2;
-    }
-    public HashSet<Register> getSrcRegisters() {
-        HashSet<Register> srcs = new HashSet<Register>();
-        srcs.add(reg1);
-        srcs.add(reg2);
-        return srcs;
-    }
-}
-class ALitPair extends Argument {
-    int lit1, lit2;
-    ALitPair(int lit1, int lit2, ArgType type) {
-        super(type);
-        this.lit1 = lit1;
-        this.lit2 = lit2;
-    }
-    public String toString() {
-        return lit1 + " " + lit2;
-    }
-}
-class ARegLitPair extends Argument {
-    Register reg;
-    int lit;
-    ARegLitPair(Register reg, int lit, ArgType type) {
-        super(type);
-        this.reg = reg;
-        this.lit = lit;
-    }
-    public String toString() {
-        return reg + " " + lit;
-    }
-    public HashSet<Register> getSrcRegisters() {
-        HashSet<Register> src = new HashSet<Register>();
-        src.add(reg);
-        return src;
-    }
-}
+
+
 
 class ICBCNop extends CBCode {
     ICBCNop(Argument store, Argument load1, Argument load2) {
@@ -308,7 +320,7 @@ class ICBCNop extends CBCode {
     ICBCNop(Argument store, Argument load1) {
         this.store = store;
         this.load1 = load1;
-        this.load2 = new Argument();
+        this.load2 = new ANone();
     }
     public String toString() {
         return super.toString("nop");
@@ -508,7 +520,7 @@ class ICBCNot extends CBCode {
     ICBCNot(INot bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("not");
@@ -520,8 +532,8 @@ class ICBCGetglobalobj extends CBCode {
     }
     ICBCGetglobalobj(IGetglobalobj bc) {
         store = new ARegister(bc.dst);
-        load1 = new Argument();
-        load2 = new Argument();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("getglobalobj");
@@ -532,9 +544,9 @@ class ICBCNewargs extends CBCode {
         super(store, load1, load2);
     }
     ICBCNewargs() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("newargs");
@@ -545,9 +557,9 @@ class ICBCNewframe extends CBCode {
         super(store, load1, load2);
     }
     ICBCNewframe(INewframe bc) {
-        store = new Argument();
-        load1 = new ALiteral(bc.len);
-        load2 = new ALiteral(bc.status);
+        store = new ANone();
+        load1 = newLiteralArgument(bc.len);
+        load2 = newLiteralArgument(bc.status);
     }
     public String toString() {
         return super.toString("newframe");
@@ -559,8 +571,8 @@ class ICBCMakeclosure extends CBCode {
     }
     ICBCMakeclosure(IMakeclosure bc) {
         store = new ARegister(bc.dst);
-        load1 = new ALiteral(bc.idx);
-        load2 = new Argument();
+        load1 = newLiteralArgument(bc.idx);
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("makeclosure");
@@ -571,9 +583,9 @@ class ICBCRet extends CBCode {
         super(store, load1, load2);
     }
     ICBCRet() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     @Override
     public boolean isFallThroughInstruction() {
@@ -590,7 +602,7 @@ class ICBCIsundef extends CBCode {
     ICBCIsundef(IIsundef bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("isundef");
@@ -603,7 +615,7 @@ class ICBCIsobject extends CBCode {
     ICBCIsobject(IIsobject bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.src);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("isobject");
@@ -627,9 +639,9 @@ class ICBCCall extends CBCode {
         super(store, load1, load2);
     }
     ICBCCall(ICall bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.callee);
-        load2 = new ALiteral(bc.numOfArgs);
+        load2 = newLiteralArgument(bc.numOfArgs);
     }
     public String toString() {
         return super.toString("call");
@@ -640,9 +652,9 @@ class ICBCSend extends CBCode {
         super(store, load1, load2);
     }
     ICBCSend(ISend bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.callee);
-        load2 = new ALiteral(bc.numOfArgs);
+        load2 = newLiteralArgument(bc.numOfArgs);
     }
     public String toString() {
         return super.toString("send");
@@ -655,7 +667,7 @@ class ICBCNew extends CBCode {
     ICBCNew(INew bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.constructor);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("new");
@@ -666,9 +678,9 @@ class ICBCNewsend extends CBCode {
         super(store, load1, load2);
     }
     ICBCNewsend(INewsend bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.constructor);
-        load2 = new ALiteral(bc.numOfArgs);
+        load2 = newLiteralArgument(bc.numOfArgs);
     }
     public String toString() {
         return super.toString("newsend");
@@ -681,7 +693,7 @@ class ICBCMakesimpleiterator extends CBCode {
     ICBCMakesimpleiterator(IMakesimpleiterator bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.obj);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("makesimpleiterator");
@@ -694,7 +706,7 @@ class ICBCNextpropnameidx extends CBCode {
     ICBCNextpropnameidx(INextpropnameidx bc) {
         store = new ARegister(bc.dst);
         load1 = new ARegister(bc.ite);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("nextpropnameidx");
@@ -709,9 +721,9 @@ class ICBCJump extends CBCode {
     }
     CBCLabel label;
     ICBCJump(IJump bc) {
-        store = new Argument();
-        load1 = new ALiteral();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ALiteral(0);
+        load2 = new ANone();
         label = new CBCLabel();
     }
     @Override
@@ -735,9 +747,9 @@ class ICBCJumptrue extends CBCode {
     }
     CBCLabel label;
     ICBCJumptrue(IJumptrue bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.test);
-        load2 = new ALiteral();
+        load2 = new ALiteral(0);
         label = new CBCLabel();
     }
     @Override
@@ -757,9 +769,9 @@ class ICBCJumpfalse extends CBCode {
     }
     CBCLabel label;
     ICBCJumpfalse(IJumpfalse bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.test);
-        load2 = new ALiteral();
+        load2 = new ALiteral(0);
         label = new CBCLabel();
     }
     @Override
@@ -780,9 +792,9 @@ class ICBCThrow extends CBCode {
         super(store, load1, load2);
     }
     ICBCThrow(IThrow bc) {
-        store = new Argument();
+        store = new ANone();
         load1 = new ARegister(bc.reg);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     @Override
     public boolean isFallThroughInstruction() {
@@ -798,9 +810,9 @@ class ICBCPushhandler extends CBCode {
     }
     CBCLabel label;
     ICBCPushhandler(IPushhandler bc) {
-        store = new Argument();
-        load1 = new ALiteral();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ALiteral(0);
+        load2 = new ANone();
         label = new CBCLabel();
     }
     void resolveJumpDist() {
@@ -815,9 +827,9 @@ class ICBCPophandler extends CBCode {
         super(store, load1, load2);
     }
     ICBCPophandler() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("pophandler");
@@ -829,9 +841,9 @@ class ICBCLocalcall extends CBCode {
     }
     CBCLabel label;
     ICBCLocalcall(ILocalcall bc) {
-        store = new Argument();
-        load1 = new ALiteral();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ALiteral(0);
+        load2 = new ANone();
         label = new CBCLabel();
     }
     void resolveJumpDist() {
@@ -846,9 +858,9 @@ class ICBCLocalret extends CBCode {
         super(store, load1, load2);
     }
     ICBCLocalret() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     @Override
     public boolean isFallThroughInstruction() {
@@ -863,9 +875,9 @@ class ICBCPoplocal extends CBCode {
         super(store, load1, load2);
     }
     ICBCPoplocal() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("poplocal");
@@ -876,9 +888,9 @@ class ICBCSetfl extends CBCode {
         super(store, load1, load2);
     }
     ICBCSetfl(ISetfl bc) {
-        store = new Argument();
-        load1 = new ALiteral(bc.fl);
-        load2 = new Argument();
+        store = new ANone();
+        load1 = newLiteralArgument(bc.fl);
+        load2 = new ANone();
     }
     public String toString() {
         return super.toString("setfl");
@@ -949,7 +961,7 @@ class ICBCError extends CBCode {
     ICBCError(IError bc) {
         store = new ARegister(bc.dst);
         load1 = new AString(bc.str);
-        load2 = new Argument();
+        load2 = new ANone();
     }
     @Override
     public boolean isFallThroughInstruction() {
@@ -962,9 +974,9 @@ class ICBCError extends CBCode {
 
 class MCBCSetfl extends CBCode {
     MCBCSetfl() {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
     }
     @Override
     public String toString() {
@@ -979,9 +991,9 @@ class MCBCCall extends CBCode {
     boolean isNew;
     boolean isTail;
     MCBCCall(MCall bc) {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
         this.receiver = bc.receiver;
         this.function = bc.function;
         this.args = bc.args;
@@ -1019,13 +1031,13 @@ class MCBCCall extends CBCode {
 class MCBCParameter extends CBCode {
     Register dst;
     MCBCParameter(MParameter bc) {
-        store = new Argument();
-        load1 = new Argument();
-        load2 = new Argument();
+        store = new ANone();
+        load1 = new ANone();
+        load2 = new ANone();
         this.dst = bc.dst;
     }
     @Override
-    public Register getStoreRegister() {
+    public Register getDestRegister() {
         return dst;
     }
     @Override

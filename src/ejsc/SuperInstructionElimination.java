@@ -3,8 +3,6 @@ package ejsc;
 import java.util.ArrayList;
 import java.util.List;
 
-import ejsc.Argument.ArgType;
-
 public class SuperInstructionElimination {
     public class SuperInstructionEmulator {
         class Environment {
@@ -14,17 +12,17 @@ public class SuperInstructionElimination {
                 this.bc = bc;
             }
 
-            public CBCode lookup(ARegister load) {
-                return findDefinition(bc, load);
+            public CBCode lookup(Register src) {
+                return findDefinition(bc, src);
             }
 
-            private CBCode findDefinition(CBCode bc, ARegister load) {
+            private CBCode findDefinition(CBCode bc, Register src) {
                 CBCode result = null;
                 for (CBCode def : rdefa.getReachingDefinitions(bc)) {
-                    Register arg = def.getStoreRegister();
-                    if (arg == null)
+                    Register dst = def.getDestRegister();
+                    if (dst == null)
                         continue;
-                    if (arg == load.reg) {
+                    if (dst == src) {
                         if (result == null)
                             result = def;
                         else
@@ -52,20 +50,22 @@ public class SuperInstructionElimination {
         }
 
         protected CBCode evalCBCode(Environment env, CBCode bc) {
-            if (bc.load1.type != Argument.ArgType.REGISTER)
+            if (!(bc.load1 instanceof ARegister))
                 return null;
-            CBCode b = env.lookup((ARegister)bc.load1);
+            ARegister load1 = (ARegister) bc.load1;
+            CBCode b = env.lookup(load1.r);
             if (b instanceof ICBCNop) {
-                if (b.load1.isConstant())
+                if (b.load1.isConstant)
                     bc.load1 = b.load1;
             }
             return bc;
         }
 
         protected CBCode evalICBCNop(Environment env, ICBCNop bc) {
-            if (bc.load1.type != ArgType.REGISTER)
+            if (!(bc.load1 instanceof ARegister))
                 return null;
-            CBCode b = env.lookup((ARegister)bc.load1);
+            ARegister load1 = (ARegister) bc.load1;
+            CBCode b = env.lookup(load1.r);
             if (b != null) {
                 try {
                     return b.getClass().getDeclaredConstructor(Argument.class, Argument.class, Argument.class)

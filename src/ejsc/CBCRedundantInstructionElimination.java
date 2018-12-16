@@ -15,7 +15,7 @@ public class CBCRedundantInstructionElimination {
     }
 
     private boolean isRedundant(CBCode bc) {
-        Register reg = bc.getStoreRegister();
+        Register reg = bc.getDestRegister();
         if (reg == null)
             return false;
         if (lra.getLiveRegisters(bc).contains(reg))

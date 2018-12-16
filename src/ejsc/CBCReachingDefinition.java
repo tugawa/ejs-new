@@ -21,7 +21,7 @@ public class CBCReachingDefinition {
             CBCode bc = n.getBCode();
             inMap.put(bc, new HashSet<CBCode>());
             Set<CBCode> out = new HashSet<CBCode>();
-            if (bc.getStoreRegister() != null)
+            if (bc.getDestRegister() != null)
                 out.add(bc); // gen
             outMap.put(bc,  out);
         }
@@ -50,10 +50,10 @@ public class CBCReachingDefinition {
     
     // return target \in Kill_{self}
     private boolean inKillSet(CBCode self, CBCode target) {
-        Register selfArg = self.getStoreRegister();
-        Register targetArg = target.getStoreRegister();
-        if (selfArg == null || targetArg == null)
+        Register selfReg = self.getDestRegister();
+        Register targetReg = target.getDestRegister();
+        if (selfReg == null || targetReg == null)
             return false;
-        return selfArg == targetArg;
+        return selfReg == targetReg;
     }
 }

@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import ejsc.Argument.ArgType;
 import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class BCBuilder {
@@ -134,6 +133,8 @@ class BCBuilder {
     }
 
 	static final int NUMBER_OF_LINK_REGISTERS = 4;
+    static final int MAX_CHAR = 127;
+    static final int MIN_CHAR = -128;
 
     private LinkedList<FunctionBCBuilder> fbStack = new LinkedList<FunctionBCBuilder>();
     private LinkedList<FunctionBCBuilder> fBuilders = new LinkedList<FunctionBCBuilder>();
@@ -473,8 +474,13 @@ class BCBuilder {
 
         // convart nop instruction
         if (bc instanceof IFixnum) {
+            Argument l1;
             IFixnum b = (IFixnum) bc;
-            return new ICBCNop(new ARegister(b.dst), new AFixnum(b.n));
+            if (b.n >= MIN_CHAR && b.n <= MAX_CHAR)
+                l1 = new AShortFixnum(b.n);
+            else
+                l1 = new AFixnum(b.n);
+            return new ICBCNop(new ARegister(b.dst), l1);
         }
         if (bc instanceof IString) {
             IString b = (IString) bc;
@@ -505,39 +511,39 @@ class BCBuilder {
         }
         if (bc instanceof IGetglobal) {
             IGetglobal b = (IGetglobal) bc;
-            return new ICBCNop(new ARegister(b.dst), new ARegister(b.lit, ArgType.GLOBAL));
+            return new ICBCNop(new ARegister(b.dst), new AGlobal(b.lit));
         }
         if (bc instanceof ISetglobal) {
             ISetglobal b = (ISetglobal) bc;
-            return new ICBCNop(new ARegister(b.lit, ArgType.GLOBAL), new ARegister(b.src));
+            return new ICBCNop(new AGlobal(b.lit), new ARegister(b.src));
         }
         if (bc instanceof IGetlocal) {
             IGetlocal b = (IGetlocal) bc;
-            return new ICBCNop(new ARegister(b.dst), new ALitPair(b.depth, b.n, ArgType.LOCAL));
+            return new ICBCNop(new ARegister(b.dst), new ALocal(b.depth, b.n));
         }
         if (bc instanceof ISetlocal) {
             ISetlocal b = (ISetlocal) bc;
-            return new ICBCNop(new ALitPair(b.depth, b.n, ArgType.LOCAL), new ARegister(b.src));
+            return new ICBCNop(new ALocal(b.depth, b.n), new ARegister(b.src));
         }
         if (bc instanceof IGetarg) {
             IGetarg b = (IGetarg) bc;
-            return new ICBCNop(new ARegister(b.dst), new ALitPair(b.depth, b.n, ArgType.ARGS));
+            return new ICBCNop(new ARegister(b.dst), new AArgs(b.depth, b.n));
         }
         if (bc instanceof ISetarg) {
             ISetarg b = (ISetarg) bc;
-            return new ICBCNop(new ALitPair(b.depth, b.n, ArgType.ARGS), new ARegister(b.src));
+            return new ICBCNop(new AArgs(b.depth, b.n), new ARegister(b.src));
         }
         if (bc instanceof IGetprop) {
             IGetprop b = (IGetprop) bc;
-            return new ICBCNop(new ARegister(b.dst), new ARegPair(b.obj, b.prop, ArgType.PROP));
+            return new ICBCNop(new ARegister(b.dst), new AProp(b.obj, b.prop));
         }
         if (bc instanceof ISetprop) {
             ISetprop b = (ISetprop) bc;
-            return new ICBCNop(new ARegPair(b.obj, b.prop, ArgType.PROP), new ARegister(b.src));
+            return new ICBCNop(new AProp(b.obj, b.prop), new ARegister(b.src));
         }
         if (bc instanceof ISetarray) {
             ISetarray b = (ISetarray) bc;
-            return new ICBCNop(new ARegLitPair(b.ary, b.n, ArgType.ARRAY), new ARegister(b.src));
+            return new ICBCNop(new AArray(b.ary, b.n), new ARegister(b.src));
         }
         if (bc instanceof IMove) {
             IMove b = (IMove) bc;
@@ -545,11 +551,11 @@ class BCBuilder {
         }
         if (bc instanceof IGeta) {
             IGeta b = (IGeta) bc;
-            return new ICBCNop(new ARegister(b.dst), new Argument(ArgType.A));
+            return new ICBCNop(new ARegister(b.dst), new AAreg());
         }
         if (bc instanceof ISeta) {
             ISeta b = (ISeta) bc;
-            return new ICBCNop(new Argument(ArgType.A), new ARegister(b.src));
+            return new ICBCNop(new AAreg(), new ARegister(b.src));
         }
         return null;
     }
