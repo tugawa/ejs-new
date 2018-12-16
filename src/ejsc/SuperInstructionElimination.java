@@ -50,13 +50,19 @@ public class SuperInstructionElimination {
         }
 
         protected CBCode evalCBCode(Environment env, CBCode bc) {
-            if (!(bc.load1 instanceof ARegister))
-                return null;
-            ARegister load1 = (ARegister) bc.load1;
-            CBCode b = env.lookup(load1.r);
-            if (b instanceof ICBCNop) {
-                if (b.load1.isConstant)
+            if (bc.load1 instanceof ARegister) {
+                ARegister load1 = (ARegister) bc.load1;
+                CBCode b = env.lookup(load1.r);
+                if ((b instanceof ICBCNop) && b.load1.isConstant)
                     bc.load1 = b.load1;
+            }
+            if (bc.load2 instanceof ARegister) {
+                ARegister load2 = (ARegister) bc.load2;
+                CBCode b = env.lookup(load2.r);
+                if (b instanceof ICBCNop) {
+                    if (b.load1 instanceof AShortFixnum || b.load1 instanceof AFixnum)
+                        bc.load2 = b.load1;
+                }
             }
             return bc;
         }
