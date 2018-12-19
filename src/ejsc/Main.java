@@ -221,7 +221,7 @@ public class Main {
         }
 
         // convert iAST into low level code.
-        CodeGenerator codegen = new CodeGenerator(info.optLocals);
+        CodeGenerator codegen = new CodeGenerator(info);
 
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
         bcBuilder.optimisation(info);

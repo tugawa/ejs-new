@@ -310,6 +310,16 @@ class ANumber extends Argument {
         return Double.toString(n);
     }
 }
+class AGlobalVar extends Argument {
+    String s;
+    AGlobalVar(String s) {
+        super(2, "GLOBALVAR", false);
+        this.s = s;
+    }
+    public String toString() {
+        return "\"" + s + "\"";
+    }
+}
 
 
 

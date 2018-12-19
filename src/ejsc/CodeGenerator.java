@@ -283,8 +283,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-	public CodeGenerator(Main.Info.OptLocals optLocals) {
-		this.optLocals = optLocals;
+    public CodeGenerator(Main.Info info) {
+        this.info = info;
+        optLocals = info.optLocals;
         needArguments = false;
         needFrame = false;
     }
@@ -292,7 +293,8 @@ public class CodeGenerator extends IASTBaseVisitor {
     BCBuilder bcBuilder;
     Environment env;
     Register reg;
-	Main.Info.OptLocals optLocals;
+    Main.Info info;
+    Main.Info.OptLocals optLocals;
     static final int THIS_OBJECT_REGISTER = 0;
     boolean needArguments;
     boolean needFrame;
@@ -722,7 +724,12 @@ public class CodeGenerator extends IASTBaseVisitor {
         int i = 0;
         for (IASTExpression element : node.elements) {
             compileNode(element, r1);
-            bcBuilder.push(new ISetarray(reg, i++, r1));
+            if (info.optCompactByteCode) {
+                bcBuilder.push(new IFixnum(constructorReg, i++));
+                bcBuilder.push(new ISetprop(reg, constructorReg, r1));
+            } else {
+                bcBuilder.push(new ISetarray(reg, i++, r1));
+            }
         }
         return null;
     }

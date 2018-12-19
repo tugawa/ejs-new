@@ -541,10 +541,6 @@ class BCBuilder {
             ISetprop b = (ISetprop) bc;
             return new ICBCNop(new AProp(b.obj, b.prop), new ARegister(b.src));
         }
-        if (bc instanceof ISetarray) {
-            ISetarray b = (ISetarray) bc;
-            return new ICBCNop(new AArray(b.ary, b.n), new ARegister(b.src));
-        }
         if (bc instanceof IMove) {
             IMove b = (IMove) bc;
             return new ICBCNop(new ARegister(b.dst), new ARegister(b.src));
@@ -556,6 +552,11 @@ class BCBuilder {
         if (bc instanceof ISeta) {
             ISeta b = (ISeta) bc;
             return new ICBCNop(new AAreg(), new ARegister(b.src));
+        }
+
+        // unsupport instruction
+        if (bc instanceof ISetarray) {
+            throw new Error("Setarray is unsupported");
         }
         return null;
     }
