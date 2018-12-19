@@ -194,9 +194,26 @@ class CBCBuilder {
 
             if (info.optCBCSuperInstruction) {
                 SuperInstructionElimination sie = new SuperInstructionElimination(fb.bcodes);
-                fb.bcodes = sie.exec();
+                fb.bcodes = sie.execLoadSIE();
                 if (info.optPrintOptimisation) {
-                    System.out.println("====== after cbc sie ======");
+                    System.out.println("====== after cbc load sie ======");
+                    System.out.println(fb);
+                }
+            }
+            if (info.optCBCRedunantInstructionElimination) {
+                fb.assignAddress();
+                CBCRedundantInstructionElimination rie = new CBCRedundantInstructionElimination(fb.bcodes);
+                fb.bcodes = rie.exec();
+                if (info.optPrintOptimisation) {
+                    System.out.println("====== after cbc rie ======");
+                    System.out.println(fb);
+                }
+            }
+            if (info.optCBCSuperInstruction) {
+                SuperInstructionElimination sie = new SuperInstructionElimination(fb.bcodes);
+                fb.bcodes = sie.execStoreSIE();
+                if (info.optPrintOptimisation) {
+                    System.out.println("====== after cbc store sie ======");
                     System.out.println(fb);
                 }
             }
