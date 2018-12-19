@@ -226,23 +226,6 @@ class AProp extends Argument {
         return obj.toString() + " " + prop.toString();
     }
 }
-class AArray extends Argument {
-    Register obj;
-    int idx;
-    AArray(Register obj, int idx) {
-        super(4, "ARRAY", false);
-        this.obj = obj;
-        this.idx = idx;
-    }
-    public HashSet<Register> getSrcRegisters() {
-        HashSet<Register> srcs = new HashSet<Register>();
-        srcs.add(obj);
-        return srcs;
-    }
-    public String toString() {
-        return obj.toString() + " " + idx;
-    }
-}
 class AAreg extends Argument {
     AAreg() {
         super(0, "A", false);
