@@ -4,12 +4,20 @@
   <property name="src" location="src"/>
   <property name="bin" location="bin"/>
 
+  <path id="classpath">
+    <pathelement location="lib/nez.jar" />
+    <pathelement location="bin" />
+  </path>
+
   <target name="init">
     <mkdir dir="${bin}"/>
   </target>
   
   <target name="compile" depends="init">
-    <javac srcdir="${src}" destdir="${bin}" classpathref="classpath"/>
+    <javac srcdir="${src}" destdir="${bin}" classpathref="classpath"
+          includeantruntime="false">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
   </target>
 
   <target name="dist" depends="compile">
@@ -19,22 +27,21 @@
 
   <target name="oldinsngen" depends="compile">
     <jar jarfile="oldinsngen.jar" basedir="${bin}"
-	 manifest="manifest/oldinsngen.mf"/>
+          manifest="manifest/oldinsngen.mf"/>
   </target>
   
   <target name="clean">
     <delete dir="${bin}"/>
   </target>
 
-  <path id="classpath">
-    <pathelement location="lib/nez.jar" />
-    <pathelement location="./class/" />
-  </path>
-  <target name="build_vmdlc" depends="init" description="Building">
-    <javac srcdir="./" destdir="${class.path}" includeantruntime="false"
+  <target name="test_vmdlc" depends="dist" description="Building">
+    <javac srcdir="test/" destdir="${bin}" includeantruntime="false"
           classpathref="classpath">
       <compilerarg value="-Xlint:unchecked" />
     </javac>
+    <java classname="TestVMDLC" failonerror="true" fork="true" dir="test">
+      <classpath refid="classpath"/>
+    </java>
   </target>
 </project>
     

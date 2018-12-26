@@ -16,9 +16,9 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(AlphaConvVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node) {
+    public void start(Tree<?> node, boolean leaveName) {
         try {
-            VarDict dict = new VarDict();
+            VarDict dict = new VarDict(leaveName);
             for (Tree<?> chunk : node) {
                 visit(chunk, dict);
             }
@@ -131,13 +131,15 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
 class VarDict {
     private NameMaker nameMaker;
     LinkedList<HashMap<String,String>> frames;
-    HashMap<String, String> map;
+    HashMap<String, String> varmap;
+    boolean leaveName;
 
-    public VarDict() {
+    public VarDict(boolean _leaveName) {
         super();
         nameMaker = new NameMaker();
         frames = new LinkedList<HashMap<String,String>>();
-        map = new HashMap<String, String>();
+        varmap = new HashMap<String, String>();
+        leaveName = _leaveName;
     }
 
     public void createFrame() {
@@ -154,13 +156,13 @@ class VarDict {
         intern(node, "v");
     }
 
-    private void intern(Tree<?> node, String s) throws Exception {
+    private void intern(Tree<?> node, String prefix) throws Exception {
         String name = node.toText();
-        String newName = nameMaker.getName(s);
-        if (map.containsKey(newName)) {
+        String newName = nameMaker.getName(name, prefix);
+        if (varmap.containsKey(newName)) {
             throw new Exception("Var exists");
         } else {
-            map.put(newName, name);
+            varmap.put(newName, name);
             frames.getFirst().put(name, newName);
             node.setValue(newName);
         } 
@@ -181,9 +183,13 @@ class VarDict {
         NameMaker() {
             counter = 0;
         }
-        public String getName(String s) {
+        public String getName(String name, String prefix) {
             counter++;
-            return s + counter;
+            if (leaveName) {
+                return name + "_" + counter;
+            } else {
+                return prefix + counter;
+            }
         }
     }
 }

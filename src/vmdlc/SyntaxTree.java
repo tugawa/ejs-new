@@ -7,26 +7,22 @@ import nez.ast.Tree;
 import vmdlc.SyntaxTree;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
-    protected NodeType type;
-
     public SyntaxTree() {
         super();
-        type = null;
     }
 
-    public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value, NodeType _type) {
+    public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
-        type = _type;
     }
 
     @Override
     public SyntaxTree newInstance(Symbol tag, Source source, long pos, int len, int objectsize, Object value) {
-        return new SyntaxTree(tag, source, pos, len, objectsize, value, null);
+        return new SyntaxTree(tag, source, pos, len, objectsize, value);
     }
 
     @Override
     public SyntaxTree newInstance(Symbol tag, int size, Object value) {
-        return new SyntaxTree(tag, this.getSource(), this.getSourcePosition(), 0, size, value, null);
+        return new SyntaxTree(tag, this.getSource(), this.getSourcePosition(), 0, size, value);
     }
 
     @Override
@@ -36,14 +32,10 @@ public class SyntaxTree extends Tree<SyntaxTree> {
 
     @Override
     protected SyntaxTree dupImpl() {
-        SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue(), this.getType());
+        SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue());
         return t;
 	}
 	
-	public NodeType getType() {
-		return type;
-	}
-
     public Tree<SyntaxTree>[] getSubTree() {
         return this.subTree;
     }

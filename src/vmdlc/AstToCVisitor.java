@@ -5,15 +5,26 @@ import nez.ast.TreeVisitorMap;
 import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
-import java.util.LinkedList;
 import java.util.HashMap;
+import java.util.Stack;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import java.lang.Exception;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
+import dispatch.DispatchProcessor;
+import dispatch.DispatchPlan;
+import dispatch.RuleSet;
+import type.VMDataType;
+
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
+    Stack<StringBuffer> outStack;
+
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
+        outStack = new Stack<StringBuffer>();
     }
 
     public void start(Tree<?> node) {
@@ -30,11 +41,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private void print(Object o) {
-        ConsoleUtils.print(o);
+        outStack.peek().append(o);
     }
 
     private void println(Object o) {
-        ConsoleUtils.println(o);
+        outStack.peek().append(o + "\n");
     }
 
     private void printOperator(Tree<?> node, String s) throws Exception {
@@ -94,6 +105,54 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Match extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> params = node.get(Symbol.unique("params"));
+            String[] formalParams = new String[params.size()];
+            for (int i = 0; i < params.size(); i++) {
+                formalParams[i] = params.get(i).toText();
+            }
+
+            Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
+            Tree<?> cases = node.get(Symbol.unique("cases"));
+            for (Tree<?> cas: cases) {
+                Tree<?> pat = cas.get(Symbol.unique("pattern"));
+                ArrayList<RuleSet.OperandDataTypes> odts = makeOdts(pat);
+                outStack.push(new StringBuffer());
+                Tree<?> statement = cas.get(Symbol.unique("body"));
+                visit(statement, 0);
+                String action = outStack.pop().toString();
+                RuleSet.Rule rule = new RuleSet.Rule(action, odts);
+                rules.add(rule);
+            }
+            ConsoleUtils.println(cases.size());
+            RuleSet ruleSet = new RuleSet(formalParams, rules);
+
+            // cases.size() で大丈夫?
+            DispatchPlan dp = new DispatchPlan(cases.size(), false);
+            DispatchProcessor dispatchProcessor = new DispatchProcessor();
+            String s = dispatchProcessor.translate(ruleSet, dp);
+            println(s);
+        }
+
+        private ArrayList<RuleSet.OperandDataTypes> makeOdts(Tree<?> pat) {
+            ArrayList<RuleSet.OperandDataTypes> result = new ArrayList<RuleSet.OperandDataTypes>();
+            _makeOdts(pat, result);
+            return result;
+        }
+        private void _makeOdts(Tree<?> pat, ArrayList<RuleSet.OperandDataTypes> result) {
+            if (pat.is(Symbol.unique("OrPattern"))) {
+                for (Tree<?> child : pat) {
+                    _makeOdts(child, result);
+                }
+            } else if (pat.is(Symbol.unique("AndPattern"))) {
+                VMDataType[] dt = new VMDataType[pat.size()];
+                
+                for (int i = 0; i < pat.size(); i++) {
+                    String s = pat.get(i).get(Symbol.unique("type")).toText();
+                    dt[i] = VMDataType.get(s.toLowerCase());
+                }
+                RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(dt);
+                result.add(odt);
+            }
         }
     }
 
@@ -463,10 +522,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Ctype extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            HashMap<String, String> map = new HashMap<String, String>();
-            map.put("cint", "int");
-            map.put("cdouble", "double");
-            print(map.get(node.toText()));
+            HashMap<String, String> varmap = new HashMap<String, String>();
+            varmap.put("cint", "int");
+            varmap.put("cdouble", "double");
+            print(varmap.get(node.toText()));
         }
     }
     public class CValue extends DefaultVisitor {
