@@ -8,13 +8,13 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
-import vmgen.newsynth.DecisionDiagram.HTNode;
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.PTNode;
-import vmgen.newsynth.DecisionDiagram.TagNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode;
+import dispatch.DecisionDiagram.HTNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.PTNode;
+import dispatch.DecisionDiagram.TagNode;
+import dispatch.DecisionDiagram.TagPairNode;
 
 class NodeVisitor<R> {
     R visitLeaf(Leaf node) {

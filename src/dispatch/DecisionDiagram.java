@@ -8,7 +8,7 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,14 +16,13 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import vmgen.InsnGen.Option;
-import vmgen.newsynth.LLRuleSet.LLRule;
-import vmgen.type.VMRepType;
-import vmgen.type.VMRepType.HT;
-import vmgen.type.VMRepType.PT;
+import dispatch.LLRuleSet.LLRule;
+import type.VMDataType;
+import type.VMRepType;
+import type.VMRepType.HT;
+import type.VMRepType.PT;
 
 public class DecisionDiagram {
-    static Option option;
     public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 
     static abstract class DispatchCriterion {
@@ -350,9 +349,8 @@ public class DecisionDiagram {
     Node root;
     List<DispatchCriterion> dispatchPlan;
 
-    public DecisionDiagram(List<DispatchCriterion> dispatchPlan, LLRuleSet rs, Option option) {
-        this.dispatchPlan = dispatchPlan;
-        this.option = option;
+    public DecisionDiagram(LLRuleSet rs, DispatchPlan dispatchPlan) {
+        this.dispatchPlan = dispatchPlan.getPlan();
 
         if (rs.getRules().size() == 0)
             return;
@@ -383,13 +381,13 @@ public class DecisionDiagram {
     ////
 
     static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option);
+        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro);
         node.accept(gen);
         return gen.toString();
     }
 
     static boolean isConsistent(Node a, Node b) {
-        IsConsistentVisitor v = new IsConsistentVisitor(a, option);
+        IsConsistentVisitor v = new IsConsistentVisitor(a);
         return  (Boolean) b.accept(v);
     }
 

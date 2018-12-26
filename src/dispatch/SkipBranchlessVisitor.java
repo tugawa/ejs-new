@@ -8,15 +8,15 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.TreeMap;
 
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.Node;
-import vmgen.newsynth.DecisionDiagram.TagNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.Node;
+import dispatch.DecisionDiagram.TagNode;
+
 
 public class SkipBranchlessVisitor extends NodeVisitor<Node> {
 

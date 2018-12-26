@@ -8,18 +8,18 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
-import vmgen.newsynth.DecisionDiagram.HTNode;
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.Node;
-import vmgen.newsynth.DecisionDiagram.PTNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode.TagPair;
-import vmgen.newsynth.LLRuleSet.LLRule;
-import vmgen.type.VMRepType;
-import vmgen.type.VMRepType.HT;
-import vmgen.type.VMRepType.PT;
+import dispatch.DecisionDiagram.HTNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.Node;
+import dispatch.DecisionDiagram.PTNode;
+import dispatch.DecisionDiagram.TagPairNode;
+import dispatch.DecisionDiagram.TagPairNode.TagPair;
+import dispatch.LLRuleSet.LLRule;
+import type.VMRepType;
+import type.VMRepType.HT;
+import type.VMRepType.PT;
 
 public class SearchVisitor extends NodeVisitor<LLRule> {
 

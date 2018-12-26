@@ -8,20 +8,17 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
-import vmgen.InsnGen.Option;
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.Node;
-import vmgen.newsynth.DecisionDiagram.TagNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.Node;
+import dispatch.DecisionDiagram.TagNode;
 
 class IsConsistentVisitor extends NodeVisitor<Boolean> {
-    Option option;
     Node root;
     Node currentNodex;
 
-    IsConsistentVisitor(Node root, Option option) {
-        this.option = option;
+    IsConsistentVisitor(Node root) {
         this.root = root;
         currentNodex = root;
     }

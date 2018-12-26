@@ -8,27 +8,27 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import vmgen.InsnGen.Option;
-import vmgen.newsynth.DecisionDiagram.HTNode;
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.Node;
-import vmgen.newsynth.DecisionDiagram.PTNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode;
-import vmgen.newsynth.DecisionDiagram.TagPairNode.TagPair;
-import vmgen.type.VMRepType;
-import vmgen.type.VMRepType.HT;
-import vmgen.type.VMRepType.PT;
+import dispatch.DecisionDiagram.HTNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.Node;
+import dispatch.DecisionDiagram.PTNode;
+import dispatch.DecisionDiagram.TagPairNode;
+import dispatch.DecisionDiagram.TagPairNode.TagPair;
+import type.VMRepType;
+import type.VMRepType.HT;
+import type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
     static boolean USE_GOTO = true;
     static boolean PAD_CASES = true;
-    static boolean USE_DEFAULT = false;  // add default by the same strategy as -old (exclusive to PAD_CASES)
+    static boolean USE_DEFAULT = false;  // exclusive to PAD_CASES
     static boolean DEBUG_COMMENT = true;
+    static boolean GEN_MAGIC_COMMENT = true;
     static class Macro {
         int nextLabel = 0;
 
@@ -49,25 +49,19 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         }
     }
 
-    Option option;
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
     TreeMap<Node, String> labels = new TreeMap<Node, String>();
 
-    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option) {
+    public CodeGenerateVisitor(String[] varNames, Macro tagMacro) {
         this.varNames = varNames;
         this.tagMacro = tagMacro;
-        this.option = option;
-        USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
-        PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
-        USE_DEFAULT = option.getOption(Option.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
-        DEBUG_COMMENT = option.getOption(Option.AvailableOptions.GEN_DEBUG_COMMENT, DEBUG_COMMENT);
     }
 
     @Override
     public String toString() {
-        if (option.getOption(Option.AvailableOptions.GEN_MAGIC_COMMENT, false)) {
+        if (GEN_MAGIC_COMMENT) {
             return sb.toString() +
                     "/* Local Variables: */\n" +
                     "/* mode: c */\n" +

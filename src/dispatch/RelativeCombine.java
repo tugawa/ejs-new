@@ -8,17 +8,18 @@
      Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
  */
-package match;
+package dispatch;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import vmgen.newsynth.DecisionDiagram.HTNode;
-import vmgen.newsynth.DecisionDiagram.Leaf;
-import vmgen.newsynth.DecisionDiagram.Node;
-import vmgen.newsynth.DecisionDiagram.TagNode;
+import dispatch.DecisionDiagram.HTNode;
+import dispatch.DecisionDiagram.Leaf;
+import dispatch.DecisionDiagram.Node;
+import dispatch.DecisionDiagram.TagNode;
+
 
 public class RelativeCombine {
     static class LayerGatherVisitor extends NodeVisitor<Void> {
