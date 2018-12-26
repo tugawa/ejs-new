@@ -56,10 +56,10 @@ public class CBCode {
         return srcs;
     }
 
-    Argument newLiteralArgument(int n) {
+    Argument newFixnumArgument(int n) {
         if (n >= MIN_CHAR && n <= MAX_CHAR)
-            return new AShortLiteral(n);
-        return new ALiteral(n);
+            return new AShortFixnum(n);
+        return new AFixnum(n);
     }
 
     int getArgsNum() {
@@ -149,29 +149,6 @@ class ARegister extends Argument {
         return r.toString();
     }
 }
-class AShortLiteral extends Argument {
-    int n;
-    AShortLiteral(int n) {
-        super(1, "SHORTLITERAL", false);
-        this.n = n;
-    }
-    public String toString() {
-        return Integer.toString(n);
-    }
-}
-class ALiteral extends Argument {
-    int n;
-    ALiteral(int n) {
-        super(4, "LITERAL", false);
-        this.n = n;
-    }
-    void replaceJumpDist(int n) {
-        this.n = n;
-    }
-    public String toString() {
-        return Integer.toString(n);
-    }
-}
 class AGlobal extends Argument {
     Register r;
     AGlobal(Register r) {
@@ -255,6 +232,9 @@ class AFixnum extends Argument {
     int n;
     AFixnum(int n) {
         super(4, "FIXNUM", true);
+        this.n = n;
+    }
+    void replaceJumpDist(int n) {
         this.n = n;
     }
     public String toString() {
@@ -551,7 +531,7 @@ class ICBCNewframe extends CBCode {
     }
     ICBCNewframe(INewframe bc) {
         store = new ANone();
-        load1 = newLiteralArgument(bc.len);
+        load1 = newFixnumArgument(bc.len);
         load2 = new ANone();
     }
     public String toString() {
@@ -564,7 +544,7 @@ class ICBCMakeclosure extends CBCode {
     }
     ICBCMakeclosure(IMakeclosure bc) {
         store = new ARegister(bc.dst);
-        load1 = newLiteralArgument(bc.idx);
+        load1 = newFixnumArgument(bc.idx);
         load2 = new ANone();
     }
     public String toString() {
@@ -633,7 +613,7 @@ class ICBCCall extends CBCode {
     }
     ICBCCall(ICall bc) {
         store = new ANone();
-        load1 = newLiteralArgument(bc.numOfArgs);
+        load1 = newFixnumArgument(bc.numOfArgs);
         load2 = new ARegister(bc.callee);
     }
     public String toString() {
@@ -646,7 +626,7 @@ class ICBCSend extends CBCode {
     }
     ICBCSend(ISend bc) {
         store = new ANone();
-        load1 = newLiteralArgument(bc.numOfArgs);
+        load1 = newFixnumArgument(bc.numOfArgs);
         load2 = new ARegister(bc.callee);
     }
     public String toString() {
@@ -672,7 +652,7 @@ class ICBCNewsend extends CBCode {
     }
     ICBCNewsend(INewsend bc) {
         store = new ANone();
-        load1 = newLiteralArgument(bc.numOfArgs);
+        load1 = newFixnumArgument(bc.numOfArgs);
         load2 = new ARegister(bc.constructor);
     }
     public String toString() {
@@ -715,7 +695,7 @@ class ICBCJump extends CBCode {
     CBCLabel label;
     ICBCJump(IJump bc) {
         store = new ANone();
-        load1 = new ALiteral(0);
+        load1 = new AFixnum(0);
         load2 = new ANone();
         label = new CBCLabel();
     }
@@ -728,7 +708,7 @@ class ICBCJump extends CBCode {
         return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((AFixnum) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jump");
@@ -741,7 +721,7 @@ class ICBCJumptrue extends CBCode {
     CBCLabel label;
     ICBCJumptrue(IJumptrue bc) {
         store = new ANone();
-        load1 = new ALiteral(0);
+        load1 = new AFixnum(0);
         load2 = new ARegister(bc.test);
         label = new CBCLabel();
     }
@@ -750,7 +730,7 @@ class ICBCJumptrue extends CBCode {
         return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((AFixnum) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumptrue");
@@ -763,7 +743,7 @@ class ICBCJumpfalse extends CBCode {
     CBCLabel label;
     ICBCJumpfalse(IJumpfalse bc) {
         store = new ANone();
-        load1 = new ALiteral(0);
+        load1 = new AFixnum(0);
         load2 = new ARegister(bc.test);
         label = new CBCLabel();
     }
@@ -772,7 +752,7 @@ class ICBCJumpfalse extends CBCode {
         return label.getDestCBCode();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((AFixnum) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("jumpfalse");
@@ -804,12 +784,12 @@ class ICBCPushhandler extends CBCode {
     CBCLabel label;
     ICBCPushhandler(IPushhandler bc) {
         store = new ANone();
-        load1 = new ALiteral(0);
+        load1 = new AFixnum(0);
         load2 = new ANone();
         label = new CBCLabel();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((AFixnum) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("pushhandler");
@@ -835,12 +815,12 @@ class ICBCLocalcall extends CBCode {
     CBCLabel label;
     ICBCLocalcall(ILocalcall bc) {
         store = new ANone();
-        load1 = new ALiteral(0);
+        load1 = new AFixnum(0);
         load2 = new ANone();
         label = new CBCLabel();
     }
     void resolveJumpDist() {
-        ((ALiteral) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
+        ((AFixnum) load1).replaceJumpDist(label.dist(this.number, this.getArgsNum()));
     }
     public String toString() {
         return super.toString("localcall");
@@ -882,7 +862,7 @@ class ICBCSetfl extends CBCode {
     }
     ICBCSetfl(ISetfl bc) {
         store = new ANone();
-        load1 = newLiteralArgument(bc.fl);
+        load1 = newFixnumArgument(bc.fl);
         load2 = new ANone();
     }
     public String toString() {
