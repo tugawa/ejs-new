@@ -1,0 +1,30 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+  Number u1 = toNumber(v1);
+  if (u1 == Flonum_Infinity || u1 == Flonum_NegInfinity || u1 == Flonum_Nan) {
+    return leftshift(Fixnum_Zero, v2);
+  } else {
+    return leftshift(u1, v2);
+  }
+  cdouble x1 = numberToCdouble(v1);
+  cdouble x2 = numberToCdouble(v2);
+  return x1 < x2 ? true : false;
+
+  cint na = Get_ac();
+
+  // save_context();   // save_context は自動挿入できる?
+  Array args = New_normal_array_with_size(na);
+  // update_context();  // update_context は自動挿入できる?
+
+  do (cint i=0 step i+1) {
+    if (na < i) {
+      break;
+    }
+    args.body[i] <- Get_register(i + 2);    // [i] のような書き方ができる newframe.inc2 にもある
+  }
+  (newpc, handler_fp) <- Exhandler_stack_pop(a);
+
+  
+  Set_a(args, 1.0f, "abcd");
+}
