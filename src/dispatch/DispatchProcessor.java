@@ -12,9 +12,7 @@ package dispatch;
 
 import java.util.ArrayList;
 
-import dispatch.DecisionDiagram.Leaf;
 import dispatch.DecisionDiagram.Node;
-import dispatch.DecisionDiagram.TagNode;
 import dispatch.LLRuleSet.LLRule;
 import type.VMRepType;
 
@@ -109,9 +107,9 @@ public class DispatchProcessor {
             // However, we expect this is holds in practical cases.
             // If not, we need to improve the optimiser.
             //
-            ArrayList<DecisionDiagram.DispatchCriterion> testDispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>(dispatchPlan.getPlan());
-            testDispatchPlan.add(new LeafDispatch());
-            for (DecisionDiagram.DispatchCriterion dc: testDispatchPlan) {
+            ArrayList<DispatchPlan.DispatchCriterion> testDispatchPlan = new ArrayList<DispatchPlan.DispatchCriterion>(dispatchPlan.getPlan());
+            testDispatchPlan.add(new SemanticLayerGatherVisitor.LeafDispatch());
+            for (DispatchPlan.DispatchCriterion dc: testDispatchPlan) {
                 SemanticLayerGatherVisitor gv = new SemanticLayerGatherVisitor(dc);
                 dd.root.accept(gv);
                 ArrayList<Node> nodes = gv.get();
@@ -141,53 +139,6 @@ public class DispatchProcessor {
             }
         }               
 
-    }
-    
-    static class LeafDispatch extends DecisionDiagram.DispatchCriterion {
-        @Override
-        public boolean available(int arity) {
-            return true;
-        }
-    }
-    
-    static class SemanticLayerGatherVisitor extends NodeVisitor<Void> {
-        ArrayList<Node> nodes = new ArrayList<Node>();
-        DecisionDiagram.DispatchCriterion ref;
-
-        SemanticLayerGatherVisitor(DecisionDiagram.DispatchCriterion ref) {
-            this.ref = ref;
-        }
-
-        ArrayList<Node> get() {
-            return nodes;
-        }
-
-        @Override
-        Void visitLeaf(Leaf node) {
-            if (ref instanceof LeafDispatch) {
-                if (!nodes.contains(node))
-                    nodes.add(node);
-                return null;
-            }
-            return null;
-        }
-
-        @Override
-        <T> Void visitTagNode(TagNode<T> node) {
-            if ((node instanceof DecisionDiagram.PTNode &&
-                 ref instanceof DecisionDiagram.PTDispatch &&
-                 node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
-                (node instanceof DecisionDiagram.HTNode &&
-                 ref instanceof DecisionDiagram.HTDispatch &&
-                 node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
-                if (!nodes.contains(node))
-                    nodes.add(node);
-                return null;
-            }
-            for (Node child: node.getChildren())
-                child.accept(this);
-            return null;
-        }
     }
 
 }

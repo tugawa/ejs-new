@@ -17,7 +17,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import dispatch.LLRuleSet.LLRule;
-import type.VMDataType;
 import type.VMRepType;
 import type.VMRepType.HT;
 import type.VMRepType.PT;
@@ -25,18 +24,7 @@ import type.VMRepType.PT;
 public class DecisionDiagram {
     public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 
-    static abstract class DispatchCriterion {
-        abstract public boolean available(int arity);
-    }
-
-    static class TagPairDispatch extends DispatchCriterion {
-        @Override
-        public boolean available(int arity) {
-            return arity == 2;
-        }
-    }
-
-    static class PTDispatch extends DispatchCriterion  {
+    static class PTDispatch extends DispatchPlan.DispatchCriterion  {
         int opIndex;
         public PTDispatch(int n) {
             opIndex = n;
@@ -50,7 +38,7 @@ public class DecisionDiagram {
         }
     }
 
-    static class HTDispatch extends DispatchCriterion {
+    static class HTDispatch extends DispatchPlan.DispatchCriterion {
         int opIndex;
         public HTDispatch(int n) {
             opIndex = n;
@@ -324,10 +312,10 @@ public class DecisionDiagram {
             if (planIndex == dispatchPlan.size())
                 return new Leaf(rule);
 
-            DispatchCriterion dispatchCriterion = dispatchPlan.get(planIndex++);
+            DispatchPlan.DispatchCriterion dispatchCriterion = dispatchPlan.get(planIndex++);
             if (!dispatchCriterion.available(arity))
                 return dig(nodex);
-            if (dispatchCriterion instanceof TagPairDispatch) {
+            if (dispatchCriterion instanceof DispatchPlan.TagPairDispatch) {
                 TagPairNode node = nodex == null ? new TagPairNode() : (TagPairNode) nodex;
                 node.addBranch(this, new TagPairNode.TagPair(rts[0].getPT(), rts[1].getPT()));
                 return node;
@@ -347,7 +335,7 @@ public class DecisionDiagram {
     }
 
     Node root;
-    List<DispatchCriterion> dispatchPlan;
+    List<DispatchPlan.DispatchCriterion> dispatchPlan;
 
     public DecisionDiagram(LLRuleSet rs, DispatchPlan dispatchPlan) {
         this.dispatchPlan = dispatchPlan.getPlan();

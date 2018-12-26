@@ -4,7 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DispatchPlan {
-    ArrayList<DecisionDiagram.DispatchCriterion> plan = new ArrayList<DecisionDiagram.DispatchCriterion>();
+    static abstract class DispatchCriterion {
+        abstract public boolean available(int arity);
+    }
+
+    static class TagPairDispatch extends DispatchCriterion {
+        @Override
+        public boolean available(int arity) {
+            return arity == 2;
+        }
+    }
+
+    ArrayList<DispatchPlan.DispatchCriterion> plan = new ArrayList<DispatchPlan.DispatchCriterion>();
 
     // create empty DispatchPlan
     DispatchPlan() {}
@@ -20,7 +31,7 @@ public class DispatchPlan {
     }
     
     void addTagPair() {
-        plan.add(new DecisionDiagram.TagPairDispatch());
+        plan.add(new DispatchPlan.TagPairDispatch());
     }
     
     void addPT(int n) {
@@ -31,7 +42,7 @@ public class DispatchPlan {
         plan.add(new DecisionDiagram.HTDispatch(n));
     }
     
-    List<DecisionDiagram.DispatchCriterion> getPlan() {
+    List<DispatchPlan.DispatchCriterion> getPlan() {
         return plan;
     }
 }
