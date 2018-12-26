@@ -14,7 +14,7 @@ import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;
 import vmdlc.SyntaxTree;
 
-public class Main {
+public class TestVMDLC {
     public final static void main(String[] args) {
         try {
             /*
