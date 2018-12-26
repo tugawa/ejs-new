@@ -6,33 +6,41 @@ import dispatch.*;
 
 class TestRuleSet {
 
+    TestRuleSet() { };
+
+    RuleSet.OperandDataTypes makeOdt(String s1, String s2) {
+        VMDataType[] dt = {
+            VMDataType.get(s1), VMDataType.get(s2)
+        };
+        RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(dt);
+        return odt;
+    }
+
     public static void main(String[] argv) throws IOException {
         TypeDefinition.load("default.def");
-        
-        VMDataType[] dataTypes1 = {
-            VMDataType.get("fixnum"),
-            VMDataType.get("flonum")
+        TestRuleSet trs = new TestRuleSet();
+
+        RuleSet.OperandDataTypes[] odtsA = {
+            trs.makeOdt("fixnum", "flonum"),
+            trs.makeOdt("flonum", "fixnum")
         };
-
-        RuleSet.OperandDataTypes odt1 = new RuleSet.OperandDataTypes(dataTypes1);
-
-        VMDataType[] dataTypes2 = {
-            VMDataType.get("flonum"),
-            VMDataType.get("fixnum")
-        };
-
-        RuleSet.OperandDataTypes odt2 = new RuleSet.OperandDataTypes(dataTypes2);
-
-        RuleSet.OperandDataTypes[] odtsA = { odt1, odt2 };
         String actionA = "A";
-
         RuleSet.Rule ruleA = new RuleSet.Rule(actionA, odtsA);
-        Set<RuleSet.Rule> rules1 = new HashSet<RuleSet.Rule>();
-        rules1.add(ruleA);
 
-        String[] dvars1 = { "v1", "v2" };
+        RuleSet.OperandDataTypes[] odtsB = {
+            trs.makeOdt("fixnum", "string"),
+            trs.makeOdt("string", "fixnum")
+        };
+        String actionB = "B";
+        RuleSet.Rule ruleB = new RuleSet.Rule(actionB, odtsB);
 
-        RuleSet ruleSet = new RuleSet(dvars1, rules1);
+        Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
+        rules.add(ruleA);
+        rules.add(ruleB);
+
+        String[] dvars = { "v1", "v2" };
+
+        RuleSet ruleSet = new RuleSet(dvars, rules);
 
         DispatchPlan dp = new DispatchPlan(2, false);
 
