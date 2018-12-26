@@ -52,7 +52,7 @@ public class DispatchProcessor {
         }
     }
     
-    String labelPrefix;
+    String labelPrefix = "";
     
     public DispatchProcessor() {}
     

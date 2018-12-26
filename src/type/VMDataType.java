@@ -57,6 +57,7 @@ public class VMDataType implements Comparable<VMDataType> {
             defineVMDataType("function", true);
             defineVMDataType("builtin", true);
             defineVMDataType("iterator", true);
+            defineVMDataType("simple_iterator", true);
             defineVMDataType("regexp", true);
             defineVMDataType("string_object", true);
             defineVMDataType("number_object", true);
