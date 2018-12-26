@@ -1,0 +1,189 @@
+package vmdlc;
+
+import nez.ast.Tree;
+import nez.ast.TreeVisitorMap;
+import nez.util.ConsoleUtils;
+import nez.ast.Symbol;
+
+import java.util.LinkedList;
+import java.util.HashMap;
+import java.lang.Exception;
+
+import vmdlc.AlphaConvVisitor.DefaultVisitor;
+
+public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
+    public AlphaConvVisitor() {
+        init(AlphaConvVisitor.class, new DefaultVisitor());
+    }
+
+    public void start(Tree<?> node) {
+        try {
+            VarDict dict = new VarDict();
+            for (Tree<?> chunk : node) {
+                visit(chunk, dict);
+            }
+        } catch (Exception e) {
+        }
+    }
+
+    private final void visit(Tree<?> node, VarDict dict) throws Exception {
+        find(node.getTag().toString()).accept(node, dict);
+    }
+
+    private void print(Object o) {
+        ConsoleUtils.println(o);
+    }
+
+    public class DefaultVisitor {
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            for (Tree<?> seq : node) {
+                visit(seq, dict);
+                // find(node.getTag().toString()).accept(node, dict);
+            }
+            // System.out.println("ERROR");
+            // return null;
+        }
+    }
+
+    public class FunctionMeta extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            dict.createFrame();
+
+            Tree<?> nameNode = node.get(Symbol.unique("name"));
+            dict.internF(nameNode);
+
+            Tree<?> def = node.get(Symbol.unique("definition"));
+            visit(def, dict);
+
+            dict.popFrame();
+        }
+    }
+    public class FunctionDefinition extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            dict.createFrame();
+
+            Tree<?> name = node.get(Symbol.unique("name"));
+            visit(name, dict);
+
+            Tree<?> params = node.get(Symbol.unique("params"));
+            for (Tree<?> param : params) {
+                dict.internV(param);
+                visit(param, dict);
+            }
+
+            Tree<?> body = node.get(Symbol.unique("body"));
+
+            for (Tree<?> seq : body) {
+                visit(seq, dict);
+            }
+
+            dict.popFrame();
+        }
+    }
+
+    public class Block extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            dict.createFrame();
+
+            for (Tree<?> seq : node) {
+                visit(seq, dict);
+            }
+
+            dict.popFrame();
+        }
+    }
+
+    public class Declaration extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            Tree<?> name = node.get(Symbol.unique("var"));
+            dict.internV(name);
+
+            Tree<?> expr = node.get(Symbol.unique("expr"));
+            visit(expr, dict);
+        }
+    }
+
+    public  class DoInit extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            Tree<?> name = node.get(Symbol.unique("var"));
+            dict.internV(name);
+
+            Tree<?> expr = node.get(Symbol.unique("expr"));
+            visit(expr, dict);
+        }
+    }
+
+    public class Name extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            String fname = (String)node.toText();
+            node.setValue(dict.search(fname));
+        }
+    }
+}
+
+
+class VarDict {
+    private NameMaker nameMaker;
+    LinkedList<HashMap<String,String>> frames;
+    HashMap<String, String> map;
+
+    public VarDict() {
+        super();
+        nameMaker = new NameMaker();
+        frames = new LinkedList<HashMap<String,String>>();
+        map = new HashMap<String, String>();
+    }
+
+    public void createFrame() {
+        frames.addFirst(new HashMap<String, String>());
+    }
+    public void popFrame() {
+        frames.removeFirst();
+    }
+
+    public void internF(Tree<?> node) throws Exception {
+        intern(node, "f");
+    }
+    public void internV(Tree<?> node) throws Exception {
+        intern(node, "v");
+    }
+
+    private void intern(Tree<?> node, String s) throws Exception {
+        String name = node.toText();
+        String newName = nameMaker.getName(s);
+        if (map.containsKey(newName)) {
+            throw new Exception("Var exists");
+        } else {
+            map.put(newName, name);
+            frames.getFirst().put(name, newName);
+            node.setValue(newName);
+        } 
+    }
+
+    public String search(String s) {
+        for (HashMap h : frames) {
+            String v = (String)h.get(s);
+            if (v != null) {
+                return v;
+            }
+        }
+        return s;
+    }
+
+    private class NameMaker {
+        private int counter;
+        NameMaker() {
+            counter = 0;
+        }
+        public String getName(String s) {
+            counter++;
+            return s + counter;
+        }
+    }
+}
