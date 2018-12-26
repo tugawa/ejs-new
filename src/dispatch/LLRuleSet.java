@@ -44,7 +44,7 @@ public class LLRuleSet {
     }
 
     void addFromHLRule(RuleSet.Rule hlr) {
-        for (RuleSet.Condition c: hlr.getCondition()) {
+        for (RuleSet.OperandDataTypes c: hlr.getCondition()) {
             VMRepType[] rts = new VMRepType[c.dts.length];
             enumAndAddVmRepTypeCombo(c.dts, rts, 0, hlr);
         }

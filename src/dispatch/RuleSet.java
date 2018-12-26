@@ -19,16 +19,16 @@ import type.VMDataType;
 
 
 public class RuleSet {
-    public static class Condition {
+    public static class OperandDataTypes {
         public VMDataType[] dts;
 
-        Condition(String tn1) {
+        OperandDataTypes(String tn1) {
             dts = new VMDataType[]{VMDataType.get(tn1)};
         }
-        Condition(String tn1, String tn2) {
+        OperandDataTypes(String tn1, String tn2) {
             dts = new VMDataType[]{VMDataType.get(tn1), VMDataType.get(tn2)};
         }
-        Condition(VMDataType[] dts) {
+        OperandDataTypes(VMDataType[] dts) {
             this.dts = dts;
         }
         @Override
@@ -37,45 +37,45 @@ public class RuleSet {
         }
         @Override
         public boolean equals(Object obj) {
-            if (obj != null && obj instanceof Condition)
-                return Arrays.equals(dts, ((Condition) obj).dts);
+            if (obj != null && obj instanceof OperandDataTypes)
+                return Arrays.equals(dts, ((OperandDataTypes) obj).dts);
             else
                 return false;
         }
     };
 
     public static class Rule {
-        public Set<Condition> condition;
+        public Set<OperandDataTypes> condition;
         public String action;
 
-        Rule(String action, Condition...  condition) {
+        Rule(String action, OperandDataTypes...  condition) {
             this.action = action;
-            this.condition = new HashSet<Condition>();
-            for (Condition c: condition)
+            this.condition = new HashSet<OperandDataTypes>();
+            for (OperandDataTypes c: condition)
                 this.condition.add(c);
         }
 
-        Rule(String action, List<Condition> condition) {
+        Rule(String action, List<OperandDataTypes> condition) {
             this.action = action;
-            this.condition = new HashSet<Condition>();
-            for (Condition c: condition)
+            this.condition = new HashSet<OperandDataTypes>();
+            for (OperandDataTypes c: condition)
                 this.condition.add(c);
         }
 
-        Rule(String action, Set<Condition> condition) {
+        Rule(String action, Set<OperandDataTypes> condition) {
             this.action = action;
             this.condition = condition;
         }
 
-        Rule filterConditions(Collection<Condition> remove) {
-            Set<Condition> filteredCondition = new HashSet<RuleSet.Condition>();
-            for (Condition c: condition)
+        Rule filterConditions(Collection<OperandDataTypes> remove) {
+            Set<OperandDataTypes> filteredCondition = new HashSet<RuleSet.OperandDataTypes>();
+            for (OperandDataTypes c: condition)
                 if (!remove.contains(c))
                     filteredCondition.add(c);
             return new Rule(action, filteredCondition);
         }
 
-        public Set<Condition> getCondition() {
+        public Set<OperandDataTypes> getCondition() {
             return condition;
         }
     }
