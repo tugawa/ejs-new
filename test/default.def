@@ -1,0 +1,35 @@
+simple_object: +normal_simple_object
+string:  +normal_string
+flonum:  +normal_flonum
+special: +normal_special
+fixnum:  +normal_fixnum
+array:   +normal_array
+function: +normal_function
+builtin: +normal_builtin
+iterator: +normal_iterator
+simple_iterator: +normal_simple_iterator
+regexp: +normal_regexp
+string_object: +normal_string_object
+number_object: +normal_number_object
+boolean_object: +normal_boolean_object
+
+normal_string:  T_STRING(100)/HTAG_STRING(4)         StringCell
+normal_flonum:  T_FLONUM(101)/HTAG_FLONUM(5)           FlonumCell
+normal_special: T_SPECIAL(110)
+normal_fixnum:  T_FIXNUM(111)
+normal_simple_object:  T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
+normal_array:   T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
+normal_function:T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
+normal_builtin: T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
+normal_iterator:T_GENERIC(000)/HTAG_ITERATOR(10)       IteratorCell
+normal_simple_iterator:T_GENERIC(000)/HTAG_SIMPLE_ITERATOR(15)       SimpleIterator
+normal_regexp:  T_GENERIC(000)/HTAG_REGEXP(11)         RegexpCell
+normal_string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)   BoxedCell
+normal_number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)   BoxedCell
+normal_boolean_object:T_GENERIC(000)/HTAG_BOXED_BOOLEAN(14)  BoxedCell
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+

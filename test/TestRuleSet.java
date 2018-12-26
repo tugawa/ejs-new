@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import type.*;
@@ -5,7 +6,9 @@ import dispatch.*;
 
 class TestRuleSet {
 
-    public static void main(String[] argv) {
+    public static void main(String[] argv) throws IOException {
+        TypeDefinition.load("default.def");
+        
         VMDataType[] dataTypes1 = {
             VMDataType.get("fixnum"),
             VMDataType.get("flonum")
