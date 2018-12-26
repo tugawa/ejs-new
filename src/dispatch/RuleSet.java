@@ -22,13 +22,13 @@ public class RuleSet {
     public static class OperandDataTypes {
         public VMDataType[] dts;
 
-        OperandDataTypes(String tn1) {
+        public OperandDataTypes(String tn1) {
             dts = new VMDataType[]{VMDataType.get(tn1)};
         }
-        OperandDataTypes(String tn1, String tn2) {
+        public OperandDataTypes(String tn1, String tn2) {
             dts = new VMDataType[]{VMDataType.get(tn1), VMDataType.get(tn2)};
         }
-        OperandDataTypes(VMDataType[] dts) {
+        public OperandDataTypes(VMDataType[] dts) {
             this.dts = dts;
         }
         @Override
@@ -48,26 +48,26 @@ public class RuleSet {
         public Set<OperandDataTypes> condition;
         public String action;
 
-        Rule(String action, OperandDataTypes...  condition) {
+        public Rule(String action, OperandDataTypes...  condition) {
             this.action = action;
             this.condition = new HashSet<OperandDataTypes>();
             for (OperandDataTypes c: condition)
                 this.condition.add(c);
         }
 
-        Rule(String action, List<OperandDataTypes> condition) {
+        public Rule(String action, List<OperandDataTypes> condition) {
             this.action = action;
             this.condition = new HashSet<OperandDataTypes>();
             for (OperandDataTypes c: condition)
                 this.condition.add(c);
         }
 
-        Rule(String action, Set<OperandDataTypes> condition) {
+        public Rule(String action, Set<OperandDataTypes> condition) {
             this.action = action;
             this.condition = condition;
         }
 
-        Rule filterConditions(Collection<OperandDataTypes> remove) {
+        public Rule filterConditions(Collection<OperandDataTypes> remove) {
             Set<OperandDataTypes> filteredCondition = new HashSet<RuleSet.OperandDataTypes>();
             for (OperandDataTypes c: condition)
                 if (!remove.contains(c))
@@ -90,7 +90,7 @@ public class RuleSet {
         return dispatchVars.length;
     }
 
-    RuleSet(String[] dispatchVars, Set<Rule> rules) {
+    public RuleSet(String[] dispatchVars, Set<Rule> rules) {
         this.dispatchVars = dispatchVars;
         this.rules = rules;
     }
