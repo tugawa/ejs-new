@@ -18,10 +18,10 @@ public class DispatchPlan {
     ArrayList<DispatchPlan.DispatchCriterion> plan = new ArrayList<DispatchPlan.DispatchCriterion>();
 
     // create empty DispatchPlan
-    DispatchPlan() {}
+    public DispatchPlan() {}
     
     // create standard DispatchPlan
-    DispatchPlan(int nrands, boolean useTagPair) {
+    public DispatchPlan(int nrands, boolean useTagPair) {
         if (useTagPair)
             addTagPair();
         for (int i = 0; i < nrands; i++)
