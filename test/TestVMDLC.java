@@ -10,14 +10,6 @@ import nez.ast.Source;
 import nez.ast.SourceError;
 import nez.util.ConsoleUtils;
 
-<<<<<<< HEAD
-import vmdlc.DesugarVisitor;
-import vmdlc.AlphaConvVisitor;
-import vmdlc.AstToCVisitor;
-import vmdlc.SyntaxTree;
-import vmdlc.TypeCheckVisitor;
-=======
->>>>>>> 800ed61cd9db609c66689a68799dfca333c728fa
 
 import dispatch.*;
 import type.*;
@@ -39,15 +31,6 @@ public class TestVMDLC {
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
             Source source = new FileSource("vmdl/test3.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
-<<<<<<< HEAD
-            
-            new DesugarVisitor().start(node);
-            new AlphaConvVisitor().start(node, true);
-            // System.out.println(node);
-            new TypeCheckVisitor().start(node);
-            new AstToCVisitor().start(node);
-            //ConsoleUtils.println(node);
-=======
             if (parser.hasErrors()) {
                 for (SourceError e: parser.getErrors()) {
                     System.out.println(e);
@@ -60,7 +43,6 @@ public class TestVMDLC {
             System.out.println(program);
             
             // ConsoleUtils.println(node);
->>>>>>> 800ed61cd9db609c66689a68799dfca333c728fa
         } catch (IOException ioe) {
             System.out.println(ioe);
         }
