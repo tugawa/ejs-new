@@ -22,11 +22,21 @@ import dispatch.RuleSet;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
+    class MatchRecord {
+        String label;
+        String[] opNames;
+        MatchRecord(String label, String[] opNames) {
+            this.label = label;
+            this.opNames = opNames;
+        }
+    }
     Stack<StringBuffer> outStack;
+    Stack<MatchRecord> matchStack;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
         outStack = new Stack<StringBuffer>();
+        matchStack = new Stack<MatchRecord>();
     }
 
     public String start(Tree<?> node) {
@@ -118,6 +128,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 formalParams[i] = params.get(i).toText();
             }
 
+            Tree<?> labelNode = node.get(Symbol.unique("label"));
+            String label = labelNode.toText();
+            if (labelNode != null) {
+                matchStack.add(new MatchRecord(label, formalParams));
+                print("MATCH_"+label+":");
+            }
+            
             Tree<?> cases = node.get(Symbol.unique("cases"));
             RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
             List<RuleSetBuilder.CaseActionPair> caps = new ArrayList<RuleSetBuilder.CaseActionPair>();
@@ -144,6 +161,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
             String s = dispatchProcessor.translate(ruleSet, dp);
             println(s);
+            if (labelNode != null)
+                matchStack.pop();
         }
         
         private RuleSetBuilder.Node toRsbAst(Tree<?> n, RuleSetBuilder rsb) {
@@ -295,7 +314,33 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(exprNode, 0);
         }
     }
-
+    public class Rematch extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> targetNode = node.get(Symbol.unique("label"));
+            String target = targetNode.toText();
+            
+            println("{");
+            for (int i = matchStack.size() - 1; i >= 0; i--) {
+                MatchRecord mr = matchStack.elementAt(i);
+                if (mr.label.equals(target)) {
+                    for (int j = 0; j < mr.opNames.length; j++) {
+                        Tree<?> argNode = node.get(j + 1);
+                        print("JSValue tmp"+j+" = ");
+                        visit(argNode, 0);
+                        println(";");
+                    }
+                    for (int j = 0; j < mr.opNames.length; j++)
+                        println(mr.opNames[j]+" = "+"tmp"+j+";");
+                    println("goto MATCH_"+target+";");
+                    println("}");
+                    return;
+                }
+            }
+            throw new Error("no rematch target");
+        }
+    }
+    
     public class Trinary extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {

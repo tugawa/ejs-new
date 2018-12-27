@@ -25,6 +25,7 @@ TypeName   = CTypeName
            / { NAME #TypeName } _
 VarName      = Name
 FunctionName = Name
+LabelName = Name
 
 ////////////////////////////////
 //// Block and Statement
@@ -38,9 +39,10 @@ Statement = Block
           / Declaration
           / If
           / Do
+          / Rematch
 
 
-Match           = { "match" _ $params(MatchParameters) "{" $cases(Cases) "}" #Match }
+Match           = { ($label(LabelName) ':' _ )? "match" _ $params(MatchParameters) "{" $cases(Cases) "}" #Match }
 MatchParameters = "(" { $(VarName) ( "," $(VarName) )* #MatchParameters } ")"
                 / "(" _ ")"
 Cases           = { $(Case)+ #Cases }
@@ -67,6 +69,8 @@ Do     = { "do" _ "(" $init(DoInit)? "step" _ $step(DoStep)? ")"
                   $block(Block) #Do }
 DoInit = { $type(TypeName) $var(VarName) "=" $expr(Expression) #DoInit}
 DoStep = { $(Expression) #DoStep }
+
+Rematch = { "rematch" _ $label(LabelName) "(" $(VarName) ("," $(VarName))* ")" ";" #Rematch }
 
 Assignment             = { $left(LeftHandSide) "<-" $right(Expression) ";" #Assignment }
                        / { $left(Pairs) "<-" $right(FunctionCall) ";" #AssignmentPair }
@@ -245,6 +249,7 @@ KEYWORD = "#include"
         / "pattern"
         / "true"
         / "false"
+        / "rematch"
         / Annotation
 
 Annotation = { 'vmInstruction' } !W _
@@ -283,6 +288,7 @@ Ctypes = 'cint' !W
 "else" = 'else' !W
 "do" = 'do' !W
 "step" = 'step' !W
+"rematch" = 'rematch' !W
 "pattern" = 'pattern' !W
 "externC" = 'externC' !W
 "return" = 'return' !W
