@@ -32,11 +32,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         MatchRecord(String name, String[] opNames) {
             this.name = name;
             if (name != null) {
-                headLabel = "MATCH_"+name;
+                headLabel = "MATCH_HEAD_"+name;
                 tailLabel = "MATCH_TAIL_"+name;
             } else {
                 int id = next++;
-                headLabel = "MATCH_"+id;
+                headLabel = "MATCH_HEAD_"+id;
                 tailLabel = "MATCH_TAIL_"+id;
             }
             this.opNames = opNames;
@@ -140,7 +140,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 formalParams[i] = params.get(i).toText();
             }
 
-            Tree<?> labelNode = node.get(Symbol.unique("label"));
+            Tree<?> labelNode = node.get(Symbol.unique("label"), null);
             if (labelNode != null) {
                 String label = labelNode.toText();
                 matchStack.add(new MatchRecord(label, formalParams));
@@ -344,7 +344,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             println("{");
             for (int i = matchStack.size() - 1; i >= 0; i--) {
                 MatchRecord mr = matchStack.elementAt(i);
-                if (mr.name.equals(target)) {
+                if (mr.name != null && mr.name.equals(target)) {
                     for (int j = 0; j < mr.opNames.length; j++) {
                         Tree<?> argNode = node.get(j + 1);
                         print("JSValue tmp"+j+" = ");
