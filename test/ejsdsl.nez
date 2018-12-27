@@ -49,6 +49,7 @@ Pattern         = OrPattern
 OrPattern       = AndPattern {$ "||"  $(AndPattern) #OrPattern }*
 AndPattern      = TypePattern {$ "&&" $(TypePattern) #AndPattern }*
 TypePattern     = { $type(TypeName) $var(VarName) #TypePattern }
+                / { "!" $(TypePattern) #NotPattern }
                 / "(" OrPattern ")"
 
 Return = { "return" _ $(Expression)? ";" #Return }
@@ -308,7 +309,6 @@ Ctypes = 'cint' !W
 "<<" = '<<' ![=] _
 ">>" = '>>' ![=] _
 "<-" = '<-' _
-
 
 ////////////////////////////////
 //// Examples

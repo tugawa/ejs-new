@@ -1,0 +1,22 @@
+pattern ffs v = !Fixnum v || Flonum v || Special v
+
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+  match (v1, v2) {
+    case (ffs v1 && Fixnum v2) {
+      match (v1, v2) {
+        case (! ffs v1 && ! Fixnum v2) {
+          return v3;
+        }
+        case (Flonum v1 && String v2) {
+          return v4;
+        }
+      }
+      return v1;
+    }
+    case (Flonum v1 && String v2) {
+      return v2;
+    }
+  }
+}
