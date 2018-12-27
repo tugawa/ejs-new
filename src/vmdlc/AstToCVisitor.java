@@ -123,11 +123,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 RuleSet.Rule rule = new RuleSet.Rule(action, odts);
                 rules.add(rule);
             }
-            ConsoleUtils.println(cases.size());
             RuleSet ruleSet = new RuleSet(formalParams, rules);
 
-            // cases.size() で大丈夫?
-            DispatchPlan dp = new DispatchPlan(cases.size(), false);
+            DispatchPlan dp = new DispatchPlan(params.size(), false);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
             String s = dispatchProcessor.translate(ruleSet, dp);
             println(s);
