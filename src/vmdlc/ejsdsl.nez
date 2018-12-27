@@ -45,6 +45,7 @@ MatchParameters = "(" { $(VarName) ( "," $(VarName) )* #MatchParameters } ")"
                 / "(" _ ")"
 Cases           = { $(Case)+ #Cases }
 Case            = { "case" _ "(" $pattern(Pattern) ")" $body(Block) #Case }
+                / { "case" _ "(" "true" ")" $body(Block) #AnyCase }
 Pattern         = OrPattern
 OrPattern       = AndPattern {$ "||"  $(AndPattern) #OrPattern }*
 AndPattern      = TypePattern {$ "&&" $(TypePattern) #AndPattern }*

@@ -122,13 +122,21 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
             List<RuleSetBuilder.CaseActionPair> caps = new ArrayList<RuleSetBuilder.CaseActionPair>();
             for (Tree<?> cas: cases) {
-                Tree<?> pat = cas.get(Symbol.unique("pattern"));
-                RuleSetBuilder.Node rsbAst = toRsbAst(pat, rsb);
-                outStack.push(new StringBuffer());
-                Tree<?> statement = cas.get(Symbol.unique("body"));
-                visit(statement, 0);
-                String action = outStack.pop().toString();
-                caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
+                if (cas.is(Symbol.unique("Case"))) {
+                    Tree<?> pat = cas.get(Symbol.unique("pattern"));
+                    RuleSetBuilder.Node rsbAst = toRsbAst(pat, rsb);
+                    outStack.push(new StringBuffer());
+                    Tree<?> statement = cas.get(Symbol.unique("body"));
+                    visit(statement, 0);
+                    String action = outStack.pop().toString();
+                    caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
+                } else if (cas.is(Symbol.unique("AnyCase"))) {
+                    outStack.push(new StringBuffer());
+                    Tree<?> statement = cas.get(Symbol.unique("body"));
+                    visit(statement, 0);
+                    String action = outStack.pop().toString();
+                    caps.add(new RuleSetBuilder.CaseActionPair(new RuleSetBuilder.TrueNode(), action));                    
+                }
             }
             RuleSet ruleSet = rsb.createRuleSet(caps);
             DispatchPlan dp = new DispatchPlan(formalParams.length, false);
