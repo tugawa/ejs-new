@@ -130,14 +130,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 String action = outStack.pop().toString();
                 caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
             }
-<<<<<<< HEAD
-            RuleSet ruleSet = new RuleSet(formalParams, rules);
-
-            DispatchPlan dp = new DispatchPlan(params.size(), false);
-=======
             RuleSet ruleSet = rsb.createRuleSet(caps);
             DispatchPlan dp = new DispatchPlan(formalParams.length, false);
->>>>>>> 800ed61cd9db609c66689a68799dfca333c728fa
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
             dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
             String s = dispatchProcessor.translate(ruleSet, dp);
