@@ -25,9 +25,9 @@ import type.VMRepType.PT;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
     static boolean USE_GOTO = true;
-    static boolean PAD_CASES = true;
+    static boolean PAD_CASES = false;
     static boolean USE_DEFAULT = false;  // exclusive to PAD_CASES
-    static boolean DEBUG_COMMENT = true;
+    static boolean DEBUG_COMMENT = false;
     static boolean GEN_MAGIC_COMMENT = true;
     static class Macro {
         int nextLabel = 0;

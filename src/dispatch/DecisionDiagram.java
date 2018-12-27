@@ -70,7 +70,8 @@ public class DecisionDiagram {
             return id;
         }
 
-        abstract <R> R accept(NodeVisitor<R> visitor);		
+        abstract <R> R accept(NodeVisitor<R> visitor);
+        
         int depth() {
             int max = 0;
             for (Node child: getChildren()) {

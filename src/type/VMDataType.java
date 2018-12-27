@@ -28,6 +28,10 @@ public class VMDataType implements Comparable<VMDataType> {
         return get(name, false);
     }
 
+    public static int size() {
+        return definedVMDataTypes.size();
+    }
+
     static VMDataType get(String name, boolean permitNull) {
         VMDataType dt = definedVMDataTypes.get(name);
         if (dt == null && !permitNull)
@@ -38,10 +42,10 @@ public class VMDataType implements Comparable<VMDataType> {
     private VMDataType(String name, boolean isObject) {
         this.name = name;
         this.mIsObject = isObject;
-        this.defineOrder = definedVMDataTypes.size();
+        this.id = definedVMDataTypes.size();
         reptypes = new ArrayList<VMRepType>();
     }
-
+    
     static {
         if (DEBUG_WITH_SMALL) {
             defineVMDataType("string", false);
@@ -79,7 +83,7 @@ public class VMDataType implements Comparable<VMDataType> {
     String struct;
     boolean mIsObject;
     ArrayList<VMRepType> reptypes;
-    private int defineOrder;
+    private int id;
 
     public String getName() {
         return name;
@@ -100,18 +104,25 @@ public class VMDataType implements Comparable<VMDataType> {
     public boolean isObject() {
         return mIsObject;
     }
+    
+    public int getID() {
+        return id;
+    }
 
     @Override
     public String toString() {
+        return name;
+        /*
         String s = name + " =";
         for (VMRepType r : reptypes) {
             s += " " + r;
         }
         return s;
+        */
     }
 
     @Override
     public int compareTo(VMDataType that) {
-        return this.defineOrder - that.defineOrder;
+        return this.id - that.id;
     }
 }

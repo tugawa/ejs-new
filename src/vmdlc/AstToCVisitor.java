@@ -10,11 +10,13 @@ import java.util.Stack;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 import java.lang.Exception;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
 import dispatch.DispatchProcessor;
+import dispatch.RuleSetBuilder;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
 import type.VMDataType;
@@ -27,12 +29,17 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         outStack = new Stack<StringBuffer>();
     }
 
-    public void start(Tree<?> node) {
+    public String start(Tree<?> node) {
         try {
+            outStack.push(new StringBuffer());
             for (Tree<?> chunk : node) {
                 visit(chunk, 0);
             }
+            String program = outStack.pop().toString();
+            return program;
         } catch (Exception e) {
+            e.printStackTrace(System.out);
+            return null;
         }
     }
 
@@ -111,46 +118,51 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 formalParams[i] = params.get(i).toText();
             }
 
-            Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             Tree<?> cases = node.get(Symbol.unique("cases"));
+            RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
+            List<RuleSetBuilder.CaseActionPair> caps = new ArrayList<RuleSetBuilder.CaseActionPair>();
             for (Tree<?> cas: cases) {
                 Tree<?> pat = cas.get(Symbol.unique("pattern"));
-                ArrayList<RuleSet.OperandDataTypes> odts = makeOdts(pat);
+                RuleSetBuilder.Node rsbAst = toRsbAst(pat, rsb);
                 outStack.push(new StringBuffer());
                 Tree<?> statement = cas.get(Symbol.unique("body"));
                 visit(statement, 0);
                 String action = outStack.pop().toString();
-                RuleSet.Rule rule = new RuleSet.Rule(action, odts);
-                rules.add(rule);
+                caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
             }
+<<<<<<< HEAD
             RuleSet ruleSet = new RuleSet(formalParams, rules);
 
             DispatchPlan dp = new DispatchPlan(params.size(), false);
+=======
+            RuleSet ruleSet = rsb.createRuleSet(caps);
+            DispatchPlan dp = new DispatchPlan(formalParams.length, false);
+>>>>>>> 800ed61cd9db609c66689a68799dfca333c728fa
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
+            dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
             String s = dispatchProcessor.translate(ruleSet, dp);
             println(s);
         }
-
-        private ArrayList<RuleSet.OperandDataTypes> makeOdts(Tree<?> pat) {
-            ArrayList<RuleSet.OperandDataTypes> result = new ArrayList<RuleSet.OperandDataTypes>();
-            _makeOdts(pat, result);
-            return result;
-        }
-        private void _makeOdts(Tree<?> pat, ArrayList<RuleSet.OperandDataTypes> result) {
-            if (pat.is(Symbol.unique("OrPattern"))) {
-                for (Tree<?> child : pat) {
-                    _makeOdts(child, result);
-                }
-            } else if (pat.is(Symbol.unique("AndPattern"))) {
-                VMDataType[] dt = new VMDataType[pat.size()];
-                
-                for (int i = 0; i < pat.size(); i++) {
-                    String s = pat.get(i).get(Symbol.unique("type")).toText();
-                    dt[i] = VMDataType.get(s.toLowerCase());
-                }
-                RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(dt);
-                result.add(odt);
+        
+        private RuleSetBuilder.Node toRsbAst(Tree<?> n, RuleSetBuilder rsb) {
+            if (n.is(Symbol.unique("AndPattern"))) {
+                RuleSetBuilder.Node left = toRsbAst(n.get(0), rsb);
+                RuleSetBuilder.Node right = toRsbAst(n.get(1), rsb);
+                return new RuleSetBuilder.AndNode(left, right);
+            } else if (n.is(Symbol.unique("OrPattern"))) {
+                RuleSetBuilder.Node left = toRsbAst(n.get(0), rsb);
+                RuleSetBuilder.Node right = toRsbAst(n.get(1), rsb);
+                return new RuleSetBuilder.OrNode(left, right);
+            } else if (n.is(Symbol.unique("NotPattern"))) {
+                RuleSetBuilder.Node child = toRsbAst(n.get(0), rsb);
+                return new RuleSetBuilder.NotNode(child);
+            } else if (n.is(Symbol.unique("TypePattern"))) {
+                String opName = n.get(Symbol.unique("var")).toText();
+                String tn = n.get(Symbol.unique("type")).toText().toLowerCase();
+                VMDataType dt = VMDataType.get(tn);
+                return rsb.new AtomicNode(opName, dt);
             }
+            throw new Error("no such pattern");
         }
     }
 
