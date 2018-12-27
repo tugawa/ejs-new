@@ -5,7 +5,9 @@ add : (JSValue, JSValue) -> JSValue
 add (v1, v2) {
   match (v1, v2) {
     case (Flonum v1 && Fixnum v2 || Fixnum v1 && Fixnum v2 || Special v1 && Fixnum v2) {
-      return v1;
+    //case (ffs v1 && Fixnum v2) {
+      Number u1 = toNumber(v1);
+      return u1;
     }
     case (Flonum v1 && String v2) {
       return v2;

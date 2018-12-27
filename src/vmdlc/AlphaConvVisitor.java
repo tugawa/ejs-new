@@ -23,6 +23,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
                 visit(chunk, dict);
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -38,10 +39,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, VarDict dict) throws Exception {
             for (Tree<?> seq : node) {
                 visit(seq, dict);
-                // find(node.getTag().toString()).accept(node, dict);
             }
-            // System.out.println("ERROR");
-            // return null;
         }
     }
 
@@ -104,6 +102,23 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             Tree<?> expr = node.get(Symbol.unique("expr"));
             visit(expr, dict);
+        }
+    }
+
+    public class CConstantDef extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            Tree<?> name = node.get(Symbol.unique("var"));
+            System.out.println(name);
+            dict.internV(name);
+        }
+    }
+
+    public class CFunction extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            Tree<?> name = node.get(Symbol.unique("name"));
+            dict.internF(name);
         }
     }
 

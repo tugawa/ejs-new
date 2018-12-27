@@ -156,6 +156,7 @@ Type = { $(TypePair) (TypeProduct)+ #TypeProduct }
      / {$(TypeName) (TypeProduct)+ #TypeProduct}
      / TypeName
 TypePair = { "(" $(Type) ( "," $(Type) )* ")" #TypePair }
+         / "(" { #TypePair } _ ")"
 TypeProduct = "->" $(Type)
 
 CConstantDefinition = { "constant" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CConstantDef }
@@ -533,9 +534,9 @@ add (v1, v2) {
   }
 }
 '''
-*/
 
-example Sourse ~29 '''
+
+example Source ~29 '''
 pattern ffs v = Fixnum v || Flonum v || Special v
 
 (vmInstruction, needContext, triggerGC, tailCall)
@@ -549,4 +550,9 @@ add (v1, v2) {
   }
 }
 '''
+*/
 
+example Source ~29 '''
+externC (needContext)
+Get_ac : () -> cint
+'''

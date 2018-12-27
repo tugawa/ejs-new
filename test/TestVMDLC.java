@@ -13,6 +13,7 @@ import vmdlc.DesugarVisitor;
 import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;
 import vmdlc.SyntaxTree;
+import vmdlc.TypeCheckVisitor;
 
 import dispatch.*;
 import type.*;
@@ -22,12 +23,6 @@ public class TestVMDLC {
         try {
             TypeDefinition.load("default.def");
 
-            /*
-             * int w = 64; int n = 12; ejsdsl.SimpleTree t =
-             * ejsdsl.parse("externC constant cint aaa = \"-1\";", w, n);
-             * System.out.println(t);
-             */
-
             ParserGenerator pg = new ParserGenerator();
             Grammar grammar = pg.loadGrammar("ejsdsl.nez");
             //grammar.dump();
@@ -36,12 +31,13 @@ public class TestVMDLC {
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
             Source source = new FileSource("vmdl/test2.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
-
+            
             new DesugarVisitor().start(node);
             new AlphaConvVisitor().start(node, true);
+            // System.out.println(node);
+            new TypeCheckVisitor().start(node);
             new AstToCVisitor().start(node);
-            
-            // ConsoleUtils.println(node);
+            //ConsoleUtils.println(node);
         } catch (IOException ioe) {
             System.out.println(ioe);
         }

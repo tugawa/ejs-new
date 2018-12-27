@@ -4,15 +4,22 @@ import nez.ast.Source;
 import nez.ast.Symbol;
 import nez.ast.Tree;
 
+import type.AstType;
 import vmdlc.SyntaxTree;
 
+import java.util.HashSet;
+
 public class SyntaxTree extends Tree<SyntaxTree> {
+    HashSet<AstType> type;
+
     public SyntaxTree() {
         super();
+        type = new HashSet<AstType>();
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
+        type = new HashSet<AstType>();
     }
 
     @Override
@@ -34,8 +41,8 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     protected SyntaxTree dupImpl() {
         SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue());
         return t;
-	}
-	
+    }
+    
     public Tree<SyntaxTree>[] getSubTree() {
         return this.subTree;
     }
@@ -43,15 +50,23 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     public void replace(SyntaxTree node) {
         Tree<SyntaxTree>[] subTree = node.getSubTree();
         this.labels = (subTree != null) ? new Symbol[subTree.length] : EmptyLabels;
-        // this.subTree = 
 
         if (subTree != null) {
-			for (int i = 0; i < subTree.length; i++) {
-				if (subTree[i] != null) {
-					this.subTree[i] = subTree[i].dup();
-					this.labels[i] = labels[i];
-				}
-			}
-		}
+            for (int i = 0; i < subTree.length; i++) {
+                if (subTree[i] != null) {
+                    this.subTree[i] = subTree[i].dup();
+                    this.labels[i] = labels[i];
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void appendExtraStringfied(StringBuilder sb) {
+        sb.append(" " + this.type);
+    }
+    
+    public void addType(AstType _type) {
+        type.add(_type);
     }
 }
