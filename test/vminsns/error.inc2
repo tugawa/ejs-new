@@ -1,0 +1,6 @@
+(vmInstruction)
+error :  JSValue -> JSValue
+error () {
+  // r0 と d1 を 0 にする必要がある?
+  return -1;    // JSValue の -1
+}

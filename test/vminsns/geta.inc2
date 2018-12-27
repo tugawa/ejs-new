@@ -1,0 +1,5 @@
+(vmInstruction)
+geta : void -> JSValue
+geta () {
+  return Geta(v);
+}

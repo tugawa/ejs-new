@@ -1,0 +1,50 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+
+// 下のように人間が書くのは無理
+// add : ( (Number, Number) -> Number
+//       | (String, (Number | Special)) -> String
+//       | ((Number | Special), String) -> String
+//       | (String, String) -> String
+//       | (Generic, (Number | Special | String)) -> Number | String
+//       | ((Number | Special | String), Generic) -> Number | String
+//       | (Generic, Generic) ->  Number | String
+
+add (v1, v2) {
+  match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      cint s = FixnumToCint(v1) + FixnumToCint(v2);
+      return CintToNumber(s);
+    }
+    case (Flonum v1 && Flonum v2) {
+      cdouble s = FlonumToCdouble(v1) + FlonumToCdouble(v2);
+      return CdoubleToNumber(s);
+    }
+    case (String v1 && ffs v2) {
+      // ここでは v2 の型は一意に決まらないので ffs の LUB の型になる
+      // この場合は LUB(f,f,s) = JSValue なので v2 は JSValue 型
+      String s = toString(v2);
+      return add(v1, s);
+    }
+    case (ffs v1 && String v2) {
+      String s = toString(v1);
+      return add(s, v2);
+    }
+    case (String v1 && String v2) {
+      return concat(v1, v2);
+    }
+    case (JSValue v1 && ffss v2) {
+      JSValue u1 = toString(v1);
+      return add(u1, v2);
+    }
+    case (ffss v1 && JSValue v2) {
+      JSValue u2 = toString(v2);
+      return add(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      JSValue u1 = toString(v1);
+      JSValue u2 = toString(v2);
+      return add(u1, u2);
+    }
+  }
+}

@@ -1,0 +1,24 @@
+(vmInstruction, needContext, triggerGC)
+new : JSValue -> JSValue
+new (con) {
+  match (con) {
+    case (Function con) {
+      // save_context();   // save_context は自動挿入できる?
+      JSObject o = New_normal_object();
+      // update_context();  // update_context は自動挿入できる?
+      JSValue p = Get_prop(con, String_Prototype);
+      match (p) {
+        case (JSObject p) {
+        }
+        case (JSValue p) {       // JSObject じゃないを case に書きたい
+          p <- Object_prototype;    // 再代入は他にあったっけ?
+        }
+      }
+      Set___proto___all(o, p);
+      return o;
+    }
+    case (JSValue con) {
+      return undefined;
+    }
+  }
+}

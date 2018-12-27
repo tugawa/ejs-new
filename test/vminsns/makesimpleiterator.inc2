@@ -1,0 +1,13 @@
+(vmInstruction, needContext, triggerGC)
+makesimpleiterator : JSObject -> JSObject
+makesimpleiterator (obj) {
+  match (obj) {
+      case (JSObject obj) {
+        JSObject result = New_normal_simple_iterator(obj);
+        return result;
+      }
+      case (JSValue obj) {
+          // error
+      }
+  }
+}

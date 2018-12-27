@@ -1,0 +1,15 @@
+(vmInstruction, needContext)
+setprop : (JSValue, JSValue, JSValue) -> void
+setprop (obj, prop, val) {
+  match (obj) {
+    case (Array obj) {
+      Set_array_prop(obj, prop, val);
+    }
+    case (JSObject obj) {
+      Set_object_prop(obj, prop, val);
+    }
+    case (JSValue obj) {
+      // error
+    }
+  }
+}

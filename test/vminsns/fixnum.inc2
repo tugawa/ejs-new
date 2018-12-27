@@ -1,0 +1,5 @@
+(vmInstruction)
+fixnum : cint -> JSValue
+fixnum (v) {
+  return CintToFixnum(v);
+}

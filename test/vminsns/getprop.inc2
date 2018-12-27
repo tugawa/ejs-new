@@ -1,0 +1,23 @@
+(vmInstruction, needContext)
+getprop : (JSValue, JSValue) -> JSValue
+getprop (obj, index) {
+  match (obj) {
+    case (Array obj) {
+      return getArrayProp(obj, index);     // DSL の関数
+    }
+    case (Object obj) {
+      return getObjectProp(obj, index);  // DSL の関数
+    }
+    case (JSValue obj) {
+      JSValue obj2 = toObject(obj);
+      match (obj2) {
+        case (Object obj2) {       // 変換した後にマッチするのが書きにくい．無駄なかんじがする
+          return getObjectProp(obj2, index);
+        }
+        case (JSValue obj2) {
+          return undefined;
+        }
+      }
+    }
+  }
+}

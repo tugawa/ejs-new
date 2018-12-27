@@ -1,0 +1,16 @@
+externC type ???? Subscript = "Subscript";   // cint16_t
+
+externC type ???? Displacement = "Displacement";   // cint16_t
+
+externC type HeapObject FunctionTable = "FunctionTable*";
+externC type HeapObject FunctionFrame = "FunctionFrame*";
+
+// DSL で書いて，C のヘッダファイルを書き出す
+// C が使うところと一貫性がなくてはいけないので，DSL の定義を知っていることを前提とする
+externC mapping FunctionFrame {
+  FunctionFrame prev_frame;
+  Array arguments;
+  embed JSValue locals[];  // * じゃないときには embed を付ける
+};
+
+externC type ???? Bytecode = "Bytecode";

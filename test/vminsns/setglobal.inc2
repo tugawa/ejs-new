@@ -1,0 +1,7 @@
+(vmInstruction, needContext)
+setglobal : JSValue -> JSValue
+setglobal (v1, v2) {
+  if (Set_prop_global(v1, v2) == FAIL) {
+    // error
+  }
+}

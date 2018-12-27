@@ -1,0 +1,6 @@
+(vmInstruction, needContext)
+isobject : JSValue -> JSValue
+isobject (v) {
+  cint ret = Is_object(v);
+  return ret ? true : false;
+}

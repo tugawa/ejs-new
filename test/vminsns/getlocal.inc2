@@ -1,0 +1,13 @@
+(vmInstruction, needContext)
+getlocal : (cint, cuint16_t) -> JSValue     // index は Subscript 型（uint16_t）
+getlocal (link, index) {
+  FunctionFrame fr = get_lp();
+
+  do (cint i=0 step i+1) {
+    if (link <= i) {
+       break;
+    }
+    fr <- Fframe_prev(fr);       // 代入
+  }
+  return fr.locals[index];      // newframe.inc2 のように，DSL でこの書き方ができる
+}

@@ -1,0 +1,5 @@
+(vmInstruction, needContext)
+getglobal : JSValue -> JSValue
+getglobal (str) {
+  return Get_prop_global(str);   // エラー処理は C のほうでやるしかない?
+}

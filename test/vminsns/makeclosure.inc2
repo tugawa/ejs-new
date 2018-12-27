@@ -1,0 +1,11 @@
+// 命令から subscr を取るのをどうするか
+
+(vmInstruction, needContext)
+makeclosure : cint -> void
+makeclosure (subscr) {       // get_second_operand_subscr(insn);
+  Subscript ss = subscr + 1;
+  // save_context();       // 必要に応じて DSL が save_context() を挿入する
+  Function result = New_normal_function(ss);
+  // update_context();     // 必要に応じて DSL が update_context() を挿入する
+  return result;
+}

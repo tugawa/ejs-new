@@ -1,0 +1,5 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+throw : void -> void
+throw () {
+  Throw();    // C で書く（ret.inc2 と一緒）
+}

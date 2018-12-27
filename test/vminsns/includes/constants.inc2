@@ -1,0 +1,30 @@
+// 便宜的に C の定数は "大文字" で始めることとする
+
+externC constant JSValue true = "JS_TRUE"
+externC constant JSValue false = "JS_FALSE"
+externC constant JSValue undefined = "JS_UNDEFINED"
+
+externC constant JSValue Fixnum_Zero        = "FIXNUM_ZERO"
+externC constant JSValue Fixnum_One         = "FIXNUM_ONE"
+externC constant JSValue Fixnum_Minusone    = "-1"
+externC constant JSValue Flonum_Infinity    = "gconsts.g_flonum_infinity"
+externC constant JSValue Flonum_NegInfinity = "gconsts.g_flonum_negative_infinity"
+externC constant JSValue Flonum_Nan         = "gconsts.g_flonum_nan"
+externC constant JSValue String_Empty       = "gconsts.g_string_empty"
+
+externC constant cint CALL = "CALL"
+externC constant cint NEWSEND = "NEWSEND"
+externC constant cint TAILSEND = "TAILSEND"
+
+externC constant cint HINT_NUMBER = "HINT_NUMBER"
+
+externC constant JSValue String_Prototype = "gconsts.g_string_prototype"
+externC constant JSValue Object_Prototype = "gconsts.g_object_proto"
+
+externC constant cint STACK_LIMIT = "STACK_LIMIT"
+
+externC constant cint FAIL = "FAIL"
+externC constant cint SUCCESS = "SUCCESS"
+
+externC constant cint TRUE = "TRUE"
+externC constant cint FALSE = "FALSE"

@@ -1,0 +1,13 @@
+(vmInstruction, needContext)
+setarg : (cint, Subscript, JSValue) -> void
+setarg (link, index, v) {
+  FunctionFrame fr = Get_lp();
+  do (cint i = 0 step i+1) {
+    if (link <= i) {
+        break;
+    }
+    fr <- Fframe_prev(fr);       // 代入
+  }
+  JSValue arguments = Fframe_arguments(fr);
+  Set_array_prop(arguments, int_to_fixnum(index), v);
+}

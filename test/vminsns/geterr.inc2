@@ -1,0 +1,5 @@
+(vmInstruction, needContext)
+geterr :  void -> JSValue
+geterr () {
+  return Get_err();
+}

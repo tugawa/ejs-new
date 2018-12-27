@@ -1,0 +1,305 @@
+// externC とあれば，ここに書かれている型を100%信用する．
+// externC がなければ，どこかに書かれている定義とここに書かれている型を
+// 照合する．
+
+// 便宜的に C の関数は "大文字" で始めることとする
+
+externC (needContext, triggerGC)
+FixnumToString : Fixnum -> String
+
+externC (needContext, triggerGC)
+FlonumToString : Flonum -> String
+
+externC (needContext, triggerGC)
+SpecialToString : Special -> String
+
+externC (needContext, triggerGC)          // ObjectToString は DSL で書かない?
+ObjectToString : JSObject -> String
+
+externC
+FixnumToCint : Fixnum -> cint
+
+externC
+FixnumToCdouble :: Fixnum -> cdouble
+
+externC
+FlonumToCint : Flonum -> cint
+
+externC
+FlonumToCdouble :: Flonum -> cdouble
+
+externC (needContext, triggerGC)
+CintToNumber : cint -> Number
+
+externC (needContext, triggerGC)
+CdoubleToNumber : cdouble -> Number
+
+externC (needContext, triggerGC)
+CintToFixnum : cint -> Fixnum
+
+externC
+CintToCdouble : cint -> cdouble    // キャスト（関数を呼び出すわけではない）
+
+externC (needContext, triggerGC)
+StringToNumber : String -> Number       // StringToNumber は DSL で書かない?
+
+externC (needContext, triggerGC)
+SpecialToNumber : Special -> Number     // SpecialToNumber は DSL で書かない?
+
+externC (needContext, triggerGC)          // ObjectToNumber は DSL で書かない?
+ObjectToNumber : JSObject -> Number
+
+externC (needContext)
+Special_to_object : Special -> JSObject
+
+externC
+StringToBoolean : String -> Bool       // C のコードで is_string したくない
+
+externC
+Special_to_boolean : Special -> Bool
+
+externC (needContext, triggerGC)
+Concat : (String, String) -> String
+
+externC
+Isinf : cdouble -> cint
+
+externC
+Isnan : cdouble -> cint
+
+externC
+Is_object : JSValue -> cint
+
+externC
+Is_undefined : JSValue -> cint
+
+externC
+Strcmp : (char*, char*) -> cint     // char* のような型がでてきてよいか
+
+externC
+String_to_cstr : JSValue -> char*   // char* のような型がでてきてよいか
+
+externC (needContext)
+Get_opcode : () -> cint
+
+externC (needContext, triggerGC, changeContext)
+Call_function : (Function, cint, cint) -> void
+
+externC (needContext, triggerGC, changeContext)
+Call_builtin : (Function, cint, cint, cint) -> void
+
+externC (needContext, triggerGC, changeContext)
+Tailcall_function : (Function, cint, cint) -> void
+
+externC (needContext, triggerGC, changeContext)
+Tailcall_buildin : (Function, cint, cint, cint) -> void
+
+externC (needContext)
+ObjectToPrimitive : (JSValue, cint) -> JSValue
+         // Object_to_primitive は第二引数で toString => valueOf にするか
+         // valueOf => toString にするか指定する．これが DSL 上にあってもよいか
+
+
+externC (needContext)
+Geta : void -> JSValue
+
+externC
+Fframe_prev : FunctionFrame -> FunctionFrame
+
+externC
+Fframe_arguments : FunctionFrame -> JSObject
+
+externC (needContext, changeContext)
+Get_err : void -> JSValue
+
+externC (needContext)
+Get_prop_global : JSValue -> JSValue
+// 現状の get_prop は context->global を第一引数で呼び出し，そのプロパティがなければ FAIL を返す．
+// SUCCESS だったときには第三引数に結果の JSValue が返ってくる．エラー処理のため．新バージョンではどうするか．
+
+externC (needContext, changeContext)
+Set_prop_global : (JSValue, JSValue) -> cint
+// 現状の set_prop_none は context->global を第二引数で呼び出し，そのプロパティがなければ FAIL を返す．
+// context->global ができないので，それをやる専用の C 関数とする
+
+
+externC (needContext)
+Get_prop : JSValue -> JSValue
+// Get_prop_global と同様
+
+externC (needContext)
+Get_next_propname_simple_iterator : JSValue -> JSValue
+// Get_prop_global と同様
+
+externC (needContext)
+Get_globalobj : () -> JSValue
+
+externC
+Fframe_locals_idx : (FunctionFrame, cuint16_t) -> JSValue
+
+externC
+Array_size : JSValue -> cint     // Array -> uint64_t じゃなくてよい?
+
+externC
+Array_length : JSValue -> cint     // Array -> uint64_t じゃなくてよい?
+
+externC
+Array_body_index : (JSValue, cint) -> JSValue  // (Array, cint) -> uint64_t じゃなくてよい?
+
+externC
+Get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
+
+externC (triggerGC, needContext, changeContext)
+New_normal_string_object : String -> JSObject
+
+externC (triggerGC, needContext, changeContext)
+New_normal_number_object : Number -> JSObject
+
+externC
+Instanceof : JSValue -> cint
+/*
+  C 側に 探索する関数を用意する
+    JSValue p;
+    get_prop(v2, gconsts.g_string_prototype, &p) == SUCCESS) {
+    while (get___proto__(v1, &v1) == SUCCESS) {
+      if (v1 == p) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+*/
+
+externC
+Get_next_propname : (JSValue, JSValue) -> JSValue
+/*
+  C 側に 探索する関数を用意する
+  JSValue res = JS_UNDEFINED;
+  while (1) {
+    int r = get_next_propname(itr, &res);
+    if (r != SUCCESS) {
+      break;
+    } else if ((val = get_prop_prototype_chain(obj, res)) != JS_UNDEFINED) {
+      break;
+    }
+  }
+  return res;
+*/
+
+externC
+Set_pc_relative : cint -> void
+
+externC (needContext, needPC)
+Lcall_stack_push : void -> void
+
+externC (needContext)
+Lcall_stack_pop : void -> cint      // cint pc を返すようにかえる
+
+externC (needContext, triggerGC, changeContext)
+New_normal_function : Subscript -> Function
+
+externC (needContext, triggerGC, changeContext)
+New_normal_iterator : JSObject -> JSObject
+
+externC (needContext, triggerGC, changeContext)
+New_normal_simple_iterator : JSObject -> JSObject
+
+externC (needContext, triggerGC, changeContext)
+New_normal_array_with_size : cint -> Array
+
+externC (needContext, triggerGC, changeContext)
+New_frame : (FunctionTable, FunctionFrame, cint) -> FunctionFrame
+
+externC
+Floor : cdouble -> cdouble
+
+externC
+Ceil : cdouble -> cdouble
+
+externC
+Half_fixnum_range : cint -> cint
+
+externC (triggerGC, needContext, changeContext)
+New_normal_object : void -> JSObject
+
+externC (needContext, changeContext)
+Set___proto___all : (JSValue, JSValue) -> void;
+
+externC (needContext)
+Get_cf : () -> FunctionTable
+
+externC (needContext)
+Get_lp : () -> FunctionFrame
+
+externC (needContext, changeContext)
+Set_lp : FunctionFrame -> void
+
+externC (needContext)
+Get_ac : () -> cint
+
+externC
+Get_register : cint -> JSValue
+
+externC (needContext, changeContext)
+Set_a : JSValue -> void
+
+externC
+Get_code : Displacement -> Bytecode    // insns[d1].code を返す
+
+externC (needContext)
+Exhandler_stack_pop : void -> (cint, cint)    // 中で cint_to_number しているので，DSL で書きたいところだけど
+
+externC (needContext)
+Exhandler_stack_push : (cint, cint) -> void
+
+externC (needContext)
+Ret : void -> void    // ret 命令の中身
+/*  &stack とかが書けないので，C で書いたほうがよいのではないか
+{
+  JSValue *stack;
+
+  if (fp == border)
+    return 1;
+  stack = &get_stack(context, 0);
+  restore_special_registers(context, stack, fp - 4);
+  set_sp(context, fp - 5);
+  update_context();
+}
+*/
+
+externC (needContext)
+Throw : void -> void
+/*   throw の中身．ret と同じ箇所がある
+{
+  Displacement disp;
+  int newpc;
+  int handler_fp;
+  exhandler_stack_pop(context, &newpc, &handler_fp);
+  while (handler_fp != fp) {
+    JSValue *stack;
+    stack = &get_stack(context, 0);
+    restore_special_registers(context, stack, fp - 4);
+    set_sp(context, fp - 5);
+    update_context();      /* TODO: optimise */
+  }
+  disp = (Displacement) (newpc - pc);
+  set_pc_relative(disp);
+}
+*/
+
+externC (needContext, changeContext)
+Set_array_prop : (JSValue, Fixnum, JSValue) -> void
+
+externC (needContext, changeContext)
+Set_object_prop : (JSValue, Fixnum, JSValue) -> void
+
+externC (needContext)
+Get_sp : void -> cint
+
+externC (needContext)
+Set_sp : cint -> void;
+
+externC (needContext)
+Set_fp : cint -> void;
+
+externC (needContext)
+Set_pc : cint -> void;

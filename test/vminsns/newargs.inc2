@@ -1,0 +1,17 @@
+(vmInstruction, needContext, triggerGC)
+newargs : void -> void
+newargs () {
+  cint na = Get_ac();
+
+  // save_context();   // save_context は自動挿入できる?
+  Array args = New_normal_array_with_size(na);
+  // update_context();  // update_context は自動挿入できる?
+
+  do (cint i=0 step i+1) {
+    if (na < i) {
+      break;
+    }
+    args.body[i] <- Get_register(i + 2);    // [i] のような書き方ができる newframe.inc2 にもある
+  }
+  Set_a(args);
+}

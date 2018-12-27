@@ -1,0 +1,178 @@
+// 便宜的に DSL の関数は "小文字" で始めることとする
+
+(needContext, triggerGC)
+toObject : JSValue -> JSObject
+toObject (v) {
+  match (v) {
+    case (String v) {
+      return New_normal_string_object(v);
+    }
+    case (Fixnum v) {
+      return New_normal_number_object(v);
+    }
+    case (Flonum v) {
+      return New_normal_number_object(v);
+    }
+    case (Special v) {
+      return Special_to_object(v);
+    }
+    case (Object v) {
+      return v;
+    }
+  }
+}
+
+(needContext, triggerGC)
+toString : JSValue -> String
+toString (v) {
+ match (v) {
+   case (Fixnum v) {
+     return FixnumToString(v);
+   }
+   case (Flonum v) {
+     return FlonumToString(v);
+   }
+   case (Special v) {
+     return SpecialToString(v);
+   }
+   case (String v) {
+     return v;
+   }
+   case (JSObject v) {
+     return ObjectToString(v);
+   }
+}
+
+(needContext, triggerGC)
+toNumber : JSValue -> Number
+toNumber (v) {
+  match(v) {
+    case (Number v) {
+      return v;
+    }
+    case (String v) {
+      return StringToNumber(v);
+    }
+    case (Special v) {
+      return SpecialToNumber(v);
+    }
+    case (Object v) {
+      return ObjectToNumber(v);
+    }
+    case (JSValue v) {
+      return Flonum_Nan;
+    }
+  }
+}
+
+(needContext, triggerGC)
+toBoolean : JSValue -> Bool
+toBoolean (v) {
+  match(v) {
+    case (String v) {
+      return StringToBoolean(v);
+    }
+    case (Fixnum v) {
+      return v == Fixnum_Zero? false : true;
+    }
+    case (Flonum v) {
+      cdouble d = FlonumToCdouble(v);
+      return Isnan(d) ? false : true;
+    }
+    case (Special v) {
+      return SpecialToBoolean(v);
+    }
+    case (JSObject v) {
+      return true;
+    }
+  }
+}
+
+numberToCint : Number -> cint
+numberToCint (v) {
+  match (v) {
+    case (Fixnum v) {
+      return FixnumToCint(v);  // c の関数
+    }
+    case (Flonum v) {
+      return FlonumToCint(v);  // c の関数
+    }
+  }
+}
+
+numberToCdouble : Number -> cdouble
+numberToCdouble (v) {
+  match (v) {
+    case (Fixnum v) {
+      return FixnumToCdouble(v);  // c の関数
+    }
+    case (Flonum v) {
+      return FlonumToCdouble(v);  // c の関数
+    }
+  }
+}
+
+cDoubleToBool : cdouble -> Bool
+cDoubleToBool (v) {
+  if (v == 0) {
+      return false;
+  } else {
+      return true;
+  }
+}
+
+isnan : JSValue -> Bool
+isnan (v) {
+  match (v) {
+    case (Flonum v) {
+      return isnan(FlonumToCdouble(v));
+    }
+  }
+  return false;
+}
+
+(needContext)
+getArrayProp : (JSValue, JSValue) -> JSValue
+getArrayProp(a, p) {
+  match (p) {
+    case (Fixnum p) {
+      cint n = FixnumToCint(p);
+      if (0 <= n && n < Array_size(a)) {
+        return (n < Array_length(a)) ? Array_body_index(a, n) : undefined;
+      }
+      String s = FixnumToString(p);
+      return Get_prop_prototype_chain(a, s);
+    }
+    case (String p) {
+      JSValue num = StringToNumber(p);
+      match (num) {
+        case (Fixnum num) {
+          return getArrayProp(a, num);
+        }
+        case (JSValue num) {
+          return Get_prop_prototype_chain(a, num);
+        }
+      }
+    }
+    case (JSValue p) {
+      // object.c で String じゃなかったら String にした後 Number にしているけど，一部の型には無駄に見える
+      String s = toString(p);
+      return getArrayProp(a, s);
+    }
+  }
+}
+
+(needContext)
+getObjectProp : (JSValue, JSValue) -> JSValue
+getObjectProp(o, p) {
+  match (p) {
+    case (String p) {
+      return Get_prop_prototype_chain(o, p);
+    }
+    case (JSValue p) {
+      String s = toString(p);
+      return getObjectProp(o, p);
+      // このように case で書いて再帰するのは無駄にみえる．C の get_object_prop のほうがまし
+    }
+  }
+}

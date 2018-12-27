@@ -1,0 +1,63 @@
+(vmInstruction, tailCall)
+equal : (JSValue, JSValue) -> Bool
+equal (v1, v2) {
+  if (v1 == v2) {       // JSValue 同士の == はアドレスを比べる
+    return !isnan(v1);  // DSL の関数
+  } else {
+    match (v1, v2) {
+      case (Flonum v1 && Flonum v2) {
+        cdouble n1 = FlonumToCdouble(v1);
+        cdouble n2 = FlonumToCdouble(v2);
+        return toBool(n1 == n2);     // cdouble 同士の == で Bool を作る
+      }
+      case ((Undefined v1 && Null v2) ||
+            (Null v2 && Undefined v2)) {
+        return true;
+      }
+      case (Special v1 && Special v2) {
+        return false;
+      }
+      case (String v1 && Fixnum v2) {
+        Number u1 = toNumber(v1);
+        return equal(u1, v2);
+      }
+      case (Fixnum v1 && String v2) {
+        Number u2 = toNumber(v2);
+        return equal(v1, u2);
+      }
+      case ((Undefined v1 && JSValue v2) ||
+            (Null v1 && JSValue v2)) {
+        return false;
+      }
+      case (Bool v1 && JSValue v2) {
+        if (v1 == true) {
+          return equal(1, v2);       // JSValue の 1 
+        } else {
+          return equal(0, v2);       // JSValue の 0
+        }
+      }
+      case ((Fixnum v1 && Undefined v2) ||
+            (Fixnum v1 && Null v2)) {
+        return false;
+      }
+      case (JSValue v1 && Bool v2) {
+        if (v2 == true) {
+          return equal(v1, 1);
+        } else {
+          return equal(v1, 0);
+        }
+      }
+      case (JSValue v1 && ffss v2) {
+        JSValue u1 = ObjectToPrimitive(v1, HINT_NUMBER);
+           // Object_to_primitive は第二引数で toString => valueOf にするか
+           // valueOf => toString にするか指定する．HINT_NUMBER が DSL 上にあってもよいか
+
+        return equal(u1, v2);
+      }
+      case (ffss v1 && JSValue v2) {
+        JSValue u2 = ObjectToPrimitive(v2, HINT_NUMBER);
+        return equal(v1, u2);
+      }
+    }
+  }
+}

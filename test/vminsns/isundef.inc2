@@ -1,0 +1,6 @@
+(vmInstruction, needContext)
+isundef : JSValue -> JSValue
+isundef (v) {
+  cint ret = Is_undefined(v);
+  return ret ? true : false;
+}

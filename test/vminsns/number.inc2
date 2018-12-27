@@ -1,0 +1,7 @@
+// 命令から disp を取るのをどうするか
+
+(vmInstruction)
+number : Displacement -> Bytecode
+number (disp) {
+  return Get_code(disp);
+}

@@ -1,0 +1,48 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+div : (JSValue, JSValue) -> Number
+div (v1, v2) {
+  match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      // (Number, Number) でも代用できるため，コードサイズを重視する場合は必要ない
+      cint n1 = NumberToCint(v1);
+      if (v2 == Fixnum_Zero) {
+        if (n1 > 0) {
+          return Flonum_Infinity;
+        } else if (n1 == 0) {
+          return Flonum_Nan;
+        } else {
+          return Flonum_NegInfinity;
+        }
+      } else {
+        cint n2 = NumberToCint(v2);
+        cint s = n1 / n2;
+        if (s * n2 == n1) {
+          return CintToNumber(s);
+        } else {
+          cdouble r = CintToCdouble(n1) / CintToCdouble(n2);
+          return r;
+        }
+      }
+    }
+    case (Number v1 && Number v2) {
+      cdouble n1 = NumberToCdouble(v1);
+      cdouble n2 = NumberToCdouble(v2);
+      cdouble d = n1 / n2;
+      if (Isinf(d)) {
+        return d > 0 ? Flonum_Infinity : Flonum_NegInfinity;
+      } else if (Isnan(d)) {
+        return Flonum_Nan;
+      } else {
+        return CdoubleToNumber(d);
+      }
+    }
+    case (Number v1 && JSValue v2) {
+      Number u2 = toNumber(v2);
+      return div(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      Number u1 = toNumber(v1);
+      return div(u1, v2);
+    }
+  }
+}

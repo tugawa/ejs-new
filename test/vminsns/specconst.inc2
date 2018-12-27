@@ -1,0 +1,7 @@
+// Immidiate の引数をどう渡すか
+
+(vmInstruction, needContext)
+specconst : Immidiate -> JSValue
+specconst (i) {
+  return i;
+}

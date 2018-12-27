@@ -1,0 +1,16 @@
+(vmInstruction, needContext)
+getarg : (cint, cuint16_t) -> JSValue     // index は Subscript 型（uint16_t）
+getarg (link, index) {
+  FunctionFrame fr = get_lp();
+
+  do (cint i=0 step i+1) {
+    if (link < i) {
+      break;
+    }
+    fr <- Fframe_prev(fr);
+  }
+  JSValue arguments = Fframe_arguments(fr);
+
+  JSValue idx = CintToFixnum(index);    // タグを付けるだけなので cint も cuint16_t も同じ
+  return getArrayProp(arguments, idx);
+}

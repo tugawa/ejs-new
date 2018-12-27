@@ -1,0 +1,5 @@
+(vmInstruction)
+setarray : (Array, Subscript, JSValue) -> void
+setarray (array, index, v) {
+  array.body[index] <- v;     // newframe.inc2 でも書いたように，DSL はこの書き方ができる
+}

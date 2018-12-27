@@ -1,0 +1,38 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+mod : (JSValue, JSValue) -> JSValue
+mod (v1, v2) {
+  match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      if (v2 == Fixnum_Zero) {
+        return Flonum_Nan;
+      } else {
+        cint s = FixnumToCint(v1) % FixnumToCint(v2);
+        return CintToFixnum(s);
+      }
+    }
+    case (Number v1 && Number v2) {
+      cdouble x1 = numberToCdouble(v1);
+      cdouble x2 = numberToCdouble(v2);
+      if (Isinf(x1) || x2 == 0.0f) {      // 0.0f のような書き方を用意する?
+        return Flonum_Nan;
+      } else {
+        // 代入でも書けるけれど，使わなくて済むなら代入を書きたくない
+        cdouble d = x1 / x2;
+        cdouble d2 = d >= 0 ? Floor(d) : Ceil(d);
+        cdouble d3 = x1 - (d2 * x2);
+        return CdoubleToNumber(d3);
+      }
+    }
+    case (JSValue v1 && Number v2) {
+      Number u1 = toNumber(v1);
+      return mod(u1, v2);
+    }
+    case (Number v1 && JSValue v2) {
+      Number u2 = toNumber(v2);
+      return mod(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      return Flonum_Nan;
+    }
+  }
+}

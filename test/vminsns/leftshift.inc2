@@ -1,0 +1,28 @@
+// int32_t のような型をどうするか
+
+(vmInstruction, needContext, tailCall)
+leftshift : (JSValue, JSValue) -> Fixnum
+leftshift (v1, v2) {
+  match (v1, v2) {
+    case (Number v1 && Number v2) {
+      int32_t x1 = numberToCint(v1);
+      cint x2 = numberToCint(v2);
+      return CintToFixnum(x1 << x2);
+    }
+    case (JSValue v1 && Number v2) {
+      Number u1 = toNumber(v1);
+      if (u1 == Flonum_Infinity || u1 == Flonum_NegInfinity || u1 == Flonum_Nan) {
+        return leftshift(Fixnum_Zero, v2);
+      } else {
+        return leftshift(u1, v2);
+      }
+    }
+    case (Number v1 && JSValue v2) {
+      Number u2 = toNumber(v2);
+      return leftshift(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      return Flonum_nan;
+    }
+  }
+}

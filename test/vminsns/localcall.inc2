@@ -1,0 +1,8 @@
+// PC はどうすればよいか
+
+(vmInstruction, needContext)
+localcall : cint -> void
+localcall (v1, v2) {
+  Lcall_stack_push();     // context は渡せるけど pc はどうする?
+  Set_pc_relative(d);
+}
