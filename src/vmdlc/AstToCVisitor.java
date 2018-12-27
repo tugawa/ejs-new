@@ -22,11 +22,23 @@ import dispatch.RuleSet;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
-    class MatchRecord {
-        String label;
+    static final boolean VM_INSTRUCTION = true;
+    static class MatchRecord {
+        static int next = 1;
+        String name;
+        String headLabel;
+        String tailLabel;
         String[] opNames;
-        MatchRecord(String label, String[] opNames) {
-            this.label = label;
+        MatchRecord(String name, String[] opNames) {
+            this.name = name;
+            if (name != null) {
+                headLabel = "MATCH_"+name;
+                tailLabel = "MATCH_TAIL_"+name;
+            } else {
+                int id = next++;
+                headLabel = "MATCH_"+id;
+                tailLabel = "MATCH_TAIL_"+id;
+            }
             this.opNames = opNames;
         }
     }
@@ -129,11 +141,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
 
             Tree<?> labelNode = node.get(Symbol.unique("label"));
-            String label = labelNode.toText();
             if (labelNode != null) {
+                String label = labelNode.toText();
                 matchStack.add(new MatchRecord(label, formalParams));
-                print("MATCH_"+label+":");
-            }
+            } else
+                matchStack.add(new MatchRecord(null, formalParams));
+            print(matchStack.peek().headLabel+":");
             
             Tree<?> cases = node.get(Symbol.unique("cases"));
             RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
@@ -161,8 +174,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
             String s = dispatchProcessor.translate(ruleSet, dp);
             println(s);
-            if (labelNode != null)
-                matchStack.pop();
+            println(matchStack.pop().tailLabel+": ;");
         }
         
         private RuleSetBuilder.Node toRsbAst(Tree<?> n, RuleSetBuilder rsb) {
@@ -190,11 +202,20 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            printIndent(indent, "return ");
-            for (Tree<?> expr : node) {
-                visit(expr, 0);
+            if (VM_INSTRUCTION) {
+                printIndent(indent, "dst = ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(";");
+                println("goto "+matchStack.peek().tailLabel);
+            } else {
+                printIndent(indent, "return ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(";");
             }
-            println(";");
         }
     }
 
@@ -323,7 +344,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             println("{");
             for (int i = matchStack.size() - 1; i >= 0; i--) {
                 MatchRecord mr = matchStack.elementAt(i);
-                if (mr.label.equals(target)) {
+                if (mr.name.equals(target)) {
                     for (int j = 0; j < mr.opNames.length; j++) {
                         Tree<?> argNode = node.get(j + 1);
                         print("JSValue tmp"+j+" = ");
@@ -332,7 +353,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     for (int j = 0; j < mr.opNames.length; j++)
                         println(mr.opNames[j]+" = "+"tmp"+j+";");
-                    println("goto MATCH_"+target+";");
+                    println("goto "+mr.headLabel+";");
                     println("}");
                     return;
                 }
