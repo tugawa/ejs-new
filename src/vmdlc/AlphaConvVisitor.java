@@ -67,7 +67,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             Tree<?> params = node.get(Symbol.unique("params"));
             for (Tree<?> param : params) {
-                dict.internV(param);
+                dict.internPreserveName(param);
                 visit(param, dict);
             }
 
@@ -180,6 +180,16 @@ class VarDict {
             varmap.put(newName, name);
             frames.getFirst().put(name, newName);
             node.setValue(newName);
+        } 
+    }
+
+    void internPreserveName(Tree<?> node) throws Exception {
+        String name = node.toText();
+        if (varmap.containsKey(name)) {
+            throw new Exception("Var exists");
+        } else {
+            varmap.put(name, name);
+            frames.getFirst().put(name, name);
         } 
     }
 
