@@ -144,30 +144,45 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             MatchProcessor mp = new MatchProcessor(node);
+
+            String label = ; //TODO
             
+
             SyntaxTree cases = node.get(Symbol.unique("cases"));
             
+            TypeMap outDict = dict.getBottomDict();
+            /* TODO
             Set<String> domain = dict.getKeys();
-            TypeMap outDict = new TypeMap();/* unit of dict */
+            TypeMap outDict = new TypeMap();
             for (String v : domain) {
                 outDict.add(v, AsType.JSValueType.BOT);
             }
+            */
 
             TypeMap savedDict = dict.select(dict.getKeys());
-            TypeMap iterationDict = saveDict;
+            TypeMap newEntryDict = dict;
             do {
-                saveDict = iterationDict;
+                TypeMap entryDict = newEntryDict;
+                matchStack.enter(label, mp.getFormalParams(), entryDict);
+                
+                NEXT_CASE:
                 for (SyntaxTree cas : cases) {
-                    TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getCondition(cas));
+                    TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(cas));
                     /* typing of body */
+
+                    for (String v : mp.getFormalParams()) {
+                        if (lDict.get(v) == AstType.BOT) {
+                            continue NEXT_CASE;
+                        }
+                    }
                     SyntaxTree body = cas.get(Symbol.unique("body"));
                     TypeMap lDict2 = visit(body, lDict);
 
                     outDict = outDict.lub(lDict2);
                 }
-                iterationDict = saveDict.lub(outDict);
-            } while (iterationDict != saveDict);
-            return saveDict;
+                newEntryDict = matchStack.getDict(label);
+            } while (entryDict != newEntryDict);  // TODO
+            return outDict;
         }
     }
 
@@ -175,16 +190,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             String label = node.get(Symbol.unique("label")).toText();
-            TypeMap matchDict = XXX.getMatchDict(label);
-            String[] matchParams = XXX.getMatchParams(label);
+            TypeMap matchDict = matchStack.getDict(label);
+            Set<String> domain = matchDich.getKeys();
+            String[] matchParams = matchStack.getParams(label);
             
-            String rematchArgs = new String[matchParams.length];
-            TypeMap matchDict2 = matchDict.select(matchDict.getKeys());
+            String[] rematchArgs = new String[matchParams.length];
             for (int i = 1; i < node.size(); i++) {
-                String arg = node.get(i).toText();
-                matchDict2.put(matchParams[i-1], dict.get(arg));
+                rematchArgs[i-1] = node.get(i).toText();
             }
-            return matchDict2;
+            
+            TypeMap matchDict2 = dict.rematch(matchParams, rematchAgs, domain);
+            TypeMap result = matchDict2.lub(matchDict);
+            matchStack.updateDict(label, result);
+            
+            return matchDict.getBottomDict(); // TODO
         }
     }
     

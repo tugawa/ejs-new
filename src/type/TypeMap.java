@@ -95,7 +95,7 @@ public class TypeMap {
         return new TypeMap(newGamma);
     }
 
-    public TypeMap rematch(String[] params, String[] args, String[] domain) {
+    public TypeMap rematch(String[] params, String[] args, Set<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         for (String v : domain) {
             int index = indexOf(params, v);
