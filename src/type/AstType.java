@@ -204,6 +204,9 @@ public class AstType {
             super(name, parent);
             this.vmt = vmt;
         }
+        public VMDataType getVMDataType() {
+            return vmt;
+        }
     }
 
     

@@ -272,6 +272,27 @@ public class RuleSetBuilder {
         }
     }
     
+    public List<Set<VMDataType[]>> computeVmtVecCondList(List<Node> condAstList) {
+        List<Rule> rules = new ArrayList<Rule>();
+        
+        for (Node condAst: condAstList) {
+            Node dnf = normalise(condAst);
+            Set<int[]> tables = DNFToDispatchConditionTables(dnf);
+            rules.add(new Rule(tables, null));  /* TODO: do not use Rule */
+        }
+        
+        fillRules(0, new VMDataType[opNames.length], rules);
+        
+        List<Set<VMDataType[]>> possibleTypeCombList = new ArrayList<Set<VMDataType[]>>();
+        for (Rule rule: rules) {
+            Set<VMDataType[]> possibleTypeCombs = new HashSet<VMDataType[]>();
+            for (OperandDataTypes ots: rule.condition)
+                possibleTypeCombs.add(ots.dts);
+            possibleTypeCombList.add(possibleTypeCombs);
+        }
+        return possibleTypeCombList;
+    }
+    
     public RuleSet createRuleSet(List<CaseActionPair> caps) {
         List<Rule> rules = new ArrayList<Rule>();
         
