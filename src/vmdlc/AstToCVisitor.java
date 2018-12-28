@@ -224,7 +224,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             if (VM_INSTRUCTION) {
-                printIndent(indent, "dst = ");
+                printIndent(indent, "regbase[r0] = ");
                 for (Tree<?> expr : node) {
                     visit(expr, 0);
                 }
