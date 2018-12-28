@@ -72,7 +72,7 @@ public class AstType {
             return JSValue;
         }
     }
-    public AstType glb(VMDataType that) {
+    public AstType glb(AstType that) {
         if (this.name.equals("Bot") || that.name.equals("Bot")) {
             throw new Error("glb: Bot");
         }

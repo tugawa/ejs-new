@@ -25,6 +25,9 @@ public class TypeMap {
     public void add(String key, AstType value) {
         dict.put(key, value);
     }
+    public Set<String> getKeys() {
+        return dict.keySet();
+    }
     public TypeMap select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         for (String v : domain) {
@@ -72,8 +75,8 @@ public class TypeMap {
             } else {
                 AstType t2 = AstType.Bot;
                 for (VMDataType[] dts : caseCondition) {
-                    AstType glb = t1.glb(dts[i]);
-                    t2 = t2.lub(glb);
+                    // AstType glb = t1.glb(dts[i]);
+                    // t2 = t2.lub(glb);
                 }
                 newGamma.put(v, t2);
             }
@@ -92,5 +95,8 @@ public class TypeMap {
             }
         }
         return new TypeMap(newGamma);
+    }
+    public String toString() {
+        return dict.toString();
     }
 }

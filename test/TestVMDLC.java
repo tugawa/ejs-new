@@ -30,9 +30,9 @@ public class TestVMDLC {
             Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
 
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
-            Source source = new FileSource("vminsns/add.inc2");
+            Source source = new FileSource("/Users/yasunao/Desktop/eJS/vmdl/test/vmdl/test4.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
-            
+
             if (parser.hasErrors()) {
                 for (SourceError e: parser.getErrors()) {
                     System.out.println(e);
