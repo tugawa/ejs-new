@@ -7,8 +7,10 @@ import nez.ast.Symbol;
 
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.Stack;
 import java.util.HashSet;
 
+import vmdlc.AstToCVisitor.MatchRecord;
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
@@ -16,6 +18,53 @@ import type.TypeMap;
 import type.VMDataType;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
+    static class MatchStack {
+        static class MatchRecord {
+            String name;
+            String[] formalParams;
+            TypeMap dict;
+            MatchRecord(String name, String[] formalParams, TypeMap dict) {
+                this.name = name;
+                this.formalParams = formalParams;
+                this.dict = dict;
+            }
+        }
+        
+        Stack<MatchRecord> stack;
+        MatchRecord lookup(String name) {
+            for (int i = stack.size() - 1; i >= 0; i--) {
+                MatchRecord mr = stack.get(i);
+                if (mr.name != null && mr.name.equals(name))
+                    return mr;
+            }
+            return null;
+        }
+        
+        public void enter(String name, String[] formalParams, TypeMap dict) {
+            MatchRecord mr = new MatchRecord(name, formalParams, dict);
+            stack.push(mr);
+        }
+        public String[] getParams(String name) {
+            MatchRecord mr = lookup(name);
+            if (mr == null)
+                return null;
+            return mr.formalParams;
+        }
+        public TypeMap getDict(String name) {
+            MatchRecord mr = lookup(name);
+            if (mr == null)
+                return null;
+            return mr.dict;
+        }
+        public void pop() {
+            stack.pop();
+        }
+        public boolean isEmpty() {
+            return stack.isEmpty();
+        }
+    }
+    MatchStack matchStack;
+    
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
@@ -23,9 +72,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public void start(Tree<?> node) {
         try {
             TypeMap dict = new TypeMap();
+            matchStack = new MatchStack();
             for (Tree<?> chunk : node) {
                 dict = visit((SyntaxTree)chunk, dict);
             }
+            if (!matchStack.isEmpty())
+                throw new Error("match stack is not empty after typing process");
         } catch (Exception e) {
             e.printStackTrace();
         }
