@@ -10,11 +10,9 @@ Definition = ExternC
 
 FunctionMeta  = { $annotations(Annotations) $name(FunctionName) ":"
                         $type(Type) $definition(_FunctionDefinition) #FunctionMeta }
-_FunctionDefinition = { $name(FunctionName) "(" $params(Parameters) ")" "{" $body(FunctionBody) "}" #FunctionDefinition }
+_FunctionDefinition = { $name(FunctionName) "(" $params(Parameters) ")" $body(Block) #FunctionDefinition }
 Parameters = { $(VarName) ( "," $(VarName) )* #Parameters }
            / _
-
-FunctionBody = { $(Statement)* }
 
 PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $pattern(Pattern) #PatternDefinition }
 
@@ -127,7 +125,7 @@ UnaryExpression = PostfixExpression
                 / { "-" $expr(PostfixExpression) #Minus }
                 / { "~" $expr(PostfixExpression) #Compl }
                 / { "!" $expr(PostfixExpression) #Not }
-PostfixExpression = PrimaryExpression {$recv _FunctionCall / _Index / _Field }*
+PostfixExpression = PrimaryExpression {$recv _FunctionCall #FunctionCall / _Index / _Field }*
 PrimaryExpression = Constant
                   / String
                   / "(" Expression ")"

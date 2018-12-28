@@ -91,7 +91,7 @@ public class AstType {
                 al.add(nodeToType(node.get(i)));
             }
             return new AstPairType(al);
-        } else if (node.is(Symbol.unique("TypeName")) ||
+        } else if (node.is(Symbol.unique("JSValueTypeName")) ||
                     node.is(Symbol.unique("Ctype"))) {
             return AstType.get(node.toText());
         }
@@ -107,9 +107,8 @@ public class AstType {
         }
     }
 
+    public static final JSValueType BOT = new JSValueType("$bot", null);
     public static class JSValueType extends AstBaseType {
-        static final JSValueType BOT = new JSValueType("$bot", null);
-        
         JSValueType parent;
         int depth;
         private JSValueType(String name, JSValueType parent) {
