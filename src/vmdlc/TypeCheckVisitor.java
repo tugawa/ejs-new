@@ -25,7 +25,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> chunk : node) {
                 dict = visit((SyntaxTree)chunk, dict);
             }
-            System.out.println(dict);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -80,14 +79,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             Set<String> domain = new HashSet<String>(dict.getKeys());
-            System.out.println(domain);
             for (Tree<?> seq : node) {
                 dict = visit((SyntaxTree)seq, dict);
             }
             TypeMap result = dict.select((Set<String>)domain);
-            System.out.println("Block:end: ");
-            System.out.println(domain);
-            System.out.println(result);
             return dict.select((Set<String>)domain);
         }
     }
