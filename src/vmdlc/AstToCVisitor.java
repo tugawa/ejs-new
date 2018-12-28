@@ -44,11 +44,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
+    String epilogueLabel;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
         outStack = new Stack<StringBuffer>();
         matchStack = new Stack<MatchRecord>();
+        epilogueLabel = "EPILOGUE";
     }
 
     public String start(Tree<?> node) {
@@ -57,7 +59,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> chunk : node) {
                 visit(chunk, 0);
             }
-            String program = outStack.pop().toString();
+            StringBuffer sb = outStack.pop();
+            sb.append(epilogueLabel + ": ;\n");
+            String program = sb.toString();
             return program;
         } catch (Exception e) {
             e.printStackTrace(System.out);
@@ -208,7 +212,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     visit(expr, 0);
                 }
                 println(";");
-                println("goto "+matchStack.peek().tailLabel);
+                println("goto "+epilogueLabel+";");
             } else {
                 printIndent(indent, "return ");
                 for (Tree<?> expr : node) {
