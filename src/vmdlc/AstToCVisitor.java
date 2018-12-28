@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.lang.Exception;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
@@ -22,6 +23,23 @@ import dispatch.RuleSet;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
+    static Map<String, VMDataType> dltypeToVmtype = new HashMap<String, VMDataType>();
+    static {
+        dltypeToVmtype.put("String", VMDataType.get("string"));
+        dltypeToVmtype.put("Fixnum", VMDataType.get("fixnum"));
+        dltypeToVmtype.put("Flonum", VMDataType.get("special"));
+        dltypeToVmtype.put("Special", VMDataType.get("special"));
+        dltypeToVmtype.put("SimpleObject", VMDataType.get("simple_object"));
+        dltypeToVmtype.put("Array", VMDataType.get("array"));
+        dltypeToVmtype.put("Function", VMDataType.get("function"));
+        dltypeToVmtype.put("Builtin", VMDataType.get("builtin"));
+        dltypeToVmtype.put("SimpleIterator", VMDataType.get("simple_iterator"));
+        dltypeToVmtype.put("Regexp", VMDataType.get("regexp"));
+        dltypeToVmtype.put("StringObject", VMDataType.get("string_object"));
+        dltypeToVmtype.put("NumberObject", VMDataType.get("number_object"));
+        dltypeToVmtype.put("BooleanObject", VMDataType.get("boolean_object"));
+    }
+    
     static final boolean VM_INSTRUCTION = true;
     static class MatchRecord {
         static int next = 1;
@@ -195,8 +213,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return new RuleSetBuilder.NotNode(child);
             } else if (n.is(Symbol.unique("TypePattern"))) {
                 String opName = n.get(Symbol.unique("var")).toText();
-                String tn = n.get(Symbol.unique("type")).toText().toLowerCase();
-                VMDataType dt = VMDataType.get(tn);
+                VMDataType dt = dltypeToVmtype.get(n.get(Symbol.unique("type")).toText());
                 return rsb.new AtomicNode(opName, dt);
             }
             throw new Error("no such pattern");
@@ -611,7 +628,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
-            varmap.put("cint", "int");
+            varmap.put("cint", "cint");
             varmap.put("cdouble", "double");
             print(varmap.get(node.toText()));
         }
