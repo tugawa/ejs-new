@@ -150,10 +150,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType rhsType = visit(right, dict).getExprType();
             SyntaxTree left = node.get(Symbol.unique("left"));
             left.setType(rhsType);
-            // dict.put(left.toText(), rhsType);
+            dict.add(left.toText(), rhsType);
             return dict;
         }
-
     }
 
     public class Declaration extends DefaultVisitor {
@@ -188,15 +187,23 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Do extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            Set<String> domain = new HashSet<String>(dict.getKeys());
+
             SyntaxTree initNode = node.get(Symbol.unique("init"));
             SyntaxTree varNode = initNode.get(Symbol.unique("var"));
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
             AstType rhsType = visit(exprNode, dict).getExprType();
             varNode.setType(rhsType);
-            // dict.put(varNode.toText(), rhsType);
+            dict.add(varNode.toText(), rhsType);
+            /*
+            do (cint i = 0 step i+1) {
 
+            }
+            */
             SyntaxTree blockNode = initNode.get(Symbol.unique("block"));
             dict = visit(blockNode, dict);
+
+            TypeMap result = dict.select((Set<String>)domain);
 
             return dict;
         }
