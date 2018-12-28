@@ -28,9 +28,9 @@ public class TestVMDLC {
             Grammar grammar = pg.loadGrammar("ejsdsl.nez");
             //grammar.dump();
             Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
-            
+
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
-            Source source = new FileSource("vmdl/test4.inc2");
+            Source source = new FileSource("vminsns/add.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
             
             if (parser.hasErrors()) {

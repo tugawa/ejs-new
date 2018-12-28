@@ -10,7 +10,10 @@ import dispatch.RuleSet.OperandDataTypes;
 import type.VMDataType;
 
 public class RuleSetBuilder {
-    public static abstract class Node {
+    public static class Node {
+    }
+    
+    public static class TrueNode extends Node {
     }
     
     public class AtomicNode extends Node {
@@ -85,7 +88,9 @@ public class RuleSetBuilder {
     }
     
     Node removeNotNode(Node xn, boolean neg) {
-        if (xn instanceof AtomicNode) {
+        if (xn instanceof TrueNode)
+            return xn;
+        else if (xn instanceof AtomicNode) {
             ((AtomicNode) xn).neg = neg;
             return xn;
         } else if (xn instanceof AndNode) {
@@ -111,7 +116,9 @@ public class RuleSetBuilder {
     // If it finds an or-node, it returns the converted tree.
     // Otherwise, it returns null.
     OrNode siftUpOrNode(Node xn) {
-        if (xn instanceof AtomicNode)
+        if (xn instanceof TrueNode)
+            throw new Error("TrueNode should not appear in this step.");
+        else if (xn instanceof AtomicNode)
             return null;
         else if (xn instanceof AndNode) {
             AndNode n = (AndNode) xn;
@@ -138,7 +145,9 @@ public class RuleSetBuilder {
     }
     
     Node toDNF(Node xn) {
-        if (xn instanceof AtomicNode)
+        if (xn instanceof TrueNode)
+            return xn;
+        else if (xn instanceof AtomicNode)
             return xn;
         else if (xn instanceof AndNode) {
             AndNode n = (AndNode) xn;
@@ -166,7 +175,9 @@ public class RuleSetBuilder {
     }
 
     void andTreeToTable(Node xn, int[] table) {
-        if (xn instanceof AtomicNode) {
+        if (xn instanceof TrueNode)
+            throw new Error("TrueNode should not appear in this step.");
+        else if (xn instanceof AtomicNode) {
             AtomicNode n = (AtomicNode) xn;
             if (n.neg)
                 table[n.opIndex] &= ~(1 << n.dt.getID());
@@ -194,7 +205,10 @@ public class RuleSetBuilder {
     }
     
     void traverseOrTree(Node xn, Set<int[]> tables) {
-        if (xn instanceof AtomicNode) {
+        if (xn instanceof TrueNode) {
+            newTable(tables);
+            return;
+        } else if (xn instanceof AtomicNode) {
             andTreeToTable(xn, newTable(tables));
             return;
         } else if (xn instanceof AndNode) {

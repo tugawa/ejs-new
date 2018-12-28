@@ -1,3 +1,6 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+
 (vmInstruction, needContext, triggerGC, tailCall)
 add : (JSValue, JSValue) -> JSValue
 
@@ -11,7 +14,7 @@ add : (JSValue, JSValue) -> JSValue
 //       | (Generic, Generic) ->  Number | String
 
 add (v1, v2) {
-  match (v1, v2) {
+  add: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
       cint s = FixnumToCint(v1) + FixnumToCint(v2);
       return CintToNumber(s);
@@ -33,15 +36,17 @@ add (v1, v2) {
     case (String v1 && String v2) {
       return concat(v1, v2);
     }
-    case (JSValue v1 && ffss v2) {
+    case (ffss v2) {
       JSValue u1 = toString(v1);
-      return add(u1, v2);
+      //return add(u1, v2);
+      rematch add(u1, v2);
     }
-    case (ffss v1 && JSValue v2) {
+    case (ffss v1) {
       JSValue u2 = toString(v2);
       return add(v1, u2);
     }
-    case (JSValue v1 && JSValue v2) {
+    case (true)
+     {
       JSValue u1 = toString(v1);
       JSValue u2 = toString(v2);
       return add(u1, u2);

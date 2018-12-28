@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.lang.Exception;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
@@ -22,11 +23,52 @@ import dispatch.RuleSet;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
+    static Map<String, VMDataType> dltypeToVmtype = new HashMap<String, VMDataType>();
+    static {
+        dltypeToVmtype.put("String", VMDataType.get("string"));
+        dltypeToVmtype.put("Fixnum", VMDataType.get("fixnum"));
+        dltypeToVmtype.put("Flonum", VMDataType.get("special"));
+        dltypeToVmtype.put("Special", VMDataType.get("special"));
+        dltypeToVmtype.put("SimpleObject", VMDataType.get("simple_object"));
+        dltypeToVmtype.put("Array", VMDataType.get("array"));
+        dltypeToVmtype.put("Function", VMDataType.get("function"));
+        dltypeToVmtype.put("Builtin", VMDataType.get("builtin"));
+        dltypeToVmtype.put("SimpleIterator", VMDataType.get("simple_iterator"));
+        dltypeToVmtype.put("Regexp", VMDataType.get("regexp"));
+        dltypeToVmtype.put("StringObject", VMDataType.get("string_object"));
+        dltypeToVmtype.put("NumberObject", VMDataType.get("number_object"));
+        dltypeToVmtype.put("BooleanObject", VMDataType.get("boolean_object"));
+    }
+    
+    static final boolean VM_INSTRUCTION = true;
+    static class MatchRecord {
+        static int next = 1;
+        String name;
+        String headLabel;
+        String tailLabel;
+        String[] opNames;
+        MatchRecord(String name, String[] opNames) {
+            this.name = name;
+            if (name != null) {
+                headLabel = "MATCH_HEAD_"+name;
+                tailLabel = "MATCH_TAIL_"+name;
+            } else {
+                int id = next++;
+                headLabel = "MATCH_HEAD_"+id;
+                tailLabel = "MATCH_TAIL_"+id;
+            }
+            this.opNames = opNames;
+        }
+    }
     Stack<StringBuffer> outStack;
+    Stack<MatchRecord> matchStack;
+    String epilogueLabel;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
         outStack = new Stack<StringBuffer>();
+        matchStack = new Stack<MatchRecord>();
+        epilogueLabel = "EPILOGUE";
     }
 
     public String start(Tree<?> node) {
@@ -35,7 +77,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> chunk : node) {
                 visit(chunk, 0);
             }
-            String program = outStack.pop().toString();
+            StringBuffer sb = outStack.pop();
+            sb.append(epilogueLabel + ": ;\n");
+            String program = sb.toString();
             return program;
         } catch (Exception e) {
             e.printStackTrace(System.out);
@@ -118,17 +162,33 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 formalParams[i] = params.get(i).toText();
             }
 
+            Tree<?> labelNode = node.get(Symbol.unique("label"), null);
+            if (labelNode != null) {
+                String label = labelNode.toText();
+                matchStack.add(new MatchRecord(label, formalParams));
+            } else
+                matchStack.add(new MatchRecord(null, formalParams));
+            print(matchStack.peek().headLabel+":");
+            
             Tree<?> cases = node.get(Symbol.unique("cases"));
             RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
             List<RuleSetBuilder.CaseActionPair> caps = new ArrayList<RuleSetBuilder.CaseActionPair>();
             for (Tree<?> cas: cases) {
-                Tree<?> pat = cas.get(Symbol.unique("pattern"));
-                RuleSetBuilder.Node rsbAst = toRsbAst(pat, rsb);
-                outStack.push(new StringBuffer());
-                Tree<?> statement = cas.get(Symbol.unique("body"));
-                visit(statement, 0);
-                String action = outStack.pop().toString();
-                caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
+                if (cas.is(Symbol.unique("Case"))) {
+                    Tree<?> pat = cas.get(Symbol.unique("pattern"));
+                    RuleSetBuilder.Node rsbAst = toRsbAst(pat, rsb);
+                    outStack.push(new StringBuffer());
+                    Tree<?> statement = cas.get(Symbol.unique("body"));
+                    visit(statement, 0);
+                    String action = outStack.pop().toString();
+                    caps.add(new RuleSetBuilder.CaseActionPair(rsbAst, action));
+                } else if (cas.is(Symbol.unique("AnyCase"))) {
+                    outStack.push(new StringBuffer());
+                    Tree<?> statement = cas.get(Symbol.unique("body"));
+                    visit(statement, 0);
+                    String action = outStack.pop().toString();
+                    caps.add(new RuleSetBuilder.CaseActionPair(new RuleSetBuilder.TrueNode(), action));                    
+                }
             }
             RuleSet ruleSet = rsb.createRuleSet(caps);
             DispatchPlan dp = new DispatchPlan(formalParams.length, false);
@@ -136,6 +196,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
             String s = dispatchProcessor.translate(ruleSet, dp);
             println(s);
+            println(matchStack.pop().tailLabel+": ;");
         }
         
         private RuleSetBuilder.Node toRsbAst(Tree<?> n, RuleSetBuilder rsb) {
@@ -152,8 +213,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return new RuleSetBuilder.NotNode(child);
             } else if (n.is(Symbol.unique("TypePattern"))) {
                 String opName = n.get(Symbol.unique("var")).toText();
-                String tn = n.get(Symbol.unique("type")).toText().toLowerCase();
-                VMDataType dt = VMDataType.get(tn);
+                VMDataType dt = dltypeToVmtype.get(n.get(Symbol.unique("type")).toText());
                 return rsb.new AtomicNode(opName, dt);
             }
             throw new Error("no such pattern");
@@ -163,11 +223,20 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            printIndent(indent, "return ");
-            for (Tree<?> expr : node) {
-                visit(expr, 0);
+            if (VM_INSTRUCTION) {
+                printIndent(indent, "regbase[r0] = ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(";");
+                println("goto "+epilogueLabel+";");
+            } else {
+                printIndent(indent, "return ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(";");
             }
-            println(";");
         }
     }
 
@@ -287,7 +356,33 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(exprNode, 0);
         }
     }
-
+    public class Rematch extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> targetNode = node.get(Symbol.unique("label"));
+            String target = targetNode.toText();
+            
+            println("{");
+            for (int i = matchStack.size() - 1; i >= 0; i--) {
+                MatchRecord mr = matchStack.elementAt(i);
+                if (mr.name != null && mr.name.equals(target)) {
+                    for (int j = 0; j < mr.opNames.length; j++) {
+                        Tree<?> argNode = node.get(j + 1);
+                        print("JSValue tmp"+j+" = ");
+                        visit(argNode, 0);
+                        println(";");
+                    }
+                    for (int j = 0; j < mr.opNames.length; j++)
+                        println(mr.opNames[j]+" = "+"tmp"+j+";");
+                    println("goto "+mr.headLabel+";");
+                    println("}");
+                    return;
+                }
+            }
+            throw new Error("no rematch target");
+        }
+    }
+    
     public class Trinary extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -517,7 +612,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print(node.toText());
         }
     }
-    public class TypeName extends DefaultVisitor {
+    public class JSValueTypeName extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            print("JSValue");
+        }
+    }
+    public class UserTypeName extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             print(node.toText());
@@ -527,7 +628,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
-            varmap.put("cint", "int");
+            varmap.put("cint", "cint");
             varmap.put("cdouble", "double");
             print(varmap.get(node.toText()));
         }
