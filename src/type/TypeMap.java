@@ -3,6 +3,9 @@ package type;
 import java.util.HashMap;
 import java.util.Collection;
 import java.util.Set;
+
+import type.AstType.JSValueType;
+
 import java.lang.Error;
 
 public class TypeMap {
@@ -49,9 +52,17 @@ public class TypeMap {
             AstType t1 = dict.get(v);
             AstType t2 = thatDict.get(v);
             if (t2 == null) {
-                throw new Error();
+                throw new Error("inconsistent type environment");
             } else {
-                newGamma.put(v, t1.lub(t2));
+                if (t1 == t2)
+                    newGamma.put(v, t1);
+                else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
+                    throw new Error("type error");
+                else {
+                    JSValueType jsvt1 = (JSValueType) t1;
+                    JSValueType jsvt2 = (JSValueType) t2;
+                    newGamma.put(v, jsvt1.lub(jsvt2));
+                }
             }
         }
         return new TypeMap(newGamma);
@@ -73,10 +84,10 @@ public class TypeMap {
             if (index == -1) {
                 newGamma.put(v, t1);
             } else {
-                AstType t2 = AstType.Bot;
+                JSValueType t2 = JSValueType.BOT;
                 for (VMDataType[] dts : caseCondition) {
-                    // AstType glb = t1.glb(dts[i]);
-                    // t2 = t2.lub(glb);
+                    JSValueType glb = ((JSValueType) t1).glb(AstType.get(dts[index]));
+                    t2 = t2.lub(glb);
                 }
                 newGamma.put(v, t2);
             }

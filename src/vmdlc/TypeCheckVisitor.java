@@ -179,7 +179,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
-            AstType type = new AstBaseType(typeNode.toText());
+            AstType type = AstType.get(typeNode.toText());
             varNode.setType(type);
             // dict.put(varNode.toText(), type);
             
@@ -207,7 +207,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
-            AstType type = new AstBaseType(typeNode.toText());
+            AstType type = AstType.get(typeNode.toText());
             varNode.setType(type);
             // dict.put(varNode.toText(), type);
             
@@ -226,40 +226,40 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             // TODO type check of arguments
             for (SyntaxTree arg : node.get(1)) {
             }
-            return new TypeMap(new AstBaseType(rangeType.toString()));
+            return new TypeMap(rangeType);
         }
     }
     public class _Integer extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(new AstBaseType("Fixnum"));
+            return new TypeMap(AstType.get("Fixnum"));
         }
     }
 
     public class _Float extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(new AstBaseType("Flonum"));
+            return new TypeMap(AstType.get("Flonum"));
         }
     }
 
     public class _String extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(new AstBaseType("String"));
+            return new TypeMap(AstType.get("String"));
         }
     }
 
     public class _True extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(new AstBaseType("Bool"));
+            return new TypeMap(AstType.get("Bool"));
         }
     }
     public class _False extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(new AstBaseType("Bool"));
+            return new TypeMap(AstType.get("Bool"));
         }
     }
 

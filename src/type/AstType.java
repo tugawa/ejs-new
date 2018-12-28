@@ -2,6 +2,9 @@ package type;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 import type.VMDataType;
 import vmdlc.SyntaxTree;
 import nez.ast.Symbol;
@@ -29,8 +32,54 @@ HeapObject
 */
 
 public class AstType {
-    static AstType Bot = new AstBaseType("Bot");
-    static AstType JSValue = new AstBaseType("JSValue");
+    static Map<String, AstBaseType> definedTypes = new HashMap<String, AstBaseType>();
+    static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<VMDataType, JSValueVMType>();
+    static void defineType(String name) {
+        AstBaseType t = new AstBaseType(name);
+        definedTypes.put(name, t);
+    }
+    static void defineJSValueType(String name, JSValueType parent) {
+        AstBaseType t = new JSValueType(name, parent);
+        definedTypes.put(name, t);
+    }
+    static void defineJSValueVMType(String name, JSValueType parent, VMDataType vmt) {
+        JSValueVMType t = new JSValueVMType(name, parent, vmt);
+        definedTypes.put(name, t);
+        vmtToType.put(vmt,  t);
+    }
+    public static AstBaseType get(String name) {
+        return definedTypes.get(name);
+    }
+    public static JSValueVMType get(VMDataType vmt) {
+        return vmtToType.get(vmt);
+    }
+    static {
+        defineType("Top");
+        defineType("HeapObject");
+        defineType("cint");
+        defineType("cdouble");
+        defineType("cstring");
+        defineJSValueType("JSValue", null);
+        JSValueType jsValType = (JSValueType) AstType.get("JSValue");
+        defineJSValueType("Number", jsValType);
+        JSValueType jsNumType = (JSValueType) AstType.get("JSValue");
+        defineJSValueVMType("String", jsValType, VMDataType.get("string"));
+        defineJSValueVMType("Fixnum", jsNumType, VMDataType.get("fixnum"));
+        defineJSValueVMType("Flonum", jsNumType, VMDataType.get("flonum"));
+        defineJSValueVMType("Special", jsValType, VMDataType.get("special"));
+        JSValueType jsSpeType = (JSValueType) AstType.get("special");
+        defineJSValueVMType("SimpleObject", jsValType, VMDataType.get("simple_object"));
+        defineJSValueVMType("Array", jsValType, VMDataType.get("array"));
+        defineJSValueVMType("Function", jsValType, VMDataType.get("function"));
+        defineJSValueVMType("Builtin", jsValType, VMDataType.get("builtin"));
+        defineJSValueVMType("SimpleIterator", jsValType, VMDataType.get("simple_iterator"));
+        defineJSValueVMType("Regexp", jsValType, VMDataType.get("regexp"));
+        defineJSValueVMType("StringObject", jsValType, VMDataType.get("string_object"));
+        defineJSValueVMType("NumberObject", jsValType, VMDataType.get("number_object"));
+        defineJSValueVMType("BooleanObject", jsValType, VMDataType.get("boolean_object"));
+        defineJSValueType("Bool", jsSpeType);
+    }
+
     String name;
 
     public static AstType nodeToType(SyntaxTree node) {
@@ -44,60 +93,120 @@ public class AstType {
             return new AstPairType(al);
         } else if (node.is(Symbol.unique("TypeName")) ||
                     node.is(Symbol.unique("Ctype"))) {
-            return new AstBaseType(node.toText());
+            return AstType.get(node.toText());
         }
         return null;
     }
 
     public static class AstBaseType extends AstType {
-        public AstBaseType(String _name) {
+        private AstBaseType(String _name) {
             name = _name;
         }
         public String toString() {
             return name;
         }
     }
-    public AstType lub(AstType that) {
-        if (this.name.equals(that.name)) {
-            return this;
-        } else if (this.name.equals("Fixnum") || this.name.equals("Flonum") || this.name.equals("Number")) {
-            if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
-                return new AstBaseType("Number");
-            } else if (that.name.equals("Number")) {
-                return that;
+
+    public static class JSValueType extends AstBaseType {
+        static final JSValueType BOT = new JSValueType("$bot", null);
+        
+        JSValueType parent;
+        int depth;
+        private JSValueType(String name, JSValueType parent) {
+            super(name);
+            this.parent = parent;
+            depth = 0;
+            for (JSValueType t = parent; t != null; t = t.parent)
+                depth++;
+        }
+        
+        public JSValueType lub(JSValueType a) {
+            JSValueType b = this;
+            if (a == BOT)
+                return b;
+            if (b == BOT)
+                return a;
+            while (a.depth > b.depth)
+                a = a.parent;
+            while (a.depth < b.depth)
+                b = b.parent;
+            while (a != b) {
+                a = a.parent;
+                b = b.parent;
+            }
+            return a;
+            /*
+            if (this.name.equals("Fixnum") || this.name.equals("Flonum") || this.name.equals("Number")) {
+                if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
+                    return new AstBaseType("Number");
+                } else if (that.name.equals("Number")) {
+                    return that;
+                } else {
+                    return JSValue;
+                }
             } else {
                 return JSValue;
             }
-        } else {
-            return JSValue;
+            */
         }
-    }
-    public AstType glb(AstType that) {
-        if (this.name.equals("Bot") || that.name.equals("Bot")) {
-            throw new Error("glb: Bot");
-        }
-        if (this.name.equals(that.name)) {
-            return this;
-        } else if (this.name.equals("JSValue")) {
-            return that;
-        } else if (that.name.equals("JSValue")) {
-            return this;
-        } else if (this.name.equals("Number")) {
-            if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
+
+        // Use the fact that JSValueType forms a tree rather than a lattice
+        public JSValueType glb(JSValueType that) {
+            JSValueType a = this;
+            JSValueType b = that;
+            if (a == BOT)
+                return BOT;
+            if (b == BOT)
+                return BOT;
+            while (a.depth > b.depth)
+                a = a.parent;
+            while (a.depth < b.depth)
+                b = b.parent;
+            if (a != b)
+                return JSValueType.BOT;
+            else if (a == this)
                 return that;
-            } else {
-                return Bot;
-            }
-        } else if (that.name.equals("Number")) {
-            if (this.name.equals("Flonum") || this.name.equals("Fixnum")) {
+            else if (b == that)
                 return this;
+            throw new Error("wrong algorithm!");
+            /*
+            if (this.name.equals("Bot") || that.name.equals("Bot")) {
+                throw new Error("glb: Bot");
+            }
+            if (this.name.equals(that.name)) {
+                return this;
+            } else if (this.name.equals("JSValue")) {
+                return that;
+            } else if (that.name.equals("JSValue")) {
+                return this;
+            } else if (this.name.equals("Number")) {
+                if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
+                    return that;
+                } else {
+                    return Bot;
+                }
+            } else if (that.name.equals("Number")) {
+                if (this.name.equals("Flonum") || this.name.equals("Fixnum")) {
+                    return this;
+                } else {
+                    return Bot;
+                }
             } else {
                 return Bot;
             }
-        } else {
-            return Bot;
+            */
         }
     }
+
+    public static class JSValueVMType extends JSValueType {
+        VMDataType vmt;
+        private JSValueVMType(String name, JSValueType parent, VMDataType vmt) {
+            super(name, parent);
+            this.vmt = vmt;
+        }
+    }
+
+    
         /*
 JSValue
     Primitive
