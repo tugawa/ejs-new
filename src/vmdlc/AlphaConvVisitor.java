@@ -18,8 +18,8 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public void start(Tree<?> node, boolean leaveName) {
         try {
-            VarDict dict = new VarDict(leaveName);
             for (Tree<?> chunk : node) {
+                VarDict dict = new VarDict(leaveName);
                 visit(chunk, dict);
             }
         } catch (Exception e) {
@@ -43,13 +43,14 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    /*
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
             dict.createFrame();
 
-            Tree<?> nameNode = node.get(Symbol.unique("name"));
-            dict.internF(nameNode);
+            // Tree<?> nameNode = node.get(Symbol.unique("name"));
+            // dict.internF(nameNode);
 
             Tree<?> def = node.get(Symbol.unique("definition"));
             visit(def, dict);
@@ -57,13 +58,14 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.popFrame();
         }
     }
+    */
     public class FunctionDefinition extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
             dict.createFrame();
 
-            Tree<?> name = node.get(Symbol.unique("name"));
-            visit(name, dict);
+            // Tree<?> name = node.get(Symbol.unique("name"));
+            // visit(name, dict);
 
             Tree<?> params = node.get(Symbol.unique("params"));
             for (Tree<?> param : params) {
@@ -72,10 +74,12 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
 
             Tree<?> body = node.get(Symbol.unique("body"));
-
+            visit(body, dict);
+            /*
             for (Tree<?> seq : body) {
                 visit(seq, dict);
             }
+            */
 
             dict.popFrame();
         }
@@ -101,6 +105,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.internV(name);
 
             Tree<?> expr = node.get(Symbol.unique("expr"));
+
             visit(expr, dict);
         }
     }
@@ -175,7 +180,7 @@ class VarDict {
         String name = node.toText();
         String newName = nameMaker.getName(name, prefix);
         if (varmap.containsKey(newName)) {
-            throw new Exception("Var exists");
+            throw new Exception("Var exists: " + name);
         } else {
             varmap.put(newName, name);
             frames.getFirst().put(name, newName);
@@ -186,7 +191,7 @@ class VarDict {
     void internPreserveName(Tree<?> node) throws Exception {
         String name = node.toText();
         if (varmap.containsKey(name)) {
-            throw new Exception("Var exists");
+            throw new Exception("Var exists: " + name);
         } else {
             varmap.put(name, name);
             frames.getFirst().put(name, name);

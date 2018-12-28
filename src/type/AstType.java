@@ -149,7 +149,7 @@ public class AstType {
             }
             */
         }
-        
+
         // Use the fact that JSValueType forms a tree rather than a lattice
         public JSValueType glb(JSValueType that) {
             JSValueType a = this;

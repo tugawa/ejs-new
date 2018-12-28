@@ -28,6 +28,9 @@ public class TypeMap {
     public void add(String key, AstType value) {
         dict.put(key, value);
     }
+    public Set<String> getKeys() {
+        return dict.keySet();
+    }
     public TypeMap select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         for (String v : domain) {
@@ -103,5 +106,8 @@ public class TypeMap {
             }
         }
         return new TypeMap(newGamma);
+    }
+    public String toString() {
+        return dict.toString();
     }
 }
