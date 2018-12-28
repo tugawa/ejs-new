@@ -44,14 +44,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            Set<String> domain = new HashSet<String>(dict.getKeys());
-
             Tree<?> type = node.get(Symbol.unique("type"));
             AstProductType funtype = (AstProductType)AstType.nodeToType((SyntaxTree)type);
             node.setType(funtype);
             Tree<?> definition = node.get(Symbol.unique("definition"));
             String name = definition.get(Symbol.unique("name")).toText();
             dict.add(name, funtype);
+
+            Set<String> domain = new HashSet<String>(dict.getKeys());
 
             Tree<?> params = definition.get(Symbol.unique("params"));
             AstType types = funtype.getDomain();
@@ -72,7 +72,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             dict = visit((SyntaxTree)body, dict);
 
-            TypeMap result = dict.select((Set<String>)domain);
             return dict.select((Set<String>)domain);
         }
     }
