@@ -23,6 +23,8 @@
 #define EXTERN
 #include "header.h"
 
+#include "vmdl-helper.h"
+
 static void exhandler_stack_push(Context* context, int pc, int fp);
 static int exhandler_stack_pop(Context* context, int *pc, int *fp);
 static void lcall_stack_push(Context* context, int pc);
