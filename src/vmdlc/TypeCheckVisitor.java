@@ -13,6 +13,7 @@ import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMap;
+import type.VMDataType;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public TypeCheckVisitor() {
@@ -90,17 +91,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Match extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            SyntaxTree params = node.get(Symbol.unique("params"));
-            String[] varName = new String[params.size()];
-            for (int i = 0; i < params.size(); i++) {
-                varName[i] = params.get(i).toText();
+            MatchProcessor mp = new MatchProcessor(node);
+            
+            SyntaxTree cases = node.get(Symbol.unique("cases"));
+            
+            TypeMap outDict = /* unit of dict */
+            for (SyntaxTree cas : cases) {
+                TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getCondition(cas));
+                /* typing of body */
+                outDict = outDict.lub(lDict);
             }
 
-            SyntaxTree cases = node.get(Symbol.unique("cases"));
-            for (SyntaxTree cas : cases) {
-                SyntaxTree pattern = cas.get(Symbol.unique("pattern"));
-            }
-            return dict;
+            return outDict;
         }
     }
     public class Return extends DefaultVisitor {
