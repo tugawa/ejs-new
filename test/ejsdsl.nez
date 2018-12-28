@@ -10,7 +10,7 @@ Definition = ExternC
 
 FunctionMeta  = { $annotations(Annotations) $name(FunctionName) ":"
                         $type(Type) $definition(_FunctionDefinition) #FunctionMeta }
-_FunctionDefinition = { $name(FunctionName) "(" $params(Parameters) ")" $body(Block) #FunctionDefinition }
+_FunctionDefinition = { $name(FunctionName) "(" $params(Parameters) ")" "{" $body(FunctionBody) "}" #FunctionDefinition }
 Parameters = { $(VarName) ( "," $(VarName) )* #Parameters }
            / _
 
@@ -22,9 +22,15 @@ PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $patte
 //// Names
 ////////////////////////////////
 TypeName   = CTypeName
-           / { NAME #TypeName } _
+           / { JSValueTypeName #JSValueTypeName } !W _
+           / { NAME #UserTypeName } _
 VarName      = Name
 FunctionName = Name
+LabelName = Name
+
+JSValueTypeName = 'JSValue' / 'Number'
+                / 'String' / 'Fixnum' / 'Flonum' / 'Special' / 'SimpleObject' / 'Array' / 'Function'
+                / 'Builtin' / 'SimpleIterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
 
 ////////////////////////////////
 //// Block and Statement
@@ -38,13 +44,15 @@ Statement = Block
           / Declaration
           / If
           / Do
+          / Rematch
 
 
-Match           = { "match" _ $params(MatchParameters) "{" $cases(Cases) "}" #Match }
+Match           = { ($label(LabelName) ':' _ )? "match" _ $params(MatchParameters) "{" $cases(Cases) "}" #Match }
 MatchParameters = "(" { $(VarName) ( "," $(VarName) )* #MatchParameters } ")"
                 / "(" _ ")"
 Cases           = { $(Case)+ #Cases }
 Case            = { "case" _ "(" $pattern(Pattern) ")" $body(Block) #Case }
+                / { "case" _ "(" "true" ")" $body(Block) #AnyCase }
 Pattern         = OrPattern
 OrPattern       = AndPattern {$ "||"  $(AndPattern) #OrPattern }*
 AndPattern      = TypePattern {$ "&&" $(TypePattern) #AndPattern }*
@@ -66,6 +74,8 @@ Do     = { "do" _ "(" $init(DoInit)? "step" _ $step(DoStep)? ")"
                   $block(Block) #Do }
 DoInit = { $type(TypeName) $var(VarName) "=" $expr(Expression) #DoInit}
 DoStep = { $(Expression) #DoStep }
+
+Rematch = { "rematch" _ $label(LabelName) "(" $(VarName) ("," $(VarName))* ")" ";" #Rematch }
 
 Assignment             = { $left(LeftHandSide) "<-" $right(Expression) ";" #Assignment }
                        / { $left(Pairs) "<-" $right(FunctionCall) ";" #AssignmentPair }
@@ -117,8 +127,7 @@ UnaryExpression = PostfixExpression
                 / { "-" $expr(PostfixExpression) #Minus }
                 / { "~" $expr(PostfixExpression) #Compl }
                 / { "!" $expr(PostfixExpression) #Not }
-PostfixExpression = PrimaryExpression {$recv _FunctionCall #FunctionCall / _Index / _Field }*
-
+PostfixExpression = PrimaryExpression {$recv _FunctionCall / _Index / _Field }*
 PrimaryExpression = Constant
                   / String
                   / "(" Expression ")"
@@ -245,7 +254,9 @@ KEYWORD = "#include"
         / "pattern"
         / "true"
         / "false"
+        / "rematch"
         / Annotation
+        / JSValueTypeName !W
 
 Annotation = { 'vmInstruction' } !W _
            / { 'needContext' } !W _
@@ -283,6 +294,7 @@ Ctypes = 'cint' !W
 "else" = 'else' !W
 "do" = 'do' !W
 "step" = 'step' !W
+"rematch" = 'rematch' !W
 "pattern" = 'pattern' !W
 "externC" = 'externC' !W
 "return" = 'return' !W

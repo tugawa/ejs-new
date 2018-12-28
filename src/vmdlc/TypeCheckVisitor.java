@@ -95,16 +95,47 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             SyntaxTree cases = node.get(Symbol.unique("cases"));
             
-            TypeMap outDict = /* unit of dict */
-            for (SyntaxTree cas : cases) {
-                TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getCondition(cas));
-                /* typing of body */
-                outDict = outDict.lub(lDict);
+            Set<String> domain = dict.getKeys();
+            TypeMap outDict = new TypeMap();/* unit of dict */
+            for (String v : domain) {
+                outDict.add(v, AsType.JSValueType.BOT);
             }
 
-            return outDict;
+            TypeMap savedDict = dict.select(dict.getKeys());
+            TypeMap iterationDict = saveDict;
+            do {
+                saveDict = iterationDict;
+                for (SyntaxTree cas : cases) {
+                    TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getCondition(cas));
+                    /* typing of body */
+                    SyntaxTree body = cas.get(Symbol.unique("body"));
+                    TypeMap lDict2 = visit(body, lDict);
+
+                    outDict = outDict.lub(lDict2);
+                }
+                iterationDict = saveDict.lub(outDict);
+            } while (iterationDict != saveDict);
+            return saveDict;
         }
     }
+
+    public class Rematch extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            String label = node.get(Symbol.unique("label")).toText();
+            TypeMap matchDict = XXX.getMatchDict(label);
+            String[] matchParams = XXX.getMatchParams(label);
+            
+            String rematchArgs = new String[matchParams.length];
+            TypeMap matchDict2 = matchDict.select(matchDict.getKeys());
+            for (int i = 1; i < node.size(); i++) {
+                String arg = node.get(i).toText();
+                matchDict2.put(matchParams[i-1], dict.get(arg));
+            }
+            return matchDict2;
+        }
+    }
+    
     public class Return extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
