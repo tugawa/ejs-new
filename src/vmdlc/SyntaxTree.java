@@ -4,17 +4,22 @@ import nez.ast.Source;
 import nez.ast.Symbol;
 import nez.ast.Tree;
 
+import type.AstType;
 import vmdlc.SyntaxTree;
 
 import java.util.HashSet;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
+    AstType type;
+
     public SyntaxTree() {
         super();
+        type = null;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
+        type = null;
     }
 
     @Override
@@ -58,5 +63,14 @@ public class SyntaxTree extends Tree<SyntaxTree> {
 
     @Override
     protected void appendExtraStringfied(StringBuilder sb) {
+        if (type == null) {
+            sb.append("[]");
+        } else {
+            sb.append(" " + this.type);
+        }
+    }
+    
+    public void setType(AstType _type) {
+        type = _type;
     }
 }

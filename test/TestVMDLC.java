@@ -17,6 +17,7 @@ import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;
 import vmdlc.DesugarVisitor;
 import vmdlc.SyntaxTree;
+import vmdlc.TypeCheckVisitor;
 
 public class TestVMDLC {
     public final static void main(String[] args) {
@@ -29,8 +30,9 @@ public class TestVMDLC {
             Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
             
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
-            Source source = new FileSource("vmdl/test2.inc2");
+            Source source = new FileSource("vmdl/test4.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
+            
             if (parser.hasErrors()) {
                 for (SourceError e: parser.getErrors()) {
                     System.out.println(e);
@@ -39,8 +41,9 @@ public class TestVMDLC {
 
             new DesugarVisitor().start(node);
             new AlphaConvVisitor().start(node, true);
+            new TypeCheckVisitor().start(node);
             String program = new AstToCVisitor().start(node);
-            System.out.println(program);
+            // System.out.println(program);
             
             // ConsoleUtils.println(node);
         } catch (IOException ioe) {

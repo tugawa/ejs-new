@@ -22,7 +22,9 @@
 
   <target name="dist" depends="compile">
     <!--<jar jarfile="vmdlc.jar" basedir="${bin}" manifest="vmdlc.mf"/>-->
-    <jar jarfile="vmdlc.jar" basedir="${bin}"/>
+    <jar jarfile="vmdlc.jar" basedir="${bin}">
+      <fileset file="./src/vmdlc/ejsdsl.nez" />
+    </jar>
   </target>
 
   <target name="oldinsngen" depends="compile">

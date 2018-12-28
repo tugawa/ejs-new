@@ -109,7 +109,6 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
             Tree<?> name = node.get(Symbol.unique("var"));
-            System.out.println(name);
             dict.internV(name);
         }
     }
@@ -155,6 +154,7 @@ class VarDict {
         frames = new LinkedList<HashMap<String,String>>();
         varmap = new HashMap<String, String>();
         leaveName = _leaveName;
+        createFrame();
     }
 
     public void createFrame() {
