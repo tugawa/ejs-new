@@ -595,7 +595,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print(node.toText());
         }
     }
-    public class TypeName extends DefaultVisitor {
+    public class JSValueTypeName extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            print("JSValue");
+        }
+    }
+    public class UserTypeName extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             print(node.toText());
