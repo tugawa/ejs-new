@@ -1,0 +1,37 @@
+\documentclass[a4j]{article}
+\usepackage{amsthm}
+\usepackage{bussproofs}
+
+\newcommand{\typestmt}[4]{(#1, #2, #3, #4)}
+
+\newcommand{\match}{
+  l\texttt{:} \texttt{match (}v_1\ldots\texttt{) \{}
+  \texttt{case (}P_1\texttt{) }S_1 \ldots
+  \texttt{case (}P_n\texttt{) }S_n
+  \texttt{\}}
+}
+\begin{document}
+
+\begin{prooftree}
+  \alwaysNoLine
+  \AxiomC{$\Gamma \sqsubseteq \Gamma^{in}$}
+  \UnaryInfC{$(\Gamma_i, S_i, \Gamma^{out}_i,  [l \to \langle\Gamma^{in}, (v_1,\ldots)\rangle]\Sigma)$}
+  \AxiomC{$\Gamma_i = \textit{limit}((P_1 \ldots P_{i-1}), P_i, \Gamma^{in})$}
+  \UnaryInfC{$\Gamma^{\prime} = \displaystyle\bigsqcup_i \Gamma^{out}_i $}
+  \alwaysSingleLine
+  \BinaryInfC{$(\Gamma, \match, \Gamma^{\prime}, \Sigma)$}
+\end{prooftree}
+
+\begin{prooftree}
+  \alwaysNoLine
+  \AxiomC{$\Sigma(l) = \langle \Gamma^{in}, (v_1, \ldots)\rangle$}
+  \AxiomC{$\Gamma \vdash a_i: \tau_i$}
+  \BinaryInfC{$\textit{update}(\Gamma, (v_1, \ldots), (\tau_1,\ldots)) \sqsubseteq \Gamma^{in}$}
+  \AxiomC{$\Gamma^{\prime} = \{v \to \bot\ |\ v \in \textrm{dom(}\Gamma\textrm{)}\}$}
+  \alwaysSingleLine
+  \BinaryInfC{$(\Gamma, \texttt{rematch } l \texttt{ (}a_1, \ldots\texttt{)}, \Gamma^{\prime}, \Sigma)$}
+\end{prooftree}
+
+
+
+\end{document}
