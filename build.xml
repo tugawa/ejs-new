@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="vmdl" default="dist" basedir=".">
+<project name="vmdl" default="vmdlc.jar" basedir=".">
   <property name="src" location="src"/>
   <property name="bin" location="bin"/>
 
@@ -20,10 +20,13 @@
     </javac>
   </target>
 
-  <target name="dist" depends="compile">
-    <!--<jar jarfile="vmdlc.jar" basedir="${bin}" manifest="vmdlc.mf"/>-->
+  <target name="vmdlc.jar" depends="compile">
+    <unjar src="lib/nez.jar" dest="${bin}"/>
     <jar jarfile="vmdlc.jar" basedir="${bin}">
-      <fileset file="./src/vmdlc/ejsdsl.nez" />
+      <fileset file="${src}/vmdlc/ejsdsl.nez" />
+      <manifest>
+	<attribute name="Main-Class" value="vmdlc.Main"/>
+      </manifest>
     </jar>
   </target>
 
@@ -36,7 +39,7 @@
     <delete dir="${bin}"/>
   </target>
 
-  <target name="test_vmdlc" depends="dist" description="Building">
+  <target name="test_vmdlc" depends="vmdlc.jar" description="Building">
     <javac srcdir="test/" destdir="${bin}" includeantruntime="false"
           classpathref="classpath">
       <compilerarg value="-Xlint:unchecked" />
