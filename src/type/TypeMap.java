@@ -33,6 +33,7 @@ public class TypeMap {
     }
     public TypeMap select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
+        
         for (String v : domain) {
             newGamma.put(v, dict.get(v));
         }
@@ -54,9 +55,13 @@ public class TypeMap {
             if (t2 == null) {
                 throw new Error("inconsistent type environment");
             } else {
-                if (t1 == t2)
+                if (t1 == t2) {
                     newGamma.put(v, t1);
-                else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
+                } else if (t1 == AstType.JSValueType.BOT) {
+                    newGamma.put(v, t2);
+                } else if (t2 == AstType.JSValueType.BOT) {
+                    newGamma.put(v, t1);
+                } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
                     throw new Error("type error");
                 else {
                     JSValueType jsvt1 = (JSValueType) t1;
@@ -109,5 +114,25 @@ public class TypeMap {
     }
     public String toString() {
         return dict.toString();
+    }
+    public TypeMap getBottomDict() {
+        Set<String> domain = getKeys();
+        TypeMap result = new TypeMap();
+        for (String v : domain) {
+            result.add(v, AstType.JSValueType.BOT);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj ||
+            obj != null && obj instanceof TypeMap) {
+                TypeMap tm = (TypeMap)obj;
+            return (dict != null && tm.dict !=null && dict.equals(tm.dict)) ||
+                (exprType != null && tm.exprType != null && exprType.equals(tm.exprType));
+        } else {
+            return false;
+        }
     }
 }

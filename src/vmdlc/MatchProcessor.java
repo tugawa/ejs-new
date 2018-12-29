@@ -29,7 +29,8 @@ public class MatchProcessor {
         RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
         List<RuleSetBuilder.Node> condAstList = new ArrayList<RuleSetBuilder.Node>();
         for (SyntaxTree k : cases) {
-            RuleSetBuilder.Node condAst = toRsbAst(k, rsb);
+            SyntaxTree pat = k.get(Symbol.unique("pattern"));
+            RuleSetBuilder.Node condAst = toRsbAst(pat, rsb);
             condAstList.add(condAst);
         }
         List<Set<VMDataType[]>> vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
