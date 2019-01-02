@@ -59,6 +59,8 @@ public class AstType {
         defineType("cint");
         defineType("cdouble");
         defineType("cstring");
+        defineType("fixSomething");
+        defineType("floSomething");
         defineJSValueType("JSValue", null);
         JSValueType jsValType = (JSValueType) AstType.get("JSValue");
         defineJSValueType("Number", jsValType);
@@ -106,34 +108,27 @@ public class AstType {
             return name;
         }
     }
-
-    public static final JSValueType BOT = new JSValueType("$bot", null);
-    public static class JSValueType extends AstBaseType {
-        JSValueType parent;
-        int depth;
-        private JSValueType(String name, JSValueType parent) {
-            super(name);
-            this.parent = parent;
-            depth = 0;
-            for (JSValueType t = parent; t != null; t = t.parent)
-                depth++;
+    public AstType lub(AstType that) {
+        if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
+            throw new Error("AstType lub: type error");
         }
-        
-        public JSValueType lub(JSValueType a) {
-            JSValueType b = this;
-            if (a == BOT)
-                return b;
-            if (b == BOT)
-                return a;
-            while (a.depth > b.depth)
-                a = a.parent;
-            while (a.depth < b.depth)
-                b = b.parent;
-            while (a != b) {
-                a = a.parent;
-                b = b.parent;
-            }
+        AstBaseType a = (AstBaseType)that;
+        AstBaseType b = (AstBaseType)this;
+        if (a == BOT)
+            return b;
+        if (b == BOT)
             return a;
+        JSValueType a2 = (JSValueType)a;
+        JSValueType b2 = (JSValueType)b;
+        while (a2.depth > b2.depth)
+            a2 = a2.parent;
+        while (a2.depth < b2.depth)
+            b2 = b2.parent;
+        while (a2 != b2) {
+            a2 = a2.parent;
+            b2 = b2.parent;
+        }
+        return a2;
             /*
             if (this.name.equals("Fixnum") || this.name.equals("Flonum") || this.name.equals("Number")) {
                 if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
@@ -147,54 +142,97 @@ public class AstType {
                 return JSValue;
             }
             */
-        }
+    }
 
-        // Use the fact that JSValueType forms a tree rather than a lattice
-        public JSValueType glb(JSValueType that) {
-            JSValueType a = this;
-            JSValueType b = that;
-            if (a == BOT)
-                return BOT;
-            if (b == BOT)
-                return BOT;
-            while (a.depth > b.depth)
-                a = a.parent;
-            while (a.depth < b.depth)
-                b = b.parent;
-            if (a != b)
-                return JSValueType.BOT;
-            else if (a == this)
+    // Use the fact that JSValueType forms a tree rather than a lattice
+    public AstType glb(AstType that) {
+        if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
+            throw new Error("AstType glb: type error");
+        }
+        AstBaseType a = (AstBaseType)this;
+        AstBaseType b = (AstBaseType)that;
+        if (a == BOT)
+            return BOT;
+        if (b == BOT)
+            return BOT;
+        JSValueType a2 = (JSValueType)a;
+        JSValueType b2 = (JSValueType)b;
+        while (a2.depth > b2.depth)
+            a2 = a2.parent;
+        while (a2.depth < b2.depth)
+            b2 = b2.parent;
+        if (a2 != b2)
+            return AstBaseType.BOT;
+        else if (a2 == this)
+            return that;
+        else if (b2 == that)
+            return this;
+        throw new Error("wrong algorithm!");
+        /*
+        if (this.name.equals("Bot") || that.name.equals("Bot")) {
+            throw new Error("glb: Bot");
+        }
+        if (this.name.equals(that.name)) {
+            return this;
+        } else if (this.name.equals("JSValue")) {
+            return that;
+        } else if (that.name.equals("JSValue")) {
+            return this;
+        } else if (this.name.equals("Number")) {
+            if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
                 return that;
-            else if (b == that)
-                return this;
-            throw new Error("wrong algorithm!");
-            /*
-            if (this.name.equals("Bot") || that.name.equals("Bot")) {
-                throw new Error("glb: Bot");
-            }
-            if (this.name.equals(that.name)) {
-                return this;
-            } else if (this.name.equals("JSValue")) {
-                return that;
-            } else if (that.name.equals("JSValue")) {
-                return this;
-            } else if (this.name.equals("Number")) {
-                if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
-                    return that;
-                } else {
-                    return Bot;
-                }
-            } else if (that.name.equals("Number")) {
-                if (this.name.equals("Flonum") || this.name.equals("Fixnum")) {
-                    return this;
-                } else {
-                    return Bot;
-                }
             } else {
                 return Bot;
             }
-            */
+        } else if (that.name.equals("Number")) {
+            if (this.name.equals("Flonum") || this.name.equals("Fixnum")) {
+                return this;
+            } else {
+                return Bot;
+            }
+        } else {
+            return Bot;
         }
+        */
+    }
+
+    public Boolean isAncestorOf(AstType that) {
+        if (this == get("Top")) {
+            return true;
+        } else if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
+            return false;
+        } else if (this == get("cint") && that == get("fixSomething") ||
+                    this == get("cdouble") && that == get("floSomething")) {
+            return true;
+        } else if (that == get("fixSomething")) {
+            return this.isAncestorOf(get("Fixnum"));
+        } else if (that == get("floSomething")) {
+            return this.isAncestorOf(get("Flonum"));
+        } else if (!(that instanceof JSValueType)) {
+            return false;
+        }
+        JSValueType t = (JSValueType)that;
+        while (t != get("Top")) {
+            if (this == t) {
+                return true;
+            }
+            t = t.parent;
+        }
+        return false;
+    }
+
+    public static final AstBaseType BOT = new AstBaseType("$bot");
+    public static class JSValueType extends AstBaseType {
+        JSValueType parent;
+        int depth;
+        private JSValueType(String name, JSValueType parent) {
+            super(name);
+            this.parent = parent;
+            depth = 0;
+            for (JSValueType t = parent; t != null; t = t.parent)
+                depth++;
+        }
+        
     }
 
     public static class JSValueVMType extends JSValueType {

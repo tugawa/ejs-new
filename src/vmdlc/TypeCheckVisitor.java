@@ -105,47 +105,73 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         return find(node.getTag().toString()).accept(node, dict);
     }
 
+    private final void save(SyntaxTree node, TypeMap dict) throws Exception {
+        find(node.getTag().toString()).saveType(node, dict);
+    }
+
     public class DefaultVisitor {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             return dict;
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
+            for (SyntaxTree chunk : node) {
+                save(chunk, dict);
+            }
         }
     }
 
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            Tree<?> type = node.get(Symbol.unique("type"));
+            SyntaxTree type = node.get(Symbol.unique("type"));
             AstProductType funtype = (AstProductType)AstType.nodeToType((SyntaxTree)type);
             
-            // node.setType(funtype);
-            Tree<?> definition = node.get(Symbol.unique("definition"));
+            SyntaxTree definition = node.get(Symbol.unique("definition"));
             
-            String name = definition.get(Symbol.unique("name")).toText();
+            SyntaxTree nodeName = node.get(Symbol.unique("name"));
+            SyntaxTree nameNode = definition.get(Symbol.unique("name"));
+            String name = nameNode.toText();
             dict.add(name, funtype);
             
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
-            Tree<?> params = definition.get(Symbol.unique("params"));
+            SyntaxTree params = definition.get(Symbol.unique("params"));
 
             AstType types = funtype.getDomain();
             if (types instanceof AstBaseType) {
-                // ((SyntaxTree)params).setType(types);
                 dict.add(params.toText(), types);
             } else if (types instanceof AstPairType) {
                 ArrayList<AstType> lst = ((AstPairType)types).getTypes();
                 for (int i = 0; i < params.size(); i++) {
                     SyntaxTree param = (SyntaxTree)params.get(i);
-                    param.setType(lst.get(i));
                     dict.add(param.toText(), lst.get(i));
                 }
             }
             
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
-            body.setType(funtype.getRange());
-            
             dict = visit((SyntaxTree)body, dict);
 
+            save(nameNode, dict);
+            save(nodeName, dict);
+            save(params, dict);
+
             return dict.select((Set<String>)domain);
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
+        }
+    }
+
+    public class Parameters extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            for (SyntaxTree chunk : node) {
+                // TODO: update dict
+                visit(chunk, dict);
+                save(chunk, dict);
+            }
+            return dict;
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
 
@@ -153,11 +179,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             Set<String> domain = new HashSet<String>(dict.getKeys());
-            for (Tree<?> seq : node) {
-                dict = visit((SyntaxTree)seq, dict);
+            for (SyntaxTree seq : node) {
+                dict = visit(seq, dict);
+                save(seq, dict);
             }
             TypeMap result = dict.select((Set<String>)domain);
             return result;
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
 
@@ -185,7 +214,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(cas));
 
                     for (String v : mp.getFormalParams()) {
-                        if (lDict.get(v) == AstType.JSValueType.BOT) {
+                        if (lDict.get(v) == AstType.BOT) {
                             continue NEXT_CASE;
                         }
                     }
@@ -198,7 +227,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
 
-            System.out.println(outDict);
+            SyntaxTree paramsNode= node.get(Symbol.unique("params"));
+            save(paramsNode, outDict);
+
             return outDict;
         }
     }
@@ -227,8 +258,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            visit(node.get(0), dict);
+            AstType t = visit(node.get(0), dict).getExprType();
+            save(node.get(0), dict);
             return dict;
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
 
@@ -238,9 +272,35 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree right = node.get(Symbol.unique("right"));
             AstType rhsType = visit(right, dict).getExprType();
             SyntaxTree left = node.get(Symbol.unique("left"));
-            left.setType(rhsType);
             dict.add(left.toText(), rhsType);
             return dict;
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
+        }
+    }
+
+    public class AssignmentPair extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree right = node.get(Symbol.unique("right"));
+            AstType rhsType = visit(right, dict).getExprType();
+            if (rhsType instanceof AstPairType) {
+                ArrayList<AstType> types = ((AstPairType)rhsType).getTypes();
+                SyntaxTree left = node.get(Symbol.unique("left"));
+                if (types.size() != left.size()) {
+                    throw new Error("AssignmentPair: return type error");
+                }
+                for (int i = 0; i < types.size(); i++) {
+                    dict.add(left.get(i).toText(), types.get(i));
+                }
+
+                return dict;
+            } else {
+                throw new Error("AssignmentPair: type error");
+            }
+        }
+        @Override
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
 
@@ -253,46 +313,56 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree var = node.get(Symbol.unique("var"));
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             AstType rhsType = visit(expr, dict).getExprType();
-            var.setType(rhsType);
             dict.add(var.toText(), rhsType);
 
+            save(expr, dict);
+            save(var, dict);
             return dict;
+        }
+        @Override
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
     public class If extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            // SyntaxTree condNode = node.get(Symbol.unique("cond"));
-            // visit(condNode, dict);
+            TypeMap copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             TypeMap thenDict = visit(thenNode, dict);
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
-            TypeMap elseDict = visit(elseNode, dict);
 
-            return thenDict.lub(elseDict);
+            TypeMap resultDict;
+            if (elseNode == null) {
+                resultDict = thenDict;
+            } else {
+                TypeMap elseDict = visit(elseNode, copyDict);
+                resultDict = thenDict.lub(elseDict);
+            }
+            SyntaxTree condNode = node.get(Symbol.unique("cond"));
+            save(condNode, resultDict);
+
+            return resultDict;
+        }
+        @Override
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
         }
     }
 
     public class Do extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            Set<String> domain = new HashSet<String>(dict.getKeys());
-
             SyntaxTree initNode = node.get(Symbol.unique("init"));
             SyntaxTree varNode = initNode.get(Symbol.unique("var"));
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
             AstType rhsType = visit(exprNode, dict).getExprType();
-            varNode.setType(rhsType);
             dict.add(varNode.toText(), rhsType);
-            /*
-            do (cint i = 0 step i+1) {
 
-            }
-            */
-            SyntaxTree blockNode = initNode.get(Symbol.unique("block"));
-            dict = visit(blockNode, dict);
-
-            TypeMap result = dict.select((Set<String>)domain);
+            TypeMap savedDict;
+            do {
+                savedDict = dict.clone();
+                SyntaxTree blockNode = initNode.get(Symbol.unique("block"));
+                dict = visit(blockNode, dict);
+            } while (!dict.equals(savedDict));
 
             return dict;
         }
@@ -304,8 +374,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             AstType type = AstType.get(typeNode.toText());
-            varNode.setType(type);
-            // dict.put(varNode.toText(), type);
+            dict.add(varNode.toText(), type);
             
             return dict;
         }
@@ -319,8 +388,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType range = AstType.nodeToType(typeNode.get(1));
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
-            nameNode.setType(type);
-            // dict.put(nameNode.toText(), type);
+            dict.add(nameNode.toText(), type);
             
             return dict;
         }
@@ -332,39 +400,301 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             AstType type = AstType.get(typeNode.toText());
-            varNode.setType(type);
-            // dict.put(varNode.toText(), type);
+            dict.add(varNode.toText(), type);
             
             return dict;
         }
     }
 
+    public class Trinary extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            //TypeMap copyDict = dict.clone();
+            SyntaxTree thenNode = node.get(Symbol.unique("then"));
+            AstType thenType = visit(thenNode, dict).getExprType();
+            SyntaxTree elseNode = node.get(Symbol.unique("else"));
+            //AstBaseType elseType = visit(elseNode, copyDict).getExprType();
+            AstType elseType = visit(elseNode, dict).getExprType();
+
+            TypeMap resultMap = new TypeMap(thenType.lub(elseType));
+            SyntaxTree condNode = node.get(Symbol.unique("cond"));
+            save(condNode, resultMap);
+            return resultMap;
+        }
+    }
+    public class Or extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class And extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class BitwiseOr extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            // TODO
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            AstType leftType = visit(leftNode, dict).getExprType();
+            SyntaxTree rightNode = node.get(Symbol.unique("right"));
+            AstType rightType = visit(rightNode, dict).getExprType();
+            return new TypeMap(leftType.lub(rightType));
+        }
+    }
+
+    public class BitwiseXOr extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            AstType leftType = visit(leftNode, dict).getExprType();
+            SyntaxTree rightNode = node.get(Symbol.unique("right"));
+            AstType rightType = visit(rightNode, dict).getExprType();
+            return new TypeMap(leftType.lub(rightType));
+        }
+    }
+
+    public class BitwiseAnd extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            AstType leftType = visit(leftNode, dict).getExprType();
+            SyntaxTree rightNode = node.get(Symbol.unique("right"));
+            AstType rightType = visit(rightNode, dict).getExprType();
+            return new TypeMap(leftType.lub(rightType));
+        }
+    }
+
+    public class Equals extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+
+    public class NotEquals extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+
+    public class LessThanEquals extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class GreaterThanEquals extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class LessThan extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class GreaterThan extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
+    public class LeftShift extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            AstType leftType = visit(leftNode, dict).getExprType();
+            return new TypeMap(leftType);
+        }
+    }
+    public class RightShift extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            AstType leftType = visit(leftNode, dict).getExprType();
+            return new TypeMap(leftType);
+        }
+    }
+    
+    AstType tTop = AstType.get("Top");
+    AstType tJSValue = AstType.get("JSValue");
+    AstType tNumber = AstType.get("Number");
+    AstType tFixnum = AstType.get("Fixnum");
+    AstType tFlonum = AstType.get("Flonum");
+    AstType tCint = AstType.get("cint");
+    AstType tCdouble = AstType.get("cdouble");
+    AstType tFixSome = AstType.get("fixSomething");
+    AstType tFloSome = AstType.get("floSomething");
+    AstType[] types = {tTop, tJSValue, tNumber, tFixnum, tFlonum, tCint, tCdouble, 
+                        tFixSome, tFloSome};
+    
+    private AstType numberOperator(SyntaxTree node, TypeMap dict) throws Exception {
+        SyntaxTree leftNode = node.get(Symbol.unique("left"));
+        AstType lType = visit(leftNode, dict).getExprType();
+        SyntaxTree rightNode = node.get(Symbol.unique("right"));
+        AstType rType = visit(rightNode, dict).getExprType();
+
+        if (contains(types, lType) && contains(types, rType)) {
+            if (lType == rType) {
+                return lType;
+            } else if (lType.isAncestorOf(rType) ||
+                        lType == tFixnum && rType == tFlonum ||
+                        lType == tCint && rType == tCdouble) {
+                return rType;
+            } else if (rType.isAncestorOf(lType) ||
+                        rType == tFixnum && lType == tFlonum||
+                        rType == tCint && lType == tCdouble) {
+                return lType;
+            } else if (rType.isAncestorOf(tFixnum) && lType == tFixSome ||
+                        rType == tFixSome && (lType == tNumber || lType == tFixnum)) {
+                return tFixnum;
+            } else if (rType.isAncestorOf(tFlonum) && lType == tFloSome ||
+                        rType == tFloSome && lType.isAncestorOf(tFlonum)) {
+                return tFlonum;
+            } else if (rType == tCint && lType == tFixSome ||
+                        rType == tFixSome && lType == tCint) {
+                return tCint;
+            } else if (rType == tCdouble && lType == tFloSome ||
+                        rType == tFloSome && lType == tCdouble) {
+                return tCdouble;
+            }
+
+        }
+        throw new Error("number operator: type error");
+    }
+    private Boolean contains(AstType[] types, AstType type) {
+        for (int i = 0; i < types.length; i++) {
+            if (types[i] == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public class Add extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            AstType t = numberOperator(node, dict);
+            return new TypeMap(t);
+        }
+    }
+    public class Sub extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            AstType t = numberOperator(node, dict);
+            return new TypeMap(t);
+        }
+    }
+    public class Mul extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            AstType t = numberOperator(node, dict);
+            return new TypeMap(t);
+        }
+    }
+    public class Div extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            AstType t = numberOperator(node, dict);
+            return new TypeMap(t);
+        }
+    }
+
+    public class Plus extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree exprNode = node.get(Symbol.unique("expr"));
+            AstType exprType = visit(exprNode, dict).getExprType();
+            if (contains(types, exprType)) {
+                return new TypeMap(exprType);
+            } else {
+                throw new Error("Plus: type error");
+            }
+        }
+    }
+    public class Minus extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree exprNode = node.get(Symbol.unique("expr"));
+            AstType exprType = visit(exprNode, dict).getExprType();
+            if (contains(types, exprType)) {
+                return new TypeMap(exprType);
+            } else {
+                throw new Error("Minus: type error");
+            }
+        }
+    }
+    public class Compl extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree exprNode = node.get(Symbol.unique("expr"));
+            AstType exprType = visit(exprNode, dict).getExprType();
+            if (contains(types, exprType)) {
+                return new TypeMap(exprType);
+            } else {
+                throw new Error("Compl: type error");
+            }
+        }
+    }
+    public class Not extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return new TypeMap(AstType.get("Bool"));
+        }
+    }
     public class FunctionCall extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree recv = node.get(Symbol.unique("recv"));
             String funName = recv.toText();
             
+            if (!dict.containsKey(funName)) {
+                throw new Error("FunctionCall: no such name");
+            }
             AstProductType funType = (AstProductType)dict.get(funName);
             AstBaseType rangeType = (AstBaseType)funType.getRange();
+            
 
             // TODO type check of arguments
             for (SyntaxTree arg : node.get(1)) {
+                dict = visit(arg, dict);
             }
-            return new TypeMap(rangeType);
+            dict.setExprType(rangeType);
+            return dict;
+        }
+    }
+
+    public class ArrayIndex extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            // TODO
+            return dict;
+        }
+    }
+    public class Field extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            // TODO
+            return dict;
         }
     }
     public class _Integer extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Fixnum"));
+            return new TypeMap(AstType.get("fixSomething"));
         }
     }
 
     public class _Float extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Flonum"));
+            return new TypeMap(AstType.get("floSomething"));
         }
     }
 
@@ -391,7 +721,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Name extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(dict.get(node.toText()));
+            if (!dict.containsKey(node.toText())) {
+                throw new Error("Name: no such name");
+            }
+            AstType type = dict.get(node.toText());
+
+            return new TypeMap(type);
+        }
+        public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
+            if (dict.containsKey(node.toText())) {
+                AstType type = dict.get(node.toText());
+                node.setType(type);
+            }
         }
     }
 }
