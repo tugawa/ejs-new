@@ -522,7 +522,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             printOperator(node, "!");
         }
     }
-    public class Apply extends DefaultVisitor {
+    public class FunctionCall extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             visit(node.get(0), 0);

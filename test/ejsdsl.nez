@@ -125,16 +125,16 @@ UnaryExpression = PostfixExpression
                 / { "-" $expr(PostfixExpression) #Minus }
                 / { "~" $expr(PostfixExpression) #Compl }
                 / { "!" $expr(PostfixExpression) #Not }
-PostfixExpression = PrimaryExpression {$recv _FunctionCall #FunctionCall / _Index / _Field }*
+PostfixExpression = PrimaryExpression {$recv _FunctionCall #FunctionCall / _Index #ArrayIndex / _Field #FieldAccess }*
 PrimaryExpression = Constant
                   / String
                   / "(" Expression ")"
                   / VarName
 
 FunctionCall = VarName {$recv _FunctionCall}*
-_FunctionCall = $({ "(" Arguments? ")" #ArgList }) #Apply
-_Index        = "[" $(Expression) "]" #Index
-_Field        = "." $(VarName) #Field
+_FunctionCall = $({ "(" Arguments? ")" #ArgList })
+_Index        = "[" $(Expression) "]"
+_Field        = "." $(VarName)
 Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
 
 ////////////////////////////////

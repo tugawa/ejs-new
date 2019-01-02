@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import type.AstType.JSValueType;
+import type.AstType.AstBaseType;
 
 import java.lang.Error;
 
@@ -28,6 +29,9 @@ public class TypeMap {
     public void add(String key, AstType value) {
         dict.put(key, value);
     }
+    public Boolean containsKey(String key) {
+        return dict.containsKey(key);
+    }
     public Set<String> getKeys() {
         return dict.keySet();
     }
@@ -39,11 +43,19 @@ public class TypeMap {
         }
         return new TypeMap(newGamma);
     }
+    public TypeMap clone() {
+        HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
+        newGamma = (HashMap<String, AstType>)this.dict.clone();
+        return new TypeMap(newGamma);
+    }
     public void update(String key, AstType value) {
         dict.replace(key, value);
     }
     public AstType getExprType() {
         return exprType;
+    }
+    public void setExprType(AstType _exprType) {
+        exprType = _exprType;
     }
 
     public TypeMap lub(TypeMap that) {
@@ -57,9 +69,9 @@ public class TypeMap {
             } else {
                 if (t1 == t2) {
                     newGamma.put(v, t1);
-                } else if (t1 == AstType.JSValueType.BOT) {
+                } else if (t1 == AstType.BOT) {
                     newGamma.put(v, t2);
-                } else if (t2 == AstType.JSValueType.BOT) {
+                } else if (t2 == AstType.BOT) {
                     newGamma.put(v, t1);
                 } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
                     throw new Error("type error");
@@ -89,9 +101,9 @@ public class TypeMap {
             if (index == -1) {
                 newGamma.put(v, t1);
             } else {
-                JSValueType t2 = JSValueType.BOT;
+                AstType t2 = AstType.BOT;
                 for (VMDataType[] dts : caseCondition) {
-                    JSValueType glb = ((JSValueType) t1).glb(AstType.get(dts[index]));
+                    AstType glb = t1.glb(AstType.get(dts[index]));
                     t2 = t2.lub(glb);
                 }
                 newGamma.put(v, t2);
@@ -119,7 +131,7 @@ public class TypeMap {
         Set<String> domain = getKeys();
         TypeMap result = new TypeMap();
         for (String v : domain) {
-            result.add(v, AstType.JSValueType.BOT);
+            result.add(v, AstType.BOT);
         }
         return result;
     }

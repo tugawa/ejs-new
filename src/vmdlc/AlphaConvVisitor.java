@@ -110,6 +110,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    /*
     public class CConstantDef extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -125,6 +126,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.internF(name);
         }
     }
+    */
 
     public  class DoInit extends DefaultVisitor {
         @Override

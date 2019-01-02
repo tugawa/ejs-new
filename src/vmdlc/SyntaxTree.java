@@ -64,7 +64,7 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     @Override
     protected void appendExtraStringfied(StringBuilder sb) {
         if (type == null) {
-            sb.append("[]");
+            sb.append(" []");
         } else {
             sb.append(" " + this.type);
         }

@@ -30,7 +30,7 @@ public class TestVMDLC {
             Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
 
             //Source source = new StringSource("externC constant cint aaa = \"-1\";");
-            Source source = new FileSource("vmdl/test2.inc2");
+            Source source = new FileSource("vmdl/test5.inc2");
             SyntaxTree node = (SyntaxTree) parser.parse(source, new SyntaxTree());
 
             if (parser.hasErrors()) {
@@ -43,9 +43,9 @@ public class TestVMDLC {
             new AlphaConvVisitor().start(node, true);
             new TypeCheckVisitor().start(node);
             String program = new AstToCVisitor().start(node);
+
+            ConsoleUtils.println(node);
             // System.out.println(program);
-            
-            // ConsoleUtils.println(node);
         } catch (IOException ioe) {
             System.out.println(ioe);
         }
