@@ -11,6 +11,7 @@
 
   <target name="init">
     <mkdir dir="${bin}"/>
+    <unjar src="lib/nez.jar" dest="${bin}"/>
   </target>
   
   <target name="compile" depends="init">
@@ -21,7 +22,6 @@
   </target>
 
   <target name="vmdlc.jar" depends="compile">
-    <unjar src="lib/nez.jar" dest="${bin}"/>
     <jar jarfile="vmdlc.jar" basedir="${bin}">
       <fileset file="${src}/vmdlc/ejsdsl.nez" />
       <manifest>
