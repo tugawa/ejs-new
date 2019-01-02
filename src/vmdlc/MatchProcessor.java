@@ -11,10 +11,12 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 import type.AstType;
 import type.AstType.JSValueVMType;
+import vmdlc.AstToCVisitor.MatchRecord;
 import type.VMDataType;
 
 public class MatchProcessor {
     String[] formalParams;
+    String label;
     Map<SyntaxTree, Set<VMDataType[]>> vmtVecCondMap;
     
     MatchProcessor(SyntaxTree node) {
@@ -23,6 +25,11 @@ public class MatchProcessor {
         formalParams = new String[params.size()];
         for (int i = 0; i < params.size(); i++)
             formalParams[i] = params.get(i).toText();
+        
+        /* retrieve label */
+        Tree<?> labelNode = node.get(Symbol.unique("label"), null);
+        if (labelNode != null)
+            label = labelNode.toText();
         
         /* compute conditions */
         SyntaxTree cases = node.get(Symbol.unique("cases"));
@@ -70,6 +77,10 @@ public class MatchProcessor {
 
     String[] getFormalParams() {
         return formalParams;
+    }
+
+    String getLabel() {
+        return label;
     }
 
     Set<VMDataType[]> getVmtVecCond(SyntaxTree caseNode) {

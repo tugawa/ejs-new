@@ -65,8 +65,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return null;
             return mr.dict;
         }
-        public void pop() {
-            stack.pop();
+        public TypeMap pop() {
+            MatchRecord mr = stack.pop();
+            return mr.dict;
         }
         public boolean isEmpty() {
             return stack.isEmpty();
@@ -223,9 +224,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     
                     outDict = outDict.lub(lDict2);
                 }
-                newEntryDict = matchStack.getDict(label);
-                matchStack.pop();
+                newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
+            node.setTypeMap(entryDict);
 
             SyntaxTree paramsNode= node.get(Symbol.unique("params"));
             save(paramsNode, outDict);

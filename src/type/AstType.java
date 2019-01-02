@@ -239,7 +239,20 @@ public class AstType {
             for (JSValueType t = parent; t != null; t = t.parent)
                 depth++;
         }
+
+        public boolean isSuperOrEqual(VMDataType dt) {
+            JSValueType jsvt = JSValueType.get(dt);
+            return isSuperOrEqual(jsvt);
+        }
         
+        public boolean isSuperOrEqual(JSValueType jsvt) {
+            while (jsvt != null) {
+                if (jsvt == this)
+                    return true;
+                jsvt = jsvt.parent;
+            }
+            return false;
+        }
     }
 
     public static class JSValueVMType extends JSValueType {

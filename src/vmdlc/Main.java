@@ -13,10 +13,8 @@ import nez.parser.io.FileSource;
 import nez.parser.io.StringSource;
 import nez.ast.Source;
 import nez.ast.SourceError;
-import nez.util.ConsoleUtils;
 
 
-import dispatch.*;
 import type.*;
 import vmdlc.AlphaConvVisitor;
 import vmdlc.AstToCVisitor;

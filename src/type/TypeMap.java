@@ -1,6 +1,7 @@
 package type;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Collection;
 import java.util.Set;
 
@@ -124,9 +125,7 @@ public class TypeMap {
         }
         return new TypeMap(newGamma);
     }
-    public String toString() {
-        return dict.toString();
-    }
+
     public TypeMap getBottomDict() {
         Set<String> domain = getKeys();
         TypeMap result = new TypeMap();
@@ -136,6 +135,28 @@ public class TypeMap {
         return result;
     }
 
+    public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs) {
+        Set<VMDataType[]> filtered = new HashSet<VMDataType[]>();
+        NEXT_DTS: for (VMDataType[] dts: vmtVecs) {
+            for (int i = 0; i < formalParams.length; i++) {
+                VMDataType dt = dts[i];
+                AstType xt = dict.get(formalParams[i]);
+                if (xt instanceof JSValueType) {
+                    JSValueType t = (JSValueType) xt;
+                    if (!t.isSuperOrEqual(dt))
+                        continue NEXT_DTS;
+                } else
+                    throw new Error("internal error");
+            }
+            filtered.add(dts);
+        }
+        return filtered;
+    }
+    
+    public String toString() {
+        return dict.toString();
+    }
+    
     @Override
     public boolean equals(Object obj) {
         if (this == obj ||

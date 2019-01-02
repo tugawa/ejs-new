@@ -5,11 +5,13 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 
 import type.AstType;
+import type.TypeMap;
 import vmdlc.SyntaxTree;
 
 import java.util.HashSet;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
+    TypeMap dict;
     AstType type;
 
     public SyntaxTree() {
@@ -72,5 +74,13 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     
     public void setType(AstType _type) {
         type = _type;
+    }
+    
+    public void setTypeMap(TypeMap dict) {
+        this.dict = dict;
+    }
+    
+    public TypeMap getTypeMap() {
+        return dict;
     }
 }
