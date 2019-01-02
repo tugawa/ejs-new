@@ -30,6 +30,7 @@ endif
 
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
+VMDLC=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
@@ -63,7 +64,8 @@ HFILES = $(GENERATED_HFILES) \
 	 globals.h \
 	 extern.h \
 	 log.h \
-	 gc.h
+	 gc.h \
+	 vmdl-helper.h
 
 OFILES = allocate.o \
          builtin-array.o \
@@ -88,7 +90,6 @@ OFILES = allocate.o \
          main.o
 
 INSN_GENERATED = \
-	insns/add.inc \
 	insns/bitand.inc \
 	insns/bitor.inc \
 	insns/call.inc \
@@ -107,6 +108,9 @@ INSN_GENERATED = \
 	insns/sub.inc \
 	insns/tailcall.inc \
 	insns/unsignedrightshift.inc
+
+INSN_VMDL = \
+	insns/add.inc
 
 INSN_HANDCRAFT = \
          insns/end.inc \
@@ -193,6 +197,10 @@ else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
 	$(INSNGEN) $(INSNGEN_FLAGS) $(DATATYPES) $< $(OPERANDSPEC) insns
+
+$(INSN_VMDL):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
+	mkdir -p insns
+	$(VMDLC) $(VMDLC_FLAGS) -d $(DATATYPES) $< > $@
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
