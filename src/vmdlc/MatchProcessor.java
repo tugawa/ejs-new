@@ -29,9 +29,14 @@ public class MatchProcessor {
         RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
         List<RuleSetBuilder.Node> condAstList = new ArrayList<RuleSetBuilder.Node>();
         for (SyntaxTree k : cases) {
-            SyntaxTree pat = k.get(Symbol.unique("pattern"));
-            RuleSetBuilder.Node condAst = toRsbAst(pat, rsb);
-            condAstList.add(condAst);
+            if (k.is(Symbol.unique("AnyCase"))) {
+                RuleSetBuilder.Node condAst = new RuleSetBuilder.TrueNode();
+                condAstList.add(condAst);
+            } else {
+                SyntaxTree pat = k.get(Symbol.unique("pattern"));
+                RuleSetBuilder.Node condAst = toRsbAst(pat, rsb);
+                condAstList.add(condAst);
+            }
         }
         List<Set<VMDataType[]>> vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
         vmtVecCondMap = new HashMap<SyntaxTree, Set<VMDataType[]>>();
