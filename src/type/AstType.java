@@ -69,16 +69,18 @@ public class AstType {
         defineJSValueVMType("Fixnum", jsNumType, VMDataType.get("fixnum"));
         defineJSValueVMType("Flonum", jsNumType, VMDataType.get("flonum"));
         defineJSValueVMType("Special", jsValType, VMDataType.get("special"));
-        JSValueType jsSpeType = (JSValueType) AstType.get("special");
-        defineJSValueVMType("SimpleObject", jsValType, VMDataType.get("simple_object"));
-        defineJSValueVMType("Array", jsValType, VMDataType.get("array"));
-        defineJSValueVMType("Function", jsValType, VMDataType.get("function"));
-        defineJSValueVMType("Builtin", jsValType, VMDataType.get("builtin"));
-        defineJSValueVMType("SimpleIterator", jsValType, VMDataType.get("simple_iterator"));
-        defineJSValueVMType("Regexp", jsValType, VMDataType.get("regexp"));
-        defineJSValueVMType("StringObject", jsValType, VMDataType.get("string_object"));
-        defineJSValueVMType("NumberObject", jsValType, VMDataType.get("number_object"));
-        defineJSValueVMType("BooleanObject", jsValType, VMDataType.get("boolean_object"));
+        JSValueType jsSpeType = (JSValueType) AstType.get("Special");
+        defineJSValueType("JSObject", jsValType);
+        JSValueType jsObjType = (JSValueType) AstType.get("JSObject");
+        defineJSValueVMType("SimpleObject", jsObjType, VMDataType.get("simple_object"));
+        defineJSValueVMType("Array", jsObjType, VMDataType.get("array"));
+        defineJSValueVMType("Function", jsObjType, VMDataType.get("function"));
+        defineJSValueVMType("Builtin", jsObjType, VMDataType.get("builtin"));
+        defineJSValueVMType("SimpleIterator", jsObjType, VMDataType.get("simple_iterator"));
+        defineJSValueVMType("Regexp", jsObjType, VMDataType.get("regexp"));
+        defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
+        defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
+        defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
         defineJSValueType("Bool", jsSpeType);
     }
 
@@ -96,8 +98,9 @@ public class AstType {
         } else if (node.is(Symbol.unique("JSValueTypeName")) ||
                     node.is(Symbol.unique("Ctype"))) {
             return AstType.get(node.toText());
-        }
-        return null;
+        } else if (node.is(Symbol.unique("TopTypeName")))
+            return AstType.get("Top");
+        throw new Error("Unknown type: "+node.toText());
     }
 
     public static class AstBaseType extends AstType {

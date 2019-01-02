@@ -19,14 +19,15 @@ PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $patte
 ////////////////////////////////
 //// Names
 ////////////////////////////////
-TypeName   = CTypeName
+TypeName   = { 'Top' #TopTypeName } !W _ 
+           / CTypeName
            / { JSValueTypeName #JSValueTypeName } !W _
            / { NAME #UserTypeName } _
 VarName      = Name
 FunctionName = Name
 LabelName = Name
 
-JSValueTypeName = 'JSValue' / 'Number'
+JSValueTypeName = 'JSValue' / 'Number' / 'Bool' / 'JSObject'
                 / 'String' / 'Fixnum' / 'Flonum' / 'Special' / 'SimpleObject' / 'Array' / 'Function'
                 / 'Builtin' / 'SimpleIterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
 
@@ -254,6 +255,7 @@ KEYWORD = "#include"
         / "rematch"
         / Annotation
         / JSValueTypeName !W
+        / 'Top' !W
 
 Annotation = { 'vmInstruction' } !W _
            / { 'needContext' } !W _

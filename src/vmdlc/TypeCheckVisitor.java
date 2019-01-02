@@ -651,6 +651,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            System.out.println(node);
+            System.out.println(dict);
             SyntaxTree recv = node.get(Symbol.unique("recv"));
             String funName = recv.toText();
             
