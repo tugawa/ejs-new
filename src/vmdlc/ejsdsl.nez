@@ -19,7 +19,8 @@ PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $patte
 ////////////////////////////////
 //// Names
 ////////////////////////////////
-TypeName   = { 'Top' #TopTypeName } !W _ 
+TypeName   = { 'void' #VoidTypeName } !W _
+           / { 'Top' #TopTypeName } !W _ 
            / CTypeName
            / { JSValueTypeName #JSValueTypeName } !W _
            / { NAME #UserTypeName } _
@@ -256,6 +257,7 @@ KEYWORD = "#include"
         / Annotation
         / JSValueTypeName !W
         / 'Top' !W
+        / 'void' !W
 
 Annotation = { 'vmInstruction' } !W _
            / { 'needContext' } !W _
@@ -267,6 +269,7 @@ ObjectMemberAnnotation = { "embed" } _
 
 Ctypes = 'cint' !W
        / 'cdouble' !W
+       / 'HeapObject' !W
 
 ////////////////////////////////
 //// Symbols

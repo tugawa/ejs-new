@@ -105,17 +105,17 @@ ObjectToPrimitive : (JSValue, cint) -> JSValue
 
 
 externC (needContext)
-Geta : void -> JSValue
+Geta : () -> JSValue
 
 externC
-Fframe_prev : FunctionFrame -> FunctionFrame
+Fframe_prev : HeapObject -> HeapObject
 
 externC
-Fframe_arguments : FunctionFrame -> JSObject
+Fframe_arguments : HeapObject -> JSObject
 
 //externC (needContext, changeContext)
 externC (needContext)
-Get_err : void -> JSValue
+Get_err : () -> JSValue
 
 externC (needContext)
 Get_prop_global : JSValue -> JSValue
@@ -141,7 +141,7 @@ externC (needContext)
 Get_globalobj : () -> JSValue
 
 externC
-Fframe_locals_idx : (FunctionFrame, cuint16_t) -> JSValue
+Fframe_locals_idx : (HeapObject, cint) -> JSValue
 
 externC
 Array_size : JSValue -> cint     // Array -> uint64_t じゃなくてよい?
@@ -198,14 +198,14 @@ Set_pc_relative : cint -> void
 
 //externC (needContext, needPC)
 externC (needContext)
-Lcall_stack_push : void -> void
+Lcall_stack_push : () -> void
 
 externC (needContext)
-Lcall_stack_pop : void -> cint      // cint pc を返すようにかえる
+Lcall_stack_pop : () -> cint      // cint pc を返すようにかえる
 
 //externC (needContext, triggerGC, changeContext)
 externC (needContext, triggerGC)
-New_normal_function : Subscript -> Function
+New_normal_function : cint -> Function
 
 //externC (needContext, triggerGC, changeContext)
 externC (needContext, triggerGC)
@@ -221,7 +221,7 @@ New_normal_array_with_size : cint -> Array
 
 //externC (needContext, triggerGC, changeContext)
 externC (needContext, triggerGC)
-New_frame : (FunctionTable, FunctionFrame, cint) -> FunctionFrame
+New_frame : (HeapObject, HeapObject, cint) -> HeapObject
 
 externC
 Floor : cdouble -> cdouble
@@ -234,21 +234,21 @@ Half_fixnum_range : cint -> cint
 
 //externC (triggerGC, needContext, changeContext)
 externC (triggerGC, needContext)
-New_normal_object : void -> JSObject
+New_normal_object : () -> JSObject
 
 //externC (needContext, changeContext)
 externC (needContext)
 Set___proto___all : (JSValue, JSValue) -> void
 
 externC (needContext)
-Get_cf : () -> FunctionTable
+Get_cf : () -> HeapObject
 
 externC (needContext)
-Get_lp : () -> FunctionFrame
+Get_lp : () -> HeapObject
 
 //externC (needContext, changeContext)
 externC (needContext)
-Set_lp : FunctionFrame -> void
+Set_lp : HeapObject -> void
 
 externC (needContext)
 Get_ac : () -> cint
@@ -261,16 +261,16 @@ externC (needContext)
 Set_a : JSValue -> void
 
 externC
-Get_code : Displacement -> Bytecode    // insns[d1].code を返す
+Get_code : cint -> Top    // insns[d1].code を返す
 
 externC (needContext)
-Exhandler_stack_pop : void -> (cint, cint)    // 中で cint_to_number しているので，DSL で書きたいところだけど
+Exhandler_stack_pop : () -> (cint, cint)    // 中で cint_to_number しているので，DSL で書きたいところだけど
 
 externC (needContext)
 Exhandler_stack_push : (cint, cint) -> void
 
 externC (needContext)
-Ret : void -> void    // ret 命令の中身
+Ret : () -> void    // ret 命令の中身
 // /*  &stack とかが書けないので，C で書いたほうがよいのではないか
 // {
 //   JSValue *stack;
@@ -285,7 +285,7 @@ Ret : void -> void    // ret 命令の中身
 // */
 
 externC (needContext)
-Throw : void -> void
+Throw : () -> void
 // /*   throw の中身．ret と同じ箇所がある
 // {
 //   Displacement disp;
@@ -313,7 +313,7 @@ externC (needContext)
 Set_object_prop : (JSValue, Fixnum, JSValue) -> void
 
 externC (needContext)
-Get_sp : void -> cint
+Get_sp : () -> cint
 
 externC (needContext)
 Set_sp : cint -> void
@@ -323,6 +323,15 @@ Set_fp : cint -> void
 
 externC (needContext)
 Set_pc : cint -> void
+
+externC (needContext)
+toString : JSValue -> String
+
+externC (needContext)
+concat : (String, String) -> String
+
+externC
+toCdouble : JSValue -> cdouble
 
 pattern ffs v = Fixnum v || Flonum v || Special v
 pattern ffss v = Fixnum v || Flonum v || Special v || String v

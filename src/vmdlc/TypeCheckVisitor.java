@@ -651,24 +651,21 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            System.out.println(node);
-            System.out.println(dict);
             SyntaxTree recv = node.get(Symbol.unique("recv"));
             String funName = recv.toText();
             
             if (!dict.containsKey(funName)) {
-                throw new Error("FunctionCall: no such name");
+                throw new Error("FunctionCall: no such name: "+funName+" :"+node.getSource().getResourceName()+" :"+node.getLineNum());
             }
             AstProductType funType = (AstProductType)dict.get(funName);
             AstBaseType rangeType = (AstBaseType)funType.getRange();
-            
-
-            // TODO type check of arguments
+           
+            // TODO: type check
             for (SyntaxTree arg : node.get(1)) {
-                dict = visit(arg, dict);
+                AstType argType = visit(arg, dict).getExprType();
             }
-            dict.setExprType(rangeType);
-            return dict;
+            
+            return new TypeMap(rangeType);
         }
     }
 
@@ -724,7 +721,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             if (!dict.containsKey(node.toText())) {
-                throw new Error("Name: no such name");
+                throw new Error("Name: no such name: "+node.getSource().getResourceName()+": "+node.getLineNum());
             }
             AstType type = dict.get(node.toText());
 

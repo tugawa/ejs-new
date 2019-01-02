@@ -55,6 +55,7 @@ public class AstType {
     }
     static {
         defineType("Top");
+        defineType("void");
         defineType("HeapObject");
         defineType("cint");
         defineType("cdouble");
@@ -76,6 +77,7 @@ public class AstType {
         defineJSValueVMType("Array", jsObjType, VMDataType.get("array"));
         defineJSValueVMType("Function", jsObjType, VMDataType.get("function"));
         defineJSValueVMType("Builtin", jsObjType, VMDataType.get("builtin"));
+        defineJSValueVMType("Iterator", jsObjType, VMDataType.get("iterator"));
         defineJSValueVMType("SimpleIterator", jsObjType, VMDataType.get("simple_iterator"));
         defineJSValueVMType("Regexp", jsObjType, VMDataType.get("regexp"));
         defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
@@ -100,6 +102,8 @@ public class AstType {
             return AstType.get(node.toText());
         } else if (node.is(Symbol.unique("TopTypeName")))
             return AstType.get("Top");
+        else if (node.is(Symbol.unique("VoidTypeName")))
+            return AstType.get("void");
         throw new Error("Unknown type: "+node.toText());
     }
 
@@ -150,7 +154,7 @@ public class AstType {
     // Use the fact that JSValueType forms a tree rather than a lattice
     public AstType glb(AstType that) {
         if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
-            throw new Error("AstType glb: type error");
+            throw new Error("AstType glb: type error: "+this+" vs "+that);
         }
         AstBaseType a = (AstBaseType)this;
         AstBaseType b = (AstBaseType)that;
