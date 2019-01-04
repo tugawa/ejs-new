@@ -299,7 +299,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             TypeMap result = matchDict2.lub(matchDict);
             matchStack.updateDict(label, result);
             
-            return matchDict.getBottomDict();
+            return dict.getBottomDict();
         }
     }
     
@@ -376,6 +376,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             TypeMap copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
+            
             TypeMap thenDict = visit(thenNode, dict);
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
 
@@ -684,14 +685,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class _Integer extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("fixSomething"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
 
     public class _Float extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("floSomething"));
+            return new TypeMap(AstType.get("cdouble"));
         }
     }
 

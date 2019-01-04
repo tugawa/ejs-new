@@ -72,7 +72,7 @@ public class TypeMap {
             AstType t1 = dict.get(v);
             AstType t2 = thatDict.get(v);
             if (t2 == null) {
-                throw new Error("inconsistent type environment");
+                throw new Error("inconsistent type environment: v = "+v);
             } else {
                 if (t1 == t2) {
                     newGamma.put(v, t1);
