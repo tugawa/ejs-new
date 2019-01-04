@@ -1,0 +1,8 @@
+/bin/
+*~
+.DS_Store
+.classpath
+.project
+.settings/
+vmdlc.jar
+oldinsngen.jar
