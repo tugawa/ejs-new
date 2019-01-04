@@ -1,12 +1,4 @@
-\inst getprop (Register dst, Value obj)
-
-\prologue \{
-#define prop v2     /* TODO: add Value v2 to parameters */
-\}
-
-\epilogue \{
-#undef prop
-\}
+\inst getprop (Register dst, Value obj, Value prop)
 
 \when obj:array \{
   dst = get_array_prop(context, obj, prop);

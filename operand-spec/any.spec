@@ -5,7 +5,7 @@ call (_,-) accept
 div (-,_,_) accept
 eq (-,_,_) accept
 equal (-,_,_) accept
-getprop (-,_,-) accept
+getprop (-,_,_) accept
 leftshift (-,_,_) accept
 lessthan (-,_,_) accept
 lessthanequal (-,_,_) accept

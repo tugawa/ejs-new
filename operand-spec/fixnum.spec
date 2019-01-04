@@ -11,7 +11,7 @@ div (-,_,_) error
 eq (-,_,_) error
 equal (-,fixnum,fixnum) accept
 equal (-,_,_) error
-getprop (-,_,-) accept
+getprop (-,_,_) accept
 leftshift (-,fixnum,fixnum) accept
 leftshift (-,_,_) error
 lessthan (-,fixnum,fixnum) accept
