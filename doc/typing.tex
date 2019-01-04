@@ -4,19 +4,28 @@
 
 \newcommand{\typestmt}[4]{(#1, #2, #3, #4)}
 
+\newcommand{\limit}{\textit{limit}}
+\newcommand{\update}{\textit{update}}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+
 \newcommand{\match}{
-  l\texttt{:} \texttt{match (}v_1\ldots\texttt{) \{}
+  l\texttt{:} \texttt{match (}\vec{v}\texttt{) \{}
   \texttt{case (}P_1\texttt{) }S_1 \ldots
   \texttt{case (}P_n\texttt{) }S_n
   \texttt{\}}
 }
+
+\newcommand{\rematch}{
+  \texttt{rematch } l \texttt{ (}\vec{a}\texttt{)}
+}
+
 \begin{document}
 
 \begin{prooftree}
   \alwaysNoLine
   \AxiomC{$\Gamma \sqsubseteq \Gamma^{in}$}
-  \UnaryInfC{$(\Gamma_i, S_i, \Gamma^{out}_i,  [l \to \langle\Gamma^{in}, (v_1,\ldots)\rangle]\Sigma)$}
-  \AxiomC{$\Gamma_i = \textit{limit}((P_1 \ldots P_{i-1}), P_i, \Gamma^{in})$}
+  \UnaryInfC{$(\Gamma_i, S_i, \Gamma^{out}_i,  [l \to \tuple{\Gamma^{in}, \vec{v}\rangle]\Sigma})$}
+  \AxiomC{$\Gamma_i = \limit(\tuple{P_1, \ldots, P_{i-1}}, P_i, \Gamma^{in})$}
   \UnaryInfC{$\Gamma^{\prime} = \displaystyle\bigsqcup_i \Gamma^{out}_i $}
   \alwaysSingleLine
   \BinaryInfC{$(\Gamma, \match, \Gamma^{\prime}, \Sigma)$}
@@ -24,14 +33,26 @@
 
 \begin{prooftree}
   \alwaysNoLine
-  \AxiomC{$\Sigma(l) = \langle \Gamma^{in}, (v_1, \ldots)\rangle$}
-  \AxiomC{$\Gamma \vdash a_i: \tau_i$}
-  \BinaryInfC{$\textit{update}(\Gamma, (v_1, \ldots), (\tau_1,\ldots)) \sqsubseteq \Gamma^{in}$}
+  \AxiomC{$\Sigma(l) = \tuple{\Gamma^{in},\vec{v}}$}
+  \AxiomC{$\Gamma \vdash \vec{a}: \vec{\tau}$}
+  \BinaryInfC{$\update(\Gamma, \vec{v}, \vec{\tau}) \sqsubseteq \Gamma^{in}$}
   \AxiomC{$\Gamma^{\prime} = \{v \to \bot\ |\ v \in \textrm{dom(}\Gamma\textrm{)}\}$}
   \alwaysSingleLine
-  \BinaryInfC{$(\Gamma, \texttt{rematch } l \texttt{ (}a_1, \ldots\texttt{)}, \Gamma^{\prime}, \Sigma)$}
+  \BinaryInfC{$(\Gamma, \rematch, \Gamma^{\prime}, \Sigma)$}
 \end{prooftree}
 
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma^{\prime} = \limit((P_1, \ldots, P_{i-1}), P_i, \Gamma)$}
+%%   \AxiomC{$\Sigma^{\prime} = [l \to \tuple{\Gamma, \vec{v}}]\Sigma$} 
+%%   \AxiomC{$\Gamma^{\prime}, \Sigma^{\prime} \vdash S_i$}
+%%   \TrinaryInfC{$\Gamma, \Sigma \vdash \match$}
+%% \end{prooftree}
 
+%% \begin{prooftree}
+%%   \AxiomC{$\Sigma(l) = \tuple{\Gamma_{match}, \vec{v}}$}
+%%   \AxiomC{$\Gamma \vdash \vec{a}: \vec{\tau}$}
+%%   \AxiomC{$\update(\Gamma, \vec{v}, \vec{\tau}) \sqsubseteq \Gamma_{match}$}
+%%   \TrinaryInfC{$\Gamma, \Sigma \vdash \rematch$}
+%% \end{prooftree}
 
 \end{document}
