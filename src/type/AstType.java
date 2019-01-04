@@ -60,8 +60,6 @@ public class AstType {
         defineType("cint");
         defineType("cdouble");
         defineType("cstring");
-        defineType("fixSomething");
-        defineType("floSomething");
         defineJSValueType("JSValue", null);
         JSValueType jsValType = (JSValueType) AstType.get("JSValue");
         defineJSValueType("Number", jsValType);
@@ -201,31 +199,6 @@ public class AstType {
             return Bot;
         }
         */
-    }
-
-    public Boolean isAncestorOf(AstType that) {
-        if (this == get("Top")) {
-            return true;
-        } else if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
-            return false;
-        } else if (this == get("cint") && that == get("fixSomething") ||
-                    this == get("cdouble") && that == get("floSomething")) {
-            return true;
-        } else if (that == get("fixSomething")) {
-            return this.isAncestorOf(get("Fixnum"));
-        } else if (that == get("floSomething")) {
-            return this.isAncestorOf(get("Flonum"));
-        } else if (!(that instanceof JSValueType)) {
-            return false;
-        }
-        JSValueType t = (JSValueType)that;
-        while (t != get("Top")) {
-            if (this == t) {
-                return true;
-            }
-            t = t.parent;
-        }
-        return false;
     }
 
     public static final AstBaseType BOT = new AstBaseType("$bot");

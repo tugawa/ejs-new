@@ -34,10 +34,9 @@ toString (v) {
  }
 }
 
-/*
 (needContext, triggerGC)
-toCdobule : JSValue -> cdouble
-toCdobule (v) {
+toCdouble : JSValue -> cdouble
+toCdouble (v) {
 }
 
 (vmInstruction, needContext, triggerGC, tailCall)
@@ -75,4 +74,3 @@ add (v1, v2) {
     }
   }
 }
-*/
