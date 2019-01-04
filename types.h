@@ -516,9 +516,9 @@ typedef struct boxed_cell {
 #define double_to_flonum(n)  (double_to_normal_flonum(n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
 #define cint_to_flonum(i)    (cint_to_normal_flonum(i))
-#define flonum_to_double(p)  (normal_flonum_value(p))
-#define flonum_to_cint(p)    (normal_flonum_value(p))
-#define flonum_to_int(p)     (normal_flonum_value(p))
+#define flonum_to_double(p)  (normal_flonum_to_double(p))
+#define flonum_to_cint(p)    (normal_flonum_to_cint(p))
+#define flonum_to_int(p)     (normal_flonum_to_int(p))
 #define is_nan(p)            (normal_flonum_is_nan(p))
 
 #endif
