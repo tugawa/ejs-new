@@ -524,17 +524,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     
-    AstType tTop = AstType.get("Top");
-    AstType tJSValue = AstType.get("JSValue");
-    AstType tNumber = AstType.get("Number");
-    AstType tFixnum = AstType.get("Fixnum");
-    AstType tFlonum = AstType.get("Flonum");
     AstType tCint = AstType.get("cint");
     AstType tCdouble = AstType.get("cdouble");
-    AstType tFixSome = AstType.get("fixSomething");
-    AstType tFloSome = AstType.get("floSomething");
-    AstType[] types = {tTop, tJSValue, tNumber, tFixnum, tFlonum, tCint, tCdouble, 
-                        tFixSome, tFloSome};
     
     private AstType numberOperator(SyntaxTree node, TypeMap dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
@@ -542,42 +533,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
         AstType rType = visit(rightNode, dict).getExprType();
 
-        if (contains(types, lType) && contains(types, rType)) {
-            if (lType == rType) {
-                return lType;
-            } else if (lType.isAncestorOf(rType) ||
-                        lType == tFixnum && rType == tFlonum ||
-                        lType == tCint && rType == tCdouble) {
-                return rType;
-            } else if (rType.isAncestorOf(lType) ||
-                        rType == tFixnum && lType == tFlonum||
-                        rType == tCint && lType == tCdouble) {
-                return lType;
-            } else if (rType.isAncestorOf(tFixnum) && lType == tFixSome ||
-                        rType == tFixSome && (lType == tNumber || lType == tFixnum)) {
-                return tFixnum;
-            } else if (rType.isAncestorOf(tFlonum) && lType == tFloSome ||
-                        rType == tFloSome && lType.isAncestorOf(tFlonum)) {
-                return tFlonum;
-            } else if (rType == tCint && lType == tFixSome ||
-                        rType == tFixSome && lType == tCint) {
-                return tCint;
-            } else if (rType == tCdouble && lType == tFloSome ||
-                        rType == tFloSome && lType == tCdouble) {
-                return tCdouble;
-            }
+        if (lType == tCdouble || rType == tCdouble) {
+            return tCdouble;
+        } else {
+            return tCint;
+        }
+    }
 
-        }
-        throw new Error("number operator: type error");
-    }
-    private Boolean contains(AstType[] types, AstType type) {
-        for (int i = 0; i < types.length; i++) {
-            if (types[i] == type) {
-                return true;
-            }
-        }
-        return false;
-    }
     public class Add extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
@@ -612,11 +574,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             AstType exprType = visit(exprNode, dict).getExprType();
-            if (contains(types, exprType)) {
-                return new TypeMap(exprType);
-            } else {
-                throw new Error("Plus: type error");
-            }
+            return new TypeMap(exprType);
         }
     }
     public class Minus extends DefaultVisitor {
@@ -624,11 +582,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             AstType exprType = visit(exprNode, dict).getExprType();
-            if (contains(types, exprType)) {
-                return new TypeMap(exprType);
-            } else {
-                throw new Error("Minus: type error");
-            }
+            return new TypeMap(exprType);
         }
     }
     public class Compl extends DefaultVisitor {
@@ -636,11 +590,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             AstType exprType = visit(exprNode, dict).getExprType();
-            if (contains(types, exprType)) {
-                return new TypeMap(exprType);
-            } else {
-                throw new Error("Compl: type error");
-            }
+            return new TypeMap(exprType);
         }
     }
     public class Not extends DefaultVisitor {
