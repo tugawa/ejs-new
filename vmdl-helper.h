@@ -6,3 +6,4 @@
 #define FixnumToCint(v)    fixnum_to_cint((v))
 #define CintToNumber(x)    cint_to_number((x))
 #define toCdouble(v)       to_double(context, (v))
+#define toNumber(v)        to_number(context, (v))

@@ -105,12 +105,12 @@ INSN_GENERATED = \
 	insns/new.inc \
 	insns/rightshift.inc \
 	insns/setprop.inc \
-	insns/sub.inc \
 	insns/tailcall.inc \
 	insns/unsignedrightshift.inc
 
 INSN_VMDL = \
-	insns/add.inc
+	insns/add.inc \
+	insns/sub.inc
 
 INSN_HANDCRAFT = \
          insns/end.inc \
@@ -159,7 +159,7 @@ else
 	GENERATED_HFILES += types-generated.h
 endif
 
-INSN_FILES = $(INSN_GENERATED) $(INSN_HANDCRAFT)
+INSN_FILES = $(INSN_GENERATED) $(INSN_VMDL) $(INSN_HANDCRAFT)
 
 SEDCOM_GEN_INSN_OPCODE = \
   -e 's/^\([a-z][a-z]*\).*/\U\1,/' -e '/^\/\/.*/d'
@@ -200,7 +200,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 
 $(INSN_VMDL):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns
-	$(VMDLC) $(VMDLC_FLAGS) -d $(DATATYPES) $< > $@
+	$(VMDLC) $(VMDLC_FLAGS) -d $(DATATYPES) $< > $@ || (rm $@; exit 1)
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns

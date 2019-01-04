@@ -1,0 +1,47 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+pattern number v = Fixnum v || Flonum v
+
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+
+
+(vmInstruction, needContext, triggerGC, tailCall)
+sub : (JSValue, JSValue) -> JSValue
+sub (v1, v2) {
+  top: match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      cint s = FixnumToCint(v1) - FixnumToCint(v2);
+      return CintToNumber(s);
+    }
+    case (number v1 && number v2) {
+      cdouble x1 = toCdouble(v1);
+      cdouble x2 = toCdouble(v2);
+      cdouble d = x1 - x2;
+      return CdoubleToNumber(d);
+    }
+    case (number v1) {
+      Number u2 = toNumber(v2);
+      rematch top(v1, u2);
+    }
+    case (number v2) {
+      Number u1 = toNumber(v1);
+      rematch top(u1, v2);
+    }
+    case (true) {
+      Number u1 = toNumber(v1);
+      Number u2 = toNumber(v2);
+      rematch top(u1, u2);
+    }
+  }
+}
