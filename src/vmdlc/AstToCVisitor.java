@@ -25,7 +25,7 @@ import type.TypeMap;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
-    static final boolean OUTPUT_DEBUG_INFO = true;
+    static final boolean OUTPUT_DEBUG_INFO = false;
     static final boolean VM_INSTRUCTION = true;
     static class MatchRecord {
         static int next = 1;
