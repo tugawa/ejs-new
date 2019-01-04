@@ -97,7 +97,6 @@ INSN_GENERATED = \
 	insns/eq.inc \
 	insns/equal.inc \
 	insns/leftshift.inc \
-	insns/lessthan.inc \
 	insns/lessthanequal.inc \
 	insns/mod.inc \
 	insns/mul.inc \
@@ -110,6 +109,7 @@ INSN_GENERATED = \
 INSN_VMDL = \
 	insns/add.inc \
 	insns/sub.inc \
+	insns/lessthan.inc \
 	insns/getprop.inc
 
 INSN_HANDCRAFT = \
