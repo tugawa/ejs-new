@@ -99,7 +99,6 @@ INSN_GENERATED = \
 	insns/leftshift.inc \
 	insns/lessthanequal.inc \
 	insns/mod.inc \
-	insns/mul.inc \
 	insns/new.inc \
 	insns/rightshift.inc \
 	insns/tailcall.inc \
@@ -108,6 +107,7 @@ INSN_GENERATED = \
 INSN_VMDL = \
 	insns/add.inc \
 	insns/sub.inc \
+	insns/mul.inc \
 	insns/lessthan.inc \
 	insns/setprop.inc \
 	insns/getprop.inc
