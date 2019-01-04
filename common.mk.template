@@ -90,7 +90,6 @@ OFILES = allocate.o \
          main.o
 
 INSN_GENERATED = \
-	insns/bitand.inc \
 	insns/bitor.inc \
 	insns/call.inc \
 	insns/div.inc \
@@ -108,6 +107,7 @@ INSN_VMDL = \
 	insns/add.inc \
 	insns/sub.inc \
 	insns/mul.inc \
+	insns/bitand.inc \
 	insns/lessthan.inc \
 	insns/setprop.inc \
 	insns/getprop.inc

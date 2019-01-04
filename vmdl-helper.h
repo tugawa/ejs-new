@@ -6,6 +6,7 @@
 #define FixnumToCint(v)    fixnum_to_cint((v))
 #define CintToNumber(x)    cint_to_number((x))
 #define CintToFixnum(x)    cint_to_fixnum((x))
+#define FlonumToCint(v)    flonum_to_cint((v))
 #define toCdouble(v)       to_double(context, (v))
 #define toNumber(v)        to_number(context, (v))
 #define toObject(v)        to_object(context, (v))
@@ -17,6 +18,9 @@
 
 
 #define FIXNUM_LESSTHAN(v1,v2) ((int64_t) (v1) < (int64_t) (v2))
+#define FIXNUM_AND(v1,v2)   ((int64_t) (v1) & (int64_t) (v2))
+
+
 #define Object_to_primitive_hint_number(v) object_to_primitive(context, (v) ,HINT_NUMBER)
 #define Strcmp(x1,x2)         strcmp((x1), (x2))
 #define Half_fixnum_range(x)  half_fixnum_range((x))
