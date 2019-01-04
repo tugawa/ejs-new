@@ -24,3 +24,8 @@
 #define Object_to_primitive_hint_number(v) object_to_primitive(context, (v) ,HINT_NUMBER)
 #define Strcmp(x1,x2)         strcmp((x1), (x2))
 #define Half_fixnum_range(x)  half_fixnum_range((x))
+
+#define IsFlonumInfinity(v)    ((v) == gconsts.g_flonum_infinity)
+#define IsFlonumNegInfinity(v) ((v) == gconsts.g_flonum_negative_infinity)
+#define IsFlonumNan(v)         ((v) == gconsts.g_flonum_nan)
+#define Fixnum_Zero()          FIXNUM_ZERO
