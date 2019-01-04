@@ -7,3 +7,6 @@
 #define CintToNumber(x)    cint_to_number((x))
 #define toCdouble(v)       to_double(context, (v))
 #define toNumber(v)        to_number(context, (v))
+#define toObject(v)        to_object(context, (v))
+#define getArrayProp(v1,v2)   get_array_prop(context, (v1), (v2))
+#define getObjectProp(v1,v2)  get_object_prop(context, (v1), (v2))
