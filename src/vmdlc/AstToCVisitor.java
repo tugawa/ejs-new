@@ -30,31 +30,36 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static class MatchRecord {
         static int next = 1;
         String name;
-        String headLabel;
-        String tailLabel;
+        String functionName;
+        String matchLabel;
         String[] opNames;
-        MatchRecord(String name, String[] opNames) {
-            this.name = name;
-            if (name != null) {
-                headLabel = "MATCH_HEAD_"+name;
-                tailLabel = "MATCH_TAIL_"+name;
-            } else {
-                int id = next++;
-                headLabel = "MATCH_HEAD_"+id;
-                tailLabel = "MATCH_TAIL_"+id;
-            }
+        MatchRecord(String functionName, String matchLabel, int lineNum, String[] opNames) {
+            this.matchLabel = matchLabel;
+            this.functionName = functionName;
+            if (matchLabel != null)
+                name = matchLabel +"AT"+lineNum;
+            else
+                name = (next++)+"AT"+lineNum;
             this.opNames = opNames;
+        }
+        String getHeadLabel() {
+            return "MATCH_HEAD_"+functionName+"_"+name;
+        }
+        String getTailLabel() {
+            return "MATCH_TAIL_"+functionName+"_"+name;
+        }
+        boolean hasMatchLabelOf(String label) {
+            return matchLabel != null && matchLabel.equals(label);
         }
     }
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
-    String epilogueLabel;
+    String currentFunctionName;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
         outStack = new Stack<StringBuffer>();
         matchStack = new Stack<MatchRecord>();
-        epilogueLabel = "EPILOGUE";
     }
 
     public String start(Tree<?> node) {
@@ -64,7 +69,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 visit(chunk, 0);
             }
             StringBuffer sb = outStack.pop();
-            sb.append(epilogueLabel + ": ;\n");
+            sb.append(getEpilogueLabel() + ": ;\n");
             String program = sb.toString();
             return program;
         } catch (Exception e) {
@@ -105,6 +110,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         println("");
     }
 
+    private String getEpilogueLabel() {
+        return "L"+currentFunctionName+"_EPILOGUE";
+    }
+    
     public class DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
             for (Tree<?> seq : node) {
@@ -119,6 +128,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
     public class FunctionMeta extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> nameNode = node.get(Symbol.unique("name"));
+            String name = nameNode.toText();
+            currentFunctionName = name;
+            
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
             visit(bodyNode, indent);
         }
@@ -154,8 +167,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             println("/* "+dict.toString()+" */");
             
-            matchStack.add(new MatchRecord(label, formalParams));
-            print(matchStack.peek().headLabel+":");
+            matchStack.add(new MatchRecord(currentFunctionName, label, node.getLineNum(), formalParams));
+            print(matchStack.peek().getHeadLabel()+":");
             
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             for (int i = 0; i < mp.size(); i++) {
@@ -195,10 +208,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             DispatchPlan dp = new DispatchPlan(formalParams.length, false);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
-            dispatchProcessor.setLabelPrefix(node.getLineNum() + "_");
+            dispatchProcessor.setLabelPrefix(currentFunctionName + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp);
             println(s);
-            println(matchStack.pop().tailLabel+": ;");
+            println(matchStack.pop().getTailLabel()+": ;");
         }
     }
 
@@ -211,7 +224,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     visit(expr, 0);
                 }
                 println(";");
-                println("goto "+epilogueLabel+";");
+                println("goto "+getEpilogueLabel()+";");
             } else {
                 printIndent(indent, "return ");
                 for (Tree<?> expr : node) {
@@ -347,7 +360,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             println("{");
             for (int i = matchStack.size() - 1; i >= 0; i--) {
                 MatchRecord mr = matchStack.elementAt(i);
-                if (mr.name != null && mr.name.equals(target)) {
+                if (mr.hasMatchLabelOf(target)) {
                     for (int j = 0; j < mr.opNames.length; j++) {
                         Tree<?> argNode = node.get(j + 1);
                         print("JSValue tmp"+j+" = ");
@@ -356,12 +369,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     for (int j = 0; j < mr.opNames.length; j++)
                         println(mr.opNames[j]+" = "+"tmp"+j+";");
-                    println("goto "+mr.headLabel+";");
+                    println("goto "+mr.getHeadLabel()+";");
                     println("}");
                     return;
                 }
             }
-            throw new Error("no rematch target");
+            throw new Error("no rematch target:"+ target);
         }
     }
     
