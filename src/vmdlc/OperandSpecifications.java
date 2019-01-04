@@ -84,6 +84,8 @@ public class OperandSpecifications {
                 else
                     throw new Error("operand specification syntax error:"+ m.group());
                 Integer arity = arities.get(insnName);
+                if (DEBUG)
+                    System.out.println("arity of "+insnName+" = "+n);
                 if (arity == null)
                     arities.put(insnName, n);
                 else {

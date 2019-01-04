@@ -12,6 +12,7 @@ import java.lang.Exception;
 import vmdlc.AlphaConvVisitor.DefaultVisitor;
 
 public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
+    static final boolean VM_INSTRUCTION = true;
     public AlphaConvVisitor() {
         init(AlphaConvVisitor.class, new DefaultVisitor());
     }
@@ -68,8 +69,13 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             // visit(name, dict);
 
             Tree<?> params = node.get(Symbol.unique("params"));
+            int order = 0;
             for (Tree<?> param : params) {
-                dict.internPreserveName(param);
+                order++;
+                if (VM_INSTRUCTION) {
+                    dict.internFix(param, "v"+order);
+                } else
+                    dict.internPreserveName(param);
                 visit(param, dict);
             }
 
@@ -181,6 +187,17 @@ class VarDict {
     private void intern(Tree<?> node, String prefix) throws Exception {
         String name = node.toText();
         String newName = nameMaker.getName(name, prefix);
+        if (varmap.containsKey(newName)) {
+            throw new Exception("Var exists: " + name);
+        } else {
+            varmap.put(newName, name);
+            frames.getFirst().put(name, newName);
+            node.setValue(newName);
+        } 
+    }
+
+    void internFix(Tree<?> node, String newName) throws Exception {
+        String name = node.toText();
         if (varmap.containsKey(newName)) {
             throw new Exception("Var exists: " + name);
         } else {
