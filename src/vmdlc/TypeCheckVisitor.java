@@ -285,6 +285,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             String label = node.get(Symbol.unique("label")).toText();
             TypeMap matchDict = matchStack.getDict(label);
+            if (matchDict == null)
+                throw new Error("match label not found: "+label);
             Set<String> domain = matchDict.getKeys();
             String[] matchParams = matchStack.getParams(label);
             
@@ -469,85 +471,75 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Or extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class And extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class BitwiseOr extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            // TODO
-            SyntaxTree leftNode = node.get(Symbol.unique("left"));
-            AstType leftType = visit(leftNode, dict).getExprType();
-            SyntaxTree rightNode = node.get(Symbol.unique("right"));
-            AstType rightType = visit(rightNode, dict).getExprType();
-            return new TypeMap(leftType.lub(rightType));
+            AstType t = bitwiseOperator(node, dict);
+            return new TypeMap(t);
         }
     }
 
     public class BitwiseXOr extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            SyntaxTree leftNode = node.get(Symbol.unique("left"));
-            AstType leftType = visit(leftNode, dict).getExprType();
-            SyntaxTree rightNode = node.get(Symbol.unique("right"));
-            AstType rightType = visit(rightNode, dict).getExprType();
-            return new TypeMap(leftType.lub(rightType));
+            AstType t = bitwiseOperator(node, dict);
+            return new TypeMap(t);
         }
     }
 
     public class BitwiseAnd extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            SyntaxTree leftNode = node.get(Symbol.unique("left"));
-            AstType leftType = visit(leftNode, dict).getExprType();
-            SyntaxTree rightNode = node.get(Symbol.unique("right"));
-            AstType rightType = visit(rightNode, dict).getExprType();
-            return new TypeMap(leftType.lub(rightType));
+            AstType t = bitwiseOperator(node, dict);
+            return new TypeMap(t);
         }
     }
 
     public class Equals extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
 
     public class NotEquals extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
 
     public class LessThanEquals extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class GreaterThanEquals extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class LessThan extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class GreaterThan extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
-            return new TypeMap(AstType.get("Bool"));
+            return new TypeMap(AstType.get("cint"));
         }
     }
     public class LeftShift extends DefaultVisitor {
@@ -576,11 +568,23 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
         AstType rType = visit(rightNode, dict).getExprType();
 
-        if (lType == tCdouble || rType == tCdouble) {
-            return tCdouble;
-        } else {
+        if (lType == tCint || rType == tCint) {
             return tCint;
+        } else if ((lType == tCint || lType == tCdouble) || (rType == tCint || rType == tCdouble)){
+            return tCdouble;
         }
+        throw new Error("type error");
+    }
+
+    private AstType bitwiseOperator(SyntaxTree node, TypeMap dict) throws Exception {
+        SyntaxTree leftNode = node.get(Symbol.unique("left"));
+        AstType lType = visit(leftNode, dict).getExprType();
+        SyntaxTree rightNode = node.get(Symbol.unique("right"));
+        AstType rType = visit(rightNode, dict).getExprType();
+
+        if (lType == tCint && rType == tCint)
+            return tCint;
+        throw new Error("type error");
     }
 
     public class Add extends DefaultVisitor {
