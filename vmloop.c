@@ -47,9 +47,12 @@ static char *typename(JSValue v) {
   printf("OPERAND: %s %s\n", #insn, typename(v0));
 #define INSN_COUNT2(insn, v0, v1)		\
   printf("OPERAND: %s %s %s\n", #insn, typename(v0), typename(v1));
+#define INSN_COUNT3(insn, v0, v1, v3)					\
+  printf("OPERAND: %s %s %s %s\n", #insn, typename(v0), typename(v1), typename(v2));
 #else
 #define INSN_COUNT1(insn, v0)
 #define INSN_COUNT2(insn, v0, v1)
+#define INSN_COUNT3(insn, v0, v1, v3)
 #endif
 
 inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {

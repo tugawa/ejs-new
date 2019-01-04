@@ -8,8 +8,10 @@
 #define toCdouble(v)       to_double(context, (v))
 #define toNumber(v)        to_number(context, (v))
 #define toObject(v)        to_object(context, (v))
-#define getArrayProp(v1,v2)   get_array_prop(context, (v1), (v2))
-#define getObjectProp(v1,v2)  get_object_prop(context, (v1), (v2))
+#define getArrayProp(v1,v2)      get_array_prop(context, (v1), (v2))
+#define getObjectProp(v1,v2)     get_object_prop(context, (v1), (v2))
+#define SetArrayProp(v1,v2,v3)   set_array_prop(context, (v1), (v2), (v3))
+#define SetObjectProp(v1,v2,v3)  set_object_prop(context, (v1), (v2), (v3))
 #define String_to_cstr(v)  string_to_cstr((v))
 
 
