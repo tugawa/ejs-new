@@ -13,9 +13,11 @@ import type.AstType;
 import type.AstType.JSValueVMType;
 import vmdlc.AstToCVisitor.MatchRecord;
 import type.VMDataType;
+import type.VMDataTypeVecSet;
 
 public class MatchProcessor {
     static final boolean DEBUG = false;
+    
     String[] formalParams;
     String label;
     // following two lists share index
@@ -110,8 +112,14 @@ public class MatchProcessor {
         return label;
     }
     
+    /* old interface */
     Set<VMDataType[]> getVmtVecCond(int index) {
         return vmtVecCondList.get(index);
+    }
+    
+    /* new interface */
+    VMDataTypeVecSet getVMDataTypeVecSet(int index) {
+        return new VMDataTypeVecSet.BySet(formalParams, vmtVecCondList.get(index));
     }
     
     SyntaxTree getBodyAst(int index) {

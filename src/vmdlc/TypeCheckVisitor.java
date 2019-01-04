@@ -223,7 +223,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             MatchProcessor mp = new MatchProcessor(node);
-            // TODO: no label match
             SyntaxTree labelNode= node.get(Symbol.unique("label"));
             String label = labelNode.toText();
 
@@ -244,7 +243,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
                 System.out.println("entry = "+entryDict.select(formalParams));
                 for (int i = 0; i < mp.size(); i++) {
-                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
+                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
                     System.out.println("case in = "+dictCaseIn.select(formalParams));
                     if (dictCaseIn.hasBottom())
                         continue;
@@ -262,7 +261,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 entryDict = newEntryDict;
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
                 for (int i = 0; i < mp.size(); i++) {
-                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
+                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
                     if (dictCaseIn.hasBottom())
                         continue;
                     SyntaxTree body = mp.getBodyAst(i);

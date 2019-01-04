@@ -100,22 +100,28 @@ public class TypeMap {
         return -1;
     }
 
-    public TypeMap enterCase(String[] varNames, Set<VMDataType[]> caseCondition) {
+    public TypeMap enterCase(String[] varNames, VMDataTypeVecSet caseCondition) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        for (String v : dict.keySet()) {
-            AstType t1 = dict.get(v);
-            int index = indexOf(varNames, v);
-            if (index == -1) {
-                newGamma.put(v, t1);
-            } else {
-                AstType t2 = AstType.BOT;
-                for (VMDataType[] dts : caseCondition) {
-                    AstType glb = t1.glb(AstType.get(dts[index]));
-                    t2 = t2.lub(glb);
-                }
-                newGamma.put(v, t2);
-            }
+
+        /* parameters */
+        AstType[] paramTypes = new AstType[varNames.length];
+        for (int i = 0; i < varNames.length; i++)
+            paramTypes[i] = dict.get(varNames[i]);
+        VMDataTypeVecSet.ByCommonTypes vtvs = new VMDataTypeVecSet.ByCommonTypes(varNames, paramTypes);
+        vtvs = vtvs.intersection(caseCondition);
+        for (int i = 0; i < varNames.length; i++) {
+            AstType t = vtvs.getMostSpecificType(varNames[i]);
+            newGamma.put(varNames[i], t);
         }
+        
+        /* add other variables */
+        for (String v : dict.keySet()) {
+            AstType t = dict.get(v);
+            int index = indexOf(varNames, v);
+            if (index == -1)
+                newGamma.put(v, t);
+        }
+        
         return new TypeMap(newGamma);
     }
 

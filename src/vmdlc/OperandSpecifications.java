@@ -181,30 +181,13 @@ public class OperandSpecifications {
         
         @Override
         public AstType getMostSpecificType(String vn) {
-            final JSValueType jsv = JSValueType.get("JSValue");
-            int index = lookup(vn);
             Set<VMDataType[]> dtss = opSpec.getAcceptOperands(insnName);
-            if (dtss == null) {
-                System.err.println(insnName+": opspec entry not found");
-                return jsv;
-            }
-            AstType t = AstType.BOT;
-            if (DEBUG) {
-                System.out.println("===== Type candidates for "+vn+" of "+insnName+" =====");
-                Set<VMDataType> dtSet = new HashSet<VMDataType>();
-                for (VMDataType[] dts: dtss)
-                    dtSet.add(dts[index]);
-                for (VMDataType dt: dtSet)
-                    System.out.println(dt);
-                System.out.println("===== Type candidates end =====");                
-            }           
-            for (VMDataType[] dts: dtss) {
-                JSValueVMType s = JSValueVMType.get(dts[index]);
-                t = t.lub(s);
-                if (t == jsv)
-                    break;
-            }
-            return t;
+            return getMostSpecificTypeFromSet(dtss, vn);
+        }
+
+        @Override
+        protected Set<VMDataType[]> getTuples() {
+            return opSpec.getAcceptOperands(insnName);
         }
     }
     
