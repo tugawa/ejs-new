@@ -17,8 +17,9 @@
 #define String_to_cstr(v)  string_to_cstr((v))
 
 
-#define FIXNUM_LESSTHAN(v1,v2) ((int64_t) (v1) < (int64_t) (v2))
-#define FIXNUM_AND(v1,v2)   ((int64_t) (v1) & (int64_t) (v2))
+#define FIXNUM_LESSTHAN(v1,v2)   ((int64_t) (v1) < (int64_t) (v2))
+#define FIXNUM_LESSTHANEQ(v1,v2) ((int64_t) (v1) <= (int64_t) (v2))
+#define FIXNUM_AND(v1,v2)        ((int64_t) (v1) & (int64_t) (v2))
 
 
 #define Object_to_primitive_hint_number(v) object_to_primitive(context, (v) ,HINT_NUMBER)
