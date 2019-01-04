@@ -227,42 +227,51 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree labelNode= node.get(Symbol.unique("label"));
             String label = labelNode.toText();
 
-            SyntaxTree cases = node.get(Symbol.unique("cases"));
-
             TypeMap outDict = dict.getBottomDict();
 
             TypeMap entryDict;
             TypeMap newEntryDict = dict;
 
+            /*
+            List<String> formalParams = new ArrayList<String>();
+            for (String p: mp.getFormalParams())
+                formalParams.add(p);
+            int iterationCount = 0;
+            do {
+                iterationCount++;
+                System.out.println("===ITERATION "+iterationCount+"===");
+                entryDict = newEntryDict;
+                matchStack.enter(label, mp.getFormalParams(), entryDict);
+                System.out.println("entry = "+entryDict.select(formalParams));
+                for (int i = 0; i < mp.size(); i++) {
+                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
+                    System.out.println("case in = "+dictCaseIn.select(formalParams));
+                    if (dictCaseIn.hasBottom())
+                        continue;
+                    SyntaxTree body = mp.getBodyAst(i);
+                    TypeMap dictCaseOut = visit(body, dictCaseIn);
+                    System.out.println("case "+" = "+dictCaseOut.select(formalParams));
+                    System.out.println(body.toText());
+                    outDict = outDict.lub(dictCaseOut);
+                }
+                newEntryDict = matchStack.pop();
+            } while (!entryDict.equals(newEntryDict));
+            */
+
             do {
                 entryDict = newEntryDict;
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
-
                 for (int i = 0; i < mp.size(); i++) {
-                    TypeMap dictCaseIn = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
+                    TypeMap dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
                     if (dictCaseIn.hasBottom())
                         continue;
                     SyntaxTree body = mp.getBodyAst(i);
                     TypeMap dictCaseOut = visit(body, dictCaseIn);
                     outDict = outDict.lub(dictCaseOut);
                 }
-                /*
-                NEXT_CASE: for (SyntaxTree cas : cases) {
-                    TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(cas));
-
-                    for (String v : mp.getFormalParams()) {
-                        if (lDict.get(v) == AstType.BOT) {
-                            continue NEXT_CASE;
-                        }
-                    }
-                    SyntaxTree body = cas.get(Symbol.unique("body"));
-                    TypeMap lDict2 = visit(body, lDict);
-                    
-                    outDict = outDict.lub(lDict2);
-                }
-                */
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
+            
             node.setTypeMap(entryDict);
 
             SyntaxTree paramsNode= node.get(Symbol.unique("params"));
@@ -455,8 +464,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType elseType = visit(elseNode, dict).getExprType();
 
             TypeMap resultMap = new TypeMap(thenType.lub(elseType));
-            SyntaxTree condNode = node.get(Symbol.unique("cond"));
-            save(condNode, resultMap);
             return resultMap;
         }
     }

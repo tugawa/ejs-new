@@ -93,6 +93,9 @@ public class MatchProcessor {
         } else if (n.is(Symbol.unique("TypePattern"))) {
             String opName = n.get(Symbol.unique("var")).toText();
             String typeName = n.get(Symbol.unique("type")).toText();
+            AstType t = AstType.get(typeName);
+            if (!(t instanceof JSValueVMType))
+                throw new Error(typeName +" is not a JSValueVMType");
             VMDataType dt = ((JSValueVMType) AstType.get(typeName)).getVMDataType();
             return rsb.new AtomicNode(opName, dt);
         }
