@@ -223,8 +223,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             MatchProcessor mp = new MatchProcessor(node);
-            SyntaxTree labelNode= node.get(Symbol.unique("label"));
-            String label = labelNode.toText();
+            SyntaxTree labelNode= node.get(Symbol.unique("label"), null);
+            String label = labelNode == null ? null : labelNode.toText();
 
             TypeMap outDict = dict.getBottomDict();
 

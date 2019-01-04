@@ -44,22 +44,24 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    /*
+    boolean isVoidFunction;
+    
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
-            dict.createFrame();
-
-            // Tree<?> nameNode = node.get(Symbol.unique("name"));
-            // dict.internF(nameNode);
-
-            Tree<?> def = node.get(Symbol.unique("definition"));
-            visit(def, dict);
-
-            dict.popFrame();
+            isVoidFunction = false;
+            Tree<?> typeNode = node.get(Symbol.unique("type"));
+            if (typeNode.is(Symbol.unique("TypeProduct"))) {
+                while (typeNode.is(Symbol.unique("TypeProduct")))
+                    typeNode = typeNode.get(1);
+                if (typeNode.is(Symbol.unique("VoidTypeName")))
+                    isVoidFunction = true;
+            }
+            Tree<?> defNode = node.get(Symbol.unique("definition"));
+            visit(defNode, dict);
         }
     }
-    */
+    
     public class FunctionDefinition extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -69,11 +71,11 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             // visit(name, dict);
 
             Tree<?> params = node.get(Symbol.unique("params"));
-            int order = 0;
+            int order = isVoidFunction ? 0 : 1;
             for (Tree<?> param : params) {
-                order++;
                 if (VM_INSTRUCTION) {
                     dict.internFix(param, "v"+order);
+                    order++; 
                 } else
                     dict.internPreserveName(param);
                 visit(param, dict);
