@@ -14,6 +14,7 @@ import java.util.ArrayList;
 
 import dispatch.DecisionDiagram.Node;
 import dispatch.LLRuleSet.LLRule;
+import type.VMDataType;
 import type.VMRepType;
 
 public class DispatchProcessor {
@@ -86,7 +87,7 @@ public class DispatchProcessor {
         //
         dd.skipBranchless();
         
-        verifyODDInvariants(dd, llrs, dispatchPlan);
+        verifyODDInvariants(dd, hlrs, llrs, dispatchPlan);
         
         //
         // Step 4. Code Generation
@@ -99,7 +100,7 @@ public class DispatchProcessor {
     //////  verification
     //////
     
-    public void verifyODDInvariants(DecisionDiagram dd, LLRuleSet llrs, DispatchPlan dispatchPlan) {
+    public void verifyODDInvariants(DecisionDiagram dd, RuleSet hlrs, LLRuleSet llrs, DispatchPlan dispatchPlan) {
         if (CMP_VERIFY_DIAGRAM) {
             //
             // Check consistent node pairs are not remaining.
@@ -128,10 +129,12 @@ public class DispatchProcessor {
             //
             // Check if the optimised ODD defines all the cases in the given rules.
             //
+            boolean hasError = false;
             for (LLRule llr: llrs.getRules()) {
                 VMRepType[] rts = llr.getVMRepTypes();
                 LLRule found = dd.search(rts);
                 if (llr.getHLRule() != found.getHLRule()) {
+                    hasError = true;
                     System.out.println("wrong decision diagram: ");
                     for (VMRepType r: rts) {
                         if (found == null)
@@ -140,6 +143,11 @@ public class DispatchProcessor {
                             System.out.println(" "+r+" -> "+llr.hlr.action + " => " + found.hlr.action);
                     }
                 }
+            }
+            if (hasError) {
+                System.out.println("======== Rule Set Begin ========");
+                System.out.println(hlrs.dump());
+                System.out.println("======== Rule Set End ========");
             }
         }               
 

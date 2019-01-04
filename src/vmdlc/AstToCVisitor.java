@@ -25,6 +25,7 @@ import type.TypeMap;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
+    static final boolean OUTPUT_DEBUG_INFO = true;
     static final boolean VM_INSTRUCTION = true;
     static class MatchRecord {
         static int next = 1;
@@ -151,22 +152,21 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String label = mp.getLabel();
             TypeMap dict = ((SyntaxTree) node).getTypeMap();
             
-            println("// "+dict.toString());
+            println("/* "+dict.toString()+" */");
             
             matchStack.add(new MatchRecord(label, formalParams));
             print(matchStack.peek().headLabel+":");
             
-            Tree<?> cases = node.get(Symbol.unique("cases"));
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
-            for (Tree<?> k: cases) {
-                Set<VMDataType[]> vmtVecs = mp.getVmtVecCond((SyntaxTree) k);
+            for (int i = 0; i < mp.size(); i++) {
+                Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
                 vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
                     continue;
-                
+
                 /* action */
                 outStack.push(new StringBuffer());
-                Tree<?> stmt = k.get(Symbol.unique("body"));
+                Tree<?> stmt = mp.getBodyAst(i);
                 visit(stmt, 0);
                 String action = outStack.pop().toString();
                 
@@ -176,7 +176,18 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
-                
+
+                /* debug */
+                if (OUTPUT_DEBUG_INFO) {
+                    StringBuffer sb = new StringBuffer();
+                    for (VMDataType[] vmts: vmtVecs) {
+                        sb.append("/*");
+                        for(VMDataType vmt: vmts)
+                            sb.append(" "+vmt);
+                        sb.append(" */\n");
+                    }
+                    action = sb.toString() + action;
+                }
                 RuleSet.Rule r = new RuleSet.Rule(action, odts);
                 rules.add(r);
             }

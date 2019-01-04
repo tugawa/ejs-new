@@ -86,6 +86,7 @@ public class RuleSet {
     public Set<Rule> getRules() {
         return rules;
     }
+
     public int getArity() {
         return dispatchVars.length;
     }
@@ -94,10 +95,28 @@ public class RuleSet {
         this.dispatchVars = dispatchVars;
         this.rules = rules;
     }
+
     public String[] getDispatchVars() {
         return dispatchVars;
     }
+
     public void setDispatchVars(String[] dispatchVars) {
         this.dispatchVars = dispatchVars;
+    }
+
+    public String dump() {
+        StringBuffer sb = new StringBuffer();
+        int i = 0;
+        for (RuleSet.Rule hlr: getRules()) {
+            i++;
+            for (RuleSet.OperandDataTypes odts : hlr.condition) {
+                sb.append(i).append(':');
+                for (VMDataType dt: odts.dts)
+                    sb.append(' ').append(dt);
+                sb.append('\n');
+            }
+            sb.append(hlr.action).append('\n');
+        }
+        return sb.toString();
     }
 }

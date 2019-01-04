@@ -237,9 +237,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             do {
                 entryDict = newEntryDict;
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
-                
-                NEXT_CASE:
-                for (SyntaxTree cas : cases) {
+
+                for (int i = 0; i < mp.size(); i++) {
+                    TypeMap dictCaseIn = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(i));
+                    if (dictCaseIn.hasBottom())
+                        continue;
+                    SyntaxTree body = mp.getBodyAst(i);
+                    TypeMap dictCaseOut = visit(body, dictCaseIn);
+                    outDict = outDict.lub(dictCaseOut);
+                }
+                /*
+                NEXT_CASE: for (SyntaxTree cas : cases) {
                     TypeMap lDict = dict.enterCase(mp.getFormalParams(), mp.getVmtVecCond(cas));
 
                     for (String v : mp.getFormalParams()) {
@@ -252,6 +260,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     
                     outDict = outDict.lub(lDict2);
                 }
+                */
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
             node.setTypeMap(entryDict);

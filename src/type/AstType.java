@@ -63,7 +63,7 @@ public class AstType {
         defineJSValueType("JSValue", null);
         JSValueType jsValType = (JSValueType) AstType.get("JSValue");
         defineJSValueType("Number", jsValType);
-        JSValueType jsNumType = (JSValueType) AstType.get("JSValue");
+        JSValueType jsNumType = (JSValueType) AstType.get("Number");
         defineJSValueVMType("String", jsValType, VMDataType.get("string"));
         defineJSValueVMType("Fixnum", jsNumType, VMDataType.get("fixnum"));
         defineJSValueVMType("Flonum", jsNumType, VMDataType.get("flonum"));

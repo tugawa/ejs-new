@@ -13,7 +13,6 @@ import java.lang.Error;
 public class TypeMap {
     HashMap<String, AstType> dict;
     AstType exprType;
-    boolean hasBottom;
 
     public TypeMap() {
         dict = new HashMap<String, AstType>();
@@ -29,8 +28,6 @@ public class TypeMap {
         return dict.get(key);
     }
     public void add(String key, AstType value) {
-        if (value == AstType.BOT)
-            hasBottom = true;
         dict.put(key, value);
     }
     public void add(VMDataTypeVecSet vtvs) {
@@ -162,6 +159,14 @@ public class TypeMap {
         return filtered;
     }
     
+    public boolean hasBottom() {
+        for (AstType t: dict.values())
+            if (t == AstType.BOT)
+                return true;
+        return false;
+    }
+    
+    @Override
     public String toString() {
         return dict.toString();
     }

@@ -15,11 +15,16 @@ import vmdlc.AstToCVisitor.MatchRecord;
 import type.VMDataType;
 
 public class MatchProcessor {
+    static final boolean DEBUG = false;
     String[] formalParams;
     String label;
-    Map<SyntaxTree, Set<VMDataType[]>> vmtVecCondMap;
+    // following two lists share index
+    List<Set<VMDataType[]>> vmtVecCondList;
+    List<SyntaxTree> caseBodyAsts;
     
     MatchProcessor(SyntaxTree node) {
+        caseBodyAsts = new ArrayList<SyntaxTree>();
+        
         /* retrieve formal parameters */
         SyntaxTree params = node.get(Symbol.unique("params"));
         formalParams = new String[params.size()];
@@ -44,13 +49,32 @@ public class MatchProcessor {
                 RuleSetBuilder.Node condAst = toRsbAst(pat, rsb);
                 condAstList.add(condAst);
             }
+            SyntaxTree bodyNode = k.get(Symbol.unique("body"));
+            caseBodyAsts.add(bodyNode);
         }
-        List<Set<VMDataType[]>> vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
-        vmtVecCondMap = new HashMap<SyntaxTree, Set<VMDataType[]>>();
-        for (int i = 0; i < cases.size(); i++) {
-            SyntaxTree k = cases.get(i);
-            Set<VMDataType[]> vmtVecCond = vmtVecCondList.get(i);
-            vmtVecCondMap.put(k, vmtVecCond);
+        if (DEBUG) {
+            System.out.println("======== Condition Begin ========");
+            for (RuleSetBuilder.Node n: condAstList) {
+                System.out.println(n);
+            }
+            System.out.println("======== Condition End ========");
+        }
+        vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
+        if (DEBUG) {
+            System.out.println("======== Computed Condition Begin ========");
+            {
+                int i = 0;
+                for (Set<VMDataType[]> vmtVecCond: vmtVecCondList) {
+                    i++;
+                    for (VMDataType[] vmts: vmtVecCond) {
+                        System.out.print(i);
+                        for (VMDataType vmt: vmts)
+                            System.out.print(" "+vmt);
+                        System.out.println();
+                    }
+                }
+            }
+            System.out.println("======== Computed Condition End ========");
         }
     }   
     
@@ -82,8 +106,16 @@ public class MatchProcessor {
     String getLabel() {
         return label;
     }
-
-    Set<VMDataType[]> getVmtVecCond(SyntaxTree caseNode) {
-        return vmtVecCondMap.get(caseNode);
-    }    
+    
+    Set<VMDataType[]> getVmtVecCond(int index) {
+        return vmtVecCondList.get(index);
+    }
+    
+    SyntaxTree getBodyAst(int index) {
+        return caseBodyAsts.get(index);
+    }
+    
+    int size() {
+        return vmtVecCondList.size();
+    }
 }
