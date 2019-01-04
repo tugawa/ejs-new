@@ -13,6 +13,7 @@ import java.lang.Error;
 public class TypeMap {
     HashMap<String, AstType> dict;
     AstType exprType;
+    boolean hasBottom;
 
     public TypeMap() {
         dict = new HashMap<String, AstType>();
@@ -28,7 +29,15 @@ public class TypeMap {
         return dict.get(key);
     }
     public void add(String key, AstType value) {
+        if (value == AstType.BOT)
+            hasBottom = true;
         dict.put(key, value);
+    }
+    public void add(VMDataTypeVecSet vtvs) {
+        for (String vn: vtvs.getVarNames()) {
+            AstType t = vtvs.getMostSpecificType(vn);
+            add(vn, t);
+        }
     }
     public Boolean containsKey(String key) {
         return dict.containsKey(key);

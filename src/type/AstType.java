@@ -203,6 +203,10 @@ public class AstType {
 
     public static final AstBaseType BOT = new AstBaseType("$bot");
     public static class JSValueType extends AstBaseType {
+        public static JSValueType get(String name) {
+            return (JSValueType) AstType.get(name);
+        }
+        
         JSValueType parent;
         int depth;
         private JSValueType(String name, JSValueType parent) {

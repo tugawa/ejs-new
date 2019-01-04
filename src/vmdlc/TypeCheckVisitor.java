@@ -9,13 +9,14 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.List;
 
-import vmdlc.AstToCVisitor.MatchRecord;
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMap;
 import type.VMDataType;
+import type.VMDataTypeVecSet;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     static class MatchStack {
@@ -84,11 +85,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
     MatchStack matchStack;
     
+    OperandSpecifications opSpec;
+    
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node) {
+    public void start(Tree<?> node, OperandSpecifications opSpec) {
+        this.opSpec = opSpec;
         try {
             TypeMap dict = new TypeMap();
             matchStack = new MatchStack();
@@ -136,25 +140,49 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
-            SyntaxTree params = definition.get(Symbol.unique("params"));
+            TypeMap newDict = dict.clone();
 
-            AstType types = funtype.getDomain();
-            if (types instanceof AstBaseType) {
-                dict.add(params.toText(), types);
-            } else if (types instanceof AstPairType) {
-                ArrayList<AstType> lst = ((AstPairType)types).getTypes();
-                for (int i = 0; i < params.size(); i++) {
-                    SyntaxTree param = (SyntaxTree)params.get(i);
-                    dict.add(param.toText(), lst.get(i));
+            /* add non-JSValue parameters */
+            SyntaxTree paramsNode = definition.get(Symbol.unique("params"));
+            String[] paramNames = new String[paramsNode.size()];
+            String[] jsvParamNames = new String[paramsNode.size()];
+            AstType paramTypes = funtype.getDomain();
+            int nJsvTypes = 0;
+            if (paramTypes instanceof AstBaseType) {
+                AstType paramType = paramTypes;
+                String paramName = paramsNode.get(0).toText();
+                paramNames[0] = paramName;
+                if (paramType instanceof JSValueType)
+                    jsvParamNames[nJsvTypes++] = paramName;
+                else
+                    newDict.add(paramName, paramType);
+            } else if (paramTypes instanceof AstPairType) {
+                List<AstType> paramTypeList = ((AstPairType) paramTypes).getTypes();
+                for (int i = 0; i < paramTypeList.size(); i++) {
+                    AstType paramType = paramTypeList.get(i);
+                    String paramName = paramsNode.get(i).toText();
+                    paramNames[i] = paramName;
+                    if (paramType instanceof JSValueType)
+                        jsvParamNames[nJsvTypes++] = paramName;
+                    else
+                        newDict.add(paramName, paramType);
                 }
+            }
+
+            /* add JSValue parameters (apply operand spec) */
+            if (nJsvTypes > 0) {
+                String[] jsvParamNamesPacked = new String[nJsvTypes];
+                System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
+                VMDataTypeVecSet vtvs = opSpec.getAccept(name, paramNames);
+                newDict.add(vtvs);                
             }
             
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
-            dict = visit((SyntaxTree)body, dict);
+            dict = visit((SyntaxTree)body, newDict);
 
             save(nameNode, dict);
             save(nodeName, dict);
-            save(params, dict);
+            save(paramsNode, dict);
 
             return dict.select((Set<String>)domain);
         }

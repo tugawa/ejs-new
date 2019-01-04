@@ -133,8 +133,12 @@ public class DispatchProcessor {
                 LLRule found = dd.search(rts);
                 if (llr.getHLRule() != found.getHLRule()) {
                     System.out.println("wrong decision diagram: ");
-                    for (VMRepType r: rts)
-                        System.out.println(" "+r);
+                    for (VMRepType r: rts) {
+                        if (found == null)
+                            System.out.println(" "+r+" -> not found");
+                        else
+                            System.out.println(" "+r+" -> "+llr.hlr.action + " => " + found.hlr.action);
+                    }
                 }
             }
         }               

@@ -151,6 +151,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String label = mp.getLabel();
             TypeMap dict = ((SyntaxTree) node).getTypeMap();
             
+            println("// "+dict.toString());
+            
             matchStack.add(new MatchRecord(label, formalParams));
             print(matchStack.peek().headLabel+":");
             
@@ -159,8 +161,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> k: cases) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond((SyntaxTree) k);
                 vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
-                System.out.println(k);
-                System.out.println(vmtVecs.size());
                 if (vmtVecs.size() == 0)
                     continue;
                 

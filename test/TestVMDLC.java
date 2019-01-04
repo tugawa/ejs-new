@@ -41,11 +41,11 @@ public class TestVMDLC {
 
             new DesugarVisitor().start(node);
             new AlphaConvVisitor().start(node, true);
-            new TypeCheckVisitor().start(node);
+            new TypeCheckVisitor().start(node, new vmdlc.OperandSpecifications());
             String program = new AstToCVisitor().start(node);
 
-            ConsoleUtils.println(node);
-            // System.out.println(program);
+            //ConsoleUtils.println(node);
+            System.out.println(program);
         } catch (IOException ioe) {
             System.out.println(ioe);
         }

@@ -27,6 +27,7 @@ public class Main {
     static String sourceFile;
     static String dataTypeDefFile;
     static String vmdlGrammarFile;
+    static String operandSpecFile;
     
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
@@ -35,6 +36,8 @@ public class Main {
                 dataTypeDefFile = args[i++];
             else if (opt.equals("-g"))
                 vmdlGrammarFile = args[i++];
+            else if (opt.equals("-o"))
+                operandSpecFile = args[i++];
             else {
                 sourceFile = opt;
                 break;
@@ -44,7 +47,8 @@ public class Main {
         if (dataTypeDefFile == null || sourceFile == null) {
             System.out.println("vmdlc [option] source");
             System.out.println("   -d file   [mandatory] datatype specification file");
-            System.out.println("   -g file   Nez grammar file (default: ejsdl.nez)");
+            System.out.println("   -o file   operand specification file");
+            System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.exit(1);
         }
     }
@@ -85,13 +89,19 @@ public class Main {
             throw new Error("no datatype definition file is specified (-d option)");
         TypeDefinition.load(dataTypeDefFile);
         
+        OperandSpecifications opSpec = new OperandSpecifications();
+        if (operandSpecFile != null) {
+            System.err.println("operand specification file :"+operandSpecFile);
+            opSpec.load(operandSpecFile);
+        }
+        
         if (sourceFile == null)
             throw new Error("no source file is specified");
         SyntaxTree ast = parse(sourceFile);
         
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true);
-        new TypeCheckVisitor().start(ast);
+        new TypeCheckVisitor().start(ast, opSpec);
         String program = new AstToCVisitor().start(ast);
         
         System.out.println(program);
