@@ -22,6 +22,7 @@
 \newcommand{\update}{\textit{update}}
 \newcommand{\tuple}[1]{\langle #1 \rangle}
 \newcommand{\domain}{\textrm{dom}}
+\newcommand{\typevecs}{\textit{typevecs}}
 
 \newcommand{\ifstmt}{
   \texttt{if (} e \texttt{) } S_1 \texttt{ else } S_2
@@ -166,21 +167,55 @@ to a type-vector.
   \AxiomC{$\tau_e \sqsubseteq \tau_v$}
 %  \AxiomC{$\tau \in \{\cint, \cdouble\}$}
 %  \TrinaryInfC{$(\Gamma, v \texttt{ <- } e, \Gamma, \Sigma)$}
-  \QuaternaryInfC{$(\Gamma, v \texttt{ <- } e \texttt{ ;}, \Gamma, \Sigma)$}
+  \QuaternaryInfC{$(\Gamma, v \texttt{ <- } e \texttt{;}, \Gamma, \Sigma)$}
 \end{prooftree}
 Should we ristrict an assignment of a value of type $\top$?
 
 % var intro
 \subsection{Variable Introduction}
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma \vdash e: \tau_e$}
+%%   \AxiomC{$\tau_e \sqsubseteq \tau$}
+%%   \AxiomC{$([v \to \tau]\Gamma, S, \Gamma^{\prime}, \Sigma)$}
+%%   \AxiomC{$v \not \in \domain(\Gamma)$}
+%%   \QuaternaryInfC{$(\Gamma, \tau\ v \texttt{ = } e \texttt{ ; } S,
+%%     \left.\Gamma^{\prime}\right|_{\domain(\Gamma)}, \Sigma)$
+%%     where $\tau \not\sqsubseteq \JSValue$}
+%% \end{prooftree}
 \begin{prooftree}
   \AxiomC{$\Gamma \vdash e: \tau_e$}
   \AxiomC{$\tau_e \sqsubseteq \tau$}
-  \AxiomC{$([v \to \tau]\Gamma, S, \Gamma^{\prime}, \Sigma)$}
   \AxiomC{$v \not \in \domain(\Gamma)$}
-  \QuaternaryInfC{$(\Gamma, \tau\ v \texttt{ = } e \texttt{ ; } S,
-    \left.\Gamma^{\prime}\right|_{\domain(\Gamma)}, \Sigma)$}
+  \TrinaryInfC{$(\Gamma, \tau\ v \texttt{ = } e \texttt{;},
+    [v \to \tau]\Gamma, \Sigma)$
+    where $\tau \not\sqsubseteq \JSValue$}
 \end{prooftree}
-Question: Does $S$ never assign $v$ to a greater type than $\tau$?
+Values of $\JSValue$ type have dynamic types while other values have
+static ones.  Even if a variable is declared as of type $\tau$ such
+that $\tau \sqsubseteq \JSValue$, program may store any subtype
+of $\JSValue$ or $\JSValue$ itself to the variable,
+which can be greater than $\tau$.
+Thus, this typing rule prevents programs from declaring variables
+of subtypes of $\JSValue$.
+
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma \vdash e: \tau_e$}
+%%   \AxiomC{$\tau_e \sqsubseteq \JSValue$}
+%%   \AxiomC{$([v \to \tau_e]\Gamma, S, \Gamma^{\prime}, \Sigma)$}
+%%   \AxiomC{$v \not \in \domain(\Gamma)$}
+%%   \QuaternaryInfC{$(\Gamma, \texttt{JSValue } v \texttt{ = } e \texttt{ ; } S,
+%%     \left.\Gamma^{\prime}\right|_{\domain(\Gamma)}, \Sigma)$}
+%% \end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \tau_e$}
+  \AxiomC{$\tau_e \sqsubseteq \JSValue$}
+  \AxiomC{$v \not \in \domain(\Gamma)$}
+  \TrinaryInfC{$(\Gamma, \texttt{JSValue } v \texttt{ = } e \texttt{;},
+    [v \to \tau_e]\Gamma, \Sigma)$}
+\end{prooftree}
+Because we are interested in the possible dynamic types of each variable,
+$\Gamma$ records the \emph{actual} type rather than the declared type
+for $\JSValue$ variables.
 
 % exp stmt
 \subsection{Expression Statement}
@@ -189,13 +224,21 @@ Question: Does $S$ never assign $v$ to a greater type than $\tau$?
   \UnaryInfC{$(\Gamma, e \texttt{ ;}, \Gamma, \Sigma)$}
 \end{prooftree}
 
-% seq
-\subsection{Sequence}
+% block
+\subsection{Block}
 \begin{prooftree}
-  \AxiomC{$(\Gamma, S_1, \Gamma_1, \Sigma)$}
-  \AxiomC{$(\Gamma_1, S_2, \Gamma_2, \Sigma)$}
-  \BinaryInfC{$(\Gamma, S_1 S_2, \Gamma_2, \Sigma)$}
+  \AxiomC{$\Gamma = \Gamma_0$}
+  \AxiomC{$(\Gamma_{i-1}, S_i, \Gamma_i, \Sigma)$}
+  \BinaryInfC{$(\Gamma, \stt:\{ S_1 \cdots S_n \stt:\}, \Gamma_n|_{\domain(\Gamma)}, \Sigma)$}
 \end{prooftree}
+
+%% % seq
+%% \subsection{Sequence}
+%% \begin{prooftree}
+%%   \AxiomC{$(\Gamma, S_1, \Gamma_1, \Sigma)$}
+%%   \AxiomC{$(\Gamma_1, S_2, \Gamma_2, \Sigma)$}
+%%   \BinaryInfC{$(\Gamma, S_1 S_2, \Gamma_2, \Sigma)$}
+%% \end{prooftree}
 
 % if
 \subsection{If Statement}
@@ -211,7 +254,7 @@ Question: Does $S$ never assign $v$ to a greater type than $\tau$?
 \begin{prooftree}
   \AxiomC{$\Gamma \vdash e: \tau$}
   \AxiomC{$\Gamma^{\prime} = \{v \to \bot\ |\ v \in \domain(\Gamma)\}$}
-  \BinaryInfC{$(\Gamma, \texttt{return }e\texttt{ ;}, \Gamma^{\prime}, \Sigma)$}
+  \BinaryInfC{$(\Gamma, \texttt{return }e\texttt{;}, \Gamma^{\prime}, \Sigma)$}
 \end{prooftree}
 The type $\tau$ should match the return type of the current function.
 
@@ -221,7 +264,7 @@ The type $\tau$ should match the return type of the current function.
   \alwaysNoLine
   \AxiomC{$\Gamma \sqsubseteq \Gamma^{in}$}
   \UnaryInfC{$(\Gamma_i, S_i, \Gamma^{out}_i,  [l \to \tuple{\Gamma^{in}, \vec{v}\rangle]\Sigma})$}
-  \AxiomC{$\Gamma_i = \limit(\tuple{P_1, \ldots, P_{i-1}}, P_i, \Gamma^{in})$}
+  \AxiomC{$\Gamma_i = \limit(\vec{v}, \tuple{P_1, \ldots, P_{i-1}}, P_i, \Gamma^{in})$}
   \UnaryInfC{$\Gamma^{\prime} = \displaystyle\bigsqcup_i \Gamma^{out}_i $}
   \alwaysSingleLine
   \BinaryInfC{$(\Gamma, \match, \Gamma^{\prime}, \Sigma)$}
@@ -267,4 +310,22 @@ The type $\tau$ should match the return type of the current function.
 \qquad \texttt{\}}
 \end{array}
 \]
+
+\section{Algorithm}
+
+\begin{tabbing}
+==\===\===\=\kill
+$\limit$ ($\vec{v}, \tuple{P_0,\ldots,P_{i-1}}, P_i, \Gamma$) \{\\
+\>$T = \typevecs(P_i) - \displaystyle\bigcup_{j = 0}^{i-1} \typevecs(P_j)$;\\
+\>for ($i$ = 0; $i < |\vec{v}|$; $i$++)\\
+\>\>$t_i = \displaystyle\bigsqcup\{\vec{u}|i\ |\ \vec{u} \in T\}$\\
+\>$\update(\Gamma, \vec{v}, \tuple{t_0,\ldots,t_{|\vec{v}|}})$\\
+\}\\
+\\
+$\update$ ($\Gamma, \vec{v}, \vec{t}$) \{\\
+\>for ($(v, t) \in \textrm{zip}(\vec{v}, \vec{t})$)\\
+\>\>$\Gamma$ = $[v \to t]\Gamma$\\
+\}
+\end{tabbing}
+
 \end{document}
