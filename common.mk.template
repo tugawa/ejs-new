@@ -30,7 +30,7 @@ endif
 
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
-VMDLC=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar
+VMDLC=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar $(VMDLC_FLAGS)
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
