@@ -14,7 +14,7 @@ initial-message:
 	@echo  "     "- CFLAGS: debug and optimisation options
 	@echo  4. make in the build directory
 
-#DATATYPES=../datatypes/default.def
-#CFLAGS=-DNDEBUG -UDEBUG -O3
-#include ../common.mk
+# DATATYPES=../datatypes/default.def
+# CFLAGS=-DNDEBUG -UDEBUG -O3
+# include ../common.mk
 

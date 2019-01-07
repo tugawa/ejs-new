@@ -3,7 +3,9 @@
 /* #define FlonumToCdouble(f) to_double(context, (f)) */
 #define FlonumToCdouble(v) flonum_to_double((v))
 #define CdoubleToNumber(x) double_to_number((x))
+#define CdoubleToFlonum(x) double_to_flonum((x))
 #define FixnumToCint(v)    fixnum_to_cint((v))
+#define FixnumToCdouble(v) fixnum_to_double((v))
 #define CintToNumber(x)    cint_to_number((x))
 #define CintToFixnum(x)    cint_to_fixnum((x))
 #define FlonumToCint(v)    flonum_to_cint((v))
@@ -29,4 +31,9 @@
 #define IsFlonumInfinity(v)    ((v) == gconsts.g_flonum_infinity)
 #define IsFlonumNegInfinity(v) ((v) == gconsts.g_flonum_negative_infinity)
 #define IsFlonumNan(v)         ((v) == gconsts.g_flonum_nan)
+#define IsFixnumZero(v)        ((v) == cint_to_fixnum((cint)0))
 #define Fixnum_Zero()          FIXNUM_ZERO
+#define Flonum_Infinity()      gconsts.g_flonum_infinity
+#define Flonum_NegInfinity()   gconsts.g_flonum_negative_infinity
+#define Flonum_Nan()           gconsts.g_flonum_nan
+
