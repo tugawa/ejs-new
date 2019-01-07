@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
+import dispatch.DispatchProcessor;
 import nez.ParserGenerator;
 import nez.lang.Grammar;
 import nez.parser.Parser;
@@ -40,7 +41,10 @@ public class Main {
                 operandSpecFile = args[i++];
             else if (opt.equals("-no-match-opt"))
                 Option.mDisableMatchOptimisation = true;
-            else {
+            else if (opt.equals("-r")) {
+                int seed = Integer.parseInt(args[i++]);
+                DispatchProcessor.srand(seed);
+            } else {
                 sourceFile = opt;
                 break;
             }
@@ -51,6 +55,8 @@ public class Main {
             System.out.println("   -d file   [mandatory] datatype specification file");
             System.out.println("   -o file   operand specification file");
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
+            System.out.println("   -no-match-opt  disable optimisation for match statement");
+            System.out.println("   -r n      set random seed of dispatch processor");
             System.exit(1);
         }
     }
