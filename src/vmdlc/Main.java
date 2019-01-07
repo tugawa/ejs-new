@@ -38,6 +38,8 @@ public class Main {
                 vmdlGrammarFile = args[i++];
             else if (opt.equals("-o"))
                 operandSpecFile = args[i++];
+            else if (opt.equals("-no-match-opt"))
+                Option.mDisableMatchOptimisation = true;
             else {
                 sourceFile = opt;
                 break;

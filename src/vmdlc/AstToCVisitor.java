@@ -173,7 +173,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
-                vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
+                if (!Option.disableMatchOptimisation())
+                    vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
                     continue;
 
