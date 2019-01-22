@@ -126,26 +126,8 @@ public class SuperInstructionElimination {
             if (bc.load2 instanceof ARegister) {
                 ARegister load2 = (ARegister) bc.load2;
                 CBCode b = env.lookup(load2.r);
-                if (b instanceof ICBCNop) {
-                    if (b.load1 instanceof AShortFixnum || b.load1 instanceof AFixnum)
-                        bc.load2 = b.load1;
-                }
-            }
-            if (bc.store instanceof AGlobal) {
-                AGlobal store = (AGlobal) bc.store;
-                CBCode b = env.lookup(store.r);
-                if (b instanceof ICBCNop) {
-                    if (b.load1 instanceof AString)
-                        bc.store = new AGlobalVar(((AString) b.load1).s);
-                }
-            }
-            if (bc.load1 instanceof AGlobal) {
-                AGlobal load1 = (AGlobal) bc.load1;
-                CBCode b = env.lookup(load1.r);
-                if (b instanceof ICBCNop) {
-                    if (b.load1 instanceof AString)
-                        bc.load1 = new AGlobalVar(((AString) b.load1).s);
-                }
+                if ((b instanceof ICBCNop) && b.load1.isConstant)
+                    bc.load2 = b.load1;
             }
             return bc;
         }

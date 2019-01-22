@@ -42,6 +42,7 @@ public class Main {
     static class Info {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
+        String specFile;
 		enum OptLocals {
 				NONE,
 				PROSYM,
@@ -60,7 +61,8 @@ public class Main {
         boolean optCopyPropagation = false;
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
-        boolean optCompactByteCode = false;
+        boolean outCompactByteCode = false;
+        boolean optSuperInstruction = false;
         boolean optCBCSuperInstruction = false;
         boolean optCBCRedunantInstructionElimination = false;
         boolean optCBCRegisterAssignment = false;
@@ -119,8 +121,12 @@ public class Main {
 					case "-opt-reg":
 					    info.optRegisterAssignment = true;
 					    break;
-					case "-opt-cbc":
-						info.optCompactByteCode = true;
+					case "-opt-si":
+						info.optSuperInstruction = true;
+						info.specFile = args[++i];
+						break;
+					case "-out-cbc":
+						info.outCompactByteCode = true;
 						break;
 					case "-opt-cbc-sie":
 						info.optCBCSuperInstruction = true;
@@ -226,58 +232,60 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
         bcBuilder.optimisation(info);
 
-        //
-        if (!info.optCompactByteCode) {
-
-            if (info.optPrintLowLevelCode) {
-                bcBuilder.assignAddress();
-                System.out.print(bcBuilder);
-            }
-
-            bcBuilder.assignAddress();
-
-            // macro instruction expansion
-            bcBuilder.expandMacro(info);
-
-            // resolve jump destinations
-            bcBuilder.assignAddress();
-
-            if (info.optPrintLowLevelCode) {
-                bcBuilder.assignAddress();
-                System.out.print(bcBuilder);
-            }
-            List<BCode> bcodes = bcBuilder.build(info);
-
-            writeBCodeToSBCFile(bcodes, info.outputFileName);
-        } else {
+        if (info.outCompactByteCode || info.optSuperInstruction) {
             // convert byte code into compact byte code.
             CBCBuilder cbcBuilder = bcBuilder.convertBCode();
-            cbcBuilder.optimisation(info);
 
-            if (info.optPrintLowLevelCode) {
+            if (info.outCompactByteCode) {
+                cbcBuilder.optimisation(info);
+                if (info.optPrintLowLevelCode) {
+                    cbcBuilder.assignAddress();
+                    System.out.print(cbcBuilder);
+                }
+
                 cbcBuilder.assignAddress();
-                System.out.print(cbcBuilder);
-            }
 
-            cbcBuilder.assignAddress();
+                // macro instruction expansion
+                cbcBuilder.expandMacro(info);
 
-            // macro instruction expansion
-            cbcBuilder.expandMacro(info);
-
-            // resolve jump destinations
-            cbcBuilder.assignAddress();
-
-            if (info.optPrintLowLevelCode) {
+                // resolve jump destinations
                 cbcBuilder.assignAddress();
-                System.out.print(cbcBuilder);
+
+                if (info.optPrintLowLevelCode) {
+                    cbcBuilder.assignAddress();
+                    System.out.print(cbcBuilder);
+                }
+
+                cbcBuilder.setJumpDist();
+
+                List<CBCode> bcodes = cbcBuilder.build(info);
+
+                writeBCodeToSBCFile(bcodes, info.outputFileName);
+                return;
             }
-
-            cbcBuilder.setJumpDist();
-
-            List<CBCode> bcodes = cbcBuilder.build(info);
-
-            writeBCodeToSBCFile(bcodes, info.outputFileName);
+            cbcBuilder.makeSuperInstruction(info);
+            bcBuilder = cbcBuilder.convertBCode();
         }
+        if (info.optPrintLowLevelCode) {
+            bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
+        }
+
+        bcBuilder.assignAddress();
+
+        // macro instruction expansion
+        bcBuilder.expandMacro(info);
+
+        // resolve jump destinations
+        bcBuilder.assignAddress();
+
+        if (info.optPrintLowLevelCode) {
+            bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
+        }
+        List<BCode> bcodes = bcBuilder.build(info);
+
+        writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
 
     public static void main(String[] args) throws IOException {

@@ -77,11 +77,11 @@ class BCBuilder {
                     for (int i = 0; i < mcall.args.length; i++)
                         bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]));
                     if (mcall.isNew)
-                        bcodes.add(pc++, new INewsend(mcall.args.length, mcall.function));
+                        bcodes.add(pc++, new INewsend(mcall.function, mcall.args.length));
                     else if (mcall.receiver == null)
-                        bcodes.add(pc++, new ICall(mcall.args.length, mcall.function));
+                        bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
                     else
-                        bcodes.add(pc++, new ISend(mcall.args.length, mcall.function));
+                        bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
             		bcodes.get(number).addLabels(mcall.getLabels());
             		continue;
             	} else if (bcode instanceof MParameter) {
@@ -145,6 +145,18 @@ class BCBuilder {
         FunctionBCBuilder bcb = new FunctionBCBuilder();
         fbStack.push(bcb);
         fBuilders.add(bcb);
+    }
+
+    void openFunctionCBCBuilder(FunctionCBCBuilder fBC) {
+        FunctionBCBuilder fCBC = new FunctionBCBuilder();
+        fCBC.numberOfArgumentRegisters = fBC.numberOfArgumentRegisters;
+        fCBC.numberOfGPRegisters = fBC.numberOfGPRegisters;
+        fCBC.numberOfLocals = fBC.numberOfLocals;
+        fBuilders.add(fCBC);
+    }
+
+    FunctionBCBuilder getFunctionBCBuilder(int index) {
+        return fBuilders.get(index);
     }
 
     void closeFuncBCBuilder() {
@@ -463,6 +475,26 @@ class BCBuilder {
             return new ICBCSetfl((ISetfl) bc);
         if (bc instanceof IError)
             return new ICBCError((IError) bc);
+        if (bc instanceof IGetglobal)
+            return new ICBCGetglobal((IGetglobal) bc);
+        if (bc instanceof ISetglobal)
+            return new ICBCSetglobal((ISetglobal) bc);
+        if (bc instanceof IGetlocal)
+            return new ICBCGetlocal((IGetlocal) bc);
+        if (bc instanceof ISetlocal)
+            return new ICBCSetlocal((ISetlocal) bc);
+        if (bc instanceof IGetarg)
+            return new ICBCGetarg((IGetarg) bc);
+        if (bc instanceof ISetarg)
+            return new ICBCSetarg((ISetarg) bc);
+        if (bc instanceof IGetprop)
+            return new ICBCGetprop((IGetprop) bc);
+        if (bc instanceof ISetprop)
+            return new ICBCSetprop((ISetprop) bc);
+        if (bc instanceof IGeta)
+            return new ICBCGeta((IGeta) bc);
+        if (bc instanceof ISeta)
+            return new ICBCSeta((ISeta) bc);
 
         // MACRO code
         if (bc instanceof MSetfl)
@@ -474,13 +506,8 @@ class BCBuilder {
 
         // convart nop instruction
         if (bc instanceof IFixnum) {
-            Argument l1;
             IFixnum b = (IFixnum) bc;
-            if (b.n >= MIN_CHAR && b.n <= MAX_CHAR)
-                l1 = new AShortFixnum(b.n);
-            else
-                l1 = new AFixnum(b.n);
-            return new ICBCNop(new ARegister(b.dst), l1);
+            return new ICBCNop(new ARegister(b.dst), new AFixnum(b.n));
         }
         if (bc instanceof IString) {
             IString b = (IString) bc;
@@ -509,49 +536,9 @@ class BCBuilder {
             IRegexp b = (IRegexp) bc;
             return new ICBCNop(new ARegister(b.dst), new ARegexp(b.idx, b.ptn));
         }
-        if (bc instanceof IGetglobal) {
-            IGetglobal b = (IGetglobal) bc;
-            return new ICBCNop(new ARegister(b.dst), new AGlobal(b.lit));
-        }
-        if (bc instanceof ISetglobal) {
-            ISetglobal b = (ISetglobal) bc;
-            return new ICBCNop(new AGlobal(b.lit), new ARegister(b.src));
-        }
-        if (bc instanceof IGetlocal) {
-            IGetlocal b = (IGetlocal) bc;
-            return new ICBCNop(new ARegister(b.dst), new ALocal(b.depth, b.n));
-        }
-        if (bc instanceof ISetlocal) {
-            ISetlocal b = (ISetlocal) bc;
-            return new ICBCNop(new ALocal(b.depth, b.n), new ARegister(b.src));
-        }
-        if (bc instanceof IGetarg) {
-            IGetarg b = (IGetarg) bc;
-            return new ICBCNop(new ARegister(b.dst), new AArgs(b.depth, b.n));
-        }
-        if (bc instanceof ISetarg) {
-            ISetarg b = (ISetarg) bc;
-            return new ICBCNop(new AArgs(b.depth, b.n), new ARegister(b.src));
-        }
-        if (bc instanceof IGetprop) {
-            IGetprop b = (IGetprop) bc;
-            return new ICBCNop(new ARegister(b.dst), new AProp(b.obj, b.prop));
-        }
-        if (bc instanceof ISetprop) {
-            ISetprop b = (ISetprop) bc;
-            return new ICBCNop(new AProp(b.obj, b.prop), new ARegister(b.src));
-        }
         if (bc instanceof IMove) {
             IMove b = (IMove) bc;
             return new ICBCNop(new ARegister(b.dst), new ARegister(b.src));
-        }
-        if (bc instanceof IGeta) {
-            IGeta b = (IGeta) bc;
-            return new ICBCNop(new ARegister(b.dst), new AAreg());
-        }
-        if (bc instanceof ISeta) {
-            ISeta b = (ISeta) bc;
-            return new ICBCNop(new AAreg(), new ARegister(b.src));
         }
 
         // unsupport instruction

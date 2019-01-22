@@ -95,6 +95,9 @@ public class BCode {
     String toString(String opcode, Register op1, Register op2, Register op3) {
         return opcode + " " + op1 + " " + op2 + " " + op3;
     }
+    String toString(String opcode, String op1, String op2, String op3) {
+        return opcode + " " + op1 + " " + op2 + " " + op3;
+    }
 
     String toString(String opcode, Register op1, String op2) {
         return opcode + " " + op1 + " " + op2;
@@ -167,6 +170,18 @@ class Label {
     }
 }
 
+class ISuperInstruction extends BCode {
+    String name, store, load1, load2;
+    ISuperInstruction(String name, String store, String load1, String load2) {
+        this.name = name;
+        this.store = store;
+        this.load1 = load1;
+        this.load2 = load2;
+    }
+    public String toString() {
+        return super.toString(name, store, load1, load2);
+    }
+}
 class IFixnum extends BCode {
     int n;
     IFixnum(Register dst, int n) {
@@ -190,10 +205,14 @@ class INumber extends BCode {
 class IString extends BCode {
     String str;
     IString(Register dst, String str) {
-    		super(dst);
-        Pattern pt = Pattern.compile("\n");
-        Matcher match = pt.matcher(str);
-        this.str = match.replaceAll("\\\\n");
+        super(dst);
+        this.str = str;
+        this.str = this.str.replaceAll("\n", "\\\\n");
+        this.str = this.str.replaceAll(" ", "\\\\s");
+        this.str = this.str.replaceAll("\"", "\\\\\"");
+//        Pattern pt = Pattern.compile("\n");
+//        Matcher match = pt.matcher(str);
+//        this.str = match.replaceAll("\\\\n");
     }
     public String toString() {
         return super.toString("string", dst, "\"" + str + "\"");
@@ -423,12 +442,13 @@ class INewargs extends BCode {
     }
 }
 class INewframe extends BCode {
-    int len;
-    INewframe(int len) {
+    int len, status;
+    INewframe(int len, int status) {
 		this.len = len;
+		this.status = status;
     }
     public String toString() {
-        return super.toString("newframe", len);
+        return super.toString("newframe", len, status);
     }
 }
 class IGetglobal extends BCode {
@@ -623,23 +643,23 @@ class IInstanceof extends BCode {
 class ICall extends BCode {
     Register callee;
     int numOfArgs;
-    ICall(int numOfArgs, Register callee) {
-        this.numOfArgs = numOfArgs;
+    ICall(Register callee, int numOfArgs) {
         this.callee = callee;
+        this.numOfArgs = numOfArgs;
     }
     public String toString() {
-        return super.toString("call", numOfArgs, callee);
+        return super.toString("call", callee, numOfArgs);
     }
 }
 class ISend extends BCode {
     Register callee;
     int numOfArgs;
-    ISend(int numOfArgs, Register callee) {
-        this.numOfArgs = numOfArgs;
+    ISend(Register callee, int numOfArgs) {
         this.callee = callee;
+        this.numOfArgs = numOfArgs;
     }
     public String toString() {
-        return super.toString("send", numOfArgs, callee);
+        return super.toString("send", callee, numOfArgs);
     }
 }
 class INew extends BCode {
@@ -655,12 +675,12 @@ class INew extends BCode {
 class INewsend extends BCode {
     Register constructor;
     int numOfArgs;
-    INewsend(int numOfArgs, Register constructor) {
-        this.numOfArgs = numOfArgs;
+    INewsend(Register constructor, int numOfArgs) {
         this.constructor = constructor;
+        this.numOfArgs = numOfArgs;
     }
     public String toString() {
-        return super.toString("newsend", numOfArgs, constructor);
+        return super.toString("newsend", constructor, numOfArgs);
     }
 }
 class IMakesimpleiterator extends BCode {
@@ -713,7 +733,7 @@ class IJumptrue extends BCode {
     		return label.getDestBCode();
     }
     public String toString() {
-        return super.toString("jumptrue", label.dist(number), test);
+        return super.toString("jumptrue", test, label.dist(number));
     }
 }
 class IJumpfalse extends BCode {
@@ -728,7 +748,7 @@ class IJumpfalse extends BCode {
     		return label.getDestBCode();
     }
     public String toString() {
-        return super.toString("jumpfalse", label.dist(number), test);
+        return super.toString("jumpfalse", test, label.dist(number));
     }
 }
 

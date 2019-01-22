@@ -665,9 +665,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(sendEntry);
 
         if (needFrame) {
-            bcBuilder.push(new INewframe(locals.size()));
-            if (needArguments)
-                bcBuilder.push(new INewargs());
+            bcBuilder.push(new INewframe(locals.size(), needArguments ? 1 : 0));
         }
         bcBuilder.pushMsetfl();
 
@@ -724,12 +722,16 @@ public class CodeGenerator extends IASTBaseVisitor {
         int i = 0;
         for (IASTExpression element : node.elements) {
             compileNode(element, r1);
-            if (info.optCompactByteCode) {
+            bcBuilder.push(new IFixnum(constructorReg, i++));
+            bcBuilder.push(new ISetprop(reg, constructorReg, r1));
+            /*
+            if (info.compactByteCode) {
                 bcBuilder.push(new IFixnum(constructorReg, i++));
                 bcBuilder.push(new ISetprop(reg, constructorReg, r1));
             } else {
                 bcBuilder.push(new ISetarray(reg, i++, r1));
             }
+            */
         }
         return null;
     }
