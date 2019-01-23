@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
+import vmgen.InsnGen.Option;
 import vmgen.RuleSet.Rule;
 import vmgen.newsynth.NewSynthesiser;
 import vmgen.synth.SimpleSynthesiser;
@@ -40,7 +41,8 @@ public class InsnGen {
             GEN_PAD_CASES("gen:pad_cases", Boolean.class),
             GEN_USE_DEFAULT("gen:use_default", Boolean.class),
             GEN_MAGIC_COMMENT("gen:magic_comment", Boolean.class),
-            GEN_DEBUG_COMMENT("gen:debug_comment", Boolean.class);
+            GEN_DEBUG_COMMENT("gen:debug_comment", Boolean.class),
+            GEN_LABEL_PREFIX("gen:label_prefix", String.class);
 
             String key;
             Class<?> cls;
@@ -129,6 +131,8 @@ public class InsnGen {
     }
 
     static String synthesise(ProcDefinition.InstDefinition insnDef, OperandSpecifications operandSpec, Synthesiser synth, boolean verbose) {
+        String labelPrefix = option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, insnDef.name);
+        
         String errorAction = "LOG_EXIT(\"unexpected operand type\\n\");";
         Set<VMDataType[]> dontCareInput = operandSpec.getUnspecifiedOperands(insnDef.name, insnDef.dispatchVars.length);
         Set<VMDataType[]> errorInput = operandSpec.getErrorOperands(insnDef.name, insnDef.dispatchVars.length);
@@ -155,7 +159,7 @@ public class InsnGen {
         }
 
         RuleSet p = new RuleSet(insnDef.dispatchVars, rules);
-        String dispatchCode = synth.synthesise(p, insnDef.name, option);
+        String dispatchCode = synth.synthesise(p, labelPrefix, option);
 
         StringBuilder sb = new StringBuilder();
         if (insnDef.prologue != null)
@@ -164,7 +168,7 @@ public class InsnGen {
         for (String rand: insnDef.dispatchVars)
             sb.append(",").append(rand);
         sb.append(");");
-        sb.append(insnDef.name + "_HEAD:\n");
+        sb.append(labelPrefix + "_HEAD:\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
             sb.append("if (0) {\n")
