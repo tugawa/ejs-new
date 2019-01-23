@@ -10,6 +10,8 @@
  */
 package vmgen.newsynth;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -53,11 +55,13 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
-    TreeMap<Node, String> labels = new TreeMap<Node, String>();
+    Map<Node, String> gotoLabels = new TreeMap<Node, String>();
+    Map<Node, Set<String>> typeLabels;
 
-    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option) {
+    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels) {
         this.varNames = varNames;
         this.tagMacro = tagMacro;
+        this.typeLabels = typeLabels;
         this.option = option;
         USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
         PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
@@ -79,22 +83,34 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 
     boolean processSharedNode(Node node) {
         if (USE_GOTO) {
-            String label = labels.get(node);
+            String label = gotoLabels.get(node);
             if (label != null) {
                 sb.append("goto ").append(label).append(";\n");
                 return true;
             }
             label = tagMacro.getLabel();
-            labels.put(node, label);
+            gotoLabels.put(node, label);
             sb.append(label).append(":");
         }
         return false;
+    }
+    
+    private void addTypeLabels(Node node) {
+        if (typeLabels != null) {
+            Set<String> labels = typeLabels.get(node);
+            if (labels == null)
+                return;
+            sb.append("\n");
+            for (String label: labels)
+                sb.append("TL").append(label).append(":\n");
+        }
     }
 
     @Override
     Void visitLeaf(Leaf node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         sb.append("{");
         if (DEBUG_COMMENT) {
             sb.append(" //");
@@ -109,6 +125,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitTagPairNode(TagPairNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         TreeMap<Node, TreeSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
         if (DEBUG_COMMENT)
@@ -162,6 +179,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitPTNode(PTNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         TreeMap<Node, TreeSet<PT>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
         if (DEBUG_COMMENT)
@@ -216,6 +234,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitHTNode(HTNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         if (node.isNoHT()) {
             node.getChild().accept(this);
             return null;

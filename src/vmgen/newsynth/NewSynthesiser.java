@@ -11,16 +11,30 @@
 package vmgen.newsynth;
 
 import vmgen.RuleSet;
+import vmgen.RuleSet.Condition;
 import vmgen.Synthesiser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import vmgen.InsnGen.Option;
 import vmgen.newsynth.DecisionDiagram.DispatchCriterion;
+import vmgen.newsynth.DecisionDiagram.HTNode;
 import vmgen.newsynth.DecisionDiagram.Leaf;
 import vmgen.newsynth.DecisionDiagram.Node;
+import vmgen.newsynth.DecisionDiagram.PTNode;
 import vmgen.newsynth.DecisionDiagram.TagNode;
+import vmgen.newsynth.DecisionDiagram.TagPairNode;
+import vmgen.newsynth.DecisionDiagram.TagPairNode.TagPair;
+
 import vmgen.newsynth.LLRuleSet.LLRule;
+import vmgen.type.VMDataType;
 import vmgen.type.VMRepType;
 
 public class NewSynthesiser extends Synthesiser {
@@ -132,7 +146,7 @@ public class NewSynthesiser extends Synthesiser {
             case "S":  dd.skipBranchless();  break;
             }
         }
-        
+
         ArrayList<DecisionDiagram.DispatchCriterion> testDispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>(dispatchPlan);
         testDispatchPlan.add(new LeafDispatch());
         for (DispatchCriterion dc: testDispatchPlan) {
@@ -161,7 +175,106 @@ public class NewSynthesiser extends Synthesiser {
                         System.out.println(" "+r);
                 }
             }
-        }		
-        return dd.generateCode(hlrs.getDispatchVars(), new TagMacro());
+        }
+        
+        Map<Node, Set<String>> typeLabels;
+        if (option.getOption(Option.AvailableOptions.GEN_ADD_TYPELABEL, false))
+            typeLabels = addTypeLabels(dd, hlrs);
+        else
+            typeLabels = null;
+        
+        return dd.generateCode(hlrs.getDispatchVars(), new TagMacro(), typeLabels);
+    }
+    
+    
+    static class DeterministicSearchVisitor extends NodeVisitor<Node> {
+        VMDataType[] dts;
+        
+        DeterministicSearchVisitor(VMDataType[] dts) {
+            this.dts = dts;
+        }
+        
+        VMRepType getUniqueVMRepType(int index) {
+            if (dts.length < index)
+                return null;
+            if (dts[index] == null)
+                return null;
+            List<VMRepType> rts = dts[index].getVMRepTypes();
+            if (rts.size() > 1)
+                return null;
+            return rts.get(0);
+        }
+        
+        @Override
+        Node visitLeaf(Leaf node) {
+            return node;
+        }
+
+        @Override
+        Node visitTagPairNode(TagPairNode node) {
+            if (dts.length != 2)
+                return node;
+            VMRepType rt0 = getUniqueVMRepType(0);
+            VMRepType rt1 = getUniqueVMRepType(1);
+            if (rt0 == null || rt1 == null)
+                return node;
+            TagPair tp = new TagPair(rt0.getPT(), rt1.getPT());
+            Node next = node.getChild(tp);
+            return next.accept(this);
+        }
+        
+        @Override
+        Node visitPTNode(PTNode node) {
+            VMRepType rt = getUniqueVMRepType(node.opIndex);
+            if (rt == null)
+                return node;
+            Node next = node.getChild(rt.getPT());
+            return next.accept(this);
+        }
+        
+        @Override
+        Node visitHTNode(HTNode node) {
+            if (node.isNoHT())
+                return node.getChild().accept(this);
+
+            VMRepType rt = getUniqueVMRepType(node.opIndex);
+            if (rt == null)
+                return node;
+            Node next = node.getChild(rt.getHT());
+            return next.accept(this);
+        }
+    }
+    
+    private void addLabel(Map<Node, Set<String>> labels, VMDataType[] dts, Node node) {
+        StringBuffer sb = new StringBuffer(labelPrefix);
+        for (VMDataType dt: dts) {
+            if (dt == null)
+                sb.append("_any");
+            else
+                sb.append("_").append(dt.getName());
+        }
+        String label = sb.toString();
+        if (!labels.containsKey(node))
+            labels.put(node, new HashSet<String>());
+        labels.get(node).add(label);
+    }
+
+    private Map<Node, Set<String>> addTypeLabels(DecisionDiagram dd, RuleSet hlrs) {
+        Map<Node, Set<String>> labels = new HashMap<Node, Set<String>>();
+        for (RuleSet.Rule r: hlrs.getRules()) {
+            for (Condition templateCondition: r.getCondition()) {
+                VMDataType[] templateDts = templateCondition.dts;
+                for (int mask = 0; mask < (1 << templateDts.length); mask++) {
+                    VMDataType[] dts = templateDts.clone();
+                    for (int i = 0; i < templateDts.length; i++)
+                        if ((mask & (1 << i)) != 0)
+                            dts[i] = null;
+                    DeterministicSearchVisitor v = new DeterministicSearchVisitor(dts);
+                    Node node = dd.root.accept(v);
+                    addLabel(labels, dts, node);
+                }
+            }
+        }
+        return labels;
     }
 }

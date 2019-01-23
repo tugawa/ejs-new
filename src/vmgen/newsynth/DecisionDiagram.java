@@ -12,11 +12,13 @@ package vmgen.newsynth;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 import vmgen.InsnGen.Option;
+import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
@@ -366,8 +368,8 @@ public class DecisionDiagram {
         return root == null;
     }
 
-    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-        return generateCodeForNode(root, varNames, tagMacro);
+    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro, Map<Node, Set<String>> typeLabels) {
+        return generateCodeForNode(root, varNames, tagMacro, typeLabels);
     }
 
     public void skipBranchless() {
@@ -382,8 +384,8 @@ public class DecisionDiagram {
     // static method
     ////
 
-    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option);
+    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro, Map<Node, Set<String>> typeLabels) {
+        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option, typeLabels);
         node.accept(gen);
         return gen.toString();
     }
@@ -413,6 +415,6 @@ public class DecisionDiagram {
     }
 
     static String debugGenerateCodeForNode(Node node) {
-        return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
+        return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro(), null);
     }
 }

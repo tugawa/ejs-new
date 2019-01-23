@@ -42,7 +42,8 @@ public class InsnGen {
             GEN_USE_DEFAULT("gen:use_default", Boolean.class),
             GEN_MAGIC_COMMENT("gen:magic_comment", Boolean.class),
             GEN_DEBUG_COMMENT("gen:debug_comment", Boolean.class),
-            GEN_LABEL_PREFIX("gen:label_prefix", String.class);
+            GEN_LABEL_PREFIX("gen:label_prefix", String.class),
+            GEN_ADD_TYPELABEL("gen:type_label", Boolean.class);
 
             String key;
             Class<?> cls;
