@@ -126,13 +126,21 @@ public class NewSynthesiser extends Synthesiser {
         }
         
         ArrayList<DecisionDiagram.DispatchCriterion> dispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>();
-        if (option.getOption(Option.AvailableOptions.CMP_USE_TAGPAIR, true))
-            dispatchPlan.add(new DecisionDiagram.TagPairDispatch());
-        for (int i = 0; i < 5; i++)
-            dispatchPlan.add(new DecisionDiagram.PTDispatch(i));
-        for (int i = 0; i < 5; i++)
-            dispatchPlan.add(new DecisionDiagram.HTDispatch(i));
-
+        String layers = option.getOption(Option.AvailableOptions.CMP_TREE_LAYER, "p0:p1:h0:h1");
+        for (String layer: layers.split(":")) {
+            if (layer.equals("tp"))
+                dispatchPlan.add(new DecisionDiagram.TagPairDispatch());
+            else {
+                int opIndex = Integer.parseInt(layer.substring(1));
+                if (layer.charAt(0) == 'p')
+                    dispatchPlan.add(new DecisionDiagram.PTDispatch(opIndex));
+                else if (layer.charAt(0) == 'h')
+                    dispatchPlan.add(new DecisionDiagram.HTDispatch(opIndex));
+                else
+                    throw new Error();
+            }
+        }
+        
         LLRuleSet llrs = new LLRuleSet(hlrs);
         DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
         if (dd.isEmpty())
