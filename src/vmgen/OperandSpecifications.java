@@ -49,6 +49,8 @@ public class OperandSpecifications {
         final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+"+P_OPERANDS+"\\s+("+P_BEHAVIOUR+")\\s*$");
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
+            if (line.startsWith("#"))
+                continue;
             Matcher matcher = splitter.matcher(line);
             if (matcher.matches()) {
                 MatchResult m = matcher.toMatchResult();
@@ -91,11 +93,22 @@ public class OperandSpecifications {
     boolean matchOperandTypes(String[] specTypes, VMDataType[] types) {
         if (specTypes.length != types.length)
             return false;
-        for (int i = 0; i < specTypes.length; i++)
-            if (!specTypes[i].equals("_") &&
-                    !(specTypes[i].equals("object") && types[i].isObject()) &&
-                    !specTypes[i].equals(types[i].getName()))
-                return false;
+        for (int i = 0; i < specTypes.length; i++) {
+            if (specTypes[i].equals("_"))
+                continue; // next operand
+            if (specTypes[i].startsWith("!") &&
+                    specTypes[i].substring(1).equals("object") &&
+                    !types[i].isObject())
+                continue; // next operand;
+            if (specTypes[i].startsWith("!") &&
+                    !specTypes[i].substring(1).equals(types[i].getName()))
+                continue; // next operand;
+            if (specTypes[i].equals("object") && types[i].isObject())
+                continue; // next operand
+            if (specTypes[i].equals(types[i].getName()))
+                continue; // next operand
+            return false;
+        }
         return true;
     }
 
