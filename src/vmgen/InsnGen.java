@@ -34,7 +34,6 @@ public class InsnGen {
 
         public enum AvailableOptions {
             CMP_VERIFY_DIAGRAM("cmp:verify_diagram", Boolean.class),
-            CMP_USE_TAGPAIR("cmp:use_tagpair", Boolean.class),
             CMP_OPT_PASS("cmp:opt_pass", String.class),
             CMP_RAND_SEED("cmp:rand_seed", Integer.class),
             CMP_TREE_LAYER("cmp:tree_layer", String.class),
