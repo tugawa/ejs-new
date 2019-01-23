@@ -16,6 +16,10 @@ import vmgen.Synthesiser;
 import java.util.ArrayList;
 
 import vmgen.InsnGen.Option;
+import vmgen.newsynth.DecisionDiagram.DispatchCriterion;
+import vmgen.newsynth.DecisionDiagram.Leaf;
+import vmgen.newsynth.DecisionDiagram.Node;
+import vmgen.newsynth.DecisionDiagram.TagNode;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 
@@ -48,6 +52,54 @@ public class NewSynthesiser extends Synthesiser {
         }
     }
 
+    static class LeafDispatch extends DispatchCriterion {
+        @Override
+        public boolean available(int arity) {
+            return true;
+        }
+    }
+    
+    static class SemanticLayerGatherVisitor extends NodeVisitor<Void> {
+        ArrayList<Node> nodes = new ArrayList<Node>();
+        DispatchCriterion ref;
+
+        SemanticLayerGatherVisitor(DispatchCriterion ref) {
+            this.ref = ref;
+        }
+
+        ArrayList<Node> get() {
+            return nodes;
+        }
+
+        @Override
+        Void visitLeaf(Leaf node) {
+            if (ref instanceof LeafDispatch) {
+                if (!nodes.contains(node))
+                    nodes.add(node);
+                return null;
+            }
+            return null;
+        }
+
+        @Override
+        <T> Void visitTagNode(TagNode<T> node) {
+            if ((node instanceof DecisionDiagram.PTNode &&
+                 ref instanceof DecisionDiagram.PTDispatch &&
+                 node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
+                (node instanceof DecisionDiagram.HTNode &&
+                 ref instanceof DecisionDiagram.HTDispatch &&
+                 node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
+                if (!nodes.contains(node))
+                    nodes.add(node);
+                return null;
+            }
+            for (Node child: node.getChildren())
+                child.accept(this);
+            return null;
+        }
+    }
+
+
     String labelPrefix;
 
     @Override
@@ -78,6 +130,24 @@ public class NewSynthesiser extends Synthesiser {
             switch(pass) {
             case "MR": dd.combineRelative(); break;
             case "S":  dd.skipBranchless();  break;
+            }
+        }
+        
+        ArrayList<DecisionDiagram.DispatchCriterion> testDispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>(dispatchPlan);
+        testDispatchPlan.add(new LeafDispatch());
+        for (DispatchCriterion dc: testDispatchPlan) {
+            SemanticLayerGatherVisitor gv = new SemanticLayerGatherVisitor(dc);
+            dd.root.accept(gv);
+            ArrayList<Node> nodes = gv.get();
+            for (int i = 0; i < nodes.size(); i++) {
+                Node n = nodes.get(i);
+                for (int j = i + 1; j < nodes.size(); j++) {
+                    Node m = nodes.get(j);
+                    if (DecisionDiagram.isConsistent(n, m)) {
+                        System.out.print("remaining consistent nodes: ");
+                        System.out.println(n +" "+ m);
+                    }
+                }
             }
         }
 
