@@ -647,7 +647,7 @@ public class DslParser {
         	return instDef;
         } catch(ParseErrorException e) {
         	try {
-        		System.out.println("new DSL syntax");
+        		System.out.println("// new DSL syntax");
         		InstDef instDef = newParse(tks);
         		return instDef;
         	} catch (ParseErrorException e2) {
