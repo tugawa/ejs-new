@@ -149,7 +149,7 @@ public class InsnGen {
             removeSet.add(c);
             errorConditions.add(c);
         }
-        for (Rule r: insnDef.tdDef.rules) {
+        for (Rule r: insnDef.rs.rules) {
             r = r.filterConditions(removeSet);
             rules.add(r);
             if (r.condition.size() == 0)
