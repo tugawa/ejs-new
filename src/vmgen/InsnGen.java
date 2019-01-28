@@ -187,41 +187,39 @@ public class InsnGen {
         TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load(insnDefFile);
+        ProcDefinition.InstDefinition insnDef = procDef.load(insnDefFile);
 
         OperandSpecifications operandSpec = new OperandSpecifications();
         operandSpec.load(operandSpecFile);
 
-        for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
-            boolean verbose = outDir != null;
-            Synthesiser synth;
-            switch (compiler) {
-            case COMPILER_DEFAULT:
-                synth = new NewSynthesiser();
-                break;
-            case COMPILER_SIMPLE:
-                synth = new SimpleSynthesiser();
-                break;
-            case COMPILER_OLD:
-                synth = insnDef.dispatchVars.length == 2 ?
-                        new TagPairSynthesiser() :
-                            new SwitchSynthesiser();
-                        break;
-            default:
-                throw new Error("unknown compiler type");
-            }
-            String code = synthesise(insnDef, operandSpec, synth, verbose);
-            if (outDir == null)
-                System.out.println(code);
-            else {
-                try {
-                    File file = new File(outDir + "/" + insnDef.name + ".inc");
-                    PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-                    pw.print(code);
-                    pw.close();
-                }catch(IOException e){
-                    System.out.println(e);
-                }
+        boolean verbose = outDir != null;
+        Synthesiser synth;
+        switch (compiler) {
+        case COMPILER_DEFAULT:
+            synth = new NewSynthesiser();
+            break;
+        case COMPILER_SIMPLE:
+            synth = new SimpleSynthesiser();
+            break;
+        case COMPILER_OLD:
+            synth = insnDef.dispatchVars.length == 2 ?
+                    new TagPairSynthesiser() :
+                        new SwitchSynthesiser();
+                    break;
+        default:
+            throw new Error("unknown compiler type");
+        }
+        String code = synthesise(insnDef, operandSpec, synth, verbose);
+        if (outDir == null)
+            System.out.println(code);
+        else {
+            try {
+                File file = new File(outDir + "/" + insnDef.name + ".inc");
+                PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+                pw.print(code);
+                pw.close();
+            }catch(IOException e){
+                System.out.println(e);
             }
         }
     }

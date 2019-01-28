@@ -32,9 +32,8 @@ public class InsnGenSimple {
         TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load(insnDefFile);
+        ProcDefinition.InstDefinition insnDef = procDef.load(insnDefFile);
 
-        for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	System.out.println(insnDef.name);
         	Synthesiser synth = new SimpleSynthesiser();
         	StringBuilder sb = new StringBuilder();
@@ -55,5 +54,4 @@ public class InsnGenSimple {
                 System.out.println(e);
             }
         }
-	}
 }
