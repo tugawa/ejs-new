@@ -419,9 +419,9 @@ class CBCBuilder {
             if (bc instanceof ICBCNew)
                 return new INew(store, load1);
             if (bc instanceof ICBCMakesimpleiterator)
-                return new IMakesimpleiterator(store, load1);
+                return new IMakesimpleiterator(load1, store);
             if (bc instanceof ICBCNextpropnameidx)
-                return new INextpropnameidx(store, load1);
+                return new INextpropnameidx(load1, store);
             if (bc instanceof ICBCGetglobal)
                 return new IGetglobal(store, load1);
         }

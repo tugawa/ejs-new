@@ -690,7 +690,7 @@ class IMakesimpleiterator extends BCode {
         this.obj = obj;
     }
     public String toString() {
-        return super.toString("makesimpleiterator", dst, obj);
+        return super.toString("makesimpleiterator", obj, dst);
     }
 }
 class INextpropnameidx extends BCode {
@@ -700,7 +700,7 @@ class INextpropnameidx extends BCode {
         this.ite = ite;
     }
     public String toString() {
-        return super.toString("nextpropnameidx", dst, ite);
+        return super.toString("nextpropnameidx", ite, dst);
     }
 }
 // Jump instructions
