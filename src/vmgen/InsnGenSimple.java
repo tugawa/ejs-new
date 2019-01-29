@@ -32,9 +32,8 @@ public class InsnGenSimple {
         TypeDefinition.load(typeDefFile);
 
         ProcDefinition procDef = new ProcDefinition();
-        procDef.load(insnDefFile);
+        ProcDefinition.InstDefinition insnDef = procDef.load(insnDefFile);
 
-        for (ProcDefinition.InstDefinition insnDef: procDef.instDefs) {
         	System.out.println(insnDef.name);
         	Synthesiser synth = new SimpleSynthesiser();
         	StringBuilder sb = new StringBuilder();
@@ -44,7 +43,7 @@ public class InsnGenSimple {
 				String dv = insnDef.dispatchVars[i];
 				dispatchVars[i] = dv.substring(1, dv.length());
 			}
-            RuleSet p = new RuleSet(dispatchVars, insnDef.tdDef.rules);
+            RuleSet p = new RuleSet(dispatchVars, insnDef.rs.rules);
             sb.append(synth.synthesise(p, "none", new InsnGen.Option()));
             try {
             	File file = new File(outDir + "/" + insnDef.name.substring(2).toLowerCase() + ".inc");
@@ -55,5 +54,4 @@ public class InsnGenSimple {
                 System.out.println(e);
             }
         }
-	}
 }

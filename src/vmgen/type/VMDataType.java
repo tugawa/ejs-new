@@ -114,4 +114,12 @@ public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType>
 	public int compareTo(VMDataType that) {
 		return this.defineOrder - that.defineOrder;
 	}
+
+    public int getID() {
+        return defineOrder;
+    }
+
+    public static int size() {
+        return definedVMDataTypes.size();
+    }
 }
