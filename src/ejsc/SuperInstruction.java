@@ -93,7 +93,9 @@ public class SuperInstruction {
         private boolean isInstance(String str, Argument load) {
             switch(str) {
             case "fix":
-                return load instanceof AFixnum;
+                if (load instanceof AFixnum && ((AFixnum) load).n < (1 << 16))
+                    return true;
+                return false;
             case "str":
                 return load instanceof AString;
             case "number":
