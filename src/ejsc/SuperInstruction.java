@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.regex.Pattern;
 
 public class SuperInstruction {
     class Environment {
@@ -39,7 +40,49 @@ public class SuperInstruction {
     }
 
     public CBCode evalSuperInsn(Environment env, CBCode bc, Insn insn) {
-        return evalCBCode(env, bc, insn);
+        if (insn.load3 == null)
+            return evalCBCode(env, bc, insn);
+        else
+            return evalThreeTypeCBCode(env, bc, insn);
+    }
+
+    protected CBCode evalThreeTypeCBCode(Environment env, CBCode bc, Insn insn) {
+//        System.out.println("exec: " + bc.toString());
+        Argument load1 = null, load2 = null, load3 = null;
+        if (bc.store instanceof ARegister) {
+            if (insn.load1.equals("reg")) {
+                load1 = bc.store;
+            } else {
+                ARegister load = (ARegister) bc.store;
+                CBCode b = env.lookup(load.r);
+                if ((b instanceof ICBCNop) && insn.isLoad1Instance(b.load1))
+                    load1 = b.load1;
+            }
+        }
+        if (bc.load1 instanceof ARegister) {
+            if (insn.load2.equals("reg")) {
+                load2 = bc.load1;
+            } else {
+                ARegister load = (ARegister) bc.load1;
+                CBCode b = env.lookup(load.r);
+//                System.out.println("  " + b);
+                if ((b instanceof ICBCNop) && insn.isLoad2Instance(b.load1))
+                    load2 = b.load1;
+            }
+        }
+        if (bc.load2 instanceof ARegister) {
+            if (insn.load3.equals("reg")) {
+                load3 = bc.load2;
+            } else {
+                ARegister load = (ARegister) bc.load2;
+                CBCode b = env.lookup(load.r);
+                if ((b instanceof ICBCNop) && insn.isLoad3Instance(b.load1))
+                    load3 = b.load1;
+            }
+        }
+        if (load1 == null || load2 == null || load3 == null)
+            return null;
+        return new ICBCSuperInstruction(load1, load2, load3, insn.newInsn);
     }
 
     protected CBCode evalCBCode(Environment env, CBCode bc, Insn insn) {
@@ -77,11 +120,18 @@ public class SuperInstruction {
 
     LinkedList<Insn> insns;
     class Insn {
-        String name, load1, load2, newInsn;
+        String name, load1, load2, load3, newInsn;
         Insn(String name, String load1, String load2, String newInsn) {
             this.name = name;
             this.load1 = load1;
             this.load2 = load2;
+            this.newInsn = newInsn;
+        }
+        Insn(String name, String load1, String load2, String load3, String newInsn) {
+            this.name = name;
+            this.load1 = load1;
+            this.load2 = load2;
+            this.load3 = load3;
             this.newInsn = newInsn;
         }
         public boolean isLoad1Instance(Argument load1) {
@@ -90,12 +140,13 @@ public class SuperInstruction {
         public boolean isLoad2Instance(Argument load2) {
             return isInstance(this.load2, load2);
         }
+        public boolean isLoad3Instance(Argument load3) {
+            return isInstance(this.load3, load3);
+        }
         private boolean isInstance(String str, Argument load) {
             switch(str) {
             case "fix":
-                if (load instanceof AFixnum && ((AFixnum) load).n < (1 << 16))
-                    return true;
-                return false;
+                return (load instanceof AFixnum && ((AFixnum) load).n < (1 << 16));
             case "str":
                 return load instanceof AString;
             case "number":
@@ -105,7 +156,10 @@ public class SuperInstruction {
             }
         }
         public String toString() {
-            return name + "(" + load1 + "," + load2 + "):" + newInsn;
+            if (load3 == null)
+                return name + "(" + load1 + "," + load2 + "):" + newInsn;
+            else
+                return name + "(" + load1 + "," + load2 + "," + load3 + "):" + newInsn;
         }
     }
 
@@ -121,16 +175,35 @@ public class SuperInstruction {
     }
 
     private Insn loadInsn(String insnDef) {
-        insnDef = insnDef.replace(" ", "");
-        int insnIndex = insnDef.indexOf('(');
-        int op1Index = insnDef.indexOf(',');
-        int op2Index = insnDef.indexOf(')');
-        int newInsnIndex = insnDef.indexOf(':');
-        String insn = insnDef.substring(0, insnIndex);
-        String op1 = insnDef.substring(insnIndex + 1, op1Index);
-        String op2 = insnDef.substring(op1Index + 1, op2Index);
-        String newInsn = insnDef.substring(newInsnIndex + 1, insnDef.length());
-        return new Insn(insn, op1, op2, newInsn);
+        String twoop = "^[a-z]+ *\\( *[a-z]+ *, *[a-z]+ *\\) *: *[a-z]+$";
+        String threeop = "^[a-z]+ *\\( *[a-z]+ *, *[a-z]+ *, *[a-z]+ *\\) *: *[a-z]+$";
+        if (Pattern.matches(twoop, insnDef)) {
+            insnDef = insnDef.replace(" ", "");
+            int insnIndex = insnDef.indexOf('(');
+            int op1Index = insnDef.indexOf(',');
+            int op2Index = insnDef.indexOf(')');
+            int newInsnIndex = insnDef.indexOf(':');
+            String insn = insnDef.substring(0, insnIndex);
+            String op1 = insnDef.substring(insnIndex + 1, op1Index);
+            String op2 = insnDef.substring(op1Index + 1, op2Index);
+            String newInsn = insnDef.substring(newInsnIndex + 1, insnDef.length());
+            return new Insn(insn, op1, op2, newInsn);
+        } else if (Pattern.matches(threeop, insnDef)) {
+            insnDef = insnDef.replace(" ", "");
+            int insnIndex = insnDef.indexOf('(');
+            int op1Index = insnDef.indexOf(',');
+            int op2Index = insnDef.lastIndexOf(',');
+            int op3Index = insnDef.indexOf(')');
+            int newInsnIndex = insnDef.indexOf(':');
+            String insn = insnDef.substring(0, insnIndex);
+            String op1 = insnDef.substring(insnIndex + 1, op1Index);
+            String op2 = insnDef.substring(op1Index + 1, op2Index);
+            String op3 = insnDef.substring(op2Index + 1, op3Index);
+            String newInsn = insnDef.substring(newInsnIndex + 1, insnDef.length());
+            return new Insn(insn, op1, op2, op3, newInsn);
+        } else {
+            throw new Error("internal error");
+        }
     }
 
     public List<CBCode> execMakeSuperInsn() {
