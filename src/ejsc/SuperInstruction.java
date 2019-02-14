@@ -151,6 +151,8 @@ public class SuperInstruction {
                 return load instanceof AString;
             case "number":
                 return load instanceof ANumber;
+            case "spec":
+                return load instanceof ASpecial;
             default:
                 return false;
             }
