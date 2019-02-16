@@ -168,8 +168,8 @@ public class InsnGen {
         sb.append("INSN_COUNT"+insnDef.dispatchVars.length+"("+insnDef.name);
         for (String rand: insnDef.dispatchVars)
             sb.append(",").append(rand);
-        sb.append(");");
-        sb.append("USELABEL(HEAD);\n");
+        sb.append(");\n");
+        sb.append("USELABEL(HEAD):\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
             sb.append("if (0) {\n")
