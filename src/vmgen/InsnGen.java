@@ -169,7 +169,7 @@ public class InsnGen {
         for (String rand: insnDef.dispatchVars)
             sb.append(",").append(rand);
         sb.append(");");
-        sb.append(labelPrefix + "_HEAD:\n");
+        sb.append("LABELUSE(HEAD);\n");
         sb.append(dispatchCode);
         for (String a: unusedActions) {
             sb.append("if (0) {\n")
