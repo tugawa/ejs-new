@@ -494,6 +494,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             printOperator(node, "/");
         }
     }
+    public class Mod extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            printOperator(node, "%");
+        }
+    }
     public class Plus extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -624,7 +630,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
-            varmap.put("cint", "cint");
+            varmap.put("cint", "int");
             varmap.put("cdouble", "double");
             print(varmap.get(node.toText()));
         }

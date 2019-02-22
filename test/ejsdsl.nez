@@ -117,7 +117,7 @@ ShiftExpression       = AdditiveExpression
 AdditiveExpression    = MultiplicativeExpression
                           {$left ("+" #Add / "-" #Sub)
                            $right(MultiplicativeExpression) }*
-MultiplicativeExpression = UnaryExpression {$left ("*" #Mul / "/" #Div )
+MultiplicativeExpression = UnaryExpression {$left ("*" #Mul / "/" #Div / "%" #Mod)
                                             $right(UnaryExpression) }*
 UnaryExpression = PostfixExpression
                 / { "*" $expr(PostfixExpression) #Star }
@@ -305,6 +305,7 @@ Ctypes = 'cint' !W
 "-" = '-' _
 "*" = '*' _
 "/" = '/' _
+"%" = '%' _
 "'" = '\'' _
 "==" = '==' _
 "!=" = '!=' _

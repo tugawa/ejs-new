@@ -123,6 +123,13 @@ public class AstType {
             return b;
         if (b == BOT)
             return a;
+        if (!(a instanceof JSValueType) || !(b instanceof JSValueType)) {
+            if (a == b) {
+                return a;
+            } else {
+                throw new Error("AstBaseType lub: type error");
+            }
+        }
         JSValueType a2 = (JSValueType)a;
         JSValueType b2 = (JSValueType)b;
         while (a2.depth > b2.depth)
@@ -160,6 +167,14 @@ public class AstType {
             return BOT;
         if (b == BOT)
             return BOT;
+        if (!(a instanceof JSValueType) || !(b instanceof JSValueType)) {
+            if (a == b) {
+                return a;
+            } else {
+                throw new Error("AstBaseType glb: type error");
+            }
+        }
+
         JSValueType a2 = (JSValueType)a;
         JSValueType b2 = (JSValueType)b;
         while (a2.depth > b2.depth)

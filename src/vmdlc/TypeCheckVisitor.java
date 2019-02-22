@@ -461,6 +461,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             //TypeMap copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             AstType thenType = visit(thenNode, dict).getExprType();
+            
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
             //AstBaseType elseType = visit(elseNode, copyDict).getExprType();
             AstType elseType = visit(elseNode, dict).getExprType();
@@ -610,6 +611,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     public class Div extends DefaultVisitor {
+        @Override
+        public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
+            AstType t = numberOperator(node, dict);
+            return new TypeMap(t);
+        }
+    }
+    public class Mod extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             AstType t = numberOperator(node, dict);
