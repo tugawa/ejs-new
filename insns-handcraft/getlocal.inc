@@ -4,7 +4,7 @@
  */
 {
   Register dst = r0;
-  int link = i1;
+  int link = v1;
   Subscript index = s2;
   FunctionFrame *fr;
   int i;

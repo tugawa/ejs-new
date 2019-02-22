@@ -2,8 +2,8 @@
    newframe
  */
 {
-  int frame_len = i0;
-  int make_arguments = i1;
+  int frame_len = v0;
+  int make_arguments = v1;
   FunctionFrame *fr;
 
   int num_of_args, i;

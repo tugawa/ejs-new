@@ -239,8 +239,10 @@ typedef struct hidden_class {
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
 
+/*
 // #define new_empty_hidden_class(cxt, name, hsize)      \
 //   new_hidden_class(cxt, NULL, name, 0, hsize)
+*/
 #endif
 
 typedef struct object_cell {

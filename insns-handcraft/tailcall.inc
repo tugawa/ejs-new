@@ -4,7 +4,7 @@
  */
 {
   JSValue fn = v0;
-  int nargs = i1;
+  int nargs = v1;
   int sendp;
 
   sendp = (get_opcode(insn) == TAILSEND)? TRUE: FALSE;

@@ -2,7 +2,7 @@
    setlocal link index src
  */
 {
-  int link = i0;
+  int link = v0;
   Subscript index = s1;
   FunctionFrame *fr;
   int i;

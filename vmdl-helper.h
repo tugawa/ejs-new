@@ -19,9 +19,11 @@
 #define String_to_cstr(v)  string_to_cstr((v))
 
 
+#define FIXNUM_EQ(v1,v2) ((int64_t) (v1) == (int64_t) (v2))
 #define FIXNUM_LESSTHAN(v1,v2)   ((int64_t) (v1) < (int64_t) (v2))
 #define FIXNUM_LESSTHANEQ(v1,v2) ((int64_t) (v1) <= (int64_t) (v2))
 #define FIXNUM_AND(v1,v2)        ((int64_t) (v1) & (int64_t) (v2))
+#define FIXNUM_OR(v1,v2)        ((int64_t) (v1) | (int64_t) (v2))
 
 
 #define Object_to_primitive_hint_number(v) object_to_primitive(context, (v) ,HINT_NUMBER)
@@ -37,3 +39,24 @@
 #define Flonum_NegInfinity()   gconsts.g_flonum_negative_infinity
 #define Flonum_Nan()           gconsts.g_flonum_nan
 
+#define Floor(d)  floor((d))
+#define Ceil(d)   ceil((d))
+#define LogicalRightShift(v1, v2)   ((uint32_t)(v1) >> (uint32_t)(v2))
+
+#define Get_opcode()    get_opcode(insn)
+#define IsSend(op)      ((op) != CALL)
+#define IsNewSend(op)   ((op) == NEWSEND)
+#define Set_fp()        set_fp(context, fp)
+#define Set_pc()        set_pc(context, pc)
+#define Call_function(fn, n, sendp)   call_function(context, (fn), (n), (sendp))
+#define Call_builtin(fn, n, sendp, newp)   call_builtin(context, (fn), (n), (sendp), (newp))
+#define Update_context()          update_context()
+#define Save_context()            save_context()
+#define New_normal_object()       new_normal_object(context)
+#define Next_insn_noincpc()       NEXT_INSN_NOINCPC()
+#define Next_insn_incpc()         NEXT_INSN_INCPC()
+
+#define String_prototype()       gconsts.g_string_prototype
+#define Object_prototype()       gconsts.g_object_proto
+#define Set_proto_all(o, p)      set___proto___all(context, o, p)
+#define JS_undefined()           JS_UNDEFINED

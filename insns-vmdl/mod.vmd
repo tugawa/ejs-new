@@ -34,51 +34,45 @@ externC Flonum_Nan : void -> Flonum
 externC IsFlonumInfinity: JSValue -> cint
 externC IsFlonumNan : JSValue -> cint
 externC IsFixnumZero : JSValue -> cint
+externC Floor : cdouble -> cdouble
+externC Ceil : cdouble -> cdouble
 
 (vmInstruction, needContext, triggerGC, tailCall)
-div : (JSValue, JSValue) -> JSValue
-div (v1, v2) {
+mod : (JSValue, JSValue) -> JSValue
+mod (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint n1 = FixnumToCint(v1);
       if (IsFixnumZero(v2)) {
-          if (n1 > 0) {
-              return Flonum_Infinity();
-          } else if (n1 == 0) {
-              return Flonum_Nan();
-          } else {
-              return Flonum_NegInfinity();
-          }
+        return Flonum_Nan();
       } else {
-        cint n2 = FixnumToCint(v2);
-        cint s = n1 / n2;
-        return (n1 == n2 * s) ? CintToFixnum(s) : CdoubleToFlonum(FixnumToCdouble(v1) / FixnumToCdouble(v2));
+        cint x1 = FixnumToCint(v1);
+        cint x2 = FixnumToCint(v2);
+        cint s = x1 % x2;
+        return CintToFixnum(s);
       }
     }
-    case (Fixnum v1 && Flonum v2 || Flonum v1 && Fixnum v2 || Flonum v1 && Flonum v2) {
+    case (number v1 && number v2) {
       cdouble x1 = toCdouble(v1);
       cdouble x2 = toCdouble(v2);
-      cdouble d = x1 / x2;
-      if (IsFlonumInfinity(CdoubleToFlonum(d))) {
-          return d > 0 ? Flonum_Infinity() : Flonum_NegInfinity();
-      } else if (IsFlonumNan(CdoubleToFlonum(d))) {
-          return Flonum_Nan();
+      if (IsFlonumInfinity(CdoubleToFlonum(x1)) || x2 == 0.0f) {
+        return Flonum_Nan();
       } else {
-          return CdoubleToNumber(d);
+        cdouble d = x1 / x2;
+        cdouble d2 = d >= 0 ? Floor(d) : Ceil(d);
+        cdouble d3 = x1 - (d2 * x2);
+        return CdoubleToNumber(d3);
       }
     }
-    case (number v1) {
-        Number u2 = toNumber(v2);
-        rematch top(v1, u2);
-    }
     case (number v2) {
-        Number u1 = toNumber(v1);
-        rematch top(u1, v2);
+      Number u1 = toNumber(v1);
+      rematch top(u1, v2);
+    }
+    case (number v1) {
+      Number u2 = toNumber(v2);
+      rematch top(v1, u2);
     }
     case (true) {
-      Number u1 = toNumber(v1);
-      Number u2 = toNumber(v2);
-      rematch top(u1, u2);
+      return Flonum_Nan();
     }
   }
 }

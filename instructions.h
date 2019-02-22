@@ -344,18 +344,23 @@ typedef void *InsnLabel;
 #define calc_displacement(ninsns, code_subscr, const_subscr) \
   ((ninsns) - (code_subscr) + (const_subscr))
 
-// #define get_const_index(code) \
-//  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+/*
+#define get_const_index(code) \
+  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+*/
 
-// #define update_displacement(code, disp) \
-//   (((code) & ~CONSTINDEX_MASK) | \
-//   (((disp) & OPERAND_MASK) << CONSTINDEX_OFFSET))
-
+/*
+#define update_displacement(code, disp) \
+  (((code) & ~CONSTINDEX_MASK) | \
+  (((disp) & OPERAND_MASK) << CONSTINDEX_OFFSET))
+*/
 #define update_displacement(code, disp) \
   makecode_bigprimitive(get_opcode(code), get_first_operand_reg(code), disp)
 
-// #define get_displacement(code) \
-//   ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+/*
+#define get_displacement(code) \
+  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
+*/
 
 #define STRING_TABLE_LIMIT    (3000)
 #define NUMBER_TABLE_LIMIT    (3000)

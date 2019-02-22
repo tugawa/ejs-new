@@ -1,0 +1,53 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+pattern number v = Fixnum v || Flonum v
+
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
+externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
+
+externC Get_opcode : void -> cint
+externC IsSend : cint -> cint
+externC IsNewSend : cint -> cint
+externC (needContext) Set_fp : void -> void
+externC (needContext) Set_pc : void -> void
+externC (needContext, triggerGC) Call_function : (JSValue, cint, cint) -> void
+externC (needContext, triggerGC) Call_builtin : (JSValue, cint, cint, cint) -> void
+externC Update_context : void -> void
+externC Next_insn_noincpc : void -> void
+externC Next_insn_incpc : void -> void
+
+(vmInstruction, needContext, triggerGC, tailCall)
+call : (JSValue, cint) -> void
+
+call (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = IsSend(op);
+  cint newp = IsNewSend(op);
+  Set_fp();
+  Set_pc();
+  top: match (fn) {
+    case (Function fn) {
+      Call_function(fn, nargs, sendp);
+      Update_context();
+      Next_insn_noincpc();
+    }
+    case (Builtin fn) {
+      Call_builtin(fn, nargs, sendp, newp);
+      Update_context();
+      Next_insn_incpc();
+    }
+  }
+}

@@ -1,0 +1,47 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+pattern number v = Fixnum v || Flonum v
+
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
+externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
+
+externC Save_context : void -> void
+externC Update_context : void -> void
+externC (needContext) New_normal_object : void -> JSObject
+externC Get_prop : (JSValue, JSValue) -> JSValue
+externC String_prototype : void -> JSValue
+externC Object_prototype : void -> JSValue
+externC (needContext) Set_proto_all : (JSObject, JSValue) -> void
+externC JS_undefined : void -> JSObject
+
+(vmInstruction, needContext, triggerGC, tailCall)
+new : JSValue -> JSObject
+
+new (con) {
+  top: match (con) {
+    case (Function con) {
+      Save_context();
+      JSObject o = New_normal_object();
+      Update_context();
+      JSValue p = Get_prop(con, String_prototype());
+      Set_proto_all(o, p);
+      return o;
+    }
+    case (true) {
+      return JS_undefined();
+    }
+  }
+}

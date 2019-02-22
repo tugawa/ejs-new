@@ -1,7 +1,7 @@
 add (-,_,_) accept
 bitand (-,_,_) accept
 bitor (-,_,_) accept
-call (_,-) accept
+call (_,_) accept
 div (-,_,_) accept
 eq (-,_,_) accept
 equal (-,_,_) accept
