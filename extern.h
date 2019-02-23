@@ -286,6 +286,7 @@ extern int regexp_flag(JSValue);
 #endif
 extern JSValue new_simple_object_without_prototype(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
+extern JSValue initialize_new_object(Context *ctx, JSValue, JSValue);
 extern JSValue new_array(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);

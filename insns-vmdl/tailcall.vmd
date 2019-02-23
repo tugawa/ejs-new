@@ -18,25 +18,36 @@ externC (needContext, triggerGC) toObject: JSValue -> JSObject
 externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
 externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
 
-externC Save_context : void -> void
+externC Get_opcode : void -> cint
+externC IsTailSend : cint -> cint
 externC Update_context : void -> void
-externC (needContext) New_normal_object : void -> JSObject
-externC (needContext) Initialize_new_object : (JSValue, JSValue) -> JSValue
-externC JS_undefined : void -> JSObject
+externC (needContext) Set_fp : void -> void
+externC (needContext) Set_pc : void -> void
+externC (needContext) Try_gc : void -> void
+externC (needContext, triggerGC) Tailcall_function : (JSValue, cint, cint) -> void
+externC (needContext, triggerGC) Tailcall_builtin : (JSValue, cint, cint) -> void
 
 (vmInstruction, needContext, triggerGC, tailCall)
-new : JSValue -> JSObject
+tailcall : (JSValue, cint) -> void
 
-new (con) {
-  top: match (con) {
-    case (Function con) {
-      Save_context();
-      JSValue o = New_normal_object();
+tailcall (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = IsTailSend(op);
+  Set_fp();
+  Set_pc();
+  Try_gc();
+  top: match (fn) {
+    case (Function fn) {
+      Tailcall_function(fn, nargs, sendp);
       Update_context();
-      return Initialize_new_object(con, o);
+      Next_insn_noincpc();
+    }
+    case (Builtin fn) {
+      Tailcall_builtin(fn, nargs, sendp);
+      Update_context();
+      Next_insn_incpc();
     }
     case (true) {
-      return JS_undefined();
     }
   }
 }

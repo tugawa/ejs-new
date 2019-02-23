@@ -15,5 +15,5 @@ new (-,_) accept
 rightshift (-,_,_) accept
 setprop (_,_,_) accept
 sub (-,_,_) accept
-tailcall (_,-) accept
+tailcall (_,_) accept
 unsignedrightshift (-,_,_) accept

@@ -737,6 +737,17 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 }
 
 /*
+  initialize new object prototype with constructor
+*/
+JSValue initialize_new_object(Context *ctx, JSValue con, JSValue o) {
+  JSValue p;
+  get_prop(con, gconsts.g_string_prototype, &p);
+  if (!is_object(p)) p = gconsts.g_object_proto;
+  set___proto___all(ctx, o, p);
+  return o;
+}
+
+/*
    makes a new array
  */
 JSValue new_array(Context *ctx, int hsize, int vsize) {
