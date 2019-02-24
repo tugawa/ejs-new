@@ -86,14 +86,14 @@ Context ctx;
 
 
 @var depends on alloc exists@
-identifier f, v, alloc_func = {alloc.falloc, alloc.stated_alloc};
+identifier v, alloc_func = {alloc.falloc, alloc.stated_alloc};
 expression e;
 statement S;
 position alloc.falloc_p, variable_p, start, end;
 type T:script:python(){type_check(T)};
 @@
 
-f(...) {@start
+{@start
 ... when != S
 (
  T v@variable_p;

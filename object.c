@@ -303,7 +303,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       }
       GC_PUSH3(obj, name, v);
       obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
-      GC_POP3(v, name, obj)
+      GC_POP3(v, name, obj);
       obj_limit_props(obj) = newsize;
       //      printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
       //             obj_n_props(obj), obj_limit_props(obj));
@@ -322,20 +322,20 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       nexth = hclass;    // NULL or pointer to the next hidden class
       if (nexth == NULL) {
         // printf("transit_hidden_class: making the next hidden class\n");
-        gc_push_tmp_root3(&obj, &name, &v);
+        GC_PUSH4(obj, name, v, oh);
         nexth = new_hidden_class(ctx, oh);
-        gc_pop_tmp_root(3);
+        GC_POP4(oh, v, name, obj);
         // print_hidden_class("transit_hidden_class: to (before put)", nexth);
-        gc_push_tmp_root2((JSValue*) &nexth, (JSValue*) &oh);
+        GC_PUSH2(nexth, oh);
         r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
         if (r != HASH_PUT_SUCCESS) {
-          gc_pop_tmp_root(2);
+          GC_POP2(oh, nexth);
           return FAIL;
         }
         hidden_n_entries(nexth)++;
         hash_put_with_attribute(hidden_map(oh), name, (HashData)nexth,
                           ATTR_NONE | ATTR_TRANSITION);
-        gc_pop_tmp_root(2);
+        GC_POP2(oh, nexth);
         hidden_n_entries(oh)++;
       }
       hidden_n_exit(obj_hidden_class(obj))++;
@@ -345,19 +345,19 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       n_enter_hc++;
     } else {                  // hidden_htype(oh) == HTYPE_GROW
       nexth = oh;
-      gc_push_tmp_root((JSValue*) &nexth);
+      GC_PUSH(nexth);
       r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
-      gc_pop_tmp_root(1);
+      GC_POP(nexth);
       if (r != HASH_PUT_SUCCESS) return FAIL;
       hidden_n_entries(nexth)++;
     }
     // print_hidden_class("transit_hidden_class: to (after put)", nexth);
 #else // HIDDEN_CLASS
-    gc_push_tmp_root(&obj);
+    GC_PUSH(obj);
     // printf("set_prop_with_index: putting attribute, name = %s, index = %d\n", string_to_cstr(name), index);
     r = hash_put_with_attribute(obj_map(obj), name, index, attr);
     // printf("set_prop_with_index: hash_put_with_attribute done, r = %d\n", r);
-    gc_pop_tmp_root(1);
+    GC_POP(obj);
     if (r != HASH_PUT_SUCCESS) return FAIL;
     // print_hash_table(obj_map(obj));
 #endif // HIDDEN_CLASS
@@ -783,9 +783,7 @@ JSValue new_array(Context *ctx, int hsize, int vsize) {
   set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
   set_prop_none(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
-  //gc_push_tmp_root(&ret);
   enable_gc(ctx);
-  //gc_pop_tmp_root(1);
   GC_POP(ret);
   return ret;
 }
@@ -803,9 +801,7 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
   allocate_array_data_critical(ret, size, size);
   GC_PUSH(ret);
   set_prop_none(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
-  //gc_push_tmp_root(&ret);
   enable_gc(ctx);
-  //gc_pop_tmp_root(1);
   GC_POP(ret);
   return ret;
 }
@@ -823,12 +819,10 @@ JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize)
   set_object_members(func_object_p(ret), hsize, vsize);
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
-  //gc_push_tmp_root(&ret);
   GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   set___proto___none(ctx, ret, gconsts.g_function_proto);
-  //gc_pop_tmp_root(1);
   GC_POP(ret);
   return ret;
 }
@@ -869,10 +863,8 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
   int index = 0;
   int size = 0;
 
-  //gc_push_tmp_root(&obj);
   ret = make_simple_iterator();
   JSValue tmpobj = obj;
-  //gc_push_tmp_root(&ret);
 
   //allocate simple itearator
   do {
@@ -925,15 +917,12 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
 JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
-  //gc_push_tmp_root(&v);
   GC_PUSH(v);
   ret = make_number_object(ctx);
-  //gc_push_tmp_root(&ret);
   GC_PUSH(ret);
   set_object_members(number_object_object_ptr(ret), hsize, psize);
   number_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_number_proto);
-  //gc_pop_tmp_root(2);
   GC_POP2(ret,v);
   return ret;
 }
@@ -945,13 +934,13 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
   /* We do not need to gc_push v because v should be a boolean */
+  GC_PUSH(v);
   ret = make_boolean_object(ctx);
-  //gc_push_tmp_root(&ret);
+  GC_POP(v);
   set_object_members(boolean_object_object_ptr(ret), hsize, psize);
   boolean_object_value(ret) = v;
   GC_PUSH(ret);
   set___proto___none(ctx, ret, gconsts.g_boolean_proto);
-  //gc_pop_tmp_root(1);
   GC_POP(ret);
   return ret;
 }
@@ -962,10 +951,8 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
 JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
-  //gc_push_tmp_root(&v);
   GC_PUSH(v);
   ret = make_string_object(ctx);
-  //gc_push_tmp_root(&ret);
   set_object_members(string_object_object_ptr(ret), hsize, psize);
   string_object_value(ret) = v;
   GC_PUSH(ret);
@@ -973,7 +960,6 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
   set_prop_all(ctx, ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
-  //gc_pop_tmp_root(2);
   GC_POP2(ret,v);
   return ret;
 }
@@ -1011,10 +997,8 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  //gc_push_tmp_root((JSValue *)&c);
   GC_PUSH(c);
   enable_gc(ctx);
-  //gc_pop_tmp_root(1);
   GC_POP(c);
   n_hc++;
   return c;
@@ -1034,15 +1018,13 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   a = malloc_hashtable();
   hash_create(a, oldc->map->size);
   hidden_map(c) = a;
-  ne = hash_copy(ctx, hidden_map(oldc), a);
+  ne = hash_copy(ctx, hidden_map(oldc), a); // All Right: MissingAdd
   hidden_n_entries(c) = ne;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  //gc_push_tmp_root((JSValue *)&c);
   GC_PUSH(c);
   enable_gc(ctx);
-  //gc_pop_tmp_root(1);
   GC_POP2(c,oldc);
   n_hc++;
   return c;
