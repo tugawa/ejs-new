@@ -30,7 +30,7 @@ BUILTIN_FUNCTION(builtin_isNaN)
 {
   double d;
 
-  builtin_prologue();  
+  builtin_prologue();
   d = to_double(context, args[1]);
   set_a(context, true_false(isnan(d)));
 }
@@ -42,7 +42,7 @@ BUILTIN_FUNCTION(builtin_isFinite)
 {
   double d;
 
-  builtin_prologue();  
+  builtin_prologue();
   d = to_double(context, args[1]);
   set_a(context, true_false(isinf(d)));
 }
@@ -59,9 +59,11 @@ BUILTIN_FUNCTION(builtin_parse_int)
   int32_t irad;
   long ret;
 
-  builtin_prologue();  
+  builtin_prologue();
   str = to_string(context, args[1]);
+  GC_PUSH(str);
   rad = to_number(context, args[2]);
+  GC_POP(str);
   cstr = string_to_cstr(str);
 
   if (!is_undefined(rad)) {
@@ -90,7 +92,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
   char *cstr;
   double x;
 
-  builtin_prologue();  
+  builtin_prologue();
   str = to_string(context, args[1]);
   cstr = string_to_cstr(str);
   cstr = space_chomp(cstr);
@@ -255,6 +257,7 @@ void init_builtin_global(Context *ctx)
   JSValue g;
 
   g = gconsts.g_global;
+  GC_PUSH(g);
   set_obj_cstr_prop(ctx, g, "true", JS_TRUE, ATTR_DE);
   set_obj_cstr_prop(ctx, g, "false", JS_FALSE, ATTR_DE);
   set_obj_cstr_prop(ctx, g, "null", JS_NULL, ATTR_DE);
@@ -274,4 +277,5 @@ void init_builtin_global(Context *ctx)
       p++;
     }
   }
+  GC_POP(g);
 }

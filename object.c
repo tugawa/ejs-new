@@ -160,7 +160,11 @@ JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
     }
   */
   // printf("get_object_prop, o = %016lx, p = %016lx\n", o, p);
-  if (!is_string(p)) p = to_string(ctx, p);
+  if (!is_string(p)) {
+    GC_PUSH(o);
+    p = to_string(ctx, p);
+    GC_POP(o);
+  }
   return get_prop_prototype_chain(o, p);
 }
 
@@ -253,8 +257,11 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
     return get_prop_prototype_chain(a, p);
   }
 
-  if (!is_string(p))
+  if (!is_string(p)) {
+    GC_PUSH(a);
     p = to_string(ctx, p);
+    GC_POP(a);
+  }
   /* assert: is_string(p) == true */ {
     JSValue num;
     cint n;
@@ -267,7 +274,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
     }
     return get_prop_prototype_chain(a, p);
   }
-}          
+}
 
 /*
    sets an object's property value with its attribute
@@ -294,9 +301,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
         LOG_EXIT("proptable overflow\n");
         return FAIL;
       }
-      gc_push_tmp_root3(&obj, &name, &v);
+      GC_PUSH3(obj, name, v);
       obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
-      gc_pop_tmp_root(3);
+      GC_POP3(v, name, obj)
       obj_limit_props(obj) = newsize;
       //      printf("proptable expansion succeeded: obj_n_props(obj) = %d, obj_limit_props(obj) = %d\n",
       //             obj_n_props(obj), obj_limit_props(obj));
@@ -368,7 +375,11 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
    It is not necessary to check the type of `o'.
  */
 int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v) {
-  if (!is_string(p)) p = to_string(ctx, p);
+  if (!is_string(p)) {
+    GC_PUSH2(o, v);
+    p = to_string(ctx, p);
+    GC_POP2(v, o);
+  }
   // printf("set_object_prop: "); print_value_verbose(ctx, p); printf("\n");
   return set_prop_none(ctx, o, p, v);
 }
@@ -380,7 +391,7 @@ int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v) {
       a[n] <- v (in this case, setlength is False)
       or
       a.length <- n + 1 (in this case, setlength is True)
-    
+
     In the latter case, it is not necessary to do a[n] <- v, but
     it may be necessary to shrink the array.
 
@@ -405,7 +416,9 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
        */
       cint newsize;
       while ((newsize = increase_asize(size)) <= n) size = newsize;
+      GC_PUSH2(a, v);
       reallocate_array_data(ctx, a, newsize);
+      GC_POP2(v, a);
     }
     /* If len <= n, expands the array.  It should be noted that
        if len >= n, this for loop does nothing */
@@ -418,7 +431,9 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
     */
     if (size < ASIZE_LIMIT) {
       /* The array data is not fully expanded, so we expand it */
+      GC_PUSH2(a, v);
       reallocate_array_data(ctx, a, ASIZE_LIMIT);
+      GC_POP2(v, a);
       for (i = len; i < ASIZE_LIMIT; i++)
         array_body_index(a, i) = JS_UNDEFINED;
       adatamax = ASIZE_LIMIT;
@@ -426,7 +441,9 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
   }
   if (len <= n || setlength == TRUE) {
     array_length(a) = n + 1;
+    GC_PUSH2(a, v);
     set_prop_none(ctx, a, gconsts.g_string_length, cint_to_fixnum(n + 1));
+    GC_POP2(v, a);
   }
   if (setlength == TRUE && n < len && adatamax <= len) {
     remove_array_props(a, adatamax, len);
@@ -434,7 +451,7 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v, int setlen
   if (n < adatamax && setlength == FALSE) {
     array_body_index(a, n) = v;
     return SUCCESS;
-  } 
+  }
   return FAIL;
 }
 
@@ -451,16 +468,24 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
 
     n = fixnum_to_cint(p);
     if (0 <= n && n < MAX_ARRAY_LENGTH) {
-      if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
-	return SUCCESS;
+      GC_PUSH3(a, p, v);
+      if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS) {
+        GC_POP3(v, p, a);
+        return SUCCESS;
+      }
+      GC_POP3(v, p, a);
     }
     p = fixnum_to_string(p);
     return set_object_prop(ctx, a, p, v);
   }
 
-  if (!is_string(p))
+  if (!is_string(p)) {
+    GC_PUSH2(a, v);
     p = to_string(ctx, p);
-  /* assert: p == string */ {
+    GC_POP2(v, a);
+  }
+
+  {  /* assert: p == string */
     JSValue num;
     cint n;
 
@@ -468,8 +493,12 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
     if (is_fixnum(num)) {
       n = fixnum_to_cint(num);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-	if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS)
-	  return SUCCESS;
+        GC_PUSH3(a, p, v);
+        if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS) {
+          GC_POP3(v, p, a);
+          return SUCCESS;
+        }
+        GC_POP3(v, p, a);
       }
       return set_object_prop(ctx, a, p, v);
     }
@@ -477,13 +506,16 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
       cint n;
       n = fixnum_to_cint(v);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-	/*
-	  The property name is "length" and the given value is a fixnum.
-	  Thus, expands / shrinks the array.
-	*/
-	if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
-	    == SUCCESS)
-	  return SUCCESS;
+       	/*
+       	  The property name is "length" and the given value is a fixnum.
+       	  Thus, expands / shrinks the array.
+       	*/
+        GC_PUSH3(a, p, v);
+       	if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE) == SUCCESS) {
+          GC_POP3(v, p, a);
+     	    return SUCCESS;
+        }
+        GC_POP3(v, p, a);
       }
     }
     return set_object_prop(ctx, a, p, v);
@@ -684,7 +716,7 @@ int regexp_flag(JSValue re) {
 
    If HIDDEN_CLASS is defined, hsize == 0 means that g_hidden_class_0
    should be used instead of allocating a new hidden class.
- */            
+ */
 void set_object_members(Object *p, int hsize, int psize) {
 #ifdef HIDDEN_CLASS
   p->class = ((hsize == 0)?
@@ -718,7 +750,7 @@ JSValue new_simple_object_without_prototype(Context *ctx, int hsize, int psize) 
   set_object_members(p, hsize, psize);
   return ret;
 }
-  
+
 /*
   makes a new simple object
     hsize: size of the hash table
@@ -841,7 +873,7 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
   allocate_simple_iterator_data(ctx, ret, size);
 
   obj = tmpobj;
-  
+
   //regist object prop to simple itearator
   do {
     idx = 0;
@@ -849,7 +881,7 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
       simple_iterator_body_index(ret, index++) = key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
-  
+
   gc_pop_tmp_root(2);
   return ret;
 }

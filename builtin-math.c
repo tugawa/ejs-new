@@ -236,6 +236,7 @@ void init_builtin_math(Context *ctx)
   JSValue math;
 
   math = gconsts.g_math;
+  GC_PUSH(math);
   {
     ObjDoubleProp *p = math_values;
     while (p->name != NULL) {
@@ -251,7 +252,7 @@ void init_builtin_math(Context *ctx)
       p++;
     }
   }
-
+  GC_POP(math);
 }
 
 #endif /* need_flonum */
