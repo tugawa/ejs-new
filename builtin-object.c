@@ -44,6 +44,7 @@ BUILTIN_FUNCTION(object_constr)
    */
   if (na > 0) {
     arg = args[1];
+    GC_PUSH(arg);
     if (is_object(arg))
       ret = arg;
     else if (is_number(arg))
@@ -54,9 +55,12 @@ BUILTIN_FUNCTION(object_constr)
       ret = new_normal_string_object(context, arg);
     else
       ret = new_normal_object(context);
+    GC_POP(arg);
   } else
     ret = new_normal_object(context);
+  GC_PUSH(ret);
   set_a(context, ret);
+  GC_POP(ret);
 }
 
 BUILTIN_FUNCTION(object_toString)
@@ -73,15 +77,17 @@ void init_builtin_object(Context *ctx)
 {
   JSValue obj, proto;
 
-  gconsts.g_object = obj =
+  obj = new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
     // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
-    new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
+  GC_PUSH(obj);
+  gconsts.g_object = obj;
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_object", obj_hidden_class(obj));
 #endif
 #endif
   proto = gconsts.g_object_proto;
+  GC_PUSH(proto);
   set_prototype_de(ctx, obj, proto);
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
@@ -102,6 +108,7 @@ void init_builtin_object(Context *ctx)
       p++;
     }
   }
+  GC_POP2(proto, obj);
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_function_proto", obj_hidden_class(gconsts.g_function_proto));
