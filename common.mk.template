@@ -32,6 +32,7 @@ endif
 
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
+CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
@@ -151,8 +152,9 @@ INSN_HANDCRAFT = \
          insns/typeof.inc \
          insns/unknown.inc
 
-CHECKFILES = $(patsubst %.o,%.c,$(OFILES))
-CHECKFILE_DIR = checkfiles
+CFILES = $(patsubst %.o,%.c,$(OFILES))
+CHECKFILES_DIR = checkfiles
+CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 
 ifeq ($(DATATYPES),)
 else
@@ -169,13 +171,24 @@ SEDCOM_GEN_INSN_TABLE = \
 SEDCOM_GEN_INSN_LABEL = \
   -e 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/' -e '/^\/\/.*/d'
 
+GCCHECK_PATTERN = ../gccheck.cocci
+
 ejsvm :: $(OFILES)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-check: $(CHECKFILES) $(HFILES) vmloop-cases.inc $(INSN_FILES)
-	mkdir -p $(CHECKFILE_DIR)
-	$(foreach SRC, $(CHECKFILES), $(CC) -E $(CFLAGS) $(SRC) > $(CHECKFILE_DIR)/$(SRC);)
-	$(foreach SRC, $(CHECKFILES), $(SPATCH) --sp-file ../gccheck.cocci $(CHECKFILE_DIR)/$(SRC);)
+
+$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
+	mkdir -p $(CHECKFILES_DIR)
+	$(CPP) $(CFLAGS) $< > $@
+
+$(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
+
+
+.PHONY: %.check
+%.c.check: $(CHECKFILES_DIR)/%.c
+	$(SPATCH) --sp-file $(GCCHECK_PATTERN) $<
+
+check: $(patsubst %.c,%.c.check,$(CFILES))
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def
 	$(SED) $(SEDCOM_GEN_INSN_OPCODE) $< > $@
