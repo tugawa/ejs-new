@@ -57,7 +57,7 @@ BUILTIN_FUNCTION(array_constr)
 
   builtin_prologue();
   rsv = new_normal_array(context); // this sets the `length' property to 0
-  gc_push_tmp_root(&rsv);
+  GC_PUSH(rsv);
   if (na == 0) {
     allocate_array_data(context, rsv, ASIZE_INIT, 0);
     set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
@@ -86,8 +86,8 @@ BUILTIN_FUNCTION(array_constr)
     for (i = 0; i < length; i++)
       array_body_index(rsv, i) = args[i + 1];
   }
+  GC_POP(rsv);
   set_a(context, rsv);
-  gc_pop_tmp_root(1);
 }
 
 BUILTIN_FUNCTION(array_toString)
@@ -203,8 +203,8 @@ BUILTIN_FUNCTION(array_concat)
 
   builtin_prologue();
   a = new_normal_array(context);
-  gc_push_tmp_root(&a);
   n = 0;
+  GC_PUSH(a);
   for (i = 0; i <= na; i++) {
     e = args[i];
     if (is_array(e)) {
@@ -213,8 +213,10 @@ BUILTIN_FUNCTION(array_concat)
       if (n + len > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
       while (k < len) {
         if (has_array_element(e, k)) {
+          GC_PUSH(e);
           subElement = get_array_prop(context, e, cint_to_fixnum(k));
           set_array_prop(context, a, cint_to_fixnum(n), subElement);
+          GC_POP(e);
         }
         n++;
         k++;
@@ -228,8 +230,8 @@ BUILTIN_FUNCTION(array_concat)
   // is the two lines below necessary?
   array_length(a) = n;
   set_prop_none(context, a, gconsts.g_string_length, cint_to_fixnum(n));
+  GC_POP(a);
   set_a(context, a);
-  gc_pop_tmp_root(1);
   return;
 
 #if 0
@@ -287,7 +289,9 @@ BUILTIN_FUNCTION(array_pop)
     ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
   delete_array_element(a, len);
   array_length(a) = len;
+  GC_PUSH(ret);
   set_prop_none(context, a, gconsts.g_string_length, flen);
+  GC_POP(ret);
   set_a(context, ret);
   return;
 }
@@ -305,8 +309,10 @@ BUILTIN_FUNCTION(array_push)
      The following for-loop is very inefficient.
      This is for simplicity of implementation.
    */
+  GC_PUSH(a);
   for (i = 1; i <= na; i++)
     set_array_prop(context, a, cint_to_fixnum(len++), args[i]);
+  GC_POP(a);
   ret = (len <= MAX_ARRAY_LENGTH)?
           cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
   set_a(context, ret);
@@ -322,17 +328,29 @@ BUILTIN_FUNCTION(array_reverse)
   builtin_prologue();
   len = array_length(args[0]);
   mid = len / 2;
+  // All right : MissingAdd, MissingInit RemoveToAlloc
   for (lower = 0; lower < mid; lower++) {
     upper = len - lower - 1;
     lowerExists = has_array_element(args[0], lower);
-    if (lowerExists)
+
+    if (lowerExists) {
       lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
-    upperExists = has_array_element(args[0], upper);
-    if (upperExists)
-      upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+      upperExists = has_array_element(args[0], upper);
+      if (upperExists) {
+        GC_PUSH(lowerValue);
+        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+        GC_POP(lowerValue);
+      }
+    } else {
+      upperExists = has_array_element(args[0], upper);
+      if (upperExists)
+        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+    }
 
     if (lowerExists && upperExists) {
+      GC_PUSH(lowerValue);
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
+      GC_POP(lowerValue);
       set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
     } else if (!lowerExists && upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
@@ -382,6 +400,7 @@ BUILTIN_FUNCTION(array_shift)
   }
 
   first = get_array_prop(context, args[0], cint_to_fixnum(0));
+  GC_PUSH(first);
   for (from = 1; from < len; from++) {
     to = from - 1;
     if (has_array_element(args[0], from)) {
@@ -395,6 +414,7 @@ BUILTIN_FUNCTION(array_shift)
   /* should reallocate (shorten) body array here? */
   array_length(args[0]) = --len;
   set_prop_none(context, args[0], gconsts.g_string_length, cint_to_fixnum(len));
+  GC_POP(first);
   set_a(context, first);
   return;
 
@@ -448,7 +468,9 @@ BUILTIN_FUNCTION(array_slice)
   end = (na >= 2)? args[2]: JS_UNDEFINED;
 
   len = array_length(args[0]);
+  GC_PUSH2(o, end);
   relativeStart = toInteger(context, start);
+  GC_POP(end);
 
   if (relativeStart < 0) k = max((len + relativeStart), 0);
   else k = min(relativeStart, len);
@@ -461,7 +483,7 @@ BUILTIN_FUNCTION(array_slice)
 
   count = max(final - k, 0);
   a = new_normal_array_with_size(context, count);
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   set_prop_all(context, a, gconsts.g_string___proto__, gconsts.g_array_proto);
 
   n = 0;
@@ -473,8 +495,8 @@ BUILTIN_FUNCTION(array_slice)
     k++;
     n++;
   }
+  GC_POP2(a, o);
   set_a(context, a);
-  gc_pop_tmp_root(1);
   return;
 
 #if 0
@@ -536,11 +558,18 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   char *xString, *yString;
   JSValue *stack, ret;
   int oldsp, oldfp;
-
-  if (is_undefined(x) && is_undefined(y)) return 0;
-  else if (is_undefined(x)) return 1;
-  else if (is_undefined(y)) return -1;
-  else if (is_function(comparefn) || (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
+  
+  GC_PUSH(y);
+  if (is_undefined(x) && is_undefined(y)) {
+    GC_POP(y);
+    return 0;
+  } else if (is_undefined(x)) {
+    GC_POP(y);
+    return 1;
+  } else if (is_undefined(y)) {
+    GC_POP(y);
+    return -1;
+  } else if (is_function(comparefn) || (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
     // printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),fixnum_to_cint(y));
     stack = &get_stack(context, 0);
     oldsp = get_sp(context);
@@ -548,6 +577,7 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     stack[oldsp] = y;
     stack[oldsp-1] = x;
     stack[oldsp-2] = context->global; // is receiver always global object?
+    GC_PUSH(x);
     if (is_function(comparefn)) {
       call_function(context, comparefn, 2, TRUE);
       vmrun_threaded(context, get_fp(context));
@@ -569,13 +599,25 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     set_sp(context, oldsp);
     /* should refine lines below? */
     ret = get_a(context);
-    if(is_nan(ret)) return FIXNUM_ZERO;
+    if(is_nan(ret)) {
+      GC_POP2(x, y);
+      return FIXNUM_ZERO;
+    }
     ret = to_number(context, ret);
-    if(is_fixnum(ret)) return fixnum_to_cint(ret);
-    else if(is_flonum(ret)) {
+    GC_POP(x);
+    if(is_fixnum(ret)){
+      GC_POP(y);
+      return fixnum_to_cint(ret);
+    } else if(is_flonum(ret)) {
       double dret = flonum_value(ret);
-      if (dret > 0) return fixnum_to_cint(1);
-      else if (dret < 0) return fixnum_to_cint(-1);
+      if (dret > 0) {
+        GC_POP(y);
+        return fixnum_to_cint(1);
+      } else if (dret < 0) {
+        GC_POP(y);
+        return fixnum_to_cint(-1);
+      }
+      GC_POP(y);
       return FIXNUM_ZERO;
     }
     //LOG_EXIT("to_number(ret) is not a number");
@@ -583,7 +625,10 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   {
     JSValue vx, vy;
     vx = to_string(context, x);
+    GC_POP(y);
+    GC_PUSH(vx);
     vy = to_string(context, y);
+    GC_POP(vx);
     xString = string_to_cstr(vx);
     yString = string_to_cstr(vy);
     return strcmp(xString, yString);
@@ -600,18 +645,25 @@ void swap(JSValue *a, JSValue *b) {
 void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
   JSValue aj, tmp;
   cint i, j;
-
+  GC_PUSH2(array, comparefn);
   for (i = l; i <= r; i++) {
     tmp = get_array_prop(context, array, cint_to_fixnum(i)); // tmp = a[i]
+    GC_PUSH(tmp);
     for (j = i - 1; l <= j; j--) {
       aj = get_array_prop(context, array, cint_to_fixnum(j));
+      GC_PUSH(aj);
       if (sortCompare(context, aj, tmp, comparefn) > 0)
         set_array_prop(context, array, cint_to_fixnum(j + 1), aj); // a[j+1] = a[j]
-      else
+      else {
+        GC_POP(aj);
         break;
+      }
+      GC_POP(aj);
     }
+    GC_POP(tmp);
     set_array_prop(context, array, cint_to_fixnum(j + 1), tmp); // a[j+1] = tmp;
   }
+  GC_POP2(comparefn, array);
 }
 
 void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
@@ -620,9 +672,13 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   /* Find pivot (2nd biggest value in a[l], a[r] and a[l+((r-l)/2)]) */
   JSValue v0, v1, v2;
   cint m = l + ((r - l) / 2);
+  GC_PUSH2(array, comparefn);
   v0 = get_array_prop(context, array, cint_to_fixnum(l));
+  GC_PUSH(v0);
   v1 = get_array_prop(context, array, cint_to_fixnum(m));
+  GC_PUSH(v1);
   v2 = get_array_prop(context, array, cint_to_fixnum(r));
+  GC_PUSH(v2);
   // Sort v0 v1 v2
   if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v0 < v1
   if (sortCompare(context, v1, v2, comparefn) > 0) { // v0 < v1 and v2 < v1
@@ -634,6 +690,7 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
                           l             i                                           j   r
     */
   p = v1;
+  GC_PUSH(p);
   set_array_prop(context, array, cint_to_fixnum(l), v0); // a[l] = v0
   set_array_prop(context, array, cint_to_fixnum(r), v2); // a[r] = v2
   set_array_prop(context, array, cint_to_fixnum(m), get_array_prop(context, array, cint_to_fixnum(l+1))); // a[m] = a[l+1]
@@ -647,12 +704,16 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
     if (i >= j) break;
     // Exchange a[i] and a[j]
     tmp = get_array_prop(context, array, cint_to_fixnum(i));
+    GC_PUSH(tmp);
     set_array_prop(context, array, cint_to_fixnum(i), get_array_prop(context, array, cint_to_fixnum(j)));
+    GC_POP(tmp);
     set_array_prop(context, array, cint_to_fixnum(j), tmp);
     i++;
     j--;
   }
+  GC_POP4(p, v2, v1, v0);
   asort(context, array, j + 1, r, comparefn);
+  GC_POP2(comparefn, array);
   asort(context, array, l, i - 1, comparefn);
 }
 
@@ -680,7 +741,9 @@ BUILTIN_FUNCTION(array_sort)
   obj = args[0];
   comparefn = args[1];
   len = array_length(obj);
+  GC_PUSH(obj);
   asort(context, obj, 0, len - 1, comparefn);
+  GC_POP(obj);
   set_a(context, obj);
   return;
 
@@ -754,11 +817,13 @@ BUILTIN_FUNCTION(array_debugarray)
   to = length < size? length: size;
   printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
 	 size, length, to);
+  GC_PUSH(a);
   for (i = 0; i < to; i++) {
     printf("i = %d: ", i);
     print_value_simple(context, array_body_index(a, i));
     printf("\n");
   }
+  GC_POP(a);
   set_a(context, JS_UNDEFINED);
   return;
 }
@@ -784,7 +849,9 @@ void init_builtin_array(Context *ctx)
 
   gconsts.g_array =
     new_normal_builtin_with_constr(ctx, array_constr, array_constr, 0);
-  gconsts.g_array_proto = proto = new_big_predef_object(ctx);
+  proto = new_big_predef_object(ctx);
+  GC_PUSH(proto);
+  gconsts.g_array_proto = proto;
   set_prototype_all(ctx, gconsts.g_array, proto);
   {
     ObjBuiltinProp *p = array_funcs;
@@ -794,4 +861,5 @@ void init_builtin_array(Context *ctx)
       p++;
     }
   }
+  GC_POP(proto);
 }
