@@ -313,6 +313,7 @@ int char_code_at(Context *context, JSValue str, JSValue a) {
   char *s;
   int n;
 
+  GC_PUSH2(a,str);
   if (!is_string(str)) str = to_string(context, str);
   if (is_fixnum(a)) n = fixnum_to_int(a);
   else if (is_flonum(a)) n = flonum_to_int(a);
@@ -325,7 +326,9 @@ int char_code_at(Context *context, JSValue str, JSValue a) {
       n = 0;
     }
   }
+  GC_POP(a);
   s = string_to_cstr(str);
+  GC_POP(str);
   return (0 <= n && n < string_length(str))? s[n]: -1;
 }
 
@@ -384,10 +387,12 @@ JSValue string_indexOf_(Context *context, JSValue *args, int na, int isLastIndex
   int delta;
 
   s0 = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  GC_PUSH(s0);
   s1 = is_string(args[1]) ? args[1] : to_string(context, args[1]);
   s = string_to_cstr(s0);
   searchStr = string_to_cstr(s1);
   len = string_length(s0);
+  GC_POP(s0);
   searchLen = string_length(s1);
 
   if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
@@ -577,9 +582,11 @@ BUILTIN_FUNCTION(string_localeCompare)
 
   builtin_prologue();
   s0 = to_string(context, args[0]);
+  GC_PUSH(s0);
   if (na >= 1) s1 = to_string(context, args[1]);
   else s1 = to_string(context, JS_UNDEFINED);
   cs0 = string_to_cstr(s0);
+  GC_POP(s0);
   cs1 = string_to_cstr(s1);
 
   /* implemantation-defined */
@@ -673,10 +680,10 @@ void init_builtin_string(Context *ctx)
 {
   JSValue str, proto;
 
-  gconsts.g_string = str =
-    new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
-  gconsts.g_string_proto = proto =
-    new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
+  str = gconsts.g_string = new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
+  GC_PUSH(str);
+  proto = gconsts.g_string_proto = new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
+  GC_PUSH(proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   set_prototype_de(ctx, str, proto);
   set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
@@ -688,5 +695,6 @@ void init_builtin_string(Context *ctx)
                         new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
+  GC_POP2(proto,str);
   }
 }
