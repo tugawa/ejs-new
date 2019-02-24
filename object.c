@@ -762,9 +762,11 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 
   // printf("new_simple_object\n");
   ret = make_simple_object(ctx);
+  GC_PUSH(ret);
   p = remove_simple_object_tag(ret);
   set_object_members(p, hsize, psize);
   set___proto___all(ctx, ret, gconsts.g_object_proto);
+  GC_POP(ret);
   return ret;
 }
 
@@ -777,12 +779,14 @@ JSValue new_array(Context *ctx, int hsize, int vsize) {
   ret = make_array(ctx);
   disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret), hsize, vsize);
+  GC_PUSH(ret);
   set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
   set_prop_none(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
   enable_gc(ctx);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(ret);
   return ret;
 }
 
@@ -797,10 +801,12 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
   disable_gc();  // disable GC unitl Array is properly initialised
   set_object_members(array_object_p(ret), hsize, vsize);
   allocate_array_data_critical(ret, size, size);
+  GC_PUSH(ret);
   set_prop_none(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
   enable_gc(ctx);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(ret);
   return ret;
 }
 
@@ -817,11 +823,13 @@ JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize)
   set_object_members(func_object_p(ret), hsize, vsize);
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
+  GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   set___proto___none(ctx, ret, gconsts.g_function_proto);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(ret);
   return ret;
 }
 
@@ -836,9 +844,11 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f, builtin_func
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
+  GC_PUSH(ret);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   // TODO: g_object_proto should be g_builtin_proto
   set___proto___none(ctx, ret, gconsts.g_object_proto);
+    GC_POP(ret);
   return ret;
 }
 
@@ -859,10 +869,10 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
   int index = 0;
   int size = 0;
 
-  gc_push_tmp_root(&obj);
+  //gc_push_tmp_root(&obj);
   ret = make_simple_iterator();
   JSValue tmpobj = obj;
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
 
   //allocate simple itearator
   do {
@@ -870,6 +880,7 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
       // obj, obj_header_tag(obj), obj_n_props(obj));
       size += obj_n_props(obj);
      } while (get___proto__(obj, &obj) == SUCCESS);
+  GC_PUSH(ret);
   allocate_simple_iterator_data(ctx, ret, size);
 
   obj = tmpobj;
@@ -881,8 +892,7 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
       simple_iterator_body_index(ret, index++) = key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
-
-  gc_pop_tmp_root(2);
+  GC_POP(ret);
   return ret;
 }
 
@@ -915,13 +925,16 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
 JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
-  gc_push_tmp_root(&v);
+  //gc_push_tmp_root(&v);
+  GC_PUSH(v);
   ret = make_number_object(ctx);
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
+  GC_PUSH(ret);
   set_object_members(number_object_object_ptr(ret), hsize, psize);
   number_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_number_proto);
-  gc_pop_tmp_root(2);
+  //gc_pop_tmp_root(2);
+  GC_POP2(ret,v);
   return ret;
 }
 
@@ -933,11 +946,13 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
 
   /* We do not need to gc_push v because v should be a boolean */
   ret = make_boolean_object(ctx);
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
   set_object_members(boolean_object_object_ptr(ret), hsize, psize);
   boolean_object_value(ret) = v;
+  GC_PUSH(ret);
   set___proto___none(ctx, ret, gconsts.g_boolean_proto);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(ret);
   return ret;
 }
 
@@ -947,16 +962,19 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
 JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   JSValue ret;
 
-  gc_push_tmp_root(&v);
+  //gc_push_tmp_root(&v);
+  GC_PUSH(v);
   ret = make_string_object(ctx);
-  gc_push_tmp_root(&ret);
+  //gc_push_tmp_root(&ret);
   set_object_members(string_object_object_ptr(ret), hsize, psize);
   string_object_value(ret) = v;
+  GC_PUSH(ret);
   set___proto___none(ctx, ret, gconsts.g_string_proto);
   // A boxed string has a property ``length'' whose associated value
   // is the length of the string.
   set_prop_all(ctx, ret, gconsts.g_string_length, int_to_fixnum(strlen(string_to_cstr(v))));
-  gc_pop_tmp_root(2);
+  //gc_pop_tmp_root(2);
+  GC_POP2(ret,v);
   return ret;
 }
 
@@ -993,9 +1011,11 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  gc_push_tmp_root((JSValue *)&c);
+  //gc_push_tmp_root((JSValue *)&c);
+  GC_PUSH(c);
   enable_gc(ctx);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(c);
   n_hc++;
   return c;
 }
@@ -1008,6 +1028,7 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   Map *a;
   int ne;
 
+  GC_PUSH(oldc);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
   disable_gc();
   a = malloc_hashtable();
@@ -1018,9 +1039,11 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  gc_push_tmp_root((JSValue *)&c);
+  //gc_push_tmp_root((JSValue *)&c);
+  GC_PUSH(c);
   enable_gc(ctx);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP2(c,oldc);
   n_hc++;
   return c;
 }

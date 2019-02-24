@@ -29,12 +29,14 @@ BUILTIN_FUNCTION(number_constr)
 {
   JSValue rsv;
 
-  builtin_prologue();  
+  builtin_prologue();
   rsv = new_normal_number_object(context, FIXNUM_ZERO);
+  GC_PUSH(rsv);
   // set___proto___all(context, rsv, gconsts.g_number_proto);
   if (na > 0)
     number_object_value(rsv) = to_number(context, args[1]);
   set_a(context, rsv);
+  GC_POP(rsv);
 }
 
 // Number(arg)
@@ -146,11 +148,15 @@ void init_builtin_number(Context *ctx)
 {
   JSValue n, proto;
 
-  gconsts.g_number = n =
-    new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
-  gconsts.g_number_proto = proto =
-    new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  
+  n = new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
+  GC_PUSH(n);
+  gconsts.g_number = n;
+  proto = new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  GC_PUSH(proto);
+  gconsts.g_number_proto = proto;
   set___proto___all(ctx, proto, gconsts.g_object_proto);
+
   set_prototype_de(ctx, n, proto);
   set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
   set_obj_cstr_prop(ctx, n, "NEGATIVE_INFINITY",
@@ -171,5 +177,6 @@ void init_builtin_number(Context *ctx)
       p++;
     }
   }
+  GC_POP2(proto, n);
 }
 

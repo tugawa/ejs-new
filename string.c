@@ -74,15 +74,17 @@ void string_table_put(Context *context, JSValue v, uint32_t hash)
 
   assert(is_string(v));
   
-  gc_push_tmp_root(&v);
+  //gc_push_tmp_root(&v);
+  GC_PUSH(v);
   c = (StrCons*) gc_malloc(context, sizeof(StrCons), HTAG_STR_CONS);
   c->str = v;
+  GC_POP(v);
   index = hash % string_table.size;
   if (string_table.obvector[index] == NULL)
     string_table.count++;
   c->next = string_table.obvector[index];
   string_table.obvector[index] = c;
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
 }
 
 /*
@@ -118,8 +120,8 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
 			   string_value(v2), len2, hash, &v))
     return v;
 
-  gc_push_tmp_root(&v1);
-  gc_push_tmp_root(&v2);
+  //gc_push_tmp_root(&v1);
+  //gc_push_tmp_root(&v2);
   p = allocate_string(len1 + len2);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
@@ -127,9 +129,11 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
   memcpy(p->value, string_value(v1), len1);
   memcpy(p->value + len1, string_value(v2), len2 + 1);
   v = put_normal_string_tag(p);
-  gc_push_tmp_root(&v);
+  GC_PUSH(v);
+  //gc_push_tmp_root(&v);
   string_table_put(context, v, hash);
-  gc_pop_tmp_root(3);
+  GC_POP(v);
+  //gc_pop_tmp_root(3);
   return v;
 }
 
@@ -153,9 +157,11 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, s, len + 1);
   v = put_normal_string_tag(p);
-  gc_push_tmp_root(&v);
+  //gc_push_tmp_root(&v);
+  GC_PUSH(v);
   string_table_put(context, v, hash);
-  gc_pop_tmp_root(1);
+  //gc_pop_tmp_root(1);
+  GC_POP(v);
   return v;
 }
 

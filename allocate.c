@@ -94,14 +94,14 @@ void allocate_array_data(Context *ctx, JSValue a, int size, int len)
   JSValue *body;
   int i;
 
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
 			       HTAG_ARRAY_DATA);
+  GC_POP(a);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
   array_length(a) = len;
-  gc_pop_tmp_root(1);
 }
 
 /*
@@ -113,14 +113,14 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   JSValue *body, *oldbody;
   int i;
 
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
 			       HTAG_ARRAY_DATA);
+  GC_POP(a);
   oldbody = array_body(a);
   for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
   array_body(a) = body;
   array_size(a) = newsize;
-  gc_pop_tmp_root(1);
 }
 
 /*
@@ -194,14 +194,15 @@ void allocate_simple_iterator_data(Context *ctx, JSValue a, int size)
 {
   JSValue *body;
   int i;
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
 			       HTAG_ARRAY_DATA);
+  GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
   simple_iterator_body(a) = body;
   simple_iterator_size(a) = size;
   simple_iterator_index(a) = 0;
-  gc_pop_tmp_root(1);
+
 }
 
 /*

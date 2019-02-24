@@ -31,10 +31,12 @@ BUILTIN_FUNCTION(boolean_constr)
 
   builtin_prologue();  
   rsv = new_normal_boolean_object(context, JS_TRUE);
+  GC_PUSH(rsv);
   set___proto___all(context, rsv, gconsts.g_boolean_proto);
   if (na > 0)
     boolean_object_value(rsv) = to_boolean(args[1]);
   set_a(context, rsv);
+  GC_POP(rsv);
 }
 
 BUILTIN_FUNCTION(boolean_valueOf)
@@ -57,9 +59,12 @@ void init_builtin_boolean(Context *ctx)
 {
   JSValue b, proto;
 
-  gconsts.g_boolean = b = new_normal_builtin(ctx, boolean_constr, 1);
-  gconsts.g_boolean_proto = proto =
-    new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
+  b = new_normal_builtin(ctx, boolean_constr, 1);
+  GC_PUSH(b);
+  gconsts.g_boolean = b;
+  proto = new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
+  gconsts.g_boolean_proto = proto;
+  GC_PUSH(proto);
   set_prototype_de(ctx, b, proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   {
@@ -70,4 +75,5 @@ void init_builtin_boolean(Context *ctx)
       p++;
     }
   }
+  GC_POP2(proto, b);
 }
