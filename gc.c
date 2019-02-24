@@ -109,9 +109,17 @@ STATIC struct space js_space;
 #ifdef GC_DEBUG
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
+
+/* old gc root stack (to be obsolete) */
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
+
+/* new gc root stack */
+#define MAX_ROOTS 1000
+STATIC JSValue *gc_root_stack[MAX_ROOTS];
+STATIC int gc_root_stack_ptr = 0;
+
 STATIC int gc_disabled = 1;
 
 int generation = 0;
@@ -258,6 +266,7 @@ void init_memory()
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
 #endif /* GC_DEBUG */
   tmp_roots_sp = -1;
+  gc_root_stack_ptr = 0;
   gc_disabled = 0;
   generation = 1;
   gc_sec = 0;
@@ -285,6 +294,22 @@ void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3)
 void gc_pop_tmp_root(int n)
 {
   tmp_roots_sp -= n;
+}
+
+void gc_push_checked(void *addr)
+{
+  gc_root_stack[gc_root_stack_ptr++] = (JSValue *) addr;
+}
+
+void gc_pop_checked(void *addr)
+{
+#ifdef GC_DEBUG
+  if (gc_root_stack[gc_root_stack_ptr - 1] != (JSValue *) addr) {
+    fprintf(stderr, "GC_POP pointer does not match\n");
+    abort();
+  }
+#endif /* GC_DEBUG */
+  gc_root_stack[--gc_root_stack_ptr] = NULL;
 }
 
 cell_type_t gc_obj_header_type(void *p)
@@ -801,8 +826,12 @@ STATIC void scan_roots(Context *ctx)
   /*
    * tmp root
    */
+  /* old gc root stack */
   for (i = 0; i <= tmp_roots_sp; i++)
     trace_root_pointer((void **) tmp_roots[i]);
+  /* new gc root stack */
+  for (i = 0; i < gc_root_stack_ptr; i++)
+    trace_root_pointer((void **) gc_root_stack[i]);
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
