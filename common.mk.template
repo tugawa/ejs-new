@@ -17,6 +17,8 @@ LIBS=-L/opt/local/lib
 
 SED = gsed
 RUBY = ruby
+SPATCH = spatch
+# --python /opt/local/bin/python2.7
 
 ######################################################
 
@@ -149,6 +151,9 @@ INSN_HANDCRAFT = \
          insns/typeof.inc \
          insns/unknown.inc
 
+CHECKFILES = $(patsubst %.o,%.c,$(OFILES))
+CHECKFILE_DIR = checkfiles
+
 ifeq ($(DATATYPES),)
 else
 	CFLAGS += -DUSE_TYPES_GENERATED=1
@@ -166,6 +171,11 @@ SEDCOM_GEN_INSN_LABEL = \
 
 ejsvm :: $(OFILES)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+check: $(CHECKFILES) $(HFILES) vmloop-cases.inc $(INSN_FILES)
+	mkdir -p $(CHECKFILE_DIR)
+	$(foreach SRC, $(CHECKFILES), $(CC) -E $(CFLAGS) $(SRC) > $(CHECKFILE_DIR)/$(SRC);)
+	$(foreach SRC, $(CHECKFILES), $(SPATCH) --sp-file ../gccheck.cocci $(CHECKFILE_DIR)/$(SRC);)
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def
 	$(SED) $(SEDCOM_GEN_INSN_OPCODE) $< > $@
@@ -217,4 +227,6 @@ types-generated.h: $(DATATYPES)
 clean:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
 	rm -rf insns
+
+.PHONY: check clean
 
