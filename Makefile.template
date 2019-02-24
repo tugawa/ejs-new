@@ -23,9 +23,12 @@ INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 
 CC = gcc
 SED = gsed
+# SED = sed
 RUBY = ruby
 PYTHON = python
+# PYTHON = python3
 COCCINELLE = spatch
+# COCCINELLE = spatch --python python3
 
 ##
 ## paths
