@@ -339,9 +339,14 @@ JSValue object_to_string(Context *context, JSValue v) {
     else printf("toString is ???\n");
     printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
     */
+    GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
-    else goto NEXT0;
+    else {
+      GC_POP(v);
+      goto NEXT0;
+    }
+    GC_POP(v);
     // printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
@@ -374,25 +379,37 @@ JSValue object_to_number(Context *context, JSValue v) {
     return FIXNUM_ZERO;
   }
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+    GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
-    else goto NEXT0;
+    else {
+      GC_POP(v);
+      goto NEXT0;
+    }
+    GC_POP(v);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
 NEXT0:
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
+    GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
-    else goto NEXT1;
+    else {
+      GC_POP(v);
+      goto NEXT1;
+    }
+    GC_POP(v);
     if (is_number(f)) return f;
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
 NEXT1:
+  GC_PUSH(f); // All right: MissingInit
   print_value_simple(context, v); putchar('\n');
   print_value_simple(context, f); putchar('\n');
+  GC_POP(f);
   type_error_exception("neither valueOf nor toString returned a number in object_to_number");
   return FIXNUM_ZERO;       // not reached
 
@@ -434,9 +451,14 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
     snd = gconsts.g_string_tostring;
   }
   if ((f = get_prop_prototype_chain(v, fst)) != JS_UNDEFINED) {
+    GC_PUSH2(v, snd);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
-    else goto NEXT0;
+    else {
+      GC_POP2(snd, v);
+      goto NEXT0;
+    }
+    GC_POP2(snd, v);
     if (is_primitive(f)) return f;
   }
 NEXT0:
@@ -490,7 +512,9 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   sumlen = 0;
 
   for (i = 0; i < length; i++) {
+    GC_PUSH(array);
     item = get_array_prop(context, array, cint_to_fixnum(i));
+    GC_POP(array);
     strs[i] = to_string(NULL, item);
     sumlen += string_length(strs[i]);
   }
@@ -597,7 +621,7 @@ double to_double(Context *context, JSValue v) {
     p = string_value(v);
     if (p[0] == '\0') return (double)0.0;
     n = strtol(p, &q, 10);
-    if (p != q && *q == '\0') return (double)n;  // succeeded 
+    if (p != q && *q == '\0') return (double)n;  // succeeded
     d = strtod(p, &q);
     if (p != q && *q == '\0') return d;
     return NAN;
