@@ -220,7 +220,6 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 endif
 
 %.c: $(EJSVM_DIR)/%.c
-	echo DEFUALT_C_RULE: $@
 	cp $< $@
 
 %.h: $(EJSVM_DIR)/%.h
