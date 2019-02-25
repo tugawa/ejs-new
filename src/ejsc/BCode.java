@@ -158,7 +158,6 @@ public class BCode {
 				"typeof",
 				"not",
 				"new",
-				"getidx",
 				"isundef",
 				"isobject",
 				"setfl",
@@ -175,8 +174,8 @@ public class BCode {
 				"getlocal",
 				"setlocal",
 				"makeclosure",
-				"makeiterator",
-				"nextpropname",
+				"makesimpleiterator",
+				"nextpropnameidx",
 				"send",
 				"newsend",
 				"call",
@@ -190,8 +189,7 @@ public class BCode {
 				"poplocal",
 				"error",
 				"unknown",
-				"end",
-				"hoge"
+				"end"
 		};
 		
 		
