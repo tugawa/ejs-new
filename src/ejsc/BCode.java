@@ -25,10 +25,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ejsc.Main.Info;
+import ejsc.Main.Info.SISpecInfo;
+import ejsc.Main.Info.SISpecInfo.SISpec;
 
 public class BCode {
     CodeMaker cm = new CodeMaker();
@@ -207,8 +207,8 @@ public class BCode {
             return makecode(makeopcode(opcode), op1, op2, op3);
         }
         public String makecode(String opcode, String op1, String op2, String op3) {
-            Main.Info.SISpecInfo.SISpec sispec = Main.Info.SISpecInfo.getSISpecBySIName(opcode);
-            return makecode(Main.Info.SISpecInfo.getOpcodeIndex(opcode),
+            SISpec sispec = SISpecInfo.getSISpecBySIName(opcode);
+            return makecode(SISpecInfo.getOpcodeIndex(opcode),
                             makeoperand(op1, sispec.op0),
                             makeoperand(op2, sispec.op1),
                             makeoperand(op3, sispec.op2));
@@ -317,7 +317,7 @@ public class BCode {
         }
 
         int makeopcode(String opcode) {
-            return Main.Info.getOpcodeIndex(opcode);
+            return Info.getOpcodeIndex(opcode);
         }
         
         int makeoperand(String op, String type) {

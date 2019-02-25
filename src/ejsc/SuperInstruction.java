@@ -3,6 +3,9 @@ package ejsc;
 import java.util.ArrayList;
 import java.util.List;
 
+import ejsc.Main.Info.SISpecInfo;
+import ejsc.Main.Info.SISpecInfo.SISpec;
+
 public class SuperInstruction {
     class Environment {
         CBCode bc;
@@ -30,15 +33,15 @@ public class SuperInstruction {
         }
     }
 
-    CBCode makeSuperInsn(CBCode bc, Main.Info.SISpecInfo.SISpec insn) {
+    CBCode makeSuperInsn(CBCode bc, SISpec insn) {
         return evalSuperInsn(new Environment(bc), bc, insn);
     }
 
-    public CBCode evalSuperInsn(Environment env, CBCode bc, Main.Info.SISpecInfo.SISpec insn) {
+    public CBCode evalSuperInsn(Environment env, CBCode bc, SISpec insn) {
         return evalCBCode(env, bc, insn);
     }
 
-    protected CBCode evalCBCode(Environment env, CBCode bc, Main.Info.SISpecInfo.SISpec spec) {
+    protected CBCode evalCBCode(Environment env, CBCode bc, SISpec spec) {
         Argument store = null, load1 = null, load2 = null;
         if (spec.op0.equals("-") || spec.op0.equals("_")) {
             store = bc.store;
@@ -98,12 +101,12 @@ public class SuperInstruction {
         List<CBCode> newBCodes = new ArrayList<CBCode>(bcodes.size());
 
         for (CBCode bcode : bcodes) {
-            if (!Main.Info.SISpecInfo.containByInsnName(bcode.getInsnName())) {
+            if (!SISpecInfo.containByInsnName(bcode.getInsnName())) {
                 newBCodes.add(bcode);
                 continue;
             }
             CBCode newBC = null;
-            for (Main.Info.SISpecInfo.SISpec spec : Main.Info.SISpecInfo.getSISpecsByInsnName(bcode.getInsnName())) {
+            for (SISpec spec : SISpecInfo.getSISpecsByInsnName(bcode.getInsnName())) {
                 CBCode bc = makeSuperInsn(bcode, spec);
                 if (bc != null)
                     newBC = bc;
