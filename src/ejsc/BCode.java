@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class BCode {
+	CodeMaker cm = new CodeMaker();
     int number;
     protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
@@ -79,50 +80,261 @@ public class BCode {
     	}
     
     String toString(String opcode) {
-        return opcode;
+        return cm.makecode(opcode);
     }
 
     String toString(String opcode, Register op1) {
-        return opcode + " " + op1;
+    	return cm.makecode(opcode, op1.n);
     }
     String toString(String opcode, Register op1, Register op2) {
-        return opcode + " " + op1 + " " + op2;
+    	return cm.makecode(opcode, op1.n, op2.n);
     }
     String toString(String opcode, Register op1, Register op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    	return cm.makecode(opcode, op1.n, op2.n, op3.n);
     }
 
     String toString(String opcode, Register op1, String op2) {
-        return opcode + " " + op1 + " " + op2;
+    	return cm.makecode(opcode, op1.n, op2);
     }
 
     String toString(String opcode, Register op1, int op2) {
-        return opcode + " " + op1 + " " + op2;
+    	return cm.makecode(opcode, op1.n, op2);
     }
     String toString(String opcode, Register op1, double op2) {
-        return opcode + " " + op1 + " " + op2;
+    	return cm.makecode(opcode, op1.n, op2) ;
     }
     String toString(String opcode, Register op1, int op2, int op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    	return cm.makecode(opcode, op1.n, op2, op3);
     }
     String toString(String opcode, Register op1, int op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    	return cm.makecode(opcode, op1.n, op2, op3.n);
     }
     String toString(String opcode, int op1, int op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    	return cm.makecode(opcode, op1, op2, op3.n);
     }
 
     String toString(String opcode, int op1) {
-        return opcode + " " + op1;
+    	return cm.makecode(opcode, op1);
     }
 
     String toString(String opcode, int op1, int op2) {
-        return opcode + " " + op1 + " " + op2;
+    	return cm.makecode(opcode, op1, op2);
     }
 
     String toString(String opcode, Register op1, int op2, String op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    	return cm.makecode(opcode, op1.n, op2);
     }
+    class CodeMaker {
+    	// 読み込む
+		String[] insn_table = {
+				"fixnum",
+				"specconst",
+				"string",
+				"regexp",
+				"number",
+				"add",
+				"sub",
+				"mul",
+				"div",
+				"mod",
+				"bitand",
+				"bitor",
+				"leftshift",
+				"rightshift",
+				"unsignedrightshift",
+				"lessthan",
+				"lessthanequal",
+				"eq",
+				"equal",
+				"getarg",
+				"setarg",
+				"getprop",
+				"setprop",
+				"setarray",
+				"getglobal",
+				"setglobal",
+				"instanceof",
+				"move",
+				"typeof",
+				"not",
+				"new",
+				"getidx",
+				"isundef",
+				"isobject",
+				"setfl",
+				"seta",
+				"geta",
+				"geterr",
+				"getglobalobj",
+				"newframe",
+				"ret",
+				"nop",
+				"jump",
+				"jumptrue",
+				"jumpfalse",
+				"getlocal",
+				"setlocal",
+				"makeclosure",
+				"makeiterator",
+				"nextpropname",
+				"send",
+				"newsend",
+				"call",
+				"tailsend",
+				"tailcall",
+				"pushhandler",
+				"pophandler",
+				"throw",
+				"localcall",
+				"localret",
+				"poplocal",
+				"error",
+				"unknown",
+				"end",
+				"hoge"
+		};
+		
+		
+		public CodeMaker() {
+		}
+		
+		public String makecode(int opcode, int op1, int op2, int op3) {
+			return String.format("%04x%04x%04x%04x", 
+					opcode, op1&0xffff, op2&0xffff, op3&0xffff);
+		}
+		
+		public String makecode(String opcode) {
+			return makecode(makeopcode(opcode), 0, 0, 0);
+		}
+		
+		public String makecode(String opcode, int op1) {
+			int c = makeopcode(opcode);
+			if(c == -1)
+	    		return String.format("%04x", op1);
+			return makecode(c, op1, 0, 0);
+		}
+		public String makecode(String opcode, int op1, int op2) {
+			if(opcode.contentEquals("fixnum"))
+				return makecode(makeopcode(opcode), op1,
+						(op2 >> 16)&0xffff, (op2 & 0xffff));
+			return makecode(makeopcode(opcode), op1, op2, 0);
+		}
+		public String makecode(String opcode, int op1, int op2, int op3) {
+			return makecode(makeopcode(opcode), op1, op2, op3);
+		}
+		
+		public String makecode(String opcode, int op1, String op2) {
+			int value = 0;
+			if(op2.contentEquals("true") ||
+					op2.contentEquals("false") ||
+					op2.contentEquals("null") ||
+					op2.contentEquals("undefined")) {
+				if(op2.contentEquals("true"))
+					value = 0x1e;
+				else if(op2.contentEquals("false"))
+					value = 0x0e;
+				else if(op2.contentEquals("null"))
+					value = 0x06;
+				else if(op2.contentEquals("undefined"))
+					value = 0x16;
+				return makecode(makeopcode(opcode), op1,
+						value >> 16, value & 0xffff);
+			}
+			int i;
+			char[] name = op2.toCharArray();
+			int[] bins = new int[name.length];
+			char tmp = '\0';
+			// System.out.println(op2);
+			for(i=1;i<name.length-1;i++) {
+				// System.out.println(i + ":" + name[i]);
+				if(i%2==0) bins[i/2-1] = tmp << 8 | name[i];
+				tmp = name[i];
+				value++;
+				if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
+			}
+			return makecode(makeopcode(opcode), op1,
+					value & 0xffff, 0) + names(bins);
+		}
+		
+		String names(int[] bins) {
+			int i;
+			String str="";
+			for(i=0;bins[i]!=0;i++) {
+				if((bins[i] & 0xffff)==0)
+					str = str + String.format("02x", bins[i]>>8);
+				str = str + String.format("%04x", bins[i]);
+			}
+			//System.out.println(str);
+			return str;
+		}
+		
+		String makecode(String opcode, int op1, double op2) {
+			return makecode(makeopcode(opcode), op1,
+					8, 0) + nums(op2);
+		}
+		
+		String nums(double op) {
+			int i;
+			double num = op;
+			int sign = 0;
+			int index = 0;
+			double mant = 0;
+			int amant[] = new int[52];
+			String str="";
+			
+			// 指数部
+			if(op<0) {
+				sign = 1;
+				num *= -1.0;
+			}
+			
+			mant = num;
+			if(num == 0.0) {
+				return "1000000000000000";
+			} else if(num>2.0) {
+				while(mant>=2.0) {
+					// System.out.println(mant);
+					mant /= 2.0;
+					index += 1;
+				}
+			} else if(num<=1.0) {
+				while(1.0>mant) {
+					mant *= 2.0;
+					index -= 1;
+				}
+			}
+			// System.out.println(mant);
+			
+			double tmp = mant-1.0;
+			for(i=0;i<52;i++) {
+				// System.out.print(tmp+"/");
+				tmp*=2.0;
+				if((int)tmp==1) {
+					tmp-=1.0;
+					amant[i] = 1;
+				} else {
+					amant[i] = 0;
+				}
+			}
+			
+			str += String.format("%03x", sign*2048 + index + 1023);
+			for(i=0;i<13;i++) {
+				int a = amant[i*4]*8 + amant[i*4+1]*4 + amant[i*4+2]*2 + amant[i*4+3];
+				str += String.format("%x", a);
+			}
+			
+            return str;
+        }
+		
+        int makeopcode(String opcode) {
+			int i;
+			for(i=0;i<insn_table.length;i++) {
+				if(opcode.equals(insn_table[i]))
+					return i;
+			}
+			return -1;
+		}
+	}
 }
 
 
