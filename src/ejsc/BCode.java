@@ -304,7 +304,7 @@ public class BCode {
                 if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
             }
             return makecode(makeopcode(opcode), op1,
-                    value & 0xffff, 0) + names(bins);
+                    value & 0xffff, 0) + "010" + names(bins);
         }
 
         String names(int[] bins) {
@@ -321,7 +321,7 @@ public class BCode {
 
         String makecode(String opcode, int op1, double op2) {
             return makecode(makeopcode(opcode), op1,
-                    8, 0) + nums(op2);
+                    8, 0) + "010" + nums(op2);
         }
 
         String nums(double op) {
@@ -373,7 +373,6 @@ public class BCode {
                 int a = amant[i*4]*8 + amant[i*4+1]*4 + amant[i*4+2]*2 + amant[i*4+3];
                 str += String.format("%x", a);
             }
-
             return str;
         }
 
