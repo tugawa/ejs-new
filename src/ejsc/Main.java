@@ -21,20 +21,24 @@
      Hideya Iwasaki, 2012-14
 */
 package ejsc;
-import org.antlr.v4.runtime.ANTLRInputStream;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-
-import ejsc.antlr.*;
-
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.BufferedWriter;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.ArrayList;
+
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+
+import ejsc.antlr.ECMAScriptLexer;
+import ejsc.antlr.ECMAScriptParser;
 
 
 public class Main {
@@ -43,6 +47,7 @@ public class Main {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
         String specFile;
+        int baseFunctionNumber = 0;
 		enum OptLocals {
 				NONE,
 				PROSYM,
@@ -66,6 +71,7 @@ public class Main {
         boolean optCBCSuperInstruction = false;
         boolean optCBCRedunantInstructionElimination = false;
         boolean optCBCRegisterAssignment = false;
+        boolean optOutOBC = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -136,7 +142,12 @@ public class Main {
 						break;
 					case "-opt-cbc-reg":
 						info.optCBCRegisterAssignment = true;
+					case "-fn":
+						info.baseFunctionNumber = Integer.parseInt(args[++i]);
 						break;
+					case "--out-obc":
+					    info.optOutOBC = true;
+					    break;
 					default:
 						throw new Error("unknown option: "+args[i]);
                     }
@@ -149,9 +160,9 @@ public class Main {
             } else if (info.outputFileName == null) {
                 int pos = info.inputFileName.lastIndexOf(".");
                 if (pos != -1) {
-                    info.outputFileName = info.inputFileName.substring(0, pos) + ".sbc";
+                    info.outputFileName = info.inputFileName.substring(0, pos) + ".obc";
                 } else {
-                    info.outputFileName = info.inputFileName + ".sbc";
+                    info.outputFileName = info.inputFileName + ".obc";
                 }
             }
             return info;
@@ -165,10 +176,136 @@ public class Main {
             for (Object bc : bcodes) {
                 pw.println(bc.toString());
             }
-            pw.close();
+            //pw.close();
         } catch(IOException e) {
             System.out.println(e);
         }
+    }
+
+    void writeBCodeToOBCFile(List<BCode> bcodes, String filename, int basefn) {
+        LiteralList ll = new LiteralList();
+        try {
+            File file = new File(filename);
+            PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+            FileOutputStream fo = null;
+            BufferedOutputStream bo = null;
+            
+            try {
+                bo = new BufferedOutputStream(new FileOutputStream(file));
+                int n = 0;
+                
+                /* nfunc */
+                String tmpstr = bcodes.get(n++).toByteString();
+                int nfunc = Integer.parseInt(tmpstr,16);
+                char[] tmp = tmpstr.toCharArray();
+                for(int i=0;i<2;i++)
+                    bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
+                
+                /* for each functions */
+                for(int k=0;k<nfunc;k++) {
+
+                    ll.init();
+                    
+                    /* headers */
+                    for(int j=0;j<4;j++) {
+                        tmpstr = bcodes.get(n++).toByteString();
+                        tmp = tmpstr.toCharArray();
+                        for(int i=0;i<2;i++)
+                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
+                    }
+                    int ninsn = Integer.parseInt(tmpstr,16);
+                    
+                    /* instructions */
+                    for(int j=0;j<ninsn;j++) {
+                        tmp = bcodes.get(n++).toByteString().toCharArray();
+                        int opcode = Integer.parseInt(String.format("%c%c%c%c",tmp[0], tmp[1], tmp[2], tmp[3]),16);
+                        if(tmp.length>16) {
+                            int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[8], tmp[9], tmp[10], tmp[11]),16);
+                            String str="";
+                            for(int i=0;i<nchar;i++) str += String.format("%c%c", tmp[16+i*2], tmp[16+i*2+1]);
+                            if(opcode==2 || opcode==61) {
+                                str += "00";
+                                nchar++;
+                            }
+                            int index = ll.add(str);
+                            //System.out.println(index);
+                            if(index<0) {
+                                nchar = 0;
+                                index = (index+1) * (-1);
+                            }
+                            char[] new_nchar = String.format("%04x", nchar).toCharArray();
+                            for(int i=0;i<4;i++)
+                                tmp[8+i] = new_nchar[i];
+                            char[] ret = String.format("%04x", index & 0xffff).toCharArray();
+                            for(int i=0;i<4;i++)
+                                tmp[12+i] = ret[i];
+                        }
+                        
+                        if(basefn != 0 && opcode == 47) {
+                            int fn = Integer.parseInt(String.format("%c%c%c%c", tmp[8], tmp[9], tmp[10], tmp[11]),16);
+                            //System.out.println("overwrite " + fn + " to " + (fn+basefn));
+                            fn += basefn;
+                            char[] newfn = String.format("%04x", fn).toCharArray();
+                            for(int i=0;i<4;i++)
+                                tmp[8+i] = newfn[i];
+                        }
+                        
+                        for(int i=0;i<8;i++) {
+                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
+                        }
+                    }
+                    
+                    // Literals
+                    for(int j=0;j<ll.list().size();j++) {
+                        tmp = ll.list().get(j).toCharArray();
+                        for(int i=0;i<tmp.length/2;i++)
+                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
+                    }
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            } finally {
+                try {
+                    //出力ストリームを閉じる
+                    bo.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch(IOException e) {
+            System.out.println(e);
+        }
+    }
+    
+    //byte[] convertToByte(String hexString) {
+    void ByteWriter(BufferedOutputStream bo, String hexString, LiteralList ll) {
+    	//System.out.println(hexString);
+    	char[] hex = hexString.toCharArray();
+    	// 1010 byte[] ret = new byte[1024];
+    	int num = 0, it = 8;
+    	
+    	//System.out.println(hexString);
+    	if(hex.length>16) {
+    		num = Integer.parseInt(String.format("%c%c%c%c",hex[8], hex[9], hex[10], hex[11]),16);
+    	    String str="";
+    	    for(int i=0;i<num;i++) str += hex[16+i];
+    	    str += "00";
+    	    char[] ret = String.format("%04x", ll.add(str) & 0xffff).toCharArray();
+    	    for(int i=0;i<4;i++)
+    	    	hex[12+i] = ret[i];
+    	}
+    	
+    	if(hex.length==4)
+    		it = 2;
+     
+    	for(int i=0;i<it;i++) {
+    	    // System.out.println(String.format("%c%c", hex[i*2], hex[i*2+1]));
+    		try {
+        	    bo.write((byte)Integer.parseInt(String.format("%c%c", hex[i*2], hex[i*2+1]),16));
+    		} catch (Exception e){
+                e.printStackTrace();
+    		}
+    	}
     }
 
 
@@ -285,10 +422,50 @@ public class Main {
         }
         List<BCode> bcodes = bcBuilder.build(info);
 
-        writeBCodeToSBCFile(bcodes, info.outputFileName);
+        if (info.optOutOBC)
+            writeBCodeToOBCFile(bcodes, info.outputFileName, info.baseFunctionNumber);
+        else
+            writeBCodeToSBCFile(bcodes, info.outputFileName);
     }
 
     public static void main(String[] args) throws IOException {
         new Main().run(args);
     }
+}
+
+class LiteralList {
+	List<String> list;
+	
+	LiteralList(){
+		list = new ArrayList<String>();
+	}
+	
+	void init() {
+		list.clear();
+	}
+	
+	int add(String code) {
+		int index;
+		//System.out.print(code + ", loaded, ");
+		if((index=lookup(code))==-1) {
+			list.add(code);
+			return list.size()-1;
+		}
+		return index * (-1) - 1;
+	}
+	
+	int lookup(String code) {
+		int i = 0;
+		for(i=0;i<list.size();i++)
+			if(list.get(i).equals(code)) return i;
+		return -1;
+	}
+	
+	int size() {
+		return list.size();
+	}
+	
+	List<String> list() {
+		return list;
+	}
 }
