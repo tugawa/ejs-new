@@ -25,13 +25,18 @@ import java.io.BufferedWriter;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -46,7 +51,7 @@ public class Main {
     static class Info {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
-        String specFile;
+        String specFilePath;
         int baseFunctionNumber = 0;
 		enum OptLocals {
 				NONE,
@@ -129,7 +134,7 @@ public class Main {
 					    break;
 					case "-opt-si":
 						info.optSuperInstruction = true;
-						info.specFile = args[++i];
+						info.specFilePath = args[++i];
 						break;
 					case "-out-cbc":
 						info.outCompactByteCode = true;
@@ -169,6 +174,65 @@ public class Main {
         }
     }
 
+    class SISpecInfo {
+        LinkedList<SISpec> sispecs;
+        class SISpec {
+            String insnName, op0, op1, op2, newInsnName;
+            SISpec(String insnName, String op0, String op1, String op2, String newInsnName) {
+                this.insnName = insnName;
+                this.op0 = op0;
+                this.op1 = op1;
+                this.op2 = op2;
+                this.newInsnName = newInsnName;
+            }
+            public String toString() {
+                return insnName + "(" + op0 + "," + op1 + "," + op2 + ")";
+            }
+        }
+        SISpecInfo(String sispecPath) throws FileNotFoundException {
+            sispecs = new LinkedList<SISpec>();
+            Scanner sc = new Scanner(new FileInputStream(sispecPath));
+            while (sc.hasNextLine()) {
+                String sispec = sc.nextLine();
+                if (sispec.matches("^//.*"))
+                    continue;
+                sispecs.add(load(sispec));
+            }
+            sc.close();
+        }
+        boolean containByInsnName(String insnName) {
+            for (SISpec spec :sispecs) {
+                if (spec.insnName.equals(insnName))
+                    return true;
+            }
+            return false;
+        }
+        LinkedList<SISpec> getSISpecsByInsnName(String insnName) {
+            LinkedList<SISpec> specs = new LinkedList<SISpec>();
+            for (SISpec spec :sispecs) {
+                if (spec.insnName.equals(insnName))
+                    specs.add(spec);
+            }
+            return specs;
+        }
+        private SISpec load(String sispec) {
+            String pattern = "(?<insn>[a-z]+) *\\( *(?<op0>[a-z_-]+) *, *(?<op1>[a-z_-]+) *, *(?<op2>[a-z_-]+) *\\) *: *(?<newInsn>\\w+)";
+            Pattern format = Pattern.compile(pattern);
+            Matcher matcher = format.matcher(sispec);
+            if (!matcher.find())
+                throw new Error("Invalid superinstruction specificated");
+            return new SISpec(matcher.group("insn"),
+                              matcher.group("op0"),
+                              matcher.group("op1"),
+                              matcher.group("op2"),
+                              matcher.group("newInsn"));
+        }
+        public void printSISpec() {
+            for (SISpec spec :sispecs)
+                System.out.println(spec.toString());
+        }
+    }
+    
     void writeBCodeToSBCFile(List<?> bcodes, String filename) {
         try {
             File file = new File(filename);
@@ -318,6 +382,15 @@ public class Main {
             return;
         }
 
+        SISpecInfo sispecInfo = null;
+        if (info.optSuperInstruction) {
+            try {
+                sispecInfo = new SISpecInfo(info.specFilePath);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
         // Parse JavaScript File
         ANTLRInputStream antlrInStream;
         try {
@@ -400,7 +473,7 @@ public class Main {
                 writeBCodeToSBCFile(bcodes, info.outputFileName);
                 return;
             }
-            cbcBuilder.makeSuperInstruction(info);
+            cbcBuilder.makeSuperInstruction(info, sispecInfo);
             bcBuilder = cbcBuilder.convertBCode();
         }
         if (info.optPrintLowLevelCode) {

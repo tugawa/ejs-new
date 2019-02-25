@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import ejsc.SuperInstruction.Insn;
-
 public class CBCode {
     static final int MAX_CHAR = 127;
     static final int MIN_CHAR = -128;

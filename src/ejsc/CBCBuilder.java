@@ -1,5 +1,4 @@
 package ejsc;
-import java.io.FileNotFoundException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -256,33 +255,31 @@ class CBCBuilder {
         return sb.toString();
     }
 
-    public void makeSuperInstruction(Main.Info info) {
+    public void makeSuperInstruction(Main.Info info, Main.SISpecInfo sispecInfo) {
         boolean global = true;
-        try {
-            for (CBCBuilder.FunctionCBCBuilder fb : fBuilders) {
-                if (global) {
-                    global = false;
-                    continue;
-                }
+        for (CBCBuilder.FunctionCBCBuilder fb : fBuilders) {
+            if (global) {
+                global = false;
+                continue;
+            }
 
-                SuperInstruction si = new SuperInstruction(fb.bcodes, info.specFile);
-                fb.bcodes = si.execMakeSuperInsn();
+            SuperInstruction si = new SuperInstruction(fb.bcodes, sispecInfo);
+            fb.bcodes = si.execMakeSuperInsn();
+            if (info.optPrintOptimisation) {
+                System.out.println("====== after cbc load sie ======");
+                System.out.println(fb);
+            }
+            /*
+            if (info.optCBCRedunantInstructionElimination) {
+                fb.assignAddress();
+                CBCRedundantInstructionElimination rie = new CBCRedundantInstructionElimination(fb.bcodes);
+                fb.bcodes = rie.exec();
                 if (info.optPrintOptimisation) {
-                    System.out.println("====== after cbc load sie ======");
+                    System.out.println("====== after cbc rie ======");
                     System.out.println(fb);
                 }
-//                if (info.optCBCRedunantInstructionElimination) {
-                    fb.assignAddress();
-                    CBCRedundantInstructionElimination rie = new CBCRedundantInstructionElimination(fb.bcodes);
-                    fb.bcodes = rie.exec();
-                    if (info.optPrintOptimisation) {
-                        System.out.println("====== after cbc rie ======");
-                        System.out.println(fb);
-                    }
-//                }
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            */
         }
     }
 
