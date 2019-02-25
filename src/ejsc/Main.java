@@ -220,27 +220,36 @@ public class Main {
                         tmp = bcodes.get(n++).toByteString().toCharArray();
                         int opcode = Integer.parseInt(String.format("%c%c%c%c",tmp[0], tmp[1], tmp[2], tmp[3]),16);
                         if(tmp.length>16) {
-                            int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[8], tmp[9], tmp[10], tmp[11]),16);
-                            String str="";
-                            for(int i=0;i<nchar;i++) str += String.format("%c%c", tmp[16+i*2], tmp[16+i*2+1]);
-                            if(opcode==2 || opcode==61) {
-                                str += "00";
-                                nchar++;
+                            int opStr_flag[] = new int[3];
+                            for(int i=0;i<3;i++) opStr_flag[i] = Integer.parseInt(String.format("%c", tmp[16+i]),16);
+                            int count = 0;
+                            for(int i=0;i<3;i++) {
+                            	//System.out.println("flag[" + i + "]" + opStr_flag[i]);
+                            	if(opStr_flag[i]==0) continue;
+                                int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[4+i*4], tmp[5+i*4], tmp[6+i*4], tmp[7+i*4]),16);
+                                String str="";
+                                for(int h=0;h<nchar;h++) str += String.format("%c%c", tmp[19+count+h*2], tmp[19+count+h*2+1]);
+                                if(opcode==2 || opcode==61) {
+                                    str += "00";
+                                    //nchar++;
+                                }
+                                int index = ll.add(str);
+                                //System.out.println(index);
+                                if(index<0) {
+                                    //nchar = 0;
+                                    index = (index+1) * (-1);
+                                }
+                                //System.out.println("[" + index + "] : " + str);
+                                count+=nchar;
+                                /*char[] new_nchar = String.format("%04x", nchar).toCharArray();
+                                for(int i=0;i<4;i++)
+                                    tmp[8+i] = new_nchar[i];
+                                    */
+                                char[] ret = String.format("%04x", index & 0xffff).toCharArray();
+                                for(int h=0;h<4;h++)
+                                    tmp[4+i*4+h] = ret[h];
                             }
-                            int index = ll.add(str);
-                            //System.out.println(index);
-                            if(index<0) {
-                                nchar = 0;
-                                index = (index+1) * (-1);
-                            }
-                            char[] new_nchar = String.format("%04x", nchar).toCharArray();
-                            for(int i=0;i<4;i++)
-                                tmp[8+i] = new_nchar[i];
-                            char[] ret = String.format("%04x", index & 0xffff).toCharArray();
-                            for(int i=0;i<4;i++)
-                                tmp[12+i] = ret[i];
                         }
-                        
                         if(basefn != 0 && opcode == 47) {
                             int fn = Integer.parseInt(String.format("%c%c%c%c", tmp[8], tmp[9], tmp[10], tmp[11]),16);
                             //System.out.println("overwrite " + fn + " to " + (fn+basefn));
@@ -258,6 +267,8 @@ public class Main {
                     // Literals
                     for(int j=0;j<ll.list().size();j++) {
                         tmp = ll.list().get(j).toCharArray();
+                        bo.write((byte)((tmp.length/2) >> 8));
+                        bo.write((byte)((tmp.length/2) & 0xff));
                         for(int i=0;i<tmp.length/2;i++)
                             bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
                     }
@@ -266,7 +277,6 @@ public class Main {
                 e.printStackTrace();
             } finally {
                 try {
-                    //出力ストリームを閉じる
                     bo.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -276,38 +286,6 @@ public class Main {
             System.out.println(e);
         }
     }
-    
-    //byte[] convertToByte(String hexString) {
-    void ByteWriter(BufferedOutputStream bo, String hexString, LiteralList ll) {
-    	//System.out.println(hexString);
-    	char[] hex = hexString.toCharArray();
-    	// 1010 byte[] ret = new byte[1024];
-    	int num = 0, it = 8;
-    	
-    	//System.out.println(hexString);
-    	if(hex.length>16) {
-    		num = Integer.parseInt(String.format("%c%c%c%c",hex[8], hex[9], hex[10], hex[11]),16);
-    	    String str="";
-    	    for(int i=0;i<num;i++) str += hex[16+i];
-    	    str += "00";
-    	    char[] ret = String.format("%04x", ll.add(str) & 0xffff).toCharArray();
-    	    for(int i=0;i<4;i++)
-    	    	hex[12+i] = ret[i];
-    	}
-    	
-    	if(hex.length==4)
-    		it = 2;
-     
-    	for(int i=0;i<it;i++) {
-    	    // System.out.println(String.format("%c%c", hex[i*2], hex[i*2+1]));
-    		try {
-        	    bo.write((byte)Integer.parseInt(String.format("%c%c", hex[i*2], hex[i*2+1]),16));
-    		} catch (Exception e){
-                e.printStackTrace();
-    		}
-    	}
-    }
-
 
     void run(String[] args) {
 
