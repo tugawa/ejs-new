@@ -25,6 +25,7 @@ import java.io.BufferedWriter;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -40,6 +41,9 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import ejsc.antlr.ECMAScriptLexer;
 import ejsc.antlr.ECMAScriptParser;
 
+import java.util.Scanner;
+import java.util.HashMap;
+import java.util.Arrays;
 
 public class Main {
 
@@ -47,13 +51,15 @@ public class Main {
         String inputFileName;   // .js
         String outputFileName;  // .sbc
         String specFile;
+        String insnsDefFile;    // instructions.def
+        InsnsDef insnsdef;
         int baseFunctionNumber = 0;
-		enum OptLocals {
-				NONE,
-				PROSYM,
-				G1,
-				G3;
-		}
+        enum OptLocals {
+                NONE,
+                PROSYM,
+                G1,
+                G3;
+        }
 
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
@@ -72,7 +78,7 @@ public class Main {
         boolean optCBCRedunantInstructionElimination = false;
         boolean optCBCRegisterAssignment = false;
         boolean optOutOBC = false;
-		OptLocals optLocals = OptLocals.NONE;
+        OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -89,8 +95,8 @@ public class Main {
                         info.optPrintAnalyzer = true;
                         break;
                     case "--show-llcode":
-                    	info.optPrintLowLevelCode = true;
-                    	break;
+                        info.optPrintLowLevelCode = true;
+                        break;
                     case "--show-opt":
                         info.optPrintOptimisation = true;
                         break;
@@ -101,55 +107,57 @@ public class Main {
                         info.outputFileName = args[++i];
                         break;
                     case "-omit-arguments":
-							throw new Error("obsolete option: -omit-arguments");
-					case "-opt-prosym":
+                            throw new Error("obsolete option: -omit-arguments");
+                    case "-opt-prosym":
                     case "-omit-frame":
-						info.optLocals = OptLocals.PROSYM;
-						break;
-					case "-opt-g1":
-						info.optLocals = OptLocals.G1;
-						break;
-					case "-opt-g3":
-						info.optLocals = OptLocals.G3;
+                        info.optLocals = OptLocals.PROSYM;
                         break;
-					case "-opt-const":
-						info.optConstantPropagation = true;
-						break;
-					case "-opt-rie":
-						info.optRedunantInstructionElimination = true;
-						break;
-					case "-opt-cce":
-					    info.optCommonConstantElimination = true;
-					    break;
-					case "-opt-copy":
-						info.optCopyPropagation = true;
-						break;
-					case "-opt-reg":
-					    info.optRegisterAssignment = true;
-					    break;
-					case "-opt-si":
-						info.optSuperInstruction = true;
-						info.specFile = args[++i];
-						break;
-					case "-out-cbc":
-						info.outCompactByteCode = true;
-						break;
-					case "-opt-cbc-sie":
-						info.optCBCSuperInstruction = true;
-						break;
-					case "-opt-cbc-rie":
-						info.optCBCRedunantInstructionElimination = true;
-						break;
-					case "-opt-cbc-reg":
-						info.optCBCRegisterAssignment = true;
-					case "-fn":
-						info.baseFunctionNumber = Integer.parseInt(args[++i]);
-						break;
-					case "--out-obc":
-					    info.optOutOBC = true;
-					    break;
-					default:
-						throw new Error("unknown option: "+args[i]);
+                    case "-opt-g1":
+                        info.optLocals = OptLocals.G1;
+                        break;
+                    case "-opt-g3":
+                        info.optLocals = OptLocals.G3;
+                        break;
+                    case "-opt-const":
+                        info.optConstantPropagation = true;
+                        break;
+                    case "-opt-rie":
+                        info.optRedunantInstructionElimination = true;
+                        break;
+                    case "-opt-cce":
+                        info.optCommonConstantElimination = true;
+                        break;
+                    case "-opt-copy":
+                        info.optCopyPropagation = true;
+                        break;
+                    case "-opt-reg":
+                        info.optRegisterAssignment = true;
+                        break;
+                    case "-opt-si":
+                        info.optSuperInstruction = true;
+                        info.specFile = args[++i];
+                        break;
+                    case "-out-cbc":
+                        info.outCompactByteCode = true;
+                        break;
+                    case "-opt-cbc-sie":
+                        info.optCBCSuperInstruction = true;
+                        break;
+                    case "-opt-cbc-rie":
+                        info.optCBCRedunantInstructionElimination = true;
+                        break;
+                    case "-opt-cbc-reg":
+                        info.optCBCRegisterAssignment = true;
+                    case "-fn":
+                        info.baseFunctionNumber = Integer.parseInt(args[++i]);
+                        break;
+                    case "--out-obc":
+                        info.optOutOBC = true;
+                        info.insnsDefFile = args[++i];
+                        info.insnsdef = new InsnsDef(info.insnsDefFile);
+                        break;
+                    default:
+                        throw new Error("unknown option: "+args[i]);
                     }
                 } else {
                     info.inputFileName = args[i];
@@ -166,6 +174,51 @@ public class Main {
                 }
             }
             return info;
+        }
+
+        static class InsnsDef {
+            String COMMENTOUT = "//";
+            static HashMap<String, InsnDef> table;
+            class InsnDef {
+                int index;
+                String[] operand;
+                InsnDef(int _index, String[] _operand) {
+                    index = _index;
+                    operand = _operand;
+                }
+            }
+            InsnsDef(String file) {
+                table = new HashMap<String, InsnDef>();
+                parse(file);
+            }
+            
+            void parse(String file) {
+                Scanner scanner;
+                try {
+                    scanner = new Scanner(new FileInputStream(file));
+                    int index = 0;
+                    while (scanner.hasNextLine()) {
+                        String line = scanner.nextLine();
+                        if (line.startsWith(COMMENTOUT)) {
+                            continue;
+                        } else {
+                            String[] insns = line.split("\\s+", 0);
+                            table.put(insns[0], new InsnDef(index, insns));
+                            index++;
+                        }
+                    }
+                    scanner.close();
+                } catch (FileNotFoundException fnfe) {
+                    fnfe.printStackTrace();
+                }
+            }
+        }
+        static int getOpcodeIndex(String opcode) {
+            if (InsnsDef.table.containsKey(opcode)) {
+                return InsnsDef.table.get(opcode).index;
+            } else {
+                return -1;
+            }
         }
     }
 
@@ -279,33 +332,33 @@ public class Main {
     
     //byte[] convertToByte(String hexString) {
     void ByteWriter(BufferedOutputStream bo, String hexString, LiteralList ll) {
-    	//System.out.println(hexString);
-    	char[] hex = hexString.toCharArray();
-    	// 1010 byte[] ret = new byte[1024];
-    	int num = 0, it = 8;
-    	
-    	//System.out.println(hexString);
-    	if(hex.length>16) {
-    		num = Integer.parseInt(String.format("%c%c%c%c",hex[8], hex[9], hex[10], hex[11]),16);
-    	    String str="";
-    	    for(int i=0;i<num;i++) str += hex[16+i];
-    	    str += "00";
-    	    char[] ret = String.format("%04x", ll.add(str) & 0xffff).toCharArray();
-    	    for(int i=0;i<4;i++)
-    	    	hex[12+i] = ret[i];
-    	}
-    	
-    	if(hex.length==4)
-    		it = 2;
+        //System.out.println(hexString);
+        char[] hex = hexString.toCharArray();
+        // 1010 byte[] ret = new byte[1024];
+        int num = 0, it = 8;
+        
+        //System.out.println(hexString);
+        if(hex.length>16) {
+            num = Integer.parseInt(String.format("%c%c%c%c",hex[8], hex[9], hex[10], hex[11]),16);
+            String str="";
+            for(int i=0;i<num;i++) str += hex[16+i];
+            str += "00";
+            char[] ret = String.format("%04x", ll.add(str) & 0xffff).toCharArray();
+            for(int i=0;i<4;i++)
+                hex[12+i] = ret[i];
+        }
+        
+        if(hex.length==4)
+            it = 2;
      
-    	for(int i=0;i<it;i++) {
-    	    // System.out.println(String.format("%c%c", hex[i*2], hex[i*2+1]));
-    		try {
-        	    bo.write((byte)Integer.parseInt(String.format("%c%c", hex[i*2], hex[i*2+1]),16));
-    		} catch (Exception e){
+        for(int i=0;i<it;i++) {
+            // System.out.println(String.format("%c%c", hex[i*2], hex[i*2+1]));
+            try {
+                bo.write((byte)Integer.parseInt(String.format("%c%c", hex[i*2], hex[i*2+1]),16));
+            } catch (Exception e){
                 e.printStackTrace();
-    		}
-    	}
+            }
+        }
     }
 
 
@@ -354,9 +407,9 @@ public class Main {
         }
 
         // iAST level optimisation
-		if (info.optLocals != Info.OptLocals.NONE) {
+        if (info.optLocals != Info.OptLocals.NONE) {
             // iAST newargs analyzer
-			NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
+            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
             analyzer.analyze(iast);
             if (info.optPrintAnalyzer) {
                 new IASTPrinter().print(iast);
@@ -434,38 +487,38 @@ public class Main {
 }
 
 class LiteralList {
-	List<String> list;
-	
-	LiteralList(){
-		list = new ArrayList<String>();
-	}
-	
-	void init() {
-		list.clear();
-	}
-	
-	int add(String code) {
-		int index;
-		//System.out.print(code + ", loaded, ");
-		if((index=lookup(code))==-1) {
-			list.add(code);
-			return list.size()-1;
-		}
-		return index * (-1) - 1;
-	}
-	
-	int lookup(String code) {
-		int i = 0;
-		for(i=0;i<list.size();i++)
-			if(list.get(i).equals(code)) return i;
-		return -1;
-	}
-	
-	int size() {
-		return list.size();
-	}
-	
-	List<String> list() {
-		return list;
-	}
+    List<String> list;
+    
+    LiteralList(){
+        list = new ArrayList<String>();
+    }
+    
+    void init() {
+        list.clear();
+    }
+    
+    int add(String code) {
+        int index;
+        //System.out.print(code + ", loaded, ");
+        if((index=lookup(code))==-1) {
+            list.add(code);
+            return list.size()-1;
+        }
+        return index * (-1) - 1;
+    }
+    
+    int lookup(String code) {
+        int i = 0;
+        for(i=0;i<list.size();i++)
+            if(list.get(i).equals(code)) return i;
+        return -1;
+    }
+    
+    int size() {
+        return list.size();
+    }
+    
+    List<String> list() {
+        return list;
+    }
 }
