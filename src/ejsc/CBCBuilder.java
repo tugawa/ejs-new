@@ -255,7 +255,7 @@ class CBCBuilder {
         return sb.toString();
     }
 
-    public void makeSuperInstruction(Main.Info info, Main.SISpecInfo sispecInfo) {
+    public void makeSuperInstruction(Main.Info info) {
         boolean global = true;
         for (CBCBuilder.FunctionCBCBuilder fb : fBuilders) {
             if (global) {
@@ -263,7 +263,7 @@ class CBCBuilder {
                 continue;
             }
 
-            SuperInstruction si = new SuperInstruction(fb.bcodes, sispecInfo);
+            SuperInstruction si = new SuperInstruction(fb.bcodes);
             fb.bcodes = si.execMakeSuperInsn();
             if (info.optPrintOptimisation) {
                 System.out.println("====== after cbc load sie ======");

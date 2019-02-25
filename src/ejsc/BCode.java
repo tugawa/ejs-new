@@ -174,79 +174,12 @@ public class BCode {
     String toByteString(String opcode, Register op1, int op2, String op3) {
         return cm.makecode(opcode, op1.n, op2);
     }
-    String toByteString(String opcode, Register op1, Register op2, int op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+    String toByteString(String opcode, String op1, String op2, String op3) {
+        return cm.makecode(opcode, op1, op2, op3);
     }
 
     class CodeMaker {
-        String[] insn_table;
-
         public CodeMaker() {
-            insn_table = new String[]{
-                "fixnum",
-                "specconst",
-                "string",
-                "regexp",
-                "number",
-                "add",
-                "sub",
-                "mul",
-                "div",
-                "mod",
-                "bitand",
-                "bitor",
-                "leftshift",
-                "rightshift",
-                "unsignedrightshift",
-                "lessthan",
-                "lessthanequal",
-                "eq",
-                "equal",
-                "getarg",
-                "setarg",
-                "getprop",
-                "setprop",
-                "setarray",
-                "getglobal",
-                "setglobal",
-                "instanceof",
-                "move",
-                "typeof",
-                "not",
-                "new",
-                "isundef",
-                "isobject",
-                "setfl",
-                "seta",
-                "geta",
-                "geterr",
-                "getglobalobj",
-                "newframe",
-                "ret",
-                "nop",
-                "jump",
-                "jumptrue",
-                "jumpfalse",
-                "getlocal",
-                "setlocal",
-                "makeclosure",
-                "makesimpleiterator",
-                "nextpropnameidx",
-                "send",
-                "newsend",
-                "call",
-                "tailsend",
-                "tailcall",
-                "pushhandler",
-                "pophandler",
-                "throw",
-                "localcall",
-                "localret",
-                "poplocal",
-                "error",
-                "unknown",
-                "end"
-        };
         }
 
         public String makecode(int opcode, int op1, int op2, int op3) {
@@ -272,6 +205,13 @@ public class BCode {
         }
         public String makecode(String opcode, int op1, int op2, int op3) {
             return makecode(makeopcode(opcode), op1, op2, op3);
+        }
+        public String makecode(String opcode, String op1, String op2, String op3) {
+            Main.Info.SISpecInfo.SISpec sispec = Main.Info.SISpecInfo.getSISpecBySIName(opcode);
+            return makecode(Main.Info.SISpecInfo.getOpcodeIndex(opcode),
+                            makeoperand(op1, sispec.op0),
+                            makeoperand(op2, sispec.op1),
+                            makeoperand(op3, sispec.op2));
         }
 
         public String makecode(String opcode, int op1, String op2) {
@@ -379,6 +319,40 @@ public class BCode {
         int makeopcode(String opcode) {
             return Main.Info.getOpcodeIndex(opcode);
         }
+        
+        int makeoperand(String op, String type) {
+            switch(type) {
+            case "-":
+            case "_":
+            case "fixnum":
+                return Integer.parseInt(op);
+            case "special":
+                switch(op) {
+                case "true": return 0x1e;
+                case "false": return 0x0e;
+                case "null": return 0x06;
+                case "undefined": return 0x16;
+                }
+            case "string":
+                {
+                    int size = 0;
+                    int i;
+                    char[] name = op.toCharArray();
+                    int[] bins = new int[name.length];
+                    char tmp = '\0';
+                    for(i=1;i<name.length-1;i++) {
+                        if(i%2==0) bins[i/2-1] = tmp << 8 | name[i];
+                        tmp = name[i];
+                        size++;
+                        if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
+                    }
+                    return size & 0xffff;
+                }
+            case "number": return 8;
+            default:
+                throw new Error("undefined type: " + type);
+            }
+        }
     }
 }
 
@@ -426,6 +400,9 @@ class ISuperInstruction extends BCode {
     }
     public String toString() {
         return super.toString(name, store, load1, load2);
+    }
+    public String toByteString() {
+        return super.toByteString(name, store, load1, load2);
     }
 }
 class IFixnum extends BCode {

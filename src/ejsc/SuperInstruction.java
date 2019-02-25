@@ -3,9 +3,6 @@ package ejsc;
 import java.util.ArrayList;
 import java.util.List;
 
-import ejsc.Main.SISpecInfo;
-import ejsc.Main.SISpecInfo.SISpec;
-
 public class SuperInstruction {
     class Environment {
         CBCode bc;
@@ -33,15 +30,15 @@ public class SuperInstruction {
         }
     }
 
-    CBCode makeSuperInsn(CBCode bc, SISpec insn) {
+    CBCode makeSuperInsn(CBCode bc, Main.Info.SISpecInfo.SISpec insn) {
         return evalSuperInsn(new Environment(bc), bc, insn);
     }
 
-    public CBCode evalSuperInsn(Environment env, CBCode bc, SISpec insn) {
+    public CBCode evalSuperInsn(Environment env, CBCode bc, Main.Info.SISpecInfo.SISpec insn) {
         return evalCBCode(env, bc, insn);
     }
 
-    protected CBCode evalCBCode(Environment env, CBCode bc, SISpec spec) {
+    protected CBCode evalCBCode(Environment env, CBCode bc, Main.Info.SISpecInfo.SISpec spec) {
         Argument store = null, load1 = null, load2 = null;
         if (spec.op0.equals("-") || spec.op0.equals("_")) {
             store = bc.store;
@@ -69,7 +66,7 @@ public class SuperInstruction {
         }
         if (store == null || load1 == null || load2 == null)
             return null;
-        return new ICBCSuperInstruction(bc.store, load1, load2, spec.newInsnName);
+        return new ICBCSuperInstruction(bc.store, load1, load2, spec.siName);
     }
 
     boolean isTypeInstance(String type, Argument load) {
@@ -90,25 +87,23 @@ public class SuperInstruction {
     List<CBCode> bcodes;
     CBCControlFlowGraph cfg;
     CBCReachingDefinition rdefa;
-    SISpecInfo sispecInfo;
 
-    SuperInstruction(List<CBCode> bcodes, Main.SISpecInfo sispecInfo) {
+    SuperInstruction(List<CBCode> bcodes) {
         this.bcodes = bcodes;
         cfg = new CBCControlFlowGraph(bcodes);
         rdefa = new CBCReachingDefinition(bcodes);
-        this.sispecInfo = sispecInfo;
     }
 
     public List<CBCode> execMakeSuperInsn() {
         List<CBCode> newBCodes = new ArrayList<CBCode>(bcodes.size());
 
         for (CBCode bcode : bcodes) {
-            if (!sispecInfo.containByInsnName(bcode.getInsnName())) {
+            if (!Main.Info.SISpecInfo.containByInsnName(bcode.getInsnName())) {
                 newBCodes.add(bcode);
                 continue;
             }
             CBCode newBC = null;
-            for (SISpec spec : sispecInfo.getSISpecsByInsnName(bcode.getInsnName())) {
+            for (Main.Info.SISpecInfo.SISpec spec : Main.Info.SISpecInfo.getSISpecsByInsnName(bcode.getInsnName())) {
                 CBCode bc = makeSuperInsn(bcode, spec);
                 if (bc != null)
                     newBC = bc;
