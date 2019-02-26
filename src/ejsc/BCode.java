@@ -25,10 +25,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import ejsc.Main.Info;
+import ejsc.Main.Info.SISpecInfo;
+import ejsc.Main.Info.SISpecInfo.SISpec;
 
 public class BCode {
     CodeMaker cm = new CodeMaker();
@@ -207,6 +207,7 @@ public class BCode {
             return makecode(makeopcode(opcode), op1, op2, op3);
         }
         public String makecode(String opcode, String op1, String op2, String op3) {
+<<<<<<< HEAD
             Main.Info.SISpecInfo.SISpec sispec = Main.Info.SISpecInfo.getSISpecBySIName(opcode);
             String opstring[] = {op1, op2, op3};
             String optype[] = {sispec.op0, sispec.op1, sispec.op2};
@@ -242,6 +243,13 @@ public class BCode {
                             makeoperand(op3, optype[2])) 
                           + BigPrimitiveInfomation
                           + LiteralBins[0] + LiteralBins[1] + LiteralBins[2];
+=======
+            SISpec sispec = SISpecInfo.getSISpecBySIName(opcode);
+            return makecode(SISpecInfo.getOpcodeIndex(opcode),
+                            makeoperand(op1, sispec.op0),
+                            makeoperand(op2, sispec.op1),
+                            makeoperand(op3, sispec.op2));
+>>>>>>> b67f676ee459ca6a534d12160b62b496b7601081
         }
 
         public String makecode(String opcode, int op1, String op2) {
@@ -347,7 +355,7 @@ public class BCode {
         }
 
         int makeopcode(String opcode) {
-            return Main.Info.getOpcodeIndex(opcode);
+            return Info.getOpcodeIndex(opcode);
         }
         
         int makeoperand(String op, String type) {
