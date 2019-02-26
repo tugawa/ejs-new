@@ -1018,7 +1018,7 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   a = malloc_hashtable();
   hash_create(a, oldc->map->size);
   hidden_map(c) = a;
-  ne = hash_copy(ctx, hidden_map(oldc), a); // All Right: MissingAdd
+  ne = hash_copy(ctx, hidden_map(oldc), a); // All Right: MissingAdd   uncheck_cocci
   hidden_n_entries(c) = ne;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;

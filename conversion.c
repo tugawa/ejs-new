@@ -407,8 +407,8 @@ NEXT0:
   }
 NEXT1:
   GC_PUSH(f); // All right: MissingInit
-  print_value_simple(context, v); putchar('\n');
-  print_value_simple(context, f); putchar('\n');
+  print_value_simple(context, v); putchar('\n'); // uncheck_cocci
+  print_value_simple(context, f); putchar('\n'); // uncheck_cocci
   GC_POP(f);
   type_error_exception("neither valueOf nor toString returned a number in object_to_number");
   return FIXNUM_ZERO;       // not reached
