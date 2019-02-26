@@ -173,12 +173,15 @@ public class Main {
                 info.optHelp = true;
             } else if (info.outputFileName == null) {
                 int pos = info.inputFileName.lastIndexOf(".");
+                String ext = ".sbc";
+                if(info.optOutOBC) ext = ".obc";
                 if (pos != -1) {
-                    info.outputFileName = info.inputFileName.substring(0, pos) + ".obc";
+                    info.outputFileName = info.inputFileName.substring(0, pos) + ext;
                 } else {
-                    info.outputFileName = info.inputFileName + ".obc";
+                    info.outputFileName = info.inputFileName + ext;
                 }
             }
+            //System.out.println(info.outputFileName);
             return info;
         }
 
@@ -318,7 +321,7 @@ public class Main {
             for (Object bc : bcodes) {
                 pw.println(bc.toString());
             }
-            //pw.close();
+            pw.close();
         } catch(IOException e) {
             System.out.println(e);
         }
@@ -366,12 +369,14 @@ public class Main {
                             for(int i=0;i<3;i++) opStr_flag[i] = Integer.parseInt(String.format("%c", tmp[16+i]),16);
                             int count = 0;
                             for(int i=0;i<3;i++) {
+                            	//System.out.println("length:" + tmp.length + "//count:" + count);
                             	//System.out.println("flag[" + i + "]" + opStr_flag[i]);
                             	if(opStr_flag[i]==0) continue;
                                 int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[4+i*4], tmp[5+i*4], tmp[6+i*4], tmp[7+i*4]),16);
                                 String str="";
+                                //System.out.println(nchar + "//" +(19+count+nchar*2));
                                 for(int h=0;h<nchar;h++) str += String.format("%c%c", tmp[19+count+h*2], tmp[19+count+h*2+1]);
-                                if(opcode==2 || opcode==61) {
+                                if(opStr_flag[i]==2) {
                                     str += "00";
                                     //nchar++;
                                 }
@@ -382,7 +387,7 @@ public class Main {
                                     index = (index+1) * (-1);
                                 }
                                 //System.out.println("[" + index + "] : " + str);
-                                count+=nchar;
+                                count+=nchar*2;
                                 /*char[] new_nchar = String.format("%04x", nchar).toCharArray();
                                 for(int i=0;i<4;i++)
                                     tmp[8+i] = new_nchar[i];

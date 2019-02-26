@@ -208,10 +208,40 @@ public class BCode {
         }
         public String makecode(String opcode, String op1, String op2, String op3) {
             Main.Info.SISpecInfo.SISpec sispec = Main.Info.SISpecInfo.getSISpecBySIName(opcode);
+            String opstring[] = {op1, op2, op3};
+            String optype[] = {sispec.op0, sispec.op1, sispec.op2};
+            String BigPrimitiveInfomation="";
+            String LiteralBins[] = {"","",""};
+            for(int i=0;i<3;i++) {
+                switch(optype[i]) {
+                case "string" :
+                    BigPrimitiveInfomation += "2";
+                    char[] name = opstring[i].toCharArray();
+                    int[] bins = new int[name.length];
+                    char tmp = '\0';
+                    // System.out.println(op2);
+                    for(int j=1;j<name.length-1;j++) {
+                        if(j%2==0) bins[j/2-1] = tmp << 8 | name[j];
+                        tmp = name[j];
+                        if(j==name.length-2 && j%2==1) bins[(j-1)/2] = tmp << 8;
+                    }
+                    LiteralBins[i] = names(bins);
+                    break;
+                case "flonum" :
+                    BigPrimitiveInfomation += "1";
+                    LiteralBins[i] = nums(Double.parseDouble(opstring[i]));
+                    break;
+                default :
+                    BigPrimitiveInfomation += "0";
+                }
+            }
+            //System.out.println(LiteralBins[0] + ":" + LiteralBins[1] + ":" + LiteralBins[2]);
             return makecode(Main.Info.SISpecInfo.getOpcodeIndex(opcode),
-                            makeoperand(op1, sispec.op0),
-                            makeoperand(op2, sispec.op1),
-                            makeoperand(op3, sispec.op2));
+                            makeoperand(op1, optype[0]),
+                            makeoperand(op2, optype[1]),
+                            makeoperand(op3, optype[2])) 
+                          + BigPrimitiveInfomation
+                          + LiteralBins[0] + LiteralBins[1] + LiteralBins[2];
         }
 
         public String makecode(String opcode, int op1, String op2) {
@@ -244,7 +274,7 @@ public class BCode {
                 if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
             }
             return makecode(makeopcode(opcode), op1,
-                    value & 0xffff, 0) + "010" + names(bins);
+                    value & 0xffff, 0) + "020" + names(bins);
         }
 
         String names(int[] bins) {
@@ -333,22 +363,8 @@ public class BCode {
                 case "null": return 0x06;
                 case "undefined": return 0x16;
                 }
-            case "string":
-                {
-                    int size = 0;
-                    int i;
-                    char[] name = op.toCharArray();
-                    int[] bins = new int[name.length];
-                    char tmp = '\0';
-                    for(i=1;i<name.length-1;i++) {
-                        if(i%2==0) bins[i/2-1] = tmp << 8 | name[i];
-                        tmp = name[i];
-                        size++;
-                        if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
-                    }
-                    return size & 0xffff;
-                }
-            case "number": return 8;
+            case "string": return (op.length()-2) & 0xffff;
+            case "flonum": return 8;
             default:
                 throw new Error("undefined type: " + type);
             }

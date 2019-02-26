@@ -269,7 +269,7 @@ class CBCBuilder {
                 System.out.println("====== after cbc load sie ======");
                 System.out.println(fb);
             }
-            /*
+            
             if (info.optCBCRedunantInstructionElimination) {
                 fb.assignAddress();
                 CBCRedundantInstructionElimination rie = new CBCRedundantInstructionElimination(fb.bcodes);
@@ -279,7 +279,7 @@ class CBCBuilder {
                     System.out.println(fb);
                 }
             }
-            */
+            
         }
     }
 
