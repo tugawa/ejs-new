@@ -46,7 +46,7 @@ public class OperandSpecifications {
         final String P_SYMBOL = "[a-zA-Z_]+";
         final String P_OPERANDS = "\\(\\s*([^)]+)\\s*\\)";
         final String P_BEHAVIOUR = "accept|error|unspecified";
-        final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+"+P_OPERANDS+"\\s+("+P_BEHAVIOUR+")\\s*$");
+        final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s*"+P_OPERANDS+"\\s*("+P_BEHAVIOUR+")\\s*$");
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
             if (line.startsWith("#"))
@@ -90,9 +90,9 @@ public class OperandSpecifications {
         }
     }
 
-    boolean matchOperandTypes(String[] specTypes, VMDataType[] types) {
+    boolean matchOperandTypes(String[] specTypes, VMDataType[] types, String insnName) {
         if (specTypes.length != types.length)
-            return false;
+            throw new Error("number of operands mismatch: "+insnName+" insndef:"+types.length+", opspec: "+specTypes.length);
         for (int i = 0; i < specTypes.length; i++) {
             if (specTypes[i].equals("_"))
                 continue; // next operand
@@ -115,7 +115,7 @@ public class OperandSpecifications {
     OperandSpecificationRecord findSpecificationRecord(String insnName, VMDataType[] types) {
         for (OperandSpecificationRecord rec: spec) {
             if (insnName.equals(rec.insnName) &&
-                    matchOperandTypes(rec.operandTypes, types))
+                    matchOperandTypes(rec.operandTypes, types, insnName))
                 return rec;
         }
         throw new Error("unexhaustive type specification for :"+insnName+"("+types[0].getName()+","+types[1].getName()+")");
