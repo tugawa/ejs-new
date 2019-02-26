@@ -37,7 +37,6 @@ allocation = []
 
 // element is [file-name, start-line, var-name, out-put-number, end-line, kind]
 out_put_list = []
-kind = ["miss", "warning"]
 pattern = ["MissingAdd", "MissingRemove", "MissingInit",
            "InvalidType", "AlreadyAdd",
            "UnnecessaryRemove", "AlreadyRemove", "RemoveToAlloc"]
@@ -213,7 +212,7 @@ v << var.v;
 line << var.variable_p;
 alloc_line << alloc.falloc_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 0, int(alloc_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[0], int(alloc_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -236,7 +235,7 @@ v << variable_param.v;
 line << variable_param.variable_p;
 alloc_line << alloc.falloc_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 0, int(alloc_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[0], int(alloc_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -281,7 +280,7 @@ v << add_position.v;
 line << MissingRemove_return.return_p;
 add_line << add_position.add_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 1, int(add_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[1], int(add_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -311,7 +310,7 @@ v << add_position.v;
 line << MissingRemove_param_return.return_p;
 add_line << add_position.add_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 1, int(add_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[1], int(add_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -344,7 +343,7 @@ v << add_position.v;
 line << MissingRemove.ret;
 add_line << add_position.add_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 1, int(add_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[1], int(add_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -370,7 +369,7 @@ v << add_position.v;
 line << MissingRemove_param.ret;
 add_line << add_position.add_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 1, int(add_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[1], int(add_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -399,10 +398,9 @@ v << var.v;
 line << var.variable_p;
 alloc_line << alloc.falloc_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 2, int(alloc_line[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[2], int(alloc_line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
-#print "file-name : %s,  line : %s,  warning : non-init,  var-name : %s" %(line[0].file, line[0].line, v)
 
 
 // ---------------- InvalidType ----------------
@@ -433,7 +431,7 @@ f(..., T v@variable_p,...) {...}
 v << add_position.v;
 line << add_position.add_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 3, -1, kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[3], 0]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -454,7 +452,7 @@ v << add_position.v;
 line << AlreadyAdd.second_add;
 first_add << add_position.add_p;
 @@
-tmp = [line[0].file, int(first_add[0].line), v, 4, int(line[0].line), kind[0]]
+tmp = [line[0].file, int(first_add[0].line), v, pattern[4], int(line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -481,7 +479,7 @@ remove@remove_p(&v)
 v << remove_position.v;
 line << remove_position.remove_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 5, -1, kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[5], 0]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -502,7 +500,7 @@ v << remove_position.v;
 line << AlreadyRemove.second_remove;
 first_remove << remove_position.remove_p;
 @@
-tmp = [line[0].file, int(first_remove[0].line), v, 6, int(line[0].line), kind[0]]
+tmp = [line[0].file, int(first_remove[0].line), v, pattern[6], int(line[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -559,7 +557,7 @@ v << remove_position.v;
 line << remove_position.remove_p;
 alloc_p << RemoveToAlloc.alloc_p;
 @@
-tmp = [line[0].file, int(line[0].line), v, 7, int(alloc_p[0].line), kind[0]]
+tmp = [line[0].file, int(line[0].line), v, pattern[7], int(alloc_p[0].line)]
 if tmp not in out_put_list:
 	out_put_list.append(tmp)
 
@@ -569,11 +567,22 @@ if tmp not in out_put_list:
 @@
 
 def rowChange(row_list, row):
+	if row == 0:
+		return row
 	for element in row_list:
 		if element[0] == row:
 			return element[1]
 	return row
 
+def checkChange(row_list, row):
+	if row == 0:
+		return False
+	if row_list == []:
+		return False
+	for element in row_list:
+		if element[0] == row:
+			return element[1]
+	return False
 
 out_put_list.sort()
 out_put_list_of_file = []
@@ -603,7 +612,6 @@ if out_put_list != []:
 			p = re.compile(file.split("/")[-1])
 			rowlist = list()
 			line = 1
-
 			for n, s in enumerate(string):
 				if re.match('\s*#\s*[0-9]+\s".*"', s):
 					if re.search(p, s):
@@ -617,35 +625,50 @@ if out_put_list != []:
 		finally:
 			scanfile.close()
 
+		try:
+			originfile = element[0].split("/")[-1]
+			originscanfile = open(originfile)
+			origindata = originscanfile.read()
+			originstring = origindata.split("\n")
+			originp = re.compile("uncheck_cocci")
+			originrowlist = list()
+			for n, s in enumerate(originstring):
+				if re.search(originp, s):
+					originrowlist.append([n+1, True])
+					continue
+				originrowlist.append([n+1, False])
+		except Exception as e:
+			print (e)
+			originrowlist = list()
+		finally:
+			originscanfile.close()
+
 		for out_put_info in element[1]:
-			pat = pattern[out_put_info[2]]
+			pat = out_put_info[2]
+			row1 = rowChange(rowlist, out_put_info[0])
+			row2 = rowChange(rowlist, out_put_info[3])
+			if checkChange(originrowlist, row1) or checkChange(originrowlist, row2):
+				continue
 			if pat in {pattern[0], pattern[2]}:
-				print("%s | %s : %s -> var : %s,  decl_line : %d,  alloc_line : %s"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0]), rowChange(rowlist, out_put_info[3])))
+				print("%s | miss : %s -> var : %s,  decl_line : %d,  alloc_line : %s"
+				%(file, pat, out_put_info[1], row1, row2))
 			elif pat == pattern[1]:
-				print("%s | %s : %s -> var : %s,  end_line : %d,  ADD_line : %s"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0]), rowChange(rowlist, out_put_info[3])))
+				print("%s | miss : %s -> var : %s,  end_line : %d,  ADD_line : %s"
+				%(file, pat, out_put_info[1], row1, row2))
 			elif pat == pattern[3]:
-				print("%s | %s : %s -> var : %s,  ADD_line : %d"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0])))
+				print("%s | miss : %s -> var : %s,  ADD_line : %d"
+				%(file, pat, out_put_info[1], row1))
 			elif pat == pattern[4]:
-				print("%s | %s : %s -> var : %s,  first_ADD_line : %d,  second_ADD_line : %s"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0]), rowChange(rowlist, out_put_info[3])))
+				print("%s | miss : %s -> var : %s,  first_ADD_line : %d,  second_ADD_line : %s"
+				%(file, pat, out_put_info[1], row1, row2))
 			elif pat == pattern[5]:
-				print("%s | %s : %s -> var : %s,  REMOVE_line : %d"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0])))
+				print("%s | miss : %s -> var : %s,  REMOVE_line : %d"
+				%(file, pat, out_put_info[1], row1))
 			elif pat == pattern[6]:
-				print("%s | %s : %s -> var : %s,  first_REMOVE_line : %d,  second_REMOVE_line : %s"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0]), rowChange(rowlist, out_put_info[3])))
+				print("%s | miss : %s -> var : %s,  first_REMOVE_line : %d,  second_REMOVE_line : %s"
+				%(file, pat, out_put_info[1], row1, row2))
 			elif pat == pattern[7]:
-				print("%s | %s : %s -> var : %s,  REMOVE_line : %d,  alloc_line : %s"
-				%(file, out_put_info[4], pat, out_put_info[1],
-				  rowChange(rowlist, out_put_info[0]), rowChange(rowlist, out_put_info[3])))
+				print("%s | miss : %s -> var : %s,  REMOVE_line : %d,  alloc_line : %s"
+				%(file, pat, out_put_info[1], row1, row2))
 			else:
 				print("unregisterated check pattern")
