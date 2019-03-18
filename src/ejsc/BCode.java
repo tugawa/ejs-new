@@ -281,9 +281,10 @@ public class BCode {
             int i;
             String str="";
             for(i=0;bins[i]!=0;i++) {
-                if((bins[i] & 0xffff)==0)
-                    str = str + String.format("02x", bins[i]>>8);
-                str = str + String.format("%04x", bins[i]);
+                if((bins[i] & 0xff)==0)
+                    str = str + String.format("%02x", bins[i]>>8);
+		else
+		    str = str + String.format("%04x", bins[i]);
             }
             //System.out.println(str);
             return str;
