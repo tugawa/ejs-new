@@ -210,7 +210,7 @@ public class AvailableExpressionAnalyser {
             for (CFGNode node: cfg.getNodes()) {
                 BCode bc = node.getBCode();
                 AvailableVals out = outs.get(bc);
-                // in = ¥cap pred.out
+                // in = \cap pred.out
                 AvailableVals in = new AvailableVals();
                 boolean first = true;
                 for (CFGNode pred: node.getPreds()) {

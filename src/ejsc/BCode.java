@@ -658,29 +658,26 @@ class INewsend extends BCode {
         return super.toString("newsend", constructor, numOfArgs);
     }
 }
-class IMakeiterator extends BCode {
+class IMakesimpleiterator extends BCode {
     Register obj;
-    IMakeiterator(Register obj, Register dst) {
-		super(dst);
+    IMakesimpleiterator(Register obj, Register dst) {
+        super(dst);
         this.obj = obj;
     }
     public String toString() {
-        return super.toString("makeiterator", obj, dst);
+        return super.toString("makesimpleiterator", obj, dst);
     }
 }
-class INextpropname extends BCode {
-    Register obj, ite;
-    INextpropname(Register obj, Register ite, Register dst) {
-		super(dst);
-        this.obj = obj;
+class INextpropnameidx extends BCode {
+    Register ite;
+    INextpropnameidx(Register ite, Register dst) {
+        super(dst);
         this.ite = ite;
     }
     public String toString() {
-        return super.toString("nextpropname", obj, ite, dst);
+        return super.toString("nextpropnameidx", ite, dst);
     }
 }
-
-
 // Jump instructions
 class IJump extends BCode {
     Label label;
