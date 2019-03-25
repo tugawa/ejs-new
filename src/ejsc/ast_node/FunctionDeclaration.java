@@ -35,8 +35,9 @@ public class FunctionDeclaration extends Node implements IFunctionDeclaration {
     IIdentifier id;
     List<IPattern> params;
     IBlockStatement body;
+    boolean logging;
 
-    public FunctionDeclaration(IIdentifier id, List<IPattern> params, IBlockStatement body) {
+    public FunctionDeclaration(IIdentifier id, List<IPattern> params, IBlockStatement body, boolean logging) {
         if (id == null) {
             throw new IllegalArgumentException();
         }
@@ -44,6 +45,7 @@ public class FunctionDeclaration extends Node implements IFunctionDeclaration {
         this.id = id;
         this.params = params;
         this.body = body;
+        this.logging = logging;
     }
 
     @Override
@@ -77,6 +79,11 @@ public class FunctionDeclaration extends Node implements IFunctionDeclaration {
     public IIdentifier getId() {
         // TODO Auto-generated method stub
         return id;
+    }
+
+    @Override
+    public boolean getLogging() {
+        return logging;
     }
 
     @Override

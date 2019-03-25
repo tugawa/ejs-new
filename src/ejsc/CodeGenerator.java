@@ -283,10 +283,11 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-	public CodeGenerator(Main.Info.OptLocals optLocals) {
+	public CodeGenerator(Main.Info.OptLocals optLocals, boolean logging) {
 		this.optLocals = optLocals;
         needArguments = false;
         needFrame = false;
+        this.logging = logging;
     }
     
     BCBuilder bcBuilder;
@@ -296,6 +297,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     static final int THIS_OBJECT_REGISTER = 0;
     boolean needArguments;
     boolean needFrame;
+    boolean logging;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -332,6 +334,9 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitProgram(IASTProgram node) {
         Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
         env.setRegOfGlobalObj(globalObjReg);
+        if (node.program.logging || this.logging) {
+            bcBuilder.push(new LogBegin());
+        }
         Label callEntry = new Label();
         Label sendEntry = new Label();
         bcBuilder.setEntry(callEntry, sendEntry);
@@ -340,9 +345,20 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.pushMsetfl();
         Register retReg = env.getCurrentFrame().freshRegister();
+        if (!node.program.logging && this.logging) {
+            bcBuilder.push(new IUndefinedconst(retReg));
+            bcBuilder.push(new LogEnd());
+        }
         compileNode(node.program.body, retReg);
+        if (!node.program.logging && this.logging) {
+            bcBuilder.push(new LogBegin());
+        }
         bcBuilder.push(new ISeta(retReg));
         bcBuilder.push(new IRet());
+        if (node.program.logging || this.logging) {
+            bcBuilder.push(new LogEnd());
+        }
+            
         return null;
     }
 
@@ -611,6 +627,18 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
         return null;
     }
+
+    @Override
+    public Object visitLogBeginMetaStatement(IASTLogBeginMetaStatement node) {
+        bcBuilder.push(new LogBegin());
+        return null;
+    }
+
+    @Override
+    public Object visitLogEndMetaStatement(IASTLogEndMetaStatement node) {
+        bcBuilder.push(new LogEnd());
+        return null;
+    }
     
     // precondition: node.params and node.locals are disjoint
     @Override
@@ -655,6 +683,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER)));
         for (String var: node.params)
         		bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(var)));
+        if (node.logging) bcBuilder.push(new LogBegin());
         Label callEntry = new Label();
         Label sendEntry = new Label();
         bcBuilder.setEntry(callEntry, sendEntry);
@@ -683,6 +712,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IUndefinedconst(reg));
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
+        if (node.logging) bcBuilder.push(new LogEnd());
 
         bcBuilder.setNumberOfLocals(env.getNumberOfLocals());
         bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());

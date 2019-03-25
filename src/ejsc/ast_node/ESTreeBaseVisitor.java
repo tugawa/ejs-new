@@ -203,6 +203,14 @@ public class ESTreeBaseVisitor<T> {
         node.getExpression().accept(this);
         return visitStatement(node);
     }
+
+    protected T visitLogBeginMetaStatement(LogBeginMetaStatement node) {
+        return visitStatement(node);
+    }
+
+    protected T visitLogEndMetaStatement(LogEndMetaStatement node) {
+        return visitStatement(node);
+    }
     
     protected T visitEmptyStatement(EmptyStatement node) {
         return visitStatement(node);

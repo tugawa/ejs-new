@@ -33,14 +33,20 @@ import ejsc.ast_node.Node.IStatement;
 public class Program extends Node implements Node.IProgram {
 
     List<IStatement> body;
+    boolean logging = false;
 
-    public Program(List<IStatement> body) {
+    public Program(List<IStatement> body, boolean logging) {
         type = PROGRAM;
         this.body = body;
+        this.logging = logging;
     }
 
     public List<IStatement> getBody() {
         return body;
+    }
+
+    public boolean getLogging() {
+        return logging;
     }
 
     static public Program mergePrograms(List<Program> programs) {
@@ -49,9 +55,11 @@ public class Program extends Node implements Node.IProgram {
         }
         List<IStatement> li = new ArrayList<IStatement>();
         for (Program pg : programs) {
+            if (pg.getLogging()) li.add(new LogBeginMetaStatement());
             li.addAll(pg.getBody());
+            if (pg.getLogging()) li.add(new LogEndMetaStatement());
         }
-        return new Program(li);
+        return new Program(li, false);
     }
     
     @Override

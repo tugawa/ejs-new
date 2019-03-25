@@ -328,6 +328,22 @@ class IASTContinueStatement extends IASTStatement {
 	}
 }
 
+class IASTLogBeginMetaStatement extends IASTStatement {
+    IASTLogBeginMetaStatement() {}
+    @Override
+	Object accept(IASTBaseVisitor visitor) {
+        return visitor.visitLogBeginMetaStatement(this);
+    }
+}
+
+class IASTLogEndMetaStatement extends IASTStatement {
+    IASTLogEndMetaStatement() {}
+    @Override
+	Object accept(IASTBaseVisitor visitor) {
+        return visitor.visitLogEndMetaStatement(this);
+    }
+}
+
 class IASTExpression extends IASTNode {
 	@Override
 	Object accept(IASTBaseVisitor visitor) {
@@ -383,12 +399,14 @@ class IASTFunctionExpression extends IASTExpression {
 	List<String> locals;
 	HashSet<String> innerUsedLocals;
 	IASTStatement body;
+    boolean logging;
 	public boolean needArguments;
 	public boolean needFrame;
-	IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body) {
+	IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body, boolean logging) {
 		this.params = params;
 		this.locals = locals;
 		this.body = body;
+        this.logging = logging;
 		this.needArguments = true;
 		this.needFrame = true;
 	}

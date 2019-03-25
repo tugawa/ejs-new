@@ -42,8 +42,8 @@ public class Main {
 
     static class Info {
         List<String> inputFileNames = new LinkedList<String>();   // .js
+        List<Integer> loggedInputFileIndices = new LinkedList<Integer>();   // .js
         String outputFileName;  // .sbc
-        String testFileName;    // -test.js
 		enum OptLocals {
 				NONE,
 				PROSYM,
@@ -62,7 +62,7 @@ public class Main {
         boolean optCopyPropagation = false;
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
-        boolean optEnableTesting = false;
+        boolean optEnableLogging = false;
 		OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
@@ -118,13 +118,15 @@ public class Main {
 					case "-opt-reg":
 					    info.optRegisterAssignment = true;
 					    break;
-                    case "-test":
+                    case "-log":
                         i++;
                         if (i >= args.length) {
-                            throw new Error("failed to parse arguments: -test");
+                            throw new Error("failed to parse arguments: -log");
                         }
-                        info.testFileName = args[i];
-                        info.optEnableTesting = true;
+                        info.loggedInputFileIndices.add(info.inputFileNames.size());
+                        info.inputFileNames.add(args[i]);
+                        info.optEnableLogging = true;
+                        break;
 					default:
 						throw new Error("unknown option: "+args[i]);
                     }
@@ -170,6 +172,7 @@ public class Main {
         }
 
         List<ejsc.ast_node.Program> programs = new LinkedList<ejsc.ast_node.Program>();
+        int i = 0;
         for (String fname : info.inputFileNames) {
             // Parse JavaScript File
             ANTLRInputStream antlrInStream;
@@ -187,8 +190,10 @@ public class Main {
             ParseTree tree = parser.program();
 
             // convert ANTLR's parse tree into ESTree.
-            ASTGenerator astgen = new ASTGenerator();
+            ASTGenerator astgen = new ASTGenerator(info.loggedInputFileIndices.contains(i));
             programs.add((ejsc.ast_node.Program) astgen.visit(tree));
+
+            i++;
         }
 
         ejsc.ast_node.Program ast = ejsc.ast_node.Program.mergePrograms(programs);
@@ -222,7 +227,7 @@ public class Main {
         }
 
         // convert iAST into low level code.
-		CodeGenerator codegen = new CodeGenerator(info.optLocals);
+		CodeGenerator codegen = new CodeGenerator(info.optLocals, info.optEnableLogging);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
         bcBuilder.optimisation(info);

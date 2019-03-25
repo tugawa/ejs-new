@@ -87,6 +87,23 @@ class BCBuilder {
             	}
             	number++;
             }
+
+            int logging = 0;
+            java.util.Iterator<BCode> ite = bcodes.iterator();
+            while (ite.hasNext()) {
+                BCode bcode = ite.next();
+                if (bcode instanceof LogBegin) {
+                    logging++;
+                    ite.remove();
+                } else if (bcode instanceof LogEnd) {
+                    logging--;
+                    ite.remove();
+                } else {
+                    if (logging > 0) {
+                        bcode.logInsn();
+                    }
+                }
+            }
         }
 
         void assignAddress() {

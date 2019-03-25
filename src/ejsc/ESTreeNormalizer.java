@@ -178,7 +178,7 @@ public class ESTreeNormalizer {
                 List<IStatement> outerFuncBody = new LinkedList<IStatement>();
                 
                 // create inner func
-                FunctionExpression inner = new FunctionExpression(null, node.getParams(), node.getBody());
+                FunctionExpression inner = new FunctionExpression(null, node.getParams(), node.getBody(), node.getLogging());
                 
                 // create var decl
                 List<IVariableDeclarator> varDecl = new LinkedList<IVariableDeclarator>();

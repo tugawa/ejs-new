@@ -86,6 +86,9 @@ public abstract class Node {
     public static final int VAR_DECL_LIST = 4;
     // public static final int VAR_DECL = 5;
 
+    public static final int LOG_BEGIN_META_STMT = 48;
+    public static final int LOG_END_META_STMT = 49;
+
     public static final String[] typeStr = {
             "Program", "VariableDeclaration", "VariableDeclarator", "Identifier",
     };
@@ -172,6 +175,7 @@ public abstract class Node {
         public IIdentifier getId();
         public List<IPattern> getParams();
         public IBlockStatement getBody();
+        public boolean getLogging();
         public void setId(IIdentifier id);
         public void setParams(List<IPattern> params);
         public void setBody(IBlockStatement body);

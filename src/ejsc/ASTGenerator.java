@@ -33,6 +33,14 @@ import ejsc.ast_node.Node.*;
 
 public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
+    boolean logging = false;
+
+    public ASTGenerator() {}
+
+    public ASTGenerator(boolean logging) {
+        this.logging = logging;
+    }
+
 	@Override
 	public Node visitProgram(ECMAScriptParser.ProgramContext ctx) {
 		List<IStatement> decls = new ArrayList<IStatement>();
@@ -40,7 +48,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			IStatement decl = (IStatement) visit(el);
 			decls.add(decl);
 		}
-		return new Program(decls);
+		return new Program(decls, logging);
 	}
 
 	@Override
@@ -403,7 +411,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			}
 		}
 		BlockStatement body = (BlockStatement) visit(ctx.functionBody());
-		return new FunctionDeclaration(id, params, body);
+		return new FunctionDeclaration(id, params, body, logging);
 	}
 
 	@Override public Node visitFormalParameterList(ECMAScriptParser.FormalParameterListContext ctx) {
@@ -472,7 +480,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 	@Override public Node visitPropertyGetter(ECMAScriptParser.PropertyGetterContext ctx) {
 		IBlockStatement block = (IBlockStatement) visit(ctx.functionBody());
 		List<IPattern> params = new ArrayList<IPattern>();
-		IFunctionExpression fun = new FunctionExpression(null, params, block);
+		IFunctionExpression fun = new FunctionExpression(null, params, block, logging);
 		Node node = visit(ctx.getter().propertyName());
 		Property prop = null;
 		if (node == null) {
@@ -492,7 +500,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 		List<IPattern> params = new ArrayList<IPattern>();
 		String paramName = ctx.propertySetParameterList().Identifier().getText();
 		params.add(new Identifier(paramName));
-		IFunctionExpression fun = new FunctionExpression(null, params, block);
+		IFunctionExpression fun = new FunctionExpression(null, params, block, logging);
 		Node node = visit(ctx.setter().propertyName());
 		Property prop = null;
 		if (node == null) {
@@ -637,7 +645,7 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 			}
 		}
 		BlockStatement body = (BlockStatement) visit(ctx.functionBody());
-		return new FunctionExpression(id, params, body);
+		return new FunctionExpression(id, params, body, logging);
 	}
 
 	@Override public Node visitBitShiftExpression(ECMAScriptParser.BitShiftExpressionContext ctx) {

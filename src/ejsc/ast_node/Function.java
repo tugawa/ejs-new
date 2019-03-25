@@ -33,12 +33,14 @@ public class Function extends Node implements Node.IFunction {
     protected IIdentifier id;
     protected List<IPattern> params;
     protected IBlockStatement body;
+    protected boolean logging;
 
     public Function(IIdentifier id, List<IPattern> params, IBlockStatement body) {
         type = FUNCTION;
         this.id = id;
         this.params = params;
         this.body = body;
+        this.logging = logging;
     }
 
     @Override
@@ -76,6 +78,11 @@ public class Function extends Node implements Node.IFunction {
     public IBlockStatement getBody() {
         // TODO Auto-generated method stub
         return body;
+    }
+
+    @Override
+    public boolean getLogging() {
+        return logging;
     }
 
     @Override

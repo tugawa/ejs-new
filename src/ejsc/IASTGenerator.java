@@ -184,7 +184,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		List<String> params = new ArrayList<String>();
 		List<String> locals = new ArrayList<String>();
 		IASTBlockStatement block = new IASTBlockStatement(stmts);
-		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block);
+		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block, node.getLogging());
 		return new IASTProgram(func);
 	}
 	/*protected IASTNode visitFunction(IFunction node) {
@@ -350,6 +350,12 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		body = (IASTStatement) node.getBody().accept(this);
 		return new IASTForInStatement(v, obj, body);
 	}
+    protected IASTNode visitLogBeginMetaStatement(LogBeginMetaStatement node) {
+        return new IASTLogBeginMetaStatement();
+    }
+    protected IASTNode visitLogEndMetaStatement(LogEndMetaStatement node) {
+        return new IASTLogEndMetaStatement();
+    }
 	/*protected IASTNode visitDeclaration(Declaration node) {
 		return visitStatement(node);
 	}*/
@@ -361,7 +367,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		}
 		List<String> locals = hoistDeclarations(node.getBody());
 		IASTStatement body = (IASTStatement) node.getBody().accept(this);
-		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, body);
+		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, body, node.getLogging());
 		IASTBinaryExpression assign = new IASTBinaryExpression(
 				IASTBinaryExpression.Operator.ASSIGN, id, func);
 		return new IASTExpressionStatement(assign);
@@ -430,7 +436,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		}
 		List<String> locals = hoistDeclarations(node.getBody());
 		IASTBlockStatement body = (IASTBlockStatement) node.getBody().accept(this);
-		return new IASTFunctionExpression(params, locals, body);
+		return new IASTFunctionExpression(params, locals, body, node.getLogging());
 	}
 	protected IASTNode visitUnaryExpression(UnaryExpression node) {
 		IASTUnaryExpression.Operator operator = null;

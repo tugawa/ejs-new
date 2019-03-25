@@ -134,6 +134,12 @@ public class IASTBaseVisitor {
 	public Object visitContinueStatement(IASTContinueStatement node) {
 		return visitStatement(node);
 	}
+    public Object visitLogBeginMetaStatement(IASTLogBeginMetaStatement node) {
+        return visitStatement(node);
+    }
+    public Object visitLogEndMetaStatement(IASTLogEndMetaStatement node) {
+        return visitStatement(node);
+    }
 	public Object visitExpression(IASTExpression node) {
 		return visitNode(node);
 	}

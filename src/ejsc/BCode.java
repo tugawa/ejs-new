@@ -32,6 +32,7 @@ public class BCode {
     int number;
     protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
+    boolean logging = false;
     
     BCode() {}
     
@@ -78,50 +79,59 @@ public class BCode {
 	    	return srcs;
     	}
     
+    public void logInsn() {
+        this.logging = true;
+    }
+
+    String logStr() {
+        if (logging) { return "_log"; }
+        else { return ""; }
+    }
+    
     String toString(String opcode) {
-        return opcode;
+        return opcode + logStr();
     }
 
     String toString(String opcode, Register op1) {
-        return opcode + " " + op1;
+        return opcode + logStr() + " " + op1;
     }
     String toString(String opcode, Register op1, Register op2) {
-        return opcode + " " + op1 + " " + op2;
+        return opcode + logStr() + " " + op1 + " " + op2;
     }
     String toString(String opcode, Register op1, Register op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
 
     String toString(String opcode, Register op1, String op2) {
-        return opcode + " " + op1 + " " + op2;
+        return opcode + logStr() + " " + op1 + " " + op2;
     }
 
     String toString(String opcode, Register op1, int op2) {
-        return opcode + " " + op1 + " " + op2;
+        return opcode + logStr() + " " + op1 + " " + op2;
     }
     String toString(String opcode, Register op1, double op2) {
-        return opcode + " " + op1 + " " + op2;
+        return opcode + logStr() + " " + op1 + " " + op2;
     }
     String toString(String opcode, Register op1, int op2, int op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
     String toString(String opcode, Register op1, int op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
     String toString(String opcode, int op1, int op2, Register op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
 
     String toString(String opcode, int op1) {
-        return opcode + " " + op1;
+        return opcode + logStr() + " " + op1;
     }
 
     String toString(String opcode, int op1, int op2) {
-        return opcode + " " + op1 + " " + op2;
+        return opcode + logStr() + " " + op1 + " " + op2;
     }
 
     String toString(String opcode, Register op1, int op2, String op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
 }
 
@@ -917,4 +927,24 @@ class MParameter extends BCode {
 	public String toString() {
 		return "@MACRO param "+dst;
 	}
+}
+
+class LogBegin extends BCode {
+    LogBegin() {
+        super();
+    }
+    @Override
+    public String toString() {
+        return "";
+    }
+}
+
+class LogEnd extends BCode {
+    LogEnd() {
+        super();
+    }
+    @Override
+    public String toString() {
+        return "";
+    }
 }

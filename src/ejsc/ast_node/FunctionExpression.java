@@ -33,12 +33,14 @@ public class FunctionExpression extends Node implements IFunctionExpression {
     IIdentifier id;
     List<IPattern> params;
     IBlockStatement body;
+    boolean logging;
 
-    public FunctionExpression(IIdentifier id, List<IPattern> params, IBlockStatement body) {
+    public FunctionExpression(IIdentifier id, List<IPattern> params, IBlockStatement body, boolean logging) {
         type = FUNC_EXP;
         this.id = id;
         this.params = params;
         this.body = body;
+        this.logging = logging;
     }
 
     @Override
@@ -54,6 +56,11 @@ public class FunctionExpression extends Node implements IFunctionExpression {
     @Override
     public IBlockStatement getBody() {
         return body;
+    }
+
+    @Override
+    public boolean getLogging() {
+        return logging;
     }
 
     @Override
