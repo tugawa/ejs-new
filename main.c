@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
   //        lastprint_flag, ftable_flag, trace_flag, k);
   if (k > 0) {
     if (repl_flag == TRUE)
-    fo = stdin;
+      fp = stdin;
     else if ((fp = fopen(argv[k], "r")) == NULL)
       LOG_EXIT("%s: No such file.\n", argv[k]);
   }
@@ -256,7 +256,8 @@ int main(int argc, char *argv[]) {
 
     srand((unsigned)time(NULL));
     init_code_loader(fp);
-    n = code_loader(context, function_table);
+    base_function = n;
+    n += code_loader(context, function_table, n);
     end_code_loader();
 
     // obtains the time before execution
