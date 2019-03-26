@@ -142,9 +142,22 @@ typedef enum {
   /* 13 */ UNKNOWNOP
 } OperandType;
 
+/*
+ Super Operand Type
+ */
+typedef enum {
+    NONE,
+    LIT,
+    STR,
+    NUM,
+    //  REGEXP,
+    SPEC
+} InsnOperandType;
+
 typedef struct insn_info {
   char *insn_name;          // nemonic
   OperandType operand_type; // type
+  InsnOperandType op0, op1, op2; // insn type
 } InsnInfo;
 
 /*
@@ -325,6 +338,21 @@ typedef void *InsnLabel;
 #define get_small_immediate(code) \
   (Bytecode)((int32_t)(((Bytecode)(code)) & SMALLPRIMITIVE_IMMMASK))
 
+#define get_first_operand_disp(code) ((Displacement)(get_first_operand(code)))
+
+#define get_second_operand_disp(code) ((Displacement)(get_second_operand(code)))
+
+#define get_third_operand_disp(code) ((Displacement)(get_third_operand(code)))
+
+#define update_first_operand_disp(code, disp) \
+makecode_three_operands(get_opcode(code), disp, get_second_operand_reg(code), get_third_operand_reg(code))
+
+#define update_second_operand_disp(code, disp) \
+makecode_three_operands(get_opcode(code), get_first_operand_reg(code), disp, get_third_operand_reg(code))
+
+#define update_third_operand_disp(code, disp) \
+makecode_three_operands(get_opcode(code), get_first_operand_reg(code), get_second_operand_reg(code), disp)
+
 #define get_big_subscr(code) (((Bytecode)(code)) & BIGPRIMITIVE_SUBSCRMASK)
 
 #define get_big_disp(code) \
@@ -336,6 +364,7 @@ typedef void *InsnLabel;
 
 #define get_second_operand_int(code) ((int)((int16_t)(get_second_operand(code))))
 
+#define get_third_operand_int(code) ((int)((int16_t)(get_third_operand(code))))
 /*
 #define calc_displacement(numOfInst, codeIndex, constIndex) \
   (numOfInst - (codeIndex + 1) + constIndex)

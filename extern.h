@@ -28,6 +28,7 @@ extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
 extern int cputime_flag;
+extern int repl_flag;
 extern int regstack_limit;
 
 extern int run_phase;
@@ -137,10 +138,10 @@ JSValue call_builtin0(Context *, JSValue, JSValue, int);
 extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
-extern int code_loader(Context *, FunctionTable *);
+extern int code_loader(Context *, FunctionTable *, int);
 extern void init_constant_cell(ConstantCell *);
 extern void end_constant_cell(ConstantCell *);
-extern int insn_load(Context *, ConstantCell *, Bytecode *, int);
+//extern int insn_load(Context *, ConstantCell *, Bytecode *, int);
 extern int update_function_table(FunctionTable *, int, ConstantCell *,
                                  Bytecode *, int, int, int, int);
 
