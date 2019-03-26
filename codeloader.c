@@ -149,7 +149,7 @@ void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
   unsigned char tmpsize[2];
   for(oi=0;oi<citable.n_const_info;oi++){
     fread(tmpsize,sizeof(unsigned char),2,file_pointer);
-
+    
     if((citable.const_info[oi].size=tmpsize[0]*256+tmpsize[1])!=0){
       Opcode oc = citable.const_info[oi].oc;
       InsnOperandType type = citable.const_info[oi].type;
@@ -292,7 +292,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
       ret = insn_load(ctx, &ctable, bytecodes, j);
 
     ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
-                               callentry, sendentry, nlocals, ninsns);
+                                callentry, sendentry, nlocals, ninsns);
     end_constant_cell(&ctable);
   }
   // number_functions = i;
@@ -306,6 +306,10 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
    initializes the code loader
  */
 void init_code_loader(FILE *fp) {
+  if(repl_flag == TRUE) {
+    file_pointer = stdin;
+    return;
+  }
   file_pointer = fp;
 }
 
@@ -313,6 +317,8 @@ void init_code_loader(FILE *fp) {
    finalizes the code loader
  */
 void end_code_loader() {
+  if (repl_flag == TRUE)
+    return;
   if (file_pointer != NULL)
     fclose(file_pointer);
 }
