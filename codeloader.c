@@ -51,6 +51,12 @@ typedef struct {
 
 #define LOADBUFLEN 1024
 
+#ifdef USE_OBC
+void init_constant_info(CItable *citable);
+void add_constant_info(CItable *ci, Opcode oc, int index, InsnOperandType type);
+void const_load(Context *ctx, CItable citable, ConstantCell *constant);
+#endif
+
 extern uint32_t decode_escape_char(char *);
 extern int print_function_table(FunctionTable *, int);
 extern void print_bytecode(Instruction *, int);
