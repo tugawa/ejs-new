@@ -34,6 +34,17 @@ char *insn_nemonic(int opcode) {
   return insn_info_table[opcode].insn_name;
 }
 
+typedef struct {
+  Opcode oc;
+  int size;
+  InsnOperandType type;
+} ConstInfo;
+
+typedef struct {
+  int n_const_info;
+  ConstInfo *const_info;
+} CItable;
+
 /*
    instruction table
  */
