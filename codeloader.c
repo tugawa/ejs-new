@@ -338,6 +338,69 @@ Opcode find_insn(char* s) {
 #define LOAD_OK     0
 #define LOAD_FAIL  (-1)
 
+#ifdef USE_OBC
+Bytecode convertToBc(unsigned char buf[8]){
+    int i;
+    Bytecode ret;
+
+    ret=0;
+    for(i=0;i<8;i++)
+        ret = ret*256+ buf[i];
+
+    return ret;
+}
+
+#define OPTYPE_ERROR ((InsnOperandType)(-1))
+
+InsnOperandType si_optype(Opcode oc, int i){
+    switch (i) {
+        case 0:
+            return insn_info_table[oc].op0;
+        case 1:
+            return insn_info_table[oc].op1;
+        case 2:
+            return insn_info_table[oc].op2;
+        default:
+            return OPTYPE_ERROR;
+    }
+}
+#else
+#define load_op(op_type, op)                           \
+do {                                                   \
+  op = 0;                                              \
+  switch (op_type) {                                   \
+  case NONE:                                           \
+    break;                                             \
+  case LIT:                                            \
+    { op = atoi(next_token()); }                       \
+    break;                                             \
+  case STR:                                            \
+    {                                                  \
+      char *str;                                       \
+      uint32_t len;                                    \
+      str = next_token();                              \
+      if (str == NULL) str = "";                       \
+      else len = decode_escape_char(str);              \
+      op = add_constant_string(ctx, constant, str);    \
+    }                                                  \
+    break;                                             \
+  case NUM:                                            \
+    {                                                  \
+      double number;                                   \
+      number = atof(next_token());                     \
+      op = add_constant_number(ctx, constant, number); \
+    }                                                  \
+    break;                                             \
+  case SPEC:                                           \
+    { op = specstr_to_jsvalue(next_token()); }         \
+    break;                                             \
+  default:                                             \
+    return LOAD_FAIL;                                  \
+  }                                                    \
+} while(0)
+#endif /* USE_OBC */
+
+
 /*
    loads an instruction
  */
