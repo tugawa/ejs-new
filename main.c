@@ -36,6 +36,7 @@ int trace_flag;        // prints every excuted instruction
 int lastprint_flag;    // prints the result of the last expression
 int all_flag;          // all flag values are true
 int cputime_flag;      // prints the cpu time
+int repl_flag;         // for REPL
 #ifdef HIDDEN_CLASS
 int hcprint_flag;      // prints all transitive hidden classes
 #endif
@@ -124,6 +125,7 @@ struct commandline_option  options_table[] = {
   { "-t", 0, &trace_flag         },
   { "-a", 0, &all_flag           },
   { "-u", 0, &cputime_flag       },
+  { "-R", 0, &repl_flag          },
 #ifdef HIDDEN_CLASS
   { "-h", 0, &hcprint_flag       },
 #endif
@@ -184,6 +186,7 @@ int main(int argc, char *argv[]) {
   // If input program is given from a file, fp is set to NULL.
   FILE *fp = NULL;
   struct rusage ru0, ru1;
+  int base_function = 0;
   int k;
 
 #ifndef NDEBUG
@@ -191,16 +194,20 @@ int main(int argc, char *argv[]) {
 #endif /* NDEBUG */
 
   log_stream = stderr;
-  lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
+  repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
   k = process_options(argc, argv);
   if (all_flag == TRUE)
     lastprint_flag = ftable_flag = trace_flag = TRUE;
+  if (repl_flag == TRUE)
+    lastprint_flag = TRUE;
 
   // printf("regstack_limit = %d\n", regstack_limit);
   // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
   //        lastprint_flag, ftable_flag, trace_flag, k);
   if (k > 0) {
-    if ((fp = fopen(argv[k], "r")) == NULL)
+    if (repl_flag == TRUE)
+    fo = stdin;
+    else if ((fp = fopen(argv[k], "r")) == NULL)
       LOG_EXIT("%s: No such file.\n", argv[k]);
   }
 
@@ -228,7 +235,7 @@ int main(int argc, char *argv[]) {
   long long *values = malloc(sizeof(long long) * eventsize);
 #endif // USE_PAPI
 
-  int n;
+  int n = 0;
   Context *context;
 
   run_phase = PHASE_INIT;
@@ -245,99 +252,112 @@ int main(int argc, char *argv[]) {
   init_context(function_table, gconsts.g_global, &context);
   init_builtin(context);
 
-  srand((unsigned)time(NULL));
-  init_code_loader(fp);
-  n = code_loader(context, function_table);
-  end_code_loader();
+  while(1) {
 
-  // obtains the time before execution
+    srand((unsigned)time(NULL));
+    init_code_loader(fp);
+    n = code_loader(context, function_table);
+    end_code_loader();
+
+    // obtains the time before execution
 #ifdef USE_PAPI
-  if (eventsize > 0) {
-    int papi_result = PAPI_start_counters(events, eventsize);
-    if (papi_result != 0)
-      LOG_EXIT("papi failed:%d\n", papi_result);
-  }
+    if (eventsize > 0) {
+      int papi_result = PAPI_start_counters(events, eventsize);
+      if (papi_result != 0)
+        LOG_EXIT("papi failed:%d\n", papi_result);
+    }
 #endif // USE_PAPI
 
 #ifdef CALC_TIME
-  s = PAPI_get_real_usec();
+    s = PAPI_get_real_usec();
 #endif // CALC_TIME
 
-  testtest(context);
+    testtest(context);
 
-  // enters the VM loop
-  run_phase = PHASE_VMLOOP;
-  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
-  vmrun_threaded(context, 0);
-  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
+    // enters the VM loop
+    run_phase = PHASE_VMLOOP;
+    if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
+    
+    set_cf(context, &context->function_table[base_function]);
+    set_pc(context, 0);
 
-  // obtains the time after execution
+    vmrun_threaded(context, 0);
+
+    if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
+
+    // obtains the time after execution
 #ifdef CALC_TIME
-  e = PAPI_get_real_usec();
+    e = PAPI_get_real_usec();
 #endif // CALC_TIME
 
 #ifdef USE_PAPI
-  if (eventsize > 0)
-    PAPI_stop_counters(values, eventsize);
+    if (eventsize > 0)
+      PAPI_stop_counters(values, eventsize);
 #endif // USE_PAPI
 
 #ifndef USE_PAPI
 #ifndef CALC_TIME
 #ifndef CALC_CALL
 
-  if (lastprint_flag == TRUE) {
+    if (lastprint_flag == TRUE) {
 #ifdef USE_FFI
-    if (isErr(context)) {
-      printf("Exception!\n");
-      printJSValue(getErr(context));
-    } else
-      debug_print(context, n);
+      if (isErr(context)) {
+        printf("Exception!\n");
+        printJSValue(getErr(context));
+      } else
+        debug_print(context, n);
 #else
-    debug_print(context, n);
+      debug_print(context, n);
 #endif  // USE_FFI
-  }
+    }
 
 #endif // CALC_CALL
 #endif // CALC_TIME
 #endif // USE_PAPI
 
 #ifdef USE_PAPI
-  if (eventsize > 0) {
-    int i;
-    for (i = 0; i < eventsize; i++)
-      LOG("%"PRId64"\n", values[i]);
-    LOG("%15.15e\n", ((double)values[1]) / (double)values[0]);
-    LOG("L1 Hit Rate:%lf\n", ((double)values[0])/((double)values[0] + values[1]));
-    LOG("L2 Hit Rate:%lf\n", ((double)values[2])/((double)values[2] + values[3]));
-    LOG("L3 Hit Rate:%lf\n", ((double)values[4])/((double)values[4] + values[5]));
-  }
+    if (eventsize > 0) {
+      int i;
+      for (i = 0; i < eventsize; i++)
+        LOG("%"PRId64"\n", values[i]);
+      LOG("%15.15e\n", ((double)values[1]) / (double)values[0]);
+      LOG("L1 Hit Rate:%lf\n", ((double)values[0])/((double)values[0] + values[1]));
+      LOG("L2 Hit Rate:%lf\n", ((double)values[2])/((double)values[2] + values[3]));
+      LOG("L3 Hit Rate:%lf\n", ((double)values[4])/((double)values[4] + values[5]));
+    }
 #endif // USE_PAPI
 
 #ifdef CALC_TIME
-  LOG("%"PRId64"\n", e - s);
+    LOG("%"PRId64"\n", e - s);
 #endif // CALC_TIME
 
 #ifdef CALC_CALL
-  LOG("%"PRId64"\n", callcount);
+    LOG("%"PRId64"\n", callcount);
 #endif // CALC_CALL
 
-  if (cputime_flag == TRUE) {
-    time_t sec;
-    suseconds_t usec;
+    if (cputime_flag == TRUE) {
+      time_t sec;
+      suseconds_t usec;
 
-    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
-    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
-    if (usec < 0) {
-      sec--;
-      usec += 1000000;
+      sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+      usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+      if (usec < 0) {
+        sec--;
+        usec += 1000000;
+      }
+      print_cputime(sec, usec);
     }
-    print_cputime(sec, usec);
-  }
 #ifdef HIDDEN_CLASS
-  if (hcprint_flag == TRUE)
-    print_all_hidden_class();
+    if (hcprint_flag == TRUE)
+      print_all_hidden_class();
 #endif
-
+    
+    if(repl_flag == TRUE)
+      fflush(stdout);
+    else
+      break;
+    
+  }
 
   return 0;
 }
