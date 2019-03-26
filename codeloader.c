@@ -652,6 +652,13 @@ void init_constant_cell(ConstantCell *constant)
     (JSValue*)malloc(sizeof(JSValue) * (CONSTANT_LIMIT));
 }
 
+void init_constant_info(CItable *citable)
+{
+    citable->n_const_info = 0;
+    citable->const_info =
+    (ConstInfo*)malloc(sizeof(ConstInfo)*(CONSTANT_LIMIT));
+}
+
 /*
    finlaizes the constant table
  */
@@ -684,6 +691,12 @@ char *jsvalue_to_specstr(JSValue v) {
   else if (v == JS_UNDEFINED) s = "undefined";
   else s = "unknown_specstr";
   return s;
+}
+
+void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
+    if(index+1 > ci->n_const_info) ci->n_const_info = index+1;
+    (ci->const_info)[index].oc = c;
+    (ci->const_info)[index].type = t;
 }
 
 /*
@@ -770,6 +783,23 @@ int update_function_table(FunctionTable *ftable, int index,
   for (i = 0; i < loopnum; i++) {
     insnptr[i] = NULL;
     oc = get_opcode(bytecodes[i]);
+    InsnOperandType op1, op2;
+    op1 = insn_info_table[oc].op1;
+    if (op1 == STR || op1 == NUM) {
+      Subscript ss;
+      Displacement disp;
+      ss = (Subscript)get_second_operand_disp(bytecodes[i]);
+      disp = calc_displacement(ninsns, i, ss);
+      bytecodes[i] = update_second_operand_disp(bytecodes[i], disp);
+    }
+    op2 = insn_info_table[oc].op2;
+    if (op2 == STR || op2 == NUM) {
+      Subscript ss;
+      Displacement disp;
+      ss = (Subscript)get_third_operand_disp(bytecodes[i]);
+      disp = calc_displacement(ninsns, i, ss);
+      bytecodes[i] = update_third_operand_disp(bytecodes[i], disp);
+    }
     if (oc == STRING || oc == NUMBER || oc == ERROR
 #ifdef USE_REGEXP
 #ifdef need_regexp
