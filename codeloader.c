@@ -809,7 +809,11 @@ int update_function_table(FunctionTable *ftable, int index,
         ) {
       Subscript ss;
       Displacement disp;
+#ifdef USE_OBC
+      ss = (bytecodes[i] & 0x00000000ffff0000)>>16;
+#else
       ss = get_big_subscr(bytecodes[i]);
+#endif /* USE_OBC */
       disp = calc_displacement(ninsns, i, ss);
       bytecodes[i] = update_displacement(bytecodes[i], disp);
     }
@@ -1064,6 +1068,7 @@ uint32_t decode_escape_char(char *str) {
     case 'r': *dst++ = '\r'; break;
     case 't': *dst++ = '\t'; break;
     case 'v': *dst++ = '\v'; break;
+    case 's': *dst++ = ' '; break;
     case '\\': *dst++ = '\\'; break;
     case '\'': *dst++ = '\''; break;
     case '\"': *dst++ = '\"'; break;
