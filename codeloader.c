@@ -87,7 +87,170 @@ inline int check_read_token(char *buf, char *tok) {
 /*
    codeloader
  */
-int code_loader(Context *ctx, FunctionTable *ftable) {
+#ifdef USE_OBC
+int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
+  ConstantCell ctable;
+  CItable citable;
+  Bytecode* bytecodes;
+  int nfuncs, callentry, sendentry, nlocals, ninsns;
+  int i, j, ret, n;
+  unsigned char buf[2];
+
+  while((n=fread( buf, sizeof( unsigned char ), 2, file_pointer )) == EOF || n == 0 ) ;
+  nfuncs = buf[0]*256 + buf[1];
+
+  // reads each function
+  for (i = 0; i < nfuncs; i++) {
+    // callentry
+    fread( buf, sizeof( unsigned char ), 2, file_pointer );
+    callentry = buf[0]*256 + buf[1];
+
+    // sendentry
+    fread( buf, sizeof( unsigned char ), 2, file_pointer );
+    sendentry = buf[0]*256 + buf[1];
+
+    // numberOfLocals
+    fread( buf, sizeof( unsigned char ), 2, file_pointer );
+    nlocals = buf[0]*256 + buf[1];
+
+    // numberOfInstruction
+    fread( buf, sizeof( unsigned char ), 2, file_pointer );
+    ninsns = buf[0]*256 + buf[1];
+
+    // initializes constant table
+    init_constant_cell(&ctable);
+    init_constant_info(&citable);
+
+    // initilaizes bytecode array
+    bytecodes = (Bytecode*)malloc(sizeof(Bytecode) * ninsns);
+    if (bytecodes == NULL)
+      LOG_EXIT("%dth func: cannnot malloc bytecode", i);
+
+    // loads instructions for each function
+    for (j = 0; j < ninsns; j++)
+      ret = insn_load(ctx, &ctable, bytecodes, j, &citable);
+
+    // loads constants
+    const_load(ctx, citable, &ctable);
+
+    ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
+                                callentry, sendentry, nlocals, ninsns);
+    end_constant_cell(&ctable);
+  }
+  if (ftable_flag == TRUE)
+    print_function_table(ftable, i+numberOfFunction);
+
+  return i;
+}
+
+void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
+  int oi,i,j,k;
+
+  unsigned char tmpsize[2];
+  for(oi=0;oi<citable.n_const_info;oi++){
+    fread(tmpsize,sizeof(unsigned char),2,file_pointer);
+
+    if((citable.const_info[oi].size=tmpsize[0]*256+tmpsize[1])!=0){
+      Opcode oc = citable.const_info[oi].oc;
+      InsnOperandType type = citable.const_info[oi].type;
+      switch (insn_info_table[oc].operand_type) {
+      case BIGPRIMITIVE:
+        switch (oc) {
+        case ERROR:
+        case STRING:
+          {
+            unsigned char tmp[1];
+            uint32_t len;
+            int size = citable.const_info[oi].size;
+            char str[1024];
+            for(i=0;i<size;i++){
+              fread(tmp,sizeof(unsigned char),1,file_pointer);
+              str[i] = (char)tmp[0];
+            }
+            decode_escape_char(str);
+            add_constant_string(ctx, constant, str);
+          }
+          break;
+        case NUMBER:
+          {
+            int index, tmpnum;
+            int e, top;
+            unsigned char tmp[8];
+            double num=1.0;
+            fread(tmp,sizeof(unsigned char),8,file_pointer);
+            e = ((tmp[0]&0x7f) * 16) + (tmp[1]>>4);
+            top = tmp[1]&0x0f;
+            for(j=0;j<4;j++){
+              if(top>>(3-j)&1==1)
+                num += pow(2.0, (double)-(j+1));
+            }
+            for(j=0;j<6;j++){
+              top = tmp[j+2];
+              for(k=0;k<8;k++)
+                if(top>>(7-k)&1==1)
+                  num += pow(2.0, (double)-(j*8+k+5));
+            }
+            num *= pow(2.0, (double)(e-1023));
+            if(tmp[0]>>7== 1) num*=-1.0;
+            index = add_constant_number(ctx, constant, num);
+          }
+          break;
+        default:
+          break;
+        }
+        break;
+      case THREEOP:
+        switch (type) {
+        case STR:
+          {
+            unsigned char tmp[1];
+            uint32_t len;
+            int size = citable.const_info[oi].size;
+            char str[1024];
+            for(i=0;i<size;i++){
+              fread(tmp,sizeof(unsigned char),1,file_pointer);
+              str[i] = (char)tmp[0];
+            }
+            decode_escape_char(str);
+            add_constant_string(ctx, constant, str);
+          }
+          break;
+        case NUM:
+          {
+            int index, tmpnum;
+            int e, top;
+            unsigned char tmp[8];
+            double num=1.0;
+            fread(tmp,sizeof(unsigned char),8,file_pointer);
+            e = ((tmp[0]&0x7f) * 16) + (tmp[1]>>4);
+            top = tmp[1]&0x0f;
+            for(j=0;j<4;j++){
+              if(top>>(3-j)&1==1)
+                num += pow(2.0, (double)-(j+1));
+            }
+            for(j=0;j<6;j++){
+              top = tmp[j+2];
+              for(k=0;k<8;k++)
+                if(top>>(7-k)&1==1)
+                  num += pow(2.0, (double)-(j*8+k+5));
+            }
+            num *= pow(2.0, (double)(e-1023));
+            if(tmp[0]>>7== 1) num*=-1.0;
+            index = add_constant_number(ctx, constant, num);
+          }
+          break;
+        default:
+          break;
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+#else
+int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
   ConstantCell ctable;
   Bytecode* bytecodes;
   char buf[LOADBUFLEN];
@@ -128,15 +291,16 @@ int code_loader(Context *ctx, FunctionTable *ftable) {
     for (j = 0; j < ninsns; j++)
       ret = insn_load(ctx, &ctable, bytecodes, j);
 
-    ret = update_function_table(ftable, i, &ctable, bytecodes,
+    ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
                                callentry, sendentry, nlocals, ninsns);
     end_constant_cell(&ctable);
   }
   // number_functions = i;
   if (ftable_flag == TRUE)
-    print_function_table(ftable, i);
+    print_function_table(ftable, i+numberOfFunction);
   return i;
 }
+#endif /* USE_OBC */
 
 /*
    initializes the code loader
