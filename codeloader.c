@@ -404,6 +404,54 @@ do {                                                   \
 /*
    loads an instruction
  */
+#ifdef USE_OBC
+int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc, CItable *citable) {
+    unsigned char buf[8];
+    Opcode oc;
+    int i, j, k, size;
+
+    fread(buf,sizeof(unsigned char),8,file_pointer);
+    oc = buf[0]*256 + buf[1];
+
+    switch (insn_info_table[oc].operand_type) {
+        case BIGPRIMITIVE:
+            switch (oc) {
+                case ERROR:
+                case STRING:
+                {
+                    add_constant_info(citable,oc,buf[4]*256 + buf[5], NONE);
+                    bytecodes[pc] = convertToBc(buf);
+                    return LOAD_OK;
+                }
+                case NUMBER:
+                {
+                    add_constant_info(citable,oc,buf[4]*256 + buf[5], NONE);
+                    bytecodes[pc] = convertToBc(buf);
+                    return LOAD_OK;
+                }
+                default:
+                    return LOAD_FAIL;
+            }
+
+        case THREEOP:
+            for(i=0;i<3;i++){
+                InsnOperandType type = si_optype(oc,i);
+                if(type == OPTYPE_ERROR) return LOAD_FAIL;
+
+                if(type == STR | type == NUM )
+                    add_constant_info(citable,oc,buf[2+i*2]*256 + buf[3+i*2],type);
+            }
+            bytecodes[pc] = convertToBc(buf);
+            return LOAD_OK;
+
+        default:
+        {
+            bytecodes[pc] = convertToBc(buf);
+            return LOAD_OK;
+        }
+    }
+}
+#else
 int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc) {
   char buf[LOADBUFLEN];
   char *tokp;
@@ -458,8 +506,8 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
           char *str;
           int index;
           uint32_t len;
-          str = next_token2();
-          // str = next_token();
+          // str = next_token2();
+          str = next_token();
           if (str == NULL) str = "";
           else len = decode_escape_char(str);
           index = add_constant_string(ctx, constant, str);
@@ -494,20 +542,20 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
 
   case THREEOP:
     {
-      Register op1, op2, op3;
-      op1 = atoi(next_token());
-      op2 = atoi(next_token());
-      op3 = atoi(next_token());
-      bytecodes[pc] = makecode_three_operands(oc, op1, op2, op3);
+      Register op0, op1, op2;
+      load_op(insn_info_table[oc].op0, op0);
+      load_op(insn_info_table[oc].op1, op1);
+      load_op(insn_info_table[oc].op2, op2);
+      bytecodes[pc] = makecode_three_operands(oc, op0, op1, op2);
       return LOAD_OK;
     }
 
   case TWOOP:
     {
-      Register op1, op2;
+      Register op0, op1;
+      op0 = atoi(next_token());
       op1 = atoi(next_token());
-      op2 = atoi(next_token());
-      bytecodes[pc] = makecode_two_operands(oc, op1, op2);
+      bytecodes[pc] = makecode_two_operands(oc, op0, op1);
       return LOAD_OK;
     }
 
@@ -592,6 +640,7 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
     }
   }
 }
+#endif /* USE_OBC */
 
 /*
    initilizes the contant table
