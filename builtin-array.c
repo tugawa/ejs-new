@@ -334,7 +334,7 @@ BUILTIN_FUNCTION(array_reverse)
     lowerExists = has_array_element(args[0], lower);
 
     if (lowerExists) {
-      lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower)); // uncheck_cocci
+      lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
       upperExists = has_array_element(args[0], upper);
       if (upperExists) {
         GC_PUSH(lowerValue);
@@ -344,19 +344,19 @@ BUILTIN_FUNCTION(array_reverse)
     } else {
       upperExists = has_array_element(args[0], upper);
       if (upperExists)
-        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper)); // uncheck_cocci
+        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
     }
 
     if (lowerExists && upperExists) {
       GC_PUSH(lowerValue);
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue); // uncheck_cocci
+      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
       GC_POP(lowerValue);
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue); // uncheck_cocci
+      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
     } else if (!lowerExists && upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue); // uncheck_cocci
+      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
       delete_array_element(args[0], upper);
     } else if (lowerExists && !upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue); // uncheck_cocci
+      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
       delete_array_element(args[0], lower);
     } else {
       /* No action is required */
