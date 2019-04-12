@@ -5,7 +5,7 @@ call (_,-) accept
 div (-,_,_) accept
 eq (-,_,_) accept
 equal (-,_,_) accept
-getprop (-,_,-) accept
+getprop (-,_,_) accept
 leftshift (-,_,_) accept
 lessthan (-,_,_) accept
 lessthanequal (-,_,_) accept
@@ -13,7 +13,7 @@ mod (-,_,_) accept
 mul (-,_,_) accept
 new (-,_) accept
 rightshift (-,_,_) accept
-setprop (_,-,-) accept
+setprop (_,_,_) accept
 sub (-,_,_) accept
 tailcall (_,-) accept
 unsignedrightshift (-,_,_) accept
