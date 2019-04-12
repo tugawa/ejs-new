@@ -1,21 +1,11 @@
-\inst setprop (Value obj)
-
-\prologue \{
-#define prop v1
-#define value v2
-\}
-
-\epilogue \{
-#undef prop
-#undef value
-\}
+\inst setprop (Value obj, Value prop, Value val)
 
 \when obj:array \{
-  set_array_prop(context, obj, prop, value);
+  set_array_prop(context, obj, prop, val);
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:iterator || obj:function) \{
-  set_object_prop(context, obj, prop, value);
+  set_object_prop(context, obj, prop, val);
 \}
 
 \otherwise \{

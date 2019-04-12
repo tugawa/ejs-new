@@ -28,6 +28,12 @@ ifeq ($(OPT_GC),)
 # GC=native|boehmgc|none
     OPT_GC=native
 endif
+ifeq ($(SUPERINSNSPEC),)
+    SUPERINSNSPEC=none
+endif
+ifeq ($(SUPERINSNTYPE),)
+    SUPERINSNTYPE=4
+endif
 ifeq ($(OPT_REGEXP),)
 # REGEXP=oniguruma|none
     OPT_REGEXP=none
@@ -36,12 +42,51 @@ endif
 ######################################################
 # commands and paths
 
+GOTTA=$(PYTHON) $(EJSVM_DIR)/gotta.py\
+    --sispec $(SUPERINSNSPEC)\
+    --otspec $(OPERANDSPEC)\
+    --insndef $(EJSVM_DIR)/instructions.def\
+    --sitype $(SUPERINSNTYPE)
+
+#SILIST=$(GOTTA) --silist --sispec
+SILIST=$(SED) -e 's/^.*: *//'
+
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
 CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
 LIBS   += -lm
+
+######################################################
+# superinstructions
+
+ifeq ($(SUPERINSNTYPE),1)
+    SUPERINSN_MAKEINSN=true
+    SUPERINSN_CUSTOMIZE_OT=false
+    SUPERINSN_PSEUDO_IDEF=false
+    SUPERINSN_REORDER_DISPATCH=false
+else ifeq ($(SUPERINSNTYPE),2)
+    SUPERINSN_MAKEINSN=true
+    SUPERINSN_CUSTOMIZE_OT=true
+    SUPERINSN_PSEUDO_IDEF=false
+    SUPERINSN_REORDER_DISPATCH=false
+else ifeq ($(SUPERINSNTYPE),3)
+    SUPERINSN_MAKEINSN=true
+    SUPERINSN_CUSTOMIZE_OT=true
+    SUPERINSN_PSEUDO_IDEF=true
+    SUPERINSN_REORDER_DISPATCH=false
+else ifeq ($(SUPERINSNTYPE),4)
+    SUPERINSN_MAKEINSN=false
+    SUPERINSN_CUSTOMIZE_OT=false
+    SUPERINSN_PSEUDO_IDEF=false
+    SUPERINSN_REORDER_DISPATCH=true
+else ifeq ($(SUPERINSNTYPE),5)
+    SUPERINSN_MAKEINSN=false
+    SUPERINSN_CUSTOMIZE_OT=false
+    SUPERINSN_PSEUDO_IDEF=false
+    SUPERINSN_REORDER_DISPATCH=false
+endif
 
 ######################################################
 
@@ -63,6 +108,8 @@ HFILES = $(GENERATED_HFILES) \
     extern.h \
     log.h \
     gc.h
+
+SUPERINSNS = $(shell $(GOTTA) --list-si)
 
 OFILES = \
     allocate.o \
@@ -86,6 +133,10 @@ OFILES = \
     vmloop.o \
     gc.o \
     main.o
+
+ifeq ($(SUPERINSN_MAKEINSN),true)
+  INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
+endif
 
 INSN_GENERATED = \
     insns/add.inc \
@@ -151,7 +202,7 @@ INSN_HANDCRAFT = \
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
-INSN_FILES = $(INSN_GENERATED) $(INSN_HANDCRAFT)
+INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
@@ -173,13 +224,6 @@ else
     GENERATED_HFILES += types-generated.h
 endif
 
-SEDCOM_GEN_INSN_OPCODE = \
-  -e 's/^\([a-z][a-z]*\).*/\U\1,/' -e '/^\/\/.*/d'
-SEDCOM_GEN_INSN_TABLE = \
-  -e 's/^\([a-z][a-z]*\)  *\([A-Z][A-Z]*\).*/  { "\1", \2 },/' -e '/^\/\/.*/d'
-SEDCOM_GEN_INSN_LABEL = \
-  -e 's/^\([a-z][a-z]*\).*/\&\&I_\U\1,/' -e '/^\/\/.*/d'
-
 CHECKFILES_DIR = checkfiles
 GCCHECK_PATTERN = ../gccheck.cocci
 
@@ -188,36 +232,99 @@ GCCHECK_PATTERN = ../gccheck.cocci
 ejsvm :: $(OFILES)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-instructions-opcode.h: $(EJSVM_DIR)/instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_OPCODE) $< > $@
+instructions-opcode.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(GOTTA) --gen-insn-opcode -o $@
 
-instructions-table.h: $(EJSVM_DIR)/instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_TABLE) $< > $@
+instructions-table.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(GOTTA) --gen-insn-table -o $@
 
-instructions-label.h: $(EJSVM_DIR)/instructions.def
-	$(SED) $(SEDCOM_GEN_INSN_LABEL) $< > $@
+instructions-label.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(GOTTA) --gen-insn-label -o $@
 
-instructions.h: instructions-opcode.h instructions-table.h
-
-cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< > $@
-
-vmloop-cases.inc: $(EJSVM_DIR)/instructions.def $(EJSVM_DIR)/gen-vmloop-cases.rb
-	$(RUBY) $(EJSVM_DIR)/gen-vmloop-cases.rb < $(EJSVM_DIR)/instructions.def > $@
-
-ifeq ($(DATATYPES),)
-insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
-	mkdir -p insns
-	cp $< $@
-else
-$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
-	mkdir -p insns
-	$(INSNGEN) $(INSNGEN_FLAGS) $(DATATYPES) $< $(OPERANDSPEC) insns
+vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
+	cp $(EJSVM_DIR)/gen-vmloop-cases-nonaka.rb ./gen-vmloop-cases-nonaka.rb
+	$(GOTTA) --gen-vmloop-cases -o $@
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
+
+ifeq ($(DATATYPES),)
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
+	mkdir -p insns
+	cp $< $@
+else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
+	mkdir -p insns
+	$(INSNGEN) $(INSNGEN_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer \
+		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)`\
+		-Xgen:type_label true \
+		$(DATATYPES) $< $(OPERANDSPEC) insns
+else
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
+	mkdir -p insns
+	$(INSNGEN) $(INSNGEN_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+		-Xgen:type_label true \
+		$(DATATYPES) $< $(OPERANDSPEC) insns
 endif
+
+# generate si-otspec/*.ot for each superinsns
+SI_OTSPEC_DIR = si/otspec
+SI_OTSPECS = $(patsubst %,$(SI_OTSPEC_DIR)/%.ot,$(SUPERINSNS))
+ifeq ($(SUPERINSN_CUSTOMIZE_OT),true)
+$(SI_OTSPECS): $(OPERANDSPEC) $(SUPERINSNSPEC)
+	mkdir -p $(SI_OTSPEC_DIR)
+	$(GOTTA) --gen-ot-spec $(patsubst $(SI_OTSPEC_DIR)/%.ot,%,$@) -o $@
+else
+$(SI_OTSPECS): $(OPERANDSPEC)
+	mkdir -p $(SI_OTSPEC_DIR)
+	cp $< $@
+endif
+
+
+# generate insns/*.inc for each superinsns
+ifeq ($(DATATYPES),)
+$(INSN_SUPERINSNS):
+	echo "Superinstruction needs DATATYPES specified"
+	exit 1
+else
+
+SI_IDEF_DIR = si/idefs
+orig_insn = \
+    $(shell $(GOTTA) --print-original-insn-name $(patsubst insns/%.inc,%,$1))
+tmp_idef = $(SI_IDEF_DIR)/$(patsubst insns/%.inc,%,$1).idef
+
+ifeq ($(SUPERINSN_PSEUDO_IDEF),true)
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+	mkdir -p $(SI_IDEF_DIR)
+	$(GOTTA) \
+	    --gen-pseudo-idef $(call orig_insn,$@) \
+	    -o $(call tmp_idef,$@)
+	mkdir -p insns
+	$(INSNGEN) $(INSNGEN_FLAGS) \
+	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
+	    $(call tmp_idef,$@) \
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@
+else
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+	mkdir -p insns
+	$(INSNGEN) $(INSNGEN_FLAGS) \
+	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
+	    $(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@
+endif
+endif
+
+cell-header.h: $(EJSVM_DIR)/cell-header.def
+	$(RUBY) $< > $@
+
+instructions.h: instructions-opcode.h instructions-table.h
 
 %.c: $(EJSVM_DIR)/%.c
 	cp $< $@
@@ -263,5 +370,6 @@ clean:
 	rm -rf insns
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
+	rm -rf si
 
 

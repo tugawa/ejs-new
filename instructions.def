@@ -58,7 +58,7 @@ throw                 ZEROOP
 localcall             UNCONDJUMP     Displacement
 localret              ZEROOP
 poplocal              ZEROOP
-error                 BIGPRIMITIVE   Register   int
+error                 BIGPRIMITIVE   Register   Displacement
 unknown               UNKNOWNOP
 end                   ZEROOP
 // lightcall             CALLOP
