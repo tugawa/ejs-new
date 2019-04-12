@@ -7,6 +7,8 @@
 DATATYPES = ../datatypes/default.def
 OPERANDSPEC = ../operand-spec/any.spec
 # OPERANDSPEC = ../operand-spec/fixnum-unspec.spec
+# SUPERINSNSPEC = ../superinsn-spec/addregfix.si
+# SUPERINSNTYPE = 3
 
 ##
 ## compile flags
