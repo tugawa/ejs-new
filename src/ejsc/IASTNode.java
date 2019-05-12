@@ -332,22 +332,6 @@ class IASTContinueStatement extends IASTStatement {
 	}
 }
 
-class IASTLogBeginMetaStatement extends IASTStatement {
-    IASTLogBeginMetaStatement() {}
-    @Override
-	Object accept(IASTBaseVisitor visitor) {
-        return visitor.visitLogBeginMetaStatement(this);
-    }
-}
-
-class IASTLogEndMetaStatement extends IASTStatement {
-    IASTLogEndMetaStatement() {}
-    @Override
-	Object accept(IASTBaseVisitor visitor) {
-        return visitor.visitLogEndMetaStatement(this);
-    }
-}
-
 class IASTExpression extends IASTNode {
 	@Override
 	Object accept(IASTBaseVisitor visitor) {

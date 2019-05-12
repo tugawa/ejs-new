@@ -626,18 +626,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         return null;
     }
 
-    @Override
-    public Object visitLogBeginMetaStatement(IASTLogBeginMetaStatement node) {
-        bcBuilder.push(new LogBegin());
-        return null;
-    }
-
-    @Override
-    public Object visitLogEndMetaStatement(IASTLogEndMetaStatement node) {
-        bcBuilder.push(new LogEnd());
-        return null;
-    }
-    
     // precondition: node.params and node.locals are disjoint
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {

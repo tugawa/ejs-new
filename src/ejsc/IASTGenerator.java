@@ -350,12 +350,6 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		body = (IASTStatement) node.getBody().accept(this);
 		return new IASTForInStatement(v, obj, body);
 	}
-    protected IASTNode visitLogBeginMetaStatement(LogBeginMetaStatement node) {
-        return new IASTLogBeginMetaStatement();
-    }
-    protected IASTNode visitLogEndMetaStatement(LogEndMetaStatement node) {
-        return new IASTLogEndMetaStatement();
-    }
 	/*protected IASTNode visitDeclaration(Declaration node) {
 		return visitStatement(node);
 	}*/
