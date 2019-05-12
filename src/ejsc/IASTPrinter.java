@@ -27,7 +27,7 @@ import javax.json.JsonObjectBuilder;
 
 public class IASTPrinter extends IASTBaseVisitor {
 	public static final String KEY_NAME              = "name";
-	public static final String KEY_PROGRAM           = "program";
+	public static final String KEY_PROGRAMS          = "programs";
 	public static final String KEY_PARAMS            = "params";
 	public static final String KEY_LOCALS            = "locals";
 	public static final String KEY_INNER_USED_LOCALS = "innerUsedLocals";
@@ -70,7 +70,10 @@ public class IASTPrinter extends IASTBaseVisitor {
 	public Object visitProgram(IASTProgram node) {
 		JsonObjectBuilder jb = Json.createObjectBuilder();
 		jb.add(KEY_NAME, "Program");
-		jb.add(KEY_PROGRAM, (JsonObject) node.program.accept(this));
+		JsonArrayBuilder jaPrograms = Json.createArrayBuilder();
+		for (IASTFunctionExpression p: node.programs)
+		    jaPrograms.add((JsonObject) p.accept(this));
+		jb.add(KEY_PROGRAMS, jaPrograms);
 		return jb.build();
 	}
 	public Object visitLiteral(IASTLiteral node) {

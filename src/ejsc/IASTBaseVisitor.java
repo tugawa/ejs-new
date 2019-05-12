@@ -27,8 +27,9 @@ public class IASTBaseVisitor {
 		return null;
 	}
 	public Object visitProgram(IASTProgram node) {
-		node.program.accept(this);
-		return visitNode(node);
+	    for (IASTFunctionExpression toplevel: node.programs)
+	        toplevel.accept(this);
+	    return visitNode(node);
 	}
 	public Object visitLiteral(IASTLiteral node) {
 		return visitNode(node);

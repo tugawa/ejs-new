@@ -26,6 +26,7 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import ejsc.antlr.*;
+import ejsc.ast_node.Node;
 
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -171,9 +172,10 @@ public class Main {
             return;
         }
 
-        List<ejsc.ast_node.Program> programs = new LinkedList<ejsc.ast_node.Program>();
-        int i = 0;
-        for (String fname : info.inputFileNames) {
+
+        IASTProgram iast = new IASTProgram();
+        for (int i = 0; i < info.inputFileNames.size(); i++) {
+            String fname = info.inputFileNames.get(i);
             // Parse JavaScript File
             ANTLRInputStream antlrInStream;
             try {
@@ -191,35 +193,33 @@ public class Main {
 
             // convert ANTLR's parse tree into ESTree.
             ASTGenerator astgen = new ASTGenerator(info.loggedInputFileIndices.contains(i));
-            programs.add((ejsc.ast_node.Program) astgen.visit(tree));
+            Node ast = astgen.visit(tree);
 
-            i++;
+            if (info.optPrintESTree) {
+                System.out.println(ast.getEsTree());
+            }
+
+            // normalize ESTree.
+            new ESTreeNormalizer().normalize(ast);
+//            if (info.optPrintESTree) {
+//                System.out.println(ast.getEsTree());
+//            }
+            
+            // convert ESTree into iAST.
+            IASTGenerator iastgen = new IASTGenerator();
+            IASTFunctionExpression iastFile = iastgen.gen(ast);
+            iast.add(iastFile);
         }
 
-        ejsc.ast_node.Program ast = ejsc.ast_node.Program.mergePrograms(programs);
-
-        if (info.optPrintESTree) {
-            System.out.println(ast.getEsTree());
-        }
-
-        // normalize ESTree.
-        new ESTreeNormalizer().normalize(ast);
-//        if (info.optPrintESTree) {
-//            System.out.println(ast.getEsTree());
-//        }
-
-        // convert ESTree into iAST.
-        IASTGenerator iastgen = new IASTGenerator();
-        IASTNode iast = iastgen.gen(ast);
 
         if (info.optPrintIAST) {
             new IASTPrinter().print(iast);
         }
 
         // iAST level optimisation
-		if (info.optLocals != Info.OptLocals.NONE) {
+        if (info.optLocals != Info.OptLocals.NONE) {
             // iAST newargs analyzer
-			NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
+            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
             analyzer.analyze(iast);
             if (info.optPrintAnalyzer) {
                 new IASTPrinter().print(iast);

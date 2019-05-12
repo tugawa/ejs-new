@@ -31,8 +31,8 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 
 	public IASTGenerator() {};
 
-	public IASTProgram gen(Node estree) {
-		return (IASTProgram) visitProgram((Program) estree);
+	public IASTFunctionExpression gen(Node estree) {
+		return (IASTFunctionExpression) visitProgram((Program) estree);
 	}
 
 	List<String> hoistDeclarations(IStatement nd) {
@@ -175,17 +175,17 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
 		return new IASTRegExpLiteral(node.getRegExpValue());
 	}*/
 	protected IASTNode visitProgram(Program node) {
-		List<IASTStatement> stmts = new ArrayList<IASTStatement>();
-		for (IStatement stmt : node.getBody()) {
-		    // System.out.println(stmt.accept(this));
+	    List<IASTStatement> stmts = new ArrayList<IASTStatement>();
+	    for (IStatement stmt : node.getBody()) {
+	        // System.out.println(stmt.accept(this));
 	        stmts.add((IASTStatement) stmt.accept(this));
 	    }
 
-		List<String> params = new ArrayList<String>();
-		List<String> locals = new ArrayList<String>();
-		IASTBlockStatement block = new IASTBlockStatement(stmts);
-		IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block, node.getLogging());
-		return new IASTProgram(func);
+	    List<String> params = new ArrayList<String>();
+	    List<String> locals = new ArrayList<String>();
+	    IASTBlockStatement block = new IASTBlockStatement(stmts);
+	    IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block, node.getLogging());
+	    return func;
 	}
 	/*protected IASTNode visitFunction(IFunction node) {
 		node.getId().accept(this);

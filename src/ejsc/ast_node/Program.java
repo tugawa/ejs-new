@@ -48,19 +48,6 @@ public class Program extends Node implements Node.IProgram {
     public boolean getLogging() {
         return logging;
     }
-
-    static public Program mergePrograms(List<Program> programs) {
-        if (programs.size() == 1) {
-            return programs.get(0);
-        }
-        List<IStatement> li = new ArrayList<IStatement>();
-        for (Program pg : programs) {
-            if (pg.getLogging()) li.add(new LogBeginMetaStatement());
-            li.addAll(pg.getBody());
-            if (pg.getLogging()) li.add(new LogEndMetaStatement());
-        }
-        return new Program(li, false);
-    }
     
     @Override
     public void setBody(List<IStatement> body) {

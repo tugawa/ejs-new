@@ -21,6 +21,7 @@
 */
 
 package ejsc;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -30,14 +31,17 @@ abstract public class IASTNode {
 }
 
 class IASTProgram extends IASTNode {
-	IASTFunctionExpression program;
-	IASTProgram(IASTFunctionExpression program) {
-		this.program = program;
-	}
-	@Override
-	Object accept(IASTBaseVisitor visitor) {
-		return visitor.visitProgram(this);
-	}
+    List<IASTFunctionExpression> programs;
+    IASTProgram() {
+        this.programs = new ArrayList<IASTFunctionExpression>();
+    }
+    void add(IASTFunctionExpression program) {
+        programs.add(program);
+    }
+    @Override
+    Object accept(IASTBaseVisitor visitor) {
+        return visitor.visitProgram(this);
+    }
 }
 
 class IASTLiteral extends IASTExpression {

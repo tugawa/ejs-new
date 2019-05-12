@@ -46,10 +46,12 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
 
     @Override
     public Object visitProgram(IASTProgram node) {
-        NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
-        node.program.body.accept(analyzer);
-        node.program.needArguments = false;
-        node.program.needFrame = false;
+        for (IASTFunctionExpression func: node.programs) {
+            NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
+            func.body.accept(analyzer);
+            func.needArguments = false;
+            func.needFrame = false;
+        }
         return null;
     }
     @Override
