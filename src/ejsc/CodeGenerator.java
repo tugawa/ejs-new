@@ -287,7 +287,6 @@ public class CodeGenerator extends IASTBaseVisitor {
 		this.optLocals = optLocals;
         needArguments = false;
         needFrame = false;
-        this.logging = logging;
     }
     
     BCBuilder bcBuilder;
@@ -297,7 +296,6 @@ public class CodeGenerator extends IASTBaseVisitor {
     static final int THIS_OBJECT_REGISTER = 0;
     boolean needArguments;
     boolean needFrame;
-    boolean logging;
 
     void printByteCode(List<BCode> bcodes) {
         for (BCode bcode : bcodes) {
@@ -334,9 +332,8 @@ public class CodeGenerator extends IASTBaseVisitor {
     public Object visitProgram(IASTProgram node) {
         Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
         env.setRegOfGlobalObj(globalObjReg);
-        if (node.program.logging || this.logging) {
-            bcBuilder.push(new LogBegin());
-        }
+        
+        /* prologue of the top-level program */
         Label callEntry = new Label();
         Label sendEntry = new Label();
         bcBuilder.setEntry(callEntry, sendEntry);
@@ -345,19 +342,20 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IGetglobalobj(globalObjReg));
         bcBuilder.pushMsetfl();
         Register retReg = env.getCurrentFrame().freshRegister();
-        if (!node.program.logging && this.logging) {
-            bcBuilder.push(new IUndefinedconst(retReg));
-            bcBuilder.push(new LogEnd());
+        bcBuilder.push(new IUndefinedconst(retReg)); // default value
+        
+        /* put top-level programs of all files */
+        for (IASTFunctionExpression program: node.programs) {
+            if (program.logging)
+                bcBuilder.push(new LogBegin());
+            compileNode(program.body, retReg);
+            if (program.logging)
+                bcBuilder.push(new LogEnd());
         }
-        compileNode(node.program.body, retReg);
-        if (!node.program.logging && this.logging) {
-            bcBuilder.push(new LogBegin());
-        }
+        
+        /* epilogue */
         bcBuilder.push(new ISeta(retReg));
         bcBuilder.push(new IRet());
-        if (node.program.logging || this.logging) {
-            bcBuilder.push(new LogEnd());
-        }
             
         return null;
     }
