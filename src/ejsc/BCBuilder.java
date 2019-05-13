@@ -215,6 +215,7 @@ class BCBuilder {
             if (fb.topLevel)
                 topLevelNumberOfInstructions += fb.getNumberOfInstructions();
         }
+        topLevelNumberOfInstructions++; // last iret
         result.add(new ICallentry(first.callEntry.dist(0)));
         result.add(new ISendentry(first.sendEntry.dist(0)));
         result.add(new INumberOfLocals(0));
