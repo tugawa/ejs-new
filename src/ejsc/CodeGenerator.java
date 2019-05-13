@@ -328,8 +328,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.openFunctionBCBuilder();
             env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), true);
             bcBuilder.setTopLevel();
-            if (program.logging)
-                bcBuilder.push(new LogBegin());
+            bcBuilder.setLogging(program.logging);
             Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
             env.setRegOfGlobalObj(globalObjReg);
             Label callEntry = new Label();
@@ -344,8 +343,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(program.body, retReg);
             bcBuilder.push(new ISeta(retReg));
             /* do not put iret for top-level program */
-            if (program.logging)
-                bcBuilder.push(new LogEnd());
             bcBuilder.setNumberOfLocals(0);
             bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
             env.closeFrame();
@@ -663,7 +660,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER)));
         for (String var: node.params)
         		bcBuilder.push(new MParameter(env.getCurrentFrame().getParamRegister(var)));
-        if (node.logging) bcBuilder.push(new LogBegin());
+        bcBuilder.setLogging(node.logging);
         Label callEntry = new Label();
         Label sendEntry = new Label();
         bcBuilder.setEntry(callEntry, sendEntry);
@@ -692,7 +689,6 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IUndefinedconst(reg));
         bcBuilder.push(new ISeta(reg));
         bcBuilder.push(new IRet());
-        if (node.logging) bcBuilder.push(new LogEnd());
 
         bcBuilder.setNumberOfLocals(env.getNumberOfLocals());
         bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());

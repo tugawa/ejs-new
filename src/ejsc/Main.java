@@ -243,6 +243,9 @@ public class Main {
         // resolve jump destinations
     	bcBuilder.assignAddress();
 
+    	// replace instructions for logging
+    	bcBuilder.replaceInstructionsForLogging();
+    	
     		if (info.optPrintLowLevelCode) {
         	bcBuilder.assignAddress();
         	System.out.print(bcBuilder);

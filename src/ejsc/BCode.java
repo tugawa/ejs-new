@@ -928,23 +928,3 @@ class MParameter extends BCode {
 		return "@MACRO param "+dst;
 	}
 }
-
-class LogBegin extends BCode {
-    LogBegin() {
-        super();
-    }
-    @Override
-    public String toString() {
-        return "";
-    }
-}
-
-class LogEnd extends BCode {
-    LogEnd() {
-        super();
-    }
-    @Override
-    public String toString() {
-        return "";
-    }
-}

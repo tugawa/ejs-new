@@ -42,6 +42,7 @@ class BCBuilder {
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
         boolean topLevel = false;  // true if this is the top-level program of a file
+        boolean logging = false;
         int index = -1;
         
         List<BCode> bcodes = new LinkedList<BCode>();
@@ -89,28 +90,18 @@ class BCBuilder {
             	}
             	number++;
             }
-
-            int logging = 0;
-            java.util.Iterator<BCode> ite = bcodes.iterator();
-            while (ite.hasNext()) {
-                BCode bcode = ite.next();
-                if (bcode instanceof LogBegin) {
-                    logging++;
-                    ite.remove();
-                } else if (bcode instanceof LogEnd) {
-                    logging--;
-                    ite.remove();
-                } else {
-                    if (logging > 0) {
-                        bcode.logInsn();
-                    }
-                }
-            }
         }
 
         void assignAddress() {
             for (int number = 0; number < bcodes.size(); number++)
                 bcodes.get(number).number = number;
+        }
+        
+        void replaceInstructionsForLogging() {
+            if (!logging)
+                return;
+            for (BCode bc: bcodes)
+                bc.logInsn();
         }
 
         List<BCode> build() {
@@ -142,6 +133,14 @@ class BCBuilder {
         
         void setTopLevel() {
             topLevel = true;
+        }
+        
+        void setLogging(boolean logging) {
+            this.logging = logging;
+        }
+        
+        boolean getLogging() {
+            return logging;
         }
         
         void setIndex(int index) {
@@ -193,6 +192,11 @@ class BCBuilder {
     void assignAddress() {
     	for (FunctionBCBuilder f: fBuilders)
     		f.assignAddress();    	
+    }
+    
+    void replaceInstructionsForLogging() {
+        for (FunctionBCBuilder f: fBuilders)
+            f.replaceInstructionsForLogging();
     }
     
     List<BCode> build() {
@@ -270,6 +274,10 @@ class BCBuilder {
 
     void setTopLevel() {
         fbStack.getFirst().setTopLevel();
+    }
+    
+    void setLogging(boolean logging) {
+        fbStack.getFirst().setLogging(logging);
     }
     
     @Override
