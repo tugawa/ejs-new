@@ -41,6 +41,8 @@ class BCBuilder {
         int numberOfLocals;
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
+        boolean topLevel = false;  // true if this is the top-level program of a file
+        int index = -1;
         
         List<BCode> bcodes = new LinkedList<BCode>();
 
@@ -121,6 +123,14 @@ class BCBuilder {
             return result;
         }
         
+        int getNumberOfInstructions() {
+            return bcodes.size();
+        }
+        
+        List<BCode> getInstructions() {
+            return bcodes;
+        }
+        
         void setEntry(Label call, Label send) {
         		callEntry = call;
         		sendEntry = send;
@@ -128,6 +138,20 @@ class BCBuilder {
         
         void setNumberOfGPRegisters(int gpregs) {
         	numberOfGPRegisters = gpregs;
+        }
+        
+        void setTopLevel() {
+            topLevel = true;
+        }
+        
+        void setIndex(int index) {
+            this.index = index;
+        }
+        
+        int getIndex() {
+            if (index == -1)
+                throw new Error("index has not been assigned for "+hashCode());
+            return index;
         }
         
         @Override
@@ -150,10 +174,11 @@ class BCBuilder {
 
     int maxNumOfArgsOfCallingFunction = 0;
 
-    void openFunctionBCBuilder() {
+    FunctionBCBuilder openFunctionBCBuilder() {
         FunctionBCBuilder bcb = new FunctionBCBuilder();
         fbStack.push(bcb);
         fBuilders.add(bcb);
+        return bcb;
     }
 
     void closeFuncBCBuilder() {
@@ -173,9 +198,36 @@ class BCBuilder {
     List<BCode> build() {
         // build fBuilders.
         List<BCode> result = new LinkedList<BCode>();
-        result.add(new IFuncLength(fBuilders.size()));
+
+        int nfunc = 0;
+        for (FunctionBCBuilder fb: fBuilders)
+            if (!fb.topLevel) {
+                fb.setIndex(nfunc);
+                nfunc++;
+            }
+        nfunc++; // toplevel function
+        result.add(new IFuncLength(nfunc));
+        
+        /* top level */
+        FunctionBCBuilder first = fBuilders.get(0);
+        int topLevelNumberOfInstructions = 0;
         for (FunctionBCBuilder fb : fBuilders) {
-            result.addAll(fb.build());
+            if (fb.topLevel)
+                topLevelNumberOfInstructions += fb.getNumberOfInstructions();
+        }
+        result.add(new ICallentry(first.callEntry.dist(0)));
+        result.add(new ISendentry(first.sendEntry.dist(0)));
+        result.add(new INumberOfLocals(0));
+        result.add(new INumberOfInstruction(topLevelNumberOfInstructions));
+        for (FunctionBCBuilder fb : fBuilders) {
+            if (fb.topLevel)
+                result.addAll(fb.getInstructions());
+        }
+        result.add(new IRet());
+        
+        for (FunctionBCBuilder fb : fBuilders) {
+            if (!fb.topLevel)
+                result.addAll(fb.build());
         }
         return result;
     }
@@ -203,10 +255,6 @@ class BCBuilder {
         return bcodes.get(bcodes.size() - 1);
     }
 
-    int getFBIdx() {
-        return fBuilders.size() - 2;
-    }
-
     void setEntry(Label call, Label send) {
         this.fbStack.getFirst().setEntry(call, send);
     }
@@ -219,6 +267,10 @@ class BCBuilder {
     	fbStack.getFirst().setNumberOfGPRegisters(gpregs);
     }
 
+    void setTopLevel() {
+        fbStack.getFirst().setTopLevel();
+    }
+    
     @Override
     public String toString() {
     	StringBuffer sb = new StringBuffer();

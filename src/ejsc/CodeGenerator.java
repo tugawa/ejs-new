@@ -307,13 +307,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         this.bcBuilder = new BCBuilder();
         this.env = new Environment();
         try {
-            bcBuilder.openFunctionBCBuilder();
-			env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), true);
             compileNode(node, null);
-            bcBuilder.setNumberOfLocals(0);
-            bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
-            env.closeFrame();
-            bcBuilder.closeFuncBCBuilder();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -330,32 +324,33 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitProgram(IASTProgram node) {
-        Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
-        env.setRegOfGlobalObj(globalObjReg);
-        
-        /* prologue of the top-level program */
-        Label callEntry = new Label();
-        Label sendEntry = new Label();
-        bcBuilder.setEntry(callEntry, sendEntry);
-        bcBuilder.push(callEntry);
-        bcBuilder.push(sendEntry);
-        bcBuilder.push(new IGetglobalobj(globalObjReg));
-        bcBuilder.pushMsetfl();
-        Register retReg = env.getCurrentFrame().freshRegister();
-        bcBuilder.push(new IUndefinedconst(retReg)); // default value
-        
-        /* put top-level programs of all files */
         for (IASTFunctionExpression program: node.programs) {
+            bcBuilder.openFunctionBCBuilder();
+            env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), true);
+            bcBuilder.setTopLevel();
             if (program.logging)
                 bcBuilder.push(new LogBegin());
+            Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
+            env.setRegOfGlobalObj(globalObjReg);
+            Label callEntry = new Label();
+            Label sendEntry = new Label();
+            bcBuilder.setEntry(callEntry, sendEntry);
+            bcBuilder.push(callEntry);
+            bcBuilder.push(sendEntry);
+            bcBuilder.push(new IGetglobalobj(globalObjReg));
+            bcBuilder.pushMsetfl();
+            Register retReg = env.getCurrentFrame().freshRegister();
+            bcBuilder.push(new IUndefinedconst(retReg)); // default value
             compileNode(program.body, retReg);
+            bcBuilder.push(new ISeta(retReg));
+            /* do not put iret for top-level program */
             if (program.logging)
                 bcBuilder.push(new LogEnd());
-        }
-        
-        /* epilogue */
-        bcBuilder.push(new ISeta(retReg));
-        bcBuilder.push(new IRet());
+            bcBuilder.setNumberOfLocals(0);
+            bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
+            env.closeFrame();
+            bcBuilder.closeFuncBCBuilder();
+        }        
             
         return null;
     }
@@ -633,8 +628,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         boolean savedNeedFrame = needFrame;
         needArguments = node.needArguments;
         needFrame = node.needFrame;
-        bcBuilder.openFunctionBCBuilder();
-        int functionIdx = bcBuilder.getFBIdx();
+        BCBuilder.FunctionBCBuilder compiledFunction = bcBuilder.openFunctionBCBuilder();
 
         LinkedList<String> locals = new LinkedList<String>();
         LinkedList<String> params = new LinkedList<String>();
@@ -707,7 +701,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         env.closeFrame();
         bcBuilder.closeFuncBCBuilder();
 
-        bcBuilder.push(new IMakeclosure(reg, functionIdx));
+        bcBuilder.push(new IMakeclosure(reg, compiledFunction));
         needArguments = savedNeedArguments;
         needFrame = savedNeedFrame;
         return null;

@@ -540,13 +540,13 @@ class ISetarray extends BCode {
 
 
 class IMakeclosure extends BCode {
-    int idx;
-    IMakeclosure(Register dst, int idx) {
+    BCBuilder.FunctionBCBuilder function;
+    IMakeclosure(Register dst, BCBuilder.FunctionBCBuilder function) {
 		super(dst);
-        this.idx = idx;
+        this.function = function;
     }
     public String toString() {
-        return super.toString("makeclosure", dst, idx);
+        return super.toString("makeclosure", dst, function.getIndex());
     }
 }
 

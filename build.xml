@@ -16,7 +16,7 @@
     </target>
     <target depends="init" name="compile">
         <javac destdir="bin" includeantruntime="false"
-	       source="${source}" target="${target}">
+	       source="${source}" target="${target}" debug="on">
             <src path="src"/>
             <classpath refid="ejsc.classpath"/>
         </javac>

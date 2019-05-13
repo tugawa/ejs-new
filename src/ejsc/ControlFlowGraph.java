@@ -57,11 +57,9 @@ public class ControlFlowGraph {
 		for (int i = 0; i < bcodes.size(); i++) {
 			BCode bc = bcodes.get(i);
 			CFGNode cfgNode = cfg.get(bc);
-			if (bc.isFallThroughInstruction()) {
-                if (!(bc instanceof LogEnd) || (i+1) < bcodes.size()) {
-				    BCode destBC = bcodes.get(i + 1);
-				    makeEdge(cfgNode, destBC);
-                }
+	                if (bc.isFallThroughInstruction() && i + 1 < bcodes.size()) {
+	                    BCode destBC = bcodes.get(i + 1);
+    			    makeEdge(cfgNode, destBC);
 			}
 			BCode destBC = bc.getBranchTarget();
 			if (destBC != null)
