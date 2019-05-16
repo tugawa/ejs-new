@@ -52,7 +52,7 @@ typedef struct {
 #define LOADBUFLEN 1024
 
 #ifdef USE_OBC
-void init_constant_info(CItable *citable);
+void init_constant_info(CItable *citable, int i);
 void add_constant_info(CItable *ci, Opcode oc, int index, InsnOperandType type);
 void const_load(Context *ctx, CItable citable, ConstantCell *constant);
 #endif
@@ -88,7 +88,7 @@ inline int check_read_token(char *buf, char *tok) {
    codeloader
  */
 #ifdef USE_OBC
-int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
+int code_loader(Context *ctx, FunctionTable *ftable, int start) {
   ConstantCell ctable;
   CItable citable;
   Bytecode* bytecodes;
@@ -118,8 +118,8 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
     ninsns = buf[0]*256 + buf[1];
 
     // initializes constant table
-    init_constant_cell(&ctable);
-    init_constant_info(&citable);
+    init_constant_cell(&ctable, i);
+    init_constant_info(&citable, i);
 
     // initilaizes bytecode array
     bytecodes = (Bytecode*)malloc(sizeof(Bytecode) * ninsns);
@@ -133,47 +133,48 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
     // loads constants
     const_load(ctx, citable, &ctable);
 
-    ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
+    ret = update_function_table(ftable, i+start, &ctable, bytecodes,
                                 callentry, sendentry, nlocals, ninsns);
-    end_constant_cell(&ctable);
+    /* end_constant_cell(&ctable); */
+    free(ctable.constant_values);
+    free(citable.const_info);
   }
   if (ftable_flag == TRUE)
-    print_function_table(ftable, i+numberOfFunction);
+    print_function_table(ftable, i+start);
 
-  return i;
+  return nfuncs;
 }
 
 void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
-  int oi,i,j,k;
-
+  int oi,j,k;
   unsigned char tmpsize[2];
-  for(oi=0;oi<citable.n_const_info;oi++){
+  
+#define LITERAL_SIZE (tmpsize[0]*256+tmpsize[1])
+  for(oi=0; oi<citable.n_const_info; oi++){
+    int size;
     fread(tmpsize,sizeof(unsigned char),2,file_pointer);
+    citable.const_info[oi].size = size = LITERAL_SIZE;
     
-    if((citable.const_info[oi].size=tmpsize[0]*256+tmpsize[1])!=0){
+    if (size!=0){
       Opcode oc = citable.const_info[oi].oc;
-      InsnOperandType type = citable.const_info[oi].type;
       switch (insn_info_table[oc].operand_type) {
       case BIGPRIMITIVE:
         switch (oc) {
         case ERROR:
         case STRING:
           {
-            unsigned char tmp[1];
-            uint32_t len;
-            int size = citable.const_info[oi].size;
-            char str[1024];
-            for(i=0;i<size;i++){
-              fread(tmp,sizeof(unsigned char),1,file_pointer);
-              str[i] = (char)tmp[0];
-            }
+            char* str;
+            str = (char*) malloc(sizeof(char)*size);
+            if(fread(str, sizeof(char), size, file_pointer)<size)
+              LOG_ERR("string literal too short.");
             decode_escape_char(str);
             add_constant_string(ctx, constant, str);
+            free(str);
           }
           break;
         case NUMBER:
           {
-            int index, tmpnum;
+            int index;
             int e, top;
             unsigned char tmp[8];
             double num=1.0;
@@ -181,68 +182,83 @@ void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
             e = ((tmp[0]&0x7f) * 16) + (tmp[1]>>4);
             top = tmp[1]&0x0f;
             for(j=0;j<4;j++){
-              if(top>>(3-j)&1==1)
+              if((top>>(3-j)&1)==1)
                 num += pow(2.0, (double)-(j+1));
             }
             for(j=0;j<6;j++){
               top = tmp[j+2];
               for(k=0;k<8;k++)
-                if(top>>(7-k)&1==1)
+                if((top>>(7-k)&1)==1)
                   num += pow(2.0, (double)-(j*8+k+5));
             }
             num *= pow(2.0, (double)(e-1023));
             if(tmp[0]>>7== 1) num*=-1.0;
             index = add_constant_number(ctx, constant, num);
           }
+          break;
+        case REGEXP:
+          LOG_ERR("sorry, regexp is not implemented yet.");
           break;
         default:
           break;
         }
         break;
       case THREEOP:
-        switch (type) {
-        case STR:
-          {
-            unsigned char tmp[1];
-            uint32_t len;
-            int size = citable.const_info[oi].size;
-            char str[1024];
-            for(i=0;i<size;i++){
-              fread(tmp,sizeof(unsigned char),1,file_pointer);
-              str[i] = (char)tmp[0];
+        {
+          InsnOperandType type = citable.const_info[oi].type;
+          switch (type) {
+          case STR:
+            {
+              char* str;
+              str = (char*) malloc(sizeof(char)*size);
+              if(fread(str, sizeof(char), size, file_pointer)<size)
+                LOG_ERR("string literal too short.");
+              decode_escape_char(str);
+              add_constant_string(ctx, constant, str);
+              free(str);
+              /*
+              unsigned char tmp[1];
+              uint32_t len;
+              int size = citable.const_info[oi].size;
+              char str[1024];
+              for(i=0;i<size;i++){
+                fread(tmp,sizeof(unsigned char),1,file_pointer);
+                str[i] = (char)tmp[0];
+              }
+              decode_escape_char(str);
+              add_constant_string(ctx, constant, str);
+               */
             }
-            decode_escape_char(str);
-            add_constant_string(ctx, constant, str);
+            break;
+          case NUM:
+            {
+              int index;
+              int e, top;
+              unsigned char tmp[8];
+              double num=1.0;
+              fread(tmp,sizeof(unsigned char),8,file_pointer);
+              e = ((tmp[0]&0x7f) * 16) + (tmp[1]>>4);
+              top = tmp[1]&0x0f;
+              for(j=0;j<4;j++){
+                if((top>>(3-j)&1)==1)
+                  num += pow(2.0, (double)-(j+1));
+              }
+              for(j=0;j<6;j++){
+                top = tmp[j+2];
+                for(k=0;k<8;k++)
+                  if((top>>(7-k)&1)==1)
+                    num += pow(2.0, (double)-(j*8+k+5));
+              }
+              num *= pow(2.0, (double)(e-1023));
+              if(tmp[0]>>7== 1) num*=-1.0;
+              index = add_constant_number(ctx, constant, num);
+            }
+            break;
+          default:
+            break;
           }
-          break;
-        case NUM:
-          {
-            int index, tmpnum;
-            int e, top;
-            unsigned char tmp[8];
-            double num=1.0;
-            fread(tmp,sizeof(unsigned char),8,file_pointer);
-            e = ((tmp[0]&0x7f) * 16) + (tmp[1]>>4);
-            top = tmp[1]&0x0f;
-            for(j=0;j<4;j++){
-              if(top>>(3-j)&1==1)
-                num += pow(2.0, (double)-(j+1));
-            }
-            for(j=0;j<6;j++){
-              top = tmp[j+2];
-              for(k=0;k<8;k++)
-                if(top>>(7-k)&1==1)
-                  num += pow(2.0, (double)-(j*8+k+5));
-            }
-            num *= pow(2.0, (double)(e-1023));
-            if(tmp[0]>>7== 1) num*=-1.0;
-            index = add_constant_number(ctx, constant, num);
-          }
-          break;
-        default:
           break;
         }
-        break;
       default:
         break;
       }
@@ -280,7 +296,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
     ninsns = check_read_token(buf, "numberOfInstruction");
 
     // initializes constant table
-    init_constant_cell(&ctable);
+    init_constant_cell(&ctable, i);
 
     // initilaizes bytecode array
     bytecodes = (Bytecode*)malloc(sizeof(Bytecode) * ninsns);
@@ -293,12 +309,13 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
 
     ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
                                 callentry, sendentry, nlocals, ninsns);
-    end_constant_cell(&ctable);
+    // end_constant_cell(&ctable);
+    free(ctable);
   }
   // number_functions = i;
   if (ftable_flag == TRUE)
     print_function_table(ftable, i+numberOfFunction);
-  return i;
+  return nfuncs;
 }
 #endif /* USE_OBC */
 
@@ -306,10 +323,6 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
    initializes the code loader
  */
 void init_code_loader(FILE *fp) {
-  if(repl_flag == TRUE) {
-    file_pointer = stdin;
-    return;
-  }
   file_pointer = fp;
 }
 
@@ -406,50 +419,47 @@ do {                                                   \
  */
 #ifdef USE_OBC
 int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc, CItable *citable) {
-    unsigned char buf[8];
-    Opcode oc;
-    int i, j, k, size;
+  unsigned char buf[8];
+  Opcode oc;
+  int i;
 
-    fread(buf,sizeof(unsigned char),8,file_pointer);
-    oc = buf[0]*256 + buf[1];
+  if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer) != sizeof(Bytecode))
+    LOG_ERR("cannot read %dth bytecode", pc);
+  oc = buf[0]*256 + buf[1];
 
-    switch (insn_info_table[oc].operand_type) {
-        case BIGPRIMITIVE:
-            switch (oc) {
-                case ERROR:
-                case STRING:
-                {
-                    add_constant_info(citable,oc,buf[4]*256 + buf[5], NONE);
-                    bytecodes[pc] = convertToBc(buf);
-                    return LOAD_OK;
-                }
-                case NUMBER:
-                {
-                    add_constant_info(citable,oc,buf[4]*256 + buf[5], NONE);
-                    bytecodes[pc] = convertToBc(buf);
-                    return LOAD_OK;
-                }
-                default:
-                    return LOAD_FAIL;
-            }
-
-        case THREEOP:
-            for(i=0;i<3;i++){
-                InsnOperandType type = si_optype(oc,i);
-                if(type == OPTYPE_ERROR) return LOAD_FAIL;
-
-                if(type == STR | type == NUM )
-                    add_constant_info(citable,oc,buf[2+i*2]*256 + buf[3+i*2],type);
-            }
-            bytecodes[pc] = convertToBc(buf);
-            return LOAD_OK;
-
-        default:
+  switch (insn_info_table[oc].operand_type) {
+    case BIGPRIMITIVE:
+    switch (oc) {
+      case ERROR:
+      case STRING:
+      case NUMBER:
+   // case REGEXP:
         {
-            bytecodes[pc] = convertToBc(buf);
-            return LOAD_OK;
+          add_constant_info(citable, oc, buf[4]*256 + buf[5], NONE);
+          bytecodes[pc] = convertToBc(buf);
+          return LOAD_OK;
         }
+      default:
+        return LOAD_FAIL;
     }
+
+    case THREEOP:
+      for(i=0;i<3;i++){
+        InsnOperandType type = si_optype(oc,i);
+        if(type == OPTYPE_ERROR) return LOAD_FAIL;
+
+        if (type == STR | type == NUM )
+          add_constant_info(citable,oc,buf[2+i*2]*256 + buf[3+i*2],type);
+      }
+      bytecodes[pc] = convertToBc(buf);
+      return LOAD_OK;
+
+    default:
+    {
+      bytecodes[pc] = convertToBc(buf);
+      return LOAD_OK;
+    }
+  }
 }
 #else
 int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc) {
@@ -645,18 +655,24 @@ int insn_load(Context *ctx, ConstantCell *constant, Bytecode *bytecodes, int pc)
 /*
    initilizes the contant table
  */ 
-void init_constant_cell(ConstantCell *constant)
+void init_constant_cell(ConstantCell *constant, int i)
 {
+  JSValue* p;
   constant->n_constant_values = 0;
-  constant->constant_values =
-    (JSValue*)malloc(sizeof(JSValue) * (CONSTANT_LIMIT));
+  p = (JSValue*)malloc(sizeof(JSValue) * (CONSTANT_LIMIT));
+  if (p == NULL)
+    LOG_EXIT("%dth func: cannot malloc constant_cell", i);
+  constant->constant_values = p;
 }
 
-void init_constant_info(CItable *citable)
+void init_constant_info(CItable *citable, int i)
 {
-    citable->n_const_info = 0;
-    citable->const_info =
-    (ConstInfo*)malloc(sizeof(ConstInfo)*(CONSTANT_LIMIT));
+  ConstInfo* p;
+  citable->n_const_info = 0;
+  p = (ConstInfo*)malloc(sizeof(ConstInfo)*(CONSTANT_LIMIT));
+  if (p == NULL)
+    LOG_EXIT("%dth func: cannot malloc constant_info", i);
+  citable->const_info = p;
 }
 
 /*

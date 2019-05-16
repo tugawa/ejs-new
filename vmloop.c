@@ -144,8 +144,8 @@ do{                                                                  \
 
 #else
 
-#define NEXT_INSN_INCPC()   INCPC(); INSNLOAD(); NEXT_INSN()
-#define NEXT_INSN_NOINCPC() INSNLOAD(); NEXT_INSN()
+#define NEXT_INSN_INCPC()   do { INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
+#define NEXT_INSN_NOINCPC() do { INSNLOAD(); NEXT_INSN(); } while(0)
 
 #endif // USE_ASM
 

@@ -139,7 +139,7 @@ extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
 extern int code_loader(Context *, FunctionTable *, int);
-extern void init_constant_cell(ConstantCell *);
+extern void init_constant_cell(ConstantCell *, int);
 extern void end_constant_cell(ConstantCell *);
 //extern int insn_load(Context *, ConstantCell *, Bytecode *, int);
 extern int update_function_table(FunctionTable *, int, ConstantCell *,

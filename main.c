@@ -156,7 +156,7 @@ int process_options(int ac, char *av[]) {
           o++;
       }
       if (o->str == (char *)NULL)
-        printf("unknown option: %s\n", p);
+        fprintf(stderr, "unknown option: %s\n", p);
       k++;
       p = av[k];
     } else
@@ -251,10 +251,9 @@ int main(int argc, char *argv[]) {
   init_global_objects();
   init_context(function_table, gconsts.g_global, &context);
   init_builtin(context);
+  srand((unsigned)time(NULL));
 
   while(1) {
-
-    srand((unsigned)time(NULL));
     init_code_loader(fp);
     base_function = n;
     n += code_loader(context, function_table, n);
@@ -272,8 +271,6 @@ int main(int argc, char *argv[]) {
 #ifdef CALC_TIME
     s = PAPI_get_real_usec();
 #endif // CALC_TIME
-
-    testtest(context);
 
     // enters the VM loop
     run_phase = PHASE_VMLOOP;
