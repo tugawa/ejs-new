@@ -33,52 +33,52 @@ public class BCode {
     protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
     boolean logging = false;
-    
+
     BCode() {}
-    
+
     BCode(Register dst) {
-    		this.dst = dst;
+        this.dst = dst;
     }
-    
+
     void addLabels(List<Label> labels) {
-    		for (Label l: labels) {
-	    		l.replaceDestBCode(this);
-	    		this.labels.add(l);
-	    	}
+        for (Label l: labels) {
+            l.replaceDestBCode(this);
+            this.labels.add(l);
+        }
     }
 
     ArrayList<Label> getLabels() {
-    	return labels;
+        return labels;
     }
 
     public boolean isFallThroughInstruction() {
-    		return true;
+        return true;
     }
-    
+
     public BCode getBranchTarget() {
-    		return null;
+        return null;
     }
 
     public Register getDestRegister() {
-    		return dst;
+        return dst;
     }
 
     public HashSet<Register> getSrcRegisters() {
-	    	HashSet<Register> srcs = new HashSet<Register>();
-	    	Class<? extends BCode> c = getClass();
-	    	for (Field f: c.getDeclaredFields()) {
-	    		if (f.getType() == Register.class) {
-	    			try {
-	    				srcs.add((Register) f.get(this));
-	    			} catch (Exception e) {
-	    				throw new Error(e);
-	    			}
-	    		}
-	    	}
-	    	
-	    	return srcs;
-    	}
-    
+        HashSet<Register> srcs = new HashSet<Register>();
+        Class<? extends BCode> c = getClass();
+        for (Field f: c.getDeclaredFields()) {
+            if (f.getType() == Register.class) {
+                try {
+                    srcs.add((Register) f.get(this));
+                } catch (Exception e) {
+                    throw new Error(e);
+                }
+            }
+        }
+
+        return srcs;
+    }
+
     public void logInsn() {
         this.logging = true;
     }
@@ -87,7 +87,7 @@ public class BCode {
         if (logging) { return "_log"; }
         else { return ""; }
     }
-    
+
     String toString(String opcode) {
         return opcode + logStr();
     }
@@ -153,16 +153,16 @@ class Label {
     private BCode bcode;
     Label() {}
     Label(BCode bcode) { 
-    		this.bcode = bcode;
+        this.bcode = bcode;
     }
     public int dist(int number) {
         return bcode.number - number;
     }
     public BCode getDestBCode() {
-    		return bcode;
+        return bcode;
     }
     public void replaceDestBCode(BCode bcode) {
-    		this.bcode = bcode;
+        this.bcode = bcode;
     }
 }
 
@@ -170,7 +170,7 @@ class Label {
 class IFixnum extends BCode {
     int n;
     IFixnum(Register dst, int n) {
-    		super(dst);
+        super(dst);
         this.n = n;
     }
     public String toString() {
@@ -180,7 +180,7 @@ class IFixnum extends BCode {
 class INumber extends BCode {
     double n;
     INumber(Register dst, double n) {
-    		super(dst);
+        super(dst);
         this.n = n;
     }
     public String toString() {
@@ -190,7 +190,7 @@ class INumber extends BCode {
 class IString extends BCode {
     String str;
     IString(Register dst, String str) {
-    		super(dst);
+        super(dst);
         Pattern pt = Pattern.compile("\n");
         Matcher match = pt.matcher(str);
         this.str = match.replaceAll("\\\\n");
@@ -229,7 +229,7 @@ class IRegexp extends BCode {
     int idx;
     String ptn;
     IRegexp(Register dst, int idx, String ptn) {
-    		super(dst);
+        super(dst);
         this.idx = idx;
         this.ptn = ptn;
     }
@@ -243,7 +243,7 @@ class IRegexp extends BCode {
 class IAdd extends BCode {
     Register src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
-    		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -254,7 +254,7 @@ class IAdd extends BCode {
 class ISub extends BCode {
     Register src1, src2;
     ISub(Register dst, Register src1, Register src2) {
-    		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -265,7 +265,7 @@ class ISub extends BCode {
 class IMul extends BCode {
     Register src1, src2;
     IMul(Register dst, Register src1, Register src2) {
-    		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -276,8 +276,8 @@ class IMul extends BCode {
 class IDiv extends BCode {
     Register src1, src2;
     IDiv(Register dst, Register src1, Register src2) {
-    		super(dst);
-    		this.src1 = src1;
+        super(dst);
+        this.src1 = src1;
         this.src2 = src2;
     }
     public String toString() {
@@ -298,7 +298,7 @@ class IMod extends BCode {
 class IBitor extends BCode {
     Register src1, src2;
     IBitor(Register dst, Register src1, Register src2) {
-    		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -309,7 +309,7 @@ class IBitor extends BCode {
 class IBitand extends BCode {
     Register src1, src2;
     IBitand(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -320,7 +320,7 @@ class IBitand extends BCode {
 class ILeftshift extends BCode {
     Register src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -331,7 +331,7 @@ class ILeftshift extends BCode {
 class IRightshift extends BCode {
     Register src1, src2;
     IRightshift(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -342,7 +342,7 @@ class IRightshift extends BCode {
 class IUnsignedrightshift extends BCode {
     Register src1, src2;
     IUnsignedrightshift(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -355,7 +355,7 @@ class IUnsignedrightshift extends BCode {
 class IEqual extends BCode {
     Register src1, src2;
     IEqual(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -366,7 +366,7 @@ class IEqual extends BCode {
 class IEq extends BCode {
     Register src1, src2;
     IEq(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -377,7 +377,7 @@ class IEq extends BCode {
 class ILessthan extends BCode {
     Register src1, src2;
     ILessthan(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -388,7 +388,7 @@ class ILessthan extends BCode {
 class ILessthanequal extends BCode {
     Register src1, src2;
     ILessthanequal(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -399,7 +399,7 @@ class ILessthanequal extends BCode {
 class INot extends BCode {
     Register src;
     INot(Register dst, Register src) {
-		super(dst);
+        super(dst);
         this.src = src;
     }
     public String toString() {
@@ -412,7 +412,7 @@ class INot extends BCode {
 
 class IGetglobalobj extends BCode {
     IGetglobalobj(Register dst) {
-		super(dst);
+        super(dst);
     }
     public String toString() {
         return super.toString("getglobalobj", dst);
@@ -429,7 +429,7 @@ class INewframe extends BCode {
     int len;
     int status;
     INewframe(int len, int status) {
-		this.len = len;
+        this.len = len;
         this.status = status;
     }
     public String toString() {
@@ -439,7 +439,7 @@ class INewframe extends BCode {
 class IGetglobal extends BCode {
     Register lit;
     IGetglobal(Register dst, Register lit) {
-		super(dst);
+        super(dst);
         this.lit = lit;
     }
     public String toString() {
@@ -459,7 +459,7 @@ class ISetglobal extends BCode {
 class IGetlocal extends BCode {
     int depth, n;
     IGetlocal(Register dst, int depth, int n) {
-		super(dst);
+        super(dst);
         this.depth = depth;
         this.n = n;
     }
@@ -482,7 +482,7 @@ class ISetlocal extends BCode {
 class IGetarg extends BCode {
     int depth, n;
     IGetarg(Register dst, int depth, int n) {
-		super(dst);
+        super(dst);
         this.depth = depth;
         this.n = n;
     }
@@ -505,7 +505,7 @@ class ISetarg extends BCode {
 class IGetprop extends BCode {
     Register obj, prop;
     IGetprop(Register dst, Register obj, Register prop) {
-		super(dst);
+        super(dst);
         this.obj = obj;
         this.prop = prop;
     }
@@ -542,7 +542,7 @@ class ISetarray extends BCode {
 class IMakeclosure extends BCode {
     BCBuilder.FunctionBCBuilder function;
     IMakeclosure(Register dst, BCBuilder.FunctionBCBuilder function) {
-		super(dst);
+        super(dst);
         this.function = function;
     }
     public String toString() {
@@ -553,7 +553,7 @@ class IMakeclosure extends BCode {
 
 class IGeta extends BCode {
     IGeta(Register dst) {
-		super(dst);
+        super(dst);
     }
     public String toString() {
         return super.toString("geta", dst);
@@ -562,8 +562,8 @@ class IGeta extends BCode {
 class ISeta extends BCode {
     Register src;
     ISeta(Register src) {
-    		this.src = src;
-    	}
+        this.src = src;
+    }
     public String toString() {
         return super.toString("seta", src);
     }
@@ -574,7 +574,7 @@ class IRet extends BCode {
     }
     @Override
     public boolean isFallThroughInstruction() {
-    		return false;
+        return false;
     }
     public String toString() {
         return super.toString("ret");
@@ -584,7 +584,7 @@ class IRet extends BCode {
 class IMove extends BCode {
     Register src;
     IMove(Register dst, Register src) {
-		super(dst);
+        super(dst);
         this.src = src;
     }
     public String toString() {
@@ -595,7 +595,7 @@ class IMove extends BCode {
 class IIsundef extends BCode {
     Register src;
     IIsundef(Register dst, Register src) {
-		super(dst);
+        super(dst);
         this.src = src;
     }
     public String toString() {
@@ -605,7 +605,7 @@ class IIsundef extends BCode {
 class IIsobject extends BCode {
     Register src;
     IIsobject(Register dst, Register src) {
-		super(dst);
+        super(dst);
         this.src = src;
     }
     public String toString() {
@@ -615,7 +615,7 @@ class IIsobject extends BCode {
 class IInstanceof extends BCode {
     Register src1, src2;
     IInstanceof(Register dst, Register src1, Register src2) {
-		super(dst);
+        super(dst);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -650,7 +650,7 @@ class ISend extends BCode {
 class INew extends BCode {
     Register constructor;
     INew(Register dst, Register constructor) {
-		super(dst);
+        super(dst);
         this.constructor = constructor;
     }
     public String toString() {
@@ -692,15 +692,15 @@ class INextpropnameidx extends BCode {
 class IJump extends BCode {
     Label label;
     IJump(Label label) {
-    		this.label = label;
-    	}
+        this.label = label;
+    }
     @Override
     public boolean isFallThroughInstruction() {
-    		return false;
+        return false;
     }
     @Override
     public BCode getBranchTarget() {
-    		return label.getDestBCode();
+        return label.getDestBCode();
     }
     public String toString() {
         return super.toString("jump", label.dist(number));
@@ -715,7 +715,7 @@ class IJumptrue extends BCode {
     }
     @Override
     public BCode getBranchTarget() {
-    		return label.getDestBCode();
+        return label.getDestBCode();
     }
     public String toString() {
         return super.toString("jumptrue", test, label.dist(number));
@@ -730,7 +730,7 @@ class IJumpfalse extends BCode {
     }
     @Override
     public BCode getBranchTarget() {
-    		return label.getDestBCode();
+        return label.getDestBCode();
     }
     public String toString() {
         return super.toString("jumpfalse", test, label.dist(number));
@@ -745,7 +745,7 @@ class IThrow extends BCode {
     }
     @Override
     public boolean isFallThroughInstruction()  {
-    		return false;
+        return false;
     }
     public String toString() {
         return super.toString("throw", reg);
@@ -761,8 +761,8 @@ class IPushhandler extends BCode {
     }
 }
 class IPophandler extends BCode {
-	IPophandler() {
-	}
+    IPophandler() {
+    }
     public String toString() {
         return super.toString("pophandler");
     }
@@ -777,19 +777,19 @@ class ILocalcall extends BCode {
     }
 }
 class ILocalret extends BCode {
-	ILocalret() {
-	}
-	@Override
-	public boolean isFallThroughInstruction() {
-		return false;
-	}
+    ILocalret() {
+    }
+    @Override
+    public boolean isFallThroughInstruction() {
+        return false;
+    }
     public String toString() {
         return super.toString("localret");
     }
 }
 class IPoplocal extends BCode {
-	IPoplocal() {
-	}
+    IPoplocal() {
+    }
     public String toString() {
         return super.toString("poplocal");
     }
@@ -800,8 +800,8 @@ class IPoplocal extends BCode {
 class ISetfl extends BCode {
     int fl;
     ISetfl(int fl) {
-    		this.fl = fl;
-    	}
+        this.fl = fl;
+    }
     public String toString() {
         return super.toString("setfl", fl);
     }
@@ -811,8 +811,8 @@ class ISetfl extends BCode {
 class IFuncLength extends BCode {
     int n;
     IFuncLength(int n) {
-    		this.n = n;
-    	}
+        this.n = n;
+    }
     public String toString() {
         return super.toString("funcLength", n);
     }
@@ -820,8 +820,8 @@ class IFuncLength extends BCode {
 class ICallentry extends BCode {
     int n;
     ICallentry(int n) {
-    		this.n = n;
-    	}
+        this.n = n;
+    }
     public String toString() {
         return super.toString("callentry", n);
     }
@@ -829,8 +829,8 @@ class ICallentry extends BCode {
 class ISendentry extends BCode {
     int n;
     ISendentry(int n) {
-    		this.n = n;
-    	}
+        this.n = n;
+    }
     public String toString() {
         return super.toString("sendentry", n);
     }
@@ -838,7 +838,7 @@ class ISendentry extends BCode {
 class INumberOfLocals extends BCode {
     int n;
     INumberOfLocals(int n) {
-    		this.n = n;
+        this.n = n;
     }
     public String toString() {
         return super.toString("numberOfLocals", n);
@@ -847,7 +847,7 @@ class INumberOfLocals extends BCode {
 class INumberOfInstruction extends BCode {
     int n;
     INumberOfInstruction(int n) {
-    		this.n = n;
+        this.n = n;
     }
     public String toString() {
         return super.toString("numberOfInstruction", n);
@@ -858,12 +858,12 @@ class INumberOfInstruction extends BCode {
 class IError extends BCode {
     String str;
     IError(Register dst, String str) {
-		super(dst);
+        super(dst);
         this.str = str;
     }
     @Override
     public boolean isFallThroughInstruction() {
-    		return false;
+        return false;
     }
     public String toString() {
         return super.toString("error", dst, str);
@@ -871,60 +871,60 @@ class IError extends BCode {
 }
 
 class MSetfl extends BCode {
-	MSetfl() {}
-	@Override
-	public String toString() {
-		return "@MACRO setfl";
-	}
+    MSetfl() {}
+    @Override
+    public String toString() {
+        return "@MACRO setfl";
+    }
 }
 
 class MCall extends BCode {
-	Register receiver;
-	Register function;
-	Register[] args;
-	boolean isNew;
-	boolean isTail;
-	MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-		this.receiver = receiver;
-		this.function = function;
-		this.args = args;
-		this.isNew = isNew;
-		this.isTail = isTail;
-	}
-	@Override
-	public HashSet<Register> getSrcRegisters() {
-		HashSet<Register> srcs = new HashSet<Register>();
-		if (receiver != null)
-			srcs.add(receiver);
-		srcs.add(function);
-		for (Register r: args)
-			srcs.add(r);
-		return srcs;
-	}
-	@Override
-	public String toString() {
-		String s ="@MACRO ";
+    Register receiver;
+    Register function;
+    Register[] args;
+    boolean isNew;
+    boolean isTail;
+    MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
+        this.receiver = receiver;
+        this.function = function;
+        this.args = args;
+        this.isNew = isNew;
+        this.isTail = isTail;
+    }
+    @Override
+    public HashSet<Register> getSrcRegisters() {
+        HashSet<Register> srcs = new HashSet<Register>();
+        if (receiver != null)
+            srcs.add(receiver);
+        srcs.add(function);
+        for (Register r: args)
+            srcs.add(r);
+        return srcs;
+    }
+    @Override
+    public String toString() {
+        String s ="@MACRO ";
 
-		if (isTail)
-			s += "tail";
-		if (isNew)
-			s += "new " + receiver + " " + function;
-		else if (receiver == null)
-			s += "call " + function;
-		else
-			s += "send " + receiver + " " + function;
-		for (Register r: args)
-			s += " " + r;
-		return s;
-	}
+        if (isTail)
+            s += "tail";
+        if (isNew)
+            s += "new " + receiver + " " + function;
+        else if (receiver == null)
+            s += "call " + function;
+        else
+            s += "send " + receiver + " " + function;
+        for (Register r: args)
+            s += " " + r;
+        return s;
+    }
 }
 
 class MParameter extends BCode {
-	MParameter(Register dst) {
-		super(dst);
-	}
-	@Override
-	public String toString() {
-		return "@MACRO param "+dst;
-	}
+    MParameter(Register dst) {
+        super(dst);
+    }
+    @Override
+    public String toString() {
+        return "@MACRO param "+dst;
+    }
 }

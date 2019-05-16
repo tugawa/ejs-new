@@ -45,12 +45,12 @@ public class Main {
         List<String> inputFileNames = new LinkedList<String>();   // .js
         List<Integer> loggedInputFileIndices = new LinkedList<Integer>();   // .js
         String outputFileName;  // .sbc
-		enum OptLocals {
-				NONE,
-				PROSYM,
-				G1,
-				G3;
-		}
+        enum OptLocals {
+            NONE,
+            PROSYM,
+            G1,
+            G3;
+        }
 
         boolean optPrintESTree = false;
         boolean optPrintIAST = false;
@@ -64,7 +64,7 @@ public class Main {
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
         boolean optEnableLogging = false;
-		OptLocals optLocals = OptLocals.NONE;
+        OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) {
             Info info = new Info();
@@ -81,8 +81,8 @@ public class Main {
                         info.optPrintAnalyzer = true;
                         break;
                     case "--show-llcode":
-                    	info.optPrintLowLevelCode = true;
-                    	break;
+                        info.optPrintLowLevelCode = true;
+                        break;
                     case "--show-opt":
                         info.optPrintOptimisation = true;
                         break;
@@ -93,32 +93,32 @@ public class Main {
                         info.outputFileName = args[++i];
                         break;
                     case "-omit-arguments":
-							throw new Error("obsolete option: -omit-arguments");
-					case "-opt-prosym":
+                        throw new Error("obsolete option: -omit-arguments");
+                    case "-opt-prosym":
                     case "-omit-frame":
-						info.optLocals = OptLocals.PROSYM;
-						break;
-					case "-opt-g1":
-						info.optLocals = OptLocals.G1;
-						break;
-					case "-opt-g3":
-						info.optLocals = OptLocals.G3;
+                        info.optLocals = OptLocals.PROSYM;
                         break;
-					case "-opt-const":
-						info.optConstantPropagation = true;
-						break;
-					case "-opt-rie":
-						info.optRedunantInstructionElimination = true;
-						break;
-					case "-opt-cce":
-					    info.optCommonConstantElimination = true;
-					    break;
-					case "-opt-copy":
-						info.optCopyPropagation = true;
-						break;
-					case "-opt-reg":
-					    info.optRegisterAssignment = true;
-					    break;
+                    case "-opt-g1":
+                        info.optLocals = OptLocals.G1;
+                        break;
+                    case "-opt-g3":
+                        info.optLocals = OptLocals.G3;
+                        break;
+                    case "-opt-const":
+                        info.optConstantPropagation = true;
+                        break;
+                    case "-opt-rie":
+                        info.optRedunantInstructionElimination = true;
+                        break;
+                    case "-opt-cce":
+                        info.optCommonConstantElimination = true;
+                        break;
+                    case "-opt-copy":
+                        info.optCopyPropagation = true;
+                        break;
+                    case "-opt-reg":
+                        info.optRegisterAssignment = true;
+                        break;
                     case "-log":
                         i++;
                         if (i >= args.length) {
@@ -128,8 +128,8 @@ public class Main {
                         info.inputFileNames.add(args[i]);
                         info.optEnableLogging = true;
                         break;
-					default:
-						throw new Error("unknown option: "+args[i]);
+                    default:
+                        throw new Error("unknown option: "+args[i]);
                     }
                 } else {
                     info.inputFileNames.add(args[i]);
@@ -201,10 +201,10 @@ public class Main {
 
             // normalize ESTree.
             new ESTreeNormalizer().normalize(ast);
-//            if (info.optPrintESTree) {
-//                System.out.println(ast.getEsTree());
-//            }
-            
+            //            if (info.optPrintESTree) {
+            //                System.out.println(ast.getEsTree());
+            //            }
+
             // convert ESTree into iAST.
             IASTGenerator iastgen = new IASTGenerator();
             IASTFunctionExpression iastFile = iastgen.gen(ast);
@@ -227,28 +227,28 @@ public class Main {
         }
 
         // convert iAST into low level code.
-		CodeGenerator codegen = new CodeGenerator(info.optLocals, info.optEnableLogging);
+        CodeGenerator codegen = new CodeGenerator(info.optLocals, info.optEnableLogging);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
 
         bcBuilder.optimisation(info);
 
         if (info.optPrintLowLevelCode) {
-        	bcBuilder.assignAddress();
-        	System.out.print(bcBuilder);
+            bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
         }
 
         // macro instruction expansion
         bcBuilder.expandMacro();
 
         // resolve jump destinations
-    	bcBuilder.assignAddress();
+        bcBuilder.assignAddress();
 
-    	// replace instructions for logging
-    	bcBuilder.replaceInstructionsForLogging();
-    	
-    		if (info.optPrintLowLevelCode) {
-        	bcBuilder.assignAddress();
-        	System.out.print(bcBuilder);
+        // replace instructions for logging
+        bcBuilder.replaceInstructionsForLogging();
+
+        if (info.optPrintLowLevelCode) {
+            bcBuilder.assignAddress();
+            System.out.print(bcBuilder);
         }
 
         List<BCode> bcodes = bcBuilder.build();
