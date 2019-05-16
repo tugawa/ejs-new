@@ -60,10 +60,10 @@ public class Main {
         SISpecInfo sispecInfo;
         int baseFunctionNumber = 0;
         enum OptLocals {
-                NONE,
-                PROSYM,
-                G1,
-                G3;
+            NONE,
+            PROSYM,
+            G1,
+            G3;
         }
 
         boolean optPrintESTree = false;
@@ -112,7 +112,7 @@ public class Main {
                         info.outputFileName = args[++i];
                         break;
                     case "-omit-arguments":
-                            throw new Error("obsolete option: -omit-arguments");
+                        throw new Error("obsolete option: -omit-arguments");
                     case "-opt-prosym":
                     case "-omit-frame":
                         info.optLocals = OptLocals.PROSYM;
@@ -162,8 +162,8 @@ public class Main {
                         info.insnsDefFile = args[++i];
                         info.insnsdef = new InsnsDef(info.insnsDefFile);
                         break;
-					default:
-						throw new Error("unknown option: "+args[i]);
+                    default:
+                        throw new Error("unknown option: "+args[i]);
                     }
                 } else {
                     info.inputFileName = args[i];
@@ -265,10 +265,10 @@ public class Main {
                         if (!matcher.find())
                             throw new Error("Invalid superinstruction specificated");
                         sispecs.add(new SISpec(matcher.group("insn"),
-                                               matcher.group("op0"),
-                                               matcher.group("op1"),
-                                               matcher.group("op2"),
-                                               matcher.group("newInsn")));
+                                matcher.group("op0"),
+                                matcher.group("op1"),
+                                matcher.group("op2"),
+                                matcher.group("newInsn")));
                     }
                     sc.close();
                 } catch (FileNotFoundException fnfe) {
@@ -369,9 +369,9 @@ public class Main {
                             for(int i=0;i<3;i++) opStr_flag[i] = Integer.parseInt(String.format("%c", tmp[16+i]),16);
                             int count = 0;
                             for(int i=0;i<3;i++) {
-                            	//System.out.println("length:" + tmp.length + "//count:" + count);
-                            	//System.out.println("flag[" + i + "]" + opStr_flag[i]);
-                            	if(opStr_flag[i]==0) continue;
+                                //System.out.println("length:" + tmp.length + "//count:" + count);
+                                //System.out.println("flag[" + i + "]" + opStr_flag[i]);
+                                if(opStr_flag[i]==0) continue;
                                 int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[4+i*4], tmp[5+i*4], tmp[6+i*4], tmp[7+i*4]),16);
                                 String str="";
                                 //System.out.println(nchar + "//" +(19+count+nchar*2));
@@ -391,7 +391,7 @@ public class Main {
                                 /*char[] new_nchar = String.format("%04x", nchar).toCharArray();
                                 for(int i=0;i<4;i++)
                                     tmp[8+i] = new_nchar[i];
-                                    */
+                                 */
                                 char[] ret = String.format("%04x", index & 0xffff).toCharArray();
                                 for(int h=0;h<4;h++)
                                     tmp[4+i*4+h] = ret[h];
@@ -467,9 +467,9 @@ public class Main {
 
         // normalize ESTree.
         new ESTreeNormalizer().normalize(ast);
-//        if (info.optPrintESTree) {
-//            System.out.println(ast.getEsTree());
-//        }
+        //        if (info.optPrintESTree) {
+        //            System.out.println(ast.getEsTree());
+        //        }
 
         // convert ESTree into iAST.
         IASTGenerator iastgen = new IASTGenerator();

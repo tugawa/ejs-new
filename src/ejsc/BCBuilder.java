@@ -28,16 +28,16 @@ import java.util.regex.Pattern;
 import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class BCBuilder {
-	static class FunctionBCBuilder {
+    static class FunctionBCBuilder {
         MSetfl createMSetfl() {
-        	return new MSetfl();
+            return new MSetfl();
         }
-        
+
         MCall createMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-        	int nArgs = args.length;
-        	if (numberOfArgumentRegisters < nArgs)
-        		numberOfArgumentRegisters = nArgs;
-        	return new MCall(receiver, function, args, isNew, isTail);
+            int nArgs = args.length;
+            if (numberOfArgumentRegisters < nArgs)
+                numberOfArgumentRegisters = nArgs;
+            return new MCall(receiver, function, args, isNew, isTail);
         }
 
         Label callEntry;
@@ -45,7 +45,7 @@ class BCBuilder {
         int numberOfLocals;
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
-        
+
         List<BCode> bcodes = new LinkedList<BCode>();
 
         List<Label>   labelsSetJumpDest   = new LinkedList<Label>();
@@ -53,25 +53,25 @@ class BCBuilder {
         void expandMacro(Main.Info info) {
             int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
             int totalNumberOfRegisters = numberOfGPRegisters + numberOfOutRegisters;
-            
+
             Register[] argRegs = new Register[numberOfArgumentRegisters + 1];
             for (int i = 0; i < numberOfArgumentRegisters + 1; i++)
-            	argRegs[i] = new Register(numberOfGPRegisters + NUMBER_OF_LINK_REGISTERS + i + 1); /* + 1 because of 1-origin */
-            
+                argRegs[i] = new Register(numberOfGPRegisters + NUMBER_OF_LINK_REGISTERS + i + 1); /* + 1 because of 1-origin */
+
             for (int number = 0; number < bcodes.size(); ) {
-            	BCode bcode = bcodes.get(number);
-            	if (bcode instanceof MSetfl) {
-            		MSetfl msetfl = (MSetfl) bcode;
-            		ISetfl isetfl = new ISetfl(totalNumberOfRegisters);
+                BCode bcode = bcodes.get(number);
+                if (bcode instanceof MSetfl) {
+                    MSetfl msetfl = (MSetfl) bcode;
+                    ISetfl isetfl = new ISetfl(totalNumberOfRegisters);
                     bcodes.set(number, isetfl);
-            		bcodes.get(number).addLabels(msetfl.getLabels());
-            		continue;
-            	} else if (bcode instanceof MCall) {
-            		MCall mcall = (MCall) bcode;
-            		int pc = number;
-            		int nUseArgReg = mcall.args.length + 1;
-            		int thisRegOffset = numberOfArgumentRegisters + 1 - nUseArgReg; /* + 1 because of 1-origin */
-            		bcodes.remove(number);
+                    bcodes.get(number).addLabels(msetfl.getLabels());
+                    continue;
+                } else if (bcode instanceof MCall) {
+                    MCall mcall = (MCall) bcode;
+                    int pc = number;
+                    int nUseArgReg = mcall.args.length + 1;
+                    int thisRegOffset = numberOfArgumentRegisters + 1 - nUseArgReg; /* + 1 because of 1-origin */
+                    bcodes.remove(number);
                     if (mcall.receiver != null)
                         bcodes.add(pc++, new IMove(argRegs[thisRegOffset], mcall.receiver));
                     for (int i = 0; i < mcall.args.length; i++)
@@ -82,14 +82,14 @@ class BCBuilder {
                         bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
                     else
                         bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
-            		bcodes.get(number).addLabels(mcall.getLabels());
-            		continue;
-            	} else if (bcode instanceof MParameter) {
-            		bcodes.remove(number);
-            		bcodes.get(number).addLabels(bcode.getLabels());
-            		continue;
-            	}
-            	number++;
+                    bcodes.get(number).addLabels(mcall.getLabels());
+                    continue;
+                } else if (bcode instanceof MParameter) {
+                    bcodes.remove(number);
+                    bcodes.get(number).addLabels(bcode.getLabels());
+                    continue;
+                }
+                number++;
             }
         }
 
@@ -109,30 +109,30 @@ class BCBuilder {
             result.addAll(bcodes);
             return result;
         }
-        
+
         void setEntry(Label call, Label send) {
-        		callEntry = call;
-        		sendEntry = send;
+            callEntry = call;
+            sendEntry = send;
         }
-        
+
         void setNumberOfGPRegisters(int gpregs) {
-        	numberOfGPRegisters = gpregs;
+            numberOfGPRegisters = gpregs;
         }
-        
+
         @Override
         public String toString() {
-        	StringBuffer sb = new StringBuffer();
-        	if (callEntry != null)
-        		sb.append("callEntry: ").append(callEntry.dist(0)).append(": ").append(callEntry.getDestBCode()).append("\n");
-        	if (sendEntry != null)
-            	sb.append("sendEntry: ").append(sendEntry.dist(0)).append(": ").append(sendEntry.getDestBCode()).append("\n");
-        	for (BCode i: bcodes)
-        		sb.append(i.number).append(": ").append(i).append("\n");
-        	return sb.toString();
+            StringBuffer sb = new StringBuffer();
+            if (callEntry != null)
+                sb.append("callEntry: ").append(callEntry.dist(0)).append(": ").append(callEntry.getDestBCode()).append("\n");
+            if (sendEntry != null)
+                sb.append("sendEntry: ").append(sendEntry.dist(0)).append(": ").append(sendEntry.getDestBCode()).append("\n");
+            for (BCode i: bcodes)
+                sb.append(i.number).append(": ").append(i).append("\n");
+            return sb.toString();
         }
     }
 
-	static final int NUMBER_OF_LINK_REGISTERS = 4;
+    static final int NUMBER_OF_LINK_REGISTERS = 4;
     static final int MAX_CHAR = 127;
     static final int MIN_CHAR = -128;
 
@@ -232,12 +232,12 @@ class BCBuilder {
         for (FunctionBCBuilder f: fBuilders)
             f.expandMacro(info);
     }
- 
+
     void assignAddress() {
-    	for (FunctionBCBuilder f: fBuilders)
-    		f.assignAddress();    	
+        for (FunctionBCBuilder f: fBuilders)
+            f.assignAddress();    	
     }
-    
+
     List<BCode> build(Main.Info info) {
         // build fBuilders.
         List<BCode> result = new LinkedList<BCode>();
@@ -259,15 +259,15 @@ class BCBuilder {
     }
 
     void pushMsetfl() {
-    	push(fbStack.getFirst().createMSetfl());
+        push(fbStack.getFirst().createMSetfl());
     }
-    
+
     void pushMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-    	push(fbStack.getFirst().createMCall(receiver, function, args,  isNew, isTail));
+        push(fbStack.getFirst().createMCall(receiver, function, args,  isNew, isTail));
     }
-    
+
     BCode getLastBCode() {
-    		List<BCode> bcodes = fbStack.getFirst().bcodes;
+        List<BCode> bcodes = fbStack.getFirst().bcodes;
         return bcodes.get(bcodes.size() - 1);
     }
 
@@ -284,18 +284,18 @@ class BCBuilder {
     }
 
     void setNumberOfGPRegisters(int gpregs) {
-    	fbStack.getFirst().setNumberOfGPRegisters(gpregs);
+        fbStack.getFirst().setNumberOfGPRegisters(gpregs);
     }
 
     @Override
     public String toString() {
-    	StringBuffer sb = new StringBuffer();
-    	for (FunctionBCBuilder f: fBuilders)
-    		sb.append(f.toString()).append("\n");
-    		  
-    	return sb.toString();
+        StringBuffer sb = new StringBuffer();
+        for (FunctionBCBuilder f: fBuilders)
+            sb.append(f.toString()).append("\n");
+
+        return sb.toString();
     }
-    
+
     // optimisation method
     void optimisation(Main.Info info) {
         boolean global = true;
@@ -309,7 +309,7 @@ class BCBuilder {
                 System.out.println("====== before optimisation ======");
                 System.out.println(fb);
             }
-            
+
             if (info.optConstantPropagation) {
                 ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
                 fb.bcodes = cp.exec();
@@ -364,7 +364,7 @@ class BCBuilder {
                     System.out.println(fb);
                 }
             }
-            
+
             if (info.optRedunantInstructionElimination) {
                 fb.assignAddress();
                 RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
