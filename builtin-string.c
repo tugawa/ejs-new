@@ -326,9 +326,8 @@ int char_code_at(Context *context, JSValue str, JSValue a) {
       n = 0;
     }
   }
-  GC_POP(a);
   s = string_to_cstr(str);
-  GC_POP(str);
+  GC_POP2(str,a);
   return (0 <= n && n < string_length(str))? s[n]: -1;
 }
 
