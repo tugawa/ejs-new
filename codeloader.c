@@ -310,7 +310,6 @@ int code_loader(Context *ctx, FunctionTable *ftable, int numberOfFunction) {
     ret = update_function_table(ftable, i+numberOfFunction, &ctable, bytecodes,
                                 callentry, sendentry, nlocals, ninsns);
     // end_constant_cell(&ctable);
-    free(ctable);
   }
   // number_functions = i;
   if (ftable_flag == TRUE)
