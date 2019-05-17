@@ -81,7 +81,6 @@ public class Main {
         boolean optRegisterAssignment = false;
         boolean optCommonConstantElimination = false;
         boolean optEnableLogging = false;
-        boolean outCompactByteCode = false;
         boolean optSuperInstruction = false;
         boolean optCBCSuperInstruction = false;
         boolean optCBCRedunantInstructionElimination = false;
@@ -155,9 +154,6 @@ public class Main {
                         info.optSuperInstruction = true;
                         info.specFilePath = args[++i];
                         info.sispecInfo = new SISpecInfo(info.specFilePath);
-                        break;
-                    case "-out-cbc":
-                        info.outCompactByteCode = true;
                         break;
                     case "-opt-cbc-sie":
                         info.optCBCSuperInstruction = true;
@@ -519,37 +515,9 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
         bcBuilder.optimisation(info);
 
-        if (info.outCompactByteCode || info.optSuperInstruction) {
+        if (info.optSuperInstruction) {
             // convert byte code into compact byte code.
             CBCBuilder cbcBuilder = bcBuilder.convertBCode();
-
-            if (info.outCompactByteCode) {
-                cbcBuilder.optimisation(info);
-                if (info.optPrintLowLevelCode) {
-                    cbcBuilder.assignAddress();
-                    System.out.print(cbcBuilder);
-                }
-
-                cbcBuilder.assignAddress();
-
-                // macro instruction expansion
-                cbcBuilder.expandMacro(info);
-
-                // resolve jump destinations
-                cbcBuilder.assignAddress();
-
-                if (info.optPrintLowLevelCode) {
-                    cbcBuilder.assignAddress();
-                    System.out.print(cbcBuilder);
-                }
-
-                cbcBuilder.setJumpDist();
-
-                List<CBCode> bcodes = cbcBuilder.build(info);
-
-                writeBCodeToSBCFile(bcodes, info.outputFileName);
-                return;
-            }
             cbcBuilder.makeSuperInstruction(info);
             bcBuilder = cbcBuilder.convertBCode();
         }
