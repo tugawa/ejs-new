@@ -430,6 +430,8 @@ def read_insndef(args):
   return insns    
 
 def read_sinsns(args):
+  if not args.sitype:
+    return []
   sinsns = []
   stream = check_open_file(args.sispec, "r", "sispec")
   for line in stream.readlines():

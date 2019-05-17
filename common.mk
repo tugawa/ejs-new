@@ -28,12 +28,12 @@ ifeq ($(OPT_GC),)
 # GC=native|boehmgc|none
     OPT_GC=native
 endif
-ifeq ($(SUPERINSNSPEC),)
-    SUPERINSNSPEC=none
-endif
-ifeq ($(SUPERINSNTYPE),)
-    SUPERINSNTYPE=4
-endif
+#ifeq ($(SUPERINSNSPEC),)
+#    SUPERINSNSPEC=none
+#endif
+#ifeq ($(SUPERINSNTYPE),)
+#    SUPERINSNTYPE=4
+#endif
 ifeq ($(OPT_REGEXP),)
 # REGEXP=oniguruma|none
     OPT_REGEXP=none
@@ -42,11 +42,17 @@ endif
 ######################################################
 # commands and paths
 
+ifeq ($(SUPERINSNTYPE),)
+GOTTA=$(PYTHON) $(EJSVM_DIR)/gotta.py\
+    --otspec $(OPERANDSPEC)\
+    --insndef $(EJSVM_DIR)/instructions.def
+else
 GOTTA=$(PYTHON) $(EJSVM_DIR)/gotta.py\
     --sispec $(SUPERINSNSPEC)\
     --otspec $(OPERANDSPEC)\
     --insndef $(EJSVM_DIR)/instructions.def\
     --sitype $(SUPERINSNTYPE)
+endif
 
 #SILIST=$(GOTTA) --silist --sispec
 SILIST=$(SED) -e 's/^.*: *//'
