@@ -20,8 +20,13 @@
      Hideya Iwasaki, 2012-14
 */
 package ejsc;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class BCBuilder {
     static class FunctionBCBuilder {
@@ -49,7 +54,7 @@ class BCBuilder {
 
         List<Label>   labelsSetJumpDest   = new LinkedList<Label>();
 
-        void expandMacro() {
+        void expandMacro(Main.Info info) {
             int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
             int totalNumberOfRegisters = numberOfGPRegisters + numberOfOutRegisters;
 
@@ -93,8 +98,10 @@ class BCBuilder {
         }
 
         void assignAddress() {
-            for (int number = 0; number < bcodes.size(); number++)
-                bcodes.get(number).number = number;
+            for (int i = 0; i < bcodes.size(); i++) {
+                BCode bcode = bcodes.get(i);
+                bcode.number = i;
+            }
         }
 
         void replaceInstructionsForLogging() {
@@ -149,17 +156,22 @@ class BCBuilder {
 
         int getIndex() {
             if (index == -1)
-                throw new Error("index has not been assigned for "+hashCode());
+                return hashCode();  // debug
             return index;
         }
 
         @Override
         public String toString() {
             StringBuffer sb = new StringBuffer();
+            sb.append("[").append(hashCode()).append("]\n");
             if (callEntry != null)
                 sb.append("callEntry: ").append(callEntry.dist(0)).append(": ").append(callEntry.getDestBCode()).append("\n");
             if (sendEntry != null)
                 sb.append("sendEntry: ").append(sendEntry.dist(0)).append(": ").append(sendEntry.getDestBCode()).append("\n");
+            if (topLevel)
+                sb.append(" toplevel\n");
+            if (logging)
+                sb.append(" logging\n");
             for (BCode i: bcodes)
                 sb.append(i.number).append(": ").append(i).append("\n");
             return sb.toString();
@@ -167,12 +179,26 @@ class BCBuilder {
     }
 
     static final int NUMBER_OF_LINK_REGISTERS = 4;
+    static final int MAX_CHAR = 127;
+    static final int MIN_CHAR = -128;
 
-    private LinkedList<FunctionBCBuilder> fbStack = new LinkedList<FunctionBCBuilder>();
-    private LinkedList<FunctionBCBuilder> fBuilders = new LinkedList<FunctionBCBuilder>();
+    private LinkedList<FunctionBCBuilder> fbStack;
+    private LinkedList<FunctionBCBuilder> fBuilders;
 
     int maxNumOfArgsOfCallingFunction = 0;
 
+    BCBuilder() {
+        fbStack = new LinkedList<FunctionBCBuilder>();
+        fBuilders = new LinkedList<FunctionBCBuilder>();        
+    }
+    
+    // TODO: remove this constructor when removing CBC.
+    BCBuilder(int n) {
+        fBuilders = new LinkedList<FunctionBCBuilder>();
+        for (int i = 0; i < n; i++)
+            fBuilders.add(new FunctionBCBuilder());
+    }
+    
     FunctionBCBuilder openFunctionBCBuilder() {
         FunctionBCBuilder bcb = new FunctionBCBuilder();
         fbStack.push(bcb);
@@ -180,13 +206,85 @@ class BCBuilder {
         return bcb;
     }
 
+    FunctionBCBuilder getFunctionBCBuilder(int index) {
+        return fBuilders.get(index);
+    }
+
     void closeFuncBCBuilder() {
         fbStack.pop();
     }
 
-    void expandMacro() {
+    CBCBuilder convertBCode() {
+        CBCBuilder cbcBuilder = new CBCBuilder();
+        this.assignAddress();
+        this.assignFunctionIndex(false);
+        for (int i = 0; i < fBuilders.size(); i++) {
+            FunctionBCBuilder f = fBuilders.get(i);
+            cbcBuilder.openFunctionBCBuilder(f);
+            FunctionCBCBuilder fCBCBuilder = cbcBuilder.getFunctionCBCBuilder(i);
+            fCBCBuilder.topLevel = f.topLevel;
+            fCBCBuilder.logging = f.logging;
+            for (BCode bcode: f.bcodes) {
+                CBCode cbc = changeToCompactBCode(bcode);
+                if (cbc == null)
+                    throw new Error("undefined cbc code:" + bcode.toString());
+                fCBCBuilder.bcodes.add(cbc);
+            }
+            // Replace label
+            for (int j = 0; j < fCBCBuilder.bcodes.size(); j++) {
+                BCode bcode = f.bcodes.get(j);
+                CBCode cbcode = fCBCBuilder.bcodes.get(j);
+                if (cbcode instanceof ICBCJump) {
+                    ICBCJump cbc = (ICBCJump) cbcode;
+                    IJump bc = (IJump) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
+                }
+                if (cbcode instanceof ICBCJumptrue) {
+                    ICBCJumptrue cbc = (ICBCJumptrue) cbcode;
+                    IJumptrue bc = (IJumptrue) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
+                }
+                if (cbcode instanceof ICBCJumpfalse) {
+                    ICBCJumpfalse cbc = (ICBCJumpfalse) cbcode;
+                    IJumpfalse bc = (IJumpfalse) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
+                }
+                if (cbcode instanceof ICBCPushhandler) {
+                    ICBCPushhandler cbc = (ICBCPushhandler) cbcode;
+                    IPushhandler bc = (IPushhandler) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
+                }
+                if (cbcode instanceof ICBCLocalcall) {
+                    ICBCLocalcall cbc = (ICBCLocalcall) cbcode;
+                    ILocalcall bc = (ILocalcall) bcode;
+                    CBCode labelCBC = fCBCBuilder.bcodes.get(bc.label.getDestBCode().number);
+                    cbc.label.replaceDestCBCode(labelCBC);
+                    labelCBC.labels.add(cbc.label);
+                }
+            }
+            // Replace callEntry and sendEntry
+            fCBCBuilder.setEntry(new CBCLabel(), new CBCLabel());
+            CBCode send = fCBCBuilder.bcodes.get(f.sendEntry.getDestBCode().number);
+            fCBCBuilder.sendEntry.replaceDestCBCode(send);
+            send.labels.add(fCBCBuilder.sendEntry);
+            CBCode call = fCBCBuilder.bcodes.get(f.callEntry.getDestBCode().number);
+            fCBCBuilder.callEntry.replaceDestCBCode(call);
+            call.labels.add(fCBCBuilder.callEntry);
+        }
+        return cbcBuilder;
+    }
+
+    void expandMacro(Main.Info info) {
         for (FunctionBCBuilder f: fBuilders)
-            f.expandMacro();
+            f.expandMacro(info);
     }
 
     void assignAddress() {
@@ -199,16 +297,24 @@ class BCBuilder {
             f.replaceInstructionsForLogging();
     }
 
+    /*
+     * Assigns indexes to functions.
+     * If excludeToplevel is true, this keep index of top level function -1.
+     * Returns the number of functions that are assigned indexes.
+     */
+    int assignFunctionIndex(boolean excludeToplevel) {
+        int index = 0;
+        for (FunctionBCBuilder fb: fBuilders)
+            if (!excludeToplevel || !fb.topLevel)
+                fb.setIndex(index++);
+        return index;
+    }
+    
     List<BCode> build() {
         // build fBuilders.
         List<BCode> result = new LinkedList<BCode>();
 
-        int nfunc = 0;
-        for (FunctionBCBuilder fb: fBuilders)
-            if (!fb.topLevel) {
-                fb.setIndex(nfunc);
-                nfunc++;
-            }
+        int nfunc = assignFunctionIndex(true);
         nfunc++; // toplevel function
         result.add(new IFuncLength(nfunc));
 
@@ -384,7 +490,160 @@ class BCBuilder {
                     System.out.println(fb);
                 }
             }
-
         }
+    }
+
+    CBCode changeToCompactBCode(BCode bc) {
+        if (bc instanceof IAdd)
+            return new ICBCAdd((IAdd) bc);
+        if (bc instanceof ISub)
+            return new ICBCSub((ISub) bc);
+        if (bc instanceof IMul)
+            return new ICBCMul((IMul) bc);
+        if (bc instanceof IDiv)
+            return new ICBCDiv((IDiv) bc);
+        if (bc instanceof IMod)
+            return new ICBCMod((IMod) bc);
+        if (bc instanceof IBitor)
+            return new ICBCBitor((IBitor) bc);
+        if (bc instanceof IBitand)
+            return new ICBCBitand((IBitand) bc);
+        if (bc instanceof ILeftshift)
+            return new ICBCLeftshift((ILeftshift) bc);
+        if (bc instanceof IRightshift)
+            return new ICBCRightshift((IRightshift) bc);
+        if (bc instanceof IUnsignedrightshift)
+            return new ICBCUnsignedrightshift((IUnsignedrightshift) bc);
+        if (bc instanceof IEqual)
+            return new ICBCEqual((IEqual) bc);
+        if (bc instanceof IEq)
+            return new ICBCEq((IEq) bc);
+        if (bc instanceof ILessthan)
+            return new ICBCLessthan((ILessthan) bc);
+        if (bc instanceof ILessthanequal)
+            return new ICBCLessthanequal((ILessthanequal) bc);
+        if (bc instanceof INot)
+            return new ICBCNot((INot) bc);
+        if (bc instanceof IGetglobalobj)
+            return new ICBCGetglobalobj((IGetglobalobj) bc);
+        if (bc instanceof INewargs)
+            return new ICBCNewargs();
+        if (bc instanceof INewframe)
+            return new ICBCNewframe((INewframe) bc);
+        if (bc instanceof IMakeclosure)
+            return new ICBCMakeclosure((IMakeclosure) bc);
+        if (bc instanceof IRet)
+            return new ICBCRet();
+        if (bc instanceof IIsundef)
+            return new ICBCIsundef((IIsundef) bc);
+        if (bc instanceof IIsobject)
+            return new ICBCIsobject((IIsobject) bc);
+        if (bc instanceof IInstanceof)
+            return new ICBCInstanceof((IInstanceof) bc);
+        if (bc instanceof ICall)
+            return new ICBCCall((ICall) bc);
+        if (bc instanceof ISend)
+            return new ICBCSend((ISend) bc);
+        if (bc instanceof INew)
+            return new ICBCNew((INew) bc);
+        if (bc instanceof INewsend)
+            return new ICBCNewsend((INewsend) bc);
+        if (bc instanceof IMakesimpleiterator)
+            return new ICBCMakesimpleiterator((IMakesimpleiterator) bc);
+        if (bc instanceof INextpropnameidx)
+            return new ICBCNextpropnameidx((INextpropnameidx) bc);
+        if (bc instanceof IJump)
+            return new ICBCJump((IJump) bc);
+        if (bc instanceof IJumptrue)
+            return new ICBCJumptrue((IJumptrue) bc);
+        if (bc instanceof IJumpfalse)
+            return new ICBCJumpfalse((IJumpfalse) bc);
+        if (bc instanceof IThrow)
+            return new ICBCThrow((IThrow) bc);
+        if (bc instanceof IPushhandler)
+            return new ICBCPushhandler((IPushhandler) bc);
+        if (bc instanceof IPophandler)
+            return new ICBCPophandler();
+        if (bc instanceof ILocalcall)
+            return new ICBCLocalcall((ILocalcall) bc);
+        if (bc instanceof ILocalret)
+            return new ICBCLocalret();
+        if (bc instanceof IPoplocal)
+            return new ICBCPoplocal();
+        if (bc instanceof ISetfl)
+            return new ICBCSetfl((ISetfl) bc);
+        if (bc instanceof IError)
+            return new ICBCError((IError) bc);
+        if (bc instanceof IGetglobal)
+            return new ICBCGetglobal((IGetglobal) bc);
+        if (bc instanceof ISetglobal)
+            return new ICBCSetglobal((ISetglobal) bc);
+        if (bc instanceof IGetlocal)
+            return new ICBCGetlocal((IGetlocal) bc);
+        if (bc instanceof ISetlocal)
+            return new ICBCSetlocal((ISetlocal) bc);
+        if (bc instanceof IGetarg)
+            return new ICBCGetarg((IGetarg) bc);
+        if (bc instanceof ISetarg)
+            return new ICBCSetarg((ISetarg) bc);
+        if (bc instanceof IGetprop)
+            return new ICBCGetprop((IGetprop) bc);
+        if (bc instanceof ISetprop)
+            return new ICBCSetprop((ISetprop) bc);
+        if (bc instanceof IGeta)
+            return new ICBCGeta((IGeta) bc);
+        if (bc instanceof ISeta)
+            return new ICBCSeta((ISeta) bc);
+
+        // MACRO code
+        if (bc instanceof MSetfl)
+            return new MCBCSetfl();
+        if (bc instanceof MCall)
+            return new MCBCCall((MCall) bc);
+        if (bc instanceof MParameter)
+            return new MCBCParameter((MParameter) bc);
+
+        // convart nop instruction
+        if (bc instanceof IFixnum) {
+            IFixnum b = (IFixnum) bc;
+            return new ICBCNop(new ARegister(b.dst), new AFixnum(b.n));
+        }
+        if (bc instanceof IString) {
+            IString b = (IString) bc;
+            Pattern pt = Pattern.compile("\n");
+            Matcher match = pt.matcher(b.str);
+            String str = match.replaceAll("\\\\n");
+            return new ICBCNop(new ARegister(b.dst), new AString(str));
+        }
+        if (bc instanceof INumber) {
+            INumber b = (INumber) bc;
+            return new ICBCNop(new ARegister(b.dst), new ANumber(b.n));
+        }
+        if (bc instanceof IBooleanconst) {
+            IBooleanconst b = (IBooleanconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial(b.b ? "true" : "false"));
+        }
+        if (bc instanceof INullconst) {
+            INullconst b = (INullconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial("null"));
+        }
+        if (bc instanceof IUndefinedconst) {
+            IUndefinedconst b = (IUndefinedconst) bc;
+            return new ICBCNop(new ARegister(b.dst), new ASpecial("undefined"));
+        }
+        if (bc instanceof IRegexp) {
+            IRegexp b = (IRegexp) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegexp(b.idx, b.ptn));
+        }
+        if (bc instanceof IMove) {
+            IMove b = (IMove) bc;
+            return new ICBCNop(new ARegister(b.dst), new ARegister(b.src));
+        }
+
+        // unsupport instruction
+        if (bc instanceof ISetarray) {
+            throw new Error("Setarray is unsupported");
+        }
+        return null;
     }
 }
