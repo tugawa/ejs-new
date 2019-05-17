@@ -3,6 +3,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import ejsc.BCBuilder.FunctionBCBuilder;
+import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class CBCBuilder {
     static class FunctionCBCBuilder {
@@ -22,6 +23,8 @@ class CBCBuilder {
         int numberOfLocals;
         int numberOfGPRegisters;
         int numberOfArgumentRegisters = 0;
+        boolean topLevel;
+        boolean logging;
         
         List<CBCode> bcodes = new LinkedList<CBCode>();
 
@@ -139,14 +142,20 @@ class CBCBuilder {
     static final int NUMBER_OF_LINK_REGISTERS = 4;
 
     private LinkedList<FunctionCBCBuilder> fBuilders = new LinkedList<FunctionCBCBuilder>();
-
+    private BCBuilder convertingTo;
     BCBuilder convertBCode() {
-        BCBuilder bcBuilder = new BCBuilder();
+        BCBuilder bcBuilder = new BCBuilder(fBuilders.size());
+        convertingTo = bcBuilder;
         this.insnOrdering();
+        
         for (int i = 0; i < fBuilders.size(); i++) {
             FunctionCBCBuilder f = fBuilders.get(i);
-            bcBuilder.openFunctionCBCBuilder(f);
             FunctionBCBuilder fBCBuilder = bcBuilder.getFunctionBCBuilder(i);
+            fBCBuilder.numberOfArgumentRegisters = f.numberOfArgumentRegisters;
+            fBCBuilder.numberOfGPRegisters = f.numberOfGPRegisters;
+            fBCBuilder.numberOfLocals = f.numberOfLocals;
+            fBCBuilder.topLevel = f.topLevel;
+            fBCBuilder.logging = f.logging;
             for (CBCode cbcode: f.bcodes) {
                 BCode bc = changeToBCode(cbcode);
                 if (bc == null)
@@ -497,7 +506,7 @@ class CBCBuilder {
             store = bc.getDestRegister();
             load1 = ((ALiteral) bc.load1).n;
             if (bc instanceof ICBCMakeclosure)
-                return new IMakeclosure(store, load1);
+                return new IMakeclosure(store, convertingTo.getFunctionBCBuilder(load1));
         }
         // Register literal literal
         if (bc.store instanceof ARegister && bc.load1 instanceof ALiteral && bc.load2 instanceof ALiteral) {

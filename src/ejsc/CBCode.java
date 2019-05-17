@@ -633,7 +633,7 @@ class ICBCMakeclosure extends CBCode {
     }
     ICBCMakeclosure(IMakeclosure bc) {
         store = new ARegister(bc.dst);
-        load1 = new ALiteral(bc.idx);
+        load1 = new ALiteral(bc.function.getIndex());
         load2 = new ANone();
     }
     public String getInsnName() {

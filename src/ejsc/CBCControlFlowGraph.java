@@ -36,7 +36,7 @@ public class CBCControlFlowGraph {
         for (int i = 0; i < bcodes.size(); i++) {
             CBCode bc = bcodes.get(i);
             CFGNode cfgNode = cfg.get(bc);
-            if (bc.isFallThroughInstruction()) {
+            if (bc.isFallThroughInstruction() && i + 1 < bcodes.size()) {
                 CBCode destBC = bcodes.get(i + 1);
                 makeEdge(cfgNode, destBC);
             }
