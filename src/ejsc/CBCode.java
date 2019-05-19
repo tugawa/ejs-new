@@ -126,6 +126,37 @@ class Argument {
     public String toString() {
         return "";
     }
+
+    static Argument fromSrcOperand(SrcOperand opx) {
+        if (opx instanceof RegisterOperand) {
+            RegisterOperand op = (RegisterOperand) opx;
+            return new ARegister(op.get());
+        } else if (opx instanceof FixnumOperand) {
+            FixnumOperand op = (FixnumOperand) opx;
+            return new AFixnum(op.get());
+        } else if (opx instanceof FlonumOperand) {
+            FlonumOperand op = (FlonumOperand) opx;
+            return new ANumber(op.get());
+        } else if (opx instanceof StringOperand) {
+            StringOperand op = (StringOperand) opx;
+            return new AString(op.get());
+        } else if (opx instanceof SpecialOperand) {
+            SpecialOperand op = (SpecialOperand) opx;
+            switch (op.get()) {
+            case TRUE:
+                return new ASpecial("true");
+            case FALSE:
+               return new ASpecial("false");
+            case NULL:
+                return new ASpecial("null");
+            case UNDEFINED:
+                return new ASpecial("undefined");
+            default:
+                throw new Error("Unknown special");
+            }
+        } else
+            throw new Error("Unknown src operand");
+    }
 }
 class ANone extends Argument {
     ANone() {
@@ -340,8 +371,8 @@ class ICBCAdd extends CBCode {
     }
     ICBCAdd(IAdd bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "add";
@@ -356,8 +387,8 @@ class ICBCSub extends CBCode {
     }
     ICBCSub(ISub bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "sub";
@@ -372,8 +403,8 @@ class ICBCMul extends CBCode {
     }
     ICBCMul(IMul bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "mul";
@@ -388,8 +419,8 @@ class ICBCDiv extends CBCode {
     }
     ICBCDiv(IDiv bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "div";
@@ -404,8 +435,8 @@ class ICBCMod extends CBCode {
     }
     ICBCMod(IMod bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "mod";
@@ -420,8 +451,8 @@ class ICBCBitor extends CBCode {
     }
     ICBCBitor(IBitor bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "bitor";
@@ -436,8 +467,8 @@ class ICBCBitand extends CBCode {
     }
     ICBCBitand(IBitand bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "bitand";
@@ -452,8 +483,8 @@ class ICBCLeftshift extends CBCode {
     }
     ICBCLeftshift(ILeftshift bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "leftshift";
@@ -468,8 +499,8 @@ class ICBCRightshift extends CBCode {
     }
     ICBCRightshift(IRightshift bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "rightshift";
@@ -484,8 +515,8 @@ class ICBCUnsignedrightshift extends CBCode {
     }
     ICBCUnsignedrightshift(IUnsignedrightshift bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "unsignedrightshift";
@@ -503,8 +534,8 @@ class ICBCEqual extends CBCode {
     }
     ICBCEqual(IEqual bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "equal";
@@ -519,8 +550,8 @@ class ICBCEq extends CBCode {
     }
     ICBCEq(IEq bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "eq";
@@ -535,8 +566,8 @@ class ICBCLessthan extends CBCode {
     }
     ICBCLessthan(ILessthan bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "lessthan";
@@ -551,8 +582,8 @@ class ICBCLessthanequal extends CBCode {
     }
     ICBCLessthanequal(ILessthanequal bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "lessthanequal";
@@ -569,7 +600,7 @@ class ICBCNot extends CBCode {
     }
     ICBCNot(INot bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src);
+        load1 = Argument.fromSrcOperand(bc.src);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -669,7 +700,7 @@ class ICBCIsundef extends CBCode {
     }
     ICBCIsundef(IIsundef bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src);
+        load1 = Argument.fromSrcOperand(bc.src);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -685,7 +716,7 @@ class ICBCIsobject extends CBCode {
     }
     ICBCIsobject(IIsobject bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src);
+        load1 = Argument.fromSrcOperand(bc.src);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -701,8 +732,8 @@ class ICBCInstanceof extends CBCode {
     }
     ICBCInstanceof(IInstanceof bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.src1);
-        load2 = new ARegister(bc.src2);
+        load1 = Argument.fromSrcOperand(bc.src1);
+        load2 = Argument.fromSrcOperand(bc.src2);
     }
     public String getInsnName() {
         return "instanceof";
@@ -717,7 +748,7 @@ class ICBCCall extends CBCode {
     }
     ICBCCall(ICall bc) {
         store = new ANone();
-        load1 = new ARegister(bc.callee);
+        load1 = Argument.fromSrcOperand(bc.function);
         load2 = new ALiteral(bc.numOfArgs);
     }
     public String getInsnName() {
@@ -733,7 +764,7 @@ class ICBCSend extends CBCode {
     }
     ICBCSend(ISend bc) {
         store = new ANone();
-        load1 = new ARegister(bc.callee);
+        load1 = Argument.fromSrcOperand(bc.function);
         load2 = new ALiteral(bc.numOfArgs);
     }
     public String getInsnName() {
@@ -749,7 +780,7 @@ class ICBCNew extends CBCode {
     }
     ICBCNew(INew bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.constructor);
+        load1 = Argument.fromSrcOperand(bc.constructor);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -765,7 +796,7 @@ class ICBCNewsend extends CBCode {
     }
     ICBCNewsend(INewsend bc) {
         store = new ANone();
-        load1 = new ARegister(bc.constructor);
+        load1 = Argument.fromSrcOperand(bc.constructor);
         load2 = new ALiteral(bc.numOfArgs);
     }
     public String getInsnName() {
@@ -781,7 +812,7 @@ class ICBCMakesimpleiterator extends CBCode {
     }
     ICBCMakesimpleiterator(IMakesimpleiterator bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.obj);
+        load1 = Argument.fromSrcOperand(bc.obj);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -797,7 +828,7 @@ class ICBCNextpropnameidx extends CBCode {
     }
     ICBCNextpropnameidx(INextpropnameidx bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.ite);
+        load1 = Argument.fromSrcOperand(bc.ite);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -813,7 +844,7 @@ class ICBCGetglobal extends CBCode {
     }
     ICBCGetglobal(IGetglobal bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.lit);
+        load1 = Argument.fromSrcOperand(bc.name);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -829,8 +860,8 @@ class ICBCSetglobal extends CBCode {
     }
     ICBCSetglobal(ISetglobal bc) {
         store = new ANone();
-        load1 = new ARegister(bc.lit);
-        load2 = new ARegister(bc.src);
+        load1 = Argument.fromSrcOperand(bc.name);
+        load2 = Argument.fromSrcOperand(bc.src);
     }
     public String getInsnName() {
         return "setglobal";
@@ -862,7 +893,7 @@ class ICBCSetlocal extends CBCode {
     ICBCSetlocal(ISetlocal bc) {
         store = new ALiteral(bc.depth);
         load1 = new ALiteral(bc.n);
-        load2 = new ARegister(bc.src);
+        load2 = Argument.fromSrcOperand(bc.src);
     }
     public Register getDestRegister() {
         return null;
@@ -904,7 +935,7 @@ class ICBCSetarg extends CBCode {
     ICBCSetarg(ISetarg bc) {
         store = new ALiteral(bc.depth);
         load1 = new ALiteral(bc.n);
-        load2 = new ARegister(bc.src);
+        load2 = Argument.fromSrcOperand(bc.src);
     }
     public Register getDestRegister() {
         return null;
@@ -929,8 +960,8 @@ class ICBCGetprop extends CBCode {
     }
     ICBCGetprop(IGetprop bc) {
         store = new ARegister(bc.dst);
-        load1 = new ARegister(bc.obj);
-        load2 = new ARegister(bc.prop);
+        load1 = Argument.fromSrcOperand(bc.obj);
+        load2 = Argument.fromSrcOperand(bc.prop);
     }
     public String getInsnName() {
         return "getprop";
@@ -944,9 +975,9 @@ class ICBCSetprop extends CBCode {
         super(store, load1, load2);
     }
     ICBCSetprop(ISetprop bc) {
-        store = new ARegister(bc.obj);
-        load1 = new ARegister(bc.prop);
-        load2 = new ARegister(bc.src);
+        store = Argument.fromSrcOperand(bc.obj);
+        load1 = Argument.fromSrcOperand(bc.prop);
+        load2 = Argument.fromSrcOperand(bc.src);
     }
     public Register getDestRegister() {
         return null;
@@ -987,7 +1018,7 @@ class ICBCSeta extends CBCode {
     }
     ICBCSeta(ISeta bc) {
         store = new ANone();
-        load1 = new ARegister(bc.src);
+        load1 = Argument.fromSrcOperand(bc.src);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -1036,7 +1067,7 @@ class ICBCJumptrue extends CBCode {
     CBCLabel label;
     ICBCJumptrue(IJumptrue bc) {
         store = new ANone();
-        load1 = new ARegister(bc.test);
+        load1 = Argument.fromSrcOperand(bc.test);
         load2 = new ALiteral(0);
         label = new CBCLabel();
     }
@@ -1061,7 +1092,7 @@ class ICBCJumpfalse extends CBCode {
     CBCLabel label;
     ICBCJumpfalse(IJumpfalse bc) {
         store = new ANone();
-        load1 = new ARegister(bc.test);
+        load1 = Argument.fromSrcOperand(bc.test);
         load2 = new ALiteral(0);
         label = new CBCLabel();
     }
@@ -1087,7 +1118,7 @@ class ICBCThrow extends CBCode {
     }
     ICBCThrow(IThrow bc) {
         store = new ANone();
-        load1 = new ARegister(bc.reg);
+        load1 = Argument.fromSrcOperand(bc.reg);
         load2 = new ANone();
     }
     @Override
@@ -1312,9 +1343,22 @@ class MCBCCall extends CBCode {
         store = new ANone();
         load1 = new ANone();
         load2 = new ANone();
-        this.receiver = bc.receiver;
-        this.function = bc.function;
-        this.args = bc.args;
+        if (bc.receiver != null) {
+            if (bc.receiver instanceof RegisterOperand)
+                this.receiver = ((RegisterOperand) bc.receiver).get();
+            else
+                throw new Error("internal error");
+        }
+        if (bc.function instanceof RegisterOperand)
+            this.function = ((RegisterOperand) bc.function).get();
+        else
+            throw new Error("internal error");
+        this.args = new Register[bc.args.length];
+        for (int i = 0; i < bc.args.length; i++) {
+            SrcOperand opx = bc.args[i];
+            if (opx instanceof RegisterOperand)
+                this.args[i] = ((RegisterOperand) opx).get();
+        }
         this.isNew = bc.isNew;
         this.isTail = bc.isTail;
     }

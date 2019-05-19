@@ -74,9 +74,11 @@ public class BCode {
         HashSet<Register> srcs = new HashSet<Register>();
         Class<? extends BCode> c = getClass();
         for (Field f: c.getDeclaredFields()) {
-            if (f.getType() == Register.class) {
+            if (f.getType() == SrcOperand.class) {
                 try {
-                    srcs.add((Register) f.get(this));
+                    SrcOperand opx = (SrcOperand) f.get(this);
+                    if (opx instanceof RegisterOperand)
+                        srcs.add(((RegisterOperand) opx).get());
                 } catch (Exception e) {
                     throw new Error(e);
                 }
@@ -101,13 +103,28 @@ public class BCode {
     String toString(String opcode, Register op1) {
         return opcode + logStr() + " " + op1;
     }
-    String toString(String opcode, Register op1, Register op2) {
+    String toString(String opcode, SrcOperand op1) {
+        return opcode + logStr() + " " + op1;
+    }
+    String toString(String opcode, Register op1, SrcOperand op2) {
         return opcode + logStr() + " " + op1 + " " + op2;
     }
-    String toString(String opcode, Register op1, Register op2, Register op3) {
+    String toString(String opcode, SrcOperand op1, Register op2) {
+        return opcode + logStr() + " " + op1 + " " + op2;
+    }
+    String toString(String opcode, Register op1, SrcOperand op2, SrcOperand op3) {
         return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
+    String toString(String opcode, SrcOperand op1, SrcOperand op2, SrcOperand op3) {
+        return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
+    }
+    String toString(String opcode, SrcOperand src1, SrcOperand src2) {
+        return opcode + logStr() + " " + src1 + " " + src2;
+    }
     String toString(String opcode, Register op1, String op2) {
+        return opcode + logStr() + " " + op1 + " " + op2;
+    }
+    String toString(String opcode, SrcOperand op1, int op2) {
         return opcode + logStr() + " " + op1 + " " + op2;
     }
     String toString(String opcode, Register op1, int op2) {
@@ -119,10 +136,10 @@ public class BCode {
     String toString(String opcode, Register op1, int op2, int op3) {
         return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
-    String toString(String opcode, Register op1, int op2, Register op3) {
+    String toString(String opcode, SrcOperand op1, int op2, SrcOperand op3) {
         return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
-    String toString(String opcode, int op1, int op2, Register op3) {
+    String toString(String opcode, int op1, int op2, SrcOperand op3) {
         return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
     }
     String toString(String opcode, int op1) {
@@ -150,29 +167,87 @@ public class BCode {
     String toByteString(String opcode, Register op1) {
         return cm.makecode(opcode, op1.n);
     }
-    String toByteString(String opcode, Register op1, Register op2) {
-        return cm.makecode(opcode, op1.n, op2.n);
+    String toByteString(String opcode, SrcOperand src) {
+        if (src instanceof RegisterOperand) {
+            int rs = ((RegisterOperand) src).x.getRegisterNumber();
+            return cm.makecode(opcode, rs);
+        } else
+            throw new Error("not implemented");
     }
-    String toByteString(String opcode, Register op1, Register op2, Register op3) {
-        return cm.makecode(opcode, op1.n, op2.n, op3.n);
+    String toByteString(String opcode, Register dst, SrcOperand src) {
+        if (src instanceof RegisterOperand) {
+            int rd = dst.getRegisterNumber();
+            int rs = ((RegisterOperand) src).x.getRegisterNumber();
+            return cm.makecode(opcode, rd, rs);
+        } else
+            throw new Error("not implemented");
+    }
+    String toByteString(String opcode, SrcOperand src, Register dst) {
+        if (src instanceof RegisterOperand) {
+            int rs = ((RegisterOperand) src).x.getRegisterNumber();
+            int rd = dst.getRegisterNumber();
+            return cm.makecode(opcode, rs, rd);
+        } else
+            throw new Error("not implemented");
+    }
+    String toByteString(String opcode, SrcOperand src1, SrcOperand src2) {
+        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
+            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
+            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
+            return cm.makecode(opcode, rs1, rs2);
+        } else
+            throw new Error("not implemented");
+    }
+    String toByteString(String opcode, Register dst, SrcOperand src1, SrcOperand src2) {
+        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
+            int rd = dst.getRegisterNumber();
+            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
+            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
+            return cm.makecode(opcode, rd, rs1, rs2);
+        } else
+            throw new Error("not implemented");
+    }
+    String toByteString(String opcode, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
+        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand && src3 instanceof RegisterOperand) {
+            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
+            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
+            int rs3 = ((RegisterOperand) src3).x.getRegisterNumber();
+            return cm.makecode(opcode, rs1, rs2, rs3);
+        } else
+            throw new Error("not implemented");
     }
     String toByteString(String opcode, Register op1, String op2) {
         return cm.makecode(opcode, op1.n, op2);
     }
-    String toByteString(String opcode, Register op1, int op2) {
-        return cm.makecode(opcode, op1.n, op2);
+    String toByteString(String opcode, SrcOperand src, int op2) {
+        if (src instanceof RegisterOperand) {
+            int rs = ((RegisterOperand) src).x.getRegisterNumber();
+            return cm.makecode(opcode, rs, op2);
+        } throw new Error("not implemented");
     }
     String toByteString(String opcode, Register op1, double op2) {
+        return cm.makecode(opcode, op1.n, op2) ;
+    }
+    String toByteString(String opcode, Register op1, int op2) {
         return cm.makecode(opcode, op1.n, op2) ;
     }
     String toByteString(String opcode, Register op1, int op2, int op3) {
         return cm.makecode(opcode, op1.n, op2, op3);
     }
-    String toByteString(String opcode, Register op1, int op2, Register op3) {
-        return cm.makecode(opcode, op1.n, op2, op3.n);
+    String toByteString(String opcode, SrcOperand src1, int op2, SrcOperand src2) {
+        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
+            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
+            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
+            return cm.makecode(opcode, rs1, op2, rs2);
+        } else
+            throw new Error("not implemented");
     }
-    String toByteString(String opcode, int op1, int op2, Register op3) {
-        return cm.makecode(opcode, op1, op2, op3.n);
+    String toByteString(String opcode, int op1, int op2, SrcOperand src) {
+        if (src instanceof RegisterOperand) {
+            int rs = ((RegisterOperand) src).x.getRegisterNumber();
+            return cm.makecode(opcode, op1, op2, rs);
+        } else
+            throw new Error("not implemented");
     }
     String toByteString(String opcode, int op1) {
         return cm.makecode(opcode, op1);
@@ -383,8 +458,6 @@ public class BCode {
     }
 }
 
-
-
 class Register {
     int n;
     Register(int n) {
@@ -397,6 +470,7 @@ class Register {
         return Integer.toString(n);
     }
 }
+
 class Label {
     private BCode bcode;
     Label() {}
@@ -417,6 +491,64 @@ class Label {
     }
 }
 
+/*
+ * Normal src operand of an instruction.
+ */
+class SrcOperand {}
+
+class RegisterOperand extends SrcOperand {
+    Register x;
+    RegisterOperand(Register x) {
+        if (x == null)
+            throw new Error("x == null");
+        this.x = x;
+    }
+    Register get() {
+        return x;
+    }
+    void set(Register x) {
+        this.x = x;
+    }
+    @Override
+    public String toString() {
+        return x.toString();
+    }
+}
+
+class FixnumOperand extends SrcOperand {
+    int x;
+    int get() {
+        return x;
+    }
+}
+
+class FlonumOperand extends SrcOperand {
+    double x;
+    double get() {
+        return x;
+    }
+}
+
+class StringOperand extends SrcOperand {
+    String x;
+    String get() {
+        return x;
+    }
+}
+
+class SpecialOperand extends SrcOperand {
+    enum V {
+        TRUE,
+        FALSE,
+        NULL,
+        UNDEFINED
+    }
+    V x;
+    V get() {
+        return x;
+    }
+}
+
 class ISuperInstruction extends BCode {
     String name, store, load1, load2;
     ISuperInstruction(String name, String store, String load1, String load2) {
@@ -432,6 +564,8 @@ class ISuperInstruction extends BCode {
         return super.toByteString(name, store, load1, load2);
     }
 }
+
+/* constant */
 class IFixnum extends BCode {
     int n;
     IFixnum(Register dst, int n) {
@@ -525,12 +659,14 @@ class IRegexp extends BCode {
         return super.toByteString("regexp", dst, idx, "\"" + ptn + "\"");
     }
 }
+
+/* three op */
 class IAdd extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("add", dst, src1, src2);
@@ -540,11 +676,11 @@ class IAdd extends BCode {
     }
 }
 class ISub extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     ISub(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("sub", dst, src1, src2);
@@ -554,11 +690,11 @@ class ISub extends BCode {
     }
 }
 class IMul extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IMul(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("mul", dst, src1, src2);
@@ -568,11 +704,11 @@ class IMul extends BCode {
     }
 }
 class IDiv extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IDiv(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("div", dst, src1, src2);
@@ -582,11 +718,11 @@ class IDiv extends BCode {
     }
 }
 class IMod extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IMod(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("mod", dst, src1, src2);
@@ -596,11 +732,11 @@ class IMod extends BCode {
     }
 }
 class IBitor extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IBitor(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("bitor", dst, src1, src2);
@@ -610,11 +746,11 @@ class IBitor extends BCode {
     }
 }
 class IBitand extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IBitand(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("bitand", dst, src1, src2);
@@ -624,11 +760,11 @@ class IBitand extends BCode {
     }
 }
 class ILeftshift extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("leftshift", dst, src1, src2);
@@ -638,11 +774,11 @@ class ILeftshift extends BCode {
     }
 }
 class IRightshift extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IRightshift(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("rightshift", dst, src1, src2);
@@ -652,11 +788,11 @@ class IRightshift extends BCode {
     }
 }
 class IUnsignedrightshift extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IUnsignedrightshift(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("unsignedrightshift", dst, src1, src2);
@@ -668,11 +804,11 @@ class IUnsignedrightshift extends BCode {
 
 // relation
 class IEqual extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IEqual(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("equal", dst, src1, src2);
@@ -682,11 +818,11 @@ class IEqual extends BCode {
     }
 }
 class IEq extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IEq(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("eq", dst, src1, src2);
@@ -696,11 +832,11 @@ class IEq extends BCode {
     }
 }
 class ILessthan extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     ILessthan(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("lessthan", dst, src1, src2);
@@ -710,11 +846,11 @@ class ILessthan extends BCode {
     }
 }
 class ILessthanequal extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     ILessthanequal(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("lessthanequal", dst, src1, src2);
@@ -723,11 +859,13 @@ class ILessthanequal extends BCode {
         return super.toByteString("lessthanequal", dst, src1, src2);
     }
 }
+
+/* two op */
 class INot extends BCode {
-    Register src;
+    SrcOperand src;
     INot(Register dst, Register src) {
         super(dst);
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("not", dst, src);
@@ -736,9 +874,6 @@ class INot extends BCode {
         return super.toByteString("not", dst, src);
     }
 }
-
-
-
 
 class IGetglobalobj extends BCode {
     IGetglobalobj(Register dst) {
@@ -774,32 +909,36 @@ class INewframe extends BCode {
         return super.toByteString("newframe", len, status);
     }
 }
+
+/* global */
 class IGetglobal extends BCode {
-    Register lit;
-    IGetglobal(Register dst, Register lit) {
+    SrcOperand name;
+    IGetglobal(Register dst, Register name) {
         super(dst);
-        this.lit = lit;
+        this.name = new RegisterOperand(name);
     }
     public String toString() {
-        return super.toString("getglobal", dst, lit);
+        return super.toString("getglobal", dst, name);
     }
     public String toByteString() {
-        return super.toByteString("getglobal", dst, lit);
+        return super.toByteString("getglobal", dst, name);
     }
 }
 class ISetglobal extends BCode {
-    Register lit, src;
-    ISetglobal(Register lit, Register src) {
-        this.lit = lit;
-        this.src = src;
+    SrcOperand name, src;
+    ISetglobal(Register name, Register src) {
+        this.name = new RegisterOperand(name);
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
-        return super.toString("setglobal", lit, src);
+        return super.toString("setglobal", name, src);
     }
     public String toByteString() {
-        return super.toByteString("setglobal", lit, src);
+        return super.toByteString("setglobal", name, src);
     }
 }
+
+/* local */
 class IGetlocal extends BCode {
     int depth, n;
     IGetlocal(Register dst, int depth, int n) {
@@ -816,11 +955,11 @@ class IGetlocal extends BCode {
 }
 class ISetlocal extends BCode {
     int depth, n;
-    Register src;
+    SrcOperand src;
     ISetlocal(int depth, int n, Register src) {
         this.depth = depth;
         this.n = n;
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("setlocal", depth, n, src);
@@ -845,11 +984,11 @@ class IGetarg extends BCode {
 }
 class ISetarg extends BCode {
     int depth, n;
-    Register src;
+    SrcOperand src;
     ISetarg(int depth, int n, Register src) {
         this.depth = depth;
         this.n = n;
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("setarg", depth, n, src);
@@ -858,12 +997,14 @@ class ISetarg extends BCode {
         return super.toByteString("setarg", depth, n, src);
     }
 }
+
+/* property */
 class IGetprop extends BCode {
-    Register obj, prop;
+    SrcOperand obj, prop;
     IGetprop(Register dst, Register obj, Register prop) {
         super(dst);
-        this.obj = obj;
-        this.prop = prop;
+        this.obj = new RegisterOperand(obj);
+        this.prop = new RegisterOperand(prop);
     }
     public String toString() {
         return super.toString("getprop", dst, obj, prop);
@@ -873,11 +1014,11 @@ class IGetprop extends BCode {
     }
 }
 class ISetprop extends BCode {
-    Register obj, prop, src;
+    SrcOperand obj, prop, src;
     ISetprop(Register obj, Register prop, Register src) {
-        this.obj = obj;
-        this.prop = prop;
-        this.src = src;
+        this.obj = new RegisterOperand(obj);
+        this.prop = new RegisterOperand(prop);
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
@@ -887,13 +1028,13 @@ class ISetprop extends BCode {
     }
 }
 class ISetarray extends BCode {
-    Register ary;
+    SrcOperand ary;
     int n;
-    Register src;
+    SrcOperand src;
     ISetarray(Register ary, int n, Register src) {
-        this.ary = ary;
+        this.ary = new RegisterOperand(ary);
         this.n = n;
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("setarray", ary, n, src);
@@ -931,9 +1072,9 @@ class IGeta extends BCode {
     }
 }
 class ISeta extends BCode {
-    Register src;
+    SrcOperand src;
     ISeta(Register src) {
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("seta", src);
@@ -959,10 +1100,10 @@ class IRet extends BCode {
 }
 
 class IMove extends BCode {
-    Register src;
+    SrcOperand src;
     IMove(Register dst, Register src) {
         super(dst);
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("move", dst, src);
@@ -973,10 +1114,10 @@ class IMove extends BCode {
 }
 
 class IIsundef extends BCode {
-    Register src;
+    SrcOperand src;
     IIsundef(Register dst, Register src) {
         super(dst);
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("isundef", dst, src);
@@ -986,10 +1127,10 @@ class IIsundef extends BCode {
     }
 }
 class IIsobject extends BCode {
-    Register src;
+    SrcOperand src;
     IIsobject(Register dst, Register src) {
         super(dst);
-        this.src = src;
+        this.src = new RegisterOperand(src);
     }
     public String toString() {
         return super.toString("isobject", dst, src);
@@ -999,11 +1140,11 @@ class IIsobject extends BCode {
     }
 }
 class IInstanceof extends BCode {
-    Register src1, src2;
+    SrcOperand src1, src2;
     IInstanceof(Register dst, Register src1, Register src2) {
         super(dst);
-        this.src1 = src1;
-        this.src2 = src2;
+        this.src1 = new RegisterOperand(src1);
+        this.src2 = new RegisterOperand(src2);
     }
     public String toString() {
         return super.toString("instanceof", dst, src1, src2);
@@ -1015,38 +1156,38 @@ class IInstanceof extends BCode {
 
 
 class ICall extends BCode {
-    Register callee;
+    SrcOperand function;
     int numOfArgs;
-    ICall(Register callee, int numOfArgs) {
-        this.callee = callee;
+    ICall(Register function, int numOfArgs) {
+        this.function = new RegisterOperand(function);
         this.numOfArgs = numOfArgs;
     }
     public String toString() {
-        return super.toString("call", callee, numOfArgs);
+        return super.toString("call", function, numOfArgs);
     }
     public String toByteString() {
-        return super.toByteString("call", callee, numOfArgs);
+        return super.toByteString("call", function, numOfArgs);
     }
 }
 class ISend extends BCode {
-    Register callee;
+    SrcOperand function;
     int numOfArgs;
-    ISend(Register callee, int numOfArgs) {
-        this.callee = callee;
+    ISend(Register function, int numOfArgs) {
+        this.function = new RegisterOperand(function);
         this.numOfArgs = numOfArgs;
     }
     public String toString() {
-        return super.toString("send", callee, numOfArgs);
+        return super.toString("send", function, numOfArgs);
     }
     public String toByteString() {
-        return super.toByteString("send", callee, numOfArgs);
+        return super.toByteString("send", function, numOfArgs);
     }
 }
 class INew extends BCode {
-    Register constructor;
+    SrcOperand constructor;
     INew(Register dst, Register constructor) {
         super(dst);
-        this.constructor = constructor;
+        this.constructor = new RegisterOperand(constructor);
     }
     public String toString() {
         return super.toString("new", dst, constructor);
@@ -1056,10 +1197,10 @@ class INew extends BCode {
     }
 }
 class INewsend extends BCode {
-    Register constructor;
+    SrcOperand constructor;
     int numOfArgs;
     INewsend(Register constructor, int numOfArgs) {
-        this.constructor = constructor;
+        this.constructor = new RegisterOperand(constructor);
         this.numOfArgs = numOfArgs;
     }
     public String toString() {
@@ -1070,10 +1211,10 @@ class INewsend extends BCode {
     }
 }
 class IMakesimpleiterator extends BCode {
-    Register obj;
+    SrcOperand obj;
     IMakesimpleiterator(Register obj, Register dst) {
         super(dst);
-        this.obj = obj;
+        this.obj = new RegisterOperand(obj);
     }
     public String toString() {
         return super.toString("makesimpleiterator", obj, dst);
@@ -1083,10 +1224,10 @@ class IMakesimpleiterator extends BCode {
     }
 }
 class INextpropnameidx extends BCode {
-    Register ite;
+    SrcOperand ite;
     INextpropnameidx(Register ite, Register dst) {
         super(dst);
-        this.ite = ite;
+        this.ite = new RegisterOperand(ite);
     }
     public String toString() {
         return super.toString("nextpropnameidx", ite, dst);
@@ -1117,11 +1258,11 @@ class IJump extends BCode {
     }
 }
 class IJumptrue extends BCode {
-    Register test;
+    SrcOperand test;
     Label label;
     IJumptrue(Label label, Register test) {
         this.label = label;
-        this.test = test;
+        this.test = new RegisterOperand(test);
     }
     @Override
     public BCode getBranchTarget() {
@@ -1135,11 +1276,11 @@ class IJumptrue extends BCode {
     }
 }
 class IJumpfalse extends BCode {
-    Register test;
+    SrcOperand test;
     Label label;
     IJumpfalse(Label label, Register test) {
         this.label = label;
-        this.test = test;
+        this.test = new RegisterOperand(test);
     }
     @Override
     public BCode getBranchTarget() {
@@ -1155,9 +1296,9 @@ class IJumpfalse extends BCode {
 
 
 class IThrow extends BCode {
-    Register reg;
+    SrcOperand reg;
     IThrow(Register reg) {
-        this.reg = reg;
+        this.reg = new RegisterOperand(reg);
     }
     @Override
     public boolean isFallThroughInstruction()  {
@@ -1334,26 +1475,31 @@ class MSetfl extends BCode {
 }
 
 class MCall extends BCode {
-    Register receiver;
-    Register function;
-    Register[] args;
+    SrcOperand receiver;
+    SrcOperand function;
+    SrcOperand[] args;
     boolean isNew;
     boolean isTail;
     MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-        this.receiver = receiver;
-        this.function = function;
-        this.args = args;
+        this.receiver = receiver == null ? null : new RegisterOperand(receiver);
+        this.function = new RegisterOperand(function);
+        this.args = new SrcOperand[args.length];
+        for (int i = 0; i < args.length; i++)
+            this.args[i] = new RegisterOperand(args[i]);
         this.isNew = isNew;
         this.isTail = isTail;
     }
     @Override
     public HashSet<Register> getSrcRegisters() {
         HashSet<Register> srcs = new HashSet<Register>();
-        if (receiver != null)
-            srcs.add(receiver);
-        srcs.add(function);
-        for (Register r: args)
-            srcs.add(r);
+        if (receiver != null && receiver instanceof RegisterOperand)
+            srcs.add(((RegisterOperand) receiver).get());
+        if (function instanceof RegisterOperand)
+            srcs.add(((RegisterOperand) function).get());
+        for (SrcOperand opx: args) {
+            if (opx instanceof RegisterOperand)
+                srcs.add(((RegisterOperand) opx).get());
+        }
         return srcs;
     }
     @Override
@@ -1368,8 +1514,8 @@ class MCall extends BCode {
             s += "call " + function;
         else
             s += "send " + receiver + " " + function;
-        for (Register r: args)
-            s += " " + r;
+        for (SrcOperand opx: args)
+            s += " " + opx;
         return s;
     }
 }

@@ -28,53 +28,6 @@ class CBCBuilder {
         
         List<CBCode> bcodes = new LinkedList<CBCode>();
 
-        void expandMacro(Main.Info info) {
-            int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
-            int totalNumberOfRegisters = numberOfGPRegisters + numberOfOutRegisters;
-            
-            Register[] argRegs = new Register[numberOfArgumentRegisters + 1];
-            for (int i = 0; i < numberOfArgumentRegisters + 1; i++)
-                argRegs[i] = new Register(numberOfGPRegisters + NUMBER_OF_LINK_REGISTERS + i + 1); /* + 1 because of 1-origin */
-            
-            for (int number = 0; number < bcodes.size(); ) {
-                CBCode bcode = bcodes.get(number);
-                if (bcode instanceof MCBCSetfl) {
-                    MCBCSetfl msetfl = (MCBCSetfl) bcode;
-                    ISetfl isetfl = new ISetfl(totalNumberOfRegisters);
-                    bcodes.set(number, new ICBCSetfl(isetfl));
-                    bcodes.get(number).addLabels(msetfl.getLabels());
-                    continue;
-                } else if (bcode instanceof MCBCCall) {
-                    MCBCCall mcall = (MCBCCall) bcode;
-                    int pc = number;
-                    int nUseArgReg = mcall.args.length + 1;
-                    int thisRegOffset = numberOfArgumentRegisters + 1 - nUseArgReg; /* + 1 because of 1-origin */
-                    bcodes.remove(number);
-                    if (mcall.receiver != null) {
-                        IMove bc = new IMove(argRegs[thisRegOffset], mcall.receiver);
-                        bcodes.add(pc++, new ICBCNop(new ARegister(bc.dst), new ARegister(bc.src)));
-                    }
-                    for (int i = 0; i < mcall.args.length; i++) {
-                        IMove bc = new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]);
-                        bcodes.add(pc++, new ICBCNop(new ARegister(bc.dst), new ARegister(bc.src)));
-                    }
-                    if (mcall.isNew)
-                        bcodes.add(pc++, new ICBCNewsend(new INewsend(mcall.function, mcall.args.length)));
-                    else if (mcall.receiver == null)
-                        bcodes.add(pc++, new ICBCCall(new ICall(mcall.function, mcall.args.length)));
-                    else
-                        bcodes.add(pc++, new ICBCSend(new ISend(mcall.function, mcall.args.length)));
-                    bcodes.get(number).addLabels(mcall.getLabels());
-                    continue;
-                } else if (bcode instanceof MCBCParameter) {
-                    bcodes.remove(number);
-                    bcodes.get(number).addLabels(bcode.getLabels());
-                    continue;
-                }
-                number++;
-            }
-        }
-
         void setJumpDist() {
             // set jump dist
             for (CBCode bcode : bcodes) {
@@ -224,11 +177,6 @@ class CBCBuilder {
 
     FunctionCBCBuilder getFunctionCBCBuilder(int index) {
         return fBuilders.get(index);
-    }
-
-    void expandMacro(Main.Info info) {
-        for (FunctionCBCBuilder f: fBuilders)
-            f.expandMacro(info);
     }
 
     void setJumpDist() {

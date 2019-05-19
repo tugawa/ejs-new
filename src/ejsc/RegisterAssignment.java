@@ -114,22 +114,25 @@ public class RegisterAssignment {
             /* coalesce */
             if (bcx instanceof IMove){
                 IMove bc = (IMove) bcx;
-                Register dst = bc.dst;
-                if (assign.get(dst) == null) {
-                    RealRegister rsrc = assign.get(bc.src);
-                    if (rsrc != null) {
-                        if (!checkConflict(bc, dst, rsrc)) {
-                            assign.put(dst, rsrc);
+                if (bc.src instanceof RegisterOperand) {
+                    Register src = ((RegisterOperand) bc.src).get();
+                    Register dst = bc.dst;
+                    if (assign.get(dst) == null) {
+                        RealRegister rsrc = assign.get(src);
+                        if (rsrc != null) {
+                            if (!checkConflict(bc, dst, rsrc)) {
+                                assign.put(dst, rsrc);
+                                continue;
+                            }
+                        } else {
+                            int n = 1;
+                            for (; n < used.length; n++)
+                                if (!used[n] && !checkConflict(bc, dst, rf.get(n)) && !checkConflict(bc, src, rf.get(n)))
+                                    break;
+                            assign.put(dst, rf.get(n));
+                            assign.put(src, rf.get(n));
                             continue;
                         }
-                    } else {
-                        int n = 1;
-                        for (; n < used.length; n++)
-                            if (!used[n] && !checkConflict(bc, dst, rf.get(n)) && !checkConflict(bc, bc.src, rf.get(n)))
-                                break;
-                        assign.put(dst, rf.get(n));
-                        assign.put(bc.src, rf.get(n));
-                        continue;
                     }
                 }
             }
@@ -146,25 +149,29 @@ public class RegisterAssignment {
         }
     }
     
-    private void replaceRegisterField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
-        Register r = (Register) f.get(bc);
-        if (r != null) {
+    private void replaceSrcOperandField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
+        SrcOperand opx = (SrcOperand) f.get(bc);
+        if (opx != null && opx instanceof RegisterOperand) {
+            RegisterOperand op = (RegisterOperand) opx;
+            Register r = op.get();
             RealRegister rr = assign.get(r);
             if (rr == null)
                 throw new Error("internal error");
-            f.set(bc, rr);
+            op.set(rr);
         }
     }
     
-    private void replaceRegisterArrayField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
-        Register[] rs = (Register[]) f.get(bc);
-        for (int i = 0; i < rs.length; i++) {
-            Register r = rs[i];
-            if (r != null) {
+    private void replaceSrcOperandArrayField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
+        SrcOperand[] ops = (SrcOperand[]) f.get(bc);
+        for (int i = 0; i < ops.length; i++) {
+            SrcOperand opx = ops[i];
+            if (opx != null && opx instanceof RegisterOperand) {
+                RegisterOperand op = (RegisterOperand) opx;
+                Register r = op.get();
                 RealRegister rr = assign.get(r);
                 if (rr == null)
                     throw new Error("internal error");
-                rs[i] = rr;
+                op.set(rr);
             }
         }
     }
@@ -188,19 +195,22 @@ public class RegisterAssignment {
             try {
                 Class<? extends BCode> c = bcx.getClass();
                 for (Field f: c.getDeclaredFields()) {
-                    if (f.getType() == Register.class)
-                        replaceRegisterField(bcx, f);
-                    else if (f.getType() == Register[].class)
-                        replaceRegisterArrayField(bcx, f);
+                    if (f.getType() == SrcOperand.class)
+                        replaceSrcOperandField(bcx, f);
+                    else if (f.getType() == SrcOperand[].class)
+                        replaceSrcOperandArrayField(bcx, f);
                 }
                 replaceDstRegister(bcx);
                 
                 if (removeMove) {
                     if (bcx instanceof IMove) {
                         IMove bc = (IMove) bcx;
-                        if (bc.src == bc.dst) {
-                            labels.addAll(bc.getLabels());
-                            continue;
+                        if (bc.src instanceof RegisterOperand) {
+                            Register src = ((RegisterOperand) bc.src).get();
+                            if (src == bc.dst) {
+                                labels.addAll(bc.getLabels());
+                                continue;
+                            }
                         }
                     }
                 }

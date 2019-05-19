@@ -76,16 +76,31 @@ class BCBuilder {
                     int nUseArgReg = mcall.args.length + 1;
                     int thisRegOffset = numberOfArgumentRegisters + 1 - nUseArgReg; /* + 1 because of 1-origin */
                     bcodes.remove(number);
-                    if (mcall.receiver != null)
-                        bcodes.add(pc++, new IMove(argRegs[thisRegOffset], mcall.receiver));
-                    for (int i = 0; i < mcall.args.length; i++)
-                        bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], mcall.args[i]));
-                    if (mcall.isNew)
-                        bcodes.add(pc++, new INewsend(mcall.function, mcall.args.length));
-                    else if (mcall.receiver == null)
-                        bcodes.add(pc++, new ICall(mcall.function, mcall.args.length));
-                    else
-                        bcodes.add(pc++, new ISend(mcall.function, mcall.args.length));
+                    // TODO: check superinstruction spec
+                    if (mcall.receiver != null) {
+                        if (mcall.receiver instanceof RegisterOperand) {
+                            RegisterOperand receiver = (RegisterOperand) mcall.receiver;
+                            bcodes.add(pc++, new IMove(argRegs[thisRegOffset], receiver.get()));
+                        } else
+                            throw new Error("not implemented");
+                    }
+                    for (int i = 0; i < mcall.args.length; i++) {
+                        if (mcall.args[i] instanceof RegisterOperand) {
+                            RegisterOperand arg = (RegisterOperand) mcall.args[i];
+                            bcodes.add(pc++, new IMove(argRegs[thisRegOffset + 1 + i], arg.get()));
+                        } else
+                            throw new Error("not implemented");
+                    }
+                    if (mcall.function instanceof RegisterOperand) {
+                        RegisterOperand function = (RegisterOperand) mcall.function;
+                        if (mcall.isNew)
+                            bcodes.add(pc++, new INewsend(function.get(), mcall.args.length));
+                        else if (mcall.receiver == null)
+                            bcodes.add(pc++, new ICall(function.get(), mcall.args.length));
+                        else
+                            bcodes.add(pc++, new ISend(function.get(), mcall.args.length));
+                    } else
+                        throw new Error("not implemented");
                     bcodes.get(number).addLabels(mcall.getLabels());
                     continue;
                 } else if (bcode instanceof MParameter) {
@@ -637,7 +652,11 @@ class BCBuilder {
         }
         if (bc instanceof IMove) {
             IMove b = (IMove) bc;
-            return new ICBCNop(new ARegister(b.dst), new ARegister(b.src));
+            if (b.src instanceof RegisterOperand) {
+                Register rs = ((RegisterOperand) b.src).x;
+                return new ICBCNop(new ARegister(b.dst), new ARegister(rs));
+            } else
+                throw new Error("not implemented");
         }
 
         // unsupport instruction
