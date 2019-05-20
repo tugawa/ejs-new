@@ -69,7 +69,7 @@ public class SuperInstruction {
         }
         if (store == null || load1 == null || load2 == null)
             return null;
-        return new ICBCSuperInstruction(bc.store, load1, load2, spec.siName);
+        return new ICBCSuperInstruction(bc.store, load1, load2, spec.siName, bc.originalInsn);
     }
 
     boolean isTypeInstance(String type, Argument load) {

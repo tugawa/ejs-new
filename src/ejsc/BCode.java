@@ -578,6 +578,9 @@ class RegisterOperand extends SrcOperand {
 
 class FixnumOperand extends SrcOperand {
     int x;
+    FixnumOperand(int x) {
+        this.x = x;
+    }
     int get() {
         return x;
     }
@@ -585,6 +588,9 @@ class FixnumOperand extends SrcOperand {
 
 class FlonumOperand extends SrcOperand {
     double x;
+    FlonumOperand(double x) {
+        this.x = x;
+    }
     double get() {
         return x;
     }
@@ -592,6 +598,9 @@ class FlonumOperand extends SrcOperand {
 
 class StringOperand extends SrcOperand {
     String x;
+    StringOperand(String x) {
+        this.x = x;
+    }
     String get() {
         return x;
     }
@@ -605,6 +614,9 @@ class SpecialOperand extends SrcOperand {
         UNDEFINED
     }
     V x;
+    SpecialOperand(V x) {
+        this.x = x;
+    }
     V get() {
         return x;
     }
@@ -767,9 +779,12 @@ class IRegexp extends BCode {
 class IAdd extends BCode {
     SrcOperand src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IAdd(Register dst, SrcOperand src1, SrcOperand src2) {
         super("add", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -786,9 +801,12 @@ class IAdd extends BCode {
 class ISub extends BCode {
     SrcOperand src1, src2;
     ISub(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    ISub(Register dst, SrcOperand src1, SrcOperand src2) {
         super("sub", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -805,9 +823,12 @@ class ISub extends BCode {
 class IMul extends BCode {
     SrcOperand src1, src2;
     IMul(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IMul(Register dst, SrcOperand src1, SrcOperand src2) {
         super("mul", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -824,9 +845,12 @@ class IMul extends BCode {
 class IDiv extends BCode {
     SrcOperand src1, src2;
     IDiv(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IDiv(Register dst, SrcOperand src1, SrcOperand src2) {
         super("div", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -843,9 +867,12 @@ class IDiv extends BCode {
 class IMod extends BCode {
     SrcOperand src1, src2;
     IMod(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IMod(Register dst, SrcOperand src1, SrcOperand src2) {
         super("mod", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -862,9 +889,12 @@ class IMod extends BCode {
 class IBitor extends BCode {
     SrcOperand src1, src2;
     IBitor(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IBitor(Register dst, SrcOperand src1, SrcOperand src2) {
         super("bitor", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -881,9 +911,12 @@ class IBitor extends BCode {
 class IBitand extends BCode {
     SrcOperand src1, src2;
     IBitand(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IBitand(Register dst, SrcOperand src1, SrcOperand src2) {
         super("bitand", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -900,9 +933,12 @@ class IBitand extends BCode {
 class ILeftshift extends BCode {
     SrcOperand src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    ILeftshift(Register dst, SrcOperand src1, SrcOperand src2) {
         super("leftshift", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -919,9 +955,12 @@ class ILeftshift extends BCode {
 class IRightshift extends BCode {
     SrcOperand src1, src2;
     IRightshift(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IRightshift(Register dst, SrcOperand src1, SrcOperand src2) {
         super("rightshift", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -938,9 +977,12 @@ class IRightshift extends BCode {
 class IUnsignedrightshift extends BCode {
     SrcOperand src1, src2;
     IUnsignedrightshift(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IUnsignedrightshift(Register dst, SrcOperand src1, SrcOperand src2) {
         super("unsignedrightshift", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -957,9 +999,12 @@ class IUnsignedrightshift extends BCode {
 class IEqual extends BCode {
     SrcOperand src1, src2;
     IEqual(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IEqual(Register dst, SrcOperand src1, SrcOperand src2) {
         super("equal", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -976,9 +1021,12 @@ class IEqual extends BCode {
 class IEq extends BCode {
     SrcOperand src1, src2;
     IEq(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    IEq(Register dst, SrcOperand src1, SrcOperand src2) {
         super("eq", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -995,9 +1043,12 @@ class IEq extends BCode {
 class ILessthan extends BCode {
     SrcOperand src1, src2;
     ILessthan(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    ILessthan(Register dst, SrcOperand src1, SrcOperand src2) {
         super("lessthan", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1014,9 +1065,12 @@ class ILessthan extends BCode {
 class ILessthanequal extends BCode {
     SrcOperand src1, src2;
     ILessthanequal(Register dst, Register src1, Register src2) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    }
+    ILessthanequal(Register dst, SrcOperand src1, SrcOperand src2) {
         super("lessthanequal", dst);
-        this.src1 = new RegisterOperand(src1);
-        this.src2 = new RegisterOperand(src2);
+        this.src1 = src1;
+        this.src2 = src2;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1220,9 +1274,12 @@ class ISetarg extends BCode {
 class IGetprop extends BCode {
     SrcOperand obj, prop;
     IGetprop(Register dst, Register obj, Register prop) {
+        this(dst, new RegisterOperand(obj), new RegisterOperand(prop));
+    }
+    IGetprop(Register dst, SrcOperand obj, SrcOperand prop) {
         super("getprop", dst);
-        this.obj = new RegisterOperand(obj);
-        this.prop = new RegisterOperand(prop);
+        this.obj = obj;
+        this.prop = prop;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1239,10 +1296,13 @@ class IGetprop extends BCode {
 class ISetprop extends BCode {
     SrcOperand obj, prop, src;
     ISetprop(Register obj, Register prop, Register src) {
+        this(new RegisterOperand(obj), new RegisterOperand(prop), new RegisterOperand(src));
+    }
+    ISetprop(SrcOperand obj, SrcOperand prop, SrcOperand src) {
         super("setprop");
-        this.obj = new RegisterOperand(obj);
-        this.prop = new RegisterOperand(prop);
-        this.src = new RegisterOperand(src);
+        this.obj = obj;
+        this.prop = prop;
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {

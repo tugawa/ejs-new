@@ -1,14 +1,14 @@
 package ejsc;
+import java.lang.reflect.Constructor;
 import java.util.LinkedList;
 import java.util.List;
 
 import ejsc.BCBuilder.FunctionBCBuilder;
-import ejsc.CBCBuilder.FunctionCBCBuilder;
 
 class CBCBuilder {
     static class FunctionCBCBuilder {
         MCBCSetfl createMCBCSetfl() {
-            return new MCBCSetfl();
+            return new MCBCSetfl(null);
         }
         
         MCBCCall createMCBCCall(MCall call) {
@@ -311,223 +311,272 @@ class CBCBuilder {
         }
     }
 
-    BCode changeToBCode(CBCode bc) {
+    SrcOperand toSrcOperand(Argument ax) {
+        if (ax instanceof ARegister) {
+            ARegister a = (ARegister) ax;
+            return new RegisterOperand(a.r);
+        } else if (ax instanceof AFixnum) {
+            AFixnum a = (AFixnum) ax;
+            return new FixnumOperand(a.n);
+        } else if (ax instanceof ANumber) {
+            ANumber a = (ANumber) ax;
+            return new FlonumOperand(a.n);
+        } else if (ax instanceof AString) {
+            AString a = (AString) ax;
+            return new StringOperand(a.s);
+        } else if (ax instanceof ASpecial) {
+            ASpecial a = (ASpecial) ax;
+            switch (a.s) {
+            case "true":
+                return new SpecialOperand(SpecialOperand.V.TRUE);
+            case "false":
+                return new SpecialOperand(SpecialOperand.V.FALSE);
+            case "null":
+                return new SpecialOperand(SpecialOperand.V.NULL);
+            case "undefined":
+                return new SpecialOperand(SpecialOperand.V.UNDEFINED);
+            default:
+                throw new Error("unknown special");
+            }
+        } else
+            throw new Error("unknown Argment");
+    }
+
+    BCode changeToBCode(CBCode cbcx) {
         // Super Instruction
-        if (bc instanceof ICBCSuperInstruction) {
-            ICBCSuperInstruction b = (ICBCSuperInstruction) bc;
-            ISuperInstruction isi = new ISuperInstruction(b.name, b.store.toString(), b.load1.toString(), b.load2.toString());
-            return isi;
+        if (cbcx instanceof ICBCSuperInstruction) {
+            ICBCSuperInstruction cbc = (ICBCSuperInstruction) cbcx;
+            BCode bc = cbc.originalInsn;
+            if (bc == null)
+                throw new Error("Base instruction of a superinstruction is unknown: "+cbc);
+            if (bc instanceof ISetprop) {
+                SrcOperand op1 = toSrcOperand(cbc.store);
+                SrcOperand op2 = toSrcOperand(cbc.load1);
+                SrcOperand op3 = toSrcOperand(cbc.load2);
+                return new ISetprop(op1, op2, op3);
+            }
+            try {
+                // TODO: other type of constructor (only threeop is supported)
+                Constructor<? extends BCode> ctor = bc.getClass().getDeclaredConstructor(Register.class, SrcOperand.class, SrcOperand.class);
+                Register op1 = ((ARegister) cbc.store).r;
+                SrcOperand op2 = toSrcOperand(cbc.load1);
+                SrcOperand op3 = toSrcOperand(cbc.load2);
+                BCode convertedBC = ctor.newInstance(op1, op2, op3);
+                return convertedBC;
+            } catch (Exception e) {
+                throw new Error(e);
+            }
         }
         // Register Register Register
-        if (bc.store instanceof ARegister && bc.load1 instanceof ARegister && bc.load2 instanceof ARegister) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof ARegister && cbcx.load2 instanceof ARegister) {
             Register store, load1, load2;
-            store = ((ARegister) bc.store).r;
-            load1 = ((ARegister) bc.load1).r;
-            load2 = ((ARegister) bc.load2).r;
-            if (bc instanceof ICBCAdd)
+            store = ((ARegister) cbcx.store).r;
+            load1 = ((ARegister) cbcx.load1).r;
+            load2 = ((ARegister) cbcx.load2).r;
+            if (cbcx instanceof ICBCAdd)
                 return new IAdd(store, load1, load2);
-            if (bc instanceof ICBCSub)
+            if (cbcx instanceof ICBCSub)
                 return new ISub(store, load1, load2);
-            if (bc instanceof ICBCMul)
+            if (cbcx instanceof ICBCMul)
                 return new IMul(store, load1, load2);
-            if (bc instanceof ICBCDiv)
+            if (cbcx instanceof ICBCDiv)
                 return new IDiv(store, load1, load2);
-            if (bc instanceof ICBCMod)
+            if (cbcx instanceof ICBCMod)
                 return new IMod(store, load1, load2);
-            if (bc instanceof ICBCBitor)
+            if (cbcx instanceof ICBCBitor)
                 return new IBitor(store, load1, load2);
-            if (bc instanceof ICBCBitand)
+            if (cbcx instanceof ICBCBitand)
                 return new IBitand(store, load1, load2);
-            if (bc instanceof ICBCLeftshift)
+            if (cbcx instanceof ICBCLeftshift)
                 return new ILeftshift(store, load1, load2);
-            if (bc instanceof ICBCRightshift)
+            if (cbcx instanceof ICBCRightshift)
                 return new IRightshift(store, load1, load2);
-            if (bc instanceof ICBCUnsignedrightshift)
+            if (cbcx instanceof ICBCUnsignedrightshift)
                 return new IUnsignedrightshift(store, load1, load2);
-            if (bc instanceof ICBCEqual)
+            if (cbcx instanceof ICBCEqual)
                 return new IEqual(store, load1, load2);
-            if (bc instanceof ICBCEq)
+            if (cbcx instanceof ICBCEq)
                 return new IEq(store, load1, load2);
-            if (bc instanceof ICBCLessthan)
+            if (cbcx instanceof ICBCLessthan)
                 return new ILessthan(store, load1, load2);
-            if (bc instanceof ICBCLessthanequal)
+            if (cbcx instanceof ICBCLessthanequal)
                 return new ILessthanequal(store, load1, load2);
-            if (bc instanceof ICBCInstanceof)
+            if (cbcx instanceof ICBCInstanceof)
                 return new IInstanceof(store, load1, load2);
-            if (bc instanceof ICBCGetprop)
+            if (cbcx instanceof ICBCGetprop)
                 return new IGetprop(store, load1, load2);
-            if (bc instanceof ICBCSetprop)
+            if (cbcx instanceof ICBCSetprop)
                 return new ISetprop(store, load1, load2);
         }
         // Register Register none
-        if (bc.store instanceof ARegister && bc.load1 instanceof ARegister && bc.load2 instanceof ANone) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof ARegister && cbcx.load2 instanceof ANone) {
             Register store, load1;
-            store = bc.getDestRegister();
-            load1 = ((ARegister) bc.load1).r;
-            if (bc instanceof ICBCNot)
+            store = cbcx.getDestRegister();
+            load1 = ((ARegister) cbcx.load1).r;
+            if (cbcx instanceof ICBCNot)
                 return new INot(store, load1);
-            if (bc instanceof ICBCIsundef)
+            if (cbcx instanceof ICBCIsundef)
                 return new IIsundef(store, load1);
-            if (bc instanceof ICBCIsobject)
+            if (cbcx instanceof ICBCIsobject)
                 return new IIsobject(store, load1);
-            if (bc instanceof ICBCNew)
+            if (cbcx instanceof ICBCNew)
                 return new INew(store, load1);
-            if (bc instanceof ICBCMakesimpleiterator)
+            if (cbcx instanceof ICBCMakesimpleiterator)
                 return new IMakesimpleiterator(load1, store);
-            if (bc instanceof ICBCNextpropnameidx)
+            if (cbcx instanceof ICBCNextpropnameidx)
                 return new INextpropnameidx(load1, store);
-            if (bc instanceof ICBCGetglobal)
+            if (cbcx instanceof ICBCGetglobal)
                 return new IGetglobal(store, load1);
         }
         // Register none none
-        if (bc.store instanceof ARegister && bc.load1 instanceof ANone && bc.load2 instanceof ANone) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof ANone && cbcx.load2 instanceof ANone) {
             Register store;
-            store = bc.getDestRegister();
-            if (bc instanceof ICBCGetglobalobj)
+            store = cbcx.getDestRegister();
+            if (cbcx instanceof ICBCGetglobalobj)
                 return new IGetglobalobj(store);
-            if (bc instanceof ICBCGeta)
+            if (cbcx instanceof ICBCGeta)
                 return new IGeta(store);
         }
         // none Register none
-        if (bc.store instanceof ANone && bc.load1 instanceof ARegister && bc.load2 instanceof ANone) {
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ARegister && cbcx.load2 instanceof ANone) {
             Register load1;
-            load1 = ((ARegister) bc.load1).r;
-            if (bc instanceof ICBCThrow)
+            load1 = ((ARegister) cbcx.load1).r;
+            if (cbcx instanceof ICBCThrow)
                 return new IThrow(load1);
-            if (bc instanceof ICBCSeta)
+            if (cbcx instanceof ICBCSeta)
                 return new ISeta(load1);
         }
         // none Register Register
-        if (bc.store instanceof ANone && bc.load1 instanceof ARegister && bc.load2 instanceof ARegister) {
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ARegister && cbcx.load2 instanceof ARegister) {
             Register load1, load2;
-            load1 = ((ARegister) bc.load1).r;
-            load2 = ((ARegister) bc.load2).r;
-            if (bc instanceof ICBCSetglobal)
+            load1 = ((ARegister) cbcx.load1).r;
+            load2 = ((ARegister) cbcx.load2).r;
+            if (cbcx instanceof ICBCSetglobal)
                 return new ISetglobal(load1, load2);
         }
         // none none none
-        if (bc.store instanceof ANone && bc.load1 instanceof ANone && bc.load2 instanceof ANone) {
-            if (bc instanceof ICBCNewargs)
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ANone && cbcx.load2 instanceof ANone) {
+            if (cbcx instanceof ICBCNewargs)
                 return new INewargs();
-            if (bc instanceof ICBCRet)
+            if (cbcx instanceof ICBCRet)
                 return new IRet();
-            if (bc instanceof ICBCPophandler)
+            if (cbcx instanceof ICBCPophandler)
                 return new IPophandler();
-            if (bc instanceof ICBCLocalret)
+            if (cbcx instanceof ICBCLocalret)
                 return new ILocalret();
-            if (bc instanceof ICBCPoplocal)
+            if (cbcx instanceof ICBCPoplocal)
                 return new IPoplocal();
         }
         // Register String none
-        if (bc.store instanceof ARegister && bc.load1 instanceof AString && bc.load2 instanceof ANone) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof AString && cbcx.load2 instanceof ANone) {
             Register store;
             String load1;
-            store = bc.getDestRegister();
-            load1 = ((AString)bc.load1).s;
-            if (bc instanceof ICBCError)
+            store = cbcx.getDestRegister();
+            load1 = ((AString)cbcx.load1).s;
+            if (cbcx instanceof ICBCError)
                 return new IError(store, load1);
         }
         // none literal none
-        if (bc.store instanceof ANone && bc.load1 instanceof ALiteral && bc.load2 instanceof ANone) {
-            int load1 = ((ALiteral) bc.load1).n;
-            if (bc instanceof ICBCSetfl)
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ALiteral && cbcx.load2 instanceof ANone) {
+            int load1 = ((ALiteral) cbcx.load1).n;
+            if (cbcx instanceof ICBCSetfl)
                 return new ISetfl(load1);
             // jump insn
-            if (bc instanceof ICBCPushhandler)
+            if (cbcx instanceof ICBCPushhandler)
                 return new IPushhandler(new Label());
-            if (bc instanceof ICBCLocalcall)
+            if (cbcx instanceof ICBCLocalcall)
                 return new ILocalcall(new Label());
-            if (bc instanceof ICBCJump)
+            if (cbcx instanceof ICBCJump)
                 return new IJump(new Label());
         }
         // none literal literal
-        if (bc.store instanceof ANone && bc.load1 instanceof ALiteral && bc.load2 instanceof ALiteral) {
-            int load1 = ((ALiteral) bc.load1).n;
-            int load2 = ((ALiteral) bc.load2).n;
-            if (bc instanceof ICBCNewframe)
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ALiteral && cbcx.load2 instanceof ALiteral) {
+            int load1 = ((ALiteral) cbcx.load1).n;
+            int load2 = ((ALiteral) cbcx.load2).n;
+            if (cbcx instanceof ICBCNewframe)
                 return new INewframe(load1, load2 == 0 ? false : true);
         }
         // Register literal none
-        if (bc.store instanceof ARegister && bc.load1 instanceof ALiteral && bc.load2 instanceof ANone) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof ALiteral && cbcx.load2 instanceof ANone) {
             Register store;
             int load1;
-            store = bc.getDestRegister();
-            load1 = ((ALiteral) bc.load1).n;
-            if (bc instanceof ICBCMakeclosure)
+            store = cbcx.getDestRegister();
+            load1 = ((ALiteral) cbcx.load1).n;
+            if (cbcx instanceof ICBCMakeclosure)
                 return new IMakeclosure(store, convertingTo.getFunctionBCBuilder(load1));
         }
         // Register literal literal
-        if (bc.store instanceof ARegister && bc.load1 instanceof ALiteral && bc.load2 instanceof ALiteral) {
+        if (cbcx.store instanceof ARegister && cbcx.load1 instanceof ALiteral && cbcx.load2 instanceof ALiteral) {
             Register store;
             int load1, load2;
-            store = bc.getDestRegister();
-            load1 = ((ALiteral) bc.load1).n;
-            load2 = ((ALiteral) bc.load2).n;
-            if (bc instanceof ICBCGetlocal)
+            store = cbcx.getDestRegister();
+            load1 = ((ALiteral) cbcx.load1).n;
+            load2 = ((ALiteral) cbcx.load2).n;
+            if (cbcx instanceof ICBCGetlocal)
                 return new IGetlocal(store, load1, load2);
-            if (bc instanceof ICBCGetarg)
+            if (cbcx instanceof ICBCGetarg)
                 return new IGetarg(store, load1, load2);
         }
         // literal literal Register
-        if (bc.store instanceof ALiteral && bc.load1 instanceof ALiteral && bc.load2 instanceof ARegister) {
+        if (cbcx.store instanceof ALiteral && cbcx.load1 instanceof ALiteral && cbcx.load2 instanceof ARegister) {
             int store, load1;
             Register load2;
-            store = ((ALiteral) bc.store).n;
-            load1 = ((ALiteral) bc.load1).n;
-            load2 = ((ARegister) bc.load2).r;
-            if (bc instanceof ICBCSetlocal)
+            store = ((ALiteral) cbcx.store).n;
+            load1 = ((ALiteral) cbcx.load1).n;
+            load2 = ((ARegister) cbcx.load2).r;
+            if (cbcx instanceof ICBCSetlocal)
                 return new ISetlocal(store, load1, load2);
-            if (bc instanceof ICBCSetarg)
+            if (cbcx instanceof ICBCSetarg)
                 return new ISetarg(store, load1, load2);
         }
         // none Register literal
-        if (bc.store instanceof ANone && bc.load1 instanceof ARegister && bc.load2 instanceof ALiteral) {
+        if (cbcx.store instanceof ANone && cbcx.load1 instanceof ARegister && cbcx.load2 instanceof ALiteral) {
             Register load1;
             int load2;
-            load1 = ((ARegister)bc.load1).r;
-            load2 = ((ALiteral) bc.load2).n;
-            if (bc instanceof ICBCCall)
+            load1 = ((ARegister)cbcx.load1).r;
+            load2 = ((ALiteral) cbcx.load2).n;
+            if (cbcx instanceof ICBCCall)
                 return new ICall(load1, load2);
-            if (bc instanceof ICBCSend)
+            if (cbcx instanceof ICBCSend)
                 return new ISend(load1, load2);
-            if (bc instanceof ICBCNewsend)
+            if (cbcx instanceof ICBCNewsend)
                 return new INewsend(load1, load2);
             // jump insn
-            if (bc instanceof ICBCJumptrue)
+            if (cbcx instanceof ICBCJumptrue)
                 return new IJumptrue(new Label(), load1);
-            if (bc instanceof ICBCJumpfalse)
+            if (cbcx instanceof ICBCJumpfalse)
                 return new IJumpfalse(new Label(), load1);
         }
 
         // MACRO code
-        if (bc instanceof MCBCSetfl)
+        if (cbcx instanceof MCBCSetfl)
             return new MSetfl();
-        if (bc instanceof MCBCCall) {
-            MCBCCall c = (MCBCCall) bc;
+        if (cbcx instanceof MCBCCall) {
+            MCBCCall c = (MCBCCall) cbcx;
             return new MCall(c.receiver, c.function, c.args, c.isNew, c.isTail);
         }
-        if (bc instanceof MCBCParameter)
-            return new MParameter(((MCBCParameter) bc).dst);
+        if (cbcx instanceof MCBCParameter)
+            return new MParameter(((MCBCParameter) cbcx).dst);
 
         // convart nop instruction
-        if (bc instanceof ICBCNop) {
-            if (bc.store instanceof ARegister) {
-                Register store = bc.getDestRegister();
-                if (bc.load1 instanceof ARegister)
-                    return new IMove(store, ((ARegister) bc.load1).r);
-                if (bc.load1 instanceof AFixnum)
-                    return new IFixnum(store, ((AFixnum) bc.load1).n);
-                if (bc.load1 instanceof AString) {
-                    String str = ((AString)bc.load1).s;
+        if (cbcx instanceof ICBCNop) {
+            if (cbcx.store instanceof ARegister) {
+                Register store = cbcx.getDestRegister();
+                if (cbcx.load1 instanceof ARegister)
+                    return new IMove(store, ((ARegister) cbcx.load1).r);
+                if (cbcx.load1 instanceof AFixnum)
+                    return new IFixnum(store, ((AFixnum) cbcx.load1).n);
+                if (cbcx.load1 instanceof AString) {
+                    String str = ((AString)cbcx.load1).s;
                     str = str.replaceAll("\\\\n", "\n");
                     str = str.replaceAll("\\\\s", " ");
                     str = str.replaceAll("\\\\\"", "\"");
                     return new IString(store, str);
                 }
-                if (bc.load1 instanceof ANumber)
-                    return new INumber(store, ((ANumber)bc.load1).n);
-                if (bc.load1 instanceof ASpecial) {
-                    String s = ((ASpecial)bc.load1).s;
+                if (cbcx.load1 instanceof ANumber)
+                    return new INumber(store, ((ANumber)cbcx.load1).n);
+                if (cbcx.load1 instanceof ASpecial) {
+                    String s = ((ASpecial)cbcx.load1).s;
                     switch(s) {
                     case "true":
                         return new IBooleanconst(store, true);
@@ -539,8 +588,8 @@ class CBCBuilder {
                         return new IUndefinedconst(store);
                     }
                 }
-                if (bc.load1 instanceof ARegexp) {
-                    ARegexp load1 = (ARegexp) bc.load1;
+                if (cbcx.load1 instanceof ARegexp) {
+                    ARegexp load1 = (ARegexp) cbcx.load1;
                     return new IRegexp(store, load1.idx, load1.ptn);
                 }
             }

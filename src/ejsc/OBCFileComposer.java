@@ -11,6 +11,8 @@ import java.util.Map;
 import ejsc.Main.Info;
 
 public class OBCFileComposer {
+    static final boolean DEBUG = false;
+
     static final boolean BIG_ENDIAN        = true;
     
     static final int FIELD_VALUE_TRUE      = 0x1e;
@@ -108,6 +110,10 @@ public class OBCFileComposer {
             default:
                 throw new Error("Unknown instruction format");    
             }
+
+            if (DEBUG)
+                System.out.println(String.format("insn: %016x  %s", insn, insnName));
+
             if (BIG_ENDIAN)
                 insn = Long.reverseBytes(insn);                
             byte[] bytes = new byte[INSTRUCTION_BYTES];
@@ -156,7 +162,7 @@ public class OBCFileComposer {
                     else if (src instanceof StringOperand)
                         modifier += "str";
                     else if (src instanceof SpecialOperand)
-                        modifier += "spe";
+                        modifier += "spec";
                     else
                         throw new Error("Unknown source operand");
                     hasConstantOperand = true;
@@ -404,6 +410,8 @@ public class OBCFileComposer {
     }
     
     private void outputShort(OutputStream out, int v) throws IOException {
+        if (DEBUG)
+            System.out.println(String.format("short: %04x", v));
         if (BIG_ENDIAN)
             v = Integer.reverseBytes(v << 16);
         out.write((byte)(v & 0xff));
@@ -411,6 +419,8 @@ public class OBCFileComposer {
     }
     
     private void outputLong(OutputStream out, long v) throws IOException {
+        if (DEBUG)
+            System.out.println(String.format("short: %016x", v));
         if (BIG_ENDIAN)
             v = Long.reverseBytes(v);
         for (int i = 0; i < 8; i++)
@@ -449,6 +459,8 @@ public class OBCFileComposer {
                     } else if (v instanceof String) {
                         String s = (String) v;
                         outputShort(out, s.length() + 1); // size
+                        if (DEBUG)
+                            System.out.println("string: "+s);
                         out.write(s.getBytes());
                         out.write('\0');
                     } else

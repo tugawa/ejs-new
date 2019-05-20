@@ -564,13 +564,13 @@ class BCBuilder {
         if (bc instanceof IGetglobalobj)
             return new ICBCGetglobalobj((IGetglobalobj) bc);
         if (bc instanceof INewargs)
-            return new ICBCNewargs();
+            return new ICBCNewargs((INewargs) bc);
         if (bc instanceof INewframe)
             return new ICBCNewframe((INewframe) bc);
         if (bc instanceof IMakeclosure)
             return new ICBCMakeclosure((IMakeclosure) bc);
         if (bc instanceof IRet)
-            return new ICBCRet();
+            return new ICBCRet((IRet) bc);
         if (bc instanceof IIsundef)
             return new ICBCIsundef((IIsundef) bc);
         if (bc instanceof IIsobject)
@@ -600,13 +600,13 @@ class BCBuilder {
         if (bc instanceof IPushhandler)
             return new ICBCPushhandler((IPushhandler) bc);
         if (bc instanceof IPophandler)
-            return new ICBCPophandler();
+            return new ICBCPophandler((IPophandler) bc);
         if (bc instanceof ILocalcall)
             return new ICBCLocalcall((ILocalcall) bc);
         if (bc instanceof ILocalret)
-            return new ICBCLocalret();
+            return new ICBCLocalret((ILocalret) bc);
         if (bc instanceof IPoplocal)
-            return new ICBCPoplocal();
+            return new ICBCPoplocal((IPoplocal) bc);
         if (bc instanceof ISetfl)
             return new ICBCSetfl((ISetfl) bc);
         if (bc instanceof IError)
@@ -634,7 +634,7 @@ class BCBuilder {
 
         // MACRO code
         if (bc instanceof MSetfl)
-            return new MCBCSetfl();
+            return new MCBCSetfl((MSetfl) bc);
         if (bc instanceof MCall)
             return new MCBCCall((MCall) bc);
         if (bc instanceof MParameter)
