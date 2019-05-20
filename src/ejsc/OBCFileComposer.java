@@ -399,8 +399,6 @@ public class OBCFileComposer {
     List<OBCFunction> obcFunctions;
     
     OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
-        compiledFunctions.mergeTopLevel();
-        compiledFunctions.assignFunctionIndex(true);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {

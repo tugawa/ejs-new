@@ -536,17 +536,21 @@ public class Main {
         // replace instructions for logging
         bcBuilder.replaceInstructionsForLogging();
 
+        bcBuilder.mergeTopLevel();
+
         if (info.optPrintLowLevelCode) {
             bcBuilder.assignAddress();
             System.out.print(bcBuilder);
         }
 
+        bcBuilder.assignFunctionIndex(true);
+
         if (info.optOutOBC) {
             OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber);
             obc.output(info.outputFileName);
         } else {
-            List<BCode> bcodes = bcBuilder.build();
-            writeBCodeToSBCFile(bcodes, info.outputFileName);
+            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber);
+            sbc.output(info.outputFileName);
         }
     }
 
