@@ -649,7 +649,7 @@ class ICBCNewframe extends CBCode {
     ICBCNewframe(INewframe bc) {
         store = new ANone();
         load1 = new ALiteral(bc.len);
-        load2 = new ALiteral(bc.status);
+        load2 = new ALiteral(bc.makeArguments ? 1 : 0);
     }
     public String getInsnName() {
         return "newframe";
@@ -844,7 +844,7 @@ class ICBCGetglobal extends CBCode {
     }
     ICBCGetglobal(IGetglobal bc) {
         store = new ARegister(bc.dst);
-        load1 = Argument.fromSrcOperand(bc.name);
+        load1 = Argument.fromSrcOperand(bc.varName);
         load2 = new ANone();
     }
     public String getInsnName() {
@@ -860,7 +860,7 @@ class ICBCSetglobal extends CBCode {
     }
     ICBCSetglobal(ISetglobal bc) {
         store = new ANone();
-        load1 = Argument.fromSrcOperand(bc.name);
+        load1 = Argument.fromSrcOperand(bc.varName);
         load2 = Argument.fromSrcOperand(bc.src);
     }
     public String getInsnName() {
@@ -876,8 +876,8 @@ class ICBCGetlocal extends CBCode {
     }
     ICBCGetlocal(IGetlocal bc) {
         store = new ARegister(bc.dst);
-        load1 = new ALiteral(bc.depth);
-        load2 = new ALiteral(bc.n);
+        load1 = new ALiteral(bc.link);
+        load2 = new ALiteral(bc.index);
     }
     public String getInsnName() {
         return "getlocal";
@@ -891,8 +891,8 @@ class ICBCSetlocal extends CBCode {
         super(store, load1, load2);
     }
     ICBCSetlocal(ISetlocal bc) {
-        store = new ALiteral(bc.depth);
-        load1 = new ALiteral(bc.n);
+        store = new ALiteral(bc.link);
+        load1 = new ALiteral(bc.index);
         load2 = Argument.fromSrcOperand(bc.src);
     }
     public Register getDestRegister() {
@@ -918,8 +918,8 @@ class ICBCGetarg extends CBCode {
     }
     ICBCGetarg(IGetarg bc) {
         store = new ARegister(bc.dst);
-        load1 = new ALiteral(bc.depth);
-        load2 = new ALiteral(bc.n);
+        load1 = new ALiteral(bc.link);
+        load2 = new ALiteral(bc.index);
     }
     public String getInsnName() {
         return "getarg";
@@ -933,8 +933,8 @@ class ICBCSetarg extends CBCode {
         super(store, load1, load2);
     }
     ICBCSetarg(ISetarg bc) {
-        store = new ALiteral(bc.depth);
-        load1 = new ALiteral(bc.n);
+        store = new ALiteral(bc.link);
+        load1 = new ALiteral(bc.index);
         load2 = Argument.fromSrcOperand(bc.src);
     }
     public Register getDestRegister() {

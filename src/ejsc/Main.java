@@ -326,8 +326,7 @@ public class Main {
         }
     }
 
-
-    void writeBCodeToSBCFile(List<?> bcodes, String filename) {
+    void writeBCodeToSBCFile(List<BCode> bcodes, String filename) {
         try {
             File file = new File(filename);
             PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
@@ -541,12 +540,14 @@ public class Main {
             bcBuilder.assignAddress();
             System.out.print(bcBuilder);
         }
-        List<BCode> bcodes = bcBuilder.build();
 
-        if (info.optOutOBC)
-            writeBCodeToOBCFile(bcodes, info.outputFileName, info.baseFunctionNumber);
-        else
+        if (info.optOutOBC) {
+            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber);
+            obc.output(info.outputFileName);
+        } else {
+            List<BCode> bcodes = bcBuilder.build();
             writeBCodeToSBCFile(bcodes, info.outputFileName);
+        }
     }
 
     public static void main(String[] args) throws IOException {

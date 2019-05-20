@@ -30,16 +30,75 @@ import ejsc.Main.Info;
 import ejsc.Main.Info.SISpecInfo;
 import ejsc.Main.Info.SISpecInfo.SISpec;
 
-public class BCode {
+abstract class CodeBuffer {
+    enum SpecialValue {
+        TRUE,
+        FALSE,
+        NULL,
+        UNDEFINED
+    }
+    // fixnum
+    abstract void addFixnumSmallPrimitive(String opname, Register dst, int n);
+    // number
+    abstract void addNumberBigPrimitive(String opanme, Register dst, double n);
+    // string
+    abstract void addStringBigPrimitive(String opname, Register dst, String s);
+    // special
+    abstract void addSpecialSmallPrimitive(String opname, Register dst, SpecialValue v);
+    // regexp
+    abstract void addRegexp(String opname, Register dst, int flag, String ptn);
+    // threeop
+    abstract void addRXXThreeOp(String opname, Register dst, SrcOperand src1, SrcOperand src2);
+    // threeop (setprop)
+    abstract void addXXXThreeOp(String opname, SrcOperand src1, SrcOperand src2, SrcOperand src3);
+    // threeop (setarray)
+    abstract void addXIXThreeOp(String opname, SrcOperand src1, int index, SrcOperand src2);
+    // twoop
+    abstract void addRXTwoOp(String opname, Register dst, SrcOperand src);
+    // twoop (setglobal)
+    abstract void addXXTwoOp(String opname, SrcOperand src1, SrcOperand src2);
+    // twoop (makesimpleiterator, getnextpropnameidx)
+    abstract void addXRTwoOp(String opname, SrcOperand src, Register dst);
+    // oneop
+    abstract void addROneOp(String opname, Register dst);
+    // oneop (seta, throw)
+    abstract void addXOneOp(String opname, SrcOperand src);
+    // oneop (setfl)
+    abstract void addIOneOp(String opname, int n);
+    // zeroop
+    abstract void addZeroOp(String opname);
+    // newframe
+    abstract void addNewFrameOp(String opname, int len, boolean mkargs);
+    // getvar
+    abstract void addGetVar(String opname, Register dst, int link, int index);
+    // setvar
+    abstract void addSetVar(String opname, int link, int inex, SrcOperand src);
+    // makeclosure
+    abstract void addMakeClosureOp(String opname, Register dst, int index);
+    // call
+    abstract void addXICall(String opname, SrcOperand fun, int nargs);
+    // call (new)
+    abstract void addRXCall(String opname, Register dst, SrcOperand fun);
+    // uncondjump
+    abstract void addUncondJump(String opname, int disp);
+    // condjump
+    abstract void addCondJump(String opname, SrcOperand test, int disp);
+}
+
+public abstract class BCode {
     CodeMaker cm = new CodeMaker();
+    String name;
     int number;
     protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
     boolean logging = false;
 
-    BCode() {}
+    BCode(String name) {
+        this.name = name;
+    }
 
-    BCode(Register dst) {
+    BCode(String name, Register dst) {
+        this(name);
         this.dst = dst;
     }
 
@@ -96,6 +155,8 @@ public class BCode {
         if (logging) { return "_log"; }
         else { return ""; }
     }
+
+    abstract void emit(CodeBuffer out);
 
     String toString(String opcode) {
         return opcode + logStr();
@@ -549,13 +610,21 @@ class SpecialOperand extends SrcOperand {
     }
 }
 
+/*
+ * BCode
+ */
+
 class ISuperInstruction extends BCode {
-    String name, store, load1, load2;
+    String store, load1, load2;
     ISuperInstruction(String name, String store, String load1, String load2) {
-        this.name = name;
+        super(name);
         this.store = store;
         this.load1 = load1;
         this.load2 = load2;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
     }
     public String toString() {
         return super.toString(name, store, load1, load2);
@@ -565,446 +634,599 @@ class ISuperInstruction extends BCode {
     }
 }
 
-/* constant */
+/* SMALLPRIMITIVE */
 class IFixnum extends BCode {
     int n;
     IFixnum(Register dst, int n) {
-        super(dst);
+        super("fixnum", dst);
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addFixnumSmallPrimitive(name, dst, n);
+    }
     public String toString() {
-        return super.toString("fixnum", dst, n);
+        return super.toString(name, dst, n);
     }
     public String toByteString() {
-        return super.toByteString("fixnum", dst, n);
+        return super.toByteString(name, dst, n);
     }
 }
+/* BIGPRIMITIVE */
 class INumber extends BCode {
     double n;
     INumber(Register dst, double n) {
-        super(dst);
+        super("number", dst);
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        // TODO: check range of n
+        buf.addNumberBigPrimitive(name, dst, n);
+    }
     public String toString() {
-        return super.toString("number", dst, n);
+        return super.toString(name, dst, n);
     }
     public String toByteString() {
-        return super.toByteString("number", dst, n);
+        return super.toByteString(name, dst, n);
     }
 }
+/* BIGPRIMITIVE */
 class IString extends BCode {
     String str;
     IString(Register dst, String str) {
-        super(dst);
-        // TODO: check string format.  Double too many backslashes.
+        super("string", dst);
+        // TODO: check string format.  Too many backslashes?
         this.str = str;
         this.str = this.str.replaceAll("\n", "\\\\n");
         this.str = this.str.replaceAll(" ", "\\\\s");
         this.str = this.str.replaceAll("\"", "\\\\\"");
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addStringBigPrimitive(name, dst, str);
+    }
     public String toString() {
-        return super.toString("string", dst, "\"" + str + "\"");
+        return super.toString(name, dst, "\"" + str + "\"");
     }
     public String toByteString() {
-        return super.toByteString("string", dst, "\"" + str + "\"");
+        return super.toByteString(name, dst, "\"" + str + "\"");
     }
 }
+/* SMALLPRIMITIVE */
 class IBooleanconst extends BCode {
     boolean b;
     IBooleanconst(Register dst, boolean b) {
-        super(dst);
+        super("specconst", dst);
         this.b = b;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addSpecialSmallPrimitive(name, dst, b ? CodeBuffer.SpecialValue.TRUE : CodeBuffer.SpecialValue.FALSE);
+    }
     public String toString() {
-        return super.toString("specconst", dst, b ? "true" : "false");
+        return super.toString(name, dst, b ? "true" : "false");
     }
     public String toByteString() {
-        return super.toByteString("specconst", dst, b ? "true" : "false");
+        return super.toByteString(name, dst, b ? "true" : "false");
     }
 }
+/* SMALLPRIMITIVE */
 class INullconst extends BCode {
     INullconst(Register dst) {
-        super(dst);
+        super("specconst", dst);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addSpecialSmallPrimitive(name, dst, CodeBuffer.SpecialValue.NULL);
     }
     public String toString() {
-        return super.toString("specconst", dst, "null");
+        return super.toString(name, dst, "null");
     }
     public String toByteString() {
-        return super.toByteString("specconst", dst, "null");
+        return super.toByteString(name, dst, "null");
     }
 }
+/* SMALLPRIMITIVE */
 class IUndefinedconst extends BCode {
     IUndefinedconst(Register dst) {
-        super(dst);
+        super("specconst", dst);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addSpecialSmallPrimitive(name, dst, CodeBuffer.SpecialValue.UNDEFINED);
     }
     public String toString() {
-        return super.toString("specconst", dst, "undefined");
+        return super.toString(name, dst, "undefined");
     }
     public String toByteString() {
-        return super.toByteString("specconst", dst, "undefined");
+        return super.toByteString(name, dst, "undefined");
     }
 }
+/* REGEXPOP */
 class IRegexp extends BCode {
     int idx;
     String ptn;
     IRegexp(Register dst, int idx, String ptn) {
-        super(dst);
+        super("regexp", dst);
         this.idx = idx;
         this.ptn = ptn;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRegexp(name, dst, idx, ptn);
+    }
     public String toString() {
-        return super.toString("regexp", dst, idx, "\"" + ptn + "\"");
+        return super.toString(name, dst, idx, "\"" + ptn + "\"");
     }
     public String toByteString() {
-        return super.toByteString("regexp", dst, idx, "\"" + ptn + "\"");
+        return super.toByteString(name, dst, idx, "\"" + ptn + "\"");
     }
 }
-
-/* three op */
+/* THREEOP */
 class IAdd extends BCode {
     SrcOperand src1, src2;
     IAdd(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("add", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("add", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("add", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class ISub extends BCode {
     SrcOperand src1, src2;
     ISub(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("sub", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("sub", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("sub", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IMul extends BCode {
     SrcOperand src1, src2;
     IMul(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("mul", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("mul", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("mul", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IDiv extends BCode {
     SrcOperand src1, src2;
     IDiv(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("div", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("div", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("div", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IMod extends BCode {
     SrcOperand src1, src2;
     IMod(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("mod", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("mod", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("mod", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IBitor extends BCode {
     SrcOperand src1, src2;
     IBitor(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("bitor", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("bitor", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("bitor", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IBitand extends BCode {
     SrcOperand src1, src2;
     IBitand(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("bitand", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("bitand", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("bitand", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class ILeftshift extends BCode {
     SrcOperand src1, src2;
     ILeftshift(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("leftshift", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("leftshift", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("leftshift", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IRightshift extends BCode {
     SrcOperand src1, src2;
     IRightshift(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("rightshift", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("rightshift", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("rightshift", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IUnsignedrightshift extends BCode {
     SrcOperand src1, src2;
     IUnsignedrightshift(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("unsignedrightshift", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("unsignedrightshift", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("unsignedrightshift", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
-
-// relation
+/* THREEOP */
 class IEqual extends BCode {
     SrcOperand src1, src2;
     IEqual(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("equal", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("equal", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("equal", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class IEq extends BCode {
     SrcOperand src1, src2;
     IEq(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("eq", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("eq", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("eq", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class ILessthan extends BCode {
     SrcOperand src1, src2;
     ILessthan(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("lessthan", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("lessthan", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("lessthan", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
+/* THREEOP */
 class ILessthanequal extends BCode {
     SrcOperand src1, src2;
     ILessthanequal(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("lessthanequal", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("lessthanequal", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("lessthanequal", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
-
-/* two op */
+/* TWOOP */
 class INot extends BCode {
     SrcOperand src;
     INot(Register dst, Register src) {
-        super(dst);
+        super("not", dst);
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXTwoOp(name, dst, src);
+    }
     public String toString() {
-        return super.toString("not", dst, src);
+        return super.toString(name, dst, src);
     }
     public String toByteString() {
-        return super.toByteString("not", dst, src);
+        return super.toByteString(name, dst, src);
     }
 }
-
+/* ONEOP */
 class IGetglobalobj extends BCode {
     IGetglobalobj(Register dst) {
-        super(dst);
+        super("getglobalobj", dst);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addROneOp(name, dst);
     }
     public String toString() {
-        return super.toString("getglobalobj", dst);
+        return super.toString(name, dst);
     }
     public String toByteString() {
-        return super.toByteString("getglobalobj", dst);
+        return super.toByteString(name, dst);
     }
 }
+/* ZEROOP */
 class INewargs extends BCode {
     INewargs() {
+        super("newargs");
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name);
     }
     public String toString() {
-        return super.toString("newargs");
+        return super.toString(name);
     }
     public String toByteString() {
-        return super.toByteString("newargs");
+        return super.toByteString(name);
     }
 }
+/* NEWFRAMEOP */
 class INewframe extends BCode {
-    int len, status;
-    INewframe(int len, int status) {
+    int len;
+    boolean makeArguments;
+    INewframe(int len, boolean makeArguments) {
+        super("newframe");
         this.len = len;
-        this.status = status;
+        this.makeArguments = makeArguments;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addNewFrameOp(name, len, makeArguments);
     }
     public String toString() {
-        return super.toString("newframe", len, status);
+        return super.toString(name, len, makeArguments ? 1 : 0);
     }
     public String toByteString() {
-        return super.toByteString("newframe", len, status);
+        return super.toByteString(name, len, makeArguments ? 1 : 0);
     }
 }
-
-/* global */
+/* TWOOP */
 class IGetglobal extends BCode {
-    SrcOperand name;
+    SrcOperand varName;
     IGetglobal(Register dst, Register name) {
-        super(dst);
-        this.name = new RegisterOperand(name);
+        super("getglobal", dst);
+        this.varName = new RegisterOperand(name);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXTwoOp(name, dst, varName);
     }
     public String toString() {
-        return super.toString("getglobal", dst, name);
+        return super.toString(name, dst, varName);
     }
     public String toByteString() {
-        return super.toByteString("getglobal", dst, name);
+        return super.toByteString(name, dst, varName);
     }
 }
+/* TWOOP */
 class ISetglobal extends BCode {
-    SrcOperand name, src;
+    SrcOperand varName, src;
     ISetglobal(Register name, Register src) {
-        this.name = new RegisterOperand(name);
+        super("setglobal");
+        this.varName = new RegisterOperand(name);
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXXTwoOp(name, varName, src);
+    }
     public String toString() {
-        return super.toString("setglobal", name, src);
+        return super.toString("setglobal", varName, src);
     }
     public String toByteString() {
-        return super.toByteString("setglobal", name, src);
+        return super.toByteString("setglobal", varName, src);
     }
 }
-
-/* local */
+/* GETVAR */
 class IGetlocal extends BCode {
-    int depth, n;
-    IGetlocal(Register dst, int depth, int n) {
-        super(dst);
-        this.depth = depth;
-        this.n = n;
+    int link, index;
+    IGetlocal(Register dst, int depth, int index) {
+        super("getlocal", dst);
+        this.link = depth;
+        this.index = index;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addGetVar(name, dst, link, index);
     }
     public String toString() {
-        return super.toString("getlocal", dst, depth, n);
+        return super.toString("getlocal", dst, link, index);
     }
     public String toByteString() {
-        return super.toByteString("getlocal", dst, depth, n);
+        return super.toByteString("getlocal", dst, link, index);
     }
 }
+/* SETVAR */
 class ISetlocal extends BCode {
-    int depth, n;
+    int link, index;
     SrcOperand src;
-    ISetlocal(int depth, int n, Register src) {
-        this.depth = depth;
-        this.n = n;
+    ISetlocal(int link, int index, Register src) {
+        super("setlocal");
+        this.link = link;
+        this.index = index;
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addSetVar(name, link, index, src);
+    }
     public String toString() {
-        return super.toString("setlocal", depth, n, src);
+        return super.toString(name, link, index, src);
     }
     public String toByteString() {
-        return super.toByteString("setlocal", depth, n, src);
+        return super.toByteString(name, link, index, src);
     }
 }
+/* GETVAR */
 class IGetarg extends BCode {
-    int depth, n;
-    IGetarg(Register dst, int depth, int n) {
-        super(dst);
-        this.depth = depth;
-        this.n = n;
+    int link, index;
+    IGetarg(Register dst, int link, int index) {
+        super("getarg", dst);
+        this.link = link;
+        this.index = index;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addGetVar(name, dst,  link, index);
     }
     public String toString() {
-        return super.toString("getarg", dst, depth, n);
+        return super.toString(name, dst, link, index);
     }
     public String toByteString() {
-        return super.toByteString("getarg", dst, depth, n);
+        return super.toByteString(name, dst, link, index);
     }
 }
+/* SETVAR */
 class ISetarg extends BCode {
-    int depth, n;
+    int link, index;
     SrcOperand src;
-    ISetarg(int depth, int n, Register src) {
-        this.depth = depth;
-        this.n = n;
+    ISetarg(int link, int index, Register src) {
+        super("setarg");
+        this.link = link;
+        this.index = index;
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addSetVar(name, link, index, src);
+    }
     public String toString() {
-        return super.toString("setarg", depth, n, src);
+        return super.toString(name, link, index, src);
     }
     public String toByteString() {
-        return super.toByteString("setarg", depth, n, src);
+        return super.toByteString(name, link, index, src);
     }
 }
-
-/* property */
+/* THREEOP */
 class IGetprop extends BCode {
     SrcOperand obj, prop;
     IGetprop(Register dst, Register obj, Register prop) {
-        super(dst);
+        super("getprop", dst);
         this.obj = new RegisterOperand(obj);
         this.prop = new RegisterOperand(prop);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, obj, prop);
     }
     public String toString() {
         return super.toString("getprop", dst, obj, prop);
@@ -1013,12 +1235,18 @@ class IGetprop extends BCode {
         return super.toByteString("getprop", dst, obj, prop);
     }
 }
+/* SETPROP */
 class ISetprop extends BCode {
     SrcOperand obj, prop, src;
     ISetprop(Register obj, Register prop, Register src) {
+        super("setprop");
         this.obj = new RegisterOperand(obj);
         this.prop = new RegisterOperand(prop);
         this.src = new RegisterOperand(src);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXXXThreeOp(name, obj, prop, src);
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
@@ -1027,54 +1255,72 @@ class ISetprop extends BCode {
         return super.toByteString("setprop", obj, prop, src);
     }
 }
+/* THREEOP */
 class ISetarray extends BCode {
     SrcOperand ary;
     int n;
     SrcOperand src;
     ISetarray(Register ary, int n, Register src) {
+        super("setarray");
         this.ary = new RegisterOperand(ary);
         this.n = n;
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXIXThreeOp(name, ary, n, src);
+    }
     public String toString() {
-        return super.toString("setarray", ary, n, src);
+        return super.toString(name, ary, n, src);
     }
     public String toByteString() {
-        return super.toByteString("setarray", ary, n, src);
+        return super.toByteString(name, ary, n, src);
     }
 }
-
-
+/* MAKECLOSUREOP */
 class IMakeclosure extends BCode {
     BCBuilder.FunctionBCBuilder function;
     IMakeclosure(Register dst, BCBuilder.FunctionBCBuilder function) {
-        super(dst);
+        super("makeclosure", dst);
         this.function = function;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addMakeClosureOp(name, dst, function.getIndex());
+    }
     public String toString() {
-        return super.toString("makeclosure", dst, function.getIndex());
+        return super.toString(name, dst, function.getIndex());
     }
     public String toByteString() {
-        return super.toByteString("makeclosure", dst, function.getIndex());
+        return super.toByteString(name, dst, function.getIndex());
     }
 }
-
-
+/* ONEOP */
 class IGeta extends BCode {
     IGeta(Register dst) {
-        super(dst);
+        super("geta", dst);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addROneOp(name, dst);
     }
     public String toString() {
-        return super.toString("geta", dst);
+        return super.toString(name, dst);
     }
     public String toByteString() {
-        return super.toByteString("geta", dst);
+        return super.toByteString(name, dst);
     }
 }
+/* ONEOP */
 class ISeta extends BCode {
     SrcOperand src;
     ISeta(Register src) {
+        super("seta");
         this.src = new RegisterOperand(src);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXOneOp(name, src);
     }
     public String toString() {
         return super.toString("seta", src);
@@ -1083,13 +1329,18 @@ class ISeta extends BCode {
         return super.toByteString("seta", src);
     }
 }
-
+/* RET */
 class IRet extends BCode {
     IRet() {
+        super("ret");
     }
     @Override
     public boolean isFallThroughInstruction() {
         return false;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name);
     }
     public String toString() {
         return super.toString("ret");
@@ -1098,148 +1349,197 @@ class IRet extends BCode {
         return super.toByteString("ret");
     }
 }
-
+/* TWOOP */
 class IMove extends BCode {
     SrcOperand src;
     IMove(Register dst, Register src) {
-        super(dst);
+        super("move", dst);
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXTwoOp(name, dst, src);
+    }
     public String toString() {
-        return super.toString("move", dst, src);
+        return super.toString(name, dst, src);
     }
     public String toByteString() {
-        return super.toByteString("move", dst, src);
+        return super.toByteString(name, dst, src);
     }
 }
-
+/* TWOOP */
 class IIsundef extends BCode {
     SrcOperand src;
     IIsundef(Register dst, Register src) {
-        super(dst);
+        super("isundef", dst);
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXTwoOp(name, dst, src);
+    }
     public String toString() {
-        return super.toString("isundef", dst, src);
+        return super.toString(name, dst, src);
     }
     public String toByteString() {
-        return super.toByteString("isundef", dst, src);
+        return super.toByteString(name, dst, src);
     }
 }
+/* TWOOP */
 class IIsobject extends BCode {
     SrcOperand src;
     IIsobject(Register dst, Register src) {
-        super(dst);
+        super("isobject", dst);
         this.src = new RegisterOperand(src);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXTwoOp(name, dst, src);
+    }
     public String toString() {
-        return super.toString("isobject", dst, src);
+        return super.toString(name, dst, src);
     }
     public String toByteString() {
-        return super.toByteString("isobject", dst, src);
+        return super.toByteString(name, dst, src);
     }
 }
+/* THREEOP */
 class IInstanceof extends BCode {
     SrcOperand src1, src2;
     IInstanceof(Register dst, Register src1, Register src2) {
-        super(dst);
+        super("instanceof", dst);
         this.src1 = new RegisterOperand(src1);
         this.src2 = new RegisterOperand(src2);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXXThreeOp(name, dst, src1, src2);
+    }
     public String toString() {
-        return super.toString("instanceof", dst, src1, src2);
+        return super.toString(name, dst, src1, src2);
     }
     public String toByteString() {
-        return super.toByteString("instanceof", dst, src1, src2);
+        return super.toByteString(name, dst, src1, src2);
     }
 }
-
-
+/* CALLOP */
 class ICall extends BCode {
     SrcOperand function;
     int numOfArgs;
     ICall(Register function, int numOfArgs) {
+        super("call");
         this.function = new RegisterOperand(function);
         this.numOfArgs = numOfArgs;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXICall(name, function, numOfArgs);
+    }
     public String toString() {
-        return super.toString("call", function, numOfArgs);
+        return super.toString(name, function, numOfArgs);
     }
     public String toByteString() {
-        return super.toByteString("call", function, numOfArgs);
+        return super.toByteString(name, function, numOfArgs);
     }
 }
+/* CALL */
 class ISend extends BCode {
     SrcOperand function;
     int numOfArgs;
     ISend(Register function, int numOfArgs) {
+        super("send");
         this.function = new RegisterOperand(function);
         this.numOfArgs = numOfArgs;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXICall(name, function, numOfArgs);
+    }
     public String toString() {
-        return super.toString("send", function, numOfArgs);
+        return super.toString(name, function, numOfArgs);
     }
     public String toByteString() {
-        return super.toByteString("send", function, numOfArgs);
+        return super.toByteString(name, function, numOfArgs);
     }
 }
+/* CALL */
 class INew extends BCode {
     SrcOperand constructor;
     INew(Register dst, Register constructor) {
-        super(dst);
+        super("new", dst);
         this.constructor = new RegisterOperand(constructor);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addRXCall(name, dst, constructor);
+    }
     public String toString() {
-        return super.toString("new", dst, constructor);
+        return super.toString(name, dst, constructor);
     }
     public String toByteString() {
-        return super.toByteString("new", dst, constructor);
+        return super.toByteString(name, dst, constructor);
     }
 }
+/* CALL */
 class INewsend extends BCode {
     SrcOperand constructor;
     int numOfArgs;
     INewsend(Register constructor, int numOfArgs) {
+        super("newsend");
         this.constructor = new RegisterOperand(constructor);
         this.numOfArgs = numOfArgs;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXICall(name, constructor, numOfArgs);
+    }
     public String toString() {
-        return super.toString("newsend", constructor, numOfArgs);
+        return super.toString(name, constructor, numOfArgs);
     }
     public String toByteString() {
-        return super.toByteString("newsend", constructor, numOfArgs);
+        return super.toByteString(name, constructor, numOfArgs);
     }
 }
+/* TWOOP */
 class IMakesimpleiterator extends BCode {
     SrcOperand obj;
     IMakesimpleiterator(Register obj, Register dst) {
-        super(dst);
+        super("makesimpleiterator", dst);
         this.obj = new RegisterOperand(obj);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXRTwoOp(name, obj, dst);
+    }
     public String toString() {
-        return super.toString("makesimpleiterator", obj, dst);
+        return super.toString(name, obj, dst);
     }
     public String toByteString() {
-        return super.toByteString("makesimpleiterator", obj, dst);
+        return super.toByteString(name, obj, dst);
     }
 }
 class INextpropnameidx extends BCode {
     SrcOperand ite;
     INextpropnameidx(Register ite, Register dst) {
-        super(dst);
+        super("nextpropnameidx", dst);
         this.ite = new RegisterOperand(ite);
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXRTwoOp(name, ite, dst);
+    }
     public String toString() {
-        return super.toString("nextpropnameidx", ite, dst);
+        return super.toString(name, ite, dst);
     }
     public String toByteString() {
-        return super.toByteString("nextpropnameidx", ite, dst);
+        return super.toByteString(name, ite, dst);
     }
 }
-// Jump instructions
+/* UNCONDJUMP */
 class IJump extends BCode {
     Label label;
     IJump(Label label) {
+        super("jump");
         this.label = label;
     }
     @Override
@@ -1250,17 +1550,23 @@ class IJump extends BCode {
     public BCode getBranchTarget() {
         return label.getDestBCode();
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addUncondJump(name, label.dist(number));
+    }
     public String toString() {
-        return super.toString("jump", label.dist(number));
+        return super.toString(name, label.dist(number));
     }
     public String toByteString() {
-        return super.toByteString("jump", label.dist(number));
+        return super.toByteString(name, label.dist(number));
     }
 }
+/* CONDJUMP */
 class IJumptrue extends BCode {
     SrcOperand test;
     Label label;
     IJumptrue(Label label, Register test) {
+        super("jumptrue");
         this.label = label;
         this.test = new RegisterOperand(test);
     }
@@ -1268,17 +1574,23 @@ class IJumptrue extends BCode {
     public BCode getBranchTarget() {
         return label.getDestBCode();
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addCondJump(name, test, label.dist(number));
+    }
     public String toString() {
-        return super.toString("jumptrue", test, label.dist(number));
+        return super.toString(name, test, label.dist(number));
     }
     public String toByteString() {
-        return super.toByteString("jumptrue", test, label.dist(number));
+        return super.toByteString(name, test, label.dist(number));
     }
 }
+/* CONDJUMP */
 class IJumpfalse extends BCode {
     SrcOperand test;
     Label label;
     IJumpfalse(Label label, Register test) {
+        super("jumpfalse");
         this.label = label;
         this.test = new RegisterOperand(test);
     }
@@ -1286,57 +1598,83 @@ class IJumpfalse extends BCode {
     public BCode getBranchTarget() {
         return label.getDestBCode();
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addCondJump(name, test, label.dist(number));
+    }
     public String toString() {
-        return super.toString("jumpfalse", test, label.dist(number));
+        return super.toString(name, test, label.dist(number));
     }
     public String toByteString() {
-        return super.toByteString("jumpfalse", test, label.dist(number));
+        return super.toByteString(name, test, label.dist(number));
     }
 }
-
-
+/* ONEOP */
 class IThrow extends BCode {
     SrcOperand reg;
     IThrow(Register reg) {
+        super("throw");
         this.reg = new RegisterOperand(reg);
     }
     @Override
     public boolean isFallThroughInstruction()  {
         return false;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addXOneOp(name, reg);
+    }
     public String toString() {
-        return super.toString("throw", reg);
+        return super.toString(name, reg);
     }
     public String toByteString() {
-        return super.toByteString("throw", reg);
+        return super.toByteString(name, reg);
     }
 }
+/* UNCONDJUMP */
 class IPushhandler extends BCode {
     Label label;
     IPushhandler(Label label) {
+        super("pushhandler");
         this.label = label;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addUncondJump(name, label.dist(number));
+    }
     public String toString() {
-        return super.toString("pushhandler", label.dist(number));
+        return super.toString(name, label.dist(number));
     }
     public String toByteString() {
-        return super.toByteString("pushhandler", label.dist(number));
+        return super.toByteString(name, label.dist(number));
     }
 }
+/* ZEROOP */
 class IPophandler extends BCode {
     IPophandler() {
+        super("pophandler");
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name);
     }
     public String toString() {
-        return super.toString("pophandler");
+        return super.toString(name);
     }
     public String toByteString() {
-        return super.toByteString("pophandler");
+        return super.toByteString(name);
     }
 }
+/* UNCONDJUMP */
 class ILocalcall extends BCode {
     Label label;
     ILocalcall(Label label) {
+        super("localcall");
         this.label = label;
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addUncondJump(name, label.dist(number));
     }
     public String toString() {
         return super.toString("localcall", label.dist(number));
@@ -1345,22 +1683,34 @@ class ILocalcall extends BCode {
         return super.toByteString("localcall", label.dist(number));
     }
 }
+/* ZEROOP */
 class ILocalret extends BCode {
     ILocalret() {
+        super("localret");
     }
     @Override
     public boolean isFallThroughInstruction() {
         return false;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name);
+    }
     public String toString() {
-        return super.toString("localret");
+        return super.toString(name);
     }
     public String toByteString() {
-        return super.toByteString("localret");
+        return super.toByteString(name);
     }
 }
+/* ZEROOP */
 class IPoplocal extends BCode {
     IPoplocal() {
+        super("poplocal");
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name);
     }
     public String toString() {
         return super.toString("poplocal");
@@ -1369,19 +1719,22 @@ class IPoplocal extends BCode {
         return super.toByteString("poplocal");
     }
 }
-
-
-
+/* ONEOP */
 class ISetfl extends BCode {
     int fl;
     ISetfl(int fl) {
+        super("setfl");
         this.fl = fl;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addIOneOp(name, fl);
+    }
     public String toString() {
-        return super.toString("setfl", fl);
+        return super.toString(name, fl);
     }
     public String toByteString() {
-        return super.toByteString("setfl", fl);
+        return super.toByteString(name, fl);
     }
 }
 
@@ -1389,85 +1742,119 @@ class ISetfl extends BCode {
 class IFuncLength extends BCode {
     int n;
     IFuncLength(int n) {
+        super("funcLength");
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
+    }
     public String toString() {
-        return super.toString("funcLength", n);
+        return super.toString(name, n);
     }
     public String toByteString() {
-        return super.toByteString("funcLength", n);
+        return super.toByteString(name, n);
     }
 }
 class ICallentry extends BCode {
     int n;
     ICallentry(int n) {
+        super("callentry");
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
+    }
     public String toString() {
-        return super.toString("callentry", n);
+        return super.toString(name, n);
     }
     public String toByteString() {
-        return super.toByteString("callentry", n);
+        return super.toByteString(name, n);
     }
 }
 class ISendentry extends BCode {
     int n;
     ISendentry(int n) {
+        super("sendentry");
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
+    }
     public String toString() {
-        return super.toString("sendentry", n);
+        return super.toString(name, n);
     }
     public String toByteString() {
-        return super.toByteString("sendentry", n);
+        return super.toByteString(name, n);
     }
 }
 class INumberOfLocals extends BCode {
     int n;
     INumberOfLocals(int n) {
+        super("numberOfLocals");
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
+    }
     public String toString() {
-        return super.toString("numberOfLocals", n);
+        return super.toString(name, n);
     }
     public String toByteString() {
-        return super.toByteString("numberOfLocals", n);
+        return super.toByteString(name, n);
     }
 }
 class INumberOfInstruction extends BCode {
     int n;
     INumberOfInstruction(int n) {
+        super("numberOfInstruction");
         this.n = n;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("to be removed");
+    }
     public String toString() {
-        return super.toString("numberOfInstruction", n);
+        return super.toString(name, n);
     }
     public String toByteString() {
-        return super.toByteString("numberOfInstruction", n);
+        return super.toByteString(name, n);
     }
 }
-
-
+/* BIGPRIMITIVE */
 class IError extends BCode {
     String str;
     IError(Register dst, String str) {
-        super(dst);
+        super("error", dst);
         this.str = str;
     }
     @Override
     public boolean isFallThroughInstruction() {
         return false;
     }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addStringBigPrimitive(name, dst, str);
+    }
     public String toString() {
-        return super.toString("error", dst, str);
+        return super.toString(name, dst, str);
     }
     public String toByteString() {
-        return super.toByteString("error", dst, str);
+        return super.toByteString(name, dst, str);
     }
 }
-
+/* macro instruction */
 class MSetfl extends BCode {
-    MSetfl() {}
+    MSetfl() {
+        super("@Msetfl");
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("attempt to emit a macro instruction MSetfl");
+    }
     @Override
     public String toString() {
         return "@MACRO setfl";
@@ -1481,6 +1868,7 @@ class MCall extends BCode {
     boolean isNew;
     boolean isTail;
     MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
+        super("@Mcall");
         this.receiver = receiver == null ? null : new RegisterOperand(receiver);
         this.function = new RegisterOperand(function);
         this.args = new SrcOperand[args.length];
@@ -1503,6 +1891,10 @@ class MCall extends BCode {
         return srcs;
     }
     @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("attempt to emit a macro instruction MSetfl");
+    }
+    @Override
     public String toString() {
         String s ="@MACRO ";
 
@@ -1522,7 +1914,11 @@ class MCall extends BCode {
 
 class MParameter extends BCode {
     MParameter(Register dst) {
-        super(dst);
+        super("@Mparameter", dst);
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        throw new Error("attempt to emit a macro instruction MSetfl");
     }
     @Override
     public String toString() {

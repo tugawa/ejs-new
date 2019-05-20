@@ -51,8 +51,7 @@ class BCBuilder {
         int index = -1;
 
         List<BCode> bcodes = new LinkedList<BCode>();
-
-        List<Label>   labelsSetJumpDest   = new LinkedList<Label>();
+        List<Label> labelsSetJumpDest = new LinkedList<Label>();
 
         void expandMacro(Main.Info info) {
             int numberOfOutRegisters = NUMBER_OF_LINK_REGISTERS + numberOfArgumentRegisters + 1; /* + 1 for this-object register */
@@ -110,6 +109,21 @@ class BCBuilder {
                 }
                 number++;
             }
+        }
+
+        /**
+         * Append instruction sequence and adjust related meta-data.
+         * Parameter fb should be a toplevel function that has not arguments and no locals.
+         * Ignore "logging" flag of FunctionBCBuilder. It should be invalid.
+         * @param fb function to be appended to this function.
+         */
+        void append(FunctionBCBuilder fb) {
+            assert(fb.topLevel);
+            assert(fb.numberOfArgumentRegisters == 0);
+            assert(fb.numberOfLocals == 0);
+
+            bcodes.addAll(fb.bcodes);
+            numberOfGPRegisters = Math.max(numberOfGPRegisters, fb.numberOfGPRegisters);
         }
 
         void assignAddress() {
@@ -213,7 +227,7 @@ class BCBuilder {
         for (int i = 0; i < n; i++)
             fBuilders.add(new FunctionBCBuilder());
     }
-    
+
     FunctionBCBuilder openFunctionBCBuilder() {
         FunctionBCBuilder bcb = new FunctionBCBuilder();
         fbStack.push(bcb);
@@ -223,6 +237,10 @@ class BCBuilder {
 
     FunctionBCBuilder getFunctionBCBuilder(int index) {
         return fBuilders.get(index);
+    }
+
+    List<FunctionBCBuilder> getFunctionBCBuilders() {
+        return fBuilders;
     }
 
     void closeFuncBCBuilder() {
@@ -325,37 +343,41 @@ class BCBuilder {
         return index;
     }
     
-    List<BCode> build() {
-        // build fBuilders.
-        List<BCode> result = new LinkedList<BCode>();
+    void mergeTopLevel() {
+        FunctionBCBuilder toplevel = null;
 
+        // append second and following toplevel functions to the first one
+        for (int i = 0; i < fBuilders.size(); i++) {
+            FunctionBCBuilder fb = fBuilders.get(i);
+            if (fb.topLevel) {
+                if (toplevel == null)
+                    toplevel = fb;
+                else {
+                    toplevel.append(fb);
+                    fBuilders.remove(i);
+                    i--;
+                }
+            }
+        }
+        if (toplevel == null)
+            throw new Error("no toplevel function");
+
+        // add IRET
+        toplevel.bcodes.add(new IRet());
+    }
+
+    List<BCode> build() {
+        mergeTopLevel();
         int nfunc = assignFunctionIndex(true);
         nfunc++; // toplevel function
+
+        // build fBuilders.
+        List<BCode> result = new LinkedList<BCode>();
         result.add(new IFuncLength(nfunc));
-
-        /* top level */
-        FunctionBCBuilder first = fBuilders.get(0);
-        int topLevelNumberOfInstructions = 0;
-        for (FunctionBCBuilder fb : fBuilders) {
-            if (fb.topLevel)
-                topLevelNumberOfInstructions += fb.getNumberOfInstructions();
-        }
-        topLevelNumberOfInstructions++; // last iret
-        result.add(new ICallentry(first.callEntry.dist(0)));
-        result.add(new ISendentry(first.sendEntry.dist(0)));
-        result.add(new INumberOfLocals(0));
-        result.add(new INumberOfInstruction(topLevelNumberOfInstructions));
-        for (FunctionBCBuilder fb : fBuilders) {
-            if (fb.topLevel)
-                result.addAll(fb.getInstructions());
-        }
-        result.add(new IRet());
-
-        for (FunctionBCBuilder fb : fBuilders) {
-            if (!fb.topLevel)
-                result.addAll(fb.build());
-        }
+        for (FunctionBCBuilder fb : fBuilders)
+            result.addAll(fb.build());
         return result;
+
     }
 
     void push(Label label) {

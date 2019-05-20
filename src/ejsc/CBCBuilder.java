@@ -445,7 +445,7 @@ class CBCBuilder {
             int load1 = ((ALiteral) bc.load1).n;
             int load2 = ((ALiteral) bc.load2).n;
             if (bc instanceof ICBCNewframe)
-                return new INewframe(load1, load2);
+                return new INewframe(load1, load2 == 0 ? false : true);
         }
         // Register literal none
         if (bc.store instanceof ARegister && bc.load1 instanceof ALiteral && bc.load2 instanceof ANone) {

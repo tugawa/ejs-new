@@ -671,7 +671,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(sendEntry);
 
         if (needFrame)
-            bcBuilder.push(new INewframe(locals.size(), needArguments ? 1 : 0));
+            bcBuilder.push(new INewframe(locals.size(), needArguments));
         bcBuilder.pushMsetfl();
 
         /*
