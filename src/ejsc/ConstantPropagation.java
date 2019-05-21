@@ -24,14 +24,12 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
-import ejsc.BCodeEvaluator.Environment;
 import ejsc.BCodeEvaluator.FixnumValue;
 import ejsc.BCodeEvaluator.NumberValue;
 import ejsc.BCodeEvaluator.SpecialValue;
 import ejsc.BCodeEvaluator.StringValue;
 import ejsc.BCodeEvaluator.Value;
 import ejsc.Main.Info.SISpecInfo.SISpec;
-import ejsc.SpecialOperand.V;
 
 public class ConstantPropagation {
     static final boolean DEBUG = false;

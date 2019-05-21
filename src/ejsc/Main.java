@@ -19,36 +19,27 @@
      Ryota Fujii, 2013-14
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
-*/
+ */
 package ejsc;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import ejsc.antlr.*;
 import ejsc.ast_node.Node;
 import ejsc.antlr.ECMAScriptLexer;
 import ejsc.antlr.ECMAScriptParser;
 
 
 import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintWriter;
 import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.HashMap;
-import java.util.Arrays;
 
 
 public class Main {
@@ -82,9 +73,6 @@ public class Main {
         boolean optCommonConstantElimination = false;
         boolean optEnableLogging = false;
         boolean optSuperInstruction = false;
-        boolean optCBCSuperInstruction = false;
-        boolean optCBCRedunantInstructionElimination = false;
-        boolean optCBCRegisterAssignment = false;
         boolean optOutOBC = false;
         OptLocals optLocals = OptLocals.NONE;
 
@@ -155,15 +143,6 @@ public class Main {
                         info.specFilePath = args[++i];
                         info.sispecInfo = new SISpecInfo(info.specFilePath);
                         break;
-                    case "-opt-cbc-sie":
-                        info.optCBCSuperInstruction = true;
-                        break;
-                    case "-opt-cbc-rie":
-                        info.optCBCRedunantInstructionElimination = true;
-                        break;
-                    case "-opt-cbc-reg":
-                        info.optCBCRegisterAssignment = true;
-                        break;
                     case "-fn":
                         info.baseFunctionNumber = Integer.parseInt(args[++i]);
                         break;
@@ -192,7 +171,6 @@ public class Main {
                     info.outputFileName = firstInputFileName + ext;
                 }
             }
-            //System.out.println(info.outputFileName);
             return info;
         }
 
@@ -326,127 +304,6 @@ public class Main {
         }
     }
 
-    void writeBCodeToSBCFile(List<BCode> bcodes, String filename) {
-        try {
-            File file = new File(filename);
-            PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-            for (Object bc : bcodes) {
-                pw.println(bc.toString());
-            }
-            pw.close();
-        } catch(IOException e) {
-            System.out.println(e);
-        }
-    }
-
-    void writeBCodeToOBCFile(List<BCode> bcodes, String filename, int basefn) {
-        LiteralList ll = new LiteralList();
-        try {
-            File file = new File(filename);
-            PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(file)));
-            FileOutputStream fo = null;
-            BufferedOutputStream bo = null;
-
-            try {
-                bo = new BufferedOutputStream(new FileOutputStream(file));
-                int n = 0;
-
-                /* nfunc */
-                String tmpstr = bcodes.get(n++).toByteString();
-                int nfunc = Integer.parseInt(tmpstr,16);
-                char[] tmp = tmpstr.toCharArray();
-                for(int i=0;i<2;i++)
-                    bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
-
-                /* for each functions */
-                for(int k=0;k<nfunc;k++) {
-
-                    ll.init();
-
-                    /* headers */
-                    for(int j=0;j<4;j++) {
-                        tmpstr = bcodes.get(n++).toByteString();
-                        tmp = tmpstr.toCharArray();
-                        for(int i=0;i<2;i++)
-                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
-                    }
-                    int ninsn = Integer.parseInt(tmpstr,16);
-
-                    /* instructions */
-                    for(int j=0;j<ninsn;j++) {
-                        BCode bcode = bcodes.get(n++);
-                        tmp = bcode.toByteString().toCharArray();
-                        int opcode = Integer.parseInt(String.format("%c%c%c%c",tmp[0], tmp[1], tmp[2], tmp[3]),16);
-                        if(tmp.length>16) {
-                            int opStr_flag[] = new int[3];
-                            for(int i=0;i<3;i++) opStr_flag[i] = Integer.parseInt(String.format("%c", tmp[16+i]),16);
-                            int count = 0;
-                            for(int i=0;i<3;i++) {
-                                //System.out.println("length:" + tmp.length + "//count:" + count);
-                                //System.out.println("flag[" + i + "]" + opStr_flag[i]);
-                                if(opStr_flag[i]==0) continue;
-                                int nchar = Integer.parseInt(String.format("%c%c%c%c",tmp[4+i*4], tmp[5+i*4], tmp[6+i*4], tmp[7+i*4]),16);
-                                String str="";
-                                //System.out.println(nchar + "//" +(19+count+nchar*2));
-                                for(int h=0;h<nchar;h++) str += String.format("%c%c", tmp[19+count+h*2], tmp[19+count+h*2+1]);
-                                if(opStr_flag[i]==2) {
-                                    str += "00";
-                                    //nchar++;
-                                }
-                                int index = ll.add(str);
-                                //System.out.println(index);
-                                if(index<0) {
-                                    //nchar = 0;
-                                    index = (index+1) * (-1);
-                                }
-                                //System.out.println("[" + index + "] : " + str);
-                                count+=nchar*2;
-                                /*char[] new_nchar = String.format("%04x", nchar).toCharArray();
-                                for(int i=0;i<4;i++)
-                                    tmp[8+i] = new_nchar[i];
-                                 */
-                                char[] ret = String.format("%04x", index & 0xffff).toCharArray();
-                                for(int h=0;h<4;h++)
-                                    tmp[4+i*4+h] = ret[h];
-                            }
-                        }
-                        if(basefn != 0 && bcode instanceof IMakeclosure) {
-                            int fn = Integer.parseInt(String.format("%c%c%c%c", tmp[8], tmp[9], tmp[10], tmp[11]),16);
-                            //System.out.println("overwrite " + fn + " to " + (fn+basefn));
-                            fn += basefn;
-                            char[] newfn = String.format("%04x", fn).toCharArray();
-                            for(int i=0;i<4;i++)
-                                tmp[8+i] = newfn[i];
-                        }
-
-                        for(int i=0;i<8;i++) {
-                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
-                        }
-                    }
-
-                    // Literals
-                    for(int j=0;j<ll.list().size();j++) {
-                        tmp = ll.list().get(j).toCharArray();
-                        bo.write((byte)((tmp.length/2) >> 8));
-                        bo.write((byte)((tmp.length/2) & 0xff));
-                        for(int i=0;i<tmp.length/2;i++)
-                            bo.write((byte)Integer.parseInt(String.format("%c%c", tmp[i*2], tmp[i*2+1]),16));
-                    }
-                }
-            } catch (Exception e){
-                e.printStackTrace();
-            } finally {
-                try {
-                    bo.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        } catch(IOException e) {
-            System.out.println(e);
-        }
-    }
-
     void run(String[] args) {
 
         // Parse command line option.
@@ -514,19 +371,6 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
         bcBuilder.optimisation(info);
 
-        /*
-        if (info.optSuperInstruction) {
-            // convert byte code into compact byte code.
-            CBCBuilder cbcBuilder = bcBuilder.convertBCode();
-            cbcBuilder.makeSuperInstruction(info);
-            bcBuilder = cbcBuilder.convertBCode();
-        }
-        if (info.optPrintLowLevelCode) {
-            bcBuilder.assignAddress();
-            System.out.print(bcBuilder);
-        }
-        */
-
         bcBuilder.assignAddress();
 
         // macro instruction expansion
@@ -561,39 +405,3 @@ public class Main {
     }
 }
 
-class LiteralList {
-    List<String> list;
-
-    LiteralList(){
-        list = new ArrayList<String>();
-    }
-
-    void init() {
-        list.clear();
-    }
-
-    int add(String code) {
-        int index;
-        //System.out.print(code + ", loaded, ");
-        if((index=lookup(code))==-1) {
-            list.add(code);
-            return list.size()-1;
-        }
-        return index * (-1) - 1;
-    }
-
-    int lookup(String code) {
-        int i = 0;
-        for(i=0;i<list.size();i++)
-            if(list.get(i).equals(code)) return i;
-        return -1;
-    }
-
-    int size() {
-        return list.size();
-    }
-
-    List<String> list() {
-        return list;
-    }
-}

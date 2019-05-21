@@ -26,10 +26,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import ejsc.Main.Info;
-import ejsc.Main.Info.SISpecInfo;
-import ejsc.Main.Info.SISpecInfo.SISpec;
-
 abstract class CodeBuffer {
     enum SpecialValue {
         TRUE,
@@ -86,7 +82,6 @@ abstract class CodeBuffer {
 }
 
 public abstract class BCode {
-    CodeMaker cm = new CodeMaker();
     String name;
     int number;
     protected Register dst;
@@ -100,10 +95,6 @@ public abstract class BCode {
     BCode(String name, Register dst) {
         this(name);
         this.dst = dst;
-    }
-
-    int getArgsNum() {
-        return 0;
     }
 
     void addLabels(List<Label> labels) {
@@ -209,313 +200,8 @@ public abstract class BCode {
     String toString(String opcode, int op1, int op2) {
         return opcode + logStr() + " " + op1 + " " + op2;
     }
-    String toString(String opcode, String op1, String op2, String op3) {
-        return opcode + " " + op1 + " " + op2 + " " + op3;
-    }
-    String toString(String opcode, int op1, Register op2) {
-        return opcode + " " + op1 + " " + op2;
-    }
     String toString(String opcode, Register op1, int op2, String op3) {
         return opcode + logStr() + " " + op1 + " " + op2 + " " + op3;
-    }
-
-    String toByteString() {
-        throw new Error("toByteString has no override method");
-    }
-    String toByteString(String opcode) {
-        return cm.makecode(opcode);
-    }
-    String toByteString(String opcode, Register op1) {
-        return cm.makecode(opcode, op1.n);
-    }
-    String toByteString(String opcode, SrcOperand src) {
-        if (src instanceof RegisterOperand) {
-            int rs = ((RegisterOperand) src).x.getRegisterNumber();
-            return cm.makecode(opcode, rs);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, Register dst, SrcOperand src) {
-        if (src instanceof RegisterOperand) {
-            int rd = dst.getRegisterNumber();
-            int rs = ((RegisterOperand) src).x.getRegisterNumber();
-            return cm.makecode(opcode, rd, rs);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, SrcOperand src, Register dst) {
-        if (src instanceof RegisterOperand) {
-            int rs = ((RegisterOperand) src).x.getRegisterNumber();
-            int rd = dst.getRegisterNumber();
-            return cm.makecode(opcode, rs, rd);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, SrcOperand src1, SrcOperand src2) {
-        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
-            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
-            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
-            return cm.makecode(opcode, rs1, rs2);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, Register dst, SrcOperand src1, SrcOperand src2) {
-        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
-            int rd = dst.getRegisterNumber();
-            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
-            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
-            return cm.makecode(opcode, rd, rs1, rs2);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
-        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand && src3 instanceof RegisterOperand) {
-            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
-            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
-            int rs3 = ((RegisterOperand) src3).x.getRegisterNumber();
-            return cm.makecode(opcode, rs1, rs2, rs3);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, Register op1, String op2) {
-        return cm.makecode(opcode, op1.n, op2);
-    }
-    String toByteString(String opcode, SrcOperand src, int op2) {
-        if (src instanceof RegisterOperand) {
-            int rs = ((RegisterOperand) src).x.getRegisterNumber();
-            return cm.makecode(opcode, rs, op2);
-        } throw new Error("not implemented");
-    }
-    String toByteString(String opcode, Register op1, double op2) {
-        return cm.makecode(opcode, op1.n, op2) ;
-    }
-    String toByteString(String opcode, Register op1, int op2) {
-        return cm.makecode(opcode, op1.n, op2) ;
-    }
-    String toByteString(String opcode, Register op1, int op2, int op3) {
-        return cm.makecode(opcode, op1.n, op2, op3);
-    }
-    String toByteString(String opcode, SrcOperand src1, int op2, SrcOperand src2) {
-        if (src1 instanceof RegisterOperand && src2 instanceof RegisterOperand) {
-            int rs1 = ((RegisterOperand) src1).x.getRegisterNumber();
-            int rs2 = ((RegisterOperand) src2).x.getRegisterNumber();
-            return cm.makecode(opcode, rs1, op2, rs2);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, int op1, int op2, SrcOperand src) {
-        if (src instanceof RegisterOperand) {
-            int rs = ((RegisterOperand) src).x.getRegisterNumber();
-            return cm.makecode(opcode, op1, op2, rs);
-        } else
-            throw new Error("not implemented");
-    }
-    String toByteString(String opcode, int op1) {
-        return cm.makecode(opcode, op1);
-    }
-    String toByteString(String opcode, int op1, int op2) {
-        return cm.makecode(opcode, op1, op2);
-    }
-    String toByteString(String opcode, Register op1, int op2, String op3) {
-        return cm.makecode(opcode, op1.n, op2);
-    }
-    String toByteString(String opcode, String op1, String op2, String op3) {
-        return cm.makecode(opcode, op1, op2, op3);
-    }
-
-    class CodeMaker {
-        public CodeMaker() {
-        }
-
-        public String makecode(int opcode, int op1, int op2, int op3) {
-            return String.format("%04x%04x%04x%04x",
-                    opcode, op1&0xffff, op2&0xffff, op3&0xffff);
-        }
-
-        public String makecode(String opcode) {
-            return makecode(makeopcode(opcode), 0, 0, 0);
-        }
-
-        public String makecode(String opcode, int op1) {
-            int c = makeopcode(opcode);
-            if(c == -1)
-                return String.format("%04x", op1);
-            return makecode(c, op1, 0, 0);
-        }
-        public String makecode(String opcode, int op1, int op2) {
-            if(opcode.contentEquals("fixnum"))
-                return makecode(makeopcode(opcode), op1,
-                        (op2 >> 16)&0xffff, (op2 & 0xffff));
-            return makecode(makeopcode(opcode), op1, op2, 0);
-        }
-        public String makecode(String opcode, int op1, int op2, int op3) {
-            return makecode(makeopcode(opcode), op1, op2, op3);
-        }
-        public String makecode(String opcode, String op1, String op2, String op3) {
-            Main.Info.SISpecInfo.SISpec sispec = Main.Info.SISpecInfo.getSISpecBySIName(opcode);
-            String opstring[] = {op1, op2, op3};
-            String optype[] = {sispec.op0, sispec.op1, sispec.op2};
-            String BigPrimitiveInfomation="";
-            String LiteralBins[] = {"","",""};
-            for(int i=0;i<3;i++) {
-                switch(optype[i]) {
-                case "string" :
-                    BigPrimitiveInfomation += "2";
-                    char[] name = opstring[i].toCharArray();
-                    int[] bins = new int[name.length];
-                    char tmp = '\0';
-                    // System.out.println(op2);
-                    for(int j=1;j<name.length-1;j++) {
-                        if(j%2==0) bins[j/2-1] = tmp << 8 | name[j];
-                        tmp = name[j];
-                        if(j==name.length-2 && j%2==1) bins[(j-1)/2] = tmp << 8;
-                    }
-                    LiteralBins[i] = names(bins);
-                    break;
-                case "flonum" :
-                    BigPrimitiveInfomation += "1";
-                    LiteralBins[i] = nums(Double.parseDouble(opstring[i]));
-                    break;
-                default :
-                    BigPrimitiveInfomation += "0";
-                }
-            }
-            //System.out.println(LiteralBins[0] + ":" + LiteralBins[1] + ":" + LiteralBins[2]);
-            return makecode(Main.Info.SISpecInfo.getOpcodeIndex(opcode),
-                    makeoperand(op1, optype[0]),
-                    makeoperand(op2, optype[1]),
-                    makeoperand(op3, optype[2])) 
-                    + BigPrimitiveInfomation
-                    + LiteralBins[0] + LiteralBins[1] + LiteralBins[2];
-        }
-
-        public String makecode(String opcode, int op1, String op2) {
-            int value = 0;
-            if(op2.contentEquals("true") ||
-                    op2.contentEquals("false") ||
-                    op2.contentEquals("null") ||
-                    op2.contentEquals("undefined")) {
-                if(op2.contentEquals("true"))
-                    value = 0x1e;
-                else if(op2.contentEquals("false"))
-                    value = 0x0e;
-                else if(op2.contentEquals("null"))
-                    value = 0x06;
-                else if(op2.contentEquals("undefined"))
-                    value = 0x16;
-                return makecode(makeopcode(opcode), op1,
-                        value >> 16, value & 0xffff);
-            }
-            int i;
-            char[] name = op2.toCharArray();
-            int[] bins = new int[name.length];
-            char tmp = '\0';
-            // System.out.println(op2);
-            for(i=1;i<name.length-1;i++) {
-                // System.out.println(i + ":" + name[i]);
-                if(i%2==0) bins[i/2-1] = tmp << 8 | name[i];
-                tmp = name[i];
-                value++;
-                if(i==name.length-2 && i%2==1) bins[(i-1)/2] = tmp << 8;
-            }
-            return makecode(makeopcode(opcode), op1,
-                    value & 0xffff, 0) + "020" + names(bins);
-        }
-
-        String names(int[] bins) {
-            int i;
-            String str="";
-            for(i=0;bins[i]!=0;i++) {
-                if((bins[i] & 0xff)==0)
-                    str = str + String.format("%02x", bins[i]>>8);
-                else
-                    str = str + String.format("%04x", bins[i]);
-            }
-            //System.out.println(str);
-            return str;
-        }
-
-        String makecode(String opcode, int op1, double op2) {
-            return makecode(makeopcode(opcode), op1,
-                    8, 0) + "010" + nums(op2);
-        }
-
-        String nums(double op) {
-            int i;
-            double num = op;
-            int sign = 0;
-            int index = 0;
-            double mant = 0;
-            int amant[] = new int[52];
-            String str="";
-
-            // 指数部
-            if(op<0) {
-                sign = 1;
-                num *= -1.0;
-            }
-
-            mant = num;
-            if(num == 0.0) {
-                return "1000000000000000";
-            } else if(num>2.0) {
-                while(mant>=2.0) {
-                    // System.out.println(mant);
-                    mant /= 2.0;
-                    index += 1;
-                }
-            } else if(num<=1.0) {
-                while(1.0>mant) {
-                    mant *= 2.0;
-                    index -= 1;
-                }
-            }
-            // System.out.println(mant);
-
-            double tmp = mant-1.0;
-            for(i=0;i<52;i++) {
-                // System.out.print(tmp+"/");
-                tmp*=2.0;
-                if((int)tmp==1) {
-                    tmp-=1.0;
-                    amant[i] = 1;
-                } else {
-                    amant[i] = 0;
-                }
-            }
-
-            str += String.format("%03x", sign*2048 + index + 1023);
-            for(i=0;i<13;i++) {
-                int a = amant[i*4]*8 + amant[i*4+1]*4 + amant[i*4+2]*2 + amant[i*4+3];
-                str += String.format("%x", a);
-            }
-            return str;
-        }
-
-        int makeopcode(String opcode) {
-            int code = Info.getOpcodeIndex(opcode);
-            return Info.getOpcodeIndex(opcode);
-        }
-
-        int makeoperand(String op, String type) {
-            switch(type) {
-            case "-":
-            case "_":
-            case "fixnum":
-                return Integer.parseInt(op);
-            case "special":
-                switch(op) {
-                case "true": return 0x1e;
-                case "false": return 0x0e;
-                case "null": return 0x06;
-                case "undefined": return 0x16;
-                }
-            case "string": return (op.length()-2) & 0xffff;
-            case "flonum": return 8;
-            default:
-                throw new Error("undefined type: " + type);
-            }
-        }
     }
 }
 
@@ -622,26 +308,6 @@ class SpecialOperand extends SrcOperand {
  * BCode
  */
 
-class ISuperInstruction extends BCode {
-    String store, load1, load2;
-    ISuperInstruction(String name, String store, String load1, String load2) {
-        super(name);
-        this.store = store;
-        this.load1 = load1;
-        this.load2 = load2;
-    }
-    @Override
-    public void emit(CodeBuffer buf) {
-        throw new Error("to be removed");
-    }
-    public String toString() {
-        return super.toString(name, store, load1, load2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, store, load1, load2);
-    }
-}
-
 /* SMALLPRIMITIVE */
 class IFixnum extends BCode {
     int n;
@@ -655,9 +321,6 @@ class IFixnum extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, n);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, n);
     }
 }
 /* BIGPRIMITIVE */
@@ -674,9 +337,6 @@ class INumber extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, n);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, n);
     }
 }
 /* BIGPRIMITIVE */
@@ -697,9 +357,6 @@ class IString extends BCode {
     public String toString() {
         return super.toString(name, dst, "\"" + str + "\"");
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, "\"" + str + "\"");
-    }
 }
 /* SMALLPRIMITIVE */
 class IBooleanconst extends BCode {
@@ -715,9 +372,6 @@ class IBooleanconst extends BCode {
     public String toString() {
         return super.toString(name, dst, b ? "true" : "false");
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, b ? "true" : "false");
-    }
 }
 /* SMALLPRIMITIVE */
 class INullconst extends BCode {
@@ -731,9 +385,6 @@ class INullconst extends BCode {
     public String toString() {
         return super.toString(name, dst, "null");
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, "null");
-    }
 }
 /* SMALLPRIMITIVE */
 class IUndefinedconst extends BCode {
@@ -746,9 +397,6 @@ class IUndefinedconst extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, "undefined");
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, "undefined");
     }
 }
 /* REGEXPOP */
@@ -766,9 +414,6 @@ class IRegexp extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, idx, "\"" + ptn + "\"");
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, idx, "\"" + ptn + "\"");
     }
 }
 /* THREEOP */
@@ -789,9 +434,6 @@ class IAdd extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class ISub extends BCode {
@@ -810,9 +452,6 @@ class ISub extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -833,9 +472,6 @@ class IMul extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class IDiv extends BCode {
@@ -854,9 +490,6 @@ class IDiv extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -877,9 +510,6 @@ class IMod extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class IBitor extends BCode {
@@ -898,9 +528,6 @@ class IBitor extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -921,9 +548,6 @@ class IBitand extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class ILeftshift extends BCode {
@@ -942,9 +566,6 @@ class ILeftshift extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -965,9 +586,6 @@ class IRightshift extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class IUnsignedrightshift extends BCode {
@@ -986,9 +604,6 @@ class IUnsignedrightshift extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -1009,9 +624,6 @@ class IEqual extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class IEq extends BCode {
@@ -1030,9 +642,6 @@ class IEq extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* THREEOP */
@@ -1053,9 +662,6 @@ class ILessthan extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* THREEOP */
 class ILessthanequal extends BCode {
@@ -1075,9 +681,6 @@ class ILessthanequal extends BCode {
     public String toString() {
         return super.toString(name, dst, src1, src2);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
-    }
 }
 /* TWOOP */
 class INot extends BCode {
@@ -1096,9 +699,6 @@ class INot extends BCode {
     public String toString() {
         return super.toString(name, dst, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src);
-    }
 }
 /* ONEOP */
 class IGetglobalobj extends BCode {
@@ -1112,9 +712,6 @@ class IGetglobalobj extends BCode {
     public String toString() {
         return super.toString(name, dst);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst);
-    }
 }
 /* ZEROOP */
 class INewargs extends BCode {
@@ -1127,9 +724,6 @@ class INewargs extends BCode {
     }
     public String toString() {
         return super.toString(name);
-    }
-    public String toByteString() {
-        return super.toByteString(name);
     }
 }
 /* NEWFRAMEOP */
@@ -1147,9 +741,6 @@ class INewframe extends BCode {
     }
     public String toString() {
         return super.toString(name, len, makeArguments ? 1 : 0);
-    }
-    public String toByteString() {
-        return super.toByteString(name, len, makeArguments ? 1 : 0);
     }
 }
 /* TWOOP */
@@ -1169,9 +760,6 @@ class IGetglobal extends BCode {
     public String toString() {
         return super.toString(name, dst, varName);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, varName);
-    }
 }
 /* TWOOP */
 class ISetglobal extends BCode {
@@ -1189,10 +777,7 @@ class ISetglobal extends BCode {
         buf.addXXTwoOp(name, varName, src);
     }
     public String toString() {
-        return super.toString("setglobal", varName, src);
-    }
-    public String toByteString() {
-        return super.toByteString("setglobal", varName, src);
+        return super.toString(name, varName, src);
     }
 }
 /* GETVAR */
@@ -1208,10 +793,7 @@ class IGetlocal extends BCode {
         buf.addGetVar(name, dst, link, index);
     }
     public String toString() {
-        return super.toString("getlocal", dst, link, index);
-    }
-    public String toByteString() {
-        return super.toByteString("getlocal", dst, link, index);
+        return super.toString(name, dst, link, index);
     }
 }
 /* SETVAR */
@@ -1234,9 +816,6 @@ class ISetlocal extends BCode {
     public String toString() {
         return super.toString(name, link, index, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, link, index, src);
-    }
 }
 /* GETVAR */
 class IGetarg extends BCode {
@@ -1252,9 +831,6 @@ class IGetarg extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, link, index);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, link, index);
     }
 }
 /* SETVAR */
@@ -1277,9 +853,6 @@ class ISetarg extends BCode {
     public String toString() {
         return super.toString(name, link, index, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, link, index, src);
-    }
 }
 /* THREEOP */
 class IGetprop extends BCode {
@@ -1298,9 +871,6 @@ class IGetprop extends BCode {
     }
     public String toString() {
         return super.toString("getprop", dst, obj, prop);
-    }
-    public String toByteString() {
-        return super.toByteString("getprop", dst, obj, prop);
     }
 }
 /* SETPROP */
@@ -1321,9 +891,6 @@ class ISetprop extends BCode {
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
-    }
-    public String toByteString() {
-        return super.toByteString("setprop", obj, prop, src);
     }
 }
 /* THREEOP */
@@ -1347,9 +914,6 @@ class ISetarray extends BCode {
     public String toString() {
         return super.toString(name, ary, n, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, ary, n, src);
-    }
 }
 /* MAKECLOSUREOP */
 class IMakeclosure extends BCode {
@@ -1365,9 +929,6 @@ class IMakeclosure extends BCode {
     public String toString() {
         return super.toString(name, dst, function.getIndex());
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, function.getIndex());
-    }
 }
 /* ONEOP */
 class IGeta extends BCode {
@@ -1380,9 +941,6 @@ class IGeta extends BCode {
     }
     public String toString() {
         return super.toString(name, dst);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst);
     }
 }
 /* ONEOP */
@@ -1400,10 +958,7 @@ class ISeta extends BCode {
         buf.addXOneOp(name, src);
     }
     public String toString() {
-        return super.toString("seta", src);
-    }
-    public String toByteString() {
-        return super.toByteString("seta", src);
+        return super.toString(name, src);
     }
 }
 /* RET */
@@ -1420,10 +975,7 @@ class IRet extends BCode {
         buf.addZeroOp(name);
     }
     public String toString() {
-        return super.toString("ret");
-    }
-    public String toByteString() {
-        return super.toByteString("ret");
+        return super.toString(name);
     }
 }
 /* TWOOP */
@@ -1440,9 +992,6 @@ class IMove extends BCode {
     public String toString() {
         return super.toString(name, dst, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src);
-    }
 }
 /* TWOOP */
 class IIsundef extends BCode {
@@ -1457,9 +1006,6 @@ class IIsundef extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src);
     }
 }
 /* TWOOP */
@@ -1476,9 +1022,6 @@ class IIsobject extends BCode {
     public String toString() {
         return super.toString(name, dst, src);
     }
-    public String toByteString() {
-        return super.toByteString(name, dst, src);
-    }
 }
 /* THREEOP */
 class IInstanceof extends BCode {
@@ -1494,9 +1037,6 @@ class IInstanceof extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, src1, src2);
     }
 }
 /* CALLOP */
@@ -1515,9 +1055,6 @@ class ICall extends BCode {
     public String toString() {
         return super.toString(name, function, numOfArgs);
     }
-    public String toByteString() {
-        return super.toByteString(name, function, numOfArgs);
-    }
 }
 /* CALL */
 class ISend extends BCode {
@@ -1535,9 +1072,6 @@ class ISend extends BCode {
     public String toString() {
         return super.toString(name, function, numOfArgs);
     }
-    public String toByteString() {
-        return super.toByteString(name, function, numOfArgs);
-    }
 }
 /* CALL */
 class INew extends BCode {
@@ -1552,9 +1086,6 @@ class INew extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, constructor);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, constructor);
     }
 }
 /* CALL */
@@ -1573,9 +1104,6 @@ class INewsend extends BCode {
     public String toString() {
         return super.toString(name, constructor, numOfArgs);
     }
-    public String toByteString() {
-        return super.toByteString(name, constructor, numOfArgs);
-    }
 }
 /* TWOOP */
 class IMakesimpleiterator extends BCode {
@@ -1591,9 +1119,6 @@ class IMakesimpleiterator extends BCode {
     public String toString() {
         return super.toString(name, obj, dst);
     }
-    public String toByteString() {
-        return super.toByteString(name, obj, dst);
-    }
 }
 class INextpropnameidx extends BCode {
     SrcOperand ite;
@@ -1607,9 +1132,6 @@ class INextpropnameidx extends BCode {
     }
     public String toString() {
         return super.toString(name, ite, dst);
-    }
-    public String toByteString() {
-        return super.toByteString(name, ite, dst);
     }
 }
 /* UNCONDJUMP */
@@ -1634,9 +1156,6 @@ class IJump extends BCode {
     public String toString() {
         return super.toString(name, label.dist(number));
     }
-    public String toByteString() {
-        return super.toByteString(name, label.dist(number));
-    }
 }
 /* CONDJUMP */
 class IJumptrue extends BCode {
@@ -1657,9 +1176,6 @@ class IJumptrue extends BCode {
     }
     public String toString() {
         return super.toString(name, test, label.dist(number));
-    }
-    public String toByteString() {
-        return super.toByteString(name, test, label.dist(number));
     }
 }
 /* CONDJUMP */
@@ -1682,9 +1198,6 @@ class IJumpfalse extends BCode {
     public String toString() {
         return super.toString(name, test, label.dist(number));
     }
-    public String toByteString() {
-        return super.toByteString(name, test, label.dist(number));
-    }
 }
 /* ONEOP */
 class IThrow extends BCode {
@@ -1704,9 +1217,6 @@ class IThrow extends BCode {
     public String toString() {
         return super.toString(name, reg);
     }
-    public String toByteString() {
-        return super.toByteString(name, reg);
-    }
 }
 /* UNCONDJUMP */
 class IPushhandler extends BCode {
@@ -1722,9 +1232,6 @@ class IPushhandler extends BCode {
     public String toString() {
         return super.toString(name, label.dist(number));
     }
-    public String toByteString() {
-        return super.toByteString(name, label.dist(number));
-    }
 }
 /* ZEROOP */
 class IPophandler extends BCode {
@@ -1737,9 +1244,6 @@ class IPophandler extends BCode {
     }
     public String toString() {
         return super.toString(name);
-    }
-    public String toByteString() {
-        return super.toByteString(name);
     }
 }
 /* UNCONDJUMP */
@@ -1755,9 +1259,6 @@ class ILocalcall extends BCode {
     }
     public String toString() {
         return super.toString("localcall", label.dist(number));
-    }
-    public String toByteString() {
-        return super.toByteString("localcall", label.dist(number));
     }
 }
 /* ZEROOP */
@@ -1776,9 +1277,6 @@ class ILocalret extends BCode {
     public String toString() {
         return super.toString(name);
     }
-    public String toByteString() {
-        return super.toByteString(name);
-    }
 }
 /* ZEROOP */
 class IPoplocal extends BCode {
@@ -1791,9 +1289,6 @@ class IPoplocal extends BCode {
     }
     public String toString() {
         return super.toString("poplocal");
-    }
-    public String toByteString() {
-        return super.toByteString("poplocal");
     }
 }
 /* ONEOP */
@@ -1809,9 +1304,6 @@ class ISetfl extends BCode {
     }
     public String toString() {
         return super.toString(name, fl);
-    }
-    public String toByteString() {
-        return super.toByteString(name, fl);
     }
 }
 
@@ -1829,9 +1321,6 @@ class IFuncLength extends BCode {
     public String toString() {
         return super.toString(name, n);
     }
-    public String toByteString() {
-        return super.toByteString(name, n);
-    }
 }
 class ICallentry extends BCode {
     int n;
@@ -1845,9 +1334,6 @@ class ICallentry extends BCode {
     }
     public String toString() {
         return super.toString(name, n);
-    }
-    public String toByteString() {
-        return super.toByteString(name, n);
     }
 }
 class ISendentry extends BCode {
@@ -1863,9 +1349,6 @@ class ISendentry extends BCode {
     public String toString() {
         return super.toString(name, n);
     }
-    public String toByteString() {
-        return super.toByteString(name, n);
-    }
 }
 class INumberOfLocals extends BCode {
     int n;
@@ -1880,9 +1363,6 @@ class INumberOfLocals extends BCode {
     public String toString() {
         return super.toString(name, n);
     }
-    public String toByteString() {
-        return super.toByteString(name, n);
-    }
 }
 class INumberOfInstruction extends BCode {
     int n;
@@ -1896,9 +1376,6 @@ class INumberOfInstruction extends BCode {
     }
     public String toString() {
         return super.toString(name, n);
-    }
-    public String toByteString() {
-        return super.toByteString(name, n);
     }
 }
 /* BIGPRIMITIVE */
@@ -1918,9 +1395,6 @@ class IError extends BCode {
     }
     public String toString() {
         return super.toString(name, dst, str);
-    }
-    public String toByteString() {
-        return super.toByteString(name, dst, str);
     }
 }
 /* macro instruction */

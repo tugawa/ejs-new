@@ -2,14 +2,9 @@ package ejsc;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
-import ejsc.Main.Info;
 
 public class SBCFileComposer {
     static class SBCInstruction {

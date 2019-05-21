@@ -51,7 +51,6 @@ public class CodeGenerator extends IASTBaseVisitor {
 
             private int maxNumOfDynamicLocals = 0;
             private int numOfRegisters = 0;
-            private final static int MAX_OF_STACK_OF_USING_REGISTERS = 256;
 
             private int numOfArgumentRegisters = 0;
             private List<Register> argumentRegisters = new LinkedList<Register>();
