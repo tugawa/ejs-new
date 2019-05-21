@@ -17,7 +17,7 @@ Electro-communications, which was contributed by the following members.
   Ryota Fujii, 2013-14
   Tomoharu Ugawa, 2012-14
   Hideya Iwasaki, 2012-14
-*/
+ */
 package ejsc;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -140,7 +140,7 @@ public class AvailableExpressionAnalyser {
             return "undefined";
         }
     }
-    
+
     static class AvailableVals extends HashMap<Value, Set<Register>> {
         public AvailableVals() {}
         public AvailableVals(AvailableVals src) {
@@ -181,18 +181,18 @@ public class AvailableExpressionAnalyser {
             return s + "]";            
         }
     }
-    
+
     ControlFlowGraph cfg;
     HashMap<BCode, AvailableVals> ins = new HashMap<BCode, AvailableVals>();
     HashMap<BCode, AvailableVals> outs = new HashMap<BCode, AvailableVals>();
-    
+
     public AvailableExpressionAnalyser(List<BCode> bcodes) {
         this(new ControlFlowGraph(bcodes));
     }
-    
+
     public AvailableExpressionAnalyser(ControlFlowGraph cfg) {
         this.cfg = cfg;
-        
+
         for (CFGNode node: cfg.getNodes()) {
             BCode bc = node.getBCode();
             ins.put(bc, new AvailableVals());
@@ -202,11 +202,11 @@ public class AvailableExpressionAnalyser {
                 out.put(genVal, bc.getDestRegister());
             outs.put(bc, out);
         }
-        
+
         boolean update = true;
         while (update) {
             update = false;
-            
+
             for (CFGNode node: cfg.getNodes()) {
                 BCode bc = node.getBCode();
                 AvailableVals out = outs.get(bc);
@@ -237,7 +237,7 @@ public class AvailableExpressionAnalyser {
                         in.remove(v);
                 }
                 ins.put(bc, new AvailableVals(in));
-                
+
                 // out += in - <?, destReg>
                 Register dst = bc.getDestRegister();
                 Value toRemove = null;
@@ -255,7 +255,7 @@ public class AvailableExpressionAnalyser {
             }
         }
     }
-    
+
     public static Value computeGenValue(BCode bcx) {
         if (bcx instanceof IFixnum)
             return new FixnumValue(((IFixnum) bcx).n);
@@ -272,7 +272,7 @@ public class AvailableExpressionAnalyser {
         else
             return null;
     }
-    
+
     public Set<Register> getRegisterForValue(BCode bc, Value v) {
         AvailableVals out = ins.get(bc);
         return out.get(v);

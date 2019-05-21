@@ -18,9 +18,8 @@
      Ryota Fujii, 2013-14
      Tomoharu Ugawa, 2012-14
      Hideya Iwasaki, 2012-14
-*/
+ */
 package ejsc;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -220,7 +219,7 @@ class BCBuilder {
         fbStack = new LinkedList<FunctionBCBuilder>();
         fBuilders = new LinkedList<FunctionBCBuilder>();        
     }
-    
+
     // TODO: remove this constructor when removing CBC.
     BCBuilder(int n) {
         fBuilders = new LinkedList<FunctionBCBuilder>();
@@ -342,7 +341,7 @@ class BCBuilder {
                 fb.setIndex(index++);
         return index;
     }
-    
+
     void mergeTopLevel() {
         FunctionBCBuilder toplevel = null;
 
