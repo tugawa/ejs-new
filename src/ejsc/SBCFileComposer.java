@@ -40,7 +40,7 @@ public class SBCFileComposer {
                 bc.emit(this);
         }
 
-        String getSuperInsnName(String insnName, SrcOperand... srcs) {
+        String decorateInsnName(String insnName, boolean log, SrcOperand... srcs) {
             String modifier = "";
             boolean hasConstantOperand = false;
             for (SrcOperand src: srcs) {
@@ -61,9 +61,10 @@ public class SBCFileComposer {
                 }
             }
             if (hasConstantOperand)
-                return insnName + modifier;
-            else
-                return insnName;
+                insnName += modifier;
+            if (log)
+                insnName += "_log";
+            return insnName;
         }
 
         String escapeString(String s) {
@@ -103,14 +104,16 @@ public class SBCFileComposer {
         }
 
         @Override
-        void addFixnumSmallPrimitive(String insnName, Register dst, int n) {
+        void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Integer.toString(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addNumberBigPrimitive(String insnName, Register dst, double n) {
+        void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Double.toString(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
@@ -118,14 +121,16 @@ public class SBCFileComposer {
 
         }
         @Override
-        void addStringBigPrimitive(String insnName, Register dst, String s) {
+        void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = escapeString(s);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addSpecialSmallPrimitive(String insnName, Register dst, SpecialValue v) {
+        void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b;
             switch (v) {
@@ -144,15 +149,16 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addRegexp(String insnName, Register dst, int flag, String ptn) {
+        void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Integer.toString(flag);
             SBCInstruction insn = new SBCInstruction(insnName, a, b, ptn);
             instructions.add(insn);
         }
         @Override
-        void addRXXThreeOp(String insnName, Register dst, SrcOperand src1, SrcOperand src2) {
-            insnName = getSuperInsnName(insnName, src1, src2);
+        void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2) {
+            insnName = decorateInsnName(insnName, log, src1, src2);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = srcOperandField(src1);
             String c = srcOperandField(src2);
@@ -160,8 +166,8 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXXXThreeOp(String insnName, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
-            insnName = getSuperInsnName(insnName, src1, src2, src3);
+        void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
+            insnName = decorateInsnName(insnName, log, src1, src2, src3);
             String a = srcOperandField(src1);
             String b = srcOperandField(src2);
             String c = srcOperandField(src3);
@@ -169,8 +175,8 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXIXThreeOp(String insnName, SrcOperand src1, int index, SrcOperand src2) {
-            insnName = getSuperInsnName(insnName, src1, src2);
+        void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2) {
+            insnName = decorateInsnName(insnName, log, src1, src2);
             String a = srcOperandField(src1);
             String b = Integer.toString(index);
             String c = srcOperandField(src2);
@@ -178,62 +184,67 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addRXTwoOp(String insnName, Register dst, SrcOperand src) {
-            insnName = getSuperInsnName(insnName, src);
+        void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src) {
+            insnName = decorateInsnName(insnName, log, src);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = srcOperandField(src);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addXXTwoOp(String insnName, SrcOperand src1, SrcOperand src2) {
-            insnName = getSuperInsnName(insnName, src1, src2);
+        void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2) {
+            insnName = decorateInsnName(insnName, log, src1, src2);
             String a = srcOperandField(src1);
             String b = srcOperandField(src2);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addXRTwoOp(String insnName, SrcOperand src, Register dst) {
-            insnName = getSuperInsnName(insnName, src);
+        void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst) {
+            insnName = decorateInsnName(insnName, log, src);
             String a = srcOperandField(src);
             String b = Integer.toString(dst.getRegisterNumber());
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addROneOp(String insnName, Register dst) {
+        void addROneOp(String insnName, boolean log, Register dst) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             SBCInstruction insn = new SBCInstruction(insnName, a);
             instructions.add(insn);
         }
         @Override
-        void addXOneOp(String insnName, SrcOperand src) {
-            insnName = getSuperInsnName(insnName, src);
+        void addXOneOp(String insnName, boolean log, SrcOperand src) {
+            insnName = decorateInsnName(insnName, log, src);
             String a = srcOperandField(src);
             SBCInstruction insn = new SBCInstruction(insnName, a);
             instructions.add(insn);
         }
         @Override
-        void addIOneOp(String insnName, int n) {
+        void addIOneOp(String insnName, boolean log, int n) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(n);
             SBCInstruction insn = new SBCInstruction(insnName, a);
             instructions.add(insn);
         }
         @Override
-        void addZeroOp(String insnName) {
+        void addZeroOp(String insnName, boolean log) {
+            insnName = decorateInsnName(insnName, log);
             SBCInstruction insn = new SBCInstruction(insnName);
             instructions.add(insn);
         }
         @Override
-        void addNewFrameOp(String insnName, int len, boolean mkargs) {
+        void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(len);
             String b = mkargs ? "1" : "0";
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addGetVar(String insnName, Register dst, int link, int index) {
+        void addGetVar(String insnName, boolean log, Register dst, int link, int index) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Integer.toString(link);
             String c = Integer.toString(index);
@@ -241,8 +252,8 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addSetVar(String insnName, int link, int index, SrcOperand src) {
-            insnName = getSuperInsnName(insnName, src);
+        void addSetVar(String insnName, boolean log, int link, int index, SrcOperand src) {
+            insnName = decorateInsnName(insnName, log, src);
             String a = Integer.toString(link);
             String b = Integer.toString(index);
             String c = srcOperandField(src);
@@ -250,37 +261,39 @@ public class SBCFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addMakeClosureOp(String insnName, Register dst, int index) {
+        void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
+            insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Integer.toString(index + functionNumberOffset);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addXICall(String insnName, SrcOperand fun, int nargs) {
-            insnName = getSuperInsnName(insnName, fun);
+        void addXICall(String insnName, boolean log, SrcOperand fun, int nargs) {
+            insnName = decorateInsnName(insnName, log, fun);
             String a = srcOperandField(fun);
             String b = Integer.toString(nargs);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);                    
         }
         @Override
-        void addRXCall(String insnName, Register dst, SrcOperand fun) {
-            insnName = getSuperInsnName(insnName, fun);
+        void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun) {
+            insnName = decorateInsnName(insnName, log, fun);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = srcOperandField(fun);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
         @Override
-        void addUncondJump(String insnName, int disp) {
+        void addUncondJump(String insnName, boolean log, int disp) {
+            insnName = decorateInsnName(insnName, log);
             String b = Integer.toString(disp);
             SBCInstruction insn = new SBCInstruction(insnName, b);
             instructions.add(insn);
         }
         @Override
-        void addCondJump(String insnName, SrcOperand test, int disp) {
-            insnName = getSuperInsnName(insnName, test);
+        void addCondJump(String insnName, boolean log, SrcOperand test, int disp) {
+            insnName = decorateInsnName(insnName, log, test);
             String a = srcOperandField(test);
             String b = Integer.toString(disp);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);

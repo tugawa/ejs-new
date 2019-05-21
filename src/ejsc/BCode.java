@@ -34,51 +34,51 @@ abstract class CodeBuffer {
         UNDEFINED
     }
     // fixnum
-    abstract void addFixnumSmallPrimitive(String opname, Register dst, int n);
+    abstract void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n);
     // number
-    abstract void addNumberBigPrimitive(String opanme, Register dst, double n);
+    abstract void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n);
     // string
-    abstract void addStringBigPrimitive(String opname, Register dst, String s);
+    abstract void addStringBigPrimitive(String insnName, boolean log, Register dst, String s);
     // special
-    abstract void addSpecialSmallPrimitive(String opname, Register dst, SpecialValue v);
+    abstract void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v);
     // regexp
-    abstract void addRegexp(String opname, Register dst, int flag, String ptn);
+    abstract void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn);
     // threeop
-    abstract void addRXXThreeOp(String opname, Register dst, SrcOperand src1, SrcOperand src2);
+    abstract void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2);
     // threeop (setprop)
-    abstract void addXXXThreeOp(String opname, SrcOperand src1, SrcOperand src2, SrcOperand src3);
+    abstract void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3);
     // threeop (setarray)
-    abstract void addXIXThreeOp(String opname, SrcOperand src1, int index, SrcOperand src2);
+    abstract void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2);
     // twoop
-    abstract void addRXTwoOp(String opname, Register dst, SrcOperand src);
+    abstract void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src);
     // twoop (setglobal)
-    abstract void addXXTwoOp(String opname, SrcOperand src1, SrcOperand src2);
+    abstract void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2);
     // twoop (makesimpleiterator, getnextpropnameidx)
-    abstract void addXRTwoOp(String opname, SrcOperand src, Register dst);
+    abstract void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst);
     // oneop
-    abstract void addROneOp(String opname, Register dst);
+    abstract void addROneOp(String insnName, boolean log, Register dst);
     // oneop (seta, throw)
-    abstract void addXOneOp(String opname, SrcOperand src);
+    abstract void addXOneOp(String insnName, boolean log, SrcOperand src);
     // oneop (setfl)
-    abstract void addIOneOp(String opname, int n);
+    abstract void addIOneOp(String insnName, boolean log, int n);
     // zeroop
-    abstract void addZeroOp(String opname);
+    abstract void addZeroOp(String insnName, boolean log);
     // newframe
-    abstract void addNewFrameOp(String opname, int len, boolean mkargs);
+    abstract void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs);
     // getvar
-    abstract void addGetVar(String opname, Register dst, int link, int index);
+    abstract void addGetVar(String insnName, boolean log, Register dst, int link, int index);
     // setvar
-    abstract void addSetVar(String opname, int link, int inex, SrcOperand src);
+    abstract void addSetVar(String insnName, boolean log, int link, int inex, SrcOperand src);
     // makeclosure
-    abstract void addMakeClosureOp(String opname, Register dst, int index);
+    abstract void addMakeClosureOp(String insnName, boolean log, Register dst, int index);
     // call
-    abstract void addXICall(String opname, SrcOperand fun, int nargs);
+    abstract void addXICall(String insnName, boolean log, SrcOperand fun, int nargs);
     // call (new)
-    abstract void addRXCall(String opname, Register dst, SrcOperand fun);
+    abstract void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun);
     // uncondjump
-    abstract void addUncondJump(String opname, int disp);
+    abstract void addUncondJump(String insnName, boolean log, int disp);
     // condjump
-    abstract void addCondJump(String opname, SrcOperand test, int disp);
+    abstract void addCondJump(String insnName, boolean log, SrcOperand test, int disp);
 }
 
 public abstract class BCode {
@@ -317,7 +317,7 @@ class IFixnum extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addFixnumSmallPrimitive(name, dst, n);
+        buf.addFixnumSmallPrimitive(name, logging, dst, n);
     }
     public String toString() {
         return super.toString(name, dst, n);
@@ -333,7 +333,7 @@ class INumber extends BCode {
     @Override
     public void emit(CodeBuffer buf) {
         // TODO: check range of n
-        buf.addNumberBigPrimitive(name, dst, n);
+        buf.addNumberBigPrimitive(name, logging, dst, n);
     }
     public String toString() {
         return super.toString(name, dst, n);
@@ -352,7 +352,7 @@ class IString extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addStringBigPrimitive(name, dst, str);
+        buf.addStringBigPrimitive(name, logging, dst, str);
     }
     public String toString() {
         return super.toString(name, dst, "\"" + str + "\"");
@@ -367,7 +367,7 @@ class IBooleanconst extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addSpecialSmallPrimitive(name, dst, b ? CodeBuffer.SpecialValue.TRUE : CodeBuffer.SpecialValue.FALSE);
+        buf.addSpecialSmallPrimitive(name, logging, dst, b ? CodeBuffer.SpecialValue.TRUE : CodeBuffer.SpecialValue.FALSE);
     }
     public String toString() {
         return super.toString(name, dst, b ? "true" : "false");
@@ -380,7 +380,7 @@ class INullconst extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addSpecialSmallPrimitive(name, dst, CodeBuffer.SpecialValue.NULL);
+        buf.addSpecialSmallPrimitive(name, logging, dst, CodeBuffer.SpecialValue.NULL);
     }
     public String toString() {
         return super.toString(name, dst, "null");
@@ -393,7 +393,7 @@ class IUndefinedconst extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addSpecialSmallPrimitive(name, dst, CodeBuffer.SpecialValue.UNDEFINED);
+        buf.addSpecialSmallPrimitive(name, logging, dst, CodeBuffer.SpecialValue.UNDEFINED);
     }
     public String toString() {
         return super.toString(name, dst, "undefined");
@@ -410,7 +410,7 @@ class IRegexp extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRegexp(name, dst, idx, ptn);
+        buf.addRegexp(name, logging, dst, idx, ptn);
     }
     public String toString() {
         return super.toString(name, dst, idx, "\"" + ptn + "\"");
@@ -429,7 +429,7 @@ class IAdd extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -448,7 +448,7 @@ class ISub extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -467,7 +467,7 @@ class IMul extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -486,7 +486,7 @@ class IDiv extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -505,7 +505,7 @@ class IMod extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -524,7 +524,7 @@ class IBitor extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -543,7 +543,7 @@ class IBitand extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -562,7 +562,7 @@ class ILeftshift extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -581,7 +581,7 @@ class IRightshift extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -600,7 +600,7 @@ class IUnsignedrightshift extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -619,7 +619,7 @@ class IEqual extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -638,7 +638,7 @@ class IEq extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -657,7 +657,7 @@ class ILessthan extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -676,7 +676,7 @@ class ILessthanequal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -694,7 +694,7 @@ class INot extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXTwoOp(name, dst, src);
+        buf.addRXTwoOp(name, logging, dst, src);
     }
     public String toString() {
         return super.toString(name, dst, src);
@@ -707,7 +707,7 @@ class IGetglobalobj extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addROneOp(name, dst);
+        buf.addROneOp(name, logging, dst);
     }
     public String toString() {
         return super.toString(name, dst);
@@ -720,7 +720,7 @@ class INewargs extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addZeroOp(name);
+        buf.addZeroOp(name, logging);
     }
     public String toString() {
         return super.toString(name);
@@ -737,7 +737,7 @@ class INewframe extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addNewFrameOp(name, len, makeArguments);
+        buf.addNewFrameOp(name, logging, len, makeArguments);
     }
     public String toString() {
         return super.toString(name, len, makeArguments ? 1 : 0);
@@ -755,7 +755,7 @@ class IGetglobal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXTwoOp(name, dst, varName);
+        buf.addRXTwoOp(name, logging, dst, varName);
     }
     public String toString() {
         return super.toString(name, dst, varName);
@@ -774,7 +774,7 @@ class ISetglobal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXXTwoOp(name, varName, src);
+        buf.addXXTwoOp(name, logging, varName, src);
     }
     public String toString() {
         return super.toString(name, varName, src);
@@ -790,7 +790,7 @@ class IGetlocal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addGetVar(name, dst, link, index);
+        buf.addGetVar(name, logging, dst, link, index);
     }
     public String toString() {
         return super.toString(name, dst, link, index);
@@ -811,7 +811,7 @@ class ISetlocal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addSetVar(name, link, index, src);
+        buf.addSetVar(name, logging, link, index, src);
     }
     public String toString() {
         return super.toString(name, link, index, src);
@@ -827,7 +827,7 @@ class IGetarg extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addGetVar(name, dst,  link, index);
+        buf.addGetVar(name, logging, dst, link, index);
     }
     public String toString() {
         return super.toString(name, dst, link, index);
@@ -848,7 +848,7 @@ class ISetarg extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addSetVar(name, link, index, src);
+        buf.addSetVar(name, logging, link, index, src);
     }
     public String toString() {
         return super.toString(name, link, index, src);
@@ -867,7 +867,7 @@ class IGetprop extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, obj, prop);
+        buf.addRXXThreeOp(name, logging, dst, obj, prop);
     }
     public String toString() {
         return super.toString("getprop", dst, obj, prop);
@@ -887,7 +887,7 @@ class ISetprop extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXXXThreeOp(name, obj, prop, src);
+        buf.addXXXThreeOp(name, logging, obj, prop, src);
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
@@ -909,7 +909,7 @@ class ISetarray extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXIXThreeOp(name, ary, n, src);
+        buf.addXIXThreeOp(name, logging, ary, n, src);
     }
     public String toString() {
         return super.toString(name, ary, n, src);
@@ -924,7 +924,7 @@ class IMakeclosure extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addMakeClosureOp(name, dst, function.getIndex());
+        buf.addMakeClosureOp(name, logging, dst, function.getIndex());
     }
     public String toString() {
         return super.toString(name, dst, function.getIndex());
@@ -937,7 +937,7 @@ class IGeta extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addROneOp(name, dst);
+        buf.addROneOp(name, logging, dst);
     }
     public String toString() {
         return super.toString(name, dst);
@@ -955,7 +955,7 @@ class ISeta extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXOneOp(name, src);
+        buf.addXOneOp(name, logging, src);
     }
     public String toString() {
         return super.toString(name, src);
@@ -972,7 +972,7 @@ class IRet extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addZeroOp(name);
+        buf.addZeroOp(name, logging);
     }
     public String toString() {
         return super.toString(name);
@@ -987,7 +987,7 @@ class IMove extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXTwoOp(name, dst, src);
+        buf.addRXTwoOp(name, logging, dst, src);
     }
     public String toString() {
         return super.toString(name, dst, src);
@@ -1002,7 +1002,7 @@ class IIsundef extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXTwoOp(name, dst, src);
+        buf.addRXTwoOp(name, logging, dst, src);
     }
     public String toString() {
         return super.toString(name, dst, src);
@@ -1017,7 +1017,7 @@ class IIsobject extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXTwoOp(name, dst, src);
+        buf.addRXTwoOp(name, logging, dst, src);
     }
     public String toString() {
         return super.toString(name, dst, src);
@@ -1033,7 +1033,7 @@ class IInstanceof extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXXThreeOp(name, dst, src1, src2);
+        buf.addRXXThreeOp(name, logging, dst, src1, src2);
     }
     public String toString() {
         return super.toString(name, dst, src1, src2);
@@ -1050,7 +1050,7 @@ class ICall extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXICall(name, function, numOfArgs);
+        buf.addXICall(name, logging, function, numOfArgs);
     }
     public String toString() {
         return super.toString(name, function, numOfArgs);
@@ -1067,7 +1067,7 @@ class ISend extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXICall(name, function, numOfArgs);
+        buf.addXICall(name, logging, function, numOfArgs);
     }
     public String toString() {
         return super.toString(name, function, numOfArgs);
@@ -1082,7 +1082,7 @@ class INew extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addRXCall(name, dst, constructor);
+        buf.addRXCall(name, logging, dst, constructor);
     }
     public String toString() {
         return super.toString(name, dst, constructor);
@@ -1099,7 +1099,7 @@ class INewsend extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXICall(name, constructor, numOfArgs);
+        buf.addXICall(name, logging, constructor, numOfArgs);
     }
     public String toString() {
         return super.toString(name, constructor, numOfArgs);
@@ -1114,7 +1114,7 @@ class IMakesimpleiterator extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXRTwoOp(name, obj, dst);
+        buf.addXRTwoOp(name, logging, obj, dst);
     }
     public String toString() {
         return super.toString(name, obj, dst);
@@ -1128,7 +1128,7 @@ class INextpropnameidx extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXRTwoOp(name, ite, dst);
+        buf.addXRTwoOp(name, logging, ite, dst);
     }
     public String toString() {
         return super.toString(name, ite, dst);
@@ -1151,7 +1151,7 @@ class IJump extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(number));
     }
     public String toString() {
         return super.toString(name, label.dist(number));
@@ -1172,7 +1172,7 @@ class IJumptrue extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addCondJump(name, test, label.dist(number));
+        buf.addCondJump(name, logging, test, label.dist(number));
     }
     public String toString() {
         return super.toString(name, test, label.dist(number));
@@ -1193,7 +1193,7 @@ class IJumpfalse extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addCondJump(name, test, label.dist(number));
+        buf.addCondJump(name, logging, test, label.dist(number));
     }
     public String toString() {
         return super.toString(name, test, label.dist(number));
@@ -1212,7 +1212,7 @@ class IThrow extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXOneOp(name, reg);
+        buf.addXOneOp(name, logging, reg);
     }
     public String toString() {
         return super.toString(name, reg);
@@ -1227,7 +1227,7 @@ class IPushhandler extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(number));
     }
     public String toString() {
         return super.toString(name, label.dist(number));
@@ -1240,7 +1240,7 @@ class IPophandler extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addZeroOp(name);
+        buf.addZeroOp(name, logging);
     }
     public String toString() {
         return super.toString(name);
@@ -1255,7 +1255,7 @@ class ILocalcall extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(number));
     }
     public String toString() {
         return super.toString("localcall", label.dist(number));
@@ -1272,7 +1272,7 @@ class ILocalret extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addZeroOp(name);
+        buf.addZeroOp(name, logging);
     }
     public String toString() {
         return super.toString(name);
@@ -1285,7 +1285,7 @@ class IPoplocal extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addZeroOp(name);
+        buf.addZeroOp(name, logging);
     }
     public String toString() {
         return super.toString("poplocal");
@@ -1300,7 +1300,7 @@ class ISetfl extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addIOneOp(name, fl);
+        buf.addIOneOp(name, logging, fl);
     }
     public String toString() {
         return super.toString(name, fl);
@@ -1391,7 +1391,7 @@ class IError extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addStringBigPrimitive(name, dst, str);
+        buf.addStringBigPrimitive(name, logging, dst, str);
     }
     public String toString() {
         return super.toString(name, dst, str);
