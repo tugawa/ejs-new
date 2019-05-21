@@ -325,8 +325,6 @@ class AGlobalVar extends Argument {
 }
 */
 
-
-
 class ICBCSuperInstruction extends CBCode {
     String name;
     ICBCSuperInstruction(Argument store, Argument load1, Argument load2, String name, BCode originalInsn) {

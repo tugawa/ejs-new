@@ -60,8 +60,28 @@ public class BCodeEvaluator {
             return s;
         }
     }
+    static class SpecialValue extends Value {
+        enum V {
+            TRUE,
+            FALSE,
+            NULL,
+            UNDEFINED
+        }
+        V v;
+        private SpecialValue(V v) {
+            this.v = v;
+        }
+        static SpecialValue TRUE_VALUE = new SpecialValue(V.TRUE);
+        static SpecialValue FALSE_VALUE = new SpecialValue(V.FALSE);
+        static SpecialValue NULL_VALUE = new SpecialValue(V.NULL);
+        static SpecialValue UNDEFINED_VALUE = new SpecialValue(V.UNDEFINED);
 
-    protected Value operandValue(Environment env, SrcOperand src) {
+        V getSpecialValue() {
+            return v;
+        }
+    }
+
+    public Value operandValue(Environment env, SrcOperand src) {
         if (src instanceof RegisterOperand) {
             Register rs = ((RegisterOperand) src).get();
             return env.lookup(rs);
@@ -75,19 +95,37 @@ public class BCodeEvaluator {
             String s = ((StringOperand) src).get();
             return new StringValue(s);
         } else if (src instanceof SpecialOperand) {
-            // TODO: implement
-            throw new Error("not implemented");
+            SpecialOperand s = (SpecialOperand) src;
+            switch(s.get()) {
+            case TRUE:
+                return SpecialValue.TRUE_VALUE;
+            case FALSE:
+                return SpecialValue.FALSE_VALUE;
+            case NULL:
+                return SpecialValue.NULL_VALUE;
+            case UNDEFINED:
+                return SpecialValue.UNDEFINED_VALUE;
+            default:
+                throw new Error("Unknown special");
+            }
         } else
             throw new Error("Unknown operand type");
     }
 
     public Value eval(Environment env, BCode bc) {
+        /* constnat */
         if (bc instanceof IFixnum)
             return evalIFixnum(env, (IFixnum) bc);
         if (bc instanceof INumber)
             return evalINumber(env, (INumber) bc);
         if (bc instanceof IString)
             return evalIString(env, (IString) bc);
+        if (bc instanceof IBooleanconst)
+            return evalIBooleanconst(env, (IBooleanconst) bc);
+        if (bc instanceof INullconst)
+            return evalINullconst(env, (INullconst) bc);
+        if (bc instanceof IUndefinedconst)
+            return evalIUndefinedconst(env, (IUndefinedconst) bc);
         if (bc instanceof IMove)
             return evalIMove(env, (IMove) bc);
         if (bc instanceof IAdd)
@@ -123,6 +161,18 @@ public class BCodeEvaluator {
 
     protected Value evalIString(Environment env, IString bc) {
         return new StringValue(bc.str);
+    }
+
+    protected Value evalIBooleanconst(Environment env, IBooleanconst bc) {
+        return bc.b ? SpecialValue.TRUE_VALUE : SpecialValue.FALSE_VALUE;
+    }
+
+    protected Value evalINullconst(Environment env, INullconst bc) {
+        return SpecialValue.NULL_VALUE;
+    }
+
+    protected Value evalIUndefinedconst(Environment env, IUndefinedconst bc) {
+        return SpecialValue.UNDEFINED_VALUE;
     }
 
     protected Value evalIMove(Environment env, IMove bc) {

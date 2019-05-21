@@ -570,10 +570,6 @@ class RegisterOperand extends SrcOperand {
     void set(Register x) {
         this.x = x;
     }
-    @Override
-    public String toString() {
-        return x.toString();
-    }
 }
 
 class FixnumOperand extends SrcOperand {
@@ -1087,8 +1083,11 @@ class ILessthanequal extends BCode {
 class INot extends BCode {
     SrcOperand src;
     INot(Register dst, Register src) {
+        this(dst, new RegisterOperand(src));
+    }
+    INot(Register dst, SrcOperand src) {
         super("not", dst);
-        this.src = new RegisterOperand(src);
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1157,8 +1156,11 @@ class INewframe extends BCode {
 class IGetglobal extends BCode {
     SrcOperand varName;
     IGetglobal(Register dst, Register name) {
+        this(dst, new RegisterOperand(name));
+    }
+    IGetglobal(Register dst, SrcOperand name) {
         super("getglobal", dst);
-        this.varName = new RegisterOperand(name);
+        this.varName = name;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1175,9 +1177,12 @@ class IGetglobal extends BCode {
 class ISetglobal extends BCode {
     SrcOperand varName, src;
     ISetglobal(Register name, Register src) {
+        this(new RegisterOperand(name), new RegisterOperand(src));
+    }
+    ISetglobal(SrcOperand name, SrcOperand src) {
         super("setglobal");
-        this.varName = new RegisterOperand(name);
-        this.src = new RegisterOperand(src);
+        this.varName = name;
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1214,10 +1219,13 @@ class ISetlocal extends BCode {
     int link, index;
     SrcOperand src;
     ISetlocal(int link, int index, Register src) {
+        this(link, index, new RegisterOperand(src));
+    }
+    ISetlocal(int link, int index, SrcOperand src) {
         super("setlocal");
         this.link = link;
         this.index = index;
-        this.src = new RegisterOperand(src);
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1254,10 +1262,13 @@ class ISetarg extends BCode {
     int link, index;
     SrcOperand src;
     ISetarg(int link, int index, Register src) {
+        this(link, index, new RegisterOperand(src));
+    }
+    ISetarg(int link, int index, SrcOperand src) {
         super("setarg");
         this.link = link;
         this.index = index;
-        this.src = new RegisterOperand(src);
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1321,10 +1332,13 @@ class ISetarray extends BCode {
     int n;
     SrcOperand src;
     ISetarray(Register ary, int n, Register src) {
+        this(new RegisterOperand(ary), n, new RegisterOperand(src));
+    }
+    ISetarray(SrcOperand ary, int n, SrcOperand src) {
         super("setarray");
-        this.ary = new RegisterOperand(ary);
+        this.ary = ary;
         this.n = n;
-        this.src = new RegisterOperand(src);
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1375,8 +1389,11 @@ class IGeta extends BCode {
 class ISeta extends BCode {
     SrcOperand src;
     ISeta(Register src) {
+        this(new RegisterOperand(src));
+    }
+    ISeta(SrcOperand src) {
         super("seta");
-        this.src = new RegisterOperand(src);
+        this.src = src;
     }
     @Override
     public void emit(CodeBuffer buf) {

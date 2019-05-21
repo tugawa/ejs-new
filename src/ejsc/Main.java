@@ -514,6 +514,7 @@ public class Main {
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
         bcBuilder.optimisation(info);
 
+        /*
         if (info.optSuperInstruction) {
             // convert byte code into compact byte code.
             CBCBuilder cbcBuilder = bcBuilder.convertBCode();
@@ -524,6 +525,7 @@ public class Main {
             bcBuilder.assignAddress();
             System.out.print(bcBuilder);
         }
+        */
 
         bcBuilder.assignAddress();
 

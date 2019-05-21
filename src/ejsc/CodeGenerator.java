@@ -953,7 +953,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IEqual(r3, r8, r9));
             bcBuilder.push(new IIsundef(r5, r3));
             bcBuilder.push(new IJumpfalse(l4, r5));
-            bcBuilder.push(new IError(r3, "\"EQUAL_GETTOPRIMITIVE\""));
+            bcBuilder.push(new IError(r3, "EQUAL_GETTOPRIMITIVE"));
             bcBuilder.push(l1);
             bcBuilder.push(l4);
             if (node.operator == IASTBinaryExpression.Operator.NOT_EQUAL)
