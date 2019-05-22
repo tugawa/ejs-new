@@ -135,16 +135,6 @@ class BCBuilder {
                 bc.logInsn();
         }
 
-        List<BCode> build() {
-            List<BCode> result = new LinkedList<BCode>();
-            result.add(new ICallentry(callEntry.dist(0)));
-            result.add(new ISendentry(sendEntry.dist(0)));
-            result.add(new INumberOfLocals(numberOfLocals));
-            result.add(new INumberOfInstruction(bcodes.size()));
-            result.addAll(bcodes);
-            return result;
-        }
-
         int getNumberOfInstructions() {
             return bcodes.size();
         }
@@ -284,20 +274,6 @@ class BCBuilder {
 
         // add IRET
         toplevel.bcodes.add(new IRet());
-    }
-
-    List<BCode> build() {
-        mergeTopLevel();
-        int nfunc = assignFunctionIndex(true);
-        nfunc++; // toplevel function
-
-        // build fBuilders.
-        List<BCode> result = new LinkedList<BCode>();
-        result.add(new IFuncLength(nfunc));
-        for (FunctionBCBuilder fb : fBuilders)
-            result.addAll(fb.build());
-        return result;
-
     }
 
     void push(Label label) {
