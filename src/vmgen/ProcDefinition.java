@@ -8,7 +8,7 @@
      Takafumi Kataoka, 2016-18
 	 Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
-*/
+ */
 package vmgen;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -336,7 +336,7 @@ public class ProcDefinition {
         td.load("datatype/default.dtdef");
         ProcDefinition procDef = new ProcDefinition();
         // InstDefinition instDef = procDef.load("idefs/div.idef");
-/*
+        /*
         SimpleSynthesiser ss = new SimpleSynthesiser();
         if (!(new File(OUT_DIR).exists())) {
             File dir = new File(OUT_DIR);
