@@ -8,7 +8,7 @@
      Takafumi Kataoka, 2016-18
 	 Tomoharu Ugawa, 2016-18
      Hideya Iwasaki, 2016-18
-*/
+ */
 package vmgen;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -40,6 +40,7 @@ public class ProcDefinition {
     }
 
     static class InstDefinition {
+
         String name;
         String[] dispatchVars, otherVars;
         String prologue, epilogue;
@@ -100,8 +101,4 @@ public class ProcDefinition {
         InstDefinition instDef = makeInstDefinitionFromParsedInst(parsedInst);
         return instDef;
     }
-
-    static final String OUT_DIR = "./generated";
-    static final String IN_DIR = "./idefs";
-
 }
