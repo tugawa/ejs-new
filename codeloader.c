@@ -19,6 +19,8 @@
 // #define USE_SBC
 #define USE_OBC
 
+#define CPU_LITTLE_ENDIAN
+
 /*
    information of instructions
  */
@@ -200,7 +202,8 @@ void double_load(Context *ctx, ConstantCell *constant) {
   } u;
   
   fread(&u.b, sizeof(unsigned char), 8, file_pointer);
-#ifdef BIG_ENDIAN
+
+#ifdef CPU_LITTLE_ENDIAN
   {
     int i;
     for (i = 0; i < 4; i++) {
