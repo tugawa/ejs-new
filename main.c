@@ -152,7 +152,7 @@ int process_options(int ac, char *av[]) {
     } else
       return k;
   }
-  return 0;
+  return k;
 }
 
 void print_cputime(time_t sec, suseconds_t usec) {
