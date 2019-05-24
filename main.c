@@ -3,20 +3,10 @@
 
    eJS Project
      Kochi University of Technology
-     the University of Electro-communications
+     The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
+     Tomoharu Ugawa, 2016-19
+     Hideya Iwasaki, 2016-19
 */
 
 #include "prefix.h"
@@ -187,7 +177,7 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   struct rusage ru0, ru1;
   int base_function = 0;
-  int k;
+  int k, iter;
 
 #ifndef NDEBUG
   stack_start = (void **) &fp;
@@ -204,12 +194,16 @@ int main(int argc, char *argv[]) {
   // printf("regstack_limit = %d\n", regstack_limit);
   // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
   //        lastprint_flag, ftable_flag, trace_flag, k);
+/*
   if (k > 0) {
     if (repl_flag == TRUE)
       fp = stdin;
     else if ((fp = fopen(argv[k], "r")) == NULL)
       LOG_EXIT("%s: No such file.\n", argv[k]);
   }
+*/
+  /* set number of iterations */
+  iter = (repl_flag == TRUE)? 0x7fffffff: argc;
 
 #ifdef CALC_CALL
   callcount = 0;
@@ -253,7 +247,11 @@ int main(int argc, char *argv[]) {
   init_builtin(context);
   srand((unsigned)time(NULL));
 
-  while(1) {
+  for (; k < iter; k++) {
+    if (k >= argc)
+      fp = stdin;
+    else if ((fp = fopen(argv[k], "r")) == NULL)
+      LOG_EXIT("%s: No such file.\n", argv[k]);
     init_code_loader(fp);
     base_function = n;
     n += code_loader(context, function_table, n);
@@ -350,10 +348,10 @@ int main(int argc, char *argv[]) {
       print_all_hidden_class();
 #endif
     
-    if(repl_flag == TRUE)
+    if (repl_flag == TRUE)
       fflush(stdout);
-    else
-      break;
+//    else
+//      break;
     
   }
 
