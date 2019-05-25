@@ -30,6 +30,10 @@ int repl_flag;         // for REPL
 #ifdef HIDDEN_CLASS
 int hcprint_flag;      // prints all transitive hidden classes
 #endif
+#ifdef PROFILE
+int coverage_flag;     // print the coverage
+int icount_flag;       // print instruction count
+#endif
 
 /*
   parameter
@@ -37,6 +41,10 @@ int hcprint_flag;      // prints all transitive hidden classes
 int regstack_limit = STACK_LIMIT;   // size of register stack (not used yet)
 
 FILE *log_stream;
+
+#ifdef PROFILE
+FILE *prof_stream;
+#endif
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -119,6 +127,10 @@ struct commandline_option  options_table[] = {
 #ifdef HIDDEN_CLASS
   { "-h", 0, &hcprint_flag       },
 #endif
+#ifdef PROFILE
+  { "--coverage", 0, &coverage_flag },
+  { "--icount",   0, &icount_flag   },
+#endif
   { "-s", 1, &regstack_limit     },      // not used yet
   { (char *)NULL, 0, (int *)NULL }
 };
@@ -185,9 +197,16 @@ int main(int argc, char *argv[]) {
 
   log_stream = stderr;
   repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
+#ifdef PROFILE
+  coverage_flag = icount_flag = FALSE;
+#endif
   k = process_options(argc, argv);
-  if (all_flag == TRUE)
+  if (all_flag == TRUE) {
     lastprint_flag = ftable_flag = trace_flag = TRUE;
+#ifdef PROFILE
+    coverage_flag = icount_flag = TRUE;
+#endif
+  }
   if (repl_flag == TRUE)
     lastprint_flag = TRUE;
 
@@ -343,17 +362,23 @@ int main(int argc, char *argv[]) {
       }
       print_cputime(sec, usec);
     }
-#ifdef HIDDEN_CLASS
-    if (hcprint_flag == TRUE)
-      print_all_hidden_class();
-#endif
     
     if (repl_flag == TRUE)
       fflush(stdout);
-//    else
-//      break;
-    
   }
+#ifdef HIDDEN_CLASS
+  if (hcprint_flag == TRUE)
+    print_all_hidden_class();
+#endif
+
+#ifdef PROFIL
+  /*
+  if (coverage_flag == TRUE)
+     print_coverage();
+  if (icount_flag == TRUE)
+     print_icount();
+  */
+#endif
 
   return 0;
 }

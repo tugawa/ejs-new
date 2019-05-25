@@ -3,20 +3,10 @@
 
    eJS Project
      Kochi University of Technology
-     the University of Electro-communications
+     The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
+     Tomoharu Ugawa, 2016-19
+     Hideya Iwasaki, 2016-19
 */
 
 #ifndef PREFIX_H_
@@ -33,7 +23,6 @@
 
 #define STROBJ_HAS_HASH
 
-#define USE_THRESHOLD
 //#define CALC_TIME
 //#define USE_PAPI
 //#define USE_FASTGLOBAL
@@ -41,6 +30,8 @@
 //#define CALC_CALL
 
 #define HIDDEN_CLASS
+
+// #define PROFILE
 
 #if 0
 #ifdef DEBUG_PRINT

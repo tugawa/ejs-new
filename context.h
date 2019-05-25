@@ -3,20 +3,10 @@
 
    eJS Project
      Kochi University of Technology
-     the University of Electro-communications
+     The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
+     Tomoharu Ugawa, 2016-19
+     Hideya Iwasaki, 2016-19
 */
 
 /*
@@ -27,17 +17,18 @@ typedef struct function_table {
   int call_entry;           // entry of a function call
   int send_entry;           // entry of a method call
   int n_locals;             // number of locals
-  Instruction *insns;       // array of instructions followed by constant pool
-  InsnLabel *insn_ptr;      // array of instruction labels for threaded code
-  bool insn_ptr_created;    // flag whether insn_ptr has been generated or not
+  Instruction *insns;       // array of instructions followed by literals
+  bool ilabel_created;      // flag whether ilabel in insns has been generated
   int body_size;            // number of elements in insns
   int n_insns;              // number of instructions
+  int n_literals;           // number of literals (constants)
 } FunctionTable;
 
 #define ftab_call_entry(f)       ((f)->call_entry)
 #define ftab_send_entry(f)       ((f)->send_entry)
 #define ftab_n_locals(f)         ((f)->n_locals)
 #define ftab_n_insns(f)          ((f)->n_insns)
+#define ftab_n_literals(f)       ((f)->n_literals)
 
 /*
    function frame

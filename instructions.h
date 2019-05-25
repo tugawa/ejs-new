@@ -3,20 +3,10 @@
 
    eJS Project
      Kochi University of Technology
-     the University of Electro-communications
+     The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
+     Tomoharu Ugawa, 2016-19
+     Hideya Iwasaki, 2016-19
 */
 
 /*
@@ -155,9 +145,9 @@ typedef enum {
 } InsnOperandType;
 
 typedef struct insn_info {
-  char *insn_name;          // nemonic
-  OperandType operand_type; // type
-  InsnOperandType op0, op1, op2; // insn type
+  char *insn_name;               /* nemonic */
+  OperandType otype;             /* operand type */
+  InsnOperandType op0, op1, op2; /* insn type */
 } InsnInfo;
 
 /*
@@ -167,14 +157,19 @@ typedef uint64_t Bytecode;
 typedef uint32_t Counter;
 
 /*
+   adderss of a label for an instruction
+ */
+typedef void *InsnLabel;
+
+/*
    instruction
  */
 typedef struct instruction {
+  InsnLabel ilabel;  /* It is important that ilabel is the first member */
   Bytecode code;
-#ifdef USE_THRESHOLD
-  Opcode hitInst;
-  Counter hitCount;
-  Counter missCount;
+#ifdef PROFILE
+  Counter count;  /* counter */
+  int logflag;    /* whether this instrution writes log info or not */
 #endif
 } Instruction;
 
@@ -292,10 +287,6 @@ typedef struct instruction {
 #define makecode_call(opcode, closure, argsc) \
   makecode_two_operands(opcode, closure, argc)
 
-// adderss of a label for an instruction
-//
-typedef void *InsnLabel;
-
 // macros for getting a specified part from a Bytecode
 //
 #define get_opcode(code) \
@@ -368,10 +359,12 @@ makecode_three_operands(get_opcode(code), get_first_operand_reg(code), get_secon
 /*
 #define calc_displacement(numOfInst, codeIndex, constIndex) \
   (numOfInst - (codeIndex + 1) + constIndex)
+#define calc_displacement(ninsns, code_subscr, const_subscr) \
+  ((ninsns) - (code_subscr) + (const_subscr))
 */
 
 #define calc_displacement(ninsns, code_subscr, const_subscr) \
-  ((ninsns) - (code_subscr) + (const_subscr))
+  (((ninsns) - (code_subscr)) * (sizeof(Instruction) / sizeof(JSValue)) + (const_subscr))
 
 // #define get_const_index(code) \
 //  ((uint16_t)(((code) & CONSTINDEX_MASK) >> CONSTINDEX_OFFSET))
@@ -403,5 +396,8 @@ typedef struct constant_cell {
   int n_constant_values;        // number of constant values
   JSValue *constant_values;     // pointer to the array of constant values
 } ConstantCell;
+
+#define LOAD_OK     0
+#define LOAD_FAIL  (-1)
 
 #endif // INSTRUCTIONS_H_

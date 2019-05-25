@@ -3,20 +3,10 @@
 
    eJS Project
      Kochi University of Technology
-     the University of Electro-communications
+     The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
+     Tomoharu Ugawa, 2016-19
+     Hideya Iwasaki, 2016-19
 */
 
 #include "prefix.h"
@@ -53,24 +43,21 @@ static char *typename(JSValue v) {
 #define INSN_COUNT3(insn, v0, v1, v2)
 #endif
 
-inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
+inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   int i, n_insns;
   Instruction *insns;
-//  void **ptr = curfn->insn_ptr;
-  InsnLabel *ptr = curfn->insn_ptr;
   n_insns = curfn->n_insns;
   insns = curfn->insns;
   for (i = 0; i < n_insns; i++)
-    ptr[i] = jt[get_opcode(insns[i].code)];
-  curfn->insn_ptr_created = true;
+    insns[i].ilabel = jt[get_opcode(insns[i].code)];
+  curfn->ilabel_created = true;
 }
 
 #define STRCON(x,y)  x #y
-#define INCPC()      do { pc++; insn_ptr++; insns++; } while (0)
+#define INCPC()      do { pc++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 #define INCEXECUTECOUNT() insns->executeCount++
-//#define INSNLOAD()   insn = insns->code
-//#define INSNLOAD()   (insn = insns->code, printf("pc = %d, insn = %s\n", pc, insn_nemonic(get_opcode(insn))))
+
 #ifdef DEBUG
 #define INSNLOAD()                                                   \
   do {                                                               \
@@ -80,7 +67,14 @@ inline void make_insn_ptr(FunctionTable *curfn, void *const *jt) {
              pc, insn_nemonic(get_opcode(insn)), fp);                \
   } while (0)
 #else /* DEBUG */
-#define INSNLOAD() (insn = insns->code)
+#define INSNLOAD()                                                   \
+  do {                                                               \
+    insn = insns->code;                                              \
+    if (trace_flag == TRUE)                                          \
+      printf("pc = %d, insn = %s, fp = %d\n",                        \
+             pc, insn_nemonic(get_opcode(insn)), fp);                \
+  } while (0)
+// #define INSNLOAD() (insn = insns->code)
 #endif /* DEBUG */
 
 // defines ENTER_INSN(x)
@@ -111,11 +105,11 @@ do{                                                                  \
 #ifdef USE_ASM2
 // if we erase the ``goto'', the code does not work ???
 #define NEXT_INSN() \
-  asm volatile("jmp *%0"::"r"(*insn_ptr)); \
-  goto **insn_ptr
+  asm volatile("jmp *%0"::"r"(*insns)); \
+  goto *(insns->ilabel)
 #else
 #define NEXT_INSN() \
-  goto **insn_ptr
+  goto *(insns->ilabel)
 #endif
 
 #define GET_NEXT_INSN_ADDR(ins)  (jump_table[get_opcode(ins)])
@@ -163,9 +157,8 @@ do{                                                                  \
   fp = get_fp(context);                             \
   insns = curfn->insns + pc;                        \
   regbase = (JSValue *)&get_stack(context, fp) - 1; \
-  if (!curfn->insn_ptr_created)                     \
-    make_insn_ptr(curfn, jump_table);               \
-  insn_ptr = curfn->insn_ptr + pc;                  \
+  if (!curfn->ilabel_created)                       \
+    make_ilabel(curfn, jump_table);                 \
 } while (0)
 
 #define load_regs(insn, dst, r1, r2, v1, v2) \
@@ -175,7 +168,7 @@ do{                                                                  \
   v1 = regbase[r1], \
   v2 = regbase[r2]
 
-#define set_pc_relative(d) (pc += (d), insns += (d), insn_ptr += (d))
+#define set_pc_relative(d) (pc += (d), insns += (d))
 
 // executes the main loop of the vm as a threaded code
 //
@@ -186,7 +179,6 @@ int vmrun_threaded(Context* context, int border) {
   int fp;
   Instruction *insns;
   JSValue *regbase;
-  InsnLabel *insn_ptr;
   Bytecode insn;
   // JSValue *locals = NULL;
   static InsnLabel jump_table[] = {

@@ -32,8 +32,8 @@
 #else
 #define LOG(...)
 #define LOG_FUNC
-#define LOG_ERR(...)
-#define LOG_EXIT(...) exit(1)
+#define LOG_ERR(...)  do { fprintf(stderr, __VA_ARGS__); } while (0)
+#define LOG_EXIT(...) do { fprintf(stderr,  __VA_ARGS__); exit(1); } while (0)
 
 #endif // DEBUG
 
