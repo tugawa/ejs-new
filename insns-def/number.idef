@@ -1,3 +1,6 @@
+\inst number (Register dst, Displacement disp)
+
+\otherwise \{
 /*
    number dst disp
    string dst disp
@@ -6,8 +9,7 @@
      disp : displacement of the constant position from the pc
    $dst = ((JSValur *)insns)[disp]
  */
-{
-    // regbase[r0] = insns[d1].code;
-    regbase[r0] = get_literal(insns, d1);
-}
 
+  // dst = insns[disp].code;
+  dst = get_literal(insns, disp);
+\}

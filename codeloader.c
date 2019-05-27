@@ -16,8 +16,8 @@
 /*
  * Either of the following two should be defined.
  */
-// #define USE_SBC
-#define USE_OBC
+#define USE_SBC
+// #define USE_OBC
 
 #define CPU_LITTLE_ENDIAN
 
@@ -117,7 +117,17 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 
 #if defined(USE_SBC) && defined(USE_OBC)
   fprintf(stderr, "Fatal error: both USE_SBC and USE_OBC are defined.\n");
-  exit(0);
+  exit(1);
+#endif
+
+#if !defined(USE_SBC) && !defined(USE_OBC)
+  fprintf(stderr, "Fatal error: either USE_SBC or USE_OBC should be defined.\n");
+  exit(1);
+#endif
+
+#if defined(USE_OBC) && defined(PROFILE)
+  fprintf(stderr, "Fatal error: PROFILE can be defined only when USE_SBC is defined\n");
+  exit(1);
 #endif
 
   // checks the funclength and obtain the number of functions
@@ -1050,6 +1060,9 @@ void print_bytecode(Instruction *insns, int j) {
   case UNKNOWNOP:
     break;
   }
+#ifdef PROFILE
+  printf(", logflag = %s", insns[j].logflag == TRUE? "TRUE": "FALSE");
+#endif
   putchar('\n');
 }
 

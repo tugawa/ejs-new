@@ -108,7 +108,7 @@ def gen_var_assignment(n, kind, jsv_kind = None):
     elif jsv_kind in ["special"]:
       right = "get_" + ord + "_operand_int(insn)"
     elif jsv_kind in ["string", "flonum"]:
-      right = "insns[get_" + ord + "_operand_disp(insn)].code"
+      right = "get_literal(insns, get_" + ord + "_operand_disp(insn))"
     else:
       sys.stderr.write(">>>"+kind+","+jsv_kind+"<<<\n")
   else:

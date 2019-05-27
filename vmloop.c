@@ -21,7 +21,7 @@ static int lcall_stack_pop(Context* context, int *pc);
 #define NOT_IMPLEMENTED()						\
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
 
-#ifdef PRINT_INSN_COUNT
+#ifdef PROFILE
 static char *typename(JSValue v) {
   if (is_fixnum(v)) return "fixnum";
   if (is_flonum(v)) return "flonum";
@@ -31,13 +31,16 @@ static char *typename(JSValue v) {
   if (is_array(v)) return "array";
   return "other_object";
 }
+#define INSN_COUNT0(insn)			\
+  fprintf(prof_stream, "OPERAND: %s\n", #insn)
 #define INSN_COUNT1(insn, v0)			\
-  printf("OPERAND: %s %s\n", #insn, typename(v0));
+  fprintf(prof_stream, "OPERAND: %s %s\n", #insn, typename(v0))
 #define INSN_COUNT2(insn, v0, v1)		\
-  printf("OPERAND: %s %s %s\n", #insn, typename(v0), typename(v1));
+  fprintf(prof_stream, "OPERAND: %s %s %s\n", #insn, typename(v0), typename(v1))
 #define INSN_COUNT3(insn, v0, v1, v2)          \
-  printf("OPERAND: %s %s %s %s\n", #insn, typename(v0), typename(v1), typename(v2));
+  fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #insn, typename(v0), typename(v1), typename(v2))
 #else
+#define INSN_COUNT0(insn)
 #define INSN_COUNT1(insn, v0)
 #define INSN_COUNT2(insn, v0, v1)
 #define INSN_COUNT3(insn, v0, v1, v2)
@@ -56,7 +59,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #define STRCON(x,y)  x #y
 #define INCPC()      do { pc++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
-#define INCEXECUTECOUNT() insns->executeCount++
 
 #ifdef DEBUG
 #define INSNLOAD()                                                   \
@@ -67,38 +69,24 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
              pc, insn_nemonic(get_opcode(insn)), fp);                \
   } while (0)
 #else /* DEBUG */
+/*
 #define INSNLOAD()                                                   \
   do {                                                               \
     insn = insns->code;                                              \
-    if (trace_flag == TRUE)                                          \
+    if (trace_flag == TRUE) {                                        \
       printf("pc = %d, insn = %s, fp = %d\n",                        \
              pc, insn_nemonic(get_opcode(insn)), fp);                \
+      fflush(stdout);                                                \
+    }                                                                \
   } while (0)
-// #define INSNLOAD() (insn = insns->code)
+*/
+#define INSNLOAD() (insn = insns->code)
 #endif /* DEBUG */
 
 // defines ENTER_INSN(x)
 //
-#ifdef USE_ASM
-#define ENTER_INSN(x)                                                \
-do {                                                                 \
-  INCEXECUTECOUNT();                                                 \
-  asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));    \
-} while (0)
-
-#else
-#ifdef PRINT_QUICKENING_COUNT
-#define ENTER_INSN(x)                                                \
-do{                                                                  \
-  INCEXECUTECOUNT();                                                 \
-  asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));    \
-} while (0)
-
-#else
 #define ENTER_INSN(x)                                                \
   asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t))
-#endif // PRINT_QUICKENING_COUNT
-#endif // USE_ASM
 
 // defines NEXT_INSN()
 //

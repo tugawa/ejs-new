@@ -1,0 +1,10 @@
+\inst jump (Displacement d)
+
+\otherwise \{
+/*
+   jump disp
+   pc = pc + $disp
+ */
+
+  set_pc_relative(d);
+\}

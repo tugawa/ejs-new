@@ -1,0 +1,10 @@
+\inst getglobalobj (Register dst)
+
+\otherwise \{
+/*
+   getglobalobj dst
+   $dst = global object
+ */ 
+
+ dst = context->global;
+\}

@@ -1,0 +1,14 @@
+\inst getlocal (Register dst, Immediate link, Subscript index)
+
+\otherwise \{
+/*
+   getlocal dst link index
+   $dst = value of the index-th local variable in the link-th function frame
+ */
+
+  FunctionFrame *fr;
+  int i;
+  fr = get_lp(context);
+  for (i = 0; i < link; i++) fr = fframe_prev(fr);
+  dst = fframe_locals_idx(fr, index);
+\}

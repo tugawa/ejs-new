@@ -163,10 +163,7 @@ INSN_GENERATED = \
     insns/setprop.inc \
     insns/sub.inc \
     insns/tailcall.inc \
-    insns/unsignedrightshift.inc
-
-INSN_HANDCRAFT = \
-    insns/end.inc \
+    insns/unsignedrightshift.inc \
     insns/error.inc \
     insns/fixnum.inc \
     insns/geta.inc \
@@ -182,19 +179,14 @@ INSN_HANDCRAFT = \
     insns/jumpfalse.inc \
     insns/jumptrue.inc \
     insns/localcall.inc \
-    insns/localret.inc \
     insns/makeclosure.inc \
     insns/makesimpleiterator.inc \
     insns/move.inc \
     insns/newframe.inc \
     insns/nextpropnameidx.inc \
-    insns/nop.inc \
     insns/not.inc \
     insns/number.inc \
-    insns/pophandler.inc \
-    insns/poplocal.inc \
     insns/pushhandler.inc \
-    insns/ret.inc \
     insns/seta.inc \
     insns/setarg.inc \
     insns/setarray.inc \
@@ -202,8 +194,16 @@ INSN_HANDCRAFT = \
     insns/setglobal.inc \
     insns/setlocal.inc \
     insns/specconst.inc \
+    insns/typeof.inc
+
+INSN_HANDCRAFT = \
+    insns/end.inc \
+    insns/localret.inc \
+    insns/nop.inc \
+    insns/pophandler.inc \
+    insns/poplocal.inc \
+    insns/ret.inc \
     insns/throw.inc \
-    insns/typeof.inc \
     insns/unknown.inc
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))

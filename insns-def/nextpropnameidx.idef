@@ -1,0 +1,14 @@
+\inst nextpropnameidx (Value itr, Register dst)
+
+\otherwise \{
+/*
+   nextpropnameidx itr dst
+     itr : iterator for enumerating properties in obj
+     dst : destination
+   $dst = the next property name of $obj in $itr
+ */
+
+  JSValue res = JS_UNDEFINED;
+  get_next_propname_simple_iterator(itr, &res);
+  dst = res;
+\}

@@ -1,0 +1,10 @@
+\inst isobject (Register dst, Value v)
+
+\otherwise \{
+/*
+   isobject dst reg
+     $dst = $reg is an Object or not
+ */
+
+  dst = true_false(is_object(v));
+\}

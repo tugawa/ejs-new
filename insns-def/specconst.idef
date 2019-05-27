@@ -1,0 +1,12 @@
+\inst specconst (Register dst, Immediate imm)
+
+\otherwise \{
+/*
+   specconst dst imm
+    dst : destination register
+    imm : immediate value of the special constant
+   $dst = imm
+ */
+
+  dst = imm;
+\}

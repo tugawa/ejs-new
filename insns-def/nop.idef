@@ -1,0 +1,5 @@
+\inst nop ()
+
+\otherwise \{
+  asm volatile("#NOP Instruction \n");
+\}

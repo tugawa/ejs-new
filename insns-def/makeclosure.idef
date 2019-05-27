@@ -1,0 +1,19 @@
+\inst makeclosure (Register dst, Subscript subscr)
+
+\otherwise \{
+/*
+   makeclosure dst subscr
+     dst : destination register
+     subscr : subscript of the function table
+   $dst = new closure
+ */
+  /*
+     `subscr' is the subscript of the function table EXCEPT the
+     main function.  Since the main function comes first in the
+     function table, the subecript should be added by 1.
+   */
+  Subscript ss = subscr + 1;
+  save_context();    // GC
+  dst = new_normal_function(context, ss);
+  update_context();    // GC
+\}

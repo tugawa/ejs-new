@@ -31,7 +31,7 @@
 
 #define HIDDEN_CLASS
 
-// #define PROFILE
+#define PROFILE
 
 #if 0
 #ifdef DEBUG_PRINT

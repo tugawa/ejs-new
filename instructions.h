@@ -173,6 +173,12 @@ typedef struct instruction {
 #endif
 } Instruction;
 
+/*
+  Each function has an array of Instructions, followed by its constant
+  table (literals), which is an array of JSValues.
+ */
+#define get_literal(insns, disp)  (((JSValue *)(insns))[disp])
+
 #define OPCODE_OFFSET         (48)
 #define FIRST_OPERAND_OFFSET  (32)
 #define SECOND_OPERAND_OFFSET (16)

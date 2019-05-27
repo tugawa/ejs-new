@@ -1,0 +1,12 @@
+\inst geterr (Register dst)
+
+\otherwise \{
+/*
+   geterr dst
+     dst : destination register
+   $dst = err
+   I don't know in which situation this instruction is necessary.
+ */ 
+
+ dst = get_err(context);
+\}

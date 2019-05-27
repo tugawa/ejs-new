@@ -5,8 +5,8 @@
      Kochi University of Technology
      The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-19
-     Hideya Iwasaki, 2016-19
+     Tomoharu Ugawa, 2016 - 2019
+     Hideya Iwasaki, 2016 - 2019
 */
 
 #include "prefix.h"
@@ -31,20 +31,20 @@ int repl_flag;         // for REPL
 int hcprint_flag;      // prints all transitive hidden classes
 #endif
 #ifdef PROFILE
+char *profile_name;    // name of logging file
 int coverage_flag;     // print the coverage
 int icount_flag;       // print instruction count
+#endif
+
+FILE *log_stream;
+#ifdef PROFILE
+FILE *prof_stream;
 #endif
 
 /*
   parameter
  */
 int regstack_limit = STACK_LIMIT;   // size of register stack (not used yet)
-
-FILE *log_stream;
-
-#ifdef PROFILE
-FILE *prof_stream;
-#endif
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -115,24 +115,26 @@ struct commandline_option {
   char *str;
   int arg;
   int *flagvar;
+  char **strvar;
 };
 
 struct commandline_option  options_table[] = {
-  { "-l", 0, &lastprint_flag     },
-  { "-f", 0, &ftable_flag        },
-  { "-t", 0, &trace_flag         },
-  { "-a", 0, &all_flag           },
-  { "-u", 0, &cputime_flag       },
-  { "-R", 0, &repl_flag          },
+  { "-l",         0, &lastprint_flag, NULL          },
+  { "-f",         0, &ftable_flag,    NULL          },
+  { "-t",         0, &trace_flag,     NULL          },
+  { "-a",         0, &all_flag,       NULL          },
+  { "-u",         0, &cputime_flag,   NULL          },
+  { "-R",         0, &repl_flag,      NULL          },
 #ifdef HIDDEN_CLASS
-  { "-h", 0, &hcprint_flag       },
+  { "-h",         0, &hcprint_flag,   NULL          },
 #endif
 #ifdef PROFILE
-  { "--coverage", 0, &coverage_flag },
-  { "--icount",   0, &icount_flag   },
+  { "--profile",  1, NULL,            &profile_name },
+  { "--coverage", 0, &coverage_flag,  NULL          },
+  { "--icount",   0, &icount_flag,    NULL          },
 #endif
-  { "-s", 1, &regstack_limit     },      // not used yet
-  { (char *)NULL, 0, (int *)NULL }
+  { "-s",         1, &regstack_limit, NULL          },      // not used yet
+  { (char *)NULL, 0, NULL,            NULL          }
 };
 
 int process_options(int ac, char *av[]) {
@@ -151,7 +153,8 @@ int process_options(int ac, char *av[]) {
           else {
             k++;
             p = av[k];
-            *(o->flagvar) = atoi(p);
+            if (o->flagvar != NULL) *(o->flagvar) = atoi(p);
+            else if (o->strvar != NULL) *(o->strvar) = p;
           }
           break;
         } else
@@ -190,43 +193,8 @@ int main(int argc, char *argv[]) {
   struct rusage ru0, ru1;
   int base_function = 0;
   int k, iter;
-
-#ifndef NDEBUG
-  stack_start = (void **) &fp;
-#endif /* NDEBUG */
-
-  log_stream = stderr;
-  repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
-#ifdef PROFILE
-  coverage_flag = icount_flag = FALSE;
-#endif
-  k = process_options(argc, argv);
-  if (all_flag == TRUE) {
-    lastprint_flag = ftable_flag = trace_flag = TRUE;
-#ifdef PROFILE
-    coverage_flag = icount_flag = TRUE;
-#endif
-  }
-  if (repl_flag == TRUE)
-    lastprint_flag = TRUE;
-
-  // printf("regstack_limit = %d\n", regstack_limit);
-  // printf("lastprint_flag = %d, ftable_flag = %d, trace_flag = %d, k = %d\n",
-  //        lastprint_flag, ftable_flag, trace_flag, k);
-/*
-  if (k > 0) {
-    if (repl_flag == TRUE)
-      fp = stdin;
-    else if ((fp = fopen(argv[k], "r")) == NULL)
-      LOG_EXIT("%s: No such file.\n", argv[k]);
-  }
-*/
-  /* set number of iterations */
-  iter = (repl_flag == TRUE)? 0x7fffffff: argc;
-
-#ifdef CALC_CALL
-  callcount = 0;
-#endif // CALC_CALL
+  int n = 0;
+  Context *context;
 
 #ifdef CALC_TIME
   long long s, e;
@@ -248,8 +216,44 @@ int main(int argc, char *argv[]) {
   long long *values = malloc(sizeof(long long) * eventsize);
 #endif // USE_PAPI
 
-  int n = 0;
-  Context *context;
+
+#ifndef NDEBUG
+  stack_start = (void **) &fp;
+#endif /* NDEBUG */
+
+  repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
+#ifdef PROFILE
+  profile_name = NULL;
+  coverage_flag = icount_flag = FALSE;
+#endif
+  k = process_options(argc, argv);
+  if (all_flag == TRUE) {
+    lastprint_flag = ftable_flag = trace_flag = TRUE;
+#ifdef PROFILE
+    coverage_flag = icount_flag = TRUE;
+#endif
+  }
+  if (repl_flag == TRUE)
+    lastprint_flag = TRUE;
+
+  /* set number of iterations */
+  iter = (repl_flag == TRUE)? 0x7fffffff: argc;
+
+#ifdef CALC_CALL
+  callcount = 0;
+#endif // CALC_CALL
+
+  log_stream = stderr;
+
+#ifdef PROFILE
+  if (profile_name == NULL)
+    prof_stream = stdout;
+  else if ((prof_stream = fopen(profile_name, "w")) == NULL) {
+    fprintf(stderr, "Opening prof file %s failed. Instead stdout is used.\n",
+            profile_name);
+    prof_stream = stdout;
+  }
+#endif
 
   run_phase = PHASE_INIT;
 
@@ -371,7 +375,9 @@ int main(int argc, char *argv[]) {
     print_all_hidden_class();
 #endif
 
-#ifdef PROFIL
+#ifdef PROFILE
+  if (prof_stream != NULL)
+    fclose(prof_stream);
   /*
   if (coverage_flag == TRUE)
      print_coverage();
