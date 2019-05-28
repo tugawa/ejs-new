@@ -315,7 +315,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(call tmp_idef,$@) \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p insns
@@ -323,7 +323,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
 endif
 endif
 
@@ -351,11 +351,11 @@ CHECKRESULTS = $(patsubst %.c,$(CHECKFILES_DIR)/%.c.checkresult,$(CFILES))
 CHECKTARGETS = $(patsubst %.c,%.c.check,$(CFILES))
 
 types-generated.h: $(DATATYPES)
-	$(TYPESGEN) $< > $@
+	$(TYPESGEN) $< > $@ || rm $@
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) $< > $@
+	$(CPP) $(CFLAGS) $< > $@ || rm $@
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
@@ -364,7 +364,7 @@ $(CHECKTARGETS):%.c.check: $(CHECKFILES_DIR)/%.c
 	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $<
 
 $(CHECKRESULTS):$(CHECKFILES_DIR)/%.c.checkresult: $(CHECKFILES_DIR)/%.c
-	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@
+	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@ || rm $@
 
 check: $(CHECKRESULTS)
 	cat $^
