@@ -67,6 +67,10 @@ def var_prefix(kind):
   else:
     raise Exception
 
+def var_name(kind, n):
+  pre = var_prefix(kind)
+  return pre + str(n)
+
 def macro_postfix(kind):
   if kind == "Register":
     return "reg"
@@ -92,16 +96,14 @@ def ordinal(n):
     raise Exception
 
 def gen_vardecl(kind, n):
-  pre = var_prefix(kind)
-  vname = pre + str(n)
+  vname = var_name(kind, n)
   gen_indent(2)
   ofile.write(kind + " " + vname + ";\n")
 
 def gen_var_assignment(n, kind, jsv_kind = None):
   if not jsv_kind: jsv_kind = "_"
-  pre = var_prefix(kind)
   ord = ordinal(n)
-  vname = pre + str(n)
+  vname = var_name(kind, n)
   if kind == "JSValue" and jsv_kind != "_":
     if jsv_kind in ["fixnum"]:
       right = "cint_to_fixnum(get_" + ord + "_operand_int(insn))"
@@ -122,10 +124,9 @@ def gen_goto(label):
   ofile.write("goto "+label+";\n")
 
 def gen_assignment(kind, n):
-  pre = var_prefix(kind)
   post = macro_postfix(kind)
   ord = ordinal(n)
-  vname = pre + str(n)
+  vname = var_name(kind, n)
   gen_indent(2)
   ofile.write(kind + " " + vname + " = get_" + ord + "_operand_" + post + "(insn);\n")
 
@@ -145,6 +146,14 @@ def gen_include(insn, *, uselabel = None, deflabel = None):
   ofile.write("#include \"insns/" + insn + ".inc\"\n")
   ofile.write("#undef USELABEL\n")
   ofile.write("#undef DEFLABEL\n")
+
+def gen_dispatch_entry_hook(insn, kinds):
+  varlst = [var_name(kind, i)
+            for (i, kind) in enumerate(kinds) if kind == "JSValue"]
+  macro_name = "INSN_COUNT"+str(len(varlst))
+  macro_param = insn+","+(",".join(varlst))
+  gen_indent(2)
+  ofile.write(macro_name+"("+macro_param+");\n")
 
 def labelonly(insn):
   gen_label(insn)
@@ -187,6 +196,7 @@ def gen_insn_body(insn_name, main_insn, kinds, jsv_types, incpc, sitype):
     gen_include(insn_name)
   elif sitype == 4:
     types = ["any" if x == "_" else x for x in jsv_types if x != "-"]
+    gen_dispatch_entry_hook(main_insn, kinds)
     gen_goto("_".join(["TL" + main_insn] + types))
   elif sitype == 5:
     gen_goto(main_insn + "_HEAD")
@@ -454,9 +464,9 @@ def read_otspec(args):
     line = line.strip()
     if re.match(r"^\s*#.*$", line): continue
     if re.match(r"^\s*$", line): continue
-    m = re.match(r"(?P<insnname>[a-z]+)\s*\((?P<ops>[^)]+)\)\s*(?P<action>[a-z]+)", line)
+    m = re.match(r"(?P<insnname>[a-z]+)\s*\((?P<ops>[^)]*)\)\s*(?P<action>[a-z]+)", line)
     if not m:
-      raise "operand spec file format error:" + line
+      raise Exception("operand spec file format error:" + line)
     insnname = m.group("insnname")
     ops = re.split(r"\s*,\s*", m.group('ops'))
     action = m.group("action")
@@ -552,7 +562,7 @@ def gen_vmloop_cases(args):
   sinsns = read_sinsns(args)
   sitype = args.sitype
   if not sitype and len(sinsns) > 0:
-    raise "sitype is not specified"
+    raise Exception("sitype is not specified")
 
   for insninfo in insndefs:
     insn = insninfo["insn"]
