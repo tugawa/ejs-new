@@ -16,9 +16,6 @@
 /*
  * Either of the following two should be defined.
  */
-#define USE_SBC
-// #define USE_OBC
-
 #define CPU_LITTLE_ENDIAN
 
 /*
