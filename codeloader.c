@@ -5,25 +5,27 @@
      Kochi University of Technology
      The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-19
-     Hideya Iwasaki, 2016-19
+     Tomoharu Ugawa, 2016 - 2019
+     Hideya Iwasaki, 2016 - 2019
 */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-/*
- * Either of the following two should be defined.
- */
 #define CPU_LITTLE_ENDIAN
 
 /*
    information of instructions
  */
-static InsnInfo insn_info_table[] = {
+InsnInfo insn_info_table[] = {
 #include "instructions-table.h"
 };
+
+/*
+   number of instructions
+ */
+int numinsts = sizeof(insn_info_table) / sizeof(InsnInfo);
 
 char *insn_nemonic(int opcode) {
   return insn_info_table[opcode].insn_name;
@@ -310,7 +312,6 @@ void end_code_loader() {
 
 Opcode find_insn(char* s) {
   int i;
-  int numinsts = sizeof(insn_info_table) / sizeof(InsnInfo);
   for (i = 0; i < numinsts; i++)
     if (strcmp(insn_info_table[i].insn_name, s) == 0)
       return i;
@@ -403,7 +404,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, i
       tokp[nlen - 4] = '\0';
       tmpinsns[pc].logflag = TRUE;
     } else
-      tmpinsns[pc].logflag = FALSE;
+      tmpinsns[pc].logflag = forcelog_flag;
   }
 #endif /* PROFILE */
 

@@ -5,8 +5,8 @@
      Kochi University of Technology
      The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-19
-     Hideya Iwasaki, 2016-19
+     Tomoharu Ugawa, 2016 - 2019
+     Hideya Iwasaki, 2016 - 2019
 */
 
 #include "prefix.h"
@@ -31,14 +31,18 @@ static char *typename(JSValue v) {
   if (is_array(v)) return "array";
   return "other_object";
 }
-#define INSN_COUNT0(insn)			\
-  fprintf(prof_stream, "OPERAND: %s\n", #insn)
-#define INSN_COUNT1(insn, v0)			\
-  fprintf(prof_stream, "OPERAND: %s %s\n", #insn, typename(v0))
-#define INSN_COUNT2(insn, v0, v1)		\
-  fprintf(prof_stream, "OPERAND: %s %s %s\n", #insn, typename(v0), typename(v1))
-#define INSN_COUNT3(insn, v0, v1, v2)          \
-  fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #insn, typename(v0), typename(v1), typename(v2))
+#define INSN_COUNT0(iname)			\
+  (profile_flag == TRUE && insns->logflag == TRUE && \
+   fprintf(prof_stream, "%2d: %s\n", ++headcount, #iname))
+#define INSN_COUNT1(iname, v0)			\
+  (profile_flag == TRUE && insns->logflag == TRUE && \
+   fprintf(prof_stream, "%2d: %s %s\n", ++headcount, #iname, typename(v0)))
+#define INSN_COUNT2(iname, v0, v1)		\
+  (profile_flag == TRUE && insns->logflag == TRUE && \
+   fprintf(prof_stream, "%2d: %s %s %s\n", ++headcount, #iname, typename(v0), typename(v1)))
+#define INSN_COUNT3(iname, v0, v1, v2)          \
+  (profile_flag == TRUE && insns->logflag == TRUE && \
+   fprintf(prof_stream, "%2d: %s %s %s %s\n", ++headcount, #iname, typename(v0), typename(v1), typename(v2)))
 #else
 #define INSN_COUNT0(insn)
 #define INSN_COUNT1(insn, v0)
@@ -85,8 +89,16 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 
 // defines ENTER_INSN(x)
 //
+#ifdef PROFILE
+#define ENTER_INSN(x)                                                \
+  do {                                                               \
+    if (insns->logflag == TRUE) headcount = 0, insns->count++;       \
+    asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));  \
+  } while (0)
+#else
 #define ENTER_INSN(x)                                                \
   asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t))
+#endif
 
 // defines NEXT_INSN()
 //
@@ -172,6 +184,9 @@ int vmrun_threaded(Context* context, int border) {
   static InsnLabel jump_table[] = {
 #include "instructions-label.h"
   };
+#ifdef PROFILE
+  int headcount = 0;
+#endif
 
   update_context();
   /*

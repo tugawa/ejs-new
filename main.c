@@ -31,9 +31,11 @@ int repl_flag;         // for REPL
 int hcprint_flag;      // prints all transitive hidden classes
 #endif
 #ifdef PROFILE
-char *profile_name;    // name of logging file
+int profile_flag;      // print the profile information
+char *poutput_name;    // name of logging file
 int coverage_flag;     // print the coverage
 int icount_flag;       // print instruction count
+int forcelog_flag;       // treat every instruction as ``_log'' one
 #endif
 
 FILE *log_stream;
@@ -129,9 +131,11 @@ struct commandline_option  options_table[] = {
   { "-h",         0, &hcprint_flag,   NULL          },
 #endif
 #ifdef PROFILE
-  { "--profile",  1, NULL,            &profile_name },
+  { "--profile",  0, &profile_flag,   NULL          },
+  { "--poutput",  1, NULL,            &poutput_name },
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
+  { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif
   { "-s",         1, &regstack_limit, NULL          },      // not used yet
   { (char *)NULL, 0, NULL,            NULL          }
@@ -179,6 +183,50 @@ void print_cputime(time_t sec, suseconds_t usec) {
 #endif
 }
 
+#ifdef PROFILE
+void print_coverage(FunctionTable *ft, int n) {
+  unsigned int loginsns = 0; /* number of logflag-set instructiones */
+  unsigned int einsns = 0;   /* number of executed logflag-set instructions */
+  int i, j;
+
+  for (i = 0; i < n; i++) {
+    Instruction *insns = ft[i].insns;
+    int ninsns = ft[i].n_insns;
+    for (j = 0; j < ninsns; j++) {
+      if (insns[j].logflag == TRUE) {
+        loginsns++;
+        if (insns[j].count > 0) einsns++;
+      }
+    }
+  }
+  printf("coverage of logflag-set instructions = %d/%d", einsns, loginsns);
+  if (loginsns > 0)
+    printf(" = %7.3f%%", (double)einsns * 100 / (double)loginsns);
+  putchar('\n');
+}
+
+void print_icount(FunctionTable *ft, int n) {
+  int i, j;
+  unsigned int *ic;
+
+  if ((ic = (unsigned int *)malloc(sizeof(unsigned int) * numinsts)) == NULL) {
+    fprintf(stderr, "Allocating instruction count table failed\n");
+    return;
+  }
+  for (i = 0; i < numinsts; i++) ic[i] = 0;
+  for (i = 0; i < n; i++) {
+    Instruction *insns = ft[i].insns;
+    int ninsns = ft[i].n_insns;
+    for (j = 0; j < ninsns; j++)
+      if (insns[j].logflag == TRUE)
+        ic[(int)(get_opcode(insns[j].code))] += insns[j].count;
+  }
+  printf("instruction count\n");
+  for (i = 0; i < numinsts; i++)
+    printf("%3d: %10d  %s\n", i, ic[i], insn_nemonic(i));
+  free(ic);
+}
+#endif
 
 #ifndef NDEBUG
 void **stack_start;
@@ -223,8 +271,8 @@ int main(int argc, char *argv[]) {
 
   repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
 #ifdef PROFILE
-  profile_name = NULL;
-  coverage_flag = icount_flag = FALSE;
+  poutput_name = NULL;
+  profile_flag = coverage_flag = icount_flag = forcelog_flag = FALSE;
 #endif
   k = process_options(argc, argv);
   if (all_flag == TRUE) {
@@ -246,11 +294,11 @@ int main(int argc, char *argv[]) {
   log_stream = stderr;
 
 #ifdef PROFILE
-  if (profile_name == NULL)
+  if (poutput_name == NULL)
     prof_stream = stdout;
-  else if ((prof_stream = fopen(profile_name, "w")) == NULL) {
+  else if ((prof_stream = fopen(poutput_name, "w")) == NULL) {
     fprintf(stderr, "Opening prof file %s failed. Instead stdout is used.\n",
-            profile_name);
+            poutput_name);
     prof_stream = stdout;
   }
 #endif
@@ -376,14 +424,13 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef PROFILE
+  // printf("n = %d\n", n);
+  if (coverage_flag == TRUE)
+     print_coverage(function_table, n);
+  if (icount_flag == TRUE)
+     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-  /*
-  if (coverage_flag == TRUE)
-     print_coverage();
-  if (icount_flag == TRUE)
-     print_icount();
-  */
 #endif
 
   return 0;

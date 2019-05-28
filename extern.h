@@ -5,8 +5,8 @@
      Kochi University of Technology
      The University of Electro-communications
 
-     Tomoharu Ugawa, 2016-19
-     Hideya Iwasaki, 2016-19
+     Tomoharu Ugawa, 2016 - 2019
+     Hideya Iwasaki, 2016 - 2019
 */
 
 #define FUNCTION_TABLE_LIMIT  (100)
@@ -29,8 +29,15 @@ extern int gc_usec;
 extern FILE *log_stream;
 
 #ifdef PROFILE
+extern int profile_flag;
+extern int coverage_flag;
+extern int icount_flag;
+extern int forcelog_flag;
 extern FILE *prof_stream;
 #endif
+
+extern InsnInfo insn_info_table[];
+extern int numinsts;
 
 #ifdef HIDDEN_CLASS
 extern int n_hc;
