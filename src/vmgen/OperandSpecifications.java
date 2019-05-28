@@ -125,7 +125,18 @@ public class OperandSpecifications {
                     matchOperandTypes(rec.operandTypes, types, insnName))
                 return rec;
         }
-        throw new Error("unexhaustive type specification for :"+insnName+"("+types[0].getName()+","+types[1].getName()+")");
+        /* construct error message */
+        StringBuilder sb = new StringBuilder();
+        sb.append("unexhaustive type specification for : ");
+        sb.append(insnName);
+        sb.append("(");
+        for (int i = 0; i < types.length; i++) {
+            if (i >= 1)
+                sb.append(",");
+            sb.append(types[i].getName());
+        }
+        sb.append(")");
+        throw new Error(sb.toString());
     }
 
     public Set<VMDataType[]> getOperands(String insnName, int arity, OperandSpecificationRecord.Behaviour behaviour) {
