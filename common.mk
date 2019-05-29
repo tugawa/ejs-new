@@ -194,9 +194,7 @@ INSN_GENERATED = \
     insns/setglobal.inc \
     insns/setlocal.inc \
     insns/specconst.inc \
-    insns/typeof.inc
-
-INSN_HANDCRAFT = \
+    insns/typeof.inc \
     insns/end.inc \
     insns/localret.inc \
     insns/nop.inc \
@@ -205,6 +203,8 @@ INSN_HANDCRAFT = \
     insns/ret.inc \
     insns/throw.inc \
     insns/unknown.inc
+
+INSN_HANDCRAFT = 
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))

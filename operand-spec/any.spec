@@ -48,3 +48,11 @@ setglobal (_,_) accept
 setlocal (-,-,_) accept
 specconst (-,-) accept
 typeof (-,-) accept
+end () accept
+localret () accept
+nop () accept
+pophandler () accept
+poplocal () accept
+ret () accept
+throw () accept
+unknown () accept

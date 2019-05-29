@@ -912,7 +912,12 @@ void print_bytecode(Instruction *insns, int j) {
   code = insns[j].code;
   oc = get_opcode(code);
   t = insn_info_table[oc].otype;
+#ifdef PROFILE
+  printf("%s%s ", insn_info_table[oc].insn_name,
+         insns[j].logflag == TRUE? "_log": "");
+#else
   printf("%s ", insn_info_table[oc].insn_name);
+#endif
   switch (t) {
   case SMALLPRIMITIVE:
     {
@@ -1058,9 +1063,6 @@ void print_bytecode(Instruction *insns, int j) {
   case UNKNOWNOP:
     break;
   }
-#ifdef PROFILE
-  printf(", logflag = %s", insns[j].logflag == TRUE? "TRUE": "FALSE");
-#endif
   putchar('\n');
 }
 
