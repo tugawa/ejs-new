@@ -25,24 +25,34 @@ static int lcall_stack_pop(Context* context, int *pc);
 static char *typename(JSValue v) {
   if (is_fixnum(v)) return "fixnum";
   if (is_flonum(v)) return "flonum";
-  if (is_string(v)) return "stirng";
-  if (is_boolean(v)) return "boolean";
+  if (is_string(v)) return "string";
   if (is_special(v)) return "special";
+  if (is_simple_object(v)) return "simple_object";
   if (is_array(v)) return "array";
-  return "other_object";
+  if (is_function(v)) return "function";
+  if (is_builtin(v)) return "builtin";
+  if (is_iterator(v)) return "iterator";
+  if (is_number_object(v)) return "number_object";
+  if (is_boolean_object(v)) return "boolean_object";
+  if (is_string_object(v)) return "string_object";
+#ifdef USE_REGEXP
+  if (is_regexp(v)) return "regexp";
+#endif
+  return "unknown";
 }
+
 #define INSN_COUNT0(iname)			\
   (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "%2d: %s\n", ++headcount, #iname))
+   fprintf(prof_stream, "OPERAND: %s\n", #iname))
 #define INSN_COUNT1(iname, v0)			\
   (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "%2d: %s %s\n", ++headcount, #iname, typename(v0)))
+   fprintf(prof_stream, "OPERAND: %s %s\n", #iname, typename(v0)))
 #define INSN_COUNT2(iname, v0, v1)		\
   (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "%2d: %s %s %s\n", ++headcount, #iname, typename(v0), typename(v1)))
+   fprintf(prof_stream, "OPERAND: %s %s %s\n", #iname, typename(v0), typename(v1)))
 #define INSN_COUNT3(iname, v0, v1, v2)          \
   (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "%2d: %s %s %s %s\n", ++headcount, #iname, typename(v0), typename(v1), typename(v2)))
+   fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #iname, typename(v0), typename(v1), typename(v2)))
 #else
 #define INSN_COUNT0(insn)
 #define INSN_COUNT1(insn, v0)
@@ -68,9 +78,15 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #define INSNLOAD()                                                   \
   do {                                                               \
     insn = insns->code;                                              \
-    if (trace_flag == TRUE)                                          \
+    if (trace_flag == TRUE) {					     \
       printf("pc = %d, insn = %s, fp = %d\n",                        \
              pc, insn_nemonic(get_opcode(insn)), fp);                \
+      if (get_opcode(insn) == STRING) {				     \
+         Displacement disp = get_big_disp(insn);		     \
+         JSValue s = get_literal(insns, disp);			     \
+         printf("   %s\n", string_to_cstr(s));			     \
+      }								     \
+    }								     \
   } while (0)
 #else /* DEBUG */
 /*
