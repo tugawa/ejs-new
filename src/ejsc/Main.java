@@ -267,39 +267,44 @@ public class Main {
                 }
             }
             static boolean containByInsnName(String insnName) {
-                for (SISpec spec :sispecs) {
-                    if (spec.insnName.equals(insnName))
-                        return true;
-                }
+                if (sispecs != null)
+                    for (SISpec spec :sispecs) {
+                        if (spec.insnName.equals(insnName))
+                            return true;
+                    }
                 return false;
             }
             static LinkedList<SISpec> getSISpecsByInsnName(String insnName) {
                 LinkedList<SISpec> specs = new LinkedList<SISpec>();
-                for (SISpec spec :sispecs) {
-                    if (spec.insnName.equals(insnName))
-                        specs.add(spec);
-                }
+                if (sispecs != null)
+                    for (SISpec spec :sispecs) {
+                        if (spec.insnName.equals(insnName))
+                            specs.add(spec);
+                    }
                 return specs;
             }
             static int getOpcodeIndex(String siName) {
-                for (int i = 0; i < sispecs.size(); i++) {
-                    SISpec spec = sispecs.get(i);
-                    if (spec.siName.equals(siName))
-                        return Main.Info.getInsnTableSize() + i;
-                }
+                if (sispecs != null)
+                    for (int i = 0; i < sispecs.size(); i++) {
+                        SISpec spec = sispecs.get(i);
+                        if (spec.siName.equals(siName))
+                            return Main.Info.getInsnTableSize() + i;
+                    }
                 return -1;
             }
             static SISpec getSISpecBySIName(String siName) {
-                for (int i = 0; i < sispecs.size(); i++) {
-                    SISpec spec = sispecs.get(i);
-                    if (spec.siName.equals(siName))
-                        return spec;
-                }
+                if (sispecs != null)
+                    for (int i = 0; i < sispecs.size(); i++) {
+                        SISpec spec = sispecs.get(i);
+                        if (spec.siName.equals(siName))
+                            return spec;
+                    }
                 return null;
             }
             static public void printSISpec() {
-                for (SISpec spec :sispecs)
-                    System.out.println(spec.toString());
+                if (sispecs != null)
+                    for (SISpec spec :sispecs)
+                        System.out.println(spec.toString());
             }
         }
     }
