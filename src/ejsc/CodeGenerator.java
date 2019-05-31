@@ -913,6 +913,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(node.operands[1], reg);
             bcBuilder.push(l1);
         }
+        break;
 
         // relational
         case EQUAL: case NOT_EQUAL: {
