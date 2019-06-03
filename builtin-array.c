@@ -1,29 +1,17 @@
 /*
-   builtin-array.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * the University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at the University of
+ * Electro-communications, which was contributed by the following members.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-#define not_implemented(s) \
+#define not_implemented(s)                                                \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
 #define INSERTION_SORT_THRESHOLD (20) // must >= 1
@@ -33,7 +21,7 @@ void insertionSort(Context*, JSValue, cint, cint, JSValue);
 void swap(JSValue*, JSValue*);
 
 /*
-   computes the asize for a given n
+ * computes the asize for a given n
  */
 cint compute_asize(cint n) {
   cint s, news;
@@ -48,7 +36,7 @@ cint compute_asize(cint n) {
 }
 
 /*
-   constructor for array
+ * constructor for array
  */
 BUILTIN_FUNCTION(array_constr)
 {
@@ -74,9 +62,9 @@ BUILTIN_FUNCTION(array_constr)
     }
   } else {
     /*
-       na >= 2, e.g., Array(2,4,5,1)
-       This means that the array's length is four whose elements are
-       2, 4, 5, and 1.
+     * na >= 2, e.g., Array(2,4,5,1)
+     * This means that the array's length is four whose elements are
+     * 2, 4, 5, and 1.
      */
     int i;
     length = na;
@@ -101,83 +89,12 @@ BUILTIN_FUNCTION(array_toString)
 }
 
 BUILTIN_FUNCTION(array_toLocaleString){
-  /* toLocaleString() calls other toLocaleString()s of the elements of the array */
-  /*
-  JSValue array, elem, separator, r, elementObj, func;
-  cint len;
-
-  builtin_prologue();
-  array = args[0];
-  len = array_length(args[0]);
-
-  if (len == 0) {
-    set_a(context, gconsts.g_string_empty);
-    return;
-  }
-  separator = gconsts.g_string_comma;
-  elem = get_array_prop(context, array, cint_to_fixnum(0));
-  if (is_null(elem) || is_undefined(elem)) r = gconsts.g_string_empty;
-  else {
-    elementObj = to_object(context, elem);
-    func = get_prop_prototype_chain(elementObj, cstr_to_string("toLocaleString"));
-    if (!is_function(func)) type_error_exception("not callable"); // must use is_callable()?
-  }
-  set_a(context, array);
-  return;
-  */
   not_implemented("toLocaleString");
-#if 0
-  int i;
-  uint64_t length, sumLength;
-  JSValue array, item, prim;
-  char **strs;
-  char *retCStr, *addr;
-  ArrayCell *ap;
-
-  builtin_prologue();
-  array = args[0];
-  length = array_length(array);
-
-  if (length > 0) {
-    strs = (char **)malloc(sizeof(char*)*length);
-    sumLength = 0;
-    ap = remove_array_tag(array);
-
-    for (i = 0; i < length; i++) {
-      item = array_body_index(array, i);
-      if (is_object(item)) {
-        // invokeToLocaleString(item, context, &prim);
-        prim = item;   // kore wa tekitou
-      }
-      strs[i] = string_to_cstr(to_string(context, prim));
-      sumLength += strlen(strs[i]);
-    }
-
-    // 全文字列のデータを格納する文字列を確保
-    retCStr = (char *)malloc(sizeof(char)*(sumLength+length));
-    addr = retCStr;
-    strcpy(addr, strs[0]);
-
-    // 文字列を全てカンマで繋げる
-    addr += strlen(strs[0]);
-    for(i = 1; i < length; i++){
-      *(addr++) = ',';
-      strcpy(addr, strs[i]);
-      addr += strlen(strs[i]); }
-    *addr = '\0';
-
-    set_a(context, cstr_to_string(retCStr));
-
-  }else{
-    set_a(context, gconsts.g_string_empty);
-    return;
-  }
-#endif
 }
 
 /*
-  joins the elements of an array by using a specified separator,
-  where default separator is ','
+ * joins the elements of an array by using a specified separator,
+ * where default separator is ','
  */
 BUILTIN_FUNCTION(array_join)
 {
@@ -185,7 +102,7 @@ BUILTIN_FUNCTION(array_join)
 
   builtin_prologue();
   if (is_undefined(args[1])) {
-      sep = gconsts.g_string_comma;
+    sep = gconsts.g_string_comma;
   } else {
     sep = to_string(context, args[1]);
     if (!is_string(sep))
@@ -306,15 +223,15 @@ BUILTIN_FUNCTION(array_push)
   a = args[0];
   len = array_length(a);
   /*
-     The following for-loop is very inefficient.
-     This is for simplicity of implementation.
+   * The following for-loop is very inefficient.
+   * This is for simplicity of implementation.
    */
   GC_PUSH(a);
   for (i = 1; i <= na; i++)
     set_array_prop(context, a, cint_to_fixnum(len++), args[i]);
   GC_POP(a);
   ret = (len <= MAX_ARRAY_LENGTH)?
-          cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
+    cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
   set_a(context, ret);
   return;
 }
@@ -549,10 +466,10 @@ BUILTIN_FUNCTION(array_slice)
 }
 
 /*
-   sortCompare(context, x, y, comparefn) returns
-    x < y: minus
-    x = y: 0
-    x > y: plus
+ * sortCompare(context, x, y, comparefn) returns
+ *   x < y: minus
+ *   x = y: 0
+ *   x > y: plus
  */
 cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   char *xString, *yString;
@@ -585,12 +502,11 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     else if (is_builtin(comparefn)) {
       save_special_registers(context, stack, oldsp - 6);
       set_fp(context, oldsp-2); // for GC
-      // y(<-oldsp), x, receiver (<-newfp), CF, PC, LP, FP
       /*
-      set_lp(context, NULL);
-      set_pc(context, -1);
-      set_cf(context, NULL);
-      set_ac(context, 2);
+        set_lp(context, NULL);
+        set_pc(context, -1);
+        set_cf(context, NULL);
+        set_ac(context, 2);
       */
       call_builtin(context, comparefn, 2, TRUE, FALSE);
     }
@@ -686,9 +602,9 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
     if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v2 < v0 < v1
   }
   /*
-      Update array with [v0, v1(=p), a[2], a[3],..., a[m-1], a[1], a[m+1],..., a[r-1], v2]
-                          l             i                                           j   r
-    */
+   * Update array with [v0, v1(=p), a[2], a[3],..., a[m-1], a[1], a[m+1],..., a[r-1], v2]
+   *                     l             i                                           j   r
+   */
   p = v1;
   GC_PUSH(p);
   set_array_prop(context, array, cint_to_fixnum(l), v0); // a[l] = v0
@@ -719,13 +635,13 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
 
 void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
   /* DEBUG: print array
-  for(cint z = 0; z < array_length(array); z++) {
-    tmp = get_array_prop(context, array, cint_to_fixnum(z));
-    if (l <= z && z <= r) print_value_simple(context, tmp);
-    else printf("_");
-    if (z < array_length(array)-1) printf(",");
-    else printf("\n");
-  }
+     for(cint z = 0; z < array_length(array); z++) {
+     tmp = get_array_prop(context, array, cint_to_fixnum(z));
+     if (l <= z && z <= r) print_value_simple(context, tmp);
+     else printf("_");
+     if (z < array_length(array)-1) printf(",");
+     else printf("\n");
+     }
   */
   if (l >= r) return;
   if(r - l <= INSERTION_SORT_THRESHOLD) insertionSort(context, array, l, r, comparefn);
@@ -816,7 +732,7 @@ BUILTIN_FUNCTION(array_debugarray)
   length = array_length(a);
   to = length < size? length: size;
   printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
-	 size, length, to);
+         size, length, to);
   GC_PUSH(a);
   for (i = 0; i < to; i++) {
     printf("i = %d: ", i);
