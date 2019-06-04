@@ -1,25 +1,11 @@
 /*
-   CodeGenerator.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2017-18
-     Tomoya Nonaka, 2017-18
-     Tomoharu Ugawa, 2017-18
-     Hideya Iwasaki, 2017-18
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -834,6 +820,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     }
     @Override
     public Object visitBinaryExpression(IASTBinaryExpression node) {
+        // TODO: refactoring
         Register r1 = null, r2 = null;
         switch (node.operator) {
         case ADD: case SUB: case MUL: case DIV: case MOD:
@@ -847,6 +834,10 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(node.operands[0], r1);
             r2 = env.getCurrentFrame().freshRegister();
             compileNode(node.operands[1], r2);
+            break;
+        default:
+            /* do nothing */
+            break;
         }
 
 
@@ -996,9 +987,11 @@ public class CodeGenerator extends IASTBaseVisitor {
         case ASSIGN_ADD: case ASSIGN_SUB: case ASSIGN_MUL: case ASSIGN_DIV: case ASSIGN_MOD:
         case ASSIGN_SHL: case ASSIGN_SHR: case ASSIGN_UNSIGNED_SHR:
         case ASSIGN_BAND: case ASSIGN_BOR: case ASSIGN_BXOR:
-        case ASSIGN: {
+        case ASSIGN:
             compileAssignment(node.operands[0], reg);
-        }
+            break;
+        default:
+            throw new Error("internal error");
         }
         return null;
     }

@@ -1,24 +1,11 @@
 /*
-   Literal.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2017-18
-     Tomoharu Ugawa, 2017-18
-     Hideya Iwasaki, 2017-18
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc.ast_node;
 
 import java.util.Arrays;
@@ -30,10 +17,6 @@ import javax.json.JsonObjectBuilder;
 import ejsc.ast_node.Node.*;
 
 public class Literal extends Node implements ILiteral {
-
-    /*public enum LiteralType {
-        STRING, BOOLEAN, NULL, NUMBER, REG_EXP;
-    }*/
 
     Node.ILiteral.LiteralType literalType;
 
@@ -119,7 +102,7 @@ public class Literal extends Node implements ILiteral {
             int[] temp2 = new int[1];
             String str = null;
             String[] con = {"t", "n", "r", "f", "b", "\\", "\"", "\'"};
-        if (i + 3 <= val.length() - 1 && ("" + charArray[i]).equals("\\") && ("" + charArray[i+1]).equals("x")) {
+            if (i + 3 <= val.length() - 1 && ("" + charArray[i]).equals("\\") && ("" + charArray[i+1]).equals("x")) {
                 str = "" + charArray[i] + charArray[i+1];
                 temp = ""+ charArray[i+2] + charArray[i+3];
                 str = str + temp;
@@ -127,9 +110,9 @@ public class Literal extends Node implements ILiteral {
                 temp = String.valueOf(Character.toChars(temp2[0]));
                 val = val.replace(str, temp);
             }
-       else if (("" + charArray[i]).equals("\\") && ("" + charArray[i+1]).equals("v")) {
-           val = val.replace("\\v", "\u000b");
-       }
+            else if (("" + charArray[i]).equals("\\") && ("" + charArray[i+1]).equals("v")) {
+                val = val.replace("\\v", "\u000b");
+            }
             else if ((""+charArray[i]).equals("\\") && Arrays.asList(con).contains("" + charArray[i+1])) {
                 continue;
             }
@@ -223,7 +206,6 @@ public class Literal extends Node implements ILiteral {
 
     @Override
     public JsonObject getEsTree() {
-        // TODO Auto-generated method stub
         JsonObjectBuilder jsonBuilder = Json.createObjectBuilder()
                 .add(KEY_TYPE, "Literal");
         switch (literalType) {
@@ -243,7 +225,6 @@ public class Literal extends Node implements ILiteral {
             jsonBuilder.addNull(KEY_VALUE);
             break;
         }
-        // jsonBuilder.add(KEY_LOC, loc.getAstWithJson());
         return jsonBuilder.build();
     }
 
@@ -253,25 +234,21 @@ public class Literal extends Node implements ILiteral {
 
     @Override
     public String getStringValue() {
-        // TODO Auto-generated method stub
         return strVal;
     }
 
     @Override
     public boolean getBooleanValue() {
-        // TODO Auto-generated method stub
         return boolVal;
     }
 
     @Override
     public double getNumValue() {
-        // TODO Auto-generated method stub
         return numberVal;
     }
 
     @Override
     public String getRegExpValue() {
-        // TODO Auto-generated method stub
         return regExpVal;
     }
 
@@ -280,8 +257,7 @@ public class Literal extends Node implements ILiteral {
     }
 
     @Override
-    public Object accept(ESTreeBaseVisitor visitor) {
-        // TODO Auto-generated method stub
+    public <T> T accept(ESTreeBaseVisitor<T> visitor) {
         return visitor.visitLiteral(this);
     }
 }

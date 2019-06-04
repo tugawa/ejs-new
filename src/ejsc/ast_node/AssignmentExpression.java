@@ -1,24 +1,11 @@
 /*
-   AssignmentExpression.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2017-18
-     Tomoharu Ugawa, 2017-18
-     Hideya Iwasaki, 2017-18
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc.ast_node;
 
 import javax.json.Json;
@@ -50,7 +37,7 @@ public class AssignmentExpression extends Node implements IAssignmentExpression 
         OR_EQ,
         EXOR_EQ,
         AND_EQ;
-        
+
         public String toString() {
             switch (this) {
             case EQ_EQ:         return "=";
@@ -82,7 +69,7 @@ public class AssignmentExpression extends Node implements IAssignmentExpression 
     private AssignmentExpression() {
         type = ASSIGNMENT_EXP;
     }
-    
+
     public AssignmentOperator getAssignmentOperator(String op) {
         switch (op) {
         case "=":   return AssignmentOperator.EQ_EQ;
@@ -119,7 +106,6 @@ public class AssignmentExpression extends Node implements IAssignmentExpression 
 
     @Override
     public JsonObject getEsTree() {
-        // TODO Auto-generated method stub
         JsonObjectBuilder jb = Json.createObjectBuilder()
                 .add(KEY_TYPE, "AssignmentExpression")
                 .add(KEY_OPERATOR, operator.toString());
@@ -131,7 +117,7 @@ public class AssignmentExpression extends Node implements IAssignmentExpression 
             jb.add(KEY_LEFT, patternLeft.getEsTree());
             break;
         default:
-            // error;
+            throw new Error();
         }
         jb.add(KEY_RIGHT, right.getEsTree());
         return jb.build();
@@ -143,31 +129,26 @@ public class AssignmentExpression extends Node implements IAssignmentExpression 
 
     @Override
     public AssignmentOperator getOperator() {
-        // TODO Auto-generated method stub
         return operator;
     }
 
     @Override
     public IPattern getPatternLeft() {
-        // TODO Auto-generated method stub
         return patternLeft;
     }
 
     @Override
     public IExpression getExpressionLeft() {
-        // TODO Auto-generated method stub
         return expLeft;
     }
 
     @Override
     public IExpression getRight() {
-        // TODO Auto-generated method stub
         return right;
     }
 
     @Override
-    public Object accept(ESTreeBaseVisitor visitor) {
-        // TODO Auto-generated method stub
+    public <T> T accept(ESTreeBaseVisitor<T> visitor) {
         return visitor.visitAssignmentExpression(this);
     }
 

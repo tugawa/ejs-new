@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc;
 
 import java.util.ArrayList;
@@ -10,14 +18,14 @@ public class DeadCodeElimination {
     List<BCode> bcodes;
     ControlFlowGraph cfg;
     HashSet<BCode> live;
-    
+
     public DeadCodeElimination(List<BCode> bcodes) {
         this.bcodes = bcodes;
         cfg = new ControlFlowGraph(bcodes);
         live = new HashSet<BCode>();
         dfs(cfg.get(bcodes.get(0)));
     }
-    
+
     private void dfs(CFGNode node) {
         if (live.contains(node.getBCode()))
             return;
@@ -25,7 +33,7 @@ public class DeadCodeElimination {
         for (CFGNode next: node.getSuccs())
             dfs(next);
     }
-    
+
     public List<BCode> exec() {
         List<BCode> newBCodes = new ArrayList<BCode>(live.size());
         for (BCode bc: bcodes) {

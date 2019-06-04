@@ -1,24 +1,11 @@
 /*
-   NewargsAnalyzer.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoya Nonaka, 2017-18
-     Tomoharu Ugawa, 2017-18
-     Hideya Iwasaki, 2017-18
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,7 +18,7 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
     public Set<String> freeVariables;
 
     public NewargsAnalyzer(Main.Info.OptLocals optLocals) {
-    		this.optLocals = optLocals;
+        this.optLocals = optLocals;
         useArguments = false;
         useFunction = false;
         variables = new HashSet<String>();
@@ -75,14 +62,14 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
         }
         if (optLocals == Main.Info.OptLocals.G1) {
             node.innerUsedLocals.addAll(node.params);
-        	    node.innerUsedLocals.addAll(node.locals);
+            node.innerUsedLocals.addAll(node.locals);
         } else if (optLocals == Main.Info.OptLocals.PROSYM) {
-        	    node.innerUsedLocals.addAll(node.locals);
+            node.innerUsedLocals.addAll(node.locals);
         }
 
         switch (this.optLocals) {
         case NONE:
-        		throw new Error("NewargsAnalyzer is called with optLocals == NONE");
+            throw new Error("NewargsAnalyzer is called with optLocals == NONE");
         case PROSYM:
             node.needArguments = useArg || useFunc;
             node.needFrame = node.needArguments || hasLocals;

@@ -1,23 +1,11 @@
 /*
-   RegisterAssignment.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2018
-     Hideya Iwasaki, 2018
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -31,7 +19,7 @@ public class RegisterAssignment {
             super(n);
         }
     }
-    
+
     static class RegisterFactory {
         private final HashMap<Integer, RealRegister> regs = new HashMap<Integer, RealRegister>();
         private int maxRegNum = 0;
@@ -49,19 +37,19 @@ public class RegisterAssignment {
             return maxRegNum;
         }
     }
-    
+
     final boolean removeMove;
     RegisterFactory rf = new RegisterFactory();
     List<BCode> bcodes;
     LiveRegisterAnalyser lra;
     HashMap<Register, RealRegister> assign = new HashMap<Register, RealRegister>();
-    
+
     public RegisterAssignment(List<BCode> bcodes, boolean removeMove) {
         this.removeMove = removeMove;
         this.bcodes = bcodes;
         lra = new LiveRegisterAnalyser(bcodes);
     }
-    
+
     private boolean[] getRegUsageBitmap(BCode bc) {
         boolean[] used = new boolean[rf.getMaxRegNum() + 1];
         for (Register lr: lra.getLiveRegisters(bc)) {
@@ -90,16 +78,16 @@ public class RegisterAssignment {
         }
         return false;
     }
-    
+
     private void makeAssignment() {
         for (BCode bcx: bcodes) {
             boolean[] used = getRegUsageBitmap(bcx);
-//            for (Register lr: bcx.getSrcRegisters())
-//                if (lr != null && assign.get(lr) == null) {
-//                    System.out.println(bcx+" | r"+lr+" | "+showAssignment());
-//                    throw new Error("source register is not assigned");
-//                }
-            
+            //            for (Register lr: bcx.getSrcRegisters())
+            //                if (lr != null && assign.get(lr) == null) {
+            //                    System.out.println(bcx+" | r"+lr+" | "+showAssignment());
+            //                    throw new Error("source register is not assigned");
+            //                }
+
             if (bcx instanceof MParameter) {
                 MParameter bc = (MParameter) bcx;     
                 Register dst = bc.dst;
@@ -147,7 +135,7 @@ public class RegisterAssignment {
             }
         }
     }
-    
+
     private void replaceSrcOperandField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
         SrcOperand opx = (SrcOperand) f.get(bc);
         if (opx != null && opx instanceof RegisterOperand) {
@@ -159,7 +147,7 @@ public class RegisterAssignment {
             op.set(rr);
         }
     }
-    
+
     private void replaceSrcOperandArrayField(BCode bc, Field f) throws IllegalArgumentException, IllegalAccessException {
         SrcOperand[] ops = (SrcOperand[]) f.get(bc);
         for (int i = 0; i < ops.length; i++) {
@@ -174,7 +162,7 @@ public class RegisterAssignment {
             }
         }
     }
- 
+
     private void replaceDstRegister(BCode bc) {
         Register r = bc.dst;
         if (r != null) {
@@ -188,7 +176,7 @@ public class RegisterAssignment {
     private List<BCode> replaceRegisters() {
         ArrayList<BCode> newBCodes = new ArrayList<BCode>(bcodes.size());
         List<Label> labels = new ArrayList<Label>();
-        
+
         for (BCode bcx: bcodes) {
             //System.out.println(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx);
             try {
@@ -200,7 +188,7 @@ public class RegisterAssignment {
                         replaceSrcOperandArrayField(bcx, f);
                 }
                 replaceDstRegister(bcx);
-                
+
                 if (removeMove) {
                     if (bcx instanceof IMove) {
                         IMove bc = (IMove) bcx;
@@ -215,7 +203,7 @@ public class RegisterAssignment {
                 }
                 bcx.addLabels(labels);
                 labels.clear();
-                
+
                 newBCodes.add(bcx);
             } catch (Exception e) {
                 throw new Error(e);
@@ -224,16 +212,16 @@ public class RegisterAssignment {
 
         return newBCodes;
     }
-    
+
     public List<BCode> exec() {
         makeAssignment();
         return replaceRegisters();
     }
-    
+
     public int getMaxRegNum() {
         return rf.getMaxRegNum();
     }
- 
+
     public String showAssignment() {
         String s = "{";
         for (Register r: assign.keySet()) {
@@ -242,7 +230,7 @@ public class RegisterAssignment {
         }
         return s + "}";
     }
-    
+
     public String showLiveAssignment(BCode bc) {
         String s = "{";
         for (Register r: lra.getLiveRegisters(bc)) {

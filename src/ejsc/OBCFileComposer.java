@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc;
 
 import java.io.FileOutputStream;
@@ -14,7 +22,7 @@ public class OBCFileComposer {
     static final boolean DEBUG = false;
 
     static final boolean BIG_ENDIAN        = true;
-    
+
     static final int FIELD_VALUE_TRUE      = 0x1e;
     static final int FIELD_VALUE_FALSE     = 0x0e;
     static final int FIELD_VALUE_NULL      = 0x06;
@@ -24,7 +32,7 @@ public class OBCFileComposer {
         int count = 0;
         Map<Object, Integer> table = new HashMap<Object, Integer>();
         List<Object> array = new ArrayList<Object>();
-        
+
         private int doLookup(Object x) {
             if (table.containsKey(x))
                 return table.get(x);
@@ -32,7 +40,7 @@ public class OBCFileComposer {
             array.add(x);
             return count++;
         }
-        
+
         int lookup(double n) {
             return doLookup(n);
         }
@@ -40,7 +48,7 @@ public class OBCFileComposer {
         int lookup(String n) {
             return doLookup(n);
         }
-        
+
         List<Object> getConstants() {
             return array;
         }
@@ -63,7 +71,7 @@ public class OBCFileComposer {
         static final int C_OFFSET      = 0;
         static final int C_BITS        = 16;
         static final long C_MASK       = ((1L << C_BITS) - 1) << C_OFFSET;
-        
+
         enum Format {
             ABC,
             AB
@@ -122,30 +130,30 @@ public class OBCFileComposer {
             return bytes;
         }
     }
-    
+
     class OBCFunction extends CodeBuffer {
         int functionNumberOffset;
-        
+
         /* function header */
         int callEntry;
         int sendEntry;
         int numberOfLocals;
-        
+
         ConstantTable constants;
         List<OBCInstruction> instructions;
-        
+
         OBCFunction(BCBuilder.FunctionBCBuilder fb, int functionNumberOffset) {
             this.functionNumberOffset = functionNumberOffset;
-            
+
             List<BCode> bcodes = fb.getInstructions();
             this.callEntry = fb.callEntry.dist(0);
             this.sendEntry = fb.sendEntry.dist(0);
             this.numberOfLocals = fb.numberOfLocals;
-            
+
             constants = new ConstantTable();
             instructions = new ArrayList<OBCInstruction>(bcodes.size());
             for (BCode bc: bcodes)
-               bc.emit(this);
+                bc.emit(this);
         }
 
         int getOpcode(String insnName, SrcOperand... srcs) {
@@ -173,7 +181,7 @@ public class OBCFileComposer {
             else
                 return Info.getOpcodeIndex(insnName);
         }
-        
+
         int fieldBitsOf(SrcOperand src) {
             if (src instanceof RegisterOperand) {
                 Register r = ((RegisterOperand) src).get();
@@ -207,7 +215,7 @@ public class OBCFileComposer {
             } else
                 throw new Error("Unknown source operand");
         }
-        
+
         @Override
         void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
             int opcode = getOpcode(insnName);
@@ -223,7 +231,7 @@ public class OBCFileComposer {
             int b = constants.lookup(n);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
             instructions.add(insn);
-            
+
         }
         @Override
         void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
@@ -397,7 +405,7 @@ public class OBCFileComposer {
     }
 
     List<OBCFunction> obcFunctions;
-    
+
     OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
@@ -406,7 +414,7 @@ public class OBCFileComposer {
             obcFunctions.add(out);
         }
     }
-    
+
     private void outputShort(OutputStream out, int v) throws IOException {
         if (DEBUG)
             System.out.println(String.format("short: %04x", v));
@@ -415,7 +423,7 @@ public class OBCFileComposer {
         out.write((byte)(v & 0xff));
         out.write((byte)((v >> 8) & 0xff));
     }
-    
+
     private void outputLong(OutputStream out, long v) throws IOException {
         if (DEBUG)
             System.out.println(String.format("short: %016x", v));
@@ -424,7 +432,7 @@ public class OBCFileComposer {
         for (int i = 0; i < 8; i++)
             out.write((byte) ((v >> (8 * i)) & 0xff));
     }
-    
+
     /**
      * Output instruction to the file.
      * @param fileName file name to be output to.
@@ -432,7 +440,7 @@ public class OBCFileComposer {
     void output(String fileName) {
         try {
             FileOutputStream out = new FileOutputStream(fileName);            
-            
+
             /* File header */
             outputShort(out, obcFunctions.size());
 
@@ -443,11 +451,11 @@ public class OBCFileComposer {
                 outputShort(out, fun.sendEntry);
                 outputShort(out, fun.numberOfLocals);
                 outputShort(out, fun.instructions.size());
-                
+
                 /* Instructions */
                 for (OBCInstruction insn: fun.instructions)
                     out.write(insn.getBytes());               
-                
+
                 /* Constant pool */
                 for (Object v: fun.constants.getConstants()) {
                     if (v instanceof Double) {

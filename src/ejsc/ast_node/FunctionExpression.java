@@ -65,19 +65,16 @@ public class FunctionExpression extends Node implements IFunctionExpression {
 
     @Override
     public void setId(IIdentifier id) {
-        // TODO Auto-generated method stub
         this.id = id;
     }
 
     @Override
     public void setParams(List<IPattern> params) {
-        // TODO Auto-generated method stub
         this.params = params;
     }
 
     @Override
     public void setBody(IBlockStatement body) {
-        // TODO Auto-generated method stub
         this.body = body;
     }
 
@@ -103,8 +100,7 @@ public class FunctionExpression extends Node implements IFunctionExpression {
     }
 
     @Override
-    public Object accept(ESTreeBaseVisitor visitor) {
-        // TODO Auto-generated method stub
+    public <T> T accept(ESTreeBaseVisitor<T> visitor) {
         return visitor.visitFunctionExpression(this);
     }
 }

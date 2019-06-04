@@ -1,24 +1,11 @@
 /*
-   Property.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2017-18
-     Tomoharu Ugawa, 2017-18
-     Hideya Iwasaki, 2017-18
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package ejsc.ast_node;
 
 import javax.json.Json;
@@ -62,7 +49,6 @@ public class Property extends Node implements IProperty {
 
     @Override
     public JsonObject getEsTree() {
-        // TODO Auto-generated method stub
         JsonObjectBuilder jb = Json.createObjectBuilder()
                 .add(KEY_TYPE, "Property");
         if (keyType == KeyType.LITERAL) {
@@ -79,25 +65,21 @@ public class Property extends Node implements IProperty {
 
     @Override
     public ILiteral getLiteralKey() {
-        // TODO Auto-generated method stub
         return literalKey;
     }
 
     @Override
     public IIdentifier getIdentifierKey() {
-        // TODO Auto-generated method stub
         return identifierKey;
     }
 
     @Override
     public IExpression getValue() {
-        // TODO Auto-generated method stub
         return value;
     }
 
     @Override
     public String getKind() {
-        // TODO Auto-generated method stub
         return kind;
     }
 
@@ -106,8 +88,7 @@ public class Property extends Node implements IProperty {
     }
 
     @Override
-    public Object accept(ESTreeBaseVisitor visitor) {
-        // TODO Auto-generated method stub
+    public <T> T accept(ESTreeBaseVisitor<T> visitor) {
         return visitor.visitProperty(this);
     }
 }
