@@ -16,7 +16,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import vmgen.InsnGen.Option;
-import vmgen.newsynth.DecisionDiagram.Node;
 import vmgen.newsynth.LLRuleSet.LLRule;
 import vmgen.type.VMRepType;
 import vmgen.type.VMRepType.HT;
@@ -351,7 +350,7 @@ public class DecisionDiagram {
 
     public DecisionDiagram(List<DispatchCriterion> dispatchPlan, LLRuleSet rs, Option option) {
         this.dispatchPlan = dispatchPlan;
-        this.option = option;
+        DecisionDiagram.option = option;
 
         if (rs.getRules().size() == 0)
             return;

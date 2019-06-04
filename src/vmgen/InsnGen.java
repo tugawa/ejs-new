@@ -19,9 +19,6 @@ import java.util.Set;
 
 import vmgen.RuleSet.Rule;
 import vmgen.newsynth.NewSynthesiser;
-import vmgen.synth.SimpleSynthesiser;
-import vmgen.synth.SwitchSynthesiser;
-import vmgen.synth.TagPairSynthesiser;
 import vmgen.type.TypeDefinition;
 import vmgen.type.VMDataType;
 
@@ -78,19 +75,12 @@ public class InsnGen {
     static String insnDefFile;
     static String operandSpecFile;
     static String outDir;
-    static int compiler;
     static Option option = new Option();
-
-    public static final int COMPILER_DEFAULT = 0;
-    public static final int COMPILER_SIMPLE = 1;
-    public static final int COMPILER_OLD = 2;
 
     public static boolean DEBUG = false;
 
     static void parseOption(String[] args) {
         int i = 0;
-
-        compiler = COMPILER_DEFAULT;
 
         if (args.length == 0) {
             typeDefFile = "datatype/genericfloat.def";
@@ -103,13 +93,7 @@ public class InsnGen {
 
         try {
             while (true) {
-                if (args[i].equals("-simple")) {
-                    compiler = COMPILER_SIMPLE;
-                    i++;
-                } else if (args[i].equals("-old")) {
-                    compiler = COMPILER_OLD;
-                    i++;
-                } else if (args[i].startsWith("-X")){
+                if (args[i].startsWith("-X")){
                     i = option.addOption(args, i);
                     if (i == -1)
                         throw new Exception("invalid option");
@@ -201,22 +185,7 @@ public class InsnGen {
         operandSpec.load(operandSpecFile);
 
         boolean verbose = outDir != null;
-        Synthesiser synth;
-        switch (compiler) {
-        case COMPILER_DEFAULT:
-            synth = new NewSynthesiser();
-            break;
-        case COMPILER_SIMPLE:
-            synth = new SimpleSynthesiser();
-            break;
-        case COMPILER_OLD:
-            synth = insnDef.dispatchVars.length == 2 ?
-                    new TagPairSynthesiser() :
-                        new SwitchSynthesiser();
-                    break;
-        default:
-            throw new Error("unknown compiler type");
-        }
+        Synthesiser synth = new NewSynthesiser();
         String code = synthesise(insnDef, operandSpec, synth, verbose);
         if (outDir == null)
             System.out.println(code);

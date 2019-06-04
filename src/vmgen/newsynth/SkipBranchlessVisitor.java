@@ -9,7 +9,6 @@
 package vmgen.newsynth;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.TreeMap;
 
 import vmgen.newsynth.DecisionDiagram.Leaf;

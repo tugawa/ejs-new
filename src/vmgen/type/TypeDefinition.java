@@ -13,7 +13,6 @@ import java.util.Scanner;
 import java.util.regex.MatchResult;
 
 import vmgen.RuleSet;
-import vmgen.synth.TagPairSynthesiser;
 
 
 public class TypeDefinition {
@@ -103,11 +102,5 @@ public class TypeDefinition {
         }
         s += quoted;
         return s;
-    }
-
-    public static void main(String[] args) throws FileNotFoundException {
-        TypeDefinition.load("datatype/new.dtdef");
-        RuleSet p = new RuleSet();
-        new TagPairSynthesiser().synthesise(p, "none", new vmgen.InsnGen.Option());
     }
 }
