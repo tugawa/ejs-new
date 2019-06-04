@@ -991,7 +991,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileAssignment(node.operands[0], reg);
             break;
         default:
-            throw new Error("internal error");
+            break;
         }
         return null;
     }
