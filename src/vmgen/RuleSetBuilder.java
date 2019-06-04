@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmgen;
 
 import java.util.ArrayList;
@@ -12,81 +20,81 @@ import vmgen.type.VMDataType;
 public class RuleSetBuilder {
     public static class Node {
     }
-    
+
     public static class TrueNode extends Node {
     }
-    
+
     public class AtomicNode extends Node {
         int opIndex;
         VMDataType dt;
         boolean neg;
-        
+
         public AtomicNode(String opName, VMDataType dt) {
             this.opIndex = lookup(opName);
             this.dt = dt;
             neg = false;
         }
-        
+
         @Override
         public String toString() {
             return "["+opIndex+":"+dt+"]";
         }
     }
-    
+
     public static class AndNode extends Node {
         Node left, right;
-        
+
         public AndNode(Node left, Node right) {
             this.left = left;
             this.right = right;
         }
-        
+
         @Override
         public String toString() {
             return "(and "+left+" "+right+")";
         }
     }
-    
+
     public static class OrNode extends Node {
         Node left, right;
-        
+
         public OrNode(Node left, Node right) {
             this.left = left;
             this.right = right;
         }
-        
+
         @Override
         public String toString() {
             return "(or "+left+" "+right+")";
         }
     }
-    
+
     public static class NotNode extends Node {
         Node child;
-        
+
         public NotNode(Node child) {
             this.child = child;
         }
-        
+
         @Override
         public String toString() {
             return "(not "+child+")";
         }
     }
-    
+
     String[] opNames;
-    
+
     public RuleSetBuilder(String[] opNames) {
         this.opNames = opNames;
     }
-    
+
     int lookup(String name) {
         for (int i = 0; i < opNames.length; i++)
             if (opNames[i].equals(name))
                 return i;
         throw new Error("Unknown operand name: " + name);
     }
-    
+
     Node removeNotNode(Node xn, boolean neg) {
         if (xn instanceof TrueNode)
             return xn;
@@ -111,7 +119,7 @@ public class RuleSetBuilder {
             return removeNotNode(((NotNode) xn).child, !neg);
         throw new Error("Unkown datatype expr node");
     }
-    
+
     // siftUpOrNode moves a single or-node in subtree xn to the root of the tree.
     // If it finds an or-node, it returns the converted tree.
     // Otherwise, it returns null.
@@ -143,7 +151,7 @@ public class RuleSetBuilder {
             throw new Error("NotNode should not appear in this step.");
         throw new Error("Unknown datatype expr node");
     }
-    
+
     Node toDNF(Node xn) {
         if (xn instanceof TrueNode)
             return xn;
@@ -164,13 +172,13 @@ public class RuleSetBuilder {
             throw new Error("NotNode should not appear in this step.");
         throw new Error("Unknown datatype expr node");
     }
-    
+
     Node normalise(Node root) {
         // Step 1. Remove NotNode
         root = removeNotNode(root, false);
         // Step 2. Convert to disjunctive normal form
         root = toDNF(root);
-        
+
         return root;
     }
 
@@ -195,7 +203,7 @@ public class RuleSetBuilder {
             throw new Error("NotNode should not appear in this step.");
         throw new Error("unknown datatype expr node");
     }
-    
+
     int[] newTable(Set<int[]> tables) {
         int[] table = new int[opNames.length];
         for (int i = 0; i < opNames.length; i++)
@@ -203,7 +211,7 @@ public class RuleSetBuilder {
         tables.add(table);
         return table;
     }
-    
+
     void traverseOrTree(Node xn, Set<int[]> tables) {
         if (xn instanceof TrueNode) {
             newTable(tables);
@@ -223,13 +231,13 @@ public class RuleSetBuilder {
             throw new Error("NotNode should not appear in this step.");
         throw new Error("unknown datatype expr node");
     }
-    
+
     Set<int[]> DNFToDispatchConditionTables(Node root) {
         Set<int[]> tables = new HashSet<int[]>();
         traverseOrTree(root, tables);
         return tables;
     }
-    
+
     static public class CaseActionPair {
         Node kase;
         String action;
@@ -238,7 +246,7 @@ public class RuleSetBuilder {
             this.action = action;
         }
     }
-    
+
     static public class Rule {
         Set<int[]> tables;
         Set<RuleSet.Condition> condition;
@@ -249,7 +257,7 @@ public class RuleSetBuilder {
             condition = new HashSet<RuleSet.Condition>();
         }
     }
-    
+
     void fillRules(int opIndex, VMDataType[] dts, List<Rule> rules) {
         if (opIndex >= opNames.length) {
             int[] dtids = new int[dts.length];
@@ -265,24 +273,24 @@ public class RuleSetBuilder {
                 }
             return;
         }
-        
+
         for (VMDataType dt: VMDataType.all()) {
             dts[opIndex] = dt;
             fillRules(opIndex + 1, dts, rules);
         }
     }
-    
+
     public List<Set<VMDataType[]>> computeVmtVecCondList(List<Node> condAstList) {
         List<Rule> rules = new ArrayList<Rule>();
-        
+
         for (Node condAst: condAstList) {
             Node dnf = normalise(condAst);
             Set<int[]> tables = DNFToDispatchConditionTables(dnf);
             rules.add(new Rule(tables, null));  /* TODO: do not use Rule */
         }
-        
+
         fillRules(0, new VMDataType[opNames.length], rules);
-        
+
         List<Set<VMDataType[]>> possibleTypeCombList = new ArrayList<Set<VMDataType[]>>();
         for (Rule rule: rules) {
             Set<VMDataType[]> possibleTypeCombs = new HashSet<VMDataType[]>();
@@ -292,18 +300,18 @@ public class RuleSetBuilder {
         }
         return possibleTypeCombList;
     }
-    
+
     public RuleSet createRuleSet(List<CaseActionPair> caps) {
         List<Rule> rules = new ArrayList<Rule>();
-        
+
         for (CaseActionPair cap: caps) {
             Node dnf = normalise(cap.kase);
             Set<int[]> tables = DNFToDispatchConditionTables(dnf);
             rules.add(new Rule(tables, cap.action));
         }
-        
+
         fillRules(0, new VMDataType[opNames.length], rules);
-        
+
         Set<RuleSet.Rule> rs = new HashSet<RuleSet.Rule>();
         for (Rule rule: rules) {
             if (rule.condition.size() > 0) {
@@ -313,7 +321,7 @@ public class RuleSetBuilder {
         }
         return new RuleSet(opNames, rs);
     }
-    
+
     static void printTables(Set<int[]> tables) {
         for(int[] table: tables) {
             for (int vec: table) {
@@ -324,11 +332,11 @@ public class RuleSetBuilder {
             System.out.println();
         }
     }
-    
+
     /*
     public static void main(String[] args) {
         DataTypeExpression dte = new DataTypeExpression(new String[] {"a", "b", "c"});
-        
+
         Node a = dte.new AtomicNode("a", VMDataType.get("fixnum"));
         Node b = dte.new AtomicNode("b", VMDataType.get("fixnum"));
         Node c = dte.new AtomicNode("b", VMDataType.get("string"));
@@ -336,13 +344,13 @@ public class RuleSetBuilder {
         Node orl = new OrNode(a, b);
         Node orr = new OrNode(c, d);
         Node and = new AndNode(orl, orr);
-        
+
         Node x = dte.new AtomicNode("a", VMDataType.get("fixnum"));
-        
+
         List<CaseActionPair> caps = new ArrayList<CaseActionPair>();
         caps.add(new CaseActionPair(and, "A"));
         caps.add(new CaseActionPair(x, "B"));
-        
+
         RuleSet rs = dte.createRuleSet(caps);
         for (RuleSet.Rule r: rs.getRules()) {
             System.out.println("Rule action "+r.action);
@@ -353,5 +361,5 @@ public class RuleSetBuilder {
             }
         }
     }
-    */
+     */
 }

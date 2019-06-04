@@ -1,12 +1,10 @@
 /*
-   NewSynthesiser.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 package vmgen.newsynth;
 
@@ -72,7 +70,7 @@ public class NewSynthesiser extends Synthesiser {
             return true;
         }
     }
-    
+
     static class SemanticLayerGatherVisitor extends NodeVisitor<Void> {
         ArrayList<Node> nodes = new ArrayList<Node>();
         DispatchCriterion ref;
@@ -98,11 +96,11 @@ public class NewSynthesiser extends Synthesiser {
         @Override
         <T> Void visitTagNode(TagNode<T> node) {
             if ((node instanceof DecisionDiagram.PTNode &&
-                 ref instanceof DecisionDiagram.PTDispatch &&
-                 node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
-                (node instanceof DecisionDiagram.HTNode &&
-                 ref instanceof DecisionDiagram.HTDispatch &&
-                 node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
+                    ref instanceof DecisionDiagram.PTDispatch &&
+                    node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
+                    (node instanceof DecisionDiagram.HTNode &&
+                            ref instanceof DecisionDiagram.HTDispatch &&
+                            node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
                 if (!nodes.contains(node))
                     nodes.add(node);
                 return null;
@@ -124,7 +122,7 @@ public class NewSynthesiser extends Synthesiser {
         if ((srand = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, -1)) >= 0) {
             DecisionDiagram.Node.srand(srand);
         }
-        
+
         ArrayList<DecisionDiagram.DispatchCriterion> dispatchPlan = new ArrayList<DecisionDiagram.DispatchCriterion>();
         String layers = option.getOption(Option.AvailableOptions.CMP_TREE_LAYER, "p0:p1:h0:h1");
         for (String layer: layers.split(":")) {
@@ -140,12 +138,12 @@ public class NewSynthesiser extends Synthesiser {
                     throw new Error();
             }
         }
-        
+
         LLRuleSet llrs = new LLRuleSet(hlrs);
         DecisionDiagram dd = new DecisionDiagram(dispatchPlan, llrs, option);
         if (dd.isEmpty())
             return "";
-        
+
         // optimize
         String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MR:S");
         for (String pass: passes.split(":")) {
@@ -184,24 +182,24 @@ public class NewSynthesiser extends Synthesiser {
                 }
             }
         }
-        
+
         Map<Node, Set<String>> typeLabels;
         if (option.getOption(Option.AvailableOptions.GEN_ADD_TYPELABEL, false))
             typeLabels = addTypeLabels(dd, hlrs);
         else
             typeLabels = null;
-        
+
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro(), typeLabels);
     }
-    
-    
+
+
     static class DeterministicSearchVisitor extends NodeVisitor<Node> {
         VMDataType[] dts;
-        
+
         DeterministicSearchVisitor(VMDataType[] dts) {
             this.dts = dts;
         }
-        
+
         VMRepType getUniqueVMRepType(int index) {
             if (dts.length < index)
                 return null;
@@ -212,7 +210,7 @@ public class NewSynthesiser extends Synthesiser {
                 return null;
             return rts.get(0);
         }
-        
+
         @Override
         Node visitLeaf(Leaf node) {
             return node;
@@ -230,7 +228,7 @@ public class NewSynthesiser extends Synthesiser {
             Node next = node.getChild(tp);
             return next.accept(this);
         }
-        
+
         @Override
         Node visitPTNode(PTNode node) {
             VMRepType rt = getUniqueVMRepType(node.opIndex);
@@ -239,7 +237,7 @@ public class NewSynthesiser extends Synthesiser {
             Node next = node.getChild(rt.getPT());
             return next.accept(this);
         }
-        
+
         @Override
         Node visitHTNode(HTNode node) {
             if (node.isNoHT())
@@ -252,7 +250,7 @@ public class NewSynthesiser extends Synthesiser {
             return next.accept(this);
         }
     }
-    
+
     private void addLabel(Map<Node, Set<String>> labels, VMDataType[] dts, Node node) {
         StringBuffer sb = new StringBuffer(labelPrefix);
         for (VMDataType dt: dts) {

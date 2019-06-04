@@ -1,14 +1,11 @@
 /*
-   DslParser.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2016-18
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmgen;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -23,11 +20,11 @@ import vmgen.type.VMDataType;
 
 
 public class DslParser {
-	static class ParseErrorException extends Exception {
-		public ParseErrorException(String msg) {
-			super("Instruction DSL parser: "+msg);
-		}
-	}
+    static class ParseErrorException extends Exception {
+        public ParseErrorException(String msg) {
+            super("Instruction DSL parser: "+msg);
+        }
+    }
 
     static class WhenClause {
         Condition condition;
@@ -157,7 +154,7 @@ public class DslParser {
     void convertConditionToDNF(Condition cond) {
         convertConditionToDNFStep2(cond);
     }
-/*
+    /*
     Condition parseCompoundCondition_(Token[] tks, Idx idx, ConditionalOp op) throws Exception {
         Idx idx1 = new Idx(idx.n);
         Condition c1, c2;
@@ -235,7 +232,7 @@ public class DslParser {
         if (c != null) { idx.n = idx1.n; return c; }
         return null;
     }
-    */
+     */
 
     Condition parseConditionAtom(Token[] tks, Idx idx) throws Exception {
         if (idx.n >= tks.length) return null;
@@ -375,69 +372,69 @@ public class DslParser {
     InstDef parse(List<Token> _tks) throws ParseErrorException {
         InstDef instDef = null;
         LinkedList<Token> tks = new LinkedList<Token>(_tks);
-            checkToken(tks.pollFirst(), TokenId.KEY_INST);
-            Token id = tks.pollFirst();
-            checkToken(id, TokenId.STRING);
-            checkToken(tks.pollFirst(), TokenId.PARENTHESES, "(");
-            Token op1 = tks.pollFirst();
-            Token t = tks.pollFirst();
-            String[] vars = null;
-            if (t.id == TokenId.COMMA) {
-                Token op2 = tks.pollFirst();
-                checkToken(op1, TokenId.STRING);
-                checkToken(op2, TokenId.STRING);
-                checkToken(tks.pollFirst(), TokenId.PARENTHESES, ")");
-                vars = new String[] { op1.raw, op2.raw };
-            } else if (t.id == TokenId.PARENTHESES) {
-                checkToken(op1, TokenId.STRING);
-                checkToken(t, TokenId.PARENTHESES, ")");
-                vars = new String[] { op1.raw };
+        checkToken(tks.pollFirst(), TokenId.KEY_INST);
+        Token id = tks.pollFirst();
+        checkToken(id, TokenId.STRING);
+        checkToken(tks.pollFirst(), TokenId.PARENTHESES, "(");
+        Token op1 = tks.pollFirst();
+        Token t = tks.pollFirst();
+        String[] vars = null;
+        if (t.id == TokenId.COMMA) {
+            Token op2 = tks.pollFirst();
+            checkToken(op1, TokenId.STRING);
+            checkToken(op2, TokenId.STRING);
+            checkToken(tks.pollFirst(), TokenId.PARENTHESES, ")");
+            vars = new String[] { op1.raw, op2.raw };
+        } else if (t.id == TokenId.PARENTHESES) {
+            checkToken(op1, TokenId.STRING);
+            checkToken(t, TokenId.PARENTHESES, ")");
+            vars = new String[] { op1.raw };
+        }
+        instDef = new InstDef(id.raw, vars);
+        while (!tks.isEmpty()) {
+            Token tk = tks.pollFirst();
+            switch (tk.id) {
+            case KEY_WHEN: {
+                Condition c = parseConditionTokens(vars, tks);
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.whenClauses.add(new WhenClause(c, cprog.raw));
+            } break;
+            case KEY_OTHERWISE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.whenClauses.add(new WhenClause(null, cprog.raw));
+            } break;
+            case KEY_PROLOGUE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.prologue = cprog.raw;
+            } break;
+            case KEY_EPILOGUE: {
+                Token cprog = tks.pollFirst();
+                checkToken(cprog, TokenId.CPROGRAM);
+                instDef.epilogue = cprog.raw;
+            } break;
+            case KEY_INST: break;
+            default: {
+                throw new ParseErrorException("unexpected token: "+ tk.raw);
             }
-            instDef = new InstDef(id.raw, vars);
-            while (!tks.isEmpty()) {
-                Token tk = tks.pollFirst();
-                switch (tk.id) {
-                case KEY_WHEN: {
-                    Condition c = parseConditionTokens(vars, tks);
-                    Token cprog = tks.pollFirst();
-                    checkToken(cprog, TokenId.CPROGRAM);
-                    instDef.whenClauses.add(new WhenClause(c, cprog.raw));
-                } break;
-                case KEY_OTHERWISE: {
-                    Token cprog = tks.pollFirst();
-                    checkToken(cprog, TokenId.CPROGRAM);
-                    instDef.whenClauses.add(new WhenClause(null, cprog.raw));
-                } break;
-                case KEY_PROLOGUE: {
-                    Token cprog = tks.pollFirst();
-                    checkToken(cprog, TokenId.CPROGRAM);
-                    instDef.prologue = cprog.raw;
-                } break;
-                case KEY_EPILOGUE: {
-                    Token cprog = tks.pollFirst();
-                    checkToken(cprog, TokenId.CPROGRAM);
-                    instDef.epilogue = cprog.raw;
-                } break;
-                case KEY_INST: break;
-                default: {
-                	throw new ParseErrorException("unexpected token: "+ tk.raw);
-                }
-                }
             }
+        }
         return instDef;
     }
-    
+
     void appendParamDefIfNecessary(StringBuilder prologue, StringBuilder epilogue, String name, String def) {
-    	if (name.equals(def))
-    		return;
-    	prologue.append("#define ")
-    	        .append(name)
-    	        .append(" ")
-    	        .append(def)
-    	        .append("\n");
-    	epilogue.append("#undef ")
-    	        .append(name)
-    	        .append("\n");
+        if (name.equals(def))
+            return;
+        prologue.append("#define ")
+        .append(name)
+        .append(" ")
+        .append(def)
+        .append("\n");
+        epilogue.append("#undef ")
+        .append(name)
+        .append("\n");
     }
     InstDef newParse(List<Token> _tks) throws ParseErrorException {
         InstDef instDef = null;
@@ -452,30 +449,30 @@ public class DslParser {
         StringBuilder epilogue = new StringBuilder();
         String[] vars = null;
         for (int order = 0; ; order++) {
-        	Token t = tks.pollFirst();            	
-        	if (t.id == TokenId.STRING) {
-        		Token n = tks.pollFirst();
-        		checkToken(n, TokenId.STRING);
-        		if (t.raw.equals("Register"))
-        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "regbase[r"+order+"]");
-        		else if (t.raw.equals("Value")) {
-        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "v"+order);
-        			valVars.add(n.raw);
-        		} else if (t.raw.equals("Subscript"))
-        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "s"+order);
-        		else if (t.raw.equals("Immediate"))
-        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "i"+order);
-        		else if (t.raw.equals("Displacement"))
-        			appendParamDefIfNecessary(prologue, epilogue, n.raw, "d"+order);
-        		else
-        			throw new ParseErrorException("invalid parameter type: "+n.raw);
-        		t = tks.pollFirst();
-        	}            			
-        	if (t.raw.equals(")")) {
-        		vars = valVars.toArray(new String[]{});
-        		break;
-        	}
-        	checkToken(t, TokenId.COMMA);
+            Token t = tks.pollFirst();
+            if (t.id == TokenId.STRING) {
+                Token n = tks.pollFirst();
+                checkToken(n, TokenId.STRING);
+                if (t.raw.equals("Register"))
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "regbase[r"+order+"]");
+                else if (t.raw.equals("Value")) {
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "v"+order);
+                    valVars.add(n.raw);
+                } else if (t.raw.equals("Subscript"))
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "s"+order);
+                else if (t.raw.equals("Immediate"))
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "i"+order);
+                else if (t.raw.equals("Displacement"))
+                    appendParamDefIfNecessary(prologue, epilogue, n.raw, "d"+order);
+                else
+                    throw new ParseErrorException("invalid parameter type: "+n.raw);
+                t = tks.pollFirst();
+            }
+            if (t.raw.equals(")")) {
+                vars = valVars.toArray(new String[]{});
+                break;
+            }
+            checkToken(t, TokenId.COMMA);
         }
         instDef = new InstDef(id.raw, vars);
 
@@ -505,7 +502,7 @@ public class DslParser {
             } break;
             case KEY_INST: break;
             default: {
-            	throw new ParseErrorException("unexpected token: "+ tk.raw);
+                throw new ParseErrorException("unexpected token: "+ tk.raw);
             }
             }
         }
@@ -515,7 +512,7 @@ public class DslParser {
     }
 
     enum TokenId {
-    	COMMENT,
+        COMMENT,
         COLON,
         COMMA,
         PARENTHESES,
@@ -539,73 +536,73 @@ public class DslParser {
             return "id: " + id + ", " + "raw: " + raw;
         }
     }
-    
+
     static class Tokenizer {
-    	static class TokenizeRule {
-    		Pattern compiled;
-    		String pattern;
-    		TokenId id;
-    		public TokenizeRule(TokenId id, String pattern) {
-    			this.compiled = Pattern.compile(pattern, Pattern.MULTILINE);
-    			this.pattern = pattern;
-    			this.id = id;
-    		}
-    		boolean match(String str) {
-    			return compiled.matcher(str).matches();
-    		}
-    		public Token makeTokenIfMatch(String str) {
-    			if (match(str))
-    				return new Token(id, str);
-    			return null;
-    		}
-    		public String getPattern() {
-    			return pattern;
-    		}
-    		public TokenId getId() {
-    			return id;
-    		}
-    	}
-    	
-    	static class CProgramTokenizeRule extends TokenizeRule{
-			public CProgramTokenizeRule(TokenId id, String pattern) {
-				super(id, pattern);
-			}
-    		@Override
-    		public Token makeTokenIfMatch(String str) {
-    			if (match(str))
-    				return new Token(id, str.substring(2, str.length() - 2));
-    			return null;
-    		}
+        static class TokenizeRule {
+            Pattern compiled;
+            String pattern;
+            TokenId id;
+            public TokenizeRule(TokenId id, String pattern) {
+                this.compiled = Pattern.compile(pattern, Pattern.MULTILINE);
+                this.pattern = pattern;
+                this.id = id;
+            }
+            boolean match(String str) {
+                return compiled.matcher(str).matches();
+            }
+            public Token makeTokenIfMatch(String str) {
+                if (match(str))
+                    return new Token(id, str);
+                return null;
+            }
+            public String getPattern() {
+                return pattern;
+            }
+            public TokenId getId() {
+                return id;
+            }
+        }
 
-    	}
-    	
-    	static TokenizeRule[] rules = new TokenizeRule[] {
-    			new TokenizeRule(TokenId.COMMENT, "\\\\\\\\.*$"),
-    			new TokenizeRule(TokenId.COMMA, ","),
-    			new TokenizeRule(TokenId.COLON, ":"),
-    			new TokenizeRule(TokenId.COND_OP, "&&"),
-    			new TokenizeRule(TokenId.COND_OP, "\\|\\|"),
-    			new TokenizeRule(TokenId.PARENTHESES, "\\("),
-    			new TokenizeRule(TokenId.PARENTHESES, "\\)"),
-    			new CProgramTokenizeRule(TokenId.CPROGRAM, "\\\\\\{(.|\\n)*?\\\\\\}"),
-    			new TokenizeRule(TokenId.KEY_INST, "\\\\inst"),
-    			new TokenizeRule(TokenId.KEY_PROLOGUE, "\\\\prologue"),
-    			new TokenizeRule(TokenId.KEY_EPILOGUE, "\\\\epilogue"),
-    			new TokenizeRule(TokenId.KEY_WHEN, "\\\\when"),
-    			new TokenizeRule(TokenId.KEY_OTHERWISE, "\\\\otherwise"),
-    			new TokenizeRule(TokenId.STRING, "\\w+")
-    	};
+        static class CProgramTokenizeRule extends TokenizeRule{
+            public CProgramTokenizeRule(TokenId id, String pattern) {
+                super(id, pattern);
+            }
+            @Override
+            public Token makeTokenIfMatch(String str) {
+                if (match(str))
+                    return new Token(id, str.substring(2, str.length() - 2));
+                return null;
+            }
 
-    	static final Pattern ptn;
+        }
 
-    	static {
-        	StringBuilder tksBuilder = new StringBuilder();
-        	for (TokenizeRule r: rules)
-        		tksBuilder.append(r.getPattern()).append("|");
-        	String tks = tksBuilder.substring(0, tksBuilder.length() - 1);
+        static TokenizeRule[] rules = new TokenizeRule[] {
+                new TokenizeRule(TokenId.COMMENT, "\\\\\\\\.*$"),
+                new TokenizeRule(TokenId.COMMA, ","),
+                new TokenizeRule(TokenId.COLON, ":"),
+                new TokenizeRule(TokenId.COND_OP, "&&"),
+                new TokenizeRule(TokenId.COND_OP, "\\|\\|"),
+                new TokenizeRule(TokenId.PARENTHESES, "\\("),
+                new TokenizeRule(TokenId.PARENTHESES, "\\)"),
+                new CProgramTokenizeRule(TokenId.CPROGRAM, "\\\\\\{(.|\\n)*?\\\\\\}"),
+                new TokenizeRule(TokenId.KEY_INST, "\\\\inst"),
+                new TokenizeRule(TokenId.KEY_PROLOGUE, "\\\\prologue"),
+                new TokenizeRule(TokenId.KEY_EPILOGUE, "\\\\epilogue"),
+                new TokenizeRule(TokenId.KEY_WHEN, "\\\\when"),
+                new TokenizeRule(TokenId.KEY_OTHERWISE, "\\\\otherwise"),
+                new TokenizeRule(TokenId.STRING, "\\w+")
+        };
+
+        static final Pattern ptn;
+
+        static {
+            StringBuilder tksBuilder = new StringBuilder();
+            for (TokenizeRule r: rules)
+                tksBuilder.append(r.getPattern()).append("|");
+            String tks = tksBuilder.substring(0, tksBuilder.length() - 1);
             ptn = Pattern.compile(tks, Pattern.MULTILINE);
-    	}
-    	
+        }
+
         List<Token> tokenize(String all) {
             List<Token> tks = new LinkedList<Token>();
             Matcher m = ptn.matcher(all);
@@ -613,9 +610,9 @@ public class DslParser {
                 String s = m.group();
                 Token tk = null;
                 for (TokenizeRule r: rules) {
-                	tk = r.makeTokenIfMatch(s);
-                	if (tk != null)
-                		break;
+                    tk = r.makeTokenIfMatch(s);
+                    if (tk != null)
+                        break;
                 }
                 if (tk == null)
                     throw new Error("Parse error: " + s);
@@ -643,24 +640,24 @@ public class DslParser {
         String all = readAll(fname);
         List<Token> tks = new Tokenizer().tokenize(all);
         try {
-        	InstDef instDef = parse(tks);
-        	return instDef;
+            InstDef instDef = parse(tks);
+            return instDef;
         } catch(ParseErrorException e) {
-        	try {
-        		System.out.println("// new DSL syntax");
-        		InstDef instDef = newParse(tks);
-        		return instDef;
-        	} catch (ParseErrorException e2) {
-        		e2.printStackTrace();
-        		return null;
-        	}
+            try {
+                System.out.println("// new DSL syntax");
+                InstDef instDef = newParse(tks);
+                return instDef;
+            } catch (ParseErrorException e2) {
+                e2.printStackTrace();
+                return null;
+            }
         }
     }
 
     public static void main(String[] args) {
         DslParser dslp = new DslParser();
         InstDef instDef = dslp.run("idefs/add.idef");
-         System.out.println(instDef);
+        System.out.println(instDef);
         /*
         String all = dslp.readAll("idefs/sample.idef");
         System.out.println(all);

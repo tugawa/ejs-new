@@ -1,12 +1,10 @@
 /*
-   DecisionDiagram.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 package vmgen.newsynth;
 
@@ -26,7 +24,6 @@ import vmgen.type.VMRepType.PT;
 
 public class DecisionDiagram {
     static Option option;
-    public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
 
     static abstract class DispatchCriterion {
         abstract public boolean available(int arity);
@@ -363,7 +360,7 @@ public class DecisionDiagram {
             root = digger.dig(root);
         }
     }
-    
+
     public boolean isEmpty() {
         return root == null;
     }

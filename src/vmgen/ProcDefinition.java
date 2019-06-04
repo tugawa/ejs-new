@@ -1,31 +1,17 @@
 /*
-   ProcDefinition.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2016-18
-	 Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 package vmgen;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import vmgen.DslParser.AtomCondition;
 import vmgen.DslParser.WhenClause;
-import vmgen.type.TypeDefinition;
-import vmgen.type.VMDataType;
 
 
 public class ProcDefinition {
@@ -94,7 +80,7 @@ public class ProcDefinition {
         } else
             throw new Error();
     }
-    
+
     public InstDefinition load(String fname) {
         DslParser dslp = new DslParser();
         DslParser.InstDef parsedInst = dslp.run(fname);
