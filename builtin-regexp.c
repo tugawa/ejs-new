@@ -1,23 +1,11 @@
 /*
-   builtin-regexp.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
@@ -37,15 +25,15 @@ int cstr_to_regexp_flag(char *cstr, int *flag) {
   while ((c = *cstr++) != '\0') {
     switch (c) {
     case 'g':
-      // if (global) return FAIL;
+      /* if (global) return FAIL; */
       global = true;
       break;
     case 'i':
-      // if (ignorecase) return FAIL;
+      /* if (ignorecase) return FAIL; */
       ignorecase = true;
       break;
     case 'm':
-      // if (multiline) return FAIL;
+      /* if (multiline) return FAIL; */
       multiline = true;
       break;
     default:
@@ -59,7 +47,8 @@ int cstr_to_regexp_flag(char *cstr, int *flag) {
   return SUCCESS;
 }
 
-int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr, JSValue *dst) {
+int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr,
+                           JSValue *dst) {
   JSValue re;
   int flag, err;
   
@@ -85,9 +74,9 @@ void regexp_constr_general(Context *context, int fp, int na, int new) {
     set_a(context, res);
     return;
   case 1:
-LAB0:
+  LAB0:
     cstrflag = "";
-LAB1:
+  LAB1:
     pat = args[1];
     if (is_regexp(pat)) {
       if (new == TRUE)
@@ -173,9 +162,10 @@ BUILTIN_FUNCTION(builtin_regexp_test)
   if (is_regexp(rsv)) {
     str = to_string(context, args[1]);
     cstr = string_to_cstr(str);
-    // print_value_verbose(context, rsv); printf(", cstr = %s\n", cstr);
+
+    /* print_value_verbose(context, rsv); printf(", cstr = %s\n", cstr); */
     ret = regexp_exec(context, rsv, cstr);
-    // print_value_verbose(context, ret); putchar('\n');
+    /* print_value_verbose(context, ret); putchar('\n'); */
     ret = false_true(ret == JS_NULL);
     set_a(context, ret);
   } else
@@ -187,11 +177,11 @@ BUILTIN_FUNCTION(builtin_regexp_test)
 bool regExpProtoExecSub(regex_t* regex, const char* str, int startIndex, OnigRegion* region)
 {
   int res = onig_search
-  (regex, (OnigUChar*)str,
-   (OnigUChar*)str + strlen(str),
-   (OnigUChar*)str + startIndex,
-   (OnigUChar*)str + strlen(str),
-   region, ONIG_OPTION_NONE);
+    (regex, (OnigUChar*)str,
+     (OnigUChar*)str + strlen(str),
+     (OnigUChar*)str + startIndex,
+     (OnigUChar*)str + strlen(str),
+     region, ONIG_OPTION_NONE);
 
   return res == ONIG_MISMATCH ? false : true;
 }
@@ -222,12 +212,14 @@ inline JSValue regExpExec(Context* context, JSValue rsv, char *cstr)
       JSValue arr = newArrayWithSize(length);
       index = region->beg[0];
       for(i = 0;i < length; i++){
-        setArrayValue(arr, i, regExpMatchToString(cstr, region->beg[i], region->end[i]));
+        setArrayValue(arr, i,  regExpMatchToString(cstr, region->beg[i],
+                                                   region->end[i]));
       }
       set_obj_cstr_prop_none(arr, "index", intToFixnum(index));
       if(getRegExpGlobal(rsv)){
         setRegExpLastIndex(rsv, region->end[i-1]);
-        set_obj_cstr_prop(rsv, "lastIndex", intToFixnum(region->end[i-1]), ATTR_DDDE);
+        set_obj_cstr_prop(rsv, "lastIndex",
+                          intToFixnum(region->end[i-1]), ATTR_DDDE);
       }
       return arr;
     }else{
@@ -270,4 +262,4 @@ void init_builtin_regexp(Context *ctx)
 }
 
 #endif /* need_regexp */
-#endif // USE_REGEXP
+#endif /* USE_REGEXP */

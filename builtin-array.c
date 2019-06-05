@@ -1,20 +1,20 @@
 /*
  * eJS Project
  * Kochi University of Technology
- * the University of Electro-communications
+ * The University of Electro-communications
  *
- * The eJS Project is the successor of the SSJS Project at the University of
- * Electro-communications, which was contributed by the following members.
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-#define not_implemented(s)                                                \
+#define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
-#define INSERTION_SORT_THRESHOLD (20) // must >= 1
+#define INSERTION_SORT_THRESHOLD (20) /* must >= 1 */
 void asort(Context*, JSValue, cint, cint, JSValue);
 void quickSort(Context*, JSValue, cint, cint, JSValue);
 void insertionSort(Context*, JSValue, cint, cint, JSValue);
@@ -44,18 +44,22 @@ BUILTIN_FUNCTION(array_constr)
   cint size, length;
 
   builtin_prologue();
-  rsv = new_normal_array(context); // this sets the `length' property to 0
+  rsv = new_normal_array(context); /* this sets the `length' property to 0 */
   GC_PUSH(rsv);
   if (na == 0) {
     allocate_array_data(context, rsv, ASIZE_INIT, 0);
     set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
   } else if (na == 1) {
-    JSValue n = args[1];  // GC: n is used in uninterraptible section
+    JSValue n = args[1];  /* GC: n is used in uninterraptible section */
     if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
       size = compute_asize(length);
       allocate_array_data(context, rsv, size, length);
-      // printf("array_constr: length = %ld, size = %ld, rsv = %lx\n", length, size, rsv);
-      set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
+      /*
+       * printf("array_constr: length = %ld, size = %ld,
+       *        rsv = %lx\n", length, size, rsv);
+       */
+      set_prop_none(context, rsv, gconsts.g_string_length,
+                    cint_to_fixnum(length));
     } else {
       allocate_array_data(context, rsv, ASIZE_INIT, 0);
       set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
@@ -127,7 +131,9 @@ BUILTIN_FUNCTION(array_concat)
     if (is_array(e)) {
       k = 0;
       len = array_length(e);
-      if (n + len > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
+      if (n + len > MAX_ARRAY_LENGTH)
+        /* This should be improved */
+        LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
       while (k < len) {
         if (has_array_element(e, k)) {
           GC_PUSH(e);
@@ -139,12 +145,14 @@ BUILTIN_FUNCTION(array_concat)
         k++;
       }
     } else {
-      if (n > MAX_ARRAY_LENGTH) LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)"); // This should be improved
+      if (n > MAX_ARRAY_LENGTH)
+        /* This should be improved */
+        LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
       set_array_prop(context, a, cint_to_fixnum(n), e);
       n++;
     }
   }
-  // is the two lines below necessary?
+  /* is the two lines below necessary? */
   array_length(a) = n;
   set_prop_none(context, a, gconsts.g_string_length, cint_to_fixnum(n));
   GC_POP(a);
@@ -193,7 +201,7 @@ BUILTIN_FUNCTION(array_pop)
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a) - 1;    // len >= -1
+  len = array_length(a) - 1;    /* len >= -1 */
   if (len < 0) {
     set_a(context, JS_UNDEFINED);
     return;
@@ -245,7 +253,7 @@ BUILTIN_FUNCTION(array_reverse)
   builtin_prologue();
   len = array_length(args[0]);
   mid = len / 2;
-  // All right : MissingAdd, MissingInit RemoveToAlloc
+  /* All right : MissingAdd, MissingInit RemoveToAlloc */
   for (lower = 0; lower < mid; lower++) {
     upper = len - lower - 1;
     lowerExists = has_array_element(args[0], lower);
@@ -364,13 +372,13 @@ BUILTIN_FUNCTION(array_shift)
 }
 
 
-// -------------------------------------------------------------------------------------
-// ProtoUnShift
-// http://www.tohoho-web.com/js/array.htm#unshift
-
-// -------------------------------------------------------------------------------------
-// ProtoSplice
-// http://www.tohoho-web.com/js/array.htm#splice
+/*
+ * ProtoUnShift
+ * http://www.tohoho-web.com/js/array.htm#unshift
+ *
+ * ProtoSplice
+ * http://www.tohoho-web.com/js/array.htm#splice
+ */
 
 
 BUILTIN_FUNCTION(array_slice)
@@ -486,14 +494,18 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
   } else if (is_undefined(y)) {
     GC_POP(y);
     return -1;
-  } else if (is_function(comparefn) || (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
-    // printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),fixnum_to_cint(y));
+  } else if (is_function(comparefn) ||
+             (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
+    /*
+     * printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),
+     *        fixnum_to_cint(y));
+     */
     stack = &get_stack(context, 0);
     oldsp = get_sp(context);
     oldfp = get_fp(context);
     stack[oldsp] = y;
     stack[oldsp-1] = x;
-    stack[oldsp-2] = context->global; // is receiver always global object?
+    stack[oldsp-2] = context->global; /* is receiver always global object? */
     GC_PUSH(x);
     if (is_function(comparefn)) {
       call_function(context, comparefn, 2, TRUE);
@@ -501,13 +513,13 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     }
     else if (is_builtin(comparefn)) {
       save_special_registers(context, stack, oldsp - 6);
-      set_fp(context, oldsp-2); // for GC
+      set_fp(context, oldsp-2); /* for GC */
       /*
-        set_lp(context, NULL);
-        set_pc(context, -1);
-        set_cf(context, NULL);
-        set_ac(context, 2);
-      */
+       * set_lp(context, NULL);
+       * set_pc(context, -1);
+       * set_cf(context, NULL);
+       * set_ac(context, 2);
+       */
       call_builtin(context, comparefn, 2, TRUE, FALSE);
     }
     restore_special_registers(context, stack, oldsp - 6);
@@ -536,7 +548,7 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
       GC_POP(y);
       return FIXNUM_ZERO;
     }
-    //LOG_EXIT("to_number(ret) is not a number");
+    /* LOG_EXIT("to_number(ret) is not a number"); */
   }
   {
     JSValue vx, vy;
@@ -563,13 +575,14 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
   cint i, j;
   GC_PUSH2(array, comparefn);
   for (i = l; i <= r; i++) {
-    tmp = get_array_prop(context, array, cint_to_fixnum(i)); // tmp = a[i]
+    tmp = get_array_prop(context, array, cint_to_fixnum(i)); /* tmp = a[i] */
     GC_PUSH(tmp);
     for (j = i - 1; l <= j; j--) {
       aj = get_array_prop(context, array, cint_to_fixnum(j));
       GC_PUSH(aj);
       if (sortCompare(context, aj, tmp, comparefn) > 0)
-        set_array_prop(context, array, cint_to_fixnum(j + 1), aj); // a[j+1] = a[j]
+        set_array_prop(context, array, cint_to_fixnum(j + 1), aj);
+      /* a[j+1] = a[j] */
       else {
         GC_POP(aj);
         break;
@@ -577,7 +590,8 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
       GC_POP(aj);
     }
     GC_POP(tmp);
-    set_array_prop(context, array, cint_to_fixnum(j + 1), tmp); // a[j+1] = tmp;
+    set_array_prop(context, array, cint_to_fixnum(j + 1), tmp);
+    /* a[j+1] = tmp; */
   }
   GC_POP2(comparefn, array);
 }
@@ -595,22 +609,27 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   GC_PUSH(v1);
   v2 = get_array_prop(context, array, cint_to_fixnum(r));
   GC_PUSH(v2);
-  // Sort v0 v1 v2
-  if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v0 < v1
-  if (sortCompare(context, v1, v2, comparefn) > 0) { // v0 < v1 and v2 < v1
+  /* Sort v0 v1 v2 */
+  if (sortCompare(context, v0, v1, comparefn) > 0)  /* v0 < v1 */
+    swap(&v0, &v1);
+  if (sortCompare(context, v1, v2, comparefn) > 0) { /* v0 < v1 and v2 < v1 */
     swap(&v1, &v2);
-    if (sortCompare(context, v0, v1, comparefn) > 0) swap(&v0, &v1); // v2 < v0 < v1
+    if (sortCompare(context, v0, v1, comparefn) > 0) /* v2 < v0 < v1 */
+      swap(&v0, &v1);
   }
   /*
-   * Update array with [v0, v1(=p), a[2], a[3],..., a[m-1], a[1], a[m+1],..., a[r-1], v2]
-   *                     l             i                                           j   r
+   * Update array with
+   * [v0, v1(=p), a[2], a[3],..., a[m-1], a[1], a[m+1],..., a[r-1], v2]
+   *   l             i                                           j   r
    */
   p = v1;
   GC_PUSH(p);
-  set_array_prop(context, array, cint_to_fixnum(l), v0); // a[l] = v0
-  set_array_prop(context, array, cint_to_fixnum(r), v2); // a[r] = v2
-  set_array_prop(context, array, cint_to_fixnum(m), get_array_prop(context, array, cint_to_fixnum(l+1))); // a[m] = a[l+1]
-  set_array_prop(context, array, cint_to_fixnum(l+1), v1); // a[l+1] = v1(=p)
+  set_array_prop(context, array, cint_to_fixnum(l), v0); /* a[l] = v0 */
+  set_array_prop(context, array, cint_to_fixnum(r), v2); /* a[r] = v2 */
+  set_array_prop(context, array, cint_to_fixnum(m),
+                 get_array_prop(context, array, cint_to_fixnum(l+1)));
+  /* a[m] = a[l+1] */
+  set_array_prop(context, array, cint_to_fixnum(l+1), v1); /* a[l+1] = v1(=p) */
   i = l+2;
   j = r-1;
   /* Sorting (from i to j) */
@@ -618,10 +637,11 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
     while (i < r && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
     while (l < j && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
     if (i >= j) break;
-    // Exchange a[i] and a[j]
+    /* Exchange a[i] and a[j] */
     tmp = get_array_prop(context, array, cint_to_fixnum(i));
     GC_PUSH(tmp);
-    set_array_prop(context, array, cint_to_fixnum(i), get_array_prop(context, array, cint_to_fixnum(j)));
+    set_array_prop(context, array, cint_to_fixnum(i),
+                   get_array_prop(context, array, cint_to_fixnum(j)));
     GC_POP(tmp);
     set_array_prop(context, array, cint_to_fixnum(j), tmp);
     i++;
@@ -635,16 +655,17 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
 
 void asort(Context* context, JSValue array, cint l, cint r, JSValue comparefn) {
   /* DEBUG: print array
-     for(cint z = 0; z < array_length(array); z++) {
-     tmp = get_array_prop(context, array, cint_to_fixnum(z));
-     if (l <= z && z <= r) print_value_simple(context, tmp);
-     else printf("_");
-     if (z < array_length(array)-1) printf(",");
-     else printf("\n");
-     }
-  */
+   *  for(cint z = 0; z < array_length(array); z++) {
+   *    tmp = get_array_prop(context, array, cint_to_fixnum(z));
+   *    if (l <= z && z <= r) print_value_simple(context, tmp);
+   *    else printf("_");
+   *    if (z < array_length(array)-1) printf(",");
+   *    else printf("\n");
+   *  }
+   */
   if (l >= r) return;
-  if(r - l <= INSERTION_SORT_THRESHOLD) insertionSort(context, array, l, r, comparefn);
+  if(r - l <= INSERTION_SORT_THRESHOLD)
+    insertionSort(context, array, l, r, comparefn);
   else quickSort(context, array, l, r, comparefn);
 }
 

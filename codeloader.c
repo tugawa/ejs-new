@@ -1,13 +1,11 @@
 /*
-   codeloader.c
-
-   eJS Project
-     Kochi University of Technology
-     The University of Electro-communications
-
-     Tomoharu Ugawa, 2016 - 2019
-     Hideya Iwasaki, 2016 - 2019
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
@@ -16,14 +14,14 @@
 #define CPU_LITTLE_ENDIAN
 
 /*
-   information of instructions
+ * information of instructions
  */
 InsnInfo insn_info_table[] = {
 #include "instructions-table.h"
 };
 
 /*
-   number of instructions
+ * number of instructions
  */
 int numinsts = sizeof(insn_info_table) / sizeof(InsnInfo);
 
@@ -43,7 +41,7 @@ typedef struct {
 } CItable;
 
 /*
-   instruction table
+ * instruction table
  */
 
 #define LOADBUFLEN 1024
@@ -54,9 +52,11 @@ extern int insn_load_sbc(Context *, ConstantCell *, Instruction *, int);
 
 #ifdef USE_OBC
 extern void init_constant_info(CItable *citable, int i);
-extern void add_constant_info(CItable *ci, Opcode oc, int index, InsnOperandType type);
+extern void add_constant_info(CItable *ci, Opcode oc, int index,
+                              InsnOperandType type);
 extern void const_load(Context *ctx, CItable citable, ConstantCell *constant);
-extern int insn_load_obc(Context *, ConstantCell *, Instruction *, int, CItable *);
+extern int insn_load_obc(Context *, ConstantCell *, Instruction *, int,
+                         CItable *);
 #endif
 
 extern uint32_t decode_escape_char(char *);
@@ -67,7 +67,7 @@ FILE *file_pointer;
 
 #ifdef USE_SBC
 /*
-   reads the next line from the input stream
+ * reads the next line from the input stream
  */
 inline void step_load_code(char *buf, int buflen) {
   fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
@@ -89,7 +89,7 @@ inline int check_read_token(char *buf, char *tok) {
 #endif /* USE_SBC */
 
 /*
-   codeloader
+ * codeloader
  */
 int code_loader(Context *ctx, FunctionTable *ftable, int start) {
   ConstantCell ctable;
@@ -129,40 +129,44 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
   exit(1);
 #endif
 
-  // checks the funclength and obtain the number of functions
+  /*
+   * checks the funclength and obtain the number of functions
+   */
   next_buf();
   nfuncs = buf_to_int("funcLength");
 
-  // reads each function
+  /*
+   * reads each function
+   */
   for (i = 0; i < nfuncs; i++) {
-    // callentry
+    /* callentry */
     next_buf();
     callentry = buf_to_int("callentry");
 
-    // sendentry
+    /* sendentry */
     next_buf();
     sendentry = buf_to_int("sendentry");
 
-    // numberOfLocals
+    /* numberOfLocals */
     next_buf();
     nlocals = buf_to_int("numberOfLocals");
 
-    // numberOfInstruction
+    /* numberOfInstruction */
     next_buf();
     ninsns = buf_to_int("numberOfInstruction");
 
-    // initializes constant table
+    /* initializes constant table */
     init_constant_cell(&ctable, i);
 #ifdef USE_OBC
     init_constant_info(&citable, i);
 #endif
 
-    // initilaizes temporal instruction array
+    /* initilaizes temporal instruction array */
     tmpinsns = (Instruction *)malloc(sizeof(Instruction) * ninsns);
     if (tmpinsns == NULL)
       LOG_EXIT("%dth func: cannnot malloc temprary instructions", i);
 
-    // loads instructions for each function
+    /* loads instructions for each function */
     for (j = 0; j < ninsns; j++) {
 #ifdef USE_SBC
       ret = insn_load_sbc(ctx, &ctable, tmpinsns, j);
@@ -175,7 +179,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
     }
 
 #ifdef USE_OBC
-    // loads constants
+    /* loads constants */
     const_load(ctx, citable, &ctable);
 #endif
 
@@ -225,7 +229,7 @@ void double_load(Context *ctx, ConstantCell *constant) {
     }
   }
 #endif
-  // printf("double loaded, value = %lf\n", u.d);
+  /* printf("double loaded, value = %lf\n", u.d); */
   add_constant_number(ctx, constant, u.d);
 }
 
@@ -291,14 +295,14 @@ void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
 #endif
 
 /*
-   initializes the code loader
+ * initializes the code loader
  */
 void init_code_loader(FILE *fp) {
   file_pointer = fp;
 }
 
 /*
-   finalizes the code loader
+ * finalizes the code loader
  */
 void end_code_loader() {
   if (repl_flag == TRUE)
@@ -315,7 +319,7 @@ Opcode find_insn(char* s) {
   for (i = 0; i < numinsts; i++)
     if (strcmp(insn_info_table[i].insn_name, s) == 0)
       return i;
-  // not found in the instruction table
+  /* not found in the instruction table */
   return NOT_OPCODE;
 }
 #endif /* USE_SBC */
@@ -335,59 +339,60 @@ Bytecode convertToBc(unsigned char buf[8]) {
 
 InsnOperandType si_optype(Opcode oc, int i) {
   switch (i) {
-    case 0:
-      return insn_info_table[oc].op0;
-    case 1:
-      return insn_info_table[oc].op1;
-    case 2:
-      return insn_info_table[oc].op2;
-    default:
-      return OPTYPE_ERROR;
+  case 0:
+    return insn_info_table[oc].op0;
+  case 1:
+    return insn_info_table[oc].op1;
+  case 2:
+    return insn_info_table[oc].op2;
+  default:
+    return OPTYPE_ERROR;
   }
 }
 #endif
 
 #ifdef USE_SBC
-#define load_op(op_type, op)                           \
-do {                                                   \
-  op = 0;                                              \
-  switch (op_type) {                                   \
-  case NONE:                                           \
-    break;                                             \
-  case LIT:                                            \
-    { op = atoi(next_token()); }                       \
-    break;                                             \
-  case STR:                                            \
-    {                                                  \
-      char *str;                                       \
-      uint32_t len;                                    \
-      str = next_token();                              \
-      if (str == NULL) str = "";                       \
-      else len = decode_escape_char(str);              \
-      op = add_constant_string(ctx, constant, str);    \
-    }                                                  \
-    break;                                             \
-  case NUM:                                            \
-    {                                                  \
-      double number;                                   \
-      number = atof(next_token());                     \
-      op = add_constant_number(ctx, constant, number); \
-    }                                                  \
-    break;                                             \
-  case SPEC:                                           \
-    { op = specstr_to_jsvalue(next_token()); }         \
-    break;                                             \
-  default:                                             \
-    return LOAD_FAIL;                                  \
-  }                                                    \
-} while(0)
+#define load_op(op_type, op)                                    \
+  do {                                                          \
+    op = 0;                                                     \
+    switch (op_type) {                                          \
+    case NONE:                                                  \
+      break;                                                    \
+    case LIT:                                                   \
+      { op = atoi(next_token()); }                              \
+      break;                                                    \
+    case STR:                                                   \
+      {                                                         \
+        char *str;                                              \
+        uint32_t len;                                           \
+        str = next_token();                                     \
+        if (str == NULL) str = "";                              \
+        else len = decode_escape_char(str);                     \
+        op = add_constant_string(ctx, constant, str);           \
+      }                                                         \
+      break;                                                    \
+    case NUM:                                                   \
+      {                                                         \
+        double number;                                          \
+        number = atof(next_token());                            \
+        op = add_constant_number(ctx, constant, number);        \
+      }                                                         \
+      break;                                                    \
+    case SPEC:                                                  \
+      { op = specstr_to_jsvalue(next_token()); }                \
+      break;                                                    \
+    default:                                                    \
+      return LOAD_FAIL;                                         \
+    }                                                           \
+  } while(0)
 #endif /* USE_SBC */
 
 /*
-   loads an instruction
+ * loads an instruction
  */
 #ifdef USE_SBC
-int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, int pc) {
+int insn_load_sbc(Context *ctx, ConstantCell *constant,
+                  Instruction *tmpinsns, int pc) {
   char buf[LOADBUFLEN];
   char *tokp;
   Opcode oc;
@@ -410,7 +415,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, i
 
   oc = find_insn(tokp);
   if (oc == NOT_OPCODE) {
-    // instruction is not found in the instruction info table
+    /* instruction is not found in the instruction info table */
 #ifdef PROFILE
     LOG_ERR("Illegal instruction: %s%s", tokp,
             (tmpinsns[pc].logflag == TRUE? "_log": ""));
@@ -449,7 +454,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, i
           double number;
           int index;
           number = atof(next_token());
-          // writes the number into the constant table
+          /* writes the number into the constant table */
           index = add_constant_number(ctx, constant, number);
           tmpinsns[pc].code = makecode_number(dst, index);
         }
@@ -460,7 +465,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, i
           char *str;
           int index;
           uint32_t len;
-          // str = next_token2();
+          /* str = next_token2(); */
           str = next_token();
           if (str == NULL) str = "";
           else len = decode_escape_char(str);
@@ -597,55 +602,56 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, i
 #endif /* USE_SBC */
 
 #ifdef USE_OBC
-int insn_load_obc(Context *ctx, ConstantCell *constant, Instruction *tmpinsns, int pc, CItable *citable) {
+int insn_load_obc(Context *ctx, ConstantCell *constant,
+                  Instruction *tmpinsns, int pc, CItable *citable) {
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
   int index, i;
 
   if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer)
-        != sizeof(Bytecode))
+      != sizeof(Bytecode))
     LOG_ERR("Error: cannot read %dth bytecode", pc);
   oc = buf[0] * 256 + buf[1];
 
   switch (insn_info_table[oc].otype) {
-    case BIGPRIMITIVE:
-      switch (oc) {
-        case ERROR:
-        case STRING:
-        case NUMBER:
+  case BIGPRIMITIVE:
+    switch (oc) {
+    case ERROR:
+    case STRING:
+    case NUMBER:
 #ifdef USE_REGEXP
 #ifdef need_regexp
-        case REGEXP:
+    case REGEXP:
 #endif
 #endif
-          index = buf[4] * 256 + buf[5];
-          add_constant_info(citable, oc, index, NONE);
-          tmpinsns[pc].code = convertToBc(buf);
-          return LOAD_OK;
-        default:
-          return LOAD_FAIL;
-      }
-      break;
-
-    case THREEOP:
-      for (i = 0; i < 3; i++) {
-        InsnOperandType type = si_optype(oc, i);
-        if (type == OPTYPE_ERROR) return LOAD_FAIL;
-        if (type == STR || type == NUM ) {
-          index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
-          add_constant_info(citable, oc, index, type);
-        }
-      }
-      // fall through
-    default:
+      index = buf[4] * 256 + buf[5];
+      add_constant_info(citable, oc, index, NONE);
       tmpinsns[pc].code = convertToBc(buf);
       return LOAD_OK;
+    default:
+      return LOAD_FAIL;
+    }
+    break;
+
+  case THREEOP:
+    for (i = 0; i < 3; i++) {
+      InsnOperandType type = si_optype(oc, i);
+      if (type == OPTYPE_ERROR) return LOAD_FAIL;
+      if (type == STR || type == NUM ) {
+        index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
+        add_constant_info(citable, oc, index, type);
+      }
+    }
+    /* fall through */
+  default:
+    tmpinsns[pc].code = convertToBc(buf);
+    return LOAD_OK;
   }
 }
 #endif
 
 /*
-   initilizes the contant table
+ * initilizes the contant table
  */ 
 void init_constant_cell(ConstantCell *constant, int i) {
   JSValue* p;
@@ -666,14 +672,14 @@ void init_constant_info(CItable *citable, int i) {
 }
 
 /*
-   finlaizes the constant table
+ * finlaizes the constant table
  */
 void end_constant_cell(ConstantCell *constant) {
-  // do nothing
+  /* do nothing */
 }
 
 /*
-   converts a special JS string (for a constant) into a JSValue
+ * converts a special JS string (for a constant) into a JSValue
  */
 JSValue specstr_to_jsvalue(const char *str) {
   if (strcmp(str, "true") == 0)
@@ -685,7 +691,7 @@ JSValue specstr_to_jsvalue(const char *str) {
   else if (strcmp(str, "undefined") == 0)
     return JS_UNDEFINED;
   else
-    // undefined name
+    /* undefined name */
     LOG_EXIT("%s is an undefined symbol.", str);
 }
 
@@ -710,10 +716,10 @@ void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
 #endif
 
 /*
-   adds a number into the constant table.
-
-   Currently, the same constant numbers might be added to the table
-   more than once.  It might be better to avoid such duplication.
+ * adds a number into the constant table.
+ *
+ * Currently, the same constant numbers might be added to the table
+ * more than once.  It might be better to avoid such duplication.
  */
 int add_constant_number(Context *ctx, ConstantCell *constant, double x) {
   int index;
@@ -724,7 +730,7 @@ int add_constant_number(Context *ctx, ConstantCell *constant, double x) {
 }
 
 /*
-   adds a string into the constant table.
+ * adds a string into the constant table.
  */
 int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
   JSValue a;
@@ -732,8 +738,10 @@ int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
 
   index = constant->n_constant_values++;
   a = cstr_to_string(NULL, str);
-  // printf("updateConstantString: str = %s, a = %lld (%s)\n",
-  //        str, a, stringToCStr(a));
+  /*
+   * printf("updateConstantString: str = %s, a = %lld (%s)\n",
+   *        str, a, stringToCStr(a));
+   */
   (constant->constant_values)[index] = a;
   return index;
 }
@@ -741,14 +749,15 @@ int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
 #ifdef USE_REGEXP
 #ifdef need_regexp
 /*
-   adds a regexp into the constant table.
+ * adds a regexp into the constant table.
  */
-int add_constant_regexp(Context *ctx, ConstantCell *constant, char *pat, int flag) {
+int add_constant_regexp(Context *ctx, ConstantCell *constant,
+                        char *pat, int flag) {
   JSValue re;
   int index;
 
   index = constant->n_constant_values++;
-  // re = new_regexp();
+  /* re = new_regexp(); */
   if ((re = new_normal_regexp(ctx, pat, flag)) != JS_UNDEFINED) {
     (constant->constant_values)[index] = re;
     return index;
@@ -769,7 +778,6 @@ int update_function_table(FunctionTable *ftable, int index,
   Opcode oc;
   Instruction *insns;
   JSValue *consttop;
-  // void **insnptr;
   int bodysize;
   int loopnum;
 
@@ -791,8 +799,10 @@ int update_function_table(FunctionTable *ftable, int index,
   loopnum += (index == 0)? -1: 0;
 #endif
 
-  // rewrites the operand of STRING/NUMBER/ERROR/REGEXP instraction
-  // as a relative displacement
+  /*
+   * rewrites the operand of STRING/NUMBER/ERROR/REGEXP instraction
+   * as a relative displacement
+   */
   for (i = 0; i < loopnum; i++) {
     bc = tmpinsns[i].code;
     oc = get_opcode(bc);
@@ -836,7 +846,7 @@ int update_function_table(FunctionTable *ftable, int index,
     }
   }
 
-  // fills the insns array
+  /* fills the insns array */
   for (i = 0; i < loopnum; i++) {
     insns[i].code = tmpinsns[i].code;
     insns[i].ilabel = NULL;
@@ -902,7 +912,7 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
 }
 
 /*
-   prints a bytecode instruction
+ * prints a bytecode instruction
  */
 void print_bytecode(Instruction *insns, int j) {
   Bytecode code;
@@ -948,7 +958,7 @@ void print_bytecode(Instruction *insns, int j) {
       disp = get_big_disp(code);
       p = (JSValue *)(&insns[j]);
       o = p[disp];
-      // printf("j = %d, disp = %d, o = %p\n", j, disp, (char *)o);
+      /* printf("j = %d, disp = %d, o = %p\n", j, disp, (char *)o); */
       switch (oc) {
       case NUMBER:
         if (is_flonum(o))
@@ -972,7 +982,7 @@ void print_bytecode(Instruction *insns, int j) {
           printf("Object type mismatched: tag = %d", get_tag(o));
         break;
 #endif /* need_regexp */
-#endif // USE_REGEXP
+#endif /* USE_REGEXP */
       default:
         printf("???");
         break;

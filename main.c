@@ -1,41 +1,39 @@
 /*
-   main.c
-
-   eJS Project
-     Kochi University of Technology
-     The University of Electro-communications
-
-     Tomoharu Ugawa, 2016 - 2019
-     Hideya Iwasaki, 2016 - 2019
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
 
 /*
-  phase
+ *  phase
  */
-int run_phase;         // PHASE_INIT or PHASE_VMLOOP
+int run_phase;         /* PHASE_INIT or PHASE_VMLOOP */
 
 /*
-  flags
+ * flags
  */
-int ftable_flag;       // prints the function table
-int trace_flag;        // prints every excuted instruction
-int lastprint_flag;    // prints the result of the last expression
-int all_flag;          // all flag values are true
-int cputime_flag;      // prints the cpu time
-int repl_flag;         // for REPL
+int ftable_flag;       /* prints the function table */
+int trace_flag;        /* prints every excuted instruction */
+int lastprint_flag;    /* prints the result of the last expression */
+int all_flag;          /* all flag values are true */
+int cputime_flag;      /* prints the cpu time */
+int repl_flag;         /* for REPL */
 #ifdef HIDDEN_CLASS
-int hcprint_flag;      // prints all transitive hidden classes
+int hcprint_flag;      /* prints all transitive hidden classes */
 #endif
 #ifdef PROFILE
-int profile_flag;      // print the profile information
-char *poutput_name;    // name of logging file
-int coverage_flag;     // print the coverage
-int icount_flag;       // print instruction count
-int forcelog_flag;       // treat every instruction as ``_log'' one
+int profile_flag;      /* print the profile information */
+char *poutput_name;    /* name of logging file */
+int coverage_flag;     /* print the coverage */
+int icount_flag;       /* print instruction count */
+int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
 
 FILE *log_stream;
@@ -44,9 +42,9 @@ FILE *prof_stream;
 #endif
 
 /*
-  parameter
+ * parameter
  */
-int regstack_limit = STACK_LIMIT;   // size of register stack (not used yet)
+int regstack_limit = STACK_LIMIT; /* size of register stack (not used yet) */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -55,13 +53,15 @@ static uint64_t callcount = 0;
 #define pp(v) (print_value_verbose(cxt, (v)), putchar('\n'))
 
 /*
-   Debug function
+ * Debug function
  */
 void testtest(Context *cxt) {
 #if 0
   JSValue v, p;
-  printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n", cxt->global, gconsts.g_global);
-  printf("Testtest: g_object = %016lx, g_object_proto = %016lx\n", gconsts.g_object, gconsts.g_object_proto);
+  printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n",
+         cxt->global, gconsts.g_global);
+  printf("Testtest: g_object = %016lx, g_object_proto = %016lx\n",
+         gconsts.g_object, gconsts.g_object_proto);
 
   if (get_prop(cxt->global, cstr_to_string("Object"), &v) == SUCCESS)
     printf("Testtest: global[Object] = %016lx\n", v);
@@ -91,27 +91,37 @@ void testtest(Context *cxt) {
   v = fixnum_to_string(FIXNUM_ZERO); printf("0 -> string: "); pp(v);
   v = fixnum_to_string(FIXNUM_ONE); printf("1 -> string: "); pp(v);
   v = flonum_to_string(gconsts.g_flonum_nan); printf("NaN -> string: "); pp(v);
-  v = flonum_to_string(gconsts.g_flonum_infinity); printf("Infinity -> string: "); pp(v);
-  v = flonum_to_string(gconsts.g_flonum_negative_infinity); printf("-Infinity -> string: "); pp(v);
+  v = flonum_to_string(gconsts.g_flonum_infinity);
+  printf("Infinity -> string: "); pp(v);
+  v = flonum_to_string(gconsts.g_flonum_negative_infinity);
+  printf("-Infinity -> string: "); pp(v);
 
   v = special_to_number(JS_UNDEFINED); printf("undefined -> number: "); pp(v);
   v = special_to_number(JS_NULL); printf("null -> number: "); pp(v);
   v = special_to_number(JS_TRUE); printf("true -> number: "); pp(v);
   v = special_to_number(JS_FALSE); printf("false -> number: "); pp(v);
   v = string_to_number(cstr_to_string("")); printf("\"\" -> number: "); pp(v);
-  v = string_to_number(cstr_to_string("1.2")); printf("\"1.2\" -> number: "); pp(v);
-  v = string_to_number(cstr_to_string("one")); printf("\"one\" -> number: "); pp(v);
+  v = string_to_number(cstr_to_string("1.2"));
+  printf("\"1.2\" -> number: "); pp(v);
+  v = string_to_number(cstr_to_string("one"));
+  printf("\"one\" -> number: "); pp(v);
 
-  v = special_to_boolean(JS_UNDEFINED); printf("undefined -> boolean: "); pp(v);
+  v = special_to_boolean(JS_UNDEFINED);
+  printf("undefined -> boolean: "); pp(v);
   v = special_to_boolean(JS_NULL); printf("null -> boolean: "); pp(v);
-  // v = string_to_boolean(cstr_to_boolean("")); printf("\"\" -> boolean: "); pp(v);
-  // v = string_to_boolean(cstr_to_boolean("1.2")); printf("\"1.2\" -> boolean: "); pp(v);
-  // v = string_to_boolean(cstr_to_boolean("one")); printf("\"one\" -> boolean: "); pp(v);
+  /*
+   *  v = string_to_boolean(cstr_to_boolean(""));
+   *  printf("\"\" -> boolean: "); pp(v);
+   *  v = string_to_boolean(cstr_to_boolean("1.2"));
+   *  printf("\"1.2\" -> boolean: "); pp(v);
+   *  v = string_to_boolean(cstr_to_boolean("one"));
+   *  printf("\"one\" -> boolean: "); pp(v);
+   */
 #endif
 }
 
 /*
-   processes command line options
+ * processes command line options
  */
 struct commandline_option {
   char *str;
@@ -137,7 +147,7 @@ struct commandline_option  options_table[] = {
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif
-  { "-s",         1, &regstack_limit, NULL          },      // not used yet
+  { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -176,10 +186,11 @@ int process_options(int ac, char *av[]) {
 
 void print_cputime(time_t sec, suseconds_t usec) {
   printf("total CPU time = %ld.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
-          sec * 1000 + usec / 1000, (int)(usec % 1000),
-          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
+         sec * 1000 + usec / 1000, (int)(usec % 1000),
+         gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
 #ifdef HIDDEN_CLASS
-  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n", n_hc, n_enter_hc, n_exit_hc);
+  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
+         n_hc, n_enter_hc, n_exit_hc);
 #endif
 }
 
@@ -233,10 +244,10 @@ void **stack_start;
 #endif /* NDEBUG */
 
 /*
-   main function
+ * main function
  */
 int main(int argc, char *argv[]) {
-  // If input program is given from a file, fp is set to NULL.
+  /* If input program is given from a file, fp is set to NULL. */
   FILE *fp = NULL;
   struct rusage ru0, ru1;
   int base_function = 0;
@@ -246,7 +257,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef CALC_TIME
   long long s, e;
-#endif // CALC_TIME
+#endif
 
 #ifdef USE_PAPI
 
@@ -262,7 +273,7 @@ int main(int argc, char *argv[]) {
 
   int eventsize = sizeof(events)/sizeof(int);
   long long *values = malloc(sizeof(long long) * eventsize);
-#endif // USE_PAPI
+#endif /* USE_PAPI */
 
 
 #ifndef NDEBUG
@@ -289,7 +300,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef CALC_CALL
   callcount = 0;
-#endif // CALC_CALL
+#endif
 
   log_stream = stderr;
 
@@ -307,7 +318,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef USE_BOEHMGC
   GC_INIT();
-#endif // USE_BOEHMGC
+#endif
   init_memory();
 
   init_string_table(STRING_TABLE_SIZE);
@@ -328,20 +339,20 @@ int main(int argc, char *argv[]) {
     n += code_loader(context, function_table, n);
     end_code_loader();
 
-    // obtains the time before execution
+    /* obtains the time before execution */
 #ifdef USE_PAPI
     if (eventsize > 0) {
       int papi_result = PAPI_start_counters(events, eventsize);
       if (papi_result != 0)
         LOG_EXIT("papi failed:%d\n", papi_result);
     }
-#endif // USE_PAPI
+#endif /* USE_PAPI */
 
 #ifdef CALC_TIME
     s = PAPI_get_real_usec();
-#endif // CALC_TIME
+#endif
 
-    // enters the VM loop
+    /* enters the VM loop */
     run_phase = PHASE_VMLOOP;
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
     
@@ -352,15 +363,15 @@ int main(int argc, char *argv[]) {
 
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
 
-    // obtains the time after execution
+    /* obtains the time after execution */
 #ifdef CALC_TIME
     e = PAPI_get_real_usec();
-#endif // CALC_TIME
+#endif
 
 #ifdef USE_PAPI
     if (eventsize > 0)
       PAPI_stop_counters(values, eventsize);
-#endif // USE_PAPI
+#endif
 
 #ifndef USE_PAPI
 #ifndef CALC_TIME
@@ -375,12 +386,12 @@ int main(int argc, char *argv[]) {
         debug_print(context, n);
 #else
       debug_print(context, n);
-#endif  // USE_FFI
+#endif  /* USE_FFI */
     }
 
-#endif // CALC_CALL
-#endif // CALC_TIME
-#endif // USE_PAPI
+#endif /* CALC_CALL */
+#endif /* CALC_TIME */
+#endif /* USE_PAPI */
 
 #ifdef USE_PAPI
     if (eventsize > 0) {
@@ -388,19 +399,22 @@ int main(int argc, char *argv[]) {
       for (i = 0; i < eventsize; i++)
         LOG("%"PRId64"\n", values[i]);
       LOG("%15.15e\n", ((double)values[1]) / (double)values[0]);
-      LOG("L1 Hit Rate:%lf\n", ((double)values[0])/((double)values[0] + values[1]));
-      LOG("L2 Hit Rate:%lf\n", ((double)values[2])/((double)values[2] + values[3]));
-      LOG("L3 Hit Rate:%lf\n", ((double)values[4])/((double)values[4] + values[5]));
+      LOG("L1 Hit Rate:%lf\n",
+          ((double)values[0])/((double)values[0] + values[1]));
+      LOG("L2 Hit Rate:%lf\n",
+          ((double)values[2])/((double)values[2] + values[3]));
+      LOG("L3 Hit Rate:%lf\n",
+          ((double)values[4])/((double)values[4] + values[5]));
     }
-#endif // USE_PAPI
+#endif /* USE_PAPI */
 
 #ifdef CALC_TIME
     LOG("%"PRId64"\n", e - s);
-#endif // CALC_TIME
+#endif
 
 #ifdef CALC_CALL
     LOG("%"PRId64"\n", callcount);
-#endif // CALC_CALL
+#endif
 
     if (cputime_flag == TRUE) {
       time_t sec;
@@ -424,11 +438,10 @@ int main(int argc, char *argv[]) {
 #endif
 
 #ifdef PROFILE
-  // printf("n = %d\n", n);
   if (coverage_flag == TRUE)
-     print_coverage(function_table, n);
+    print_coverage(function_table, n);
   if (icount_flag == TRUE)
-     print_icount(function_table, n);
+    print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
 #endif
@@ -437,7 +450,7 @@ int main(int argc, char *argv[]) {
 }
 
 /*
-   prints a JSValue
+ * prints a JSValue
  */
 void print_value_simple(Context *context, JSValue v) {
   print_value(context, v, 0);
@@ -509,14 +522,14 @@ void simple_print(JSValue v) {
 }
 
 /*
-  debug_print
-  This function is defined for the sake of the compatibility with the old VM.
+ * debug_print
+ * This function is defined for the sake of the compatibility with the old VM.
  */
 void debug_print(Context *context, int n) {
-  // int topsize;
+  /* int topsize; */
   JSValue res;
 
-  // topsize = context->function_table[0].n_insns;
+  /* topsize = context->function_table[0].n_insns; */
   res = get_a(context);
   simple_print(res);
   printf("\n");

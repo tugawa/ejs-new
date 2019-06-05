@@ -1,23 +1,11 @@
 /*
-   conversion.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN
@@ -27,73 +15,73 @@
 #define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
 /*
-  Data conversion rule of JavaScript
-
-  source value  destination
-                string       number     boolean     Object
-  ---------------------------------------------------------------------
-  undefined     "undefined"  NaN        false       TypeError exception
-  null          "null"       0          false       TypeError exception
-  ---------------------------------------------------------------------
-  true          "true"       1          ---         new Boolean(true)
-  false         "false"      0          ---         new Boolean(false)
-  ---------------------------------------------------------------------
-  ""            ---          0          false       new String("")
-  "1.2"         ---          1.2        true        new String("1.2")
-  "one"         ---          NaN        true        new String("one")
-  ---------------------------------------------------------------------
-  0             "0"          ---        false       new Number(0)
-  -0            "0"          ---        false       new Number(-0)
-  NaN           "NaN"        ---        false       new Number("NaN")
-  Infinity      "Infinity"   ---        true        new Number("Infinity")
-  -Infinity     "-Infinity"  ---        true        new Number("-Infinity")
-  1             "1"          ---        true        new Number(1)
-  ---------------------------------------------------------------------
-  Object        *1           *2         true        ---
-  []            ""           0          true        ---
-  [9]           "9"          9          true        ---
-  ['a']         use join()   NaN        true        ---
-  Function      *1           NaN        true        ---
-  ---------------------------------------------------------------------
-
-  *1: object o -> string
-
-      if (o has toString() method) {
-        v = o.toString();
-        if (v is a primitive value, i.e., either boolean, number, or string)
-          return convert_to_string(v);
-      }
-      // o does not have toString or toString does not return a basic value
-      if (o has valueOf() method) {
-        v = o.valueOf():
-        if (v is a primitive value, i.e., either boolean, number, or string)
-          return convert_to_string(v);
-      }
-      throws TypeError exception
-
-  *2: object o -> number
-
-      if (o has valueOf() method) {
-        v = o.valueOf():
-        if (v is a basic value, i.e., either boolean, number, or string)
-          return convert_to_number(v);
-      }
-      // o does not have valueOf or valueOf does not retuen a basic value
-      if (o has toString() method) {
-        v = o.toString();
-        if (v is a basic value, i.e., either boolean, number, or string)
-          return convert_to_number(v);
-      }
-      throws TypeError exception
-
+ * Data conversion rules of JavaScript
+ *
+ * source value  destination
+ *               string       number     boolean     Object
+ * ---------------------------------------------------------------------
+ * undefined     "undefined"  NaN        false       TypeError exception
+ * null          "null"       0          false       TypeError exception
+ * ---------------------------------------------------------------------
+ * true          "true"       1          ---         new Boolean(true)
+ * false         "false"      0          ---         new Boolean(false)
+ * ---------------------------------------------------------------------
+ * ""            ---          0          false       new String("")
+ * "1.2"         ---          1.2        true        new String("1.2")
+ * "one"         ---          NaN        true        new String("one")
+ * ---------------------------------------------------------------------
+ * 0             "0"          ---        false       new Number(0)
+ * -0            "0"          ---        false       new Number(-0)
+ * NaN           "NaN"        ---        false       new Number("NaN")
+ * Infinity      "Infinity"   ---        true        new Number("Infinity")
+ * -Infinity     "-Infinity"  ---        true        new Number("-Infinity")
+ * 1             "1"          ---        true        new Number(1)
+ * ---------------------------------------------------------------------
+ * Object        *1           *2         true        ---
+ * []            ""           0          true        ---
+ * [9]           "9"          9          true        ---
+ * ['a']         use join()   NaN        true        ---
+ * Function      *1           NaN        true        ---
+ * ---------------------------------------------------------------------
+ *
+ * *1: object o -> string
+ *
+ *    if (o has toString() method) {
+ *      v = o.toString();
+ *      if (v is a primitive value, i.e., either boolean, number, or string)
+ *        return convert_to_string(v);
+ *    }
+ *    // o does not have toString or toString does not return a basic value
+ *    if (o has valueOf() method) {
+ *      v = o.valueOf():
+ *      if (v is a primitive value, i.e., either boolean, number, or string)
+ *        return convert_to_string(v);
+ *    }
+ *    throws TypeError exception
+ *
+ * *2: object o -> number
+ *
+ *    if (o has valueOf() method) {
+ *      v = o.valueOf():
+ *      if (v is a basic value, i.e., either boolean, number, or string)
+ *        return convert_to_number(v);
+ *    }
+ *    // o does not have valueOf or valueOf does not retuen a basic value
+ *    if (o has toString() method) {
+ *      v = o.toString();
+ *      if (v is a basic value, i.e., either boolean, number, or string)
+ *        return convert_to_number(v);
+ *    }
+ *    throws TypeError exception
+ *
  */
 
 /*
-   JSValue to JSValue conversion functions
+ * JSValue to JSValue conversion functions
  */
 
 /*
-   converts a special value to a string
+ * converts a special value to a string
  */
 JSValue special_to_string(JSValue v) {
   switch (v) {
@@ -112,7 +100,7 @@ JSValue special_to_string(JSValue v) {
 }
 
 /*
-   convers a special value to a number
+ * convers a special value to a number
  */
 JSValue special_to_number(JSValue v) {
   switch (v) {
@@ -130,7 +118,7 @@ JSValue special_to_number(JSValue v) {
 }
 
 /*
-   convers a special value to a boolean
+ * convers a special value to a boolean
  */
 JSValue special_to_boolean(JSValue v) {
   switch (v) {
@@ -147,7 +135,7 @@ JSValue special_to_boolean(JSValue v) {
 }
 
 /*
-   converts a special value to an object
+ * converts a special value to an object
  */
 JSValue special_to_object(Context *ctx, JSValue v) {
   switch (v) {
@@ -167,7 +155,7 @@ JSValue special_to_object(Context *ctx, JSValue v) {
 }
 
 /*
-   convers a string to a number
+ * convers a string to a number
  */
 JSValue string_to_number(JSValue v) {
   char *p, *q;
@@ -179,14 +167,14 @@ JSValue string_to_number(JSValue v) {
     return gconsts.g_flonum_nan;
   }
   p = string_value(v);
-  if (p[0] == '\0')    // empty string
+  if (p[0] == '\0')    /* empty string */
     return FIXNUM_ZERO;
 
-  // try to read an integer from the string
+  /* try to read an integer from the string */
   n = strtol(p, &q, 10);
   if (p != q) {
     if (*q == '\0') {
-      // succeeded to convert to a long integer
+      /* succeeded to convert to a long integer */
       if (is_fixnum_range_cint(n))
         return cint_to_fixnum(n);
       else
@@ -202,12 +190,12 @@ JSValue string_to_number(JSValue v) {
 }
 
 /*
-   converts a string to a boolean
+ * converts a string to a boolean
  */
 JSValue string_to_boolean(JSValue v) {
   char *p;
 
-  if (! is_string(v)) {
+  if (!is_string(v)) {
     type_error("string expected in string_to_boolean");
     return JS_FALSE;
   }
@@ -216,7 +204,7 @@ JSValue string_to_boolean(JSValue v) {
 }
 
 /*
-   converts a string to an Object
+ * converts a string to an Object
  */
 JSValue string_to_object(Context *ctx, JSValue v) {
   if (! is_string(v)) {
@@ -230,7 +218,7 @@ JSValue string_to_object(Context *ctx, JSValue v) {
 static char buf[BUFSIZE];
 
 /*
-   converts a fixnum to a string
+ * converts a fixnum to a string
  */
 JSValue fixnum_to_string(JSValue v) {
   if (!is_fixnum(v)) {
@@ -241,7 +229,7 @@ JSValue fixnum_to_string(JSValue v) {
 }
 
 /*
-   convers a flonum to a string
+ * convers a flonum to a string
  */
 JSValue flonum_to_string(JSValue v) {
   double d;
@@ -265,7 +253,7 @@ JSValue flonum_to_string(JSValue v) {
 }
 
 /*
-   converts a numner to a string
+ * converts a number to a string
  */
 JSValue number_to_string(JSValue v) {
   if (is_fixnum(v)) return fixnum_to_string(v);
@@ -275,7 +263,7 @@ JSValue number_to_string(JSValue v) {
 }
 
 /*
-   converts a fixnum to a boolean
+ * converts a fixnum to a boolean
  */
 JSValue fixnum_to_boolean(JSValue v) {
   if (!is_fixnum(v)) {
@@ -286,7 +274,7 @@ JSValue fixnum_to_boolean(JSValue v) {
 }
 
 /*
-   converts a flonum to a boolean
+ * converts a flonum to a boolean
  */
 JSValue flonum_to_boolean(JSValue v) {
   double d;
@@ -300,7 +288,7 @@ JSValue flonum_to_boolean(JSValue v) {
 }
 
 /*
-   converts a fixnum to an object
+ * converts a fixnum to an object
  */
 JSValue fixnum_to_object(Context *ctx, JSValue v) {
   if (!is_fixnum(v)) {
@@ -311,7 +299,7 @@ JSValue fixnum_to_object(Context *ctx, JSValue v) {
 }
 
 /*
-   converts a flonum to an object
+ * converts a flonum to an object
  */
 JSValue flonum_to_object(Context *ctx, JSValue v) {
   if (!is_flonum(v)) {
@@ -322,7 +310,7 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
 }
 
 /*
-   converts an object to a string
+ * converts an object to a string
  */
 JSValue object_to_string(Context *context, JSValue v) {
   JSValue f;
@@ -331,14 +319,8 @@ JSValue object_to_string(Context *context, JSValue v) {
     type_error("object expected in object_to_string");
     return gconsts.g_string_empty;
   }
-  if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring)) != JS_UNDEFINED) {
-    /*
-    printf("calling toString\n" );
-    if (is_function(f)) printf("toString is a function\n");
-    else if (is_builtin(f)) printf("toString is a builtin\n");
-    else printf("toString is ???\n");
-    printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
-    */
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring))
+      != JS_UNDEFINED) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
@@ -347,14 +329,14 @@ JSValue object_to_string(Context *context, JSValue v) {
       goto NEXT0;
     }
     GC_POP(v);
-    // printf("fp = %d, sp = %d\n", get_fp(context), get_sp(context));
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-NEXT0:
-  if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof)) != JS_UNDEFINED) {
+ NEXT0:
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof))
+      != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
     else goto NEXT1;
@@ -363,13 +345,13 @@ NEXT0:
     if (is_flonum(f)) return flonum_to_string(f);
     if (is_boolean(f)) return special_to_string(f);
   }
-NEXT1:
+ NEXT1:
   type_error_exception("neither toString nor valueOf returned a string in object_to_string");
-  return gconsts.g_string_undefined;     // not reached
+  return gconsts.g_string_undefined;     /* not reached */
 }
 
 /*
-   converts an object to a number
+ * converts an object to a number
  */
 JSValue object_to_number(Context *context, JSValue v) {
   JSValue f;
@@ -391,7 +373,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
-NEXT0:
+ NEXT0:
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
@@ -405,36 +387,36 @@ NEXT0:
     if (is_string(f)) return string_to_number(f);
     if (is_boolean(f)) return special_to_number(f);
   }
-NEXT1:
-  GC_PUSH(f); // All right: MissingInit
+ NEXT1:
+  GC_PUSH(f); /* All right: MissingInit */
   print_value_simple(context, v); putchar('\n');
   print_value_simple(context, f); putchar('\n');
   GC_POP(f);
   type_error_exception("neither valueOf nor toString returned a number in object_to_number");
-  return FIXNUM_ZERO;       // not reached
+  return FIXNUM_ZERO;       /* not reached */
 
-  // not completed yet
+  /* not completed yet */
   /*
-  if (is_array(v)) {
-    if (array_size(v) == 0)    // empty array
-      return FIXNUM_ZERO;
-    if (array_size(v) == 1) {
-      v = array_body_index(v, 0);
-      if (is_number(v)) return v;
-    }
-  }
-  return gconsts.g_flonum_nan;
-  */
+   * if (is_array(v)) {
+   *   if (array_size(v) == 0)    // empty array
+   *     return FIXNUM_ZERO;
+   *   if (array_size(v) == 1) {
+   *     v = array_body_index(v, 0);
+   *     if (is_number(v)) return v;
+   *   }
+   * }
+   * return gconsts.g_flonum_nan;
+   */
 }
 
 /*
-   converts an object to a primitive
-
-   The third argument specifies the order of applying toString and valueOf.
-   The difference between this function and convert_to_string /
-   convert_to_number is that when toString / valueOf returned a
-   primitive value, this function returns it without converting
-   them into a string / number.
+ * converts an object to a primitive
+ *
+ * The third argument specifies the order of applying toString and valueOf.
+ * The difference between this function and convert_to_string /
+ * convert_to_number is that when toString / valueOf returned a
+ * primitive value, this function returns it without converting
+ * them into a string / number.
  */
 JSValue object_to_primitive(Context *context, JSValue v, int hint) {
   JSValue f, fst, snd;
@@ -446,7 +428,7 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
   if (hint == HINT_STRING) {
     fst = gconsts.g_string_tostring;
     snd = gconsts.g_string_valueof;
-  } else {                               // hint == HINT_NUMBER
+  } else {                               /* hint == HINT_NUMBER */
     fst = gconsts.g_string_valueof;
     snd = gconsts.g_string_tostring;
   }
@@ -461,20 +443,20 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
     GC_POP2(snd, v);
     if (is_primitive(f)) return f;
   }
-NEXT0:
+ NEXT0:
   if ((f = get_prop_prototype_chain(v, snd)) != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
     else goto NEXT1;
     if (is_primitive(f)) return f;
   }
-NEXT1:
+ NEXT1:
   type_error_exception("neither toString nor valueOf returned a string in object_to_primitive");
-  return JS_UNDEFINED;     // not reached
+  return JS_UNDEFINED;     /* not reached */
 }
 
 /*
-   converts an object to a boolean
+ * converts an object to a boolean
  */
 JSValue object_to_boolean(JSValue v) {
   if (!is_object(v)) {
@@ -485,7 +467,7 @@ JSValue object_to_boolean(JSValue v) {
 }
 
 /*
-   converts an array to a string
+ * converts an array to a string
  */
 JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 {
@@ -504,8 +486,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
   if (length <= 0)
     return ret;
 
-  // length > 0
-
+  /* length > 0 */
   strs = (JSValue *)malloc(sizeof(JSValue) * length);
   sep = string_to_cstr(separator);
   seplen = strlen(sep);
@@ -534,11 +515,11 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 }
 
 /*
-   general functions
+ * general functions
  */
 
 /*
-   converts to a string
+ * converts to a string
  */
 JSValue to_string(Context *context, JSValue v) {
   if (is_string(v)) return v;
@@ -552,7 +533,7 @@ JSValue to_string(Context *context, JSValue v) {
 }
 
 /*
-   converts to a boolean
+ * converts to a boolean
  */
 JSValue to_boolean(JSValue v) {
   if (is_string(v)) return string_to_boolean(v);
@@ -565,7 +546,7 @@ JSValue to_boolean(JSValue v) {
 }
 
 /*
-   converts to a number
+ * converts to a number
  */
 JSValue to_number(Context *context, JSValue v) {
   if (is_number(v)) return v;
@@ -577,7 +558,7 @@ JSValue to_number(Context *context, JSValue v) {
 }
 
 /*
-   converts to an object
+ * converts to an object
  */
 JSValue to_object(Context *ctx, JSValue v) {
   if (is_string(v)) return string_to_object(ctx, v);
@@ -590,7 +571,7 @@ JSValue to_object(Context *ctx, JSValue v) {
 }
 
 /*
-   conversion functions to C's data
+ * conversion functions to C's data
  */
 double special_to_double(JSValue x) {
   switch (x) {
@@ -606,7 +587,7 @@ double special_to_double(JSValue x) {
 }
 
 /*
-   converts to a C's double
+ * converts to a C's double
  */
 double to_double(Context *context, JSValue v) {
   if (is_fixnum(v))
@@ -621,7 +602,7 @@ double to_double(Context *context, JSValue v) {
     p = string_value(v);
     if (p[0] == '\0') return (double)0.0;
     n = strtol(p, &q, 10);
-    if (p != q && *q == '\0') return (double)n;  // succeeded
+    if (p != q && *q == '\0') return (double)n;  /* succeeded */
     d = strtod(p, &q);
     if (p != q && *q == '\0') return d;
     return NAN;
@@ -635,7 +616,7 @@ double to_double(Context *context, JSValue v) {
     if (is_flonum(w)) return flonum_to_double(w);
   }
 
-  return NAN;                 // not reached
+  return NAN;                 /* not reached */
 }
 
 JSValue number_to_cint(JSValue n)
@@ -646,7 +627,7 @@ JSValue number_to_cint(JSValue n)
     return (int) flonum_to_double(n);
 }
 
-// used in builtin methods
+/* used in builtin methods */
 cint toInteger(Context *context, JSValue a) {
   cint n;
 
@@ -659,7 +640,7 @@ cint toInteger(Context *context, JSValue a) {
     else if (is_nan(a)) n = 0;
     else if (is_flonum(a)) n = flonum_to_int(a);
     else {
-      //printf("cannot convert to a integer\n");
+      /* printf("cannot convert to a integer\n"); */
       n = 0;
     }
   }
@@ -683,7 +664,7 @@ char *type_name(JSValue v) {
   if (is_regexp(v)) return "Regexp";
 #endif
   if (is_simple_object(v)) return "SimpleObject";
-  //  if (is_object(v)) return "Object";  // could it happen?
+  /*  if (is_object(v)) return "Object";   could it happen? */
   return "???";
 }
 

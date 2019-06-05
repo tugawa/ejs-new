@@ -1,36 +1,21 @@
 /*
-   globals.h
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #define FUNCTION_TABLE_LIMIT  (100)
 
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;
 
-// global constant objects
-//
+/*
+ * global constant objects
+ */
 EXTERN struct global_constant_objects {
-  // JSValue g_const_true;
-  // JSValue g_const_false;
-  // JSValue g_const_undefined;
-  // JSValue g_const_null;
   JSValue g_identity;
   JSValue g_object;
   JSValue g_object_proto;
@@ -50,7 +35,7 @@ EXTERN struct global_constant_objects {
   JSValue g_regexp_proto;
   JSValue g_fixnum_to_string;
   JSValue g_flonum_to_string;
-//  JSValue g_string_to_index;
+  /* JSValue g_string_to_index; */
 
   JSValue g_string_prototype;
   JSValue g_string___proto__;

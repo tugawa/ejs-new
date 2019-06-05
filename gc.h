@@ -1,23 +1,11 @@
 /*
-   gc.h
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 typedef uint32_t cell_type_t;
 
@@ -46,9 +34,12 @@ extern void gc_push_checked(void *addr);
 #define GC_PUSH3(a,b,c)           do {GC_PUSH(a); GC_PUSH2(b,c);} while(0)
 #define GC_PUSH4(a,b,c,d)         do {GC_PUSH(a); GC_PUSH3(b,c,d);} while(0)
 #define GC_PUSH5(a,b,c,d,e)       do {GC_PUSH(a); GC_PUSH4(b,c,d,e);} while(0)
-#define GC_PUSH6(a,b,c,d,e,f)     do {GC_PUSH(a); GC_PUSH5(b,c,d,e,f);} while(0)
-#define GC_PUSH7(a,b,c,d,e,f,g)   do {GC_PUSH(a); GC_PUSH6(b,c,d,e,f,g);} while(0)
-#define GC_PUSH8(a,b,c,d,e,f,g,h) do {GC_PUSH(a); GC_PUSH7(b,c,d,e,f,g,h);} while(0)
+#define GC_PUSH6(a,b,c,d,e,f)                           \
+  do {GC_PUSH(a); GC_PUSH5(b,c,d,e,f);} while(0)
+#define GC_PUSH7(a,b,c,d,e,f,g)                         \
+  do {GC_PUSH(a); GC_PUSH6(b,c,d,e,f,g);} while(0)
+#define GC_PUSH8(a,b,c,d,e,f,g,h)                       \
+  do {GC_PUSH(a); GC_PUSH7(b,c,d,e,f,g,h);} while(0)
 
 extern void gc_pop_checked(void* addr);
 #define GC_POP(a)                gc_pop_checked(&a)
@@ -58,7 +49,8 @@ extern void gc_pop_checked(void* addr);
 #define GC_POP5(a,b,c,d,e)       do {GC_POP(a); GC_POP4(b,c,d,e);} while(0)
 #define GC_POP6(a,b,c,d,e,f)     do {GC_POP(a); GC_POP5(b,c,d,e,f);} while(0)
 #define GC_POP7(a,b,c,d,e,f,g)   do {GC_POP(a); GC_POP6(b,c,d,e,f,g);} while(0)
-#define GC_POP8(a,b,c,d,e,f,g,h) do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
+#define GC_POP8(a,b,c,d,e,f,g,h)                        \
+  do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
 
 #else
 
@@ -83,6 +75,7 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
 #define gc_pop_tmp_root(x)
 #define enable_gc(ctx)
 #define disable_gc(ctx)
+
 static cell_type_t gc_obj_header_type(void *p)
 {
   uint64_t *ptr = (uint64_t *) p;
@@ -92,4 +85,3 @@ static cell_type_t gc_obj_header_type(void *p)
 
 #define gc_malloc_critical(s,t) (gc_malloc(NULL,(s),(t)))
 #define gc_jsalloc_critical(s,t) (gc_jsalloc(NULL,(s),(t)))
-

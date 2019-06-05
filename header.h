@@ -1,23 +1,11 @@
 /*
-   header.h
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #ifndef HEADER_H_
 #define HEADER_H_
@@ -42,7 +30,7 @@
 
 #ifndef __USE_GNU
 #define __USE_GNU
-#endif // __USE_GNU
+#endif /* __USE_GNU */
 
 typedef uint64_t JSValue;
 
@@ -50,11 +38,11 @@ typedef uint64_t JSValue;
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
 
 #ifdef USE_BOEHMGC
-// #define malloc(n) GC_malloc(n)
+/* #define malloc(n) GC_malloc(n) */
 #define malloc(n) GC_MALLOC(n)
 #define realloc(p, size) do { memcpy(malloc((size)), (p), (size));} while (0)
 #define free GC_FREE
-#endif // USE_BOEHMGC
+#endif /* USE_BOEHMGC */
 
 #define SUCCESS  1
 #define FAIL     0
@@ -78,4 +66,4 @@ typedef uint64_t JSValue;
 #include "globals.h"
 #include "extern.h"
 
-#endif // HEADER_H_
+#endif /* HEADER_H_ */

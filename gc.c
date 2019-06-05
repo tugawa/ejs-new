@@ -1,23 +1,11 @@
 /*
-   gc.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,11 +23,11 @@
 #endif
 
 /*
-#define GCLOG(...) LOG(__VA_ARGS__)
-#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
-#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
-#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
-*/
+ * #define GCLOG(...) LOG(__VA_ARGS__)
+ * #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+ * #define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+ * #define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+ */
 
 #define GCLOG(...)
 #define GCLOG_TRIGGER(...)
@@ -50,9 +38,9 @@
 /*
  * defined in header.h
  */
-//typedef uint64_t JSValue;
+/* typedef uint64_t JSValue; */
 #define LOG_BYTES_IN_JSVALUE   3
-//#define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE)
+/* #define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE) */
 
 /*
  * naming convention
@@ -65,7 +53,7 @@
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-//#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+/* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -390,17 +378,17 @@ STATIC void garbage_collect(Context *ctx)
 {
   struct rusage ru0, ru1;
 
-  // printf("Enter gc, generation = %d\n", generation);
+  /* printf("Enter gc, generation = %d\n", generation); */
   GCLOG("Before Garbage Collection\n");
-  // print_memory_status();
+  /* print_memory_status(); */
   if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
   scan_roots(ctx);
   weak_clear();
   sweep();
   GCLOG("After Garbage Collection\n");
-  // print_memory_status();
-  // print_heap_stat();
+  /* print_memory_status(); */
+  /* print_heap_stat(); */
 
   if (cputime_flag == TRUE) {
     time_t sec;
@@ -418,7 +406,7 @@ STATIC void garbage_collect(Context *ctx)
   }
 
   generation++;
-  // printf("Exit gc, generation = %d\n", generation);
+  /* printf("Exit gc, generation = %d\n", generation); */
 }
 
 /*
@@ -577,7 +565,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   for (i = 0; i < length; i++)
     trace_slot(ptr->locals + i);
 
-  assert(ptr->locals[length - 1] == JS_UNDEFINED);  // GC_DEBUG (cacary)
+  assert(ptr->locals[length - 1] == JS_UNDEFINED);  /* GC_DEBUG (cacary) */
 }
 
 STATIC void trace_StrCons(StrCons **ptrp)
@@ -587,7 +575,7 @@ STATIC void trace_StrCons(StrCons **ptrp)
   if (test_and_mark_cell(ptr))
     return;
 
-  //trace_slot(&ptr->str);  /* weak pointer */
+  /* trace_slot(&ptr->str); */ /* weak pointer */
   if (ptr->next != NULL)
     trace_StrCons(&ptr->next);
 }
@@ -608,11 +596,11 @@ STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
 STATIC void trace_HiddenClass(HiddenClass **ptrp)
 {
   HiddenClass *ptr = *ptrp;
-  // printf("Enter trace_HiddenClass\n");
+  /* printf("Enter trace_HiddenClass\n"); */
   if (test_and_mark_cell(ptr))
     return;
   trace_HashTable(&hidden_map(ptr));
-  // printf("Exit trace_HiddenClass\n");
+  /* printf("Exit trace_HiddenClass\n"); */
 }
 #endif
 
@@ -843,11 +831,11 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
     }
     if (sp < 0)
       return;
-    fp = stack[sp--];                                     // FP
-    trace_FunctionFrame((FunctionFrame **)(stack + sp));  // LP
+    fp = stack[sp--];                                     /* FP */
+    trace_FunctionFrame((FunctionFrame **)(stack + sp));  /* LP */
     sp--;
-    sp--;                                                 // PC
-    scan_FunctionTable((FunctionTable *) stack[sp--]);    // CF
+    sp--;                                                 /* PC */
+    scan_FunctionTable((FunctionTable *) stack[sp--]);    /* CF */
     /* TODO: fixup inner pointer (CF) */
   }
 }

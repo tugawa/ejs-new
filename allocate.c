@@ -1,10 +1,10 @@
 /*
  * eJS Project
  * Kochi University of Technology
- * the University of Electro-communications
+ * The University of Electro-communications
  *
- * The eJS Project is the successor of the SSJS Project at the University of
- * Electro-communications, which was contributed by the following members.
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 
 #include "prefix.h"
@@ -16,7 +16,7 @@
  */
 #ifdef DEBUG
 int count = 0;
-#endif // DEBUG
+#endif /* DEBUG */
 
 #ifdef need_flonum
 /*
@@ -134,7 +134,7 @@ JSValue *allocate_prop_table(int size) {
   JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
                                                  HTAG_PROP);
   size_t i;
-  for (i = 0; i < size; i++)  // initialise for GC
+  for (i = 0; i < size; i++)  /* initialise for GC */
     table[i] = JS_UNDEFINED;
   return table;
 }

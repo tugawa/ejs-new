@@ -1,13 +1,11 @@
 /*
-   vmloop.c
-
-   eJS Project
-     Kochi University of Technology
-     The University of Electro-communications
-
-     Tomoharu Ugawa, 2016 - 2019
-     Hideya Iwasaki, 2016 - 2019
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN
@@ -19,7 +17,8 @@ static void lcall_stack_push(Context* context, int pc);
 static int lcall_stack_pop(Context* context, int *pc);
 
 #define NOT_IMPLEMENTED()						\
-  LOG_EXIT("Sorry, instruction %s has not been implemented yet\n", insn_nemonic(get_opcode(insn)))
+  LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
+           insn_nemonic(get_opcode(insn)))
 
 #ifdef PROFILE
 static char *typename(JSValue v) {
@@ -41,18 +40,20 @@ static char *typename(JSValue v) {
   return "unknown";
 }
 
-#define INSN_COUNT0(iname)			\
-  (profile_flag == TRUE && insns->logflag == TRUE && \
+#define INSN_COUNT0(iname)                              \
+  (profile_flag == TRUE && insns->logflag == TRUE &&    \
    fprintf(prof_stream, "OPERAND: %s\n", #iname))
-#define INSN_COUNT1(iname, v0)			\
-  (profile_flag == TRUE && insns->logflag == TRUE && \
+#define INSN_COUNT1(iname, v0)                                          \
+  (profile_flag == TRUE && insns->logflag == TRUE &&                    \
    fprintf(prof_stream, "OPERAND: %s %s\n", #iname, typename(v0)))
-#define INSN_COUNT2(iname, v0, v1)		\
-  (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "OPERAND: %s %s %s\n", #iname, typename(v0), typename(v1)))
-#define INSN_COUNT3(iname, v0, v1, v2)          \
-  (profile_flag == TRUE && insns->logflag == TRUE && \
-   fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #iname, typename(v0), typename(v1), typename(v2)))
+#define INSN_COUNT2(iname, v0, v1)                      \
+  (profile_flag == TRUE && insns->logflag == TRUE &&    \
+   fprintf(prof_stream, "OPERAND: %s %s %s\n", #iname,  \
+           typename(v0), typename(v1)))
+#define INSN_COUNT3(iname, v0, v1, v2)                          \
+  (profile_flag == TRUE && insns->logflag == TRUE &&            \
+   fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #iname,       \
+           typename(v0), typename(v1), typename(v2)))
 #else
 #define INSN_COUNT0(insn)
 #define INSN_COUNT1(insn, v0)
@@ -75,119 +76,114 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 
 #ifdef DEBUG
-#define INSNLOAD()                                                   \
-  do {                                                               \
-    insn = insns->code;                                              \
-    if (trace_flag == TRUE) {					     \
-      printf("pc = %d, insn = %s, fp = %d\n",                        \
-             pc, insn_nemonic(get_opcode(insn)), fp);                \
-      if (get_opcode(insn) == STRING) {				     \
-         Displacement disp = get_big_disp(insn);		     \
-         JSValue s = get_literal(insns, disp);			     \
-         printf("   %s\n", string_to_cstr(s));			     \
-      }								     \
-    }								     \
+#define INSNLOAD()                                      \
+  do {                                                  \
+    insn = insns->code;                                 \
+    if (trace_flag == TRUE) {                           \
+      printf("pc = %d, insn = %s, fp = %d\n",           \
+             pc, insn_nemonic(get_opcode(insn)), fp);   \
+      if (get_opcode(insn) == STRING) {                 \
+        Displacement disp = get_big_disp(insn);         \
+        JSValue s = get_literal(insns, disp);           \
+        printf("   %s\n", string_to_cstr(s));           \
+      }                                                 \
+    }                                                   \
   } while (0)
 #else /* DEBUG */
 /*
-#define INSNLOAD()                                                   \
-  do {                                                               \
-    insn = insns->code;                                              \
-    if (trace_flag == TRUE) {                                        \
-      printf("pc = %d, insn = %s, fp = %d\n",                        \
-             pc, insn_nemonic(get_opcode(insn)), fp);                \
-      fflush(stdout);                                                \
-    }                                                                \
-  } while (0)
-*/
+ * #define INSNLOAD()                                                   \
+ *   do {                                                               \
+ *     insn = insns->code;                                              \
+ *     if (trace_flag == TRUE) {                                        \
+ *       printf("pc = %d, insn = %s, fp = %d\n",                        \
+ *              pc, insn_nemonic(get_opcode(insn)), fp);                \
+ *       fflush(stdout);                                                \
+ *     }                                                                \
+ *   } while (0)
+ */
 #define INSNLOAD() (insn = insns->code)
 #endif /* DEBUG */
 
-// defines ENTER_INSN(x)
-//
 #ifdef PROFILE
-#define ENTER_INSN(x)                                                \
-  do {                                                               \
-    if (insns->logflag == TRUE) headcount = 0, insns->count++;       \
-    asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));  \
+#define ENTER_INSN(x)                                                   \
+  do {                                                                  \
+    if (insns->logflag == TRUE) headcount = 0, insns->count++;          \
+    asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));     \
   } while (0)
 #else
-#define ENTER_INSN(x)                                                \
+#define ENTER_INSN(x)                                                   \
   asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t))
 #endif
 
-// defines NEXT_INSN()
-//
 #ifdef USE_ASM2
-// if we erase the ``goto'', the code does not work ???
-#define NEXT_INSN() \
-  asm volatile("jmp *%0"::"r"(*insns)); \
+/* if we erase the ``goto'', the code does not work ??? */
+#define NEXT_INSN()                             \
+  asm volatile("jmp *%0"::"r"(*insns));         \
   goto *(insns->ilabel)
 #else
-#define NEXT_INSN() \
+#define NEXT_INSN()                             \
   goto *(insns->ilabel)
 #endif
 
 #define GET_NEXT_INSN_ADDR(ins)  (jump_table[get_opcode(ins)])
 
-#define INSN_PRINT(x) \
+#define INSN_PRINT(x)                                           \
   asm volatile(STRCON(STRCON("#jump, loc = ", (x)), \n\t))
 
-#define NEXT_INSN_ASM(addr) \
+#define NEXT_INSN_ASM(addr)                             \
   asm("jmp *%0\n\t# -- inserted main.c" : : "A" (addr))
 
 
-// defines NEXT_INSN_INCPC() and NEXT_INSN_NOINCPC()
-//
 #ifdef USE_ASM
 
-#define NEXT_INSN_INCPC() do {                                 \
-  INCPC();                                                     \
-  INSNLOAD();                                                  \
-  NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))                      \
-} while (0)
+#define NEXT_INSN_INCPC() do {                  \
+    INCPC();                                    \
+    INSNLOAD();                                 \
+    NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
+      } while (0)
 
-#define NEXT_INSN_NOINCPC() do {                               \
-  INSNLOAD();                                                  \
-  NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))                      \
-} while (0)
+#define NEXT_INSN_NOINCPC() do {                \
+    INSNLOAD();                                 \
+    NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
+      } while (0)
 
 #else
 
 #define NEXT_INSN_INCPC()   do { INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
 #define NEXT_INSN_NOINCPC() do { INSNLOAD(); NEXT_INSN(); } while(0)
 
-#endif // USE_ASM
+#endif /* USE_ASM */
 
 #define save_context() do			\
-{						\
-  set_cf(context, curfn);			\
-  set_pc(context, pc);				\
-  set_fp(context,fp);				\
-} while(0)
+    {						\
+      set_cf(context, curfn);			\
+      set_pc(context, pc);                      \
+      set_fp(context,fp);                       \
+    } while(0)
 
-#define update_context() do {                       \
-  curfn = get_cf(context);                          \
-  codesize = ftab_n_insns(curfn);                   \
-  pc = get_pc(context);                             \
-  fp = get_fp(context);                             \
-  insns = curfn->insns + pc;                        \
-  regbase = (JSValue *)&get_stack(context, fp) - 1; \
-  if (!curfn->ilabel_created)                       \
-    make_ilabel(curfn, jump_table);                 \
-} while (0)
+#define update_context() do {                           \
+    curfn = get_cf(context);                            \
+    codesize = ftab_n_insns(curfn);                     \
+    pc = get_pc(context);                               \
+    fp = get_fp(context);                               \
+    insns = curfn->insns + pc;                          \
+    regbase = (JSValue *)&get_stack(context, fp) - 1;   \
+    if (!curfn->ilabel_created)                         \
+      make_ilabel(curfn, jump_table);                   \
+  } while (0)
 
-#define load_regs(insn, dst, r1, r2, v1, v2) \
-  dst = get_first_operand_reg(insn), \
-  r1 = get_second_operand_reg(insn), \
-  r2 = get_third_operand_reg(insn), \
-  v1 = regbase[r1], \
-  v2 = regbase[r2]
+#define load_regs(insn, dst, r1, r2, v1, v2)    \
+  dst = get_first_operand_reg(insn),            \
+    r1 = get_second_operand_reg(insn),          \
+    r2 = get_third_operand_reg(insn),           \
+    v1 = regbase[r1],                           \
+    v2 = regbase[r2]
 
 #define set_pc_relative(d) (pc += (d), insns += (d))
 
-// executes the main loop of the vm as a threaded code
-//
+/*
+ * executes the main loop of the vm as a threaded code
+ */
 int vmrun_threaded(Context* context, int border) {
   FunctionTable *curfn;
   int codesize;
@@ -196,7 +192,7 @@ int vmrun_threaded(Context* context, int border) {
   Instruction *insns;
   JSValue *regbase;
   Bytecode insn;
-  // JSValue *locals = NULL;
+  /* JSValue *locals = NULL; */
   static InsnLabel jump_table[] = {
 #include "instructions-label.h"
   };
@@ -206,12 +202,13 @@ int vmrun_threaded(Context* context, int border) {
 
   update_context();
   /*
-  if (get_lp(context) != NULL)
-    locals = get_lp(context)->locals;
-  */
+   * if (get_lp(context) != NULL)
+   *   locals = get_lp(context)->locals;
+   */
 
-// goes to the first instruction
-//
+  /*
+   * goes to the first instruction
+   */
 #ifdef USE_ASM
   INSNLOAD();
   NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(curfn->start[pc]));
@@ -223,13 +220,15 @@ int vmrun_threaded(Context* context, int border) {
 
 #include "vmloop-cases.inc"
 
-// Now the following case branches are automatically generated in
-// the file named ``vmloop-cases.def''.
-// We leave these branches by surrounding ``#if 0'' and ``#endif''
-// for the sake of coping with emergency cases.
+  /*
+   * Now the following case branches are automatically generated in
+   * the file named ``vmloop-cases.def''.
+   * We leave these branches by surrounding ``#if 0'' and ``#endif''
+   * for the sake of coping with emergency cases.
+   */
 
 #if 0
-I_FIXNUM:
+ I_FIXNUM:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -238,7 +237,7 @@ I_FIXNUM:
   }
   NEXT_INSN_INCPC();
 
-I_SPECCONST:
+ I_SPECCONST:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -247,9 +246,9 @@ I_SPECCONST:
   }
   NEXT_INSN_INCPC();
 
-I_STRING:
-I_REGEXP:
-I_NUMBER:
+ I_STRING:
+ I_REGEXP:
+ I_NUMBER:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -258,7 +257,7 @@ I_NUMBER:
   }
   NEXT_INSN_INCPC();
 
-I_ADD:
+ I_ADD:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -268,7 +267,7 @@ I_ADD:
   }
   NEXT_INSN_INCPC();
 
-I_SUB:
+ I_SUB:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -278,7 +277,7 @@ I_SUB:
   }
   NEXT_INSN_INCPC();
 
-I_MUL:
+ I_MUL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -288,7 +287,7 @@ I_MUL:
   }
   NEXT_INSN_INCPC();
 
-I_DIV:
+ I_DIV:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -298,7 +297,7 @@ I_DIV:
   }
   NEXT_INSN_INCPC();
 
-I_MOD:
+ I_MOD:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -308,7 +307,7 @@ I_MOD:
   }
   NEXT_INSN_INCPC();
 
-I_BITAND:
+ I_BITAND:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -318,7 +317,7 @@ I_BITAND:
   }
   NEXT_INSN_INCPC();
 
-I_BITOR:
+ I_BITOR:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -328,7 +327,7 @@ I_BITOR:
   }
   NEXT_INSN_INCPC();
 
-I_LEFTSHIFT:
+ I_LEFTSHIFT:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -338,7 +337,7 @@ I_LEFTSHIFT:
   }
   NEXT_INSN_INCPC();
 
-I_RIGHTSHIFT:
+ I_RIGHTSHIFT:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -348,7 +347,7 @@ I_RIGHTSHIFT:
   }
   NEXT_INSN_INCPC();
 
-I_UNSIGNEDRIGHTSHIFT:
+ I_UNSIGNEDRIGHTSHIFT:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -358,7 +357,7 @@ I_UNSIGNEDRIGHTSHIFT:
   }
   NEXT_INSN_INCPC();
 
-I_LESSTHAN:
+ I_LESSTHAN:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -368,7 +367,7 @@ I_LESSTHAN:
   }
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUAL:
+ I_LESSTHANEQUAL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -378,7 +377,7 @@ I_LESSTHANEQUAL:
   }
   NEXT_INSN_INCPC();
 
-I_EQ:
+ I_EQ:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -388,7 +387,7 @@ I_EQ:
   }
   NEXT_INSN_INCPC();
 
-I_EQUAL:
+ I_EQUAL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -398,7 +397,7 @@ I_EQUAL:
   }
   NEXT_INSN_INCPC();
 
-I_GETPROP:
+ I_GETPROP:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -408,7 +407,7 @@ I_GETPROP:
   }
   NEXT_INSN_INCPC();
 
-I_SETPROP:
+ I_SETPROP:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -418,7 +417,7 @@ I_SETPROP:
   }
   NEXT_INSN_INCPC();
 
-I_SETARRAY:
+ I_SETARRAY:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -428,7 +427,7 @@ I_SETARRAY:
   }
   NEXT_INSN_INCPC();
 
-I_GETGLOBAL:
+ I_GETGLOBAL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -437,7 +436,7 @@ I_GETGLOBAL:
   }
   NEXT_INSN_INCPC();
 
-I_SETGLOBAL:
+ I_SETGLOBAL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -446,7 +445,7 @@ I_SETGLOBAL:
   }
   NEXT_INSN_INCPC();
 
-I_INSTANCEOF:
+ I_INSTANCEOF:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -456,7 +455,7 @@ I_INSTANCEOF:
   }
   NEXT_INSN_INCPC();
 
-I_MOVE:
+ I_MOVE:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -465,7 +464,7 @@ I_MOVE:
   }
   NEXT_INSN_INCPC();
 
-I_TYPEOF:
+ I_TYPEOF:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -474,7 +473,7 @@ I_TYPEOF:
   }
   NEXT_INSN_INCPC();
 
-I_NOT:
+ I_NOT:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -483,7 +482,7 @@ I_NOT:
   }
   NEXT_INSN_INCPC();
 
-I_NEW:
+ I_NEW:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -492,7 +491,7 @@ I_NEW:
   }
   NEXT_INSN_INCPC();
 
-I_GETIDX:
+ I_GETIDX:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -501,7 +500,7 @@ I_GETIDX:
   }
   NEXT_INSN_INCPC();
 
-I_ISUNDEF:
+ I_ISUNDEF:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -510,7 +509,7 @@ I_ISUNDEF:
   }
   NEXT_INSN_INCPC();
 
-I_ISOBJECT:
+ I_ISOBJECT:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -519,7 +518,7 @@ I_ISOBJECT:
   }
   NEXT_INSN_INCPC();
 
-I_SETFL:
+ I_SETFL:
   ENTER_INSN(__LINE__);
   {
     int newfl = get_first_operand_int(insn);
@@ -527,7 +526,7 @@ I_SETFL:
   }
   NEXT_INSN_INCPC();
 
-I_SETA:
+ I_SETA:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -535,7 +534,7 @@ I_SETA:
   }
   NEXT_INSN_INCPC();
 
-I_GETA:
+ I_GETA:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -543,7 +542,7 @@ I_GETA:
   }
   NEXT_INSN_INCPC();
 
-I_GETERR:
+ I_GETERR:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -551,7 +550,7 @@ I_GETERR:
   }
   NEXT_INSN_INCPC();
 
-I_GETGLOBALOBJ:
+ I_GETGLOBALOBJ:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -559,35 +558,35 @@ I_GETGLOBALOBJ:
   }
   NEXT_INSN_INCPC();
 
-I_NEWARGS:
+ I_NEWARGS:
   ENTER_INSN(__LINE__);
   {
 #include "insns/newargs.def"
   }
   NEXT_INSN_INCPC();
 
-I_NEWFRAME:
+ I_NEWFRAME:
   ENTER_INSN(__LINE__);
   {
 #include "insns/newframe.def"
   }
   NEXT_INSN_INCPC();
 
-I_RET:
+ I_RET:
   ENTER_INSN(__LINE__);
   {
 #include "insns/ret.def"
   }
   NEXT_INSN_INCPC();
 
-I_NOP:
+ I_NOP:
   ENTER_INSN(__LINE__);
   {
 #include "insns/nop.def"
   }
   NEXT_INSN_INCPC();
 
-I_JUMP:
+ I_JUMP:
   ENTER_INSN(__LINE__);
   {
     Displacement disp = get_first_operand_disp(insn);
@@ -595,7 +594,7 @@ I_JUMP:
   }
   NEXT_INSN_NOINCPC();
 
-I_JUMPTRUE:
+ I_JUMPTRUE:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -603,7 +602,7 @@ I_JUMPTRUE:
   }
   NEXT_INSN_INCPC();
 
-I_JUMPFALSE:
+ I_JUMPFALSE:
   ENTER_INSN(__LINE__);
   {
     Register r = get_first_operand_reg(insn);
@@ -611,7 +610,7 @@ I_JUMPFALSE:
   }
   NEXT_INSN_INCPC();
 
-I_GETLOCAL:
+ I_GETLOCAL:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -621,7 +620,7 @@ I_GETLOCAL:
   }
   NEXT_INSN_INCPC();
 
-I_SETLOCAL:
+ I_SETLOCAL:
   ENTER_INSN(__LINE__);
   {
     int link = get_first_operand_int(insn);
@@ -631,7 +630,7 @@ I_SETLOCAL:
   }
   NEXT_INSN_INCPC();
 
-I_MAKECLOSURE:
+ I_MAKECLOSURE:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -640,7 +639,7 @@ I_MAKECLOSURE:
   }
   NEXT_INSN_INCPC();
 
-I_MAKEITERATOR:
+ I_MAKEITERATOR:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -649,7 +648,7 @@ I_MAKEITERATOR:
   }
   NEXT_INSN_INCPC();
   
-I_MAKESIMPLEITERATOR:
+ I_MAKESIMPLEITERATOR:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -658,7 +657,7 @@ I_MAKESIMPLEITERATOR:
   }
   NEXT_INSN_INCPC();
 
-I_NEXTPROPNAME:
+ I_NEXTPROPNAME:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -668,7 +667,7 @@ I_NEXTPROPNAME:
   }
   NEXT_INSN_INCPC();
 
-I_NEXTPROPNAMEIDX:
+ I_NEXTPROPNAMEIDX:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -677,9 +676,9 @@ I_NEXTPROPNAMEIDX:
   }
   NEXT_INSN_INCPC();
   
-I_SEND:
-I_NEWSEND:
-I_CALL:
+ I_SEND:
+ I_NEWSEND:
+ I_CALL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -688,8 +687,8 @@ I_CALL:
   }
   NEXT_INSN_INCPC();
 
-I_TAILSEND:
-I_TAILCALL:
+ I_TAILSEND:
+ I_TAILCALL:
   ENTER_INSN(__LINE__);
   {
     Register r0 = get_first_operand_reg(insn);
@@ -698,7 +697,7 @@ I_TAILCALL:
   }
   NEXT_INSN_INCPC();
 
-I_PUSHHANDLER:
+ I_PUSHHANDLER:
   ENTER_INSN(__LINE__);
   {
     Displacement disp = get_first_operand_disp(insn);
@@ -706,21 +705,21 @@ I_PUSHHANDLER:
   }
   NEXT_INSN_INCPC();
 
-I_POPHANDLER:
+ I_POPHANDLER:
   ENTER_INSN(__LINE__);
   {
 #include "insns/pophandler.def"
   }
   NEXT_INSN_INCPC();
 
-I_THROW:
+ I_THROW:
   ENTER_INSN(__LINE__);
   {
 #include "insns/throw.def"
   }
   NEXT_INSN_NOINCPC();
 
-I_LOCALCALL:
+ I_LOCALCALL:
   ENTER_INSN(__LINE__);
   {
     Displacement disp = get_first_operand_disp(insn);
@@ -728,21 +727,21 @@ I_LOCALCALL:
   }
   NEXT_INSN_NOINCPC();
 
-I_LOCALRET:
+ I_LOCALRET:
   ENTER_INSN(__LINE__);
   {
 #include "insns/localret.def"
   }
   NEXT_INSN_INCPC();
 
-I_POPLOCAL:
+ I_POPLOCAL:
   ENTER_INSN(__LINE__);
   {
 #include "insns/poplocal.def"
   }
   NEXT_INSN_INCPC();
 
-I_ERROR:
+ I_ERROR:
   ENTER_INSN(__LINE__);
   {
     Register dst = get_first_operand_reg(insn);
@@ -751,645 +750,645 @@ I_ERROR:
   }
   NEXT_INSN_INCPC();
 
-I_UNKNOWN:
+ I_UNKNOWN:
   ENTER_INSN(__LINE__);
   {
 #include "insns/unknown.def"
   }
   NEXT_INSN_INCPC();
 
-I_END:
+ I_END:
   ENTER_INSN(__LINE__);
   {
 #include "insns/end.def"
   }
   NEXT_INSN_INCPC();
 
-I_LIGHTCALL:
+ I_LIGHTCALL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LIGHTSEND:
+ I_LIGHTSEND:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LIGHTTAILCALL:
+ I_LIGHTTAILCALL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LIGHTTAILSEND:
+ I_LIGHTTAILSEND:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFIXFIX:
+ I_ADDFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFIXFLO:
+ I_ADDFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFLOFIX:
+ I_ADDFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFLOFLO:
+ I_ADDFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSTRSTR:
+ I_ADDSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSTRFIX:
+ I_ADDSTRFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFIXSTR:
+ I_ADDFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSTRFLO:
+ I_ADDSTRFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFLOSTR:
+ I_ADDFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFIXSPE:
+ I_ADDFIXSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSPEFIX:
+ I_ADDSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSTRSPE:
+ I_ADDSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSPESTR:
+ I_ADDSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDFLOSPE:
+ I_ADDFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSPEFLO:
+ I_ADDSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_ADDSPESPE:
+ I_ADDSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFIXFIX:
+ I_SUBFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFIXFLO:
+ I_SUBFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFLOFIX:
+ I_SUBFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFLOFLO:
+ I_SUBFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSTRSTR:
+ I_SUBSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSTRFIX:
+ I_SUBSTRFIX:
   ENTER_INSN(__LINE__);
   NEXT_INSN_INCPC();
 
-I_SUBFIXSTR:
+ I_SUBFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSTRFLO:
+ I_SUBSTRFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFLOSTR:
+ I_SUBFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFIXSPE:
+ I_SUBFIXSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSPEFIX:
+ I_SUBSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSTRSPE:
+ I_SUBSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSPESTR:
+ I_SUBSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBFLOSPE:
+ I_SUBFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSPEFLO:
+ I_SUBSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SUBSPESPE:
+ I_SUBSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFIXFIXSMALL:
+ I_MULFIXFIXSMALL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFIXFIX:
+ I_MULFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFIXFLO:
+ I_MULFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFLOFIX:
+ I_MULFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFLOFLO:
+ I_MULFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSTRSTR:
+ I_MULSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSTRFIX:
+ I_MULSTRFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFIXSTR:
+ I_MULFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSTRFLO:
+ I_MULSTRFLO:
   ENTER_INSN(__LINE__);
   NEXT_INSN_INCPC();
 
-I_MULFLOSTR:
+ I_MULFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFIXSPE:
+ I_MULFIXSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSPEFIX:
+ I_MULSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSTRSPE:
+ I_MULSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSPESTR:
+ I_MULSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULFLOSPE:
+ I_MULFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSPEFLO:
+ I_MULSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MULSPESPE:
+ I_MULSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFIXFIX:
+ I_DIVFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFIXFLO:
+ I_DIVFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFLOFIX:
+ I_DIVFLOFIX:
   ENTER_INSN(__LINE__);
   NEXT_INSN_INCPC();
 
-I_DIVFLOFLO:
+ I_DIVFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSTRSTR:
+ I_DIVSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSTRFIX:
+ I_DIVSTRFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFIXSTR:
+ I_DIVFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSTRFLO:
+ I_DIVSTRFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFLOSTR:
+ I_DIVFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFIXSPE:
+ I_DIVFIXSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSPEFIX:
+ I_DIVSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSTRSPE:
+ I_DIVSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSPESTR:
+ I_DIVSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVFLOSPE:
+ I_DIVFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSPEFLO:
+ I_DIVSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_DIVSPESPE:
+ I_DIVSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFIXFIX:
+ I_MODFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFIXFLO:
+ I_MODFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFLOFIX:
+ I_MODFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFLOFLO:
+ I_MODFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSTRSTR:
+ I_MODSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSTRFIX:
+ I_MODSTRFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFIXSTR:
+ I_MODFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSTRFLO:
+ I_MODSTRFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFLOSTR:
+ I_MODFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFIXSPE:
+ I_MODFIXSPE:
   ENTER_INSN(__LINE__);
   NEXT_INSN_INCPC();
 
-I_MODSPEFIX:
+ I_MODSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSTRSPE:
+ I_MODSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSPESTR:
+ I_MODSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODFLOSPE:
+ I_MODFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSPEFLO:
+ I_MODSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_MODSPESPE:
+ I_MODSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANFIXFIX:
+ I_LESSTHANFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANFIXFLO:
+ I_LESSTHANFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANFLOFIX:
+ I_LESSTHANFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANFLOFLO:
+ I_LESSTHANFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANSTRSTR:
+ I_LESSTHANSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUALFIXFIX:
+ I_LESSTHANEQUALFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUALFIXFLO:
+ I_LESSTHANEQUALFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUALFLOFIX:
+ I_LESSTHANEQUALFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUALFLOFLO:
+ I_LESSTHANEQUALFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_LESSTHANEQUALSTRSTR:
+ I_LESSTHANEQUALSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQFIXFLO:
+ I_EQFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQFLOFIX:
+ I_EQFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQFLOFLO:
+ I_EQFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQSTRSTR:
+ I_EQSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFIXFIX:
+ I_EQUALFIXFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFIXFLO:
+ I_EQUALFIXFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFLOFIX:
+ I_EQUALFLOFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFLOFLO:
+ I_EQUALFLOFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSTRSTR:
+ I_EQUALSTRSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSTRFIX:
+ I_EQUALSTRFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFIXSTR:
+ I_EQUALFIXSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSTRFLO:
+ I_EQUALSTRFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFLOSTR:
+ I_EQUALFLOSTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFIXSPE:
+ I_EQUALFIXSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSPEFIX:
+ I_EQUALSPEFIX:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSTRSPE:
+ I_EQUALSTRSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSPESTR:
+ I_EQUALSPESTR:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALFLOSPE:
+ I_EQUALFLOSPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSPEFLO:
+ I_EQUALSPEFLO:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALSPESPE:
+ I_EQUALSPESPE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_EQUALOBJOBJ:
+ I_EQUALOBJOBJ:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_FASTGETGLOBAL:
+ I_FASTGETGLOBAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SLOWGETGLOBAL:
+ I_SLOWGETGLOBAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_FASTSETGLOBAL:
+ I_FASTSETGLOBAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SLOWSETGLOBAL:
+ I_SLOWSETGLOBAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_FASTGETLOCAL:
+ I_FASTGETLOCAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_SLOWGETLOCAL:
+ I_SLOWGETLOCAL:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
 #ifdef J5MODE
-I_ARG:
+ I_ARG:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_PRINT:
+ I_PRINT:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-I_NEWLINE:
+ I_NEWLINE:
   ENTER_INSN(__LINE__);
   NOT_IMPLEMENTED();
   NEXT_INSN_INCPC();
 
-#endif // J5MODE
+#endif /* J5MODE */
 
-#endif  // if 0
+#endif /* if 0 */
 }
 
 static void exhandler_stack_push(Context* context, int pc, int fp)

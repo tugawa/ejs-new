@@ -1,13 +1,11 @@
 /*
-   extern.h
-
-   eJS Project
-     Kochi University of Technology
-     The University of Electro-communications
-
-     Tomoharu Ugawa, 2016 - 2019
-     Hideya Iwasaki, 2016 - 2019
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #define FUNCTION_TABLE_LIMIT  (100)
 
@@ -87,7 +85,7 @@ extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
 extern BUILTIN_FUNCTION(builtin_fixnu_to_string);
 extern BUILTIN_FUNCTION(builtin_flonum_to_string);
-// extern BUILTIN_FUNCTION(builtin_string_to_index);
+/* extern BUILTIN_FUNCTION(builtin_string_to_index); */
 
 /*
  * builtin-array.c
@@ -174,17 +172,17 @@ extern void init_context(FunctionTable *, JSValue, Context **);
 extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
-// JSValue special_to_object(JSValue v);
+/* JSValue special_to_object(JSValue v); */
 extern JSValue string_to_number(JSValue);
-// JSValue string_to_boolean(JSValue v);
-// JSValue string_to_object(JSValue v);
+/* JSValue string_to_boolean(JSValue v); */
+/* JSValue string_to_object(JSValue v); */
 extern JSValue fixnum_to_string(JSValue);
 extern JSValue flonum_to_string(JSValue);
 extern JSValue number_to_string(JSValue);
-// JSValue fixnum_to_boolean(JSValue v);
-// JSValue flonum_to_boolean(JSValue v);
-// JSValue fixnum_to_object(JSValue v);
-// JSValue flonum_to_object(JSValue v);
+/* JSValue fixnum_to_boolean(JSValue v); */
+/* JSValue flonum_to_boolean(JSValue v); */
+/* JSValue fixnum_to_object(JSValue v); */
+/* JSValue flonum_to_object(JSValue v); */
 extern double primitive_to_double(JSValue);
 extern JSValue primitive_to_string(JSValue);
 extern JSValue object_to_string(Context *, JSValue);
@@ -204,7 +202,6 @@ extern JSValue cint_to_string(cint);
 /*
  * hash.c
  */
-
 extern HashTable *malloc_hashtable(void);
 extern int hash_create(HashTable *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
@@ -218,13 +215,15 @@ extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
 
-// DELETE
-// int hashDelete(HashTable *table, HashKey key);
+/*
+ * DELETE
+ * int hashDelete(HashTable *table, HashKey key);
+ */
 
 extern  HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
 extern int hash_next_simple(HashTable *, HashIterator *, HashData *);
-// int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key);
+/* int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key); */
 extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
 extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
 
@@ -237,7 +236,7 @@ extern HashCell *__hashCellMalloc();
 
 extern void hashBodyFree(HashCell **body);
 extern void hashCellFree(HashCell *cell);
-// char* ststrdup(const char*);
+/* char* ststrdup(const char*); */
 
 /*
  * string.c

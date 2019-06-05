@@ -1,23 +1,11 @@
 /*
-   builtin-math.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
@@ -25,11 +13,11 @@
 
 #ifdef need_flonum
 
-#define set_a_number(x) \
-  (set_a(context, \
-         (isnan((x))? gconsts.g_flonum_nan: \
-          (is_fixnum_range_double((x))? double_to_fixnum((x)): \
-                                        double_to_flonum((x))))))
+#define set_a_number(x)                                         \
+  (set_a(context,                                               \
+         (isnan((x))? gconsts.g_flonum_nan:                     \
+          (is_fixnum_range_double((x))? double_to_fixnum((x)):  \
+           double_to_flonum((x))))))
 
 void math_func(Context *context, int fp, double (*fn)(double)) {
   JSValue v;
@@ -42,7 +30,7 @@ void math_func(Context *context, int fp, double (*fn)(double)) {
     set_a(context, v);
     return;
   }
-  // v is either fixnum or flonum
+  /* v is either fixnum or flonum */
   x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
   x = (*fn)(x);
   set_a_number(x);
@@ -114,8 +102,6 @@ BUILTIN_FUNCTION(math_atan)
   math_func(context, fp, &atan);
 }
 
-// mathAtan2
-
 BUILTIN_FUNCTION(math_atan2)
 {
   math_func2(context, fp, &atan2);
@@ -158,7 +144,7 @@ BUILTIN_FUNCTION(math_max)
     v = args[i];
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
-    // v is either fixnum or flonum
+    /* v is either fixnum or flonum */
     x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
     if (r < x) r = x;
   }
@@ -177,7 +163,7 @@ BUILTIN_FUNCTION(math_min)
     v = args[i];
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
-    // v is either fixnum or flonum
+    /* v is either fixnum or flonum */
     x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
     if (x < r) r = x;
   }

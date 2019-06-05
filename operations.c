@@ -1,23 +1,11 @@
 /*
-   operations.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
@@ -26,8 +14,8 @@
 #ifndef USE_TYPES_GENERATED
 
 /*
-   adds two values slowly
-   For details, see sect. 4.8.1.
+ * adds two values slowly
+ * For details, see sect. 4.8.1.
  */
 JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
   Tag tag;
@@ -55,7 +43,7 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXSTR:
     v1 = fixnum_to_string(v1);
   case TP_STRSTR:
-STRSTR:
+  STRSTR:
     return ejs_string_concat(context, v1, v2);
   case TP_FIXFIX:
     {
@@ -74,7 +62,7 @@ STRSTR:
 }
 
 /*
-   subtracts two values slowly
+ * subtracts two values slowly
  */
 JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
   Tag tag;
@@ -132,9 +120,9 @@ JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
         p = n1 * n2;
         return cint_to_fixnum(p);
       } else {
-          x1 = (double)n1;
-          x2 = (double)n2;
-          goto MUL_FLOFLO;
+        x1 = (double)n1;
+        x2 = (double)n2;
+        goto MUL_FLOFLO;
       }
     }
     break;
@@ -184,7 +172,7 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
         n2 = fixnum_to_cint(v2);
         s = n1 / n2;
         return (n1 == n2 * s)? cint_to_fixnum(s):
-                               double_to_flonum((double)n1 / (double)n2);
+          double_to_flonum((double)n1 / (double)n2);
       }
     }
     break;
@@ -207,7 +195,7 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
     DIV_FLOFLO:
       d = x1 / x2;
       if (isinf(d)) return d > 0? gconsts.g_flonum_infinity:
-                                  gconsts.g_flonum_negative_infinity;
+                      gconsts.g_flonum_negative_infinity;
       else if (isnan(d)) return gconsts.g_flonum_nan;
       else return double_to_number(d);
     }
@@ -227,7 +215,7 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
   switch (tag) {
   case TP_FIXFIX:
     return (v2 == FIXNUM_ZERO)? gconsts.g_flonum_nan:
-             cint_to_number(fixnum_to_cint(v1) % fixnum_to_cint(v2));
+    cint_to_number(fixnum_to_cint(v1) % fixnum_to_cint(v2));
   case TP_FIXFLO:
     {
       x1 = fixnum_to_double(v1);
@@ -422,7 +410,7 @@ JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
   if (is_special(v1)) v1 = special_to_number(v1);
   if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
   if (is_special(v2)) v2 = special_to_number(v2);
-LTAGAIN:
+ LTAGAIN:
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
     return true_false((int64_t)v1 < (int64_t)v2);
@@ -455,7 +443,7 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
   if (is_special(v1)) v1 = special_to_number(v1);
   if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
   if (is_special(v2)) v2 = special_to_number(v2);
-LEAGAIN:
+ LEAGAIN:
   switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
   case TP_FIXFIX:
     return true_false((int64_t)v1 <= (int64_t)v2);
