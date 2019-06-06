@@ -63,22 +63,29 @@ void pop_special_registers(Context *context, int fp, JSValue *regbase) {
 }
 #endif
 
+void reset_context(Context *ctx, FunctionTable *ftab) {
+  init_special_registers(&(ctx->spreg));
+  ctx->function_table = ftab;
+  set_cf(ctx, ftab);
+  /*
+   * It seems that existing frame in the lp register can be reused,
+   * but for simplicity, we allocate a new frame.
+   */
+  set_lp(ctx, new_frame(NULL, ftab, NULL, 0));
+}
+
+/*
+ * initializes the outer-most context.
+ * This function is call only once from the main function before entering
+ * the loop.
+ */
 void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   Context *c;
 
   c = allocate_context(STACK_LIMIT);
   *context = c;
-
-  init_special_registers(&(c->spreg));
-  c->function_table = ftab;
   c->global = glob;
-
-  set_cf(c, ftab);
-  set_lp(c, new_frame(NULL, ftab, NULL, 0));
-
-#ifdef USE_FFI
-  initForeignFunctionInterface(c);
-#endif
+  reset_context(c, ftab);
 }
 
 static Context *allocate_context(size_t stack_size)

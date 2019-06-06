@@ -355,10 +355,8 @@ int main(int argc, char *argv[]) {
     /* enters the VM loop */
     run_phase = PHASE_VMLOOP;
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
-    
-    set_cf(context, &context->function_table[base_function]);
-    set_pc(context, 0);
 
+    reset_context(context, &function_table[base_function]);
     vmrun_threaded(context, 0);
 
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
