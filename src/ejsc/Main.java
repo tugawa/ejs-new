@@ -52,11 +52,7 @@ public class Main {
         boolean optPrintLowLevelCode = false;
         boolean optPrintOptimisation = false;
         boolean optHelp = false;
-        boolean optRedunantInstructionElimination = false;
-        boolean optConstantPropagation = false;
-        boolean optCopyPropagation = false;
-        boolean optRegisterAssignment = false;
-        boolean optCommonConstantElimination = false;
+        String  optBc = "";
         boolean optEnableLogging = false;
         boolean optSuperInstruction = false;
         boolean optOutOBC = false;
@@ -88,8 +84,39 @@ public class Main {
                     case "-o":
                         info.outputFileName = args[++i];
                         break;
-                    case "-omit-arguments":
-                        throw new Error("obsolete option: -omit-arguments");
+
+
+                    case "-O":
+                        info.optLocals = OptLocals.G3;
+                        info.optBc = "const:cce:copy:rie:dce:reg:rie:dce:reg";
+                        break;
+
+                    case "--opt":
+                        if (++i >= args.length)
+                            throw new Error("--opt takes an argument. Available optimizations: const, rie, cce, copy, reg");
+                        info.optBc = args[i];
+                        break;
+                    case "-opt-const":
+                        info.optBc += ":const";
+                        System.err.println("-opt-const is obsolete. Use \"--opt const\" option.");
+                        break;
+                    case "-opt-rie":
+                        info.optBc += ":rie";
+                        System.err.println("-opt-rie is obsolete. Use \"--opt rie\" option.");
+                        break;
+                    case "-opt-cce":
+                        info.optBc += ":cce";
+                        System.err.println("-opt-cce is obsolete. Use \"--opt cce\" option.");
+                        break;
+                    case "-opt-copy":
+                        info.optBc += ":copy";
+                        System.err.println("-opt-copy is obsolete. Use \"--opt copy\" option.");
+                        break;
+                    case "-opt-reg":
+                        info.optBc += ":reg";
+                        System.err.println("-opt-reg is obsolete. Use \"--opt reg\" option.");
+                        break;
+
                     case "-opt-prosym":
                     case "-omit-frame":
                         info.optLocals = OptLocals.PROSYM;
@@ -100,21 +127,8 @@ public class Main {
                     case "-opt-g3":
                         info.optLocals = OptLocals.G3;
                         break;
-                    case "-opt-const":
-                        info.optConstantPropagation = true;
-                        break;
-                    case "-opt-rie":
-                        info.optRedunantInstructionElimination = true;
-                        break;
-                    case "-opt-cce":
-                        info.optCommonConstantElimination = true;
-                        break;
-                    case "-opt-copy":
-                        info.optCopyPropagation = true;
-                        break;
-                    case "-opt-reg":
-                        info.optRegisterAssignment = true;
-                        break;
+
+
                     case "-log":
                         i++;
                         if (i >= args.length) {
@@ -128,6 +142,7 @@ public class Main {
                         info.optSuperInstruction = true;
                         info.specFilePath = args[++i];
                         info.sispecInfo = new SISpecInfo(info.specFilePath);
+
                         break;
                     case "-fn":
                         info.baseFunctionNumber = Integer.parseInt(args[++i]);
@@ -360,7 +375,7 @@ public class Main {
         // convert iAST into low level code.
         CodeGenerator codegen = new CodeGenerator(info);
         BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
-        bcBuilder.optimisation(info);
+        bcBuilder.optimisation(info.optBc, info.optPrintOptimisation);
 
         bcBuilder.assignAddress();
 

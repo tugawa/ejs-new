@@ -316,97 +316,64 @@ class BCBuilder {
     }
 
     // optimisation method
-    void optimisation(Main.Info info) {
-        boolean global = true;
-        for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
-            if (global) {
-                global = false;
+    void optimisation(String optPass, boolean verbose) {
+        for (String opt: optPass.split(":")) {
+            if (opt.equals(""))
                 continue;
-            }
 
-            if (info.optPrintOptimisation) {
-                System.out.println("====== before optimisation ======");
-                System.out.println(fb);
-            }
-
-            if (info.optConstantPropagation) {
-                ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
-                fb.bcodes = cp.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after const ======");
-                    System.out.println(fb);
+            long startTime = System.currentTimeMillis();
+            boolean global = false;
+            for (BCBuilder.FunctionBCBuilder fb : fBuilders) {
+                if (global) {
+                    global = false;
+                    continue;
                 }
-            }
-
-            if (info.optCommonConstantElimination) {
-                CommonConstantElimination cce = new CommonConstantElimination(fb.bcodes);
-                fb.bcodes = cce.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after cce ======");
-                    System.out.println(fb);
-                }
-            }
-
-            if (info.optCopyPropagation) {
-                CopyPropagation cp = new CopyPropagation(fb.bcodes);
-                cp.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after copy ======");
+                if (verbose) {
+                    System.out.println("====== BEFORE "+opt+" Optimization ======");
                     System.out.println(fb);
                 }
 
-            }
-
-            if (info.optRedunantInstructionElimination) {
-                fb.assignAddress();
-                RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
-                fb.bcodes = rie.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after rie ======");
-                    System.out.println(fb);
+                switch (opt) {
+                case "const":
+                case "superinsn": {
+                    ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
+                    fb.bcodes = cp.exec();
+                    break;
                 }
-            }
-
-            if (info.optRegisterAssignment) {
-                DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
-                fb.bcodes = dce.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after dead code elimination ======");
-                    System.out.println(fb);
+                case "cce": {
+                    CommonConstantElimination cce = new CommonConstantElimination(fb.bcodes);
+                    fb.bcodes = cce.exec();
+                    break;
                 }
-                RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
-                fb.bcodes = ra.exec();
-                int maxr = ra.getMaxRegNum();
-                fb.numberOfGPRegisters = maxr;
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after reg ======");
-                    System.out.println(fb);
+                case "copy": {
+                    CopyPropagation cp = new CopyPropagation(fb.bcodes);
+                    cp.exec();
+                    break;
                 }
-            }
-
-            if (info.optRedunantInstructionElimination) {
-                fb.assignAddress();
-                RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
-                fb.bcodes = rie.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after rie ======");
-                    System.out.println(fb);
+                case "rie": {
+                    fb.assignAddress();
+                    RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
+                    fb.bcodes = rie.exec();
+                    break;
                 }
-            }
-
-            if (info.optRegisterAssignment) {
-                DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
-                fb.bcodes = dce.exec();
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after dead code elimination ======");
-                    System.out.println(fb);
+                case "dce": {
+                    DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
+                    fb.bcodes = dce.exec();
+                    break;
                 }
-                RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
-                fb.bcodes = ra.exec();
-                int maxr = ra.getMaxRegNum();
-                fb.numberOfGPRegisters = maxr;
-                if (info.optPrintOptimisation) {
-                    System.out.println("====== after reg ======");
+                case "reg": {
+                    RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
+                    fb.bcodes = ra.exec();
+                    int maxr = ra.getMaxRegNum();
+                    fb.numberOfGPRegisters = maxr;
+                    break;
+                }
+                default:
+                    throw new Error("Unknown optimization: "+opt);
+                }
+                long endTime = System.currentTimeMillis();
+                if (verbose) {
+                    System.out.println("====== AFTER "+opt+" Optimization ("+(endTime - startTime)+" ms) ======");
                     System.out.println(fb);
                 }
             }

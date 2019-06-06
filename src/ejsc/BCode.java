@@ -242,6 +242,10 @@ class RegisterOperand extends SrcOperand {
     void set(Register x) {
         this.x = x;
     }
+    @Override
+    public String toString() {
+        return "[reg "+x.toString()+"]";
+    }
 }
 
 class FixnumOperand extends SrcOperand {
@@ -251,6 +255,10 @@ class FixnumOperand extends SrcOperand {
     }
     int get() {
         return x;
+    }
+    @Override
+    public String toString() {
+        return "[fixnum "+String.valueOf(x)+"]";
     }
 }
 
@@ -262,6 +270,10 @@ class FlonumOperand extends SrcOperand {
     double get() {
         return x;
     }
+    @Override
+    public String toString() {
+        return "[flonum "+String.valueOf(x)+"]";
+    }
 }
 
 class StringOperand extends SrcOperand {
@@ -271,6 +283,10 @@ class StringOperand extends SrcOperand {
     }
     String get() {
         return x;
+    }
+    @Override
+    public String toString() {
+        return "[string "+x+"]";
     }
 }
 
@@ -287,6 +303,21 @@ class SpecialOperand extends SrcOperand {
     }
     V get() {
         return x;
+    }
+    @Override
+    public String toString() {
+        switch (x) {
+        case TRUE:
+            return "[special true]";
+        case FALSE:
+            return "[special false]";
+        case NULL:
+            return "[special null]";
+        case UNDEFINED:
+            return "[special undefined]";
+        default:
+            throw new Error("unknown special value");
+        }
     }
 }
 
