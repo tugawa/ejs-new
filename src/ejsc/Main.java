@@ -91,7 +91,7 @@ public class Main {
                         info.optBc = "const:cce:copy:rie:dce:reg:rie:dce:reg";
                         break;
 
-                    case "--opt":
+                    case "--bc-opt":
                         if (++i >= args.length)
                             throw new Error("--opt takes an argument. Available optimizations: const, rie, cce, copy, reg");
                         info.optBc = args[i];
