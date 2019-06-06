@@ -29,6 +29,8 @@
 
 #define HIDDEN_CLASS
 
+#define USE_OBC
+
 #if 0
 #ifdef DEBUG_PRINT
 

@@ -36,6 +36,10 @@ int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
 
+#if defined(USE_OBC) && defined(USE_SBC)
+int obcsbc;
+#endif
+
 FILE *log_stream;
 #ifdef PROFILE
 FILE *prof_stream;
@@ -243,6 +247,21 @@ void print_icount(FunctionTable *ft, int n) {
 void **stack_start;
 #endif /* NDEBUG */
 
+#if defined(USE_OBC) && defined(USE_SBC)
+/*
+ * If the name ends with ".sbc", file_type returns FILE_SBC;
+ * otherwise, returns FILE_OBC.
+ */
+int file_type(char *name) {
+  int nlen = strlen(name);
+
+  if (nlen > 5 && name[nlen - 4] == '.' && name[nlen - 3] == 's' &&
+      name[nlen - 2] == 'b' && name[nlen - 1] == 'c')
+    return FILE_SBC;
+  return FILE_OBC;
+}
+#endif
+
 /*
  * main function
  */
@@ -330,10 +349,16 @@ int main(int argc, char *argv[]) {
   srand((unsigned)time(NULL));
 
   for (; k < iter; k++) {
+#if defined(USE_OBC) && defined(USE_SBC)
+    obcsbc = FILE_OBC;
+#endif
     if (k >= argc)
-      fp = stdin;
+      fp = stdin;   /* stdin always use OBC */
     else if ((fp = fopen(argv[k], "r")) == NULL)
       LOG_EXIT("%s: No such file.\n", argv[k]);
+#if defined(USE_OBC) && defined(USE_SBC)
+    obcsbc = file_type(argv[k]);
+#endif
     init_code_loader(fp);
     base_function = n;
     n += code_loader(context, function_table, n);

@@ -19,6 +19,10 @@ extern int cputime_flag;
 extern int repl_flag;
 extern int regstack_limit;
 
+#if defined(USE_OBC) && defined(USE_SBC)
+extern int obcsbc;
+#endif
+
 extern int run_phase;
 extern int generation;
 extern int gc_sec;

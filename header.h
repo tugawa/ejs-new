@@ -56,6 +56,9 @@ typedef uint64_t JSValue;
 #define PHASE_INIT   0
 #define PHASE_VMLOOP 1
 
+#define FILE_OBC   1
+#define FILE_SBC   2
+
 #include "log.h"
 #include "instructions.h"
 #include "context.h"

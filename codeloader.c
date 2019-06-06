@@ -105,18 +105,33 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 #endif
 
 #ifdef USE_SBC
-#define next_buf()      step_load_code(buf, LOADBUFLEN)
-#define buf_to_int(s)   check_read_token(buf, s)
+#define next_buf_sbc()      step_load_code(buf, LOADBUFLEN)
+#define buf_to_int_sbc(s)   check_read_token(buf, s)
 #endif
 
 #ifdef USE_OBC
-#define next_buf()      fread(b, sizeof(unsigned char), 2, file_pointer)
-#define buf_to_int(s)   (b[0] * 256 + b[1])
+#define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
+#define buf_to_int_obc(s)   (b[0] * 256 + b[1])
 #endif
 
-#if defined(USE_SBC) && defined(USE_OBC)
-  fprintf(stderr, "Fatal error: both USE_SBC and USE_OBC are defined.\n");
-  exit(1);
+#if defined(USE_OBC) && defined(USE_SBC)
+
+#define next_buf()    (obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc())
+#define buf_to_int(s) \
+  (obcsbc == FILE_OBC? buf_to_int_obc(s): buf_to_int_sbc(s))
+
+#else
+
+#ifdef USE_OBC
+#define next_buf()      next_buf_obc()
+#define buf_to_int(s)   buf_to_int_obc(s)
+#endif
+
+#ifdef USE_SBC
+#define next_buf()      next_buf_sbc()
+#define buf_to_int(s)   buf_to_int_sbc(s)
+#endif
+
 #endif
 
 #if !defined(USE_SBC) && !defined(USE_OBC)
@@ -124,7 +139,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
   exit(1);
 #endif
 
-#if defined(USE_OBC) && defined(PROFILE)
+#if !defined(USE_SBC) && defined(PROFILE)
   fprintf(stderr, "Fatal error: PROFILE can be defined only when USE_SBC is defined\n");
   exit(1);
 #endif
@@ -157,8 +172,13 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 
     /* initializes constant table */
     init_constant_cell(&ctable, i);
+#if defined(USE_OBC) && defined(USE_SBC)
+    if (obcsbc == FILE_OBC)
+      init_constant_info(&citable, i);
+#else
 #ifdef USE_OBC
     init_constant_info(&citable, i);
+#endif
 #endif
 
     /* initilaizes temporal instruction array */
@@ -168,27 +188,43 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 
     /* loads instructions for each function */
     for (j = 0; j < ninsns; j++) {
+#if defined(USE_OBC) && defined(USE_SBC)
+      ret = obcsbc == FILE_OBC?
+            insn_load_obc(ctx, &ctable, tmpinsns, j, &citable):
+            insn_load_sbc(ctx, &ctable, tmpinsns, j);
+#else
 #ifdef USE_SBC
       ret = insn_load_sbc(ctx, &ctable, tmpinsns, j);
 #endif
 #ifdef USE_OBC
       ret = insn_load_obc(ctx, &ctable, tmpinsns, j, &citable);
 #endif
+#endif
       if (ret == LOAD_FAIL)
         LOG_EXIT("Function #%d, instruction #%d: load failed", i, j);
     }
 
+#if defined(USE_OBC) && defined(USE_SBC)
+    if (obcsbc == FILE_OBC)
+      const_load(ctx, citable, &ctable);
+#else
 #ifdef USE_OBC
     /* loads constants */
     const_load(ctx, citable, &ctable);
+#endif
 #endif
 
     ret = update_function_table(ftable, i + start, &ctable, tmpinsns,
                                 callentry, sendentry, nlocals, ninsns);
     /* end_constant_cell(&ctable); */
     free(ctable.constant_values);
+#if defined(USE_OBC) && defined(USE_SBC)
+    if (obcsbc == FILE_OBC)
+      free(citable.const_info);
+#else
 #ifdef USE_OBC
     free(citable.const_info);
+#endif
 #endif
     free(tmpinsns);
   }
@@ -815,12 +851,17 @@ int update_function_table(FunctionTable *ftable, int index,
         ) {
       Subscript ss;
       Displacement disp;
+#if defined(USE_OBC) && defined(USE_SBC)
+      ss = (obcsbc == FILE_OBC)? ((bc & 0x00000000ffff0000) >> 16):
+             get_big_subscr(bc);
+#else
 #ifdef USE_SBC
       ss = get_big_subscr(bc);
 #endif
 #ifdef USE_OBC
       /* the rhs should be rewritten by using appropriate macro */
       ss = (bc & 0x00000000ffff0000) >> 16;
+#endif
 #endif
       disp = calc_displacement(ninsns, i, ss);
       tmpinsns[i].code = update_displacement(bc, disp);
