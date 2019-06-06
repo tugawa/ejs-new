@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Set;
 
 public class RegisterAssignment {
+    static final boolean DEBUG_SHOW_MAKING_ASSIGNMENT = false;
+    static final boolean DEBUG_SHOW_FINAL_ASSIGNMENT = false;
+
+    static final boolean ENABLE_COALESCING = true;
+
     static class RealRegister extends Register {
         private RealRegister(int n) {
             super(n);
@@ -65,16 +70,17 @@ public class RegisterAssignment {
             if (bc == thisBC)
                 continue;
             Set<Register> liveRegs = lra.getLiveRegisters(bc);
-            if (!liveRegs.contains(from))
+            Register dst = bc.getDestRegister();
+            if (!liveRegs.contains(from) && (dst == null || dst != from))
                 continue;
             for (Register r: liveRegs) {
                 if (assign.get(r) == to)
                     return true;
             }
-            Register dst = bc.getDestRegister();
-            if (dst != null)
+            if (dst != null) {
                 if (assign.get(dst) == to)
                     return true;
+            }
         }
         return false;
     }
@@ -99,7 +105,7 @@ public class RegisterAssignment {
             } 
 
             /* coalesce */
-            if (bcx instanceof IMove){
+            if (ENABLE_COALESCING && bcx instanceof IMove){
                 IMove bc = (IMove) bcx;
                 if (bc.src instanceof RegisterOperand) {
                     Register src = ((RegisterOperand) bc.src).get();
@@ -131,6 +137,10 @@ public class RegisterAssignment {
                 for (; n < used.length; n++)
                     if (!used[n] && !checkConflict(bcx, dst, rf.get(n)))
                         break;
+                if (DEBUG_SHOW_MAKING_ASSIGNMENT) {
+                    System.out.println(bcx);
+                    System.out.println("put "+dst+" -> "+rf.get(n));
+                }
                 assign.put(dst, rf.get(n));
             }
         }
@@ -178,7 +188,8 @@ public class RegisterAssignment {
         List<Label> labels = new ArrayList<Label>();
 
         for (BCode bcx: bcodes) {
-            //System.out.println(showAssignment()+": "+lra.showRegs(lra.getLiveRegisters(bcx))+bcx);
+            if (DEBUG_SHOW_FINAL_ASSIGNMENT)
+                System.out.println(showAssignment()+": "+LiveRegisterAnalyser.showRegs(lra.getLiveRegisters(bcx))+bcx);
             try {
                 Class<? extends BCode> c = bcx.getClass();
                 for (Field f: c.getDeclaredFields()) {
