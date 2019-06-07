@@ -404,6 +404,7 @@ public class OBCFileComposer extends OutputFileComposer {
                 outputShort(out, fun.sendEntry);
                 outputShort(out, fun.numberOfLocals);
                 outputShort(out, fun.instructions.size());
+                outputShort(out, fun.constants.size());
 
                 /* Instructions */
                 for (OBCInstruction insn: fun.instructions)
