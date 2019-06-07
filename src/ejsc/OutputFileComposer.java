@@ -40,6 +40,10 @@ public class OutputFileComposer {
         List<Object> getConstants() {
             return array;
         }
+
+        int size() {
+            return array.size();
+        }
     }
 
     /**

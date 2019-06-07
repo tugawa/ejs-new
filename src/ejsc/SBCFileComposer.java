@@ -339,7 +339,8 @@ public class SBCFileComposer extends OutputFileComposer {
                 out.println("callentry "+fun.callEntry);
                 out.println("sendentry "+fun.sendEntry);
                 out.println("numberOfLocals "+fun.numberOfLocals);
-                out.println("numberOfInstruction "+fun.instructions.size());
+                out.println("numberOfInstructions "+fun.instructions.size());
+                out.println("numberOfConstants "+fun.constants.size());
 
                 /* Instructions */
                 for (SBCInstruction insn: fun.instructions) {
