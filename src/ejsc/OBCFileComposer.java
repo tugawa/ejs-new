@@ -12,13 +12,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import ejsc.Main.Info;
 
-public class OBCFileComposer {
+public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
 
     static final boolean BIG_ENDIAN        = true;
@@ -27,32 +24,6 @@ public class OBCFileComposer {
     static final int FIELD_VALUE_FALSE     = 0x0e;
     static final int FIELD_VALUE_NULL      = 0x06;
     static final int FIELD_VALUE_UNDEFINED = 0x16;
-
-    class ConstantTable {
-        int count = 0;
-        Map<Object, Integer> table = new HashMap<Object, Integer>();
-        List<Object> array = new ArrayList<Object>();
-
-        private int doLookup(Object x) {
-            if (table.containsKey(x))
-                return table.get(x);
-            table.put(x, count);
-            array.add(x);
-            return count++;
-        }
-
-        int lookup(double n) {
-            return doLookup(n);
-        }
-
-        int lookup(String n) {
-            return doLookup(n);
-        }
-
-        List<Object> getConstants() {
-            return array;
-        }
-    }
 
     static class OBCInstruction {
         static final int INSTRUCTION_BYTES = 8;
@@ -157,29 +128,11 @@ public class OBCFileComposer {
         }
 
         int getOpcode(String insnName, SrcOperand... srcs) {
-            String modifier = "";
-            boolean hasConstantOperand = false;
-            for (SrcOperand src: srcs) {
-                if (src instanceof RegisterOperand)
-                    modifier += "reg";
-                else {
-                    if (src instanceof FixnumOperand)
-                        modifier += "fix";
-                    else if (src instanceof FlonumOperand)
-                        modifier += "flo";
-                    else if (src instanceof StringOperand)
-                        modifier += "str";
-                    else if (src instanceof SpecialOperand)
-                        modifier += "spec";
-                    else
-                        throw new Error("Unknown source operand");
-                    hasConstantOperand = true;
-                }
-            }
-            if (hasConstantOperand)
-                return Main.Info.SISpecInfo.getOpcodeIndex(insnName + modifier);
-            else
+            String decorated = OBCFileComposer.decorateInsnName(insnName, srcs);
+            if (decorated == insnName)
                 return Info.getOpcodeIndex(insnName);
+            else
+                return Main.Info.SISpecInfo.getOpcodeIndex(decorated);
         }
 
         int fieldBitsOf(SrcOperand src) {

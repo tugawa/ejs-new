@@ -14,7 +14,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SBCFileComposer {
+public class SBCFileComposer extends OutputFileComposer {
     static class SBCInstruction {
         String insnName;
         String[] ops;
@@ -49,27 +49,9 @@ public class SBCFileComposer {
         }
 
         String decorateInsnName(String insnName, boolean log, SrcOperand... srcs) {
-            String modifier = "";
-            boolean hasConstantOperand = false;
-            for (SrcOperand src: srcs) {
-                if (src instanceof RegisterOperand)
-                    modifier += "reg";
-                else {
-                    if (src instanceof FixnumOperand)
-                        modifier += "fix";
-                    else if (src instanceof FlonumOperand)
-                        modifier += "flo";
-                    else if (src instanceof StringOperand)
-                        modifier += "str";
-                    else if (src instanceof SpecialOperand)
-                        modifier += "spec";
-                    else
-                        throw new Error("Unknown source operand");
-                    hasConstantOperand = true;
-                }
-            }
-            if (hasConstantOperand)
-                insnName += modifier;
+            String decorated = SBCFileComposer.decorateInsnName(insnName, srcs);
+            if (decorated != null)
+                insnName = decorated;
             if (log)
                 insnName += "_log";
             return insnName;
