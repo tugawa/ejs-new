@@ -33,6 +33,7 @@ public class SBCFileComposer extends OutputFileComposer {
         int sendEntry;
         int numberOfLocals;
 
+        ConstantTable constants;
         List<SBCInstruction> instructions;
 
         SBCFunction(BCBuilder.FunctionBCBuilder fb, int functionNumberOffset) {
@@ -43,6 +44,7 @@ public class SBCFileComposer extends OutputFileComposer {
             this.sendEntry = fb.sendEntry.dist(0);
             this.numberOfLocals = fb.numberOfLocals;
 
+            constants = new ConstantTable();
             instructions = new ArrayList<SBCInstruction>(bcodes.size());
             for (BCode bc: bcodes)
                 bc.emit(this);
@@ -61,6 +63,22 @@ public class SBCFileComposer extends OutputFileComposer {
             return "\""+s+"\""; // TODO: do escape
         }
 
+        String formatConstant(int index, String constStr) {
+            return "#"+index+"="+constStr;
+        }
+
+        String flonumConst(double n) {
+            int index = constants.lookup(n);
+            String constStr = Double.toString(n);
+            return formatConstant(index, constStr);
+        }
+
+        String stringConst(String s) {
+            int index = constants.lookup(s);
+            String constStr = escapeString(s);
+            return formatConstant(index, constStr);
+        }
+
         String srcOperandField(SrcOperand src) {
             if (src instanceof RegisterOperand) {
                 Register r = ((RegisterOperand) src).get();
@@ -71,10 +89,10 @@ public class SBCFileComposer extends OutputFileComposer {
                 return Integer.toString(n);
             } else if (src instanceof FlonumOperand) {
                 double n = ((FlonumOperand) src).get();
-                return Double.toString(n);
+                return flonumConst(n);
             } else if (src instanceof StringOperand) {
                 String s = ((StringOperand) src).get();
-                return escapeString(s);
+                return stringConst(s);
             } else if (src instanceof SpecialOperand) {
                 SpecialOperand.V v = ((SpecialOperand) src).get();
                 switch (v) {
@@ -105,7 +123,7 @@ public class SBCFileComposer extends OutputFileComposer {
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
-            String b = Double.toString(n);
+            String b = flonumConst(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
 
@@ -114,7 +132,7 @@ public class SBCFileComposer extends OutputFileComposer {
         public void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
-            String b = escapeString(s);
+            String b = stringConst(s);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
@@ -143,7 +161,8 @@ public class SBCFileComposer extends OutputFileComposer {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
             String b = Integer.toString(flag);
-            SBCInstruction insn = new SBCInstruction(insnName, a, b, ptn);
+            String c = stringConst(ptn);
+            SBCInstruction insn = new SBCInstruction(insnName, a, b, c);
             instructions.add(insn);
         }
         @Override
