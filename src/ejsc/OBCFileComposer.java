@@ -102,7 +102,7 @@ public class OBCFileComposer extends OutputFileComposer {
         }
     }
 
-    class OBCFunction extends CodeBuffer {
+    class OBCFunction implements CodeBuffer {
         int functionNumberOffset;
 
         /* function header */
@@ -170,7 +170,7 @@ public class OBCFileComposer extends OutputFileComposer {
         }
 
         @Override
-        void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
+        public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = n;
@@ -178,7 +178,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
+        public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(n);
@@ -187,7 +187,7 @@ public class OBCFileComposer extends OutputFileComposer {
 
         }
         @Override
-        void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
+        public void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(s);
@@ -195,7 +195,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v) {
+        public void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b;
@@ -215,7 +215,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn) {
+        public void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int c = constants.lookup(ptn);
@@ -223,7 +223,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2) {
+        public void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2) {
             int opcode = getOpcode(insnName, src1, src2);
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(src1);
@@ -232,7 +232,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
+        public void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3) {
             int opcode = getOpcode(insnName, src1, src2, src3);
             int a = fieldBitsOf(src1);
             int b = fieldBitsOf(src2);
@@ -241,7 +241,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2) {
+        public void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2) {
             int opcode = getOpcode(insnName, src1, src2);
             int a = fieldBitsOf(src1);
             int c = fieldBitsOf(src2);
@@ -249,7 +249,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src) {
+        public void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src) {
             int opcode = getOpcode(insnName, src);
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(src);
@@ -257,7 +257,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2) {
+        public void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2) {
             int opcode = getOpcode(insnName, src1, src2);
             int a = fieldBitsOf(src1);
             int b = fieldBitsOf(src2);
@@ -265,7 +265,7 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst) {
+        public void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst) {
             int opcode = getOpcode(insnName, src);
             int a = fieldBitsOf(src);
             int b = dst.getRegisterNumber();
@@ -273,54 +273,54 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addROneOp(String insnName, boolean log, Register dst) {
+        public void addROneOp(String insnName, boolean log, Register dst) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, 0, 0);
             instructions.add(insn);
         }
         @Override
-        void addXOneOp(String insnName, boolean log, SrcOperand src) {
+        public void addXOneOp(String insnName, boolean log, SrcOperand src) {
             int opcode = getOpcode(insnName, src);
             int a = fieldBitsOf(src);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, 0, 0);
             instructions.add(insn);
         }
         @Override
-        void addIOneOp(String insnName, boolean log, int n) {
+        public void addIOneOp(String insnName, boolean log, int n) {
             int opcode = getOpcode(insnName);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, n, 0, 0);
             instructions.add(insn);
         }
         @Override
-        void addZeroOp(String insnName, boolean log) {
+        public void addZeroOp(String insnName, boolean log) {
             int opcode = getOpcode(insnName);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, 0, 0, 0);
             instructions.add(insn);
         }
         @Override
-        void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs) {
+        public void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs) {
             int opcode = getOpcode(insnName);
             int b = mkargs ? 1 : 0;
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, len, b, 0);
             instructions.add(insn);
         }
         @Override
-        void addGetVar(String insnName, boolean log, Register dst, int link, int index) {
+        public void addGetVar(String insnName, boolean log, Register dst, int link, int index) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, link, index);
             instructions.add(insn);
         }
         @Override
-        void addSetVar(String insnName, boolean log, int link, int index, SrcOperand src) {
+        public void addSetVar(String insnName, boolean log, int link, int index, SrcOperand src) {
             int opcode = getOpcode(insnName, src);
             int c = fieldBitsOf(src);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, link, index, c);
             instructions.add(insn);
         }
         @Override
-        void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
+        public void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = index + functionNumberOffset;
@@ -328,14 +328,14 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addXICall(String insnName, boolean log, SrcOperand fun, int nargs) {
+        public void addXICall(String insnName, boolean log, SrcOperand fun, int nargs) {
             int opcode = getOpcode(insnName, fun);
             int a = fieldBitsOf(fun);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, nargs, 0);
             instructions.add(insn);                    
         }
         @Override
-        void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun) {
+        public void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun) {
             int opcode = getOpcode(insnName, fun);
             int a = dst.getRegisterNumber();
             int b = fieldBitsOf(fun);
@@ -343,13 +343,13 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        void addUncondJump(String insnName, boolean log, int disp) {
+        public void addUncondJump(String insnName, boolean log, int disp) {
             int opcode = getOpcode(insnName);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, disp, 0, 0);
             instructions.add(insn);
         }
         @Override
-        void addCondJump(String insnName, boolean log, SrcOperand test, int disp) {
+        public void addCondJump(String insnName, boolean log, SrcOperand test, int disp) {
             int opcode = getOpcode(insnName, test);
             int a = fieldBitsOf(test);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, disp,  0);
