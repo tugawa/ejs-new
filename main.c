@@ -354,11 +354,13 @@ int main(int argc, char *argv[]) {
 #endif
     if (k >= argc)
       fp = stdin;   /* stdin always use OBC */
-    else if ((fp = fopen(argv[k], "r")) == NULL)
-      LOG_EXIT("%s: No such file.\n", argv[k]);
+    else {
+      if ((fp = fopen(argv[k], "r")) == NULL)
+        LOG_EXIT("%s: No such file.\n", argv[k]);
 #if defined(USE_OBC) && defined(USE_SBC)
-    obcsbc = file_type(argv[k]);
+      obcsbc = file_type(argv[k]);
 #endif
+    }
     init_code_loader(fp);
     base_function = n;
     n += code_loader(context, function_table, n);
