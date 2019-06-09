@@ -516,7 +516,7 @@ STATIC void trace_HashCell(HashCell **ptrp)
 }
 
 STATIC void trace_Instruction_array_part(Instruction **ptrp,
-					 size_t n_insns, size_t n_literals)
+					 size_t n_insns, size_t n_constants)
 {
   Instruction *ptr = (Instruction *) *ptrp;
   JSValue *litstart;
@@ -524,14 +524,14 @@ STATIC void trace_Instruction_array_part(Instruction **ptrp,
   if (test_and_mark_cell(ptr))
     return;
   litstart = (JSValue *)(&ptr[n_insns]);
-  for (i = 0; i < n_literals; i++)
+  for (i = 0; i < n_constants; i++)
     trace_slot((JSValue *)(&litstart[i]));
 }
 
 STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
-  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_literals);
+  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_constants);
 }
 
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)

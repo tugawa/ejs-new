@@ -148,20 +148,7 @@ extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
 extern int code_loader(Context *, FunctionTable *, int);
-extern void init_constant_cell(ConstantCell *, int);
-extern void end_constant_cell(ConstantCell *);
-extern int update_function_table(FunctionTable *, int, ConstantCell *,
-                                 Instruction *, int, int, int, int);
-
 extern JSValue specstr_to_jsvalue(const char *);
-
-extern int add_constant_number(Context *, ConstantCell *, double);
-extern int add_constant_string(Context *, ConstantCell *, char *);
-#ifdef USE_REGEXP
-#ifdef need_regexp
-extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
-#endif /* need_regexp */
-#endif
 
 /*
  * context.c

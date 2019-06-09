@@ -10,7 +10,6 @@
 /*
  * function table
  */
-//volatile
 typedef struct function_table {
   int call_entry;         /* entry of a function call */
   int send_entry;         /* entry of a method call */
@@ -19,7 +18,7 @@ typedef struct function_table {
   bool ilabel_created;    /* flag whether ilabel in insns has been generated */
   int body_size;          /* number of elements in insns */
   int n_insns;            /* number of instructions */
-  int n_literals;         /* number of literals (constants) */
+  int n_constants;        /* number of constants (literals) */
 } FunctionTable;
 
 #define ftab_call_entry(f)       ((f)->call_entry)

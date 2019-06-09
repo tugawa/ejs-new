@@ -255,7 +255,7 @@ void **stack_start;
 int file_type(char *name) {
   int nlen = strlen(name);
 
-  if (nlen > 5 && name[nlen - 4] == '.' && name[nlen - 3] == 's' &&
+  if (nlen >= 5 && name[nlen - 4] == '.' && name[nlen - 3] == 's' &&
       name[nlen - 2] == 'b' && name[nlen - 1] == 'c')
     return FILE_SBC;
   return FILE_OBC;

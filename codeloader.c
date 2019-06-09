@@ -47,21 +47,23 @@ typedef struct {
 #define LOADBUFLEN 1024
 
 #ifdef USE_SBC
-extern int insn_load_sbc(Context *, ConstantCell *, Instruction *, int);
+extern int insn_load_sbc(Context *, Instruction *, int, int, int);
 #endif
 
 #ifdef USE_OBC
-extern void init_constant_info(CItable *citable, int i);
+extern void init_constant_info(CItable *citable, int nconsts, int i);
 extern void add_constant_info(CItable *ci, Opcode oc, int index,
                               InsnOperandType type);
-extern void const_load(Context *ctx, CItable citable, ConstantCell *constant);
-extern int insn_load_obc(Context *, ConstantCell *, Instruction *, int,
-                         CItable *);
+extern void const_load(Context *, int, JSValue *, CItable);
+extern int insn_load_obc(Context *, Instruction *, int, int, CItable *);
 #endif
 
 extern uint32_t decode_escape_char(char *);
 extern int print_function_table(FunctionTable *, int);
 extern void print_bytecode(Instruction *, int);
+
+extern void set_function_table(FunctionTable *, int, Instruction *,
+                               int, int, int, int, int);
 
 FILE *file_pointer;
 
@@ -91,10 +93,10 @@ inline int check_read_token(char *buf, char *tok) {
 /*
  * codeloader
  */
-int code_loader(Context *ctx, FunctionTable *ftable, int start) {
-  ConstantCell ctable;
-  Instruction *tmpinsns;
-  int nfuncs, callentry, sendentry, nlocals, ninsns;
+int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
+  Instruction *insns;
+  JSValue *consttop;
+  int nfuncs, callentry, sendentry, nlocals, ninsns, nconsts;
   int i, j, ret;
 #ifdef USE_SBC
   char buf[LOADBUFLEN];
@@ -111,7 +113,11 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 
 #ifdef USE_OBC
 #define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
+#ifdef CPU_LITTLE_ENDIAN
 #define buf_to_int_obc(s)   (b[0] * 256 + b[1])
+#else
+#define buf_to_int_obc(s)   (b[1] * 256 + b[0])
+#endif
 #endif
 
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -166,38 +172,50 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
     next_buf();
     nlocals = buf_to_int("numberOfLocals");
 
-    /* numberOfInstruction */
+    /* numberOfInstructions */
     next_buf();
-    ninsns = buf_to_int("numberOfInstruction");
+    ninsns = buf_to_int("numberOfInstructions");
 
-    /* initializes constant table */
-    init_constant_cell(&ctable, i);
+    /* numberOfConstants */
+    next_buf();
+    nconsts = buf_to_int("numberOfConstants");
+
 #if defined(USE_OBC) && defined(USE_SBC)
     if (obcsbc == FILE_OBC)
-      init_constant_info(&citable, i);
+      init_constant_info(&citable, nconsts, i);
 #else
 #ifdef USE_OBC
-    init_constant_info(&citable, i);
+    init_constant_info(&citable, nconsts, i);
 #endif
 #endif
 
-    /* initilaizes temporal instruction array */
-    tmpinsns = (Instruction *)malloc(sizeof(Instruction) * ninsns);
-    if (tmpinsns == NULL)
-      LOG_EXIT("%dth func: cannnot malloc temprary instructions", i);
+    insns = (Instruction *)
+            malloc(sizeof(Instruction) * ninsns + sizeof(JSValue) * nconsts);
+    if (insns == NULL)
+      LOG_EXIT("Allocating instruction array failed.");
+    consttop = (JSValue *)(&insns[ninsns]);
+    for (j = 0; j < nconsts; j++) consttop[j] = JS_UNDEFINED;
 
+    /*
+     * Registers various information into the function table.
+     * It is necessary to do this here because gc might occur during
+     * loading constants.
+     */
+    set_function_table(ftable, i + ftbase, insns,
+                       callentry, sendentry, nlocals, ninsns, nconsts);
+    
     /* loads instructions for each function */
     for (j = 0; j < ninsns; j++) {
 #if defined(USE_OBC) && defined(USE_SBC)
       ret = obcsbc == FILE_OBC?
-            insn_load_obc(ctx, &ctable, tmpinsns, j, &citable):
-            insn_load_sbc(ctx, &ctable, tmpinsns, j);
+            insn_load_obc(ctx, insns, ninsns, j, &citable):
+            insn_load_sbc(ctx, insns, ninsns, nconsts, j);
 #else
-#ifdef USE_SBC
-      ret = insn_load_sbc(ctx, &ctable, tmpinsns, j);
-#endif
 #ifdef USE_OBC
-      ret = insn_load_obc(ctx, &ctable, tmpinsns, j, &citable);
+      ret = insn_load_obc(ctx, insns, ninsns, j, &citable);
+#endif
+#ifdef USE_SBC
+      ret = insn_load_sbc(ctx, insns, ninsns, nconsts, j);
 #endif
 #endif
       if (ret == LOAD_FAIL)
@@ -206,18 +224,13 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 
 #if defined(USE_OBC) && defined(USE_SBC)
     if (obcsbc == FILE_OBC)
-      const_load(ctx, citable, &ctable);
+      const_load(ctx, nconsts, consttop, citable);
 #else
 #ifdef USE_OBC
-    /* loads constants */
-    const_load(ctx, citable, &ctable);
+    const_load(ctx, nconsts, consttop, &citable);
 #endif
 #endif
 
-    ret = update_function_table(ftable, i + start, &ctable, tmpinsns,
-                                callentry, sendentry, nlocals, ninsns);
-    /* end_constant_cell(&ctable); */
-    free(ctable.constant_values);
 #if defined(USE_OBC) && defined(USE_SBC)
     if (obcsbc == FILE_OBC)
       free(citable.const_info);
@@ -226,10 +239,9 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
     free(citable.const_info);
 #endif
 #endif
-    free(tmpinsns);
   }
   if (ftable_flag == TRUE)
-    print_function_table(ftable, i + start);
+    print_function_table(ftable, i + ftbase);
   return nfuncs;
 
 #undef next_buf
@@ -237,18 +249,20 @@ int code_loader(Context *ctx, FunctionTable *ftable, int start) {
 }
 
 #ifdef USE_OBC
-void string_load(Context *ctx, ConstantCell *constant, int size) {
+JSValue string_load(Context *ctx, int size) {
   char *str;
+  JSValue v;
 
   str = (char*) malloc(sizeof(char) * size);
   if (fread(str, sizeof(char), size, file_pointer) < size)
     LOG_ERR("string literal too short.");
   decode_escape_char(str);
-  add_constant_string(ctx, constant, str);
+  v = cstr_to_string(NULL, str);
   free(str);
+  return v;
 }
 
-void double_load(Context *ctx, ConstantCell *constant) {
+JSValue double_load(Context *ctx) {
   union {
     double d;
     unsigned char b[8];
@@ -266,32 +280,33 @@ void double_load(Context *ctx, ConstantCell *constant) {
   }
 #endif
   /* printf("double loaded, value = %lf\n", u.d); */
-  add_constant_number(ctx, constant, u.d);
+  return double_to_number(u.d);
 }
 
-void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
-  int oi;
+void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable citable) {
+  int i;
   unsigned char b[2];
 
 #define next_buf()      fread(b, sizeof(unsigned char), 2, file_pointer)
 #define buf_to_int(s)   (b[0] * 256 + b[1])
   
-  for (oi = 0; oi < citable.n_const_info; oi++) {
+  for (i = 0; i < nconsts; i++) {
     int size;
+    JSValue v = JS_UNDEFINED;
 
     next_buf();
-    citable.const_info[oi].size = size = buf_to_int();
+    citable.const_info[i].size = size = buf_to_int();
     if (size > 0) {
-      Opcode oc = citable.const_info[oi].oc;
+      Opcode oc = citable.const_info[i].oc;
       switch (insn_info_table[oc].otype) {
       case BIGPRIMITIVE:
         switch (oc) {
         case ERROR:
         case STRING:
-          string_load(ctx, constant, size);
+          v = string_load(ctx, size);
           break;
         case NUMBER:
-          double_load(ctx, constant);
+          v = double_load(ctx);
           break;
 #ifdef USE_REGEXP
 #ifdef need_regexp
@@ -302,18 +317,19 @@ void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
 #endif
         default:
           LOG_ERR("Error: unexpected instruction in loading constants");
+          v = JS_UNDEFINED;
           break;
         }
         break;
       case THREEOP:
         {
-          InsnOperandType type = citable.const_info[oi].type;
+          InsnOperandType type = citable.const_info[i].type;
           switch (type) {
           case STR:
-            string_load(ctx, constant, size);
+            v = string_load(ctx, size);
             break;
           case NUM:
-            double_load(ctx, constant);
+            v = double_load(ctx);
             break;
           default:
             LOG_ERR("Error: unexpected operand type in loading constants");
@@ -325,6 +341,7 @@ void const_load(Context *ctx, CItable citable, ConstantCell *constant) {
         LOG_ERR("Error: unexpected operand type in loading constants");
         break;
       }
+      ctop[i] = v;
     }
   }
 }
@@ -399,19 +416,20 @@ InsnOperandType si_optype(Opcode oc, int i) {
       break;                                                    \
     case STR:                                                   \
       {                                                         \
-        char *str;                                              \
-        uint32_t len;                                           \
-        str = next_token();                                     \
-        if (str == NULL) str = "";                              \
-        else len = decode_escape_char(str);                     \
-        op = add_constant_string(ctx, constant, str);           \
+        char *src;                                              \
+        int index;                                              \
+        src = next_token();                                     \
+        index = load_string_sbc(src, ctop, ninsns, nconsts);    \
+        op = calc_displacement(ninsns, pc, index);              \
       }                                                         \
       break;                                                    \
     case NUM:                                                   \
       {                                                         \
-        double number;                                          \
-        number = atof(next_token());                            \
-        op = add_constant_number(ctx, constant, number);        \
+        char *src;                                              \
+        int index;                                              \
+        src = next_token();                                     \
+        index = load_number_sbc(src, ctop, ninsns, nconsts);    \
+        op = calc_displacement(ninsns, pc, index);              \
       }                                                         \
       break;                                                    \
     case SPEC:                                                  \
@@ -427,12 +445,119 @@ InsnOperandType si_optype(Opcode oc, int i) {
  * loads an instruction
  */
 #ifdef USE_SBC
-int insn_load_sbc(Context *ctx, ConstantCell *constant,
-                  Instruction *tmpinsns, int pc) {
+
+/*
+ * Reads the constant at the operand field of an instruction in a sbc file
+ * and stores the constant into *d (for double) or *str (for char *)..
+ * Format of constant is ``#<n>:constant'', where <n> is the
+ * zero-origined index within the constant table.
+ * Return value is the index (<n>) or -1 (in an error case).
+ */
+int load_const_sbc(char *start, int nconsts, double *d, char **str) {
+  char *s, *p;
+  Subscript index;
+
+  s = start;
+  if (s == NULL || *s++ != '#') {
+    LOG_ERR("%s: constant format error", start);
+    return -1;
+  }
+  for (p = s; *p != '=' && *p != '\0'; p++);
+  if (*p == '\0') {
+    LOG_ERR("%s: constant format error", start);
+    return -1;
+  }
+  *p++ = '\0';
+  index = atoi(s);
+  if (index < 0 || nconsts <= index) {
+    LOG_ERR("%s: invalid index of the constant", start);
+    return -1;
+  }
+  if (d != NULL) {
+    *d = atof(p);
+    return index;
+  } else if (str != NULL) {
+    *str = p;
+    return index;
+  } else {
+    LOG_ERR("invalid argument to read_const_sbc");
+    return -1;
+  }
+}
+
+int load_number_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
+  double d;
+  int index;
+  JSValue v0;
+
+  index = load_const_sbc(src, nconsts, &d, NULL);
+  if (index < 0) return -1;
+  v0 = ctop[index];
+  if (v0 == JS_UNDEFINED)
+    ctop[index] = double_to_number(d);
+  else {
+    if (!is_number(v0)) {
+      LOG_ERR("inconsistent constants at index %d", index);
+      return -1;
+    }
+    if (d != number_to_double(v0)) {
+      LOG_ERR("inconsistent number constants at index %d", index);
+      return -1;
+    }
+  }
+  return index;
+}
+
+int load_string_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
+  char *str;
+  int index;
+  JSValue v0, v1;
+
+  index = load_const_sbc(src, nconsts, NULL, &str);
+  if (index < 0) return -1;
+  decode_escape_char(str);
+  v0 = ctop[index];
+  v1 = cstr_to_string(NULL, str);
+  if (v0 == JS_UNDEFINED)
+    ctop[index] = v1;
+  else if (v0 != v1) {
+    LOG_ERR("inconsistent string constants at index %d", index);
+    return -1;
+  } /* else, v0 == v1.  do nothing */
+  return index;
+}
+
+#ifdef USE_REGEXP
+#ifdef need_regexp
+int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
+                    int ninsns, int nconsts, int flag) {
+  char *str;
+  int index;
+  JSValue v0, v1;
+
+  index = load_const_sbc(src, nconsts, NULL, &str);
+  if (index < 0) return -1;
+  decode_escape_char(str);
+  v0 = ctop[index];
+  if (v0 == JS_UNDEFINED)
+    ctop[index] = new_normal_regexp(ctx, str, flag);
+  /*
+   * else, it is necessary to check the consistency of v0 and str
+   * but this check in not implemented yet.
+   */
+  return index;
+}
+#endif /* need_regexp */
+#endif /* USE_REGEXP */
+
+int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
+                  int nconsts, int pc) {
   char buf[LOADBUFLEN];
   char *tokp;
   Opcode oc;
+  JSValue *ctop;
 
+  ctop = (JSValue *)(&insns[ninsns]);
   step_load_code(buf, LOADBUFLEN);
   tokp = first_token(buf);
 
@@ -443,9 +568,9 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
     if (nlen > 4 && tokp[nlen - 4] == '_' && tokp[nlen - 3] == 'l' && 
         tokp[nlen - 2] == 'o' && tokp[nlen - 1] == 'g' ) {
       tokp[nlen - 4] = '\0';
-      tmpinsns[pc].logflag = TRUE;
+      insns[pc].logflag = TRUE;
     } else
-      tmpinsns[pc].logflag = forcelog_flag;
+      insns[pc].logflag = forcelog_flag;
   }
 #endif /* PROFILE */
 
@@ -454,11 +579,11 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
     /* instruction is not found in the instruction info table */
 #ifdef PROFILE
     LOG_ERR("Illegal instruction: %s%s", tokp,
-            (tmpinsns[pc].logflag == TRUE? "_log": ""));
+            (insns[pc].logflag == TRUE? "_log": ""));
 #else
     LOG_ERR("Illegal instruction: %s", tokp);
 #endif /* PROFILE */
-    tmpinsns[pc].code = (Bytecode)(-1);
+    insns[pc].code = (Bytecode)(-1);
     return LOAD_FAIL;
   }
   switch (insn_info_table[oc].otype) {
@@ -468,10 +593,10 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       dst = atoi(next_token());
       switch (oc) {
       case FIXNUM:
-        tmpinsns[pc].code = makecode_fixnum(dst, atoi(next_token()));
+        insns[pc].code = makecode_fixnum(dst, atoi(next_token()));
         break;
       case SPECCONST:
-        tmpinsns[pc].code =
+        insns[pc].code =
           makecode_specconst(dst, specstr_to_jsvalue(next_token()));
         break;
       default:
@@ -483,48 +608,42 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
   case BIGPRIMITIVE:
     {
       Register dst;
-      dst = atoi(next_token());
+      char *src;
+      int index;
+      Displacement disp;
+
+      dst = atoi(next_token());   /* destination register */
       switch (oc) {
       case NUMBER:
         {
-          double number;
-          int index;
-          number = atof(next_token());
-          /* writes the number into the constant table */
-          index = add_constant_number(ctx, constant, number);
-          tmpinsns[pc].code = makecode_number(dst, index);
+          src = next_token();
+          index = load_number_sbc(src, ctop, ninsns, nconsts);
+          if (index < 0) return LOAD_FAIL;
+          disp = calc_displacement(ninsns, pc, index);
+          insns[pc].code = makecode_number(dst, disp);
         }
         break;
       case STRING:
       case ERROR:
         {
-          char *str;
-          int index;
-          uint32_t len;
-          /* str = next_token2(); */
-          str = next_token();
-          if (str == NULL) str = "";
-          else len = decode_escape_char(str);
-          index = add_constant_string(ctx, constant, str);
-          if (oc == STRING)
-            tmpinsns[pc].code = makecode_string(dst, index);
-          else
-            tmpinsns[pc].code = makecode_error(dst, index);
+          src = next_token();
+          index = load_string_sbc(src, ctop, ninsns, nconsts);
+          if (index < 0) return LOAD_FAIL;
+          disp = calc_displacement(ninsns, pc, index);
+          insns[pc].code = (oc == STRING? makecode_string(dst, disp):
+                            makecode_error(dst, disp));
         }
         break;
 #ifdef USE_REGEXP
 #ifdef need_regexp
       case REGEXP:
         {
-          char *str;
-          int flag, index;
-          uint32_t len;
-          flag = atoi(next_token());
-          str = next_token();
-          if (str == NULL) str = "";
-          else len = decode_escape_char(str);
-          index = add_constant_regexp(ctx, constant, str, flag);
-          tmpinsns[pc].code = makecode_regexp(dst, index);
+          int flag = atoi(next_token());
+          src = next_token();
+          index = load_regexp_sbc(ctx, src, ctop, ninsns, nconsts, flag);
+          if (index < 0) return LOAD_FAIL;
+          disp = calc_displacement(ninsns, pc, index);
+          insns[pc].code = makecode_regexp(dst, disp);
         }
         break;
 #endif /* need_regexp */
@@ -541,7 +660,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       load_op(insn_info_table[oc].op0, op0);
       load_op(insn_info_table[oc].op1, op1);
       load_op(insn_info_table[oc].op2, op2);
-      tmpinsns[pc].code = makecode_three_operands(oc, op0, op1, op2);
+      insns[pc].code = makecode_three_operands(oc, op0, op1, op2);
       return LOAD_OK;
     }
 
@@ -550,7 +669,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       Register op0, op1;
       op0 = atoi(next_token());
       op1 = atoi(next_token());
-      tmpinsns[pc].code = makecode_two_operands(oc, op0, op1);
+      insns[pc].code = makecode_two_operands(oc, op0, op1);
       return LOAD_OK;
     }
 
@@ -558,13 +677,13 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
     {
       Register op;
       op = atoi(next_token());
-      tmpinsns[pc].code = makecode_one_operand(oc, op);
+      insns[pc].code = makecode_one_operand(oc, op);
       return LOAD_OK;
     }
 
   case ZEROOP:
     {
-      tmpinsns[pc].code = makecode_no_operand(oc);
+      insns[pc].code = makecode_no_operand(oc);
       return LOAD_OK;
     }
 
@@ -572,7 +691,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
     {
       Displacement disp;
       disp = (Displacement)atoi(next_token());
-      tmpinsns[pc].code = makecode_jump(oc, disp);
+      insns[pc].code = makecode_jump(oc, disp);
       return LOAD_OK;
     }
 
@@ -582,7 +701,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       Register src;
       src = atoi(next_token());
       disp = (Displacement)atoi(next_token());
-      tmpinsns[pc].code = makecode_cond_jump(oc, src, disp);
+      insns[pc].code = makecode_cond_jump(oc, src, disp);
       return LOAD_OK;
     }
 
@@ -593,7 +712,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       link = atoi(next_token());
       offset = atoi(next_token());
       reg = atoi(next_token());
-      tmpinsns[pc].code = makecode_getvar(oc, link, offset, reg);
+      insns[pc].code = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
 
@@ -604,7 +723,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       link = atoi(next_token());
       offset = atoi(next_token());
       reg = atoi(next_token());
-      tmpinsns[pc].code = makecode_setvar(oc, link, offset, reg);
+      insns[pc].code = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
 
@@ -614,7 +733,7 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       uint16_t index;
       dst = atoi(next_token());
       index = (uint16_t)atoi(next_token());
-      tmpinsns[pc].code = makecode_makeclosure(oc, dst, index);
+      insns[pc].code = makecode_makeclosure(oc, dst, index);
       return LOAD_OK;
     }
 
@@ -624,13 +743,13 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
       uint16_t argc;
       closure = atoi(next_token());
       argc = atoi(next_token());
-      tmpinsns[pc].code = makecode_call(oc, closure, argc);
+      insns[pc].code = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }
 
   default:
     {
-      LOG_EXIT("Illegal instruction: %s\n", tokp);
+      LOG_EXIT("Illegal instruction: %s", tokp);
       return LOAD_FAIL;
     }
   }
@@ -638,16 +757,22 @@ int insn_load_sbc(Context *ctx, ConstantCell *constant,
 #endif /* USE_SBC */
 
 #ifdef USE_OBC
-int insn_load_obc(Context *ctx, ConstantCell *constant,
-                  Instruction *tmpinsns, int pc, CItable *citable) {
+int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
+                  CItable *citable) {
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
-  int index, i;
+  Subscript index;
+  Displacement disp;
+  Bytecode bc;
+  int i;
+  JSValue *ctop;
 
+  ctop = (JSValue *)(&insns[ninsns]);
   if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer)
       != sizeof(Bytecode))
     LOG_ERR("Error: cannot read %dth bytecode", pc);
   oc = buf[0] * 256 + buf[1];
+  bc = convertToBc(buf);
 
   switch (insn_info_table[oc].otype) {
   case BIGPRIMITIVE:
@@ -662,7 +787,8 @@ int insn_load_obc(Context *ctx, ConstantCell *constant,
 #endif
       index = buf[4] * 256 + buf[5];
       add_constant_info(citable, oc, index, NONE);
-      tmpinsns[pc].code = convertToBc(buf);
+      disp = calc_displacement(ninsns, pc, index);
+      insns[pc].code = update_displacement(bc, disp);
       return LOAD_OK;
     default:
       return LOAD_FAIL;
@@ -676,43 +802,19 @@ int insn_load_obc(Context *ctx, ConstantCell *constant,
       if (type == STR || type == NUM ) {
         index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
         add_constant_info(citable, oc, index, type);
+        disp = calc_displacement(ninsns, pc, index);
+        bc = (i == 0)? update_first_operand_disp(bc, disp):
+             ((i == 1)? update_second_operand_disp(bc, disp):
+                        update_third_operand_disp(bc, disp));
       }
     }
     /* fall through */
   default:
-    tmpinsns[pc].code = convertToBc(buf);
+    insns[pc].code = bc;
     return LOAD_OK;
   }
 }
 #endif
-
-/*
- * initilizes the contant table
- */ 
-void init_constant_cell(ConstantCell *constant, int i) {
-  JSValue* p;
-  constant->n_constant_values = 0;
-  p = (JSValue*)malloc(sizeof(JSValue) * (CONSTANT_LIMIT));
-  if (p == NULL)
-    LOG_EXIT("%dth func: cannot malloc constant_cell", i);
-  constant->constant_values = p;
-}
-
-void init_constant_info(CItable *citable, int i) {
-  ConstInfo* p;
-  citable->n_const_info = 0;
-  p = (ConstInfo*)malloc(sizeof(ConstInfo) * CONSTANT_LIMIT);
-  if (p == NULL)
-    LOG_EXIT("%dth func: cannot malloc constant_info", i);
-  citable->const_info = p;
-}
-
-/*
- * finlaizes the constant table
- */
-void end_constant_cell(ConstantCell *constant) {
-  /* do nothing */
-}
 
 /*
  * converts a special JS string (for a constant) into a JSValue
@@ -742,6 +844,15 @@ char *jsvalue_to_specstr(JSValue v) {
 }
 
 #ifdef USE_OBC
+void init_constant_info(CItable *citable, int nconsts, int i) {
+  ConstInfo* p;
+  citable->n_const_info = 0;
+  p = (ConstInfo*)malloc(sizeof(ConstInfo) * nconsts);
+  if (p == NULL)
+    LOG_EXIT("%dth func: cannot malloc constant_info", i);
+  citable->const_info = p;
+}
+
 void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
   if (index >= CONSTANT_LIMIT)
     LOG_ERR("Error: index %d is out of range of constant info table", index);
@@ -751,166 +862,18 @@ void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
 }
 #endif
 
-/*
- * adds a number into the constant table.
- *
- * Currently, the same constant numbers might be added to the table
- * more than once.  It might be better to avoid such duplication.
- */
-int add_constant_number(Context *ctx, ConstantCell *constant, double x) {
-  int index;
-
-  index = constant->n_constant_values++;
-  (constant->constant_values)[index] = double_to_number(x);
-  return index;
-}
-
-/*
- * adds a string into the constant table.
- */
-int add_constant_string(Context *ctx, ConstantCell *constant, char *str) {
-  JSValue a;
-  int index;
-
-  index = constant->n_constant_values++;
-  a = cstr_to_string(NULL, str);
-  /*
-   * printf("updateConstantString: str = %s, a = %lld (%s)\n",
-   *        str, a, stringToCStr(a));
-   */
-  (constant->constant_values)[index] = a;
-  return index;
-}
-
-#ifdef USE_REGEXP
-#ifdef need_regexp
-/*
- * adds a regexp into the constant table.
- */
-int add_constant_regexp(Context *ctx, ConstantCell *constant,
-                        char *pat, int flag) {
-  JSValue re;
-  int index;
-
-  index = constant->n_constant_values++;
-  /* re = new_regexp(); */
-  if ((re = new_normal_regexp(ctx, pat, flag)) != JS_UNDEFINED) {
-    (constant->constant_values)[index] = re;
-    return index;
-  } else {
-    LOG_ERR("an error occured in making regex.");
-    return -1;
-  }
-}
-#endif /* need_regexp */
-#endif
-
-int update_function_table(FunctionTable *ftable, int index,
-                          ConstantCell *constant, Instruction *tmpinsns,
-                          int callentry, int sendentry,
-                          int nlocals, int ninsns) {
-  int i;
-  Bytecode bc;
-  Opcode oc;
-  Instruction *insns;
-  JSValue *consttop;
-  int bodysize;
-  int loopnum;
-
-#ifdef J5MODE
-  if (index == 0) {
-    ninsns++;
-  }
-#endif
-
-  bodysize = ninsns + constant->n_constant_values;
-  insns = (Instruction *)malloc(sizeof(Instruction) * ninsns +
-                                sizeof(JSValue) * constant->n_constant_values);
-  if (insns == NULL)
-    LOG_EXIT("Allocating instruction array failed.");
-  loopnum = ninsns;
-  consttop = (JSValue *)(&insns[ninsns]);
-
-#ifdef J5MODE
-  loopnum += (index == 0)? -1: 0;
-#endif
-
-  /*
-   * rewrites the operand of STRING/NUMBER/ERROR/REGEXP instraction
-   * as a relative displacement
-   */
-  for (i = 0; i < loopnum; i++) {
-    bc = tmpinsns[i].code;
-    oc = get_opcode(bc);
-    if (oc == STRING || oc == NUMBER || oc == ERROR
-#ifdef USE_REGEXP
-#ifdef need_regexp
-        || oc == REGEXP
-#endif /* need_regexp */
-#endif
-        ) {
-      Subscript ss;
-      Displacement disp;
-#if defined(USE_OBC) && defined(USE_SBC)
-      ss = (obcsbc == FILE_OBC)? ((bc & 0x00000000ffff0000) >> 16):
-             get_big_subscr(bc);
-#else
-#ifdef USE_SBC
-      ss = get_big_subscr(bc);
-#endif
-#ifdef USE_OBC
-      /* the rhs should be rewritten by using appropriate macro */
-      ss = (bc & 0x00000000ffff0000) >> 16;
-#endif
-#endif
-      disp = calc_displacement(ninsns, i, ss);
-      tmpinsns[i].code = update_displacement(bc, disp);
-    }  else if (insn_info_table[oc].otype == THREEOP) {
-      InsnOperandType op1, op2;
-      op1 = insn_info_table[oc].op1;
-      if (op1 == STR || op1 == NUM) {
-        Subscript ss;
-        Displacement disp;
-        ss = (Subscript)get_second_operand_disp(bc);
-        disp = calc_displacement(ninsns, i, ss);
-        bc = update_second_operand_disp(bc, disp);
-      }
-      op2 = insn_info_table[oc].op2;
-      if (op2 == STR || op2 == NUM) {
-        Subscript ss;
-        Displacement disp;
-        ss = (Subscript)get_third_operand_disp(bc);
-        disp = calc_displacement(ninsns, i, ss);
-        bc = update_third_operand_disp(bc, disp);
-      }
-      tmpinsns[i].code = bc;
-    }
-  }
-
-  /* fills the insns array */
-  for (i = 0; i < loopnum; i++) {
-    insns[i].code = tmpinsns[i].code;
-    insns[i].ilabel = NULL;
-#ifdef PROFILE
-    insns[i].count = 0;
-    insns[i].logflag = tmpinsns[i].logflag;
-#endif
-  }
-
-  /* writes the constants */
-  for (i = 0; i < constant->n_constant_values; i++)
-    consttop[i] = constant->constant_values[i];
-
+void set_function_table(FunctionTable *ftable, int index, Instruction *insns,
+                        int callentry, int sendentry, int nlocals,
+                        int ninsns, int nconsts) {
   ftable[index].ilabel_created = false;
   ftable[index].insns = insns;
   ftable[index].call_entry = callentry;
   ftable[index].send_entry = sendentry;
   ftable[index].n_locals = nlocals;
-  ftable[index].body_size = bodysize;
+  ftable[index].body_size =
+    ninsns * (sizeof(Instruction) / sizeof(JSValue)) + nconsts;
   ftable[index].n_insns = ninsns;
-  ftable[index].n_literals = constant->n_constant_values;
-
-  return 0;
+  ftable[index].n_constants = nconsts;
 }
 
 int print_function_table(FunctionTable *ftable, int nfuncs) {
@@ -924,14 +887,14 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("send_entry: %d\n", ftable[i].send_entry);
     printf("n_locals: %d\n" ,ftable[i].n_locals);
     printf("n_insns: %d\n", ftable[i].n_insns);
-    printf("n_literals: %d\n", ftable[i].n_literals);
+    printf("n_constants: %d\n", ftable[i].n_constants);
     printf("body_size: %d\n", ftable[i].body_size);
     for (j = 0; j < ftable[i].n_insns; j++) {
       printf("%03d: %016"PRIx64" --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
     }
     lit = (JSValue *)&(ftable[i].insns[ftable[i].n_insns]);
-    for (j = 0; j < ftable[i].n_literals; j++) {
+    for (j = 0; j < ftable[i].n_constants; j++) {
       JSValue o;
       o = lit[j];
       printf("%03d: %016"PRIx64" --- ", j, o);
@@ -955,88 +918,90 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
 /*
  * prints a bytecode instruction
  */
-void print_bytecode(Instruction *insns, int j) {
+void print_constant(Instruction *insns, int pc, Displacement disp) {
+  JSValue o;
+  o = get_literal((&insns[pc]), disp);
+  if (is_flonum(o))
+    printf(" %f", flonum_value(o));
+  else if (is_string(o))
+    printf(" \"%s\"", string_value(o));
+#ifdef USE_REGEXP
+#ifdef need_regexp
+  else if (is_regexp(o))
+    printf(" %d:\"%s\"", regexp_flag(o), regexp_pattern(o));
+#endif /* need_regexp */
+#endif /* USE_REGEXP */
+  else
+    printf(" ???");
+}
+
+void print_bytecode(Instruction *insns, int pc) {
   Bytecode code;
   Opcode oc;
   OperandType t;
 
-  code = insns[j].code;
+  code = insns[pc].code;
   oc = get_opcode(code);
   t = insn_info_table[oc].otype;
 #ifdef PROFILE
-  printf("%s%s ", insn_info_table[oc].insn_name,
-         insns[j].logflag == TRUE? "_log": "");
+  printf("%s%s", insn_info_table[oc].insn_name,
+         insns[pc].logflag == TRUE? "_log": "");
 #else
-  printf("%s ", insn_info_table[oc].insn_name);
+  printf("%s", insn_info_table[oc].insn_name);
 #endif
   switch (t) {
   case SMALLPRIMITIVE:
     {
-      Register dst;
       int imm;
-      dst = get_first_operand_reg(code);
+      printf(" %d", get_first_operand_reg(code));
       switch (oc) {
       case FIXNUM:
         imm = get_small_immediate(code);
-        printf("%d %d", dst, imm);
+        printf(" %d", imm);
         break;
       case SPECCONST:
         imm = get_small_immediate(code);
-        printf("%d %s", dst, jsvalue_to_specstr(imm));
+        printf(" %s", jsvalue_to_specstr(imm));
         break;
       default:
-        printf("???");
+        printf(" ???");
         break;
       }
     }
     break;
   case BIGPRIMITIVE:
     {
-      Register dst;
-      Displacement disp;
-      JSValue o, *p;
-      dst = get_first_operand_reg(code);
-      disp = get_big_disp(code);
-      p = (JSValue *)(&insns[j]);
-      o = p[disp];
-      /* printf("j = %d, disp = %d, o = %p\n", j, disp, (char *)o); */
-      switch (oc) {
-      case NUMBER:
-        if (is_flonum(o))
-          printf("%d %f", dst, flonum_value(o));
-        else
-          printf("Object type mismatched: tag = %d", get_tag(o));
-        break;
-      case STRING:
-      case ERROR:
-        if (is_string(o))
-          printf("%d \"%s\"", dst, string_value(o));
-        else
-          printf("Object type mismatched: tag = %d", get_tag(o));
-        break;
-#ifdef USE_REGEXP
-#ifdef need_regexp
-      case REGEXP:
-        if (is_regexp(o))
-          printf("%d %d \"%s\"", dst, regexp_flag(o), regexp_pattern(o));
-        else
-          printf("Object type mismatched: tag = %d", get_tag(o));
-        break;
-#endif /* need_regexp */
-#endif /* USE_REGEXP */
-      default:
-        printf("???");
-        break;
-      }
+      printf("%d", get_first_operand_reg(code));
+      print_constant(insns, pc, get_big_disp(code));
     }
     break;
   case THREEOP:
     {
-      Register dst, r1, r2;
-      dst = get_first_operand_reg(code);
-      r1 = get_second_operand_reg(code);
-      r2 = get_third_operand_reg(code);
-      printf("%d %d %d", dst, r1, r2);
+      InsnOperandType type;
+      int i;
+      for (i = 0; i < 3; i++) {
+        type = si_optype(oc, i);
+        if (type == STR || type == NUM) {
+          Displacement disp;
+          disp = (i == 0)? get_first_operand_disp(code):
+                 ((i == 1)? get_second_operand_disp(code):
+                            get_third_operand_disp(code));
+          print_constant(insns, pc, disp);
+        } else if (type == SPEC) {
+          int k, imm;
+          k = (i == 0)? get_first_operand_int(code):
+              ((i == 1)? get_second_operand_int(code):
+                         get_third_operand_int(code));
+          imm = get_small_immediate(k);
+          printf(" %s", jsvalue_to_specstr(imm));
+        } else {   /* LIT NONE */
+          Register r;
+          r = (i == 0)? get_first_operand_reg(code):
+              ((i == 1)? get_second_operand_reg(code):
+                         get_third_operand_reg(code));
+          printf(" %d", r);
+        }
+      }
     }
     break;
   case TWOOP:
@@ -1051,7 +1016,7 @@ void print_bytecode(Instruction *insns, int j) {
     {
       Register dst;
       dst = get_first_operand_reg(code);
-      printf("%d", dst);
+      printf(" %d", dst);
     }
     break;
   case ZEROOP:
@@ -1061,7 +1026,7 @@ void print_bytecode(Instruction *insns, int j) {
     {
       Displacement disp;
       disp = get_first_operand_disp(code);
-      printf("%d", j + disp);
+      printf(" %d", pc + disp);
     }
     break;
   case CONDJUMP:          
@@ -1070,7 +1035,7 @@ void print_bytecode(Instruction *insns, int j) {
       Displacement disp;
       r = get_first_operand_reg(code);
       disp = get_second_operand_disp(code);
-      printf("%d %d", r, j + disp);
+      printf(" %d %d", r, pc + disp);
     }
     break;
   case GETVAR:
@@ -1080,7 +1045,7 @@ void print_bytecode(Instruction *insns, int j) {
       link = get_first_operand_subscr(code);
       ss = get_second_operand_subscr(code);
       dst = get_third_operand_reg(code);
-      printf("%d %d %d", link, ss, dst);
+      printf(" %d %d %d", link, ss, dst);
     }
     break;
   case SETVAR:
@@ -1090,7 +1055,7 @@ void print_bytecode(Instruction *insns, int j) {
       link = get_first_operand_subscr(code);
       ss = get_second_operand_subscr(code);
       src = get_third_operand_reg(code);
-      printf("%d %d %d", link, ss, src);
+      printf(" %d %d %d", link, ss, src);
     }
     break;
   case MAKECLOSUREOP:
@@ -1099,7 +1064,7 @@ void print_bytecode(Instruction *insns, int j) {
       Subscript ss;
       dst = get_first_operand_reg(code);
       ss = get_second_operand_subscr(code);
-      printf("%d %d", dst, ss);
+      printf(" %d %d", dst, ss);
     }
     break;
   case CALLOP:
@@ -1108,7 +1073,7 @@ void print_bytecode(Instruction *insns, int j) {
       int na;
       f = get_first_operand_reg(code);
       na = get_second_operand_int(code);
-      printf("%d %d", f, na);
+      printf(" %d %d", f, na);
     }
     break;
   case UNKNOWNOP:
