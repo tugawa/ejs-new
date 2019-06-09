@@ -129,7 +129,7 @@ public class OBCFileComposer extends OutputFileComposer {
 
         int getOpcode(String insnName, SrcOperand... srcs) {
             String decorated = OBCFileComposer.decorateInsnName(insnName, srcs);
-            if (decorated == insnName)
+            if (decorated == null)
                 return Info.getOpcodeIndex(insnName);
             else
                 return Main.Info.SISpecInfo.getOpcodeIndex(decorated);
