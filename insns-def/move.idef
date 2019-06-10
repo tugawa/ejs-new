@@ -1,0 +1,12 @@
+\inst move (Register dst, Value src)
+
+\otherwise \{
+/*
+   move dst src
+     dst : destination register
+     src : source register
+   $dst = $src
+ */
+  dst = src;
+\}
+

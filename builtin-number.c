@@ -1,46 +1,38 @@
 /*
-   builtin-number.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-// constructor of a number 
-//
+/*
+ * constructor of a number 
+ */
 BUILTIN_FUNCTION(number_constr)
 {
   JSValue rsv;
 
-  builtin_prologue();  
+  builtin_prologue();
   rsv = new_normal_number_object(context, FIXNUM_ZERO);
-  // set___proto___all(context, rsv, gconsts.g_number_proto);
+  GC_PUSH(rsv);
+  /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
     number_object_value(rsv) = to_number(context, args[1]);
   set_a(context, rsv);
+  GC_POP(rsv);
 }
 
-// Number(arg)
-//   If this is called without `new', it acts as a type conversion
-//   function to a number.
-//
+/*
+ * Number(arg)
+ *   If this is called without `new', it acts as a type conversion
+ *   function to a number.
+ */
 BUILTIN_FUNCTION(number_constr_nonew)
 {
   JSValue ret;
@@ -77,7 +69,9 @@ BUILTIN_FUNCTION(number_toString)
       nlen = dlen = 0;
 
 
-      // 小数点部と分離させる
+      /*
+       * divides the number into numeric and decimal parts
+       */
       if(is_fixnum(v)) {
         numeric = (int)fixnum_to_int(v);
         decimal = 0.0;
@@ -85,21 +79,27 @@ BUILTIN_FUNCTION(number_toString)
         numeric = (int)(flonum_to_double(v));
         decimal = flonum_to_double(v) - numeric; }
 
-      // 整数部の展開
+      /*
+       * makes a string for the numeric part in the reverse order
+       */
       while(numeric >= n){
         str[nlen++] = map[numeric%n];
         numeric /= n; }
       str[nlen++] = map[numeric];
 
-      // 整数部をひっくり返す
+      /*
+       * corrects the order of the numeric string
+       */
       for(i=0; i<nlen/2; i++){
         ff = str[nlen-1-i];
         str[nlen-1-i] = str[i];
         str[i] = ff; }
       str[nlen++] = '.';
 
-      // 小数部の展開
-      // 小数点制度は以下の式により決定する (実装依存個所)
+      /*
+       * makes a string for the decimal part
+       * accuracy is determined by the following expression
+       */
       acc = (int)(48/((int)(log(n)/log(2))));
       while((decimal != 0.0) && (dlen < acc)){
         str[nlen+dlen++] = map[(int)(decimal*n)];
@@ -113,7 +113,9 @@ BUILTIN_FUNCTION(number_toString)
     set_a(context, number_to_string(rsv));
   else {
 
-    // Type Error 例外処理をする [FIXME]
+    /*
+     * Type Error [FIXME]
+     */ 
     LOG_EXIT("Number Instance's valueOf received not Number Instance\n");
   }
 }
@@ -146,11 +148,15 @@ void init_builtin_number(Context *ctx)
 {
   JSValue n, proto;
 
-  gconsts.g_number = n =
-    new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
-  gconsts.g_number_proto = proto =
-    new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  
+  n = new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
+  GC_PUSH(n);
+  gconsts.g_number = n;
+  proto = new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  GC_PUSH(proto);
+  gconsts.g_number_proto = proto;
   set___proto___all(ctx, proto, gconsts.g_object_proto);
+
   set_prototype_de(ctx, n, proto);
   set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
   set_obj_cstr_prop(ctx, n, "NEGATIVE_INFINITY",
@@ -171,5 +177,5 @@ void init_builtin_number(Context *ctx)
       p++;
     }
   }
+  GC_POP2(proto, n);
 }
-

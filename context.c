@@ -1,23 +1,11 @@
 /*
-   context.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN
@@ -25,19 +13,21 @@
 
 static Context *allocate_context(size_t);
 
-// creates a new function frame
-//
-FunctionFrame *new_frame(Context *ctx, FunctionTable *ft, FunctionFrame *env, int nl) {
+/*
+ * creates a new function frame
+ */
+FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
+                         FunctionFrame *env, int nl) {
   FunctionFrame *frame;
   JSValue *locals;
   int i;
 
   nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
-  gc_push_tmp_root((JSValue*) &env);
+  GC_PUSH(env);
   frame = (FunctionFrame *)
     gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
-		       HTAG_FUNCTION_FRAME);
-  gc_pop_tmp_root(1);
+              HTAG_FUNCTION_FRAME);
+  GC_POP(env);
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
   locals = frame->locals;
@@ -46,8 +36,9 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft, FunctionFrame *env, in
   return frame;
 }
 
-// initializes special registers in a context
-//
+/*
+ * initializes special registers in a context
+ */
 void init_special_registers(SpecialRegisters *spreg){
   spreg->fp = 0;
   spreg->cf = NULL;
@@ -66,27 +57,35 @@ void pop_special_registers(Context *context, int fp, JSValue *regbase) {
   set_pc(context, (int)regbase[-PC_POS]);
   set_cf(context, (FunctionTable *)regbase[-CF_POS]);
   printf("pop_special_registers, fp: %p, lp: %p, pc: %p, cf: %p\n",
-    &regbase[-FP_POS], &regbase[-LP_POS], &regbase[-PC_POS], &regbase[-CF_POS]);
+         &regbase[-FP_POS], &regbase[-LP_POS], &regbase[-PC_POS],
+         &regbase[-CF_POS]);
   set_sp(context, fp);
 }
 #endif
 
+void reset_context(Context *ctx, FunctionTable *ftab) {
+  init_special_registers(&(ctx->spreg));
+  ctx->function_table = ftab;
+  set_cf(ctx, ftab);
+  /*
+   * It seems that existing frame in the lp register can be reused,
+   * but for simplicity, we allocate a new frame.
+   */
+  set_lp(ctx, new_frame(NULL, ftab, NULL, 0));
+}
+
+/*
+ * initializes the outer-most context.
+ * This function is call only once from the main function before entering
+ * the loop.
+ */
 void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
   Context *c;
 
   c = allocate_context(STACK_LIMIT);
   *context = c;
-
-  init_special_registers(&(c->spreg));
-  c->function_table = ftab;
   c->global = glob;
-
-  set_cf(c, ftab);
-  set_lp(c, new_frame(NULL, ftab, NULL, 0));
-
-#ifdef USE_FFI
-  initForeignFunctionInterface(c);
-#endif
+  reset_context(c, ftab);
 }
 
 static Context *allocate_context(size_t stack_size)
@@ -94,7 +93,7 @@ static Context *allocate_context(size_t stack_size)
   /* GC is not allowed */
   Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
-					       HTAG_STACK);
+                                              HTAG_STACK);
   ctx->exhandler_stack = new_array(NULL, 0, 0);
   ctx->exhandler_stack_ptr = 0;
   ctx->lcall_stack = new_array(NULL, 0, 0);

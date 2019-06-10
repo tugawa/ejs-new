@@ -1,30 +1,18 @@
 /*
-   builtin-object.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
 /*
-  constructor for an object
+ * constructor for an object
  */
 BUILTIN_FUNCTION(object_constr)
 {
@@ -32,18 +20,19 @@ BUILTIN_FUNCTION(object_constr)
 
   builtin_prologue();
   /*
-   *  If this is called with `new', which kind of object is allocated
-   *  depends on the type of the first argument.
+   * If this is called with `new', which kind of object is allocated
+   * depends on the type of the first argument.
    *
-   *  ES5 specification Sec 15.2.2.1 requires not to create an object
-   *  if the argument is native ECMAScript object, i.e, those that are
-   *  not String, Boolean, or Number.  Though JavaScript Core seems
-   *  to create an object for an Array argument.
+   * ES5 specification Sec 15.2.2.1 requires not to create an object
+   * if the argument is native ECMAScript object, i.e, those that are
+   * not String, Boolean, or Number.  Though JavaScript Core seems
+   * to create an object for an Array argument.
    *
-   *  TODO: use dispacher generator
+   * TODO: use dispacher generator
    */
   if (na > 0) {
     arg = args[1];
+    GC_PUSH(arg);
     if (is_object(arg))
       ret = arg;
     else if (is_number(arg))
@@ -54,9 +43,12 @@ BUILTIN_FUNCTION(object_constr)
       ret = new_normal_string_object(context, arg);
     else
       ret = new_normal_object(context);
+    GC_POP(arg);
   } else
     ret = new_normal_object(context);
+  GC_PUSH(ret);
   set_a(context, ret);
+  GC_POP(ret);
 }
 
 BUILTIN_FUNCTION(object_toString)
@@ -73,15 +65,17 @@ void init_builtin_object(Context *ctx)
 {
   JSValue obj, proto;
 
-  gconsts.g_object = obj =
-    // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
-    new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
+  obj = new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
+  // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
+  GC_PUSH(obj);
+  gconsts.g_object = obj;
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_object", obj_hidden_class(obj));
 #endif
 #endif
   proto = gconsts.g_object_proto;
+  GC_PUSH(proto);
   set_prototype_de(ctx, obj, proto);
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
@@ -89,10 +83,11 @@ void init_builtin_object(Context *ctx)
 #endif
 #endif
 
-  // not implemented yet
-  // set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
-  //            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
-
+  /*
+   * not implemented yet
+   * set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
+   *            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
+   */
   gconsts.g_function_proto = new_normal_object(ctx);
   {
     ObjBuiltinProp *p = object_funcs;
@@ -102,9 +97,11 @@ void init_builtin_object(Context *ctx)
       p++;
     }
   }
+  GC_POP2(proto, obj);
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
-  print_hidden_class("g_function_proto", obj_hidden_class(gconsts.g_function_proto));
+  print_hidden_class("g_function_proto",
+                     obj_hidden_class(gconsts.g_function_proto));
 #endif
 #endif
 }

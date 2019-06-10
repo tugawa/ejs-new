@@ -1,48 +1,37 @@
 /*
-   builtin-string.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
-#define not_implemented(s) \
+#define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
 #define mallocstr(n) ((char *)malloc(sizeof(char) * ((n) + 1)))
 
 /*
-  constrcutor of a string
+ * constrcutor of a string
  */
 BUILTIN_FUNCTION(string_constr)
 {
   JSValue rsv;
 
   builtin_prologue();
-  // printf("In string_constr\n");
-  rsv = new_normal_string_object(context, na > 0? args[1]: gconsts.g_string_empty);
+  /* printf("In string_constr\n"); */
+  rsv =
+    new_normal_string_object(context, na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
 
 /*
-   constrcutor of a string (not Object)
+ * constrcutor of a string (not Object)
  */
 BUILTIN_FUNCTION(string_constr_nonew)
 {
@@ -80,30 +69,30 @@ BUILTIN_FUNCTION(string_concat)
 
   builtin_prologue();
   /*
-  printf("------\n");
-  printf("In string_concat: na = %d\n", na);
-  for (i = 0; i <= na; i++) {
-    v = args[i];
-    printf("string_concat: before to_string: i = %d: ", i);
-    print_value_simple(context, v); printf("\n");
-  }
-  printf("-----\n");
-  */
+   * printf("------\n");
+   * printf("In string_concat: na = %d\n", na);
+   * for (i = 0; i <= na; i++) {
+   *   v = args[i];
+   *   printf("string_concat: before to_string: i = %d: ", i);
+   *   print_value_simple(context, v); printf("\n");
+   * }
+   * printf("-----\n");
+   */
   for (i = 0, len = 0; i <= na; i++) {
     v = args[i];
     /*
-    printf("string_concat: i = %d: ", i);
-    print_value_simple(context, v); printf("\n");
-    */
+     * printf("string_concat: i = %d: ", i);
+     * print_value_simple(context, v); printf("\n");
+     */
     if (!is_string(v)) v = to_string(context, v);
     len += string_length(v);
     strs[i] = string_to_cstr(v);
-    // printf("strs[%d] = %s\n", i, strs[i]);
+    /* printf("strs[%d] = %s\n", i, strs[i]); */
   }
   s = mallocstr(len);
   for (i = 0, p = s, len = 0; i <= na; i++)
     p = stpcpy(p, strs[i]);
-  // printf("s = %s\n", s);
+  /* printf("s = %s\n", s); */
   ret = cstr_to_string(context, s);
   free(s);
   set_a(context, ret);
@@ -313,6 +302,7 @@ int char_code_at(Context *context, JSValue str, JSValue a) {
   char *s;
   int n;
 
+  GC_PUSH2(a,str);
   if (!is_string(str)) str = to_string(context, str);
   if (is_fixnum(a)) n = fixnum_to_int(a);
   else if (is_flonum(a)) n = flonum_to_int(a);
@@ -326,6 +316,7 @@ int char_code_at(Context *context, JSValue str, JSValue a) {
     }
   }
   s = string_to_cstr(str);
+  GC_POP2(str,a);
   return (0 <= n && n < string_length(str))? s[n]: -1;
 }
 
@@ -356,45 +347,48 @@ BUILTIN_FUNCTION(string_charCodeAt)
 }
 
 /*
-void strReverse(char* str) {
-  char *l, *r;
-  char c;
-  if (str[0] == '\0') return;
-
-  l = str;
-  r = str + strlen(str) - 1;
-  while (r-l > 0) {
-    c = *l;
-    *l = *r;
-    *r = c;
-    r--;
-    l++;
-  }
-}
-*/
+ * void strReverse(char* str) {
+ *   char *l, *r;
+ *   char c;
+ *   if (str[0] == '\0') return;
+ *   l = str;
+ *   r = str + strlen(str) - 1;
+ *   while (r-l > 0) {
+ *     c = *l;
+ *     *l = *r;
+ *     *r = c;
+ *     r--;
+ *     l++;
+ *   }
+ * }
+ */
 
 /*
-   Note that "abcdefg".lastIndexOf("efg", 4) must returns not -1 but 4
-   and "abcdefg".indexOf("",4);
+ * Note that "abcdefg".lastIndexOf("efg", 4) must return not -1 but 4
+ * and "abcdefg".indexOf("",4);
  */
-JSValue string_indexOf_(Context *context, JSValue *args, int na, int isLastIndexOf) {
+JSValue string_indexOf_(Context *context, JSValue *args, int na,
+                        int isLastIndexOf) {
   JSValue s0, s1;
   char *s, *searchStr;
   cint pos, len, start, searchLen, k, j;
   int delta;
 
   s0 = is_string(args[0]) ? args[0] : to_string(context, args[0]);
+  GC_PUSH(s0);
   s1 = is_string(args[1]) ? args[1] : to_string(context, args[1]);
   s = string_to_cstr(s0);
   searchStr = string_to_cstr(s1);
   len = string_length(s0);
+  GC_POP(s0);
   searchLen = string_length(s1);
 
   if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
   else if (isLastIndexOf) pos = INFINITY;
   else pos = 0;
   start = min(max(pos, 0), len);
-  if (searchLen == 0) return cint_to_fixnum(start); // When searchStr is an empty string
+  if (searchLen == 0)
+    return cint_to_fixnum(start); /* When searchStr is an empty string */
 
   if (isLastIndexOf) delta = -1;
   else delta = 1;
@@ -444,7 +438,6 @@ BUILTIN_FUNCTION(string_indexOf)
   sch = PrimitiveToString(sch);
   schcs = stringToCStr(sch);
 
-  // 検索する文字が無い場合
   if(*schcs == '\0'){
     setA(context, FIXNUM_ZERO);
     return; }
@@ -528,8 +521,6 @@ BUILTIN_FUNCTION(string_lastIndexOf)
     setA(context, intToFixnum(-1));
     return;
   }else{
-
-    // 頑張って最後のを見付ける
     while(adr != NULL){
       ret = adr;
       adr = strstr(ret+1, schcs); }
@@ -577,9 +568,11 @@ BUILTIN_FUNCTION(string_localeCompare)
 
   builtin_prologue();
   s0 = to_string(context, args[0]);
+  GC_PUSH(s0);
   if (na >= 1) s1 = to_string(context, args[1]);
   else s1 = to_string(context, JS_UNDEFINED);
   cs0 = string_to_cstr(s0);
+  GC_POP(s0);
   cs1 = string_to_cstr(s1);
 
   /* implemantation-defined */
@@ -607,9 +600,6 @@ BUILTIN_FUNCTION(string_localeCompare)
 #endif
 }
 
-// -------------------------------------------------------------------------------------
-// stringProtoMatch
-
 #if 0
 BUILTIN_FUNCTION(stringProtoMatch)
 {
@@ -634,21 +624,21 @@ BUILTIN_FUNCTION(stringProtoMatch)
   }else
 #endif
 
-  {
-    pat = JSValueToString(reg, context);
-    str = JSValueToString(rsv, context);
+    {
+      pat = JSValueToString(reg, context);
+      str = JSValueToString(rsv, context);
 
 #ifdef USE_REGEXP
-    if(regexpConstructorSub(stringToCStr(pat), "", &regex) == SUCCESS_REGEX_CONST){
-      setA(context, regExpExec(context, regex, stringToCStr(str)));
-      return;
-    }else
+      if(regexpConstructorSub(stringToCStr(pat), "", &regex) == SUCCESS_REGEX_CONST){
+        setA(context, regExpExec(context, regex, stringToCStr(str)));
+        return;
+      }else
 #endif
 
-    {
-      LOG_EXIT("string.match is not implimented.\n");
+        {
+          LOG_EXIT("string.match is not implimented.\n");
+        }
     }
-  }
 }
 #endif
 
@@ -664,7 +654,9 @@ ObjBuiltinProp string_funcs[] = {
   { "charCodeAt",     string_charCodeAt,    0, ATTR_DE },
   { "indexOf",        string_indexOf,       1, ATTR_DE },
   { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
-  // { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
+  /*
+   * { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
+   */
   { "localeCompare",  string_localeCompare, 0, ATTR_DE },
   { NULL,             NULL,                 0, ATTR_DE }
 };
@@ -673,10 +665,12 @@ void init_builtin_string(Context *ctx)
 {
   JSValue str, proto;
 
-  gconsts.g_string = str =
+  str = gconsts.g_string =
     new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
-  gconsts.g_string_proto = proto =
+  GC_PUSH(str);
+  proto = gconsts.g_string_proto =
     new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
+  GC_PUSH(proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   set_prototype_de(ctx, str, proto);
   set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
@@ -688,5 +682,6 @@ void init_builtin_string(Context *ctx)
                         new_normal_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
+    GC_POP2(proto,str);
   }
 }

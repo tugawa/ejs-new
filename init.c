@@ -1,37 +1,25 @@
 /*
-   init.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
 /*
-   initilaizes global constants
+ * initilaizes global constants
  */
 void init_global_constants(void) {
   int i;
   for (i = 0; i < sizeof(gconsts)/sizeof(JSValue); i++)
     ((JSValue *)&gconsts)[i] = JS_UNDEFINED;
 
-  // string constants
+  /* string constants */
   gconsts.g_string_prototype = cstr_to_string(NULL, "prototype");
   gconsts.g_string___proto__ = cstr_to_string(NULL, "__proto__");
   gconsts.g_string_tostring  = cstr_to_string(NULL, "toString");
@@ -50,14 +38,14 @@ void init_global_constants(void) {
   gconsts.g_string_comma     = cstr_to_string(NULL, ",");
   gconsts.g_string_blank     = cstr_to_string(NULL, " ");
 
-  // numbers
+  /* numbers */
   gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);
   gconsts.g_flonum_negative_infinity = double_to_flonum(-INFINITY);
   gconsts.g_flonum_nan       = double_to_flonum(NAN);
 }
 
 /*
-   initilaizes global malloc-ed objects
+ * initilaizes global malloc-ed objects
  */
 void init_global_malloc_objects(void) {
 #ifdef HIDDEN_CLASS
@@ -67,15 +55,15 @@ void init_global_malloc_objects(void) {
 }
 
 /*
-   initializes global objects
-   2017/03/30: moved from init_global
+ * initializes global objects
+ * 2017/03/30: moved from init_global
  */
 void init_global_objects(void) {
   /*
-     It is necessary to make the object that will be set as Object.prototype,
-     because this object is referred to in new_simple_object.
-     Its `prototype' property is null.
-  */
+   * It is necessary to make the object that will be set as Object.prototype,
+   * because this object is referred to in new_simple_object.
+   * Its `prototype' property is null.
+   */
   gconsts.g_object_proto = new_big_predef_object_without_prototype(NULL);
   set_prototype_de(NULL, gconsts.g_object_proto, JS_NULL);
   gconsts.g_global = new_big_predef_object(NULL);
@@ -83,7 +71,8 @@ void init_global_objects(void) {
 
 #ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object_proto", obj_hidden_class(gconsts.g_object_proto));
+  print_hidden_class("g_object_proto",
+                     obj_hidden_class(gconsts.g_object_proto));
   print_hidden_class("g_global", obj_hidden_class(gconsts.g_global));
   print_hidden_class("g_math", obj_hidden_class(gconsts.g_math));
 #endif
@@ -92,11 +81,12 @@ void init_global_objects(void) {
 }
 
 /*
-   initializes builtin
+ * initializes builtin
  */
 void init_builtin(Context *ctx) {
   init_builtin_object(ctx);
   init_builtin_array(ctx);
+  init_builtin_function(ctx);
   init_builtin_number(ctx);
   init_builtin_string(ctx);
   init_builtin_boolean(ctx);
@@ -109,6 +99,6 @@ void init_builtin(Context *ctx) {
 #endif /* need_regexp */
 #endif
 
-  // call init_buitin_global after gconsts is properly set up
+  /* calls init_buitin_global after gconsts is properly set up */
   init_builtin_global(ctx);
 }

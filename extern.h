@@ -1,23 +1,11 @@
 /*
-   extern.h
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #define FUNCTION_TABLE_LIMIT  (100)
 
@@ -28,7 +16,12 @@ extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
 extern int cputime_flag;
+extern int repl_flag;
 extern int regstack_limit;
+
+#if defined(USE_OBC) && defined(USE_SBC)
+extern int obcsbc;
+#endif
 
 extern int run_phase;
 extern int generation;
@@ -36,6 +29,17 @@ extern int gc_sec;
 extern int gc_usec;
 
 extern FILE *log_stream;
+
+#ifdef PROFILE
+extern int profile_flag;
+extern int coverage_flag;
+extern int icount_flag;
+extern int forcelog_flag;
+extern FILE *prof_stream;
+#endif
+
+extern InsnInfo insn_info_table[];
+extern int numinsts;
 
 #ifdef HIDDEN_CLASS
 extern int n_hc;
@@ -85,7 +89,7 @@ extern BUILTIN_FUNCTION(builtin_const_null);
 extern BUILTIN_FUNCTION(builtin_identity);
 extern BUILTIN_FUNCTION(builtin_fixnu_to_string);
 extern BUILTIN_FUNCTION(builtin_flonum_to_string);
-// extern BUILTIN_FUNCTION(builtin_string_to_index);
+/* extern BUILTIN_FUNCTION(builtin_string_to_index); */
 
 /*
  * builtin-array.c
@@ -121,6 +125,11 @@ extern BUILTIN_FUNCTION(object_constr);
 extern BUILTIN_FUNCTION(object_toString);
 
 /*
+ * builtin-function.c
+ */
+extern BUILTIN_FUNCTION(function_apply);
+
+/*
  * call.c
  */
 extern void call_function(Context *, JSValue, int, int);
@@ -128,6 +137,7 @@ extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
 extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
+extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue *, int);
 JSValue call_builtin0(Context *, JSValue, JSValue, int);
 
 
@@ -137,12 +147,11 @@ JSValue call_builtin0(Context *, JSValue, JSValue, int);
 extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
-extern int code_loader(Context *, FunctionTable *);
-extern void init_constant_cell(ConstantCell *);
+extern int code_loader(Context *, FunctionTable *, int);
+extern void init_constant_cell(ConstantCell *, int);
 extern void end_constant_cell(ConstantCell *);
-extern int insn_load(Context *, ConstantCell *, Bytecode *, int);
 extern int update_function_table(FunctionTable *, int, ConstantCell *,
-                                 Bytecode *, int, int, int, int);
+                                 Instruction *, int, int, int, int);
 
 extern JSValue specstr_to_jsvalue(const char *);
 
@@ -157,6 +166,7 @@ extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
 /*
  * context.c
  */
+void reset_context(Context *, FunctionTable *);
 extern FunctionFrame *new_frame(Context *, FunctionTable *, FunctionFrame *, int);
 extern void pop_special_registers(Context *, int, JSValue *);
 extern void init_context(FunctionTable *, JSValue, Context **);
@@ -167,17 +177,17 @@ extern void init_context(FunctionTable *, JSValue, Context **);
 extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
-// JSValue special_to_object(JSValue v);
+/* JSValue special_to_object(JSValue v); */
 extern JSValue string_to_number(JSValue);
-// JSValue string_to_boolean(JSValue v);
-// JSValue string_to_object(JSValue v);
+/* JSValue string_to_boolean(JSValue v); */
+/* JSValue string_to_object(JSValue v); */
 extern JSValue fixnum_to_string(JSValue);
 extern JSValue flonum_to_string(JSValue);
 extern JSValue number_to_string(JSValue);
-// JSValue fixnum_to_boolean(JSValue v);
-// JSValue flonum_to_boolean(JSValue v);
-// JSValue fixnum_to_object(JSValue v);
-// JSValue flonum_to_object(JSValue v);
+/* JSValue fixnum_to_boolean(JSValue v); */
+/* JSValue flonum_to_boolean(JSValue v); */
+/* JSValue fixnum_to_object(JSValue v); */
+/* JSValue flonum_to_object(JSValue v); */
 extern double primitive_to_double(JSValue);
 extern JSValue primitive_to_string(JSValue);
 extern JSValue object_to_string(Context *, JSValue);
@@ -197,7 +207,6 @@ extern JSValue cint_to_string(cint);
 /*
  * hash.c
  */
-
 extern HashTable *malloc_hashtable(void);
 extern int hash_create(HashTable *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
@@ -211,13 +220,15 @@ extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
 
-// DELETE
-// int hashDelete(HashTable *table, HashKey key);
+/*
+ * DELETE
+ * int hashDelete(HashTable *table, HashKey key);
+ */
 
 extern  HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
 extern int hash_next_simple(HashTable *, HashIterator *, HashData *);
-// int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key);
+/* int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key); */
 extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
 extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
 
@@ -230,7 +241,7 @@ extern HashCell *__hashCellMalloc();
 
 extern void hashBodyFree(HashCell **body);
 extern void hashCellFree(HashCell *cell);
-// char* ststrdup(const char*);
+/* char* ststrdup(const char*); */
 
 /*
  * string.c
@@ -334,6 +345,7 @@ extern int vmrun_threaded(Context *, int);
 extern void init_builtin_global(Context *);
 extern void init_builtin_object(Context *);
 extern void init_builtin_array(Context *);
+extern void init_builtin_function(Context *);
 extern void init_builtin_number(Context *);
 extern void init_builtin_string(Context *);
 extern void init_builtin_boolean(Context *);

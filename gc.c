@@ -1,23 +1,11 @@
 /*
-   gc.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,11 +23,11 @@
 #endif
 
 /*
-#define GCLOG(...) LOG(__VA_ARGS__)
-#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
-#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
-#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
-*/
+ * #define GCLOG(...) LOG(__VA_ARGS__)
+ * #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+ * #define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+ * #define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+ */
 
 #define GCLOG(...)
 #define GCLOG_TRIGGER(...)
@@ -50,9 +38,9 @@
 /*
  * defined in header.h
  */
-//typedef uint64_t JSValue;
+/* typedef uint64_t JSValue; */
 #define LOG_BYTES_IN_JSVALUE   3
-//#define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE)
+/* #define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE) */
 
 /*
  * naming convention
@@ -65,7 +53,7 @@
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-//#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+/* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -109,9 +97,17 @@ STATIC struct space js_space;
 #ifdef GC_DEBUG
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
+
+/* old gc root stack (to be obsolete) */
 #define MAX_TMP_ROOTS 1000
 STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
 STATIC int tmp_roots_sp;
+
+/* new gc root stack */
+#define MAX_ROOTS 1000
+STATIC JSValue *gc_root_stack[MAX_ROOTS];
+STATIC int gc_root_stack_ptr = 0;
+
 STATIC int gc_disabled = 1;
 
 int generation = 0;
@@ -258,6 +254,7 @@ void init_memory()
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
 #endif /* GC_DEBUG */
   tmp_roots_sp = -1;
+  gc_root_stack_ptr = 0;
   gc_disabled = 0;
   generation = 1;
   gc_sec = 0;
@@ -285,6 +282,22 @@ void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3)
 void gc_pop_tmp_root(int n)
 {
   tmp_roots_sp -= n;
+}
+
+void gc_push_checked(void *addr)
+{
+  gc_root_stack[gc_root_stack_ptr++] = (JSValue *) addr;
+}
+
+void gc_pop_checked(void *addr)
+{
+#ifdef GC_DEBUG
+  if (gc_root_stack[gc_root_stack_ptr - 1] != (JSValue *) addr) {
+    fprintf(stderr, "GC_POP pointer does not match\n");
+    abort();
+  }
+#endif /* GC_DEBUG */
+  gc_root_stack[--gc_root_stack_ptr] = NULL;
 }
 
 cell_type_t gc_obj_header_type(void *p)
@@ -365,17 +378,17 @@ STATIC void garbage_collect(Context *ctx)
 {
   struct rusage ru0, ru1;
 
-  // printf("Enter gc, generation = %d\n", generation);
+  /* printf("Enter gc, generation = %d\n", generation); */
   GCLOG("Before Garbage Collection\n");
-  // print_memory_status();
+  /* print_memory_status(); */
   if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
   scan_roots(ctx);
   weak_clear();
   sweep();
   GCLOG("After Garbage Collection\n");
-  // print_memory_status();
-  // print_heap_stat();
+  /* print_memory_status(); */
+  /* print_heap_stat(); */
 
   if (cputime_flag == TRUE) {
     time_t sec;
@@ -393,7 +406,7 @@ STATIC void garbage_collect(Context *ctx)
   }
 
   generation++;
-  // printf("Exit gc, generation = %d\n", generation);
+  /* printf("Exit gc, generation = %d\n", generation); */
 }
 
 /*
@@ -503,22 +516,22 @@ STATIC void trace_HashCell(HashCell **ptrp)
 }
 
 STATIC void trace_Instruction_array_part(Instruction **ptrp,
-					 size_t start, size_t end)
+					 size_t n_insns, size_t n_literals)
 {
   Instruction *ptr = (Instruction *) *ptrp;
+  JSValue *litstart;
   size_t i;
   if (test_and_mark_cell(ptr))
     return;
-
-  for (i = start; i < end; i++)
-    trace_slot((JSValue *) (ptr + i));
+  litstart = (JSValue *)(&ptr[n_insns]);
+  for (i = 0; i < n_literals; i++)
+    trace_slot((JSValue *)(&litstart[i]));
 }
 
 STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
-  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->body_size);
-  trace_leaf_object((uintptr_t *) &ptr->insn_ptr);
+  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_literals);
 }
 
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
@@ -552,7 +565,7 @@ STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
   for (i = 0; i < length; i++)
     trace_slot(ptr->locals + i);
 
-  assert(ptr->locals[length - 1] == JS_UNDEFINED);  // GC_DEBUG (cacary)
+  assert(ptr->locals[length - 1] == JS_UNDEFINED);  /* GC_DEBUG (cacary) */
 }
 
 STATIC void trace_StrCons(StrCons **ptrp)
@@ -562,7 +575,7 @@ STATIC void trace_StrCons(StrCons **ptrp)
   if (test_and_mark_cell(ptr))
     return;
 
-  //trace_slot(&ptr->str);  /* weak pointer */
+  /* trace_slot(&ptr->str); */ /* weak pointer */
   if (ptr->next != NULL)
     trace_StrCons(&ptr->next);
 }
@@ -583,11 +596,11 @@ STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
 STATIC void trace_HiddenClass(HiddenClass **ptrp)
 {
   HiddenClass *ptr = *ptrp;
-  // printf("Enter trace_HiddenClass\n");
+  /* printf("Enter trace_HiddenClass\n"); */
   if (test_and_mark_cell(ptr))
     return;
   trace_HashTable(&hidden_map(ptr));
-  // printf("Exit trace_HiddenClass\n");
+  /* printf("Exit trace_HiddenClass\n"); */
 }
 #endif
 
@@ -801,8 +814,12 @@ STATIC void scan_roots(Context *ctx)
   /*
    * tmp root
    */
+  /* old gc root stack */
   for (i = 0; i <= tmp_roots_sp; i++)
     trace_root_pointer((void **) tmp_roots[i]);
+  /* new gc root stack */
+  for (i = 0; i < gc_root_stack_ptr; i++)
+    trace_root_pointer((void **) gc_root_stack[i]);
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
@@ -814,11 +831,11 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
     }
     if (sp < 0)
       return;
-    fp = stack[sp--];                                     // FP
-    trace_FunctionFrame((FunctionFrame **)(stack + sp));  // LP
+    fp = stack[sp--];                                     /* FP */
+    trace_FunctionFrame((FunctionFrame **)(stack + sp));  /* LP */
     sp--;
-    sp--;                                                 // PC
-    scan_FunctionTable((FunctionTable *) stack[sp--]);    // CF
+    sp--;                                                 /* PC */
+    scan_FunctionTable((FunctionTable *) stack[sp--]);    /* CF */
     /* TODO: fixup inner pointer (CF) */
   }
 }

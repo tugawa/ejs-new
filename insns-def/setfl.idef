@@ -1,0 +1,14 @@
+\inst setfl (Immediate newfl)
+
+\otherwise \{
+
+  int oldfl = get_sp(context) - fp + 1;
+
+  if (fp + newfl > STACK_LIMIT) {
+    LOG_EXIT("register stack overflow\n");
+  }
+  set_sp(context, fp + newfl - 1);
+  while (++oldfl <= newfl) {
+    regbase[oldfl] = JS_UNDEFINED;
+  }
+\}

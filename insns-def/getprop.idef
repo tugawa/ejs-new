@@ -12,6 +12,6 @@
   if (obj == JS_UNDEFINED)
      LOG_EXIT("GETPROP: !!!!\n");
   obj = to_object(context, obj);
-  goto getprop_HEAD;
+  goto USELABEL(HEAD);
 \}
 

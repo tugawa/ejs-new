@@ -1,0 +1,10 @@
+\inst isundef (Register dst, Value v)
+
+\otherwise \{
+/*
+   isundef dst reg
+     $dst = $reg == undefined
+ */
+
+  dst = true_false(is_undefined(v));
+\}

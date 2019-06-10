@@ -1,55 +1,43 @@
 /*
-   builtin-global.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
 /*
-   isNAN
+ * isNAN
  */
 BUILTIN_FUNCTION(builtin_isNaN)
 {
   double d;
 
-  builtin_prologue();  
+  builtin_prologue();
   d = to_double(context, args[1]);
   set_a(context, true_false(isnan(d)));
 }
 
 /*
-   isFinite
+ * isFinite
  */
 BUILTIN_FUNCTION(builtin_isFinite)
 {
   double d;
 
-  builtin_prologue();  
+  builtin_prologue();
   d = to_double(context, args[1]);
   set_a(context, true_false(isinf(d)));
 }
 
 /*
-   parseInt str rad
-   converts a string to a number
+ * parseInt str rad
+ * converts a string to a number
  */
 BUILTIN_FUNCTION(builtin_parse_int)
 {
@@ -59,9 +47,11 @@ BUILTIN_FUNCTION(builtin_parse_int)
   int32_t irad;
   long ret;
 
-  builtin_prologue();  
+  builtin_prologue();
   str = to_string(context, args[1]);
+  GC_PUSH(str);
   rad = to_number(context, args[2]);
+  GC_POP(str);
   cstr = string_to_cstr(str);
 
   if (!is_undefined(rad)) {
@@ -90,7 +80,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
   char *cstr;
   double x;
 
-  builtin_prologue();  
+  builtin_prologue();
   str = to_string(context, args[1]);
   cstr = string_to_cstr(str);
   cstr = space_chomp(cstr);
@@ -104,7 +94,7 @@ BUILTIN_FUNCTION(builtin_parse_float)
 #endif /* need_float */
 
 /*
-   throws Error because it is not a constructor
+ * throws Error because it is not a constructor
  */
 BUILTIN_FUNCTION(builtin_not_a_constructor)
 {
@@ -112,17 +102,17 @@ BUILTIN_FUNCTION(builtin_not_a_constructor)
 }
 
 /*
-   print
+ * print
  */
 BUILTIN_FUNCTION(builtin_print)
 {
   int i;
 
   builtin_prologue();
-  // printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args);
+  /* printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args); */
 
   for (i = 1; i <= na; ++i) {
-    // printf("args[%d] = %016lx\n", i, args[i]);
+    /* printf("args[%d] = %016lx\n", i, args[i]); */
     print_value_simple(context, args[i]);
     putchar(i < na ? ' ' : '\n');
   }
@@ -130,17 +120,17 @@ BUILTIN_FUNCTION(builtin_print)
 }
 
 /*
-   printv
+ * printv
  */
 BUILTIN_FUNCTION(builtin_printv)
 {
   int i;
 
   builtin_prologue();
-  // printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args);
+  /* printf("builtin_print: na = %d, fp = %p, args = %p\n", na, fp, args); */
 
   for (i = 1; i <= na; ++i) {
-    // printf("args[%d] = %016lx\n", i, args[i]);
+    /* printf("args[%d] = %016lx\n", i, args[i]); */
     print_value_verbose(context, args[i]);
     putchar(i < na ? ' ' : '\n');
   }
@@ -148,14 +138,14 @@ BUILTIN_FUNCTION(builtin_printv)
 }
 
 /*
-   displays the status
+ * displays the status
  */
 BUILTIN_FUNCTION(builtin_printStatus)
 {
-  // int fp;
+  /* int fp; */
   JSValue *regBase;
 
-  // fp = get_fp(context);
+  /* fp = get_fp(context); */
   regBase = (JSValue*)(&(get_stack(context, fp-1)));
   LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
           (FunctionCell *)regBase[-CF_POS],
@@ -172,7 +162,7 @@ BUILTIN_FUNCTION(builtin_printStatus)
 }
 
 /*
-   displays the address of an object
+ * displays the address of an object
  */
 BUILTIN_FUNCTION(builtin_address)
 {
@@ -185,7 +175,7 @@ BUILTIN_FUNCTION(builtin_address)
 }
 
 /*
-   prints ``hello, world''
+ * prints ``hello, world''
  */
 BUILTIN_FUNCTION(builtin_hello)
 {
@@ -208,20 +198,22 @@ BUILTIN_FUNCTION(builtin_to_number)
 
 #ifdef USE_PAPI
 /*
-   obtains the real usec
+ * obtains the real usec
  */
 BUILTIN_FUNCTION(builtin_papi_get_real)
 {
   long long now = PAPI_get_real_usec();
   set_a(context, int_to_fixnum(now));
 }
-#endif // USE_PAPI
+#endif /* USE_PAPI */
 
 ObjBuiltinProp global_funcs[] = {
   { "isNaN",          builtin_isNaN,              1, ATTR_DDDE },
   { "isFinite",       builtin_isFinite,           1, ATTR_DE   },
-//  { "parseInt",       builtin_parseInt,           2, ATTR_DE   },
-//  { "parseFloat",     builtin_parseFloat,         1, ATTR_DE   },
+  /*
+  { "parseInt",       builtin_parseInt,           2, ATTR_DE   },
+  { "parseFloat",     builtin_parseFloat,         1, ATTR_DE   },
+  */
   { "print",          builtin_print,              0, ATTR_ALL  },
   { "printv",         builtin_printv,             0, ATTR_ALL  },
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },
@@ -248,13 +240,14 @@ ObjGconstsProp global_gconsts_props[] = {
 };
 
 /*
-   sets the global object's properties
+ * sets the global object's properties
  */
 void init_builtin_global(Context *ctx)
 {
   JSValue g;
 
   g = gconsts.g_global;
+  GC_PUSH(g);
   set_obj_cstr_prop(ctx, g, "true", JS_TRUE, ATTR_DE);
   set_obj_cstr_prop(ctx, g, "false", JS_FALSE, ATTR_DE);
   set_obj_cstr_prop(ctx, g, "null", JS_NULL, ATTR_DE);
@@ -274,4 +267,5 @@ void init_builtin_global(Context *ctx)
       p++;
     }
   }
+  GC_POP(g);
 }

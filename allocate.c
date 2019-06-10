@@ -1,39 +1,27 @@
 /*
-   allocate.c
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-17
-     Hideya Iwasaki, 2016-17
-
-   The eJS Project is the successor of the SSJS Project at the University of
-   Electro-communications, which was contributed by the following members.
-
-     Sho Takada, 2012-13
-     Akira Tanimura, 2012-13
-     Akihiro Urushihara, 2013-14
-     Ryota Fujii, 2013-14
-     Tomoharu Ugawa, 2012-14
-     Hideya Iwasaki, 2012-14
-*/
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
 
 /*
-   a counter for debugging
+ * a counter for debugging
  */
 #ifdef DEBUG
 int count = 0;
-#endif // DEBUG
+#endif /* DEBUG */
 
 #ifdef need_flonum
 /*
-   allocates a flonum
-   Note that the return value does not have a pointer tag.
+ * allocates a flonum
+ * Note that the return value does not have a pointer tag.
  */
 FlonumCell *allocate_flonum(double d)
 {
@@ -45,9 +33,9 @@ FlonumCell *allocate_flonum(double d)
 #endif /* need_flonum */
 
 /*
-   allocates a string
-   It takes only the string length (excluding the last null character).
-   Note that the return value does not have a pointer tag.
+ * allocates a string
+ * It takes only the string length (excluding the last null character).
+ * Note that the return value does not have a pointer tag.
  */
 StringCell *allocate_string(uint32_t length)
 {
@@ -64,8 +52,8 @@ StringCell *allocate_string(uint32_t length)
 }
 
 /*
-   allocates a simple object
-   Note that the return value does not have a pointer tag.
+ * allocates a simple object
+ * Note that the return value does not have a pointer tag.
  */
 Object *allocate_simple_object(Context *ctx)
 {
@@ -74,8 +62,8 @@ Object *allocate_simple_object(Context *ctx)
 }
 
 /*
-   allocates an array
-   Note that the return value does not have a pointer tag.
+ * allocates an array
+ * Note that the return value does not have a pointer tag.
  */
 ArrayCell *allocate_array(Context *ctx) {
   ArrayCell *array =
@@ -84,47 +72,48 @@ ArrayCell *allocate_array(Context *ctx) {
 }
 
 /*
-   allocates an array body
-     size : number of elements in the body (size >= len)
-     len  : length of the array, i.e., subscripts that are less than len
-            are acrutally used
+ * allocates an array body
+ *   size : number of elements in the body (size >= len)
+ *   len  : length of the array, i.e., subscripts that are less than len
+ *          are acrutally used
  */
 void allocate_array_data(Context *ctx, JSValue a, int size, int len)
 {
   JSValue *body;
   int i;
 
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-			       HTAG_ARRAY_DATA);
+                               HTAG_ARRAY_DATA);
+  GC_POP(a);
   for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
   array_body(a) = body;
   array_size(a) = size;
   array_length(a) = len;
-  gc_pop_tmp_root(1);
 }
 
 /*
-   re-allocates an array body
-     newsize : new size of the array body
+ * re-allocates an array body
+ *   newsize : new size of the array body
  */
 void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 {
   JSValue *body, *oldbody;
+
   int i;
 
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
-			       HTAG_ARRAY_DATA);
+                               HTAG_ARRAY_DATA);
+  GC_POP(a);
   oldbody = array_body(a);
   for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
   array_body(a) = body;
   array_size(a) = newsize;
-  gc_pop_tmp_root(1);
 }
 
 /*
-   allocates a function
+ * allocates a function
  */
 FunctionCell *allocate_function(void) {
   FunctionCell *function =
@@ -133,7 +122,7 @@ FunctionCell *allocate_function(void) {
 }
 
 /*
-   allocates a builtin
+ * allocates a builtin
  */
 BuiltinCell *allocate_builtin(void) {
   BuiltinCell *builtin =
@@ -143,9 +132,9 @@ BuiltinCell *allocate_builtin(void) {
 
 JSValue *allocate_prop_table(int size) {
   JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
-						 HTAG_PROP);
+                                                 HTAG_PROP);
   size_t i;
-  for (i = 0; i < size; i++)  // initialise for GC
+  for (i = 0; i < size; i++)  /* initialise for GC */
     table[i] = JS_UNDEFINED;
   return table;
 }
@@ -165,7 +154,7 @@ JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int n
 }
 
 /*
-   allocates an iterator
+ * allocates an iterator
  */
 IteratorCell *allocate_iterator(void) {
   IteratorCell *iter =
@@ -174,7 +163,7 @@ IteratorCell *allocate_iterator(void) {
 }
 
 /*
-   allocates an iterator
+ * allocates an iterator
  */
 SimpleIterator *allocate_simple_iterator(void) {
   SimpleIterator *iter =
@@ -186,26 +175,27 @@ SimpleIterator *allocate_simple_iterator(void) {
 }
 
 /*
-   allocates a simple iterator body
-     size : number of elements in the body (size >= len)
-     index  :reference number in the body
+ * allocates a simple iterator body
+ *   size  : number of elements in the body (size >= len)
+ *   index : reference number in the body
  */
 void allocate_simple_iterator_data(Context *ctx, JSValue a, int size)
 {
   JSValue *body;
   int i;
-  gc_push_tmp_root(&a);
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-			       HTAG_ARRAY_DATA);
+                               HTAG_ARRAY_DATA);
+  GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
   simple_iterator_body(a) = body;
   simple_iterator_size(a) = size;
   simple_iterator_index(a) = 0;
-  gc_pop_tmp_root(1);
+
 }
 
 /*
-   allocates a regexp
+ * allocates a regexp
  */
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
@@ -219,7 +209,7 @@ RegexpCell *allocate_regexp(void)
 #endif
 
 /*
-   allocates a boxed object
+ *  allocates a boxed object
  */
 BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
 {

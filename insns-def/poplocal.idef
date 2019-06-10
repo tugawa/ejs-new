@@ -1,0 +1,6 @@
+\inst poplocal ()
+
+\otherwise \{
+  int newpc;
+  lcall_stack_pop(context, &newpc);
+\}

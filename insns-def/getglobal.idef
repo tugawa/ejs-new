@@ -1,0 +1,16 @@
+\inst getglobal (Register dst, Value s)
+
+\otherwise \{
+/*
+   getglobal dst reg
+     dst : destination register
+     reg : register that has a pointer to a string object
+   $dst = property value for the string in the global object
+ */
+
+  JSValue ret;
+  if (get_prop(context->global, s, &ret) == FAIL) {
+    LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(s));
+  }
+  dst = ret;
+\}
