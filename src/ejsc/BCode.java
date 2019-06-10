@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-abstract class CodeBuffer {
+interface CodeBuffer {
     enum SpecialValue {
         TRUE,
         FALSE,
@@ -20,51 +20,51 @@ abstract class CodeBuffer {
         UNDEFINED
     }
     // fixnum
-    abstract void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n);
+    void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n);
     // number
-    abstract void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n);
+    void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n);
     // string
-    abstract void addStringBigPrimitive(String insnName, boolean log, Register dst, String s);
+    void addStringBigPrimitive(String insnName, boolean log, Register dst, String s);
     // special
-    abstract void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v);
+    void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v);
     // regexp
-    abstract void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn);
+    void addRegexp(String insnName, boolean log, Register dst, int flag, String ptn);
     // threeop
-    abstract void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2);
+    void addRXXThreeOp(String insnName, boolean log, Register dst, SrcOperand src1, SrcOperand src2);
     // threeop (setprop)
-    abstract void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3);
+    void addXXXThreeOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2, SrcOperand src3);
     // threeop (setarray)
-    abstract void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2);
+    void addXIXThreeOp(String insnName, boolean log, SrcOperand src1, int index, SrcOperand src2);
     // twoop
-    abstract void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src);
+    void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src);
     // twoop (setglobal)
-    abstract void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2);
+    void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2);
     // twoop (makesimpleiterator, getnextpropnameidx)
-    abstract void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst);
+    void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst);
     // oneop
-    abstract void addROneOp(String insnName, boolean log, Register dst);
+    void addROneOp(String insnName, boolean log, Register dst);
     // oneop (seta, throw)
-    abstract void addXOneOp(String insnName, boolean log, SrcOperand src);
+    void addXOneOp(String insnName, boolean log, SrcOperand src);
     // oneop (setfl)
-    abstract void addIOneOp(String insnName, boolean log, int n);
+    void addIOneOp(String insnName, boolean log, int n);
     // zeroop
-    abstract void addZeroOp(String insnName, boolean log);
+    void addZeroOp(String insnName, boolean log);
     // newframe
-    abstract void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs);
+    void addNewFrameOp(String insnName, boolean log, int len, boolean mkargs);
     // getvar
-    abstract void addGetVar(String insnName, boolean log, Register dst, int link, int index);
+    void addGetVar(String insnName, boolean log, Register dst, int link, int index);
     // setvar
-    abstract void addSetVar(String insnName, boolean log, int link, int inex, SrcOperand src);
+    void addSetVar(String insnName, boolean log, int link, int inex, SrcOperand src);
     // makeclosure
-    abstract void addMakeClosureOp(String insnName, boolean log, Register dst, int index);
+    void addMakeClosureOp(String insnName, boolean log, Register dst, int index);
     // call
-    abstract void addXICall(String insnName, boolean log, SrcOperand fun, int nargs);
+    void addXICall(String insnName, boolean log, SrcOperand fun, int nargs);
     // call (new)
-    abstract void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun);
+    void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun);
     // uncondjump
-    abstract void addUncondJump(String insnName, boolean log, int disp);
+    void addUncondJump(String insnName, boolean log, int disp);
     // condjump
-    abstract void addCondJump(String insnName, boolean log, SrcOperand test, int disp);
+    void addCondJump(String insnName, boolean log, SrcOperand test, int disp);
 }
 
 public abstract class BCode {
