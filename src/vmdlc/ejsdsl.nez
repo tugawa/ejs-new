@@ -39,7 +39,7 @@ Block = "{" { $(Statement)* #Block } "}"
 Statement = Block
           / Match
           / Return
-          / Assignment     // 順番が ExpressionStatement より前じゃないとだめ
+          / Assignment     // the order of important
           / ExpressionStatement
           / Declaration
           / If
@@ -496,7 +496,7 @@ return CintToFixnum(x1 >> x2);
 
 example Statement ~27 '''
 do (step oldfl+1) {
-      // regbase[oldfl] = JS_UNDEFINED をどう書くか
+      // regbase[oldfl] = JS_UNDEFINED
 }
 '''
 
@@ -504,8 +504,8 @@ example Statement ~24 '''
 Set_pc_relative(d);
 '''
 
-// Assignment を用意するかどうか検討
-// getargs.inc2 と getlocal.inc2 と mod.inc2 と new.inc2 と newargs.inc2 と setarg.inc2 と setlocal.inc2 で必要だが，do 文に付けてしまえないか
+// TODO: Assignment 
+// getargs.vmd, getlocal.vmd, mod.vmd, new.vmd, newargs.vmd, setarg.vmd, setlocal.vmd 
 example Statement ~21 '''
 do (cint i=0 step i+1) {
     if (link < i) {
@@ -515,12 +515,12 @@ do (cint i=0 step i+1) {
   }
 '''
 
-// newargs.inc2 と newframe.inc2 と setarray.inc2 と setlocal.inc2 にある書きかた
+// newargs.vmd ,newframe.vmd, setarray.vmd, setlocal.vmd
 example Statement ~25 '''
 args.body[i] <- Get_register(i + 2);
 '''
 
-// pophandler.inc2 にある書きかた
+// pophandler.vmd
 example Statement ~25 '''
 (newpc, handler_fp) <- Exhandler_stack_pop();
 '''

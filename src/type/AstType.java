@@ -16,7 +16,7 @@ cint
 cdouble
 cstring
 (cchar)
-JSValue <- Subtyping にして，Union 型ではとりあえずやらない
+JSValue <- Subtyping
     Primitive
         Number
             Fixnum

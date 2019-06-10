@@ -97,7 +97,6 @@ class PatternDict {
         }
 
         public void replace(SyntaxTree node) {
-            // pattern の中の varName を node の v2 と入れ変えて，node に入れる
             String v2 = node.get(Symbol.unique("var")).toText();
             
             SyntaxTree result = (SyntaxTree)pattern.dup();
