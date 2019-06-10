@@ -226,6 +226,7 @@ ifeq ($(OPT_REGEXP),oniguruma)
 endif
 
 ifeq ($(DATATYPES),)
+    GENERATED_HFILES += types-handcraft.h
 else
     CFLAGS += -DUSE_TYPES_GENERATED=1
     GENERATED_HFILES += types-generated.h
@@ -316,7 +317,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(call tmp_idef,$@) \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p insns
@@ -324,7 +325,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 endif
 endif
 
@@ -352,11 +353,11 @@ CHECKRESULTS = $(patsubst %.c,$(CHECKFILES_DIR)/%.c.checkresult,$(CFILES))
 CHECKTARGETS = $(patsubst %.c,%.c.check,$(CFILES))
 
 types-generated.h: $(DATATYPES)
-	$(TYPESGEN) $< > $@ || rm $@
+	$(TYPESGEN) $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) $< > $@ || rm $@
+	$(CPP) $(CFLAGS) $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
@@ -365,7 +366,7 @@ $(CHECKTARGETS):%.c.check: $(CHECKFILES_DIR)/%.c
 	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $<
 
 $(CHECKRESULTS):$(CHECKFILES_DIR)/%.c.checkresult: $(CHECKFILES_DIR)/%.c
-	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@ || rm $@
+	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@ || (rm $@; exit 1)
 
 check: $(CHECKRESULTS)
 	cat $^
