@@ -13,6 +13,14 @@
 
 #define CPU_LITTLE_ENDIAN
 
+#if !defined(USE_SBC) && !defined(USE_OBC)
+#error Either USE_SBC or USE_OBC should be defined.
+#endif
+
+#if !defined(USE_SBC) && defined(PROFILE)
+#error PROFILE can be defined only when USE_SBC is defined.
+#endif
+
 /*
  * information of instructions
  */
@@ -138,16 +146,6 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #define buf_to_int(s)   buf_to_int_sbc(s)
 #endif
 
-#endif
-
-#if !defined(USE_SBC) && !defined(USE_OBC)
-  fprintf(stderr, "Fatal error: either USE_SBC or USE_OBC should be defined.\n");
-  exit(1);
-#endif
-
-#if !defined(USE_SBC) && defined(PROFILE)
-  fprintf(stderr, "Fatal error: PROFILE can be defined only when USE_SBC is defined\n");
-  exit(1);
 #endif
 
   /*
