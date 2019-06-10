@@ -54,7 +54,7 @@ extern int insn_load_sbc(Context *, Instruction *, int, int, int);
 extern void init_constant_info(CItable *citable, int nconsts, int i);
 extern void add_constant_info(CItable *ci, Opcode oc, int index,
                               InsnOperandType type);
-extern void const_load(Context *, int, JSValue *, CItable);
+extern void const_load(Context *, int, JSValue *, CItable *);
 extern int insn_load_obc(Context *, Instruction *, int, int, CItable *);
 #endif
 
@@ -123,7 +123,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #if defined(USE_OBC) && defined(USE_SBC)
 
 #define next_buf()    (obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc())
-#define buf_to_int(s) \
+#define buf_to_int(s)                                                \
   (obcsbc == FILE_OBC? buf_to_int_obc(s): buf_to_int_sbc(s))
 
 #else
@@ -189,8 +189,8 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #endif
 #endif
 
-    insns = (Instruction *)
-            malloc(sizeof(Instruction) * ninsns + sizeof(JSValue) * nconsts);
+    insns = ((Instruction *)
+             malloc(sizeof(Instruction) * ninsns + sizeof(JSValue) * nconsts));
     if (insns == NULL)
       LOG_EXIT("Allocating instruction array failed.");
     consttop = (JSValue *)(&insns[ninsns]);
@@ -207,9 +207,9 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     /* loads instructions for each function */
     for (j = 0; j < ninsns; j++) {
 #if defined(USE_OBC) && defined(USE_SBC)
-      ret = obcsbc == FILE_OBC?
-            insn_load_obc(ctx, insns, ninsns, j, &citable):
-            insn_load_sbc(ctx, insns, ninsns, nconsts, j);
+      ret = (obcsbc == FILE_OBC?
+             insn_load_obc(ctx, insns, ninsns, j, &citable):
+             insn_load_sbc(ctx, insns, ninsns, nconsts, j));
 #else
 #ifdef USE_OBC
       ret = insn_load_obc(ctx, insns, ninsns, j, &citable);
@@ -224,7 +224,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 
 #if defined(USE_OBC) && defined(USE_SBC)
     if (obcsbc == FILE_OBC)
-      const_load(ctx, nconsts, consttop, citable);
+      const_load(ctx, nconsts, consttop, &citable);
 #else
 #ifdef USE_OBC
     const_load(ctx, nconsts, consttop, &citable);
@@ -283,7 +283,7 @@ JSValue double_load(Context *ctx) {
   return double_to_number(u.d);
 }
 
-void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable citable) {
+void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
   int i;
   unsigned char b[2];
 
@@ -295,9 +295,9 @@ void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable citable) {
     JSValue v = JS_UNDEFINED;
 
     next_buf();
-    citable.const_info[i].size = size = buf_to_int();
+    citable->const_info[i].size = size = buf_to_int();
     if (size > 0) {
-      Opcode oc = citable.const_info[i].oc;
+      Opcode oc = citable->const_info[i].oc;
       switch (insn_info_table[oc].otype) {
       case BIGPRIMITIVE:
         switch (oc) {
@@ -323,7 +323,7 @@ void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable citable) {
         break;
       case THREEOP:
         {
-          InsnOperandType type = citable.const_info[i].type;
+          InsnOperandType type = citable->const_info[i].type;
           switch (type) {
           case STR:
             v = string_load(ctx, size);
@@ -803,9 +803,9 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
         index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
         add_constant_info(citable, oc, index, type);
         disp = calc_displacement(ninsns, pc, index);
-        bc = (i == 0)? update_first_operand_disp(bc, disp):
-             ((i == 1)? update_second_operand_disp(bc, disp):
-                        update_third_operand_disp(bc, disp));
+        bc = ((i == 0)? update_first_operand_disp(bc, disp):
+              (i == 1)? update_second_operand_disp(bc, disp):
+              update_third_operand_disp(bc, disp));
       }
     }
     /* fall through */
@@ -983,22 +983,22 @@ void print_bytecode(Instruction *insns, int pc) {
         type = si_optype(oc, i);
         if (type == STR || type == NUM) {
           Displacement disp;
-          disp = (i == 0)? get_first_operand_disp(code):
-                 ((i == 1)? get_second_operand_disp(code):
-                            get_third_operand_disp(code));
+          disp = ((i == 0)? get_first_operand_disp(code):
+                  (i == 1)? get_second_operand_disp(code):
+                  get_third_operand_disp(code));
           print_constant(insns, pc, disp);
         } else if (type == SPEC) {
           int k, imm;
-          k = (i == 0)? get_first_operand_int(code):
-              ((i == 1)? get_second_operand_int(code):
-                         get_third_operand_int(code));
+          k = ((i == 0)? get_first_operand_int(code):
+               (i == 1)? get_second_operand_int(code):
+               get_third_operand_int(code));
           imm = get_small_immediate(k);
           printf(" %s", jsvalue_to_specstr(imm));
         } else {   /* LIT NONE */
           Register r;
-          r = (i == 0)? get_first_operand_reg(code):
-              ((i == 1)? get_second_operand_reg(code):
-                         get_third_operand_reg(code));
+          r = ((i == 0)? get_first_operand_reg(code):
+               (i == 1)? get_second_operand_reg(code):
+               get_third_operand_reg(code));
           printf(" %d", r);
         }
       }
