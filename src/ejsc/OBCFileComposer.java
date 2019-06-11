@@ -265,14 +265,6 @@ public class OBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        public void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst) {
-            int opcode = getOpcode(insnName, src);
-            int a = fieldBitsOf(src);
-            int b = dst.getRegisterNumber();
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
-            instructions.add(insn);
-        }
-        @Override
         public void addROneOp(String insnName, boolean log, Register dst) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();

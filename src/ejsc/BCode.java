@@ -39,8 +39,6 @@ interface CodeBuffer {
     void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src);
     // twoop (setglobal)
     void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2);
-    // twoop (makeiterator, getnextpropnameidx)
-    void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst);
     // oneop
     void addROneOp(String insnName, boolean log, Register dst);
     // oneop (seta, throw)
@@ -1131,12 +1129,13 @@ class IMakeiterator extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXRTwoOp(name, logging, obj, dst);
+        buf.addRXTwoOp(name, logging, dst, obj);
     }
     public String toString() {
-        return super.toString(name, obj, dst);
+        return super.toString(name, dst, obj);
     }
 }
+/* TWOOP */
 class INextpropnameidx extends BCode {
     SrcOperand ite;
     INextpropnameidx(Register ite, Register dst) {
@@ -1145,10 +1144,10 @@ class INextpropnameidx extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addXRTwoOp(name, logging, ite, dst);
+        buf.addRXTwoOp(name, logging, dst, ite);
     }
     public String toString() {
-        return super.toString(name, ite, dst);
+        return super.toString(name, dst, ite);
     }
 }
 /* UNCONDJUMP */

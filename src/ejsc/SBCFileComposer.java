@@ -209,14 +209,6 @@ public class SBCFileComposer extends OutputFileComposer {
             instructions.add(insn);
         }
         @Override
-        public void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst) {
-            insnName = decorateInsnName(insnName, log, src);
-            String a = srcOperandField(src);
-            String b = Integer.toString(dst.getRegisterNumber());
-            SBCInstruction insn = new SBCInstruction(insnName, a, b);
-            instructions.add(insn);
-        }
-        @Override
         public void addROneOp(String insnName, boolean log, Register dst) {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
