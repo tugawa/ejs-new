@@ -45,8 +45,8 @@ jumpfalse             CONDJUMP       JSValue    Displacement
 getlocal              GETVAR         Register   int          Subscript
 setlocal              SETVAR         int        Subscript    JSValue
 makeclosure           MAKECLOSUREOP  Register   Subscript
-makeiterator          TWOOP          JSValue    Register
-nextpropnameidx       TWOOP          JSValue    Register
+makeiterator          TWOOP          Register   JSValue
+nextpropnameidx       TWOOP          Register   JSValue
 send                  CALLOP         LABELONLY
 newsend               CALLOP         LABELONLY
 call                  CALLOP         JSValue    int

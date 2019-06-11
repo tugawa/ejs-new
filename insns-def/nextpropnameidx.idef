@@ -1,4 +1,4 @@
-\inst nextpropnameidx (Value itr, Register dst)
+\inst nextpropnameidx (Register dst, Value itr)
 
 \otherwise \{
 /*

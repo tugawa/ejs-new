@@ -1,4 +1,4 @@
-\inst makeiterator (Value obj, Register dst)
+\inst makeiterator (Register dst, Value obj)
 
 \otherwise \{
 /*

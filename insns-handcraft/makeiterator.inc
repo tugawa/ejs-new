@@ -4,8 +4,8 @@
    $dst = iterator object for iterating $obj
  */ 
 {
-  JSValue obj = v0;
-  Register dst = r1;
+  Register dst = r0;
+  JSValue obj = v1;
   
   if (!is_object(obj))
     LOG_EXIT("makeiterator: not an object\n");
