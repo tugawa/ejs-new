@@ -278,15 +278,15 @@ typedef struct iterator {
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
-#define make_iterator()					\
+#define make_iterator()                                        \
   (put_normal_iterator_tag(allocate_iterator()))
-#define iterator_size(i)			\
+#define iterator_size(i)                        \
   ((remove_normal_iterator_tag(i))->size)
-#define iterator_index(i)			\
+#define iterator_index(i)                        \
   ((remove_normal_iterator_tag(i))->index)
-#define iterator_body(i)			\
+#define iterator_body(i)                        \
   ((remove_normal_iterator_tag(i))->body)
-#define iterator_body_index(a,i)		\
+#define iterator_body_index(a,i)                \
   ((remove_normal_iterator_tag(a))->body[i])
 
 #ifdef USE_REGEXP
@@ -294,19 +294,19 @@ typedef struct iterator {
 
 #include <oniguruma.h>
 
-  /*
-   * Regexp
-   * tag == T_GENERIC
-   */
-  typedef struct regexp_cell {
-    Object o;
-    char *pattern;
-    regex_t *reg;
-    bool global;
-    bool ignorecase;
-    bool multiline;
-    int lastindex;
-  } RegexpCell;
+/*
+ * Regexp
+ * tag == T_GENERIC
+ */
+typedef struct regexp_cell {
+  Object o;
+  char *pattern;
+  regex_t *reg;
+  bool global;
+  bool ignorecase;
+  bool multiline;
+  int lastindex;
+} RegexpCell;
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
@@ -340,7 +340,7 @@ typedef struct boxed_cell {
 #define number_object_object_ptr(n)             \
   (&((remove_normal_number_object_tag(n))->o))
 
-#define make_boolean_object(ctx)					\
+#define make_boolean_object(ctx)                                        \
   (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_BOOLEAN)))
 #define boolean_object_value(b)    (remove_normal_boolean_object_tag(b)->value)
 #define boolean_object_object_ptr(b)            \
@@ -352,9 +352,9 @@ typedef struct boxed_cell {
 #define string_object_object_ptr(s)             \
   (&((remove_normal_string_object_tag(s))->o))
 
-  /*
-   * Flonum
-   */
+/*
+ * Flonum
+ */
 #if !defined(need_flonum)
 
 #define flonum_value(p)      JS_UNDEFINED

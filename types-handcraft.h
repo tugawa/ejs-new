@@ -52,7 +52,7 @@
   ((Iterator *)remove_tag((p), T_GENERIC))
 #define remove_normal_string_tag(p)             \
   ((StringCell *)remove_tag((p), T_STRING))
-#define remove_normal_regexp_tag(p)		\
+#define remove_normal_regexp_tag(p)             \
   ((RegexpCell *)  remove_tag((p), T_GENERIC))
 #define remove_normal_boolean_object_tag(p)     \
   ((BoxedCell *)remove_tag((p), T_GENERIC))
@@ -61,18 +61,18 @@
 #define remove_normal_string_object_tag(p)      \
   ((BoxedCell *)remove_tag((p), T_GENERIC))
 
-#define put_normal_simple_object_tag(p) (put_tag(p, T_GENERIC))
-#define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
-#define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
-#define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_string_tag(p)        (put_tag((p), T_STRING))
-#define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
-#define put_normal_flonum_tag(p)        (put_tag(p, T_FLONUM))
-#define put_normal_normal_string_tag(p) (put_tag(p, T_STRING))
+#define put_normal_simple_object_tag(p)  (put_tag((p), T_GENERIC))
+#define put_normal_array_tag(p)          (put_tag((p), T_GENERIC))
+#define put_normal_function_tag(p)       (put_tag((p), T_GENERIC))
+#define put_normal_builtin_tag(p)        (put_tag((p), T_GENERIC))
+#define put_normal_iterator_tag(p)       (put_tag((p), T_GENERIC))
+#define put_normal_string_tag(p)         (put_tag((p), T_STRING))
+#define put_normal_regexp_tag(p)         (put_tag((p), T_GENERIC))
+#define put_normal_flonum_tag(p)         (put_tag((p), T_FLONUM))
+#define put_normal_normal_string_tag(p)  (put_tag((p), T_STRING))
 #define put_normal_boolean_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_normal_number_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_normal_string_object_tag(p) (put_tag((p), T_GENERIC))
+#define put_normal_number_object_tag(p)  (put_tag((p), T_GENERIC))
+#define put_normal_string_object_tag(p)  (put_tag((p), T_GENERIC))
 
 #define HTAG_STRING        (0x4)
 #define HTAG_FLONUM        (0x5)
