@@ -206,28 +206,15 @@ extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
 
-/*
- * DELETE
- * int hashDelete(HashTable *table, HashKey key);
- */
-
-extern  HashIterator createHashIterator(HashTable *);
+extern HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
-extern int hash_next_simple(HashTable *, HashIterator *, HashData *);
-/* int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key); */
-extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
-extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
-
-extern int __hashNextIdx(HashTable *table, int *idx, HashEntry *ep);
-
+extern int nextHashEntry(HashTable *table, HashIterator *Iter, HashEntry *ep);
+extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
 extern int rehash(HashTable *table);
-
 extern HashCell **__hashMalloc(int size);
 extern HashCell *__hashCellMalloc();
-
 extern void hashBodyFree(HashCell **body);
 extern void hashCellFree(HashCell *cell);
-/* char* ststrdup(const char*); */
 
 /*
  * string.c

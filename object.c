@@ -561,37 +561,6 @@ int delete_array_element(JSValue a, cint n) {
   return delete_object_prop(a, cint_to_string(n));
 }
 
-#if 0
-static inline void setArrayBody(JSValue array, int size)
-{
-  if(size < MINIMUM_ARRAY_SIZE)
-    size = MINIMUM_ARRAY_SIZE;
-  ((ArrayCell*)array)->body = allocateArrayData(size);
-  setArraySize(array, size);
-}
-#endif
-
-int next_propname_idx(JSValue obj, int *idx, HashKey *key)
-{
-  HashEntry e;
-  int r;
-  Map *a;
-
-#ifdef HIDDEN_CLASS
-  a = obj_hidden_class_map(obj);
-
-  while ((r = __hashNextIdx(a, idx, &e)) != FAIL &&
-         ((e.attr & ATTR_DE) || (e.attr & ATTR_TRANSITION)));
-#else
-  a = obj_map(obj);
-  while ((r = __hashNextIdx(a, idx, &e)) != FAIL && (e.attr & ATTR_DE));
-#endif
-
-  if (r == FAIL) return FAIL;
-  *key = e.key;
-  return SUCCESS;
-}
-
 /*
  * obtains the next property name in an iterator
  * iter:Iterator
@@ -843,37 +812,50 @@ JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize,
  * makes a simple iterator object
  */
 JSValue new_iterator(Context *ctx, JSValue obj) {
-  JSValue ret;
-  HashKey key;
-  int idx = 0;
+  JSValue iter;
   int index = 0;
   int size = 0;
-
-  ret = make_iterator();
   JSValue tmpobj = obj;
+
+  iter = make_iterator();
 
   /* allocate an itearator */
   do {
     /*
-     * printf("Object %016lx: (type = %ld, n_props = %ld)\n",
-     *        obj, obj_header_tag(obj), obj_n_props(obj));
+     * printf("Object %016llx: (type = %d, n_props = %lld)\n",
+     *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
      */
-    size += obj_n_props(obj);
-  } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_PUSH(ret);
-  allocate_iterator_data(ctx, ret, size);
-
-  obj = tmpobj;
+    size += obj_n_props(tmpobj);
+  } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
+  /* printf("size = %d\n", size); */
+  GC_PUSH(iter);
+  allocate_iterator_data(ctx, iter, size);
 
   /* fill the iterator with object properties */
   do {
-    idx = 0;
-    while (next_propname_idx(obj, &idx, &key)) {
-      iterator_body_index(ret, index++) = key;
+    HashTable *ht;
+    HashIterator hi;
+    HashCell *p;
+
+#ifdef HIDDEN_CLASS
+    ht = obj_hidden_class_map(obj);
+#else
+    ht = obj_map(obj);
+#endif
+    init_hash_iterator(ht, &hi);
+
+    while (nextHashCell(ht, &hi, &p) == SUCCESS) {
+#ifdef HIDDEN_CLASS
+      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION)) continue;
+#else
+      if ((JSValue)p->entry.attr & ATTR_DE) continue;
+#endif
+      /* printf("key = "); simple_print((JSValue)p->entry.key); putchar('\n'); */
+      iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_POP(ret);
-  return ret;
+  GC_POP(iter);
+  return iter;
 }
 
 #ifdef USE_REGEXP
