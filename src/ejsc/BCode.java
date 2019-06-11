@@ -39,7 +39,7 @@ interface CodeBuffer {
     void addRXTwoOp(String insnName, boolean log, Register dst, SrcOperand src);
     // twoop (setglobal)
     void addXXTwoOp(String insnName, boolean log, SrcOperand src1, SrcOperand src2);
-    // twoop (makesimpleiterator, getnextpropnameidx)
+    // twoop (makeiterator, getnextpropnameidx)
     void addXRTwoOp(String insnName, boolean log, SrcOperand src, Register dst);
     // oneop
     void addROneOp(String insnName, boolean log, Register dst);
@@ -1123,10 +1123,10 @@ class INewsend extends BCode {
     }
 }
 /* TWOOP */
-class IMakesimpleiterator extends BCode {
+class IMakeiterator extends BCode {
     SrcOperand obj;
-    IMakesimpleiterator(Register obj, Register dst) {
-        super("makesimpleiterator", dst);
+    IMakeiterator(Register obj, Register dst) {
+        super("makeiterator", dst);
         this.obj = new RegisterOperand(obj);
     }
     @Override
