@@ -8,8 +8,7 @@ simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
 array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
 function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
 builtin:       T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
-iterator:      T_GENERIC(000)/HTAG_ITERATOR(10)       IteratorCell
-simple_iterator:      T_GENERIC(000)/HTAG_SIMPLE_ITERATOR(15)       SimpleIterator
+iterator:      T_GENERIC(000)/HTAG_ITERATOR(10)       Iterator
 regexp:        T_GENERIC(000)/HTAG_REGEXP(11)         RegexpCell
 string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)   BoxedCell
 number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)   BoxedCell
