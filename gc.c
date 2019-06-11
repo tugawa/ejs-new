@@ -671,7 +671,8 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   case HTAG_BUILTIN:
     break;
   case HTAG_ITERATOR:
-    /* TODO: call scanHashIterator */
+    /* iterator does not have a common header */
+    assert(0);
     break;
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
@@ -726,6 +727,7 @@ STATIC void trace_slot(JSValue* ptr)
     trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
   } else if (is_iterator(jsv)) {
+    /* iterator does not have common headers but does have pointers */
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
     trace_iterator((Iterator **) &jsv);
