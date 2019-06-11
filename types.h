@@ -187,7 +187,6 @@ typedef struct object_cell {
   new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_string_object(ctx, v)        \
   new_string_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_iterator(ctx, o) new_iterator(ctx, o, HHH, PSIZE_NORMAL)
 #define new_normal_simple_iterator(ctx, o) new_simple_iterator(ctx, o)
 
 #ifdef USE_REGEXP
@@ -268,28 +267,6 @@ typedef struct builtin_cell {
 #define builtin_body(f)         ((remove_normal_builtin_tag(f))->body)
 #define builtin_constructor(f)  ((remove_normal_builtin_tag(f))->constructor)
 #define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
-
-/*
- * Iterator
- * tag == T_GENERIC
- */
-typedef struct iterator_cell {
-  Object o;
-  HashIterator iter;
-} IteratorCell;
-
-#define make_iterator()          (put_normal_iterator_tag(allocate_iterator()))
-
-#define iterator_object_p(i)     (&((remove_normal_iterator_tag(i))->o))
-#ifdef HIDDEN_CLASS
-#define iterator_object_map(i)                                  \
-  (hidden_map((remove_normal_iterator_tag(i))->o.class))
-#else
-#define iterator_object_map(i)   ((remove_normal_iterator_tag(i))->o.map)
-#endif
-#define iterator_object_prop_index(i,k)         \
-  ((remove_normal_iterator_tag(i))->o.prop[k])
-#define iterator_iter(i)         ((remove_normal_iterator_tag(i))->iter)
 
 /*
  * SimpleIterator

@@ -156,15 +156,6 @@ JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int n
 /*
  * allocates an iterator
  */
-IteratorCell *allocate_iterator(void) {
-  IteratorCell *iter =
-    (IteratorCell *) gc_jsalloc_critical(sizeof(IteratorCell), HTAG_ITERATOR);
-  return iter;
-}
-
-/*
- * allocates an iterator
- */
 SimpleIterator *allocate_simple_iterator(void) {
   SimpleIterator *iter =
     (SimpleIterator *) gc_jsalloc_critical(sizeof(SimpleIterator), HTAG_SIMPLE_ITERATOR);

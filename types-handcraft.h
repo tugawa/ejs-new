@@ -28,7 +28,6 @@
 #define is_array(p)              is_obj_header_tag((p), HTAG_ARRAY)
 #define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)
 #define is_builtin(p)            is_obj_header_tag((p), HTAG_BUILTIN)
-#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
 #define is_simple_iterator(p)    is_obj_header_tag((p), HTAG_SIMPLE_ITERATOR)
 #define is_regexp(r)             is_obj_header_tag((r), HTAG_REGEXP)
 #define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
@@ -49,8 +48,6 @@
   ((FunctionCell *)remove_tag((p), T_GENERIC))
 #define remove_normal_builtin_tag(p)            \
   ((BuiltinCell *) remove_tag((p), T_GENERIC))
-#define remove_normal_iterator_tag(p)           \
-  ((IteratorCell *)remove_tag((p), T_GENERIC))
 #define remove_normal_simple_iterator_tag(p)            \
   ((SimpleIterator *)remove_tag((p), T_GENERIC))
 #define remove_normal_string_tag(p)             \
@@ -68,7 +65,6 @@
 #define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
 #define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
-#define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_simple_iterator_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_string_tag(p)         (put_tag((p), T_STRING))
 #define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
@@ -84,14 +80,13 @@
 #define HTAG_ARRAY         (0x7)
 #define HTAG_FUNCTION      (0x8)
 #define HTAG_BUILTIN       (0x9)
-#define HTAG_ITERATOR      (0xa)
 #ifdef USE_REGEXP
 #define HTAG_REGEXP        (0xb)
 #endif
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
-#define HTAG_SIMPLE_ITERATOR (0xf)
+#define HTAG_SIMPLE_ITERATOR (0xf)  /* to be changed to 0xa */
 
 #define is_pointer(p)     (((p) & 2) == 0)
 #define is_leaf_object(p) (((p) & 6) == 4)
@@ -103,7 +98,6 @@
 #define need_number_object 1
 #define need_string_object 1
 #define need_regexp 1
-#define need_iterator 1
 #define need_flonum 1
 #define need_builtin 1
 #define need_fixnum 1
@@ -115,7 +109,6 @@
 #define need_normal_boolean_object 1
 #define need_normal_array 1
 #define need_normal_string_object 1
-#define need_normal_iterator 1
 #define need_normal_regexp 1
 #define need_normal_function 1
 #define need_normal_fixnum 1

@@ -503,8 +503,6 @@ void print_value(Context *context, JSValue v, int verbose) {
     v = cstr_to_string(NULL, "function");
   else if (is_builtin(v))
     v = cstr_to_string(NULL, "builtin");
-  else if (is_iterator(v))
-    v = cstr_to_string(NULL, "iterator");
   else if (is_simple_iterator(v))
     v = cstr_to_string(NULL, "simple_iterator");
 #ifdef USE_REGEXP

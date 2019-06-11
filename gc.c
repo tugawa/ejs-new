@@ -670,11 +670,6 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
   case HTAG_BUILTIN:
     break;
-  case HTAG_ITERATOR:
-    /* TODO: call scanHashIterator */
-    if (((IteratorCell *) obj)->iter.p != NULL)
-      trace_HashCell(&((IteratorCell *) obj)->iter.p);
-    break;
   case HTAG_SIMPLE_ITERATOR:
     /* TODO: call scanHashIterator */
     break;

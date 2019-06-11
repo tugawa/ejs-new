@@ -30,7 +30,7 @@ static char *typename(JSValue v) {
   if (is_array(v)) return "array";
   if (is_function(v)) return "function";
   if (is_builtin(v)) return "builtin";
-  if (is_iterator(v)) return "iterator";
+  if (is_simple_iterator(v)) return "simple_iterator";
   if (is_number_object(v)) return "number_object";
   if (is_boolean_object(v)) return "boolean_object";
   if (is_string_object(v)) return "string_object";
@@ -639,15 +639,6 @@ int vmrun_threaded(Context* context, int border) {
   }
   NEXT_INSN_INCPC();
 
- I_MAKEITERATOR:
-  ENTER_INSN(__LINE__);
-  {
-    Register r0 = get_first_operand_reg(insn);
-    Register r1 = get_second_operand_reg(insn);
-#include "insns/makeiterator.def"
-  }
-  NEXT_INSN_INCPC();
-  
  I_MAKESIMPLEITERATOR:
   ENTER_INSN(__LINE__);
   {
