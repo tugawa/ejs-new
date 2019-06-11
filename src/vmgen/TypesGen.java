@@ -135,7 +135,6 @@ public class TypesGen {
                 "array",
                 "function",
                 "builtin",
-                "iterator",
                 "simple_iterator",
                 "regexp",
                 "string_object",

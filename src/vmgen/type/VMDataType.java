@@ -54,7 +54,6 @@ public class VMDataType implements GlobalConstantOptions, Comparable<VMDataType>
             defineVMDataType("array", true);
             defineVMDataType("function", true);
             defineVMDataType("builtin", true);
-            defineVMDataType("iterator", true);
             defineVMDataType("simple_iterator", true);
             defineVMDataType("regexp", true);
             defineVMDataType("string_object", true);
