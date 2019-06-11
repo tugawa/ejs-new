@@ -28,7 +28,7 @@
 #define is_array(p)              is_obj_header_tag((p), HTAG_ARRAY)
 #define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)
 #define is_builtin(p)            is_obj_header_tag((p), HTAG_BUILTIN)
-#define is_simple_iterator(p)    is_obj_header_tag((p), HTAG_SIMPLE_ITERATOR)
+#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
 #define is_regexp(r)             is_obj_header_tag((r), HTAG_REGEXP)
 #define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
 #define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
@@ -48,8 +48,8 @@
   ((FunctionCell *)remove_tag((p), T_GENERIC))
 #define remove_normal_builtin_tag(p)            \
   ((BuiltinCell *) remove_tag((p), T_GENERIC))
-#define remove_normal_simple_iterator_tag(p)            \
-  ((SimpleIterator *)remove_tag((p), T_GENERIC))
+#define remove_normal_iterator_tag(p)           \
+  ((Iterator *)remove_tag((p), T_GENERIC))
 #define remove_normal_string_tag(p)             \
   ((StringCell *)remove_tag((p), T_STRING))
 #define remove_normal_regexp_tag(p)		\
@@ -65,8 +65,8 @@
 #define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
 #define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
 #define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
-#define put_normal_simple_iterator_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_string_tag(p)         (put_tag((p), T_STRING))
+#define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
+#define put_normal_string_tag(p)        (put_tag((p), T_STRING))
 #define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
 #define put_normal_flonum_tag(p)        (put_tag(p, T_FLONUM))
 #define put_normal_normal_string_tag(p) (put_tag(p, T_STRING))
@@ -80,13 +80,13 @@
 #define HTAG_ARRAY         (0x7)
 #define HTAG_FUNCTION      (0x8)
 #define HTAG_BUILTIN       (0x9)
+#define HTAG_ITERATOR      (0xa)
 #ifdef USE_REGEXP
 #define HTAG_REGEXP        (0xb)
 #endif
 #define HTAG_BOXED_STRING  (0xc)
 #define HTAG_BOXED_NUMBER  (0xd)
 #define HTAG_BOXED_BOOLEAN (0xe)
-#define HTAG_SIMPLE_ITERATOR (0xf)  /* to be changed to 0xa */
 
 #define is_pointer(p)     (((p) & 2) == 0)
 #define is_leaf_object(p) (((p) & 6) == 4)

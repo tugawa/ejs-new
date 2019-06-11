@@ -593,22 +593,15 @@ int next_propname_idx(JSValue obj, int *idx, HashKey *key)
 }
 
 /*
- * obtains the next property name in a simple iterator
- * iter:SimpleIterator
+ * obtains the next property name in an iterator
+ * iter:Iterator
  */
-int get_next_propname_simple_iterator(JSValue iter, JSValue *name) {
-  /* fprintf( stderr, "Check:get_nextpropname_simple_iterator\n" ); */
-  int size = simple_iterator_size(iter);
-  /* fprintf(stderr,"size:%d\n",size); */
-  int index = simple_iterator_index(iter);
-  /* fprintf(stderr,"index:%d\n",index); */
-  if(index<size){
-    *name = simple_iterator_body_index(iter,index++);
-    /*
-     * printf("in get_next_propname_simple 1: name = %016lx: ", *name);
-     * simple_print(*name); printf("\n");
-     */
-    simple_iterator_index(iter) = index;
+int iterator_get_next_propname(JSValue iter, JSValue *name) {
+  int size = iterator_size(iter);
+  int index = iterator_index(iter);
+  if(index < size) {
+    *name = iterator_body_index(iter,index++);
+    iterator_index(iter) = index;
     return SUCCESS;
   }else{
     *name = JS_UNDEFINED;
@@ -849,17 +842,17 @@ JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize,
 /*
  * makes a simple iterator object
  */
-JSValue new_simple_iterator(Context *ctx, JSValue obj) {
+JSValue new_iterator(Context *ctx, JSValue obj) {
   JSValue ret;
   HashKey key;
   int idx = 0;
   int index = 0;
   int size = 0;
 
-  ret = make_simple_iterator();
+  ret = make_iterator();
   JSValue tmpobj = obj;
 
-  /* allocate simple itearator */
+  /* allocate an itearator */
   do {
     /*
      * printf("Object %016lx: (type = %ld, n_props = %ld)\n",
@@ -868,15 +861,15 @@ JSValue new_simple_iterator(Context *ctx, JSValue obj) {
     size += obj_n_props(obj);
   } while (get___proto__(obj, &obj) == SUCCESS);
   GC_PUSH(ret);
-  allocate_simple_iterator_data(ctx, ret, size);
+  allocate_iterator_data(ctx, ret, size);
 
   obj = tmpobj;
 
-  /* regist object prop to simple itearator */
+  /* fill the iterator with object properties */
   do {
     idx = 0;
     while (next_propname_idx(obj, &idx, &key)) {
-      simple_iterator_body_index(ret, index++) = key;
+      iterator_body_index(ret, index++) = key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
   GC_POP(ret);

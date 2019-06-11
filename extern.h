@@ -67,8 +67,8 @@ extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
-extern SimpleIterator *allocate_simple_iterator(void);
-extern void allocate_simple_iterator_data(Context *, JSValue, int);
+extern Iterator *allocate_iterator(void);
+extern void allocate_iterator_data(Context *, JSValue, int);
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
 extern RegexpCell *allocate_regexp(void);
@@ -274,8 +274,7 @@ extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 extern void remove_array_props(JSValue, cint, cint);
 extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);
-extern int get_next_propname(JSValue, JSValue *);
-extern int get_next_propname_simple_iterator(JSValue, JSValue *);
+extern int iterator_get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 #ifdef need_regexp
 extern int regexp_flag(JSValue);
@@ -288,7 +287,7 @@ extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);
 extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_function_t, int, int, int);
 extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
-extern JSValue new_simple_iterator(Context *, JSValue);
+extern JSValue new_iterator(Context *, JSValue);
 #ifdef USE_REGEXP
 #ifdef need_regexp
 extern JSValue new_regexp(Context *, char *, int, int, int);

@@ -181,7 +181,7 @@ INSN_GENERATED = \
     insns/jumptrue.inc \
     insns/localcall.inc \
     insns/makeclosure.inc \
-    insns/makesimpleiterator.inc \
+    insns/makeiterator.inc \
     insns/move.inc \
     insns/newframe.inc \
     insns/nextpropnameidx.inc \

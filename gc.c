@@ -670,7 +670,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
   case HTAG_BUILTIN:
     break;
-  case HTAG_SIMPLE_ITERATOR:
+  case HTAG_ITERATOR:
     /* TODO: call scanHashIterator */
     break;
 #ifdef USE_REGEXP
@@ -690,9 +690,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   }
 }
 
-STATIC void trace_simple_iterator(SimpleIterator **ptrp)
+STATIC void trace_iterator(Iterator **ptrp)
 {
-  SimpleIterator *obj = *ptrp;
+  Iterator *obj = *ptrp;
 
   assert(in_js_space((void *) obj));
   if (is_marked_cell((void *) obj))
@@ -725,10 +725,10 @@ STATIC void trace_slot(JSValue* ptr)
     jsv &= ~TAGMASK;
     trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
-  } else if (is_simple_iterator(jsv)) {
+  } else if (is_iterator(jsv)) {
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
-    trace_simple_iterator((SimpleIterator **) &jsv);
+    trace_iterator((Iterator **) &jsv);
     *ptr = jsv | tag;
   } else if (is_pointer(jsv)) {
     uint8_t tag = jsv & TAGMASK;

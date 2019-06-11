@@ -156,21 +156,21 @@ JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int n
 /*
  * allocates an iterator
  */
-SimpleIterator *allocate_simple_iterator(void) {
-  SimpleIterator *iter =
-    (SimpleIterator *) gc_jsalloc_critical(sizeof(SimpleIterator), HTAG_SIMPLE_ITERATOR);
-  simple_iterator_body(iter) = NULL;
-  simple_iterator_size(iter) = 0;
-  simple_iterator_index(iter) = 0;
+Iterator *allocate_iterator(void) {
+  Iterator *iter =
+    (Iterator *) gc_jsalloc_critical(sizeof(Iterator), HTAG_ITERATOR);
+  iterator_body(iter) = NULL;
+  iterator_size(iter) = 0;
+  iterator_index(iter) = 0;
   return iter;
 }
 
 /*
- * allocates a simple iterator body
+ * allocates an iterator body
  *   size  : number of elements in the body (size >= len)
  *   index : reference number in the body
  */
-void allocate_simple_iterator_data(Context *ctx, JSValue a, int size)
+void allocate_iterator_data(Context *ctx, JSValue a, int size)
 {
   JSValue *body;
   int i;
@@ -179,10 +179,9 @@ void allocate_simple_iterator_data(Context *ctx, JSValue a, int size)
                                HTAG_ARRAY_DATA);
   GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
-  simple_iterator_body(a) = body;
-  simple_iterator_size(a) = size;
-  simple_iterator_index(a) = 0;
-
+  iterator_body(a) = body;
+  iterator_size(a) = size;
+  iterator_index(a) = 0;
 }
 
 /*

@@ -9,6 +9,6 @@
  */
 
   JSValue res = JS_UNDEFINED;
-  get_next_propname_simple_iterator(itr, &res);
+  iterator_get_next_propname(itr, &res);
   dst = res;
 \}

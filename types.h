@@ -187,7 +187,7 @@ typedef struct object_cell {
   new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_string_object(ctx, v)        \
   new_string_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_simple_iterator(ctx, o) new_simple_iterator(ctx, o)
+#define new_normal_iterator(ctx, o) new_iterator(ctx, o)
 
 #ifdef USE_REGEXP
 #define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
@@ -269,25 +269,25 @@ typedef struct builtin_cell {
 #define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
 
 /*
- * SimpleIterator
+ * Iterator
  * tag == T_GENERIC
  */
-typedef struct simple_iterator {
+typedef struct iterator {
   uint64_t size;        /* array size */
   uint64_t index;       /* array index */
   JSValue *body;        /* pointer to a C array */
-} SimpleIterator;
+} Iterator;
 
-#define make_simple_iterator()                                  \
-  (put_normal_simple_iterator_tag(allocate_simple_iterator()))
-#define simple_iterator_size(i)                         \
-  ((remove_normal_simple_iterator_tag(i))->size)
-#define simple_iterator_index(i)                        \
-  ((remove_normal_simple_iterator_tag(i))->index)
-#define simple_iterator_body(i)                         \
-  ((remove_normal_simple_iterator_tag(i))->body)
-#define simple_iterator_body_index(a,i)                 \
-  ((remove_normal_simple_iterator_tag(a))->body[i])
+#define make_iterator()					\
+  (put_normal_iterator_tag(allocate_iterator()))
+#define iterator_size(i)			\
+  ((remove_normal_iterator_tag(i))->size)
+#define iterator_index(i)			\
+  ((remove_normal_iterator_tag(i))->index)
+#define iterator_body(i)			\
+  ((remove_normal_iterator_tag(i))->body)
+#define iterator_body_index(a,i)		\
+  ((remove_normal_iterator_tag(a))->body[i])
 
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp

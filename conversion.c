@@ -655,7 +655,7 @@ char *type_name(JSValue v) {
   if (is_array(v)) return "Array";
   if (is_function(v)) return "Function";
   if (is_builtin(v)) return "Builtin";
-  if (is_simple_iterator(v)) return "SimpleIterator";
+  if (is_iterator(v)) return "Iterator";
   if (is_number_object(v)) return "NumberObject";
   if (is_boolean_object(v)) return "BooleanObject";
   if (is_string_object(v)) return "StringObject";

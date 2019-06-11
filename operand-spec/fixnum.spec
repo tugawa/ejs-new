@@ -50,7 +50,7 @@ jumptrue(special) accept
 jumptrue(_) error
 localcall(-) unspecified
 makeclosure(-,-) accept
-makesimpleiterator(_,-) accept
+makeiterator(_,-) accept
 move(-,_) accept
 newframe(-,-) accept
 nextpropnameidx(_,-) accept

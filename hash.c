@@ -239,21 +239,6 @@ int init_hash_iterator(HashTable *t, HashIterator *h) {
   return FALSE;
 }
 
-int init_hash_simple_iterator(HashTable *t, HashIterator *h) {
-  int i, size;
-
-  size = t->size;
-  for (i = 0; i < size; i++) {
-    if (t->body[i] != NULL) {
-      h->p = t->body[i];
-      h->index = i;
-      return TRUE;
-    }
-  }
-  h->p = NULL;
-  return FALSE;
-}
-
 HashIterator createHashIterator(HashTable *table) {
   int i, size = table->size;
   HashIterator iter;
