@@ -254,25 +254,6 @@ HashIterator createHashIterator(HashTable *table) {
   return iter;
 }
 
-int hash_next(HashTable *table, HashIterator *iter, HashData *data) {
-  HashEntry e;
-  int r;
-
-  if ((r = nextHashEntry(table, iter, &e)) == SUCCESS) {
-    *data = e.data;
-  }
-  return r;
-}
-
-int hash_next_key(HashTable *table, HashIterator *Iter, HashKey *key) {
-  HashEntry e;
-  int r;
-
-  if ((r = nextHashEntry(table, Iter, &e)) == SUCCESS)
-    *key = e.key;
-  return r;
-}
-
 int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   int i;
 
@@ -293,25 +274,17 @@ int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   return SUCCESS;
 }
 
+#if 0
 int nextHashEntry(HashTable *table, HashIterator *iter, HashEntry *ep) {
-  int i;
+  HashCell *p;
+  int r;
 
-  if (iter->p == NULL) return FAIL;
-  *ep = iter->p->entry;
-  if (iter->p->next != NULL) {
-    iter->p = iter->p->next;
-    return SUCCESS;
+  if ((r = nextHashCell(table, iter, &p)) == SUCCESS) {
+    *ep = p->entry;
   }
-  for(i = iter->index + 1; i < table->size; i++) {
-    if(table->body[i] != NULL) {
-      iter->index = i;
-      iter->p = table->body[i];
-      return SUCCESS;
-    }
-  }
-  iter->p = NULL;
-  return SUCCESS;
+  return r;
 }
+#endif
 
 void hashBodyFree(HashCell** body) {
 #if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
