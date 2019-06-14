@@ -24,27 +24,31 @@ BUILTIN_FUNCTION(function_apply) {
   builtin_prologue();
   JSValue fn = args[0];
   JSValue thisobj = args[1];
+  JSValue as = args[2];
   JSValue ret = JS_UNDEFINED;
   JSValue arguments[MAX_FUNCTION_APPLY_ARGUMENTS];
-  int arguments_len = 0;
-  if (na >= 2 && is_array(args[2])) {
-    JSValue ary = args[2];
-    arguments_len = array_length(ary);
-    if (arguments_len > MAX_FUNCTION_APPLY_ARGUMENTS) {
-      LOG_EXIT("Error\n");
-    }
+  int alen = 0;
+
+  if (na >= 2 && is_array(as)) {
     int i;
-    for (i = 0; i < arguments_len; i++) {
-      arguments[i] = array_body_index(ary, i);
-    }
-  }
+
+    alen = array_length(as);
+    if (alen > MAX_FUNCTION_APPLY_ARGUMENTS)
+      LOG_EXIT("apply: too many arguments (%d) in the second argument",
+               alen);
+    for (i = 0; i < alen; i++)
+      arguments[i] = array_body_index(as, i);
+  } else if (na < 2)
+    LOG_EXIT("apply: too few arguments");
+  else
+    LOG_EXIT("apply: the second argument is expected to be an array");
   if (is_function(fn)) {
-    /* call_function(context, fn, na, TRUE); */
-    ret =
-      invoke_function(context, thisobj, fn, TRUE, arguments, arguments_len);
+    ret = invoke_function(context, thisobj, fn, TRUE, arguments, alen);
   } else if (is_builtin(fn)) {
     /* call_builtin(context, fn, na, true, false); */
     not_implemented("function_apply");
+  } else {
+    LOG_EXIT("apply: the receiver has to be a function/builtin");
   }
   set_a(context, ret);
 }

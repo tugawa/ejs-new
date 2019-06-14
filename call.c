@@ -170,10 +170,12 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp,
 }
 
 /*
-  invokes a function with no arguments in a new vmloop
-*/
+ * invokes a function with no arguments in a new vmloop
+ */
 JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn,
                          int sendp) {
+  return invoke_function(context, receiver, fn, sendp, NULL, 0);
+#if 0
   FunctionTable *t;
   JSValue *stack, ret;
   int sp, pos, oldfp, oldsp;
@@ -208,24 +210,28 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn,
   set_fp(context, oldfp);
   set_sp(context, oldsp);
   return ret;
+#endif
 }
 
+/*
+ * Invokes a function fn with arguments args in a new vmloop.
+ */
 JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
                         int sendp, JSValue *args, int nargs) {
   FunctionTable *t;
   JSValue *stack, ret;
   int sp, newfp, pos, oldfp, oldsp, i;
 
+  printf("invoke_function: nargs = %d\n", nargs);
   stack = &get_stack(context, 0);
   oldsp = sp = get_sp(context);
   oldfp = get_fp(context);
-  pos = sp + 1;          /* place where cf register will be saved */
-  sp += 5;               /* makes room for cf, pc, lp, and fp */
-  newfp = sp++;
-  stack[newfp] = receiver;
-  for (i = 0; i < nargs; i++) {
-    stack[sp++] = args[i];
-  }
+  pos = sp + 1;           /* place where cf register will be saved */
+  sp += 5;                /* makes room for cf, pc, lp, fp, and receiver */
+  stack[sp] = receiver;   /* stores the receiver */
+  newfp = sp;             /* place where the receiver is stored */
+  for (i = 0; i < nargs; i++)   /* copies the actual arguments */
+    stack[++sp] = args[i];
   save_special_registers(context, stack, pos);
 
   /*
