@@ -135,10 +135,8 @@ extern void call_function(Context *, JSValue, int, int);
 extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
-extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
-extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue *, int);
-JSValue call_builtin0(Context *, JSValue, JSValue, int);
-
+extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue, int);
+extern JSValue invoke_builtin(Context *, JSValue, JSValue, int, JSValue, int);
 
 /*
  * codeloader.c

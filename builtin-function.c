@@ -14,8 +14,6 @@
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
-#define MAX_FUNCTION_APPLY_ARGUMENTS 64
-
 BUILTIN_FUNCTION(function_constr) {
   not_implemented("function_constr");
 }
@@ -26,27 +24,19 @@ BUILTIN_FUNCTION(function_apply) {
   JSValue thisobj = args[1];
   JSValue as = args[2];
   JSValue ret = JS_UNDEFINED;
-  JSValue arguments[MAX_FUNCTION_APPLY_ARGUMENTS];
   int alen = 0;
 
-  if (na >= 2 && is_array(as)) {
-    int i;
-
-    alen = array_length(as);
-    if (alen > MAX_FUNCTION_APPLY_ARGUMENTS)
-      LOG_EXIT("apply: too many arguments (%d) in the second argument",
-               alen);
-    for (i = 0; i < alen; i++)
-      arguments[i] = array_body_index(as, i);
-  } else if (na < 2)
+  if (na < 2)
     LOG_EXIT("apply: too few arguments");
-  else
+  if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
+
+  alen = array_length(as);
   if (is_function(fn)) {
-    ret = invoke_function(context, thisobj, fn, TRUE, arguments, alen);
+    ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
   } else if (is_builtin(fn)) {
     /* call_builtin(context, fn, na, true, false); */
-    not_implemented("function_apply");
+    ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
   } else {
     LOG_EXIT("apply: the receiver has to be a function/builtin");
   }
