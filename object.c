@@ -795,7 +795,7 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   /* TODO: g_object_proto should be g_builtin_proto */
   /* set___proto___none(ctx, ret, gconsts.g_object_proto); */
-  set___proto___none(ctx, ret, gconsts.g_function_proto);
+  set___proto___none(ctx, ret, gconsts.g_builtin_proto);
   GC_POP(ret);
   return ret;
 }
