@@ -595,6 +595,8 @@ typedef uint64_t cuint;
   set_prop_with_attribute(c, o, s, v, ATTR_NONE)
 #define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
 #define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
+#define set_prop_ddde(c, o, s, v)                       \
+  set_prop_with_attribute(c, o, s, v, ATTR_DDDE)
 
 #define set___proto___none(c, o, v)                     \
   set_prop_none(c, o, gconsts.g_string___proto__, v)
