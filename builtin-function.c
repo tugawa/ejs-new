@@ -79,13 +79,12 @@ void init_builtin_function(Context *ctx)
 {
   JSValue proto;
 
-  gconsts.g_function =
+  gconsts.g_builtin_proto = proto = new_normal_object(ctx);
+  gconsts.g_builtin =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  /* gconsts.g_function_proto = proto = new_big_predef_object(ctx); */
-  gconsts.g_function_proto = proto = new_normal_object(ctx);
-  set_prototype_all(ctx, gconsts.g_function, proto);
+  set_prototype_all(ctx, gconsts.g_builtin, proto);
   {
-    ObjBuiltinProp *p = function_funcs;
+    ObjBuiltinProp *p = builtin_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
                         new_normal_builtin(ctx, p->fn, p->na), p->attr);
@@ -93,12 +92,13 @@ void init_builtin_function(Context *ctx)
     }
   }
 
-  gconsts.g_builtin =
+  gconsts.g_function =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  gconsts.g_builtin_proto = proto = new_normal_object(ctx);
-  set_prototype_all(ctx, gconsts.g_builtin, proto);
+  /* gconsts.g_function_proto = proto = new_big_predef_object(ctx); */
+  gconsts.g_function_proto = proto = new_normal_object(ctx);
+  set_prototype_all(ctx, gconsts.g_function, proto);
   {
-    ObjBuiltinProp *p = builtin_funcs;
+    ObjBuiltinProp *p = function_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
                         new_normal_builtin(ctx, p->fn, p->na), p->attr);
