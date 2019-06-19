@@ -5,7 +5,7 @@
  */
 ENTER_INSN(__LINE__);
 {
-  int newfl = v0;
+  int newfl = i0;
   int oldfl;
 
   oldfl = get_sp(context) - fp + 1;

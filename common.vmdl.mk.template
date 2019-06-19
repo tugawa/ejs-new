@@ -197,7 +197,7 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else
 $(INSN_VMDL):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns
-	$(VMDLC) $(VMDLC_FLAGS) -d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) $< > $@ || (rm $@; exit 1)
+	$(VMDLC) $(VMDLC_FLAGS) -d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns

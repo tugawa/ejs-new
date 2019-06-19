@@ -2,7 +2,7 @@
    setarg link index src
  */
 {
-  int link = v0;
+  int link = i0;
   Subscript index = s1;
   FunctionFrame *fr;
   JSValue arguments;
