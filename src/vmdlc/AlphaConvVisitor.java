@@ -10,14 +10,19 @@ import java.util.HashMap;
 import java.lang.Exception;
 
 import vmdlc.AlphaConvVisitor.DefaultVisitor;
+import vmdlc.InstructionDefinitions;
+import vmdlc.InstructionDefinitions.OperandKinds;
 
 public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean VM_INSTRUCTION = true;
+    InstructionDefinitions insnDef;
+
     public AlphaConvVisitor() {
         init(AlphaConvVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, boolean leaveName) {
+    public void start(Tree<?> node, boolean leaveName, InstructionDefinitions insnDef) {
+        this.insnDef = insnDef;
         try {
             for (Tree<?> chunk : node) {
                 VarDict dict = new VarDict(leaveName);
@@ -67,14 +72,15 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, VarDict dict) throws Exception {
             dict.createFrame();
 
-            // Tree<?> name = node.get(Symbol.unique("name"));
-            // visit(name, dict);
+            Tree<?> name = node.get(Symbol.unique("name"));
 
+            OperandKinds[] kinds = insnDef.getKinds(name.toText());
             Tree<?> params = node.get(Symbol.unique("params"));
             int order = isVoidFunction ? 0 : 1;
             for (Tree<?> param : params) {
                 if (VM_INSTRUCTION) {
-                    dict.internFix(param, "v"+order);
+                    String varPrefix = kinds[order].getVarPrefix();
+                    dict.internFix(param, varPrefix + order);
                     order++; 
                 } else
                     dict.internPreserveName(param);

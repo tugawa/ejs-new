@@ -29,6 +29,7 @@ public class Main {
     static String dataTypeDefFile;
     static String vmdlGrammarFile;
     static String operandSpecFile;
+    static String insnDefFile;
     
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
@@ -44,6 +45,8 @@ public class Main {
             else if (opt.equals("-r")) {
                 int seed = Integer.parseInt(args[i++]);
                 DispatchProcessor.srand(seed);
+            } else if (opt.equals("-i")) {
+                insnDefFile = args[i++];
             } else {
                 sourceFile = opt;
                 break;
@@ -57,6 +60,7 @@ public class Main {
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.out.println("   -no-match-opt  disable optimisation for match statement");
             System.out.println("   -r n      set random seed of dispatch processor");
+            System.out.println("   -i file   instruction defs");
             System.exit(1);
         }
     }
@@ -102,13 +106,18 @@ public class Main {
             System.err.println("operand specification file :"+operandSpecFile);
             opSpec.load(operandSpecFile);
         }
+
+        InstructionDefinitions insnDef = new InstructionDefinitions();
+        if (insnDefFile != null) {
+            insnDef.load(insnDefFile);
+        }
         
         if (sourceFile == null)
             throw new Error("no source file is specified");
         SyntaxTree ast = parse(sourceFile);
         
         new DesugarVisitor().start(ast);
-        new AlphaConvVisitor().start(ast, true);
+        new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec);
         String program = new AstToCVisitor().start(ast);
         
