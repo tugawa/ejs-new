@@ -11,6 +11,8 @@ package specfile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,12 +166,24 @@ public class SpecFile {
             return index + instructionDef.numInstructions();
         return -1;
     }
+    // specfile fingerprint: lower 7 bits of the first byte of MD5 hash (0xff is a wildcard)
+    public byte getFingerprint() {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(unparse().getBytes());
+            byte[] digest = md.digest();
+            return (byte) (digest[0] & 0x7f);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            throw new Error("cannot compute hashcode for specfile");
+        }
+    }
     public String unparse() {
         StringBuffer sb = new StringBuffer();
         unparse(sb);
         return sb.toString();
     }
-    public void unparse(StringBuffer sb) {
+    private void unparse(StringBuffer sb) {
         sb.append(SECTION_INSTRUCTION_DEF).append("\n");
         if (instructionDef != null)
             instructionDef.unparse(sb);
