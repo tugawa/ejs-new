@@ -15,11 +15,13 @@ import ejsc.ast_node.Node;
 import ejsc.antlr.ECMAScriptLexer;
 import ejsc.antlr.ECMAScriptParser;
 
-
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 import specfile.SpecFile;
@@ -27,10 +29,11 @@ import specfile.SpecFile;
 public class Main {
 
     static class Info {
+        static final String DEFAULT_SPECFILE = "default.spec";
         List<String> inputFileNames = new LinkedList<String>();   // .js
         List<Integer> loggedInputFileIndices = new LinkedList<Integer>();   // .js
         String outputFileName;  // .sbc
-        SpecFile spec;
+        SpecFile spec = loadDefaultSpec();
         int baseFunctionNumber = 0;
         enum OptLocals {
             NONE,
@@ -110,7 +113,7 @@ public class Main {
                     case "--out-obc":
                         info.optOutOBC = true;
                         break;
-                    
+
                     case "--spec":
                         info.spec = SpecFile.loadFromFile(args[++i]);
                         break;
@@ -136,6 +139,22 @@ public class Main {
                 }
             }
             return info;
+        }
+
+        static SpecFile loadDefaultSpec() {
+            try {
+                InputStream is = ClassLoader.getSystemResourceAsStream(DEFAULT_SPECFILE);
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader r = new BufferedReader(isr);
+                List<String> specContents = new ArrayList<String>();
+                String line;
+                while ((line = r.readLine()) != null)
+                    specContents.add(line);
+                return SpecFile.parse(specContents);
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new Error("cannot find default specfile: "+DEFAULT_SPECFILE);
+            }
         }
     }
     void run(String[] args) throws IOException {

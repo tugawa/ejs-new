@@ -3,17 +3,32 @@
     <property environment="env"/>
     <property name="target" value="1.8"/>
     <property name="source" value="1.8"/>
+    <condition property="vmgen" value="../ejsvm/vmgen/vmgen.jar">
+        <not>
+            <isset property="vmgen"/>
+        </not>
+    </condition>
+    <condition property="specfile" value="src/ejsc/default.spec">
+        <not>
+            <isset property="specfile"/>
+        </not>
+    </condition>
     <path id="ejsc.classpath">
         <pathelement location="bin"/>
         <pathelement location="libs/antlr-4.5.3-complete.jar"/>
         <pathelement location="libs/javax.json-1.0.4.jar"/>
-        <pathelement location="../ejsvm/vmgen/vmgen.jar"/>
+        <pathelement location="${vmgen}"/>
     </path>
     <target name="clean">
         <delete dir="bin"/>
     </target>
     <target name="init">
         <mkdir dir="bin"/>
+        <unjar src="libs/antlr-4.5.3-complete.jar" dest="bin"/>
+        <unjar src="libs/javax.json-1.0.4.jar" dest="bin"/>
+        <unjar src="${vmgen}" dest="bin"/>
+        <copy file="${specfile}" tofile="bin/default.spec"/>
+        <echo message="${specfile}"/>
     </target>
     <target depends="init" name="compile">
         <javac destdir="bin" includeantruntime="false"
@@ -23,7 +38,11 @@
         </javac>
     </target>
     <target depends="compile" name="newejsc.jar">
-        <jar jarfile="newejsc.jar" basedir="bin" manifest="compiler.mf"/>
+        <jar jarfile="newejsc.jar" basedir="bin">
+            <manifest>
+                <attribute name="Main-Class" value="ejsc.Main"/>
+            </manifest>
+	</jar>
     </target>
     <target depends="newejsc.jar" name="compiler.jar">
         <copy file="newejsc.jar" tofile="compiler.jar"/>
