@@ -334,8 +334,8 @@ class BCBuilder {
                 }
 
                 switch (opt) {
-                case "const":
-                case "superinsn": {
+                case "const": {
+                    fb.assignAddress();
                     ConstantPropagation cp = new ConstantPropagation(fb.bcodes, info);
                     fb.bcodes = cp.exec();
                     break;
@@ -346,6 +346,7 @@ class BCBuilder {
                     break;
                 }
                 case "copy": {
+                    fb.assignAddress();
                     CopyPropagation cp = new CopyPropagation(fb.bcodes);
                     cp.exec();
                     break;
