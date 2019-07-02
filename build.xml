@@ -42,7 +42,7 @@
             <manifest>
                 <attribute name="Main-Class" value="ejsc.Main"/>
             </manifest>
-	</jar>
+        </jar>
     </target>
     <target depends="newejsc.jar" name="compiler.jar">
         <copy file="newejsc.jar" tofile="compiler.jar"/>
