@@ -14,8 +14,6 @@
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
-#define MAX_FUNCTION_APPLY_ARGUMENTS 64
-
 BUILTIN_FUNCTION(function_constr) {
   not_implemented("function_constr");
 }
@@ -24,33 +22,56 @@ BUILTIN_FUNCTION(function_apply) {
   builtin_prologue();
   JSValue fn = args[0];
   JSValue thisobj = args[1];
+  JSValue as = args[2];
   JSValue ret = JS_UNDEFINED;
-  JSValue arguments[MAX_FUNCTION_APPLY_ARGUMENTS];
-  int arguments_len = 0;
-  if (na >= 2 && is_array(args[2])) {
-    JSValue ary = args[2];
-    arguments_len = array_length(ary);
-    if (arguments_len > MAX_FUNCTION_APPLY_ARGUMENTS) {
-      LOG_EXIT("Error\n");
-    }
-    int i;
-    for (i = 0; i < arguments_len; i++) {
-      arguments[i] = array_body_index(ary, i);
-    }
-  }
+  int alen = 0;
+
+  if (na < 2)
+    LOG_EXIT("apply: too few arguments");
+  if (!is_array(as))
+    LOG_EXIT("apply: the second argument is expected to be an array");
+
+  alen = array_length(as);
   if (is_function(fn)) {
-    /* call_function(context, fn, na, TRUE); */
-    ret =
-      invoke_function(context, thisobj, fn, TRUE, arguments, arguments_len);
+    ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
   } else if (is_builtin(fn)) {
     /* call_builtin(context, fn, na, true, false); */
-    not_implemented("function_apply");
+    ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
+  } else {
+    LOG_EXIT("apply: the receiver has to be a function/builtin");
   }
   set_a(context, ret);
 }
 
+BUILTIN_FUNCTION(function_toString)
+{
+  JSValue ret;
+  builtin_prologue();
+  args = NULL;     /* suppress warning message */
+  ret = cstr_to_string(context, "[function]");
+  set_a(context, ret);
+  return;
+}
+
+BUILTIN_FUNCTION(builtin_toString)
+{
+  JSValue ret;
+  builtin_prologue();
+  args = NULL;     /* suppress warning message */
+  ret = cstr_to_string(context, "[builtin]");
+  set_a(context, ret);
+  return;
+}
+
 ObjBuiltinProp function_funcs[] = {
-  { "apply", function_apply, 2, ATTR_DE },
+  { "toString", function_toString, 0, ATTR_DE },
+  { "apply",    function_apply,    2, ATTR_DE },
+  { NULL, NULL, 0, ATTR_DE }
+};
+
+ObjBuiltinProp builtin_funcs[] = {
+  { "toString", builtin_toString,  0, ATTR_DE },
+  { "apply",    function_apply,    2, ATTR_DE },
   { NULL, NULL, 0, ATTR_DE }
 };
 
@@ -58,9 +79,23 @@ void init_builtin_function(Context *ctx)
 {
   JSValue proto;
 
+  gconsts.g_builtin_proto = proto = new_normal_object(ctx);
+  gconsts.g_builtin =
+    new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
+  set_prototype_all(ctx, gconsts.g_builtin, proto);
+  {
+    ObjBuiltinProp *p = builtin_funcs;
+    while (p->name != NULL) {
+      set_obj_cstr_prop(ctx, proto, p->name,
+                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+      p++;
+    }
+  }
+
   gconsts.g_function =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  gconsts.g_function_proto = proto = new_big_predef_object(ctx);
+  /* gconsts.g_function_proto = proto = new_big_predef_object(ctx); */
+  gconsts.g_function_proto = proto = new_normal_object(ctx);
   set_prototype_all(ctx, gconsts.g_function, proto);
   {
     ObjBuiltinProp *p = function_funcs;

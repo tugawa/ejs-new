@@ -84,9 +84,9 @@ void init_global_objects(void) {
  * initializes builtin
  */
 void init_builtin(Context *ctx) {
+  init_builtin_function(ctx);  /* must be called first */
   init_builtin_object(ctx);
   init_builtin_array(ctx);
-  init_builtin_function(ctx);
   init_builtin_number(ctx);
   init_builtin_string(ctx);
   init_builtin_boolean(ctx);

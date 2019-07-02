@@ -169,11 +169,14 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp,
   restore_special_registers(context, stack, fp - 4);
 }
 
+#if 0
 /*
-  invokes a function with no arguments in a new vmloop
-*/
+ * invokes a function with no arguments in a new vmloop
+ */
 JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn,
                          int sendp) {
+  return invoke_function(context, receiver, fn, sendp, NULL, 0);
+
   FunctionTable *t;
   JSValue *stack, ret;
   int sp, pos, oldfp, oldsp;
@@ -209,23 +212,28 @@ JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn,
   set_sp(context, oldsp);
   return ret;
 }
+#endif
 
+/*
+ * Invokes a function fn with arguments args in a new vmloop.
+ * `as' is guaranteed to be an array.
+ */
 JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
-                        int sendp, JSValue *args, int nargs) {
+                        int sendp, JSValue as, int nargs) {
   FunctionTable *t;
   JSValue *stack, ret;
   int sp, newfp, pos, oldfp, oldsp, i;
 
+  /* printf("invoke_function: nargs = %d\n", nargs); */
   stack = &get_stack(context, 0);
   oldsp = sp = get_sp(context);
   oldfp = get_fp(context);
-  pos = sp + 1;          /* place where cf register will be saved */
-  sp += 5;               /* makes room for cf, pc, lp, and fp */
-  newfp = sp++;
-  stack[newfp] = receiver;
-  for (i = 0; i < nargs; i++) {
-    stack[sp++] = args[i];
-  }
+  pos = sp + 1;           /* place where cf register will be saved */
+  sp += 5;                /* makes room for cf, pc, lp, fp, and receiver */
+  stack[sp] = receiver;   /* stores the receiver */
+  newfp = sp;             /* place where the receiver is stored */
+  for (i = 0; i < nargs; i++)   /* copies the actual arguments */
+    stack[++sp] = array_body_index(as, i);
   save_special_registers(context, stack, pos);
 
   /*
@@ -250,16 +258,20 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
 }
 
 /*
- * calls a builtin with no arguments
+ * invokes a builtin function
  */
-JSValue call_builtin0(Context *context, JSValue receiver, JSValue fn,
-                      int sendp) {
-  int sp;
+JSValue invoke_builtin(Context *context, JSValue receiver, JSValue fn,
+                       int sendp, JSValue as, int nargs) {
+  int oldsp, sp, i;
+  JSValue *stack;
 
-  sp = get_sp(context) + 1;
-  get_stack(context, sp) = receiver;
+  oldsp = sp = get_sp(context);
+  stack = &get_stack(context, 0);
+  stack[++sp] = receiver;       /* set receiver */
+  for (i = 0; i < nargs; i++)   /* copies the actual arguments */
+    stack[++sp] = array_body_index(as, i);
   set_sp(context, sp);
-  call_builtin(context, fn, 0, sendp, FALSE);
-  set_sp(context, sp - 1);
+  call_builtin(context, fn, nargs, sendp, FALSE);
+  set_sp(context, oldsp);
   return get_a(context);
 }

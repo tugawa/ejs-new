@@ -735,7 +735,7 @@ JSValue new_array(Context *ctx, int hsize, int vsize) {
   GC_PUSH(ret);
   set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
-  set_prop_none(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
+  set_prop_ddde(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
   enable_gc(ctx);
   GC_POP(ret);
   return ret;
@@ -752,7 +752,7 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
   set_object_members(array_object_p(ret), hsize, vsize);
   allocate_array_data_critical(ret, size, size);
   GC_PUSH(ret);
-  set_prop_none(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
+  set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
   enable_gc(ctx);
   GC_POP(ret);
   return ret;
@@ -794,7 +794,8 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   GC_PUSH(ret);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   /* TODO: g_object_proto should be g_builtin_proto */
-  set___proto___none(ctx, ret, gconsts.g_object_proto);
+  /* set___proto___none(ctx, ret, gconsts.g_object_proto); */
+  set___proto___none(ctx, ret, gconsts.g_builtin_proto);
   GC_POP(ret);
   return ret;
 }
