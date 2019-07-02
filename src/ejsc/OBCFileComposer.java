@@ -23,6 +23,8 @@ public class OBCFileComposer extends OutputFileComposer {
 
     static final boolean BIG_ENDIAN        = true;
 
+    static final byte OBC_FILE_MAGIC       = (byte) 0xec;
+
     static final int FIELD_VALUE_TRUE      = 0x1e;
     static final int FIELD_VALUE_FALSE     = 0x0e;
     static final int FIELD_VALUE_NULL      = 0x06;
@@ -364,6 +366,12 @@ public class OBCFileComposer extends OutputFileComposer {
         }
     }
 
+    private void outputByte(OutputStream out, byte v) throws IOException {
+        if (DEBUG)
+            System.out.println(String.format("byte: %02x", v));
+        out.write(v);
+    }
+
     private void outputShort(OutputStream out, int v) throws IOException {
         if (DEBUG)
             System.out.println(String.format("short: %04x", v));
@@ -389,6 +397,9 @@ public class OBCFileComposer extends OutputFileComposer {
     void output(String fileName) {
         try {
             FileOutputStream out = new FileOutputStream(fileName);            
+
+            outputByte(out, OBC_FILE_MAGIC);
+            outputByte(out, spec.getFingerprint());
 
             /* File header */
             outputShort(out, obcFunctions.size());

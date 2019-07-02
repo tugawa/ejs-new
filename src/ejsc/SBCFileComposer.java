@@ -325,6 +325,9 @@ public class SBCFileComposer extends OutputFileComposer {
             FileOutputStream outs = new FileOutputStream(fileName);
             PrintWriter out = new PrintWriter(outs);
 
+            /* Specfile fingerprint */
+            out.println("fingerprint "+spec.getFingerprint());
+
             /* File header */
             out.println("funcLength "+obcFunctions.size());
 
