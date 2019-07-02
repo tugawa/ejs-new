@@ -59,6 +59,7 @@ SILIST=$(SED) -e 's/^.*: *//'
 
 INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
+SPECGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar specfile.SpecFileGen
 CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
@@ -237,8 +238,8 @@ GCCHECK_PATTERN = ../gccheck.cocci
 
 ######################################################
 
-ejsvm :: $(OFILES)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+ejsvm :: $(OFILES) ejsvm.spec
+	$(CC) $(LDFLAGS) -o $@ $(OFILES) $(LIBS)
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 	$(GOTTA) --gen-insn-opcode -o $@
@@ -252,6 +253,14 @@ instructions-label.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	cp $(EJSVM_DIR)/gen-vmloop-cases-nonaka.rb ./gen-vmloop-cases-nonaka.rb
 	$(GOTTA) --gen-vmloop-cases -o $@
+
+ifeq ($(SUPERINSNTYPE),)
+ejsvm.spec: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def --sispec $(SUPERINSNSPEC) -o $@
+else
+ejsvm.spec: $(EJSVM_DIR)/instructions.def
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o $@
+endif
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
