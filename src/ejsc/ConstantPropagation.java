@@ -16,7 +16,9 @@ import ejsc.BCodeEvaluator.NumberValue;
 import ejsc.BCodeEvaluator.SpecialValue;
 import ejsc.BCodeEvaluator.StringValue;
 import ejsc.BCodeEvaluator.Value;
-import ejsc.Main.Info.SISpecInfo.SISpec;
+import specfile.SpecFile;
+import specfile.SuperinstructionSpec;
+import specfile.SuperinstructionSpec.Superinstruction;
 
 public class ConstantPropagation {
     static final boolean DEBUG = false;
@@ -101,12 +103,14 @@ public class ConstantPropagation {
         }
     }
 
+    Main.Info options;
     List<BCode> bcodes;
     ReachingDefinition rdefa;
     ConstantEvaluator evaluator;
 
-    ConstantPropagation(List<BCode> bcodes) {
+    ConstantPropagation(List<BCode> bcodes, Main.Info info) {
         this.bcodes = bcodes;
+        this.options = info;
         rdefa = new ReachingDefinition(bcodes);
         evaluator = new ConstantEvaluator(rdefa);
     }
@@ -152,7 +156,7 @@ public class ConstantPropagation {
         }
     }
 
-    SrcOperand[] findMostSpecificOperands(ConstantEvaluator.Environment env, List<SISpec> sis, SrcOperand[] ops) {
+    SrcOperand[] findMostSpecificOperands(ConstantEvaluator.Environment env, String insnName, SrcOperand[] ops) {
         SrcOperand[] vs = new SrcOperand[ops.length];
         for (int i = 0; i < ops.length; i++) {
             if (ops[i] != null)
@@ -169,20 +173,19 @@ public class ConstantPropagation {
 
         SrcOperand[] result = new SrcOperand[ops.length];
         System.arraycopy(ops, 0, result, 0, ops.length);
-        NEXT_SI: for (SISpec si: sis) {
-            String[] siTypes = new String[] {
-                    si.op0, si.op1, si.op2
-            };
+        SuperinstructionSpec sis = options.spec.getSuperinstructionSpec();
+        NEXT_SI: for (Superinstruction si: sis.getList()) {
+            if (!si.getBaseName().equals(insnName))
+                continue;
             SrcOperand[] candidate = new SrcOperand[ops.length];
-
             for (int i = 0; i < ops.length; i++) {
-                if (siTypes[i].equals("-")) {
+                if (si.getOpType(i).getName().equals("-")) {
                     assert(ops[i] == null);
                     continue;
                 }
-                if (isTypeInstance(siTypes[i], vs[i]))
+                if (isTypeInstance(si.getOpType(i).getName(), vs[i]))
                     candidate[i] = vs[i];
-                else if (siTypes[i].equals("_") && result[i] instanceof RegisterOperand)
+                else if (si.getOpType(i).getName().equals("_") && result[i] instanceof RegisterOperand)
                     candidate[i] = result[i];
                 else
                     continue NEXT_SI;
@@ -203,45 +206,41 @@ public class ConstantPropagation {
     }
 
     BCode makeSuperinsn(ConstantEvaluator.Environment env, BCode bcx) {
-        List<SISpec> sis = Main.Info.SISpecInfo.getSISpecsByInsnName(bcx.name);
-        if (sis.isEmpty())
-            return null;
-
         if (bcx instanceof INot) {
             INot bc = (INot) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {null, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, bc.src});
             return new INot(bc.dst, ops[1]);
         } else if (bcx instanceof IGetglobal) {
             IGetglobal bc = (IGetglobal) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {null, bc.varName});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, bc.varName});
             return new IGetglobal(bc.dst, ops[1]);
         } else if (bcx instanceof ISetglobal) {
             ISetglobal bc = (ISetglobal) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {bc.varName, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.varName, bc.src});
             return new ISetglobal(ops[0], ops[1]);
         } else if (bcx instanceof ISetlocal) {
             ISetlocal bc = (ISetlocal) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {null, null, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, null, bc.src});
             return new ISetlocal(bc.link, bc.index, ops[2]);
         } else if (bcx instanceof ISetarg) {
             ISetarg bc = (ISetarg) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {null, null, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, null, bc.src});
             return new ISetarg(bc.link, bc.index, ops[2]);
         } else if (bcx instanceof IGetprop) {
             IGetprop bc = (IGetprop) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {null, bc.obj, bc.prop});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, bc.obj, bc.prop});
             return new IGetprop(bc.dst, ops[1], ops[2]);
         } else if (bcx instanceof ISetprop) {
             ISetprop bc = (ISetprop) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {bc.obj, bc.prop, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.obj, bc.prop, bc.src});
             return new ISetprop(ops[0], ops[1], ops[2]);
         } else if (bcx instanceof ISetarray) {
             ISetarray bc = (ISetarray) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {bc.ary, null, bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.ary, null, bc.src});
             return new ISetarray(ops[0], bc.n, ops[2]);
         } else if (bcx instanceof ISeta) {
             ISeta bc = (ISeta) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, sis, new SrcOperand[] {bc.src});
+            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.src});
             return new ISeta(ops[0]);
         } else {
             /* TODO: do not use reflection */
@@ -260,7 +259,7 @@ public class ConstantPropagation {
                                 (SrcOperand) cls.getDeclaredField("src1").get(bcx),
                                 (SrcOperand) cls.getDeclaredField("src2").get(bcx)
                         };
-                        SrcOperand[] ops = findMostSpecificOperands(env, sis, srcOperands);
+                        SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, srcOperands);
                         Constructor<? extends BCode> ctor = cls.getDeclaredConstructor(Register.class, SrcOperand.class, SrcOperand.class);
                         return (BCode) ctor.newInstance(dst, ops[1], ops[2]);
                     } catch (Exception e) {

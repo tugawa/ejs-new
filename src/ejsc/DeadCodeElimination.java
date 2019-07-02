@@ -19,7 +19,7 @@ public class DeadCodeElimination {
     ControlFlowGraph cfg;
     HashSet<BCode> live;
 
-    public DeadCodeElimination(List<BCode> bcodes) {
+    public DeadCodeElimination(List<BCode> bcodes, Main.Info info) {
         this.bcodes = bcodes;
         cfg = new ControlFlowGraph(bcodes);
         live = new HashSet<BCode>();

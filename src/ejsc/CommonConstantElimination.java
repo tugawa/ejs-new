@@ -15,7 +15,7 @@ public class CommonConstantElimination {
     List<BCode> bcodes;
     AvailableExpressionAnalyser aea;
 
-    CommonConstantElimination(List<BCode> bcodes) {
+    CommonConstantElimination(List<BCode> bcodes, Main.Info info) {
         this.bcodes = bcodes;
         aea = new AvailableExpressionAnalyser(bcodes); 
     }

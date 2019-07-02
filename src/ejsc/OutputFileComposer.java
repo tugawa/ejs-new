@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import ejsc.Main.Info;
+import specfile.SpecFile;
 
 public class OutputFileComposer {
     class ConstantTable {
@@ -80,29 +80,8 @@ public class OutputFileComposer {
         return null;
     }
 
-    int getOpcode(String insnName, SrcOperand... srcs) {
-        String modifier = "";
-        boolean hasConstantOperand = false;
-        for (SrcOperand src: srcs) {
-            if (src instanceof RegisterOperand)
-                modifier += "reg";
-            else {
-                if (src instanceof FixnumOperand)
-                    modifier += "fix";
-                else if (src instanceof FlonumOperand)
-                    modifier += "flo";
-                else if (src instanceof StringOperand)
-                    modifier += "str";
-                else if (src instanceof SpecialOperand)
-                    modifier += "spec";
-                else
-                    throw new Error("Unknown source operand");
-                hasConstantOperand = true;
-            }
-        }
-        if (hasConstantOperand)
-            return Main.Info.SISpecInfo.getOpcodeIndex(insnName + modifier);
-        else
-            return Info.getOpcodeIndex(insnName);
+    protected SpecFile spec;
+    OutputFileComposer(SpecFile spec) {
+        this.spec = spec;
     }
 }

@@ -316,7 +316,7 @@ class BCBuilder {
     }
 
     // optimisation method
-    void optimisation(String optPass, boolean verbose) {
+    void optimisation(String optPass, boolean verbose, Main.Info info) {
         for (String opt: optPass.split(":")) {
             if (opt.equals(""))
                 continue;
@@ -336,12 +336,12 @@ class BCBuilder {
                 switch (opt) {
                 case "const":
                 case "superinsn": {
-                    ConstantPropagation cp = new ConstantPropagation(fb.bcodes);
+                    ConstantPropagation cp = new ConstantPropagation(fb.bcodes, info);
                     fb.bcodes = cp.exec();
                     break;
                 }
                 case "cce": {
-                    CommonConstantElimination cce = new CommonConstantElimination(fb.bcodes);
+                    CommonConstantElimination cce = new CommonConstantElimination(fb.bcodes, info);
                     fb.bcodes = cce.exec();
                     break;
                 }
@@ -352,17 +352,17 @@ class BCBuilder {
                 }
                 case "rie": {
                     fb.assignAddress();
-                    RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes);
+                    RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes, info);
                     fb.bcodes = rie.exec();
                     break;
                 }
                 case "dce": {
-                    DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes);
+                    DeadCodeElimination dce = new DeadCodeElimination(fb.bcodes, info);
                     fb.bcodes = dce.exec();
                     break;
                 }
                 case "reg": {
-                    RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true);
+                    RegisterAssignment ra = new RegisterAssignment(fb.bcodes, true, info);
                     fb.bcodes = ra.exec();
                     int maxr = ra.getMaxRegNum();
                     fb.numberOfGPRegisters = maxr;

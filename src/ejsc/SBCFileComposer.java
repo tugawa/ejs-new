@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import specfile.SpecFile;
+
 
 public class SBCFileComposer extends OutputFileComposer {
     static class SBCInstruction {
@@ -304,7 +306,8 @@ public class SBCFileComposer extends OutputFileComposer {
 
     List<SBCFunction> obcFunctions;
 
-    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
+    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
+        super(spec);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<SBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {

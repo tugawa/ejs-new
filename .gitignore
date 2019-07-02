@@ -141,4 +141,9 @@ Session.vim
 # auto-generated tag files
 tags
 
+### SBC, OBC, JS ###
+*.sbc
+*.obc
+*.js
+
 # End of https://www.gitignore.io/api/vim,macos,emacs,eclipse

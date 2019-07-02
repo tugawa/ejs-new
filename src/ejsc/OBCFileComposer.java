@@ -9,11 +9,15 @@
 package ejsc;
 
 import java.io.FileOutputStream;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import ejsc.Main.Info;
+
+import specfile.SpecFile;
+
 
 public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
@@ -130,9 +134,9 @@ public class OBCFileComposer extends OutputFileComposer {
         int getOpcode(String insnName, SrcOperand... srcs) {
             String decorated = OBCFileComposer.decorateInsnName(insnName, srcs);
             if (decorated == null)
-                return Info.getOpcodeIndex(insnName);
+                return spec.getOpcodeIndex(insnName);
             else
-                return Main.Info.SISpecInfo.getOpcodeIndex(decorated);
+                return spec.getOpcodeIndex(decorated);
         }
 
         int fieldBitsOf(SrcOperand src) {
@@ -351,7 +355,8 @@ public class OBCFileComposer extends OutputFileComposer {
 
     List<OBCFunction> obcFunctions;
 
-    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset) {
+    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
+        super(spec);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {

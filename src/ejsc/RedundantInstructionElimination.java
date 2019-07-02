@@ -15,7 +15,7 @@ public class RedundantInstructionElimination {
     List<BCode> bcodes;
     LiveRegisterAnalyser lra;
 
-    RedundantInstructionElimination(List<BCode> bcodes) {
+    RedundantInstructionElimination(List<BCode> bcodes, Main.Info info) {
         this.bcodes = bcodes;
         lra = new LiveRegisterAnalyser(bcodes);
         if (DEBUG)

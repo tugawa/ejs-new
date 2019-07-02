@@ -49,7 +49,7 @@ public class RegisterAssignment {
     LiveRegisterAnalyser lra;
     HashMap<Register, RealRegister> assign = new HashMap<Register, RealRegister>();
 
-    public RegisterAssignment(List<BCode> bcodes, boolean removeMove) {
+    public RegisterAssignment(List<BCode> bcodes, boolean removeMove, Main.Info info) {
         this.removeMove = removeMove;
         this.bcodes = bcodes;
         lra = new LiveRegisterAnalyser(bcodes);
