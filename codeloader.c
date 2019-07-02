@@ -173,12 +173,12 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     header_value = buf_to_int("fingerprint");
     if (obcsbc == FILE_SBC) {
       if (header_value != obc_file_header[1] &&
-	  header_value != obc_file_header_wildcard[1])
-	LOG_EXIT("file header mismatch.");
+          header_value != obc_file_header_wildcard[1])
+        LOG_EXIT("file header mismatch.");
     } else {
       if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
-	  *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
-	LOG_EXIT("file header mismatch.");
+          *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
+        LOG_EXIT("file header mismatch.");
     }
   }
 #elif defined(USE_OBC)
@@ -192,7 +192,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     next_buf();
     header_value = buf_to_int("fingerprint");
     if (header_value != obc_file_header[1] &&
-	header_value != obc_file_header_wildcard[1])
+        header_value != obc_file_header_wildcard[1])
       LOG_EXIT("file header mismatch.");
   }
 #endif
