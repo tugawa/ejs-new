@@ -7,6 +7,8 @@
  * Electro-communications.
  */
 package ejsc;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,8 +18,16 @@ public class ReachingDefinition {
     HashMap<BCode, Set<BCode>> inMap = new HashMap<BCode, Set<BCode>>();
     HashMap<BCode, Set<BCode>> outMap = new HashMap<BCode, Set<BCode>>();
 
-    public Set<BCode> getReachingDefinitions(BCode bc) {
-        return inMap.get(bc);
+    public List<BCode> getReachingDefinitions(BCode bc) {
+        Set<BCode> rds = inMap.get(bc);
+        List<BCode> rdlist = new ArrayList<BCode>(rds);
+        rdlist.sort(new Comparator<BCode>() {
+            @Override
+            public int compare(BCode bc1, BCode bc2) {
+                return bc1.number - bc2.number;
+            }
+        });
+        return rdlist;
     }
 
     public ReachingDefinition(List<BCode> bcodes) {
