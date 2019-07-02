@@ -7,6 +7,7 @@
         <pathelement location="bin"/>
         <pathelement location="libs/antlr-4.5.3-complete.jar"/>
         <pathelement location="libs/javax.json-1.0.4.jar"/>
+        <pathelement location="../ejsvm/vmgen/vmgen.jar"/>
     </path>
     <target name="clean">
         <delete dir="bin"/>
