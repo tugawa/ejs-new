@@ -52,7 +52,7 @@ public class InstructionDef {
                 continue;
             }
             if (fields.length != 2 + format.arity)
-                throw new Error("Error on parsing instruction def: "+lineNo+": "+lines.get(lineNo));               
+                throw new Error("Error on parsing instruction def: "+lineNo+": "+lines.get(lineNo));
             OperandType[] operands = new OperandType[fields.length - 2];
             for (int i = 2; i < fields.length; i++) {
                 operands[i - 2] = SpecFile.operandTypeTable.get(fields[i]);

@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SpecFile {    
+public class SpecFile {
     static final Map<String, InstructionFormat> instructionFormatTable =
             new HashMap<String, InstructionFormat>();
     public static class InstructionFormat {
