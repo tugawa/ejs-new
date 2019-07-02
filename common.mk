@@ -101,7 +101,8 @@ GENERATED_HFILES = \
     instructions-opcode.h \
     instructions-table.h \
     instructions-label.h \
-    cell-header.h
+    cell-header.h \
+    specfile-fingerprint.h
 
 HFILES = $(GENERATED_HFILES) \
     prefix.h \
@@ -255,11 +256,14 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
-	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def --sispec $(SUPERINSNSPEC) -o $@
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
+		--fingerprint specfile-fingerprint.h
 else
-ejsvm.spec: $(EJSVM_DIR)/instructions.def
-	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o $@
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
+		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
+		--fingerprint specfile-fingerprint.h
 endif
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
@@ -348,6 +352,8 @@ instructions.h: instructions-opcode.h instructions-table.h
 
 %.h: $(EJSVM_DIR)/%.h
 	cp $< $@
+
+codeloader.o: specfile-fingerprint.h
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
