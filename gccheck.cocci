@@ -18,10 +18,10 @@ type_list = ["JSValue", "Object*", "FunctionFrame*", "HiddenClass*", "StrCons*",
              "HashCell**"]
 
 // PUSH function
-push_function = "gc_push_checkedX"
+push_function = "gc_push_checked"
 
 // POP function
-pop_function = "gc_pop_checkedX"
+pop_function = "gc_pop_checked"
 
 // specific type that many allocation function have as argument 
 type_context = "Context*"
@@ -361,7 +361,6 @@ add_report(ret_loc, push_loc, None, v, "MissignPop")
 
 @MissingPop depends on push_position exists@
 identifier pre.push, pre.pop, push_position.v;
-statement S;
 expression e1, e2;
 position push_position.push_p, ret;
 type T:script:python(){is_pointer(T)};

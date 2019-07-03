@@ -359,7 +359,7 @@ JSValue object_to_string(Context *context, JSValue v) {
  * converts an object to a number
  */
 JSValue object_to_number(Context *context, JSValue v) {
-  JSValue f;
+  JSValue f = JS_NULL;
 
   if (!is_object(v)) {
     type_error("object expected in object_to_number");
@@ -393,7 +393,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT1:
-  GC_PUSH(f); /* All right: MissingInit */
+  GC_PUSH(f);
   print_value_simple(context, v); putchar('\n');
   print_value_simple(context, f); putchar('\n');
   GC_POP(f);
