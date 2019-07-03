@@ -20,16 +20,19 @@ BUILTIN_FUNCTION(function_constr) {
 
 BUILTIN_FUNCTION(function_apply) {
   builtin_prologue();
-  JSValue fn = args[0];
-  JSValue thisobj = args[1];
+  JSValue fn;
+  JSValue thisobj;
   JSValue as = args[2];
-  JSValue ret = JS_UNDEFINED;
+  JSValue ret;
   int alen = 0;
 
-  if (na < 2)
-    LOG_EXIT("apply: too few arguments");
-  if (!is_array(as))
+  if (as == JS_UNDEFINED || as == JS_NULL) {
+    as = new_array(context, 0, 0);
+  } else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
+
+  fn = args[0];
+  thisobj = args[1];
 
   alen = array_length(as);
   if (is_function(fn)) {
