@@ -10,7 +10,14 @@
 #ifndef LOG_H_
 #define LOG_H_
 
-#ifdef DEBUG_PRINT
+#if defined(COCCINELLE_CHECK)
+
+#define LOG(...)
+#define LOG_FUNC
+#define LOG_ERR(...) return
+#define LOG_EXIT(...) return
+
+#elif defined(DEBUG_PRINT)
 
 #define LOG(...) fprintf(log_stream, __VA_ARGS__)
 #define LOG_FUNC fprintf(log_stream, "%-16s: ", __func__)
@@ -24,6 +31,7 @@
   while (0)
 
 #else
+
 #define LOG(...)
 #define LOG_FUNC
 #define LOG_ERR(...)                                                    \
