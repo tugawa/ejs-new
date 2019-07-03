@@ -372,7 +372,7 @@ types-generated.h: $(DATATYPES)
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) $< > $@ || (rm $@; exit 1)
+	$(CPP) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 

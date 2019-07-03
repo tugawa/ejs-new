@@ -829,7 +829,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     size += obj_n_props(tmpobj);
   } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
   /* printf("size = %d\n", size); */
-  GC_PUSH(iter);
+  GC_PUSH2(iter, obj);
   allocate_iterator_data(ctx, iter, size);
 
   /* fill the iterator with object properties */
@@ -855,7 +855,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
       iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_POP(iter);
+  GC_POP2(obj, iter);
   return iter;
 }
 
@@ -988,18 +988,16 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
 
   GC_PUSH(oldc);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
-  disable_gc();
+  GC_PUSH(c);
   a = malloc_hashtable();
   hash_create(a, oldc->map->size);
   hidden_map(c) = a;
-  ne = hash_copy(ctx, hidden_map(oldc), a); /* All Right: MissingAdd */
+  ne = hash_copy(ctx, hidden_map(oldc), a);
+  GC_POP2(c,oldc);
   hidden_n_entries(c) = ne;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  GC_PUSH(c);
-  enable_gc(ctx);
-  GC_POP2(c,oldc);
   n_hc++;
   return c;
 }

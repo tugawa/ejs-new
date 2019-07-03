@@ -20,22 +20,24 @@ BUILTIN_FUNCTION(function_constr) {
 
 BUILTIN_FUNCTION(function_apply) {
   builtin_prologue();
-  JSValue fn = args[0];
-  JSValue thisobj = args[1];
+  JSValue fn;
+  JSValue thisobj;
   JSValue as = args[2];
-  JSValue ret = JS_UNDEFINED;
+  JSValue ret;
   int alen = 0;
 
-  if (na < 2)
-    LOG_EXIT("apply: too few arguments");
-  if (!is_array(as))
+  if (as == JS_UNDEFINED || as == JS_NULL) {
+    as = new_array(context, 0, 0);
+  } else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
+
+  fn = args[0];
+  thisobj = args[1];
 
   alen = array_length(as);
   if (is_function(fn)) {
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
   } else if (is_builtin(fn)) {
-    /* call_builtin(context, fn, na, true, false); */
     ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
   } else {
     LOG_EXIT("apply: the receiver has to be a function/builtin");
@@ -82,6 +84,7 @@ void init_builtin_function(Context *ctx)
   gconsts.g_builtin_proto = proto = new_normal_object(ctx);
   gconsts.g_builtin =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
+  GC_PUSH(proto);
   set_prototype_all(ctx, gconsts.g_builtin, proto);
   {
     ObjBuiltinProp *p = builtin_funcs;
@@ -105,4 +108,5 @@ void init_builtin_function(Context *ctx)
       p++;
     }
   }
+  GC_POP(proto);
 }
