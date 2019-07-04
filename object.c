@@ -46,6 +46,10 @@ static HiddenClass *hclass;
 int n_hc;
 int n_enter_hc;
 int n_exit_hc;
+
+#ifdef PROFILE
+static int profile_object_count;
+#endif /* PROFILE */
 #endif
 
 /*
@@ -327,6 +331,10 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       obj_hidden_class(obj) = nexth;
       hidden_n_enter(nexth)++;
       n_enter_hc++;
+#ifdef PROFILE
+      if (obj_profile_id(obj))
+	hidden_n_profile_enter(nexth);
+#endif /* PROFILE */
     } else {                  /* hidden_htype(oh) == HTYPE_GROW */
       nexth = oh;
       GC_PUSH(nexth);
@@ -670,12 +678,22 @@ int regexp_flag(JSValue re) {
  * should be used instead of allocating a new hidden class.
  */
 void set_object_members(Object *p, int hsize, int psize) {
+#ifdef PROFILE
+  if (logflag())
+    p->profile_id = ++profile_object_count;
+  else
+    p->profile_id = 0;
+#endif /* PROFILE */
 #ifdef HIDDEN_CLASS
   p->class = ((hsize == 0)?
               gobjects.g_hidden_class_0:
               new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
   hidden_n_enter(p->class)++;
   n_enter_hc++;
+#ifdef PROFILE
+  if (p->profile_id)
+    p->class->n_profile_enter++;
+#endif /* PROFILE */
 #else
   Map *a;
   a = malloc_hashtable();
@@ -971,6 +989,10 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
+#ifdef PROFILE
+  c->prev = NULL;
+  c->n_profile_enter = 0;
+#endif /* PROFILE */
   GC_PUSH(c);
   enable_gc(ctx);
   GC_POP(c);
@@ -998,14 +1020,24 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
+#ifdef PROFILE
+  c->prev = oldc;
+  c->n_profile_enter = 0;
+#endif /* PROFILE */
   n_hc++;
   return c;
 }
 
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
+#ifdef PROFILE
+  printf("HC: %s %p %d %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
+         s, hc, hc->n_profile_enter++, hc->prev,
+	 hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+#else
   printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
-         hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+	 hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+#endif /* PROFILE */
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);
 }

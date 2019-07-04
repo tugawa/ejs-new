@@ -36,6 +36,10 @@ extern int coverage_flag;
 extern int icount_flag;
 extern int forcelog_flag;
 extern FILE *prof_stream;
+
+extern int logflag_stack[];
+extern int logflag_sp;
+#define logflag()   (logflag_sp >= 0 ? logflag_stack[logflag_sp] : 0)
 #endif
 
 extern InsnInfo insn_info_table[];
@@ -285,8 +289,8 @@ extern char *space_chomp(char *);
 #ifdef HIDDEN_CLASS
 extern HiddenClass *new_empty_hidden_class(Context *, int, int);
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
-void print_hidden_class(char *, HiddenClass *);
-void print_all_hidden_class(void);
+extern void print_hidden_class(char *, HiddenClass *);
+extern void print_all_hidden_class(void);
 #endif
 
 /*

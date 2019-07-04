@@ -94,6 +94,10 @@ typedef struct hidden_class {
   uint32_t n_enter;       /* number of times this class is used */
   uint32_t n_exit;        /* number of times this class is left */
   HashTable *map;         /* map which is explained above */
+#ifdef PROFILE
+  struct hidden_class *prev;
+  int n_profile_enter;
+#endif /* PROFILE */
 } HiddenClass;
 
 #define hidden_n_entries(h)    ((h)->n_entries)
@@ -101,6 +105,9 @@ typedef struct hidden_class {
 #define hidden_n_enter(h)      ((h)->n_enter)
 #define hidden_n_exit(h)       ((h)->n_exit)
 #define hidden_map(h)          ((h)->map)
+#ifdef PROFILE
+#define hidden_n_profile_enter(h) ((h)->n_profile_enter)
+#endif /* PROFILE */
 
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
@@ -112,6 +119,9 @@ typedef struct hidden_class {
 #endif
 
 typedef struct object_cell {
+#ifdef PROFILE
+  int profile_id;
+#endif /* PROFILE */
   uint64_t n_props;       /* number of properties */
   uint64_t limit_props;
 #ifdef HIDDEN_CLASS
@@ -140,6 +150,9 @@ typedef struct object_cell {
 #endif
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
+#ifdef PROFILE
+#define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
+#endif /* PROFILE */
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))

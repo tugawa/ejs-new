@@ -16,7 +16,17 @@ static int exhandler_stack_pop(Context* context, int *pc, int *fp);
 static void lcall_stack_push(Context* context, int pc);
 static int lcall_stack_pop(Context* context, int *pc);
 
-#define NOT_IMPLEMENTED()						\
+#ifdef PROFILE
+int logflag_stack[100];
+int logflag_sp = -1;
+#define push_logflag(f) logflag_stack[++logflag_sp] = f
+#define pop_logflag()   logflag_sp--
+#else
+#define push_logflag(f)
+#define pop_logflag()
+#endif /* PROFILE */
+
+#define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
            insn_nemonic(get_opcode(insn)))
 
@@ -107,6 +117,7 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #ifdef PROFILE
 #define ENTER_INSN(x)                                                   \
   do {                                                                  \
+    push_logflag(insns->logflag);                                       \
     if (insns->logflag == TRUE) headcount = 0, insns->count++;          \
     asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));     \
   } while (0)
@@ -133,32 +144,33 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #define NEXT_INSN_ASM(addr)                             \
   asm("jmp *%0\n\t# -- inserted main.c" : : "A" (addr))
 
-
 #ifdef USE_ASM
 
 #define NEXT_INSN_INCPC() do {                  \
+    pop_logflag();                              \
     INCPC();                                    \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
-      } while (0)
+  } while (0)
 
 #define NEXT_INSN_NOINCPC() do {                \
+    pop_logflag();                              \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
-      } while (0)
+  } while (0)
 
 #else
 
-#define NEXT_INSN_INCPC()   do { INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
-#define NEXT_INSN_NOINCPC() do { INSNLOAD(); NEXT_INSN(); } while(0)
+#define NEXT_INSN_INCPC()   do { pop_logflag(); INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
+#define NEXT_INSN_NOINCPC() do { pop_logflag(); INSNLOAD(); NEXT_INSN(); } while(0)
 
 #endif /* USE_ASM */
 
-#define save_context() do			\
-    {						\
-      set_cf(context, curfn);			\
-      set_pc(context, pc);                      \
-      set_fp(context,fp);                       \
+#define save_context() do                            \
+    {                                                \
+      set_cf(context, curfn);                        \
+      set_pc(context, pc);                           \
+      set_fp(context,fp);                            \
     } while(0)
 
 #define update_context() do {                           \
@@ -1387,9 +1399,9 @@ static void exhandler_stack_push(Context* context, int pc, int fp)
   cint sp = context->exhandler_stack_ptr;
 
   set_array_index_value(context, context->exhandler_stack, sp++,
-			cint_to_number((cint) pc), FALSE);
+                        cint_to_number((cint) pc), FALSE);
   set_array_index_value(context, context->exhandler_stack, sp++,
-			cint_to_number((cint) fp), FALSE);
+                        cint_to_number((cint) fp), FALSE);
   context->exhandler_stack_ptr = sp;
 }
 
@@ -1412,8 +1424,8 @@ static int exhandler_stack_pop(Context* context, int *pc, int *fp)
 static void lcall_stack_push(Context* context, int pc)
 {
   set_array_index_value(context, context->lcall_stack,
-			context->lcall_stack_ptr++,
-			cint_to_number((cint) pc), FALSE);
+                        context->lcall_stack_ptr++,
+                        cint_to_number((cint) pc), FALSE);
 }
 
 static int lcall_stack_pop(Context* context, int *pc)
@@ -1423,7 +1435,7 @@ static int lcall_stack_pop(Context* context, int *pc)
     return -1;
   context->lcall_stack_ptr--;
   v = get_array_prop(context, context->lcall_stack,
-		     cint_to_number((cint) context->lcall_stack_ptr));
+                     cint_to_number((cint) context->lcall_stack_ptr));
   *pc = number_to_cint(v);
   return 0;
 }
