@@ -36,6 +36,10 @@ int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
 
+/*
+#define DEBUG_TESTTEST
+*/
+
 #if defined(USE_OBC) && defined(USE_SBC)
 int obcsbc;
 #endif
@@ -59,8 +63,8 @@ static uint64_t callcount = 0;
 /*
  * Debug function
  */
-void testtest(Context *cxt) {
-#if 0
+#ifdef DEBUG_TESTTEST
+static void testtest(Context *cxt) {
   JSValue v, p;
   printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n",
          cxt->global, gconsts.g_global);
@@ -121,8 +125,8 @@ void testtest(Context *cxt) {
    *  v = string_to_boolean(cstr_to_boolean("one"));
    *  printf("\"one\" -> boolean: "); pp(v);
    */
-#endif
 }
+#endif
 
 /*
  * processes command line options
