@@ -17,6 +17,8 @@
 #define LOG_ERR(...) return
 #define LOG_EXIT(...) return
 
+#define ASSERT_OBJECT(o)
+
 #elif defined(DEBUG_PRINT)
 
 #define LOG(...) fprintf(log_stream, __VA_ARGS__)
@@ -30,14 +32,18 @@
     putc('\n', log_stream);  exit(1); }                 \
   while (0)
 
+#define ASSERT_OBJECT(o) do {				\
+  if (!is_object(o))					\
+    LOG_EXIT("assertion failed. not an object.");	\
+} while (0)
+
 #else
 
 #define LOG(...)
 #define LOG_FUNC
-#define LOG_ERR(...)                                                    \
-  do { fprintf(stderr, __VA_ARGS__); putc('\n', stderr); } while (0)
-#define LOG_EXIT(...)                                                   \
-  do { fprintf(stderr,  __VA_ARGS__); putc('\n', stderr); exit(1); } while (0)
+#define LOG_ERR(...)
+#define LOG_EXIT(...) exit(1)
+#define ASSERT_OBJECT(o)
 
 #endif /* DEBUG */
 

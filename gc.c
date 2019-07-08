@@ -112,7 +112,11 @@ STATIC int gc_disabled = 1;
 
 int generation = 0;
 int gc_sec;
-int gc_usec; 
+int gc_usec;
+#ifdef GC_PROF
+uint64_t total_alloc_bytes;
+uint64_t total_alloc_count;
+#endif /* GC_PROF */
 
 #ifdef GC_DEBUG
 STATIC void **top;
@@ -348,6 +352,10 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
+#ifdef GC_PROF
+  total_alloc_bytes += request_bytes;
+  total_alloc_count++;
+#endif /* GC_PROF */
   return addr;
 }
 
@@ -646,7 +654,11 @@ STATIC void trace_js_object(uintptr_t *ptrp)
 #else
   trace_HashTable(&obj->map);
 #endif
+#ifdef RICH_HIDDEN_CLASS
+  trace_JSValue_array(&obj->prop, obj->class->n_props);
+#else /* RICH_HIDDEN_CLASS */
   trace_JSValue_array(&obj->prop, obj->n_props);
+#endif /* RICH_HIDDEN_CLASS */
 
   switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
   case HTAG_SIMPLE_OBJECT:

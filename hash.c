@@ -298,42 +298,6 @@ void print_hash_table(HashTable *tab) {
 
 }
 
-/*
- * FIXME: This function is not completed yet for the adaptation of
- * HIDDEN_CLASS.
- */
-void print_object_properties(JSValue o) {
-  HashCell *p;
-  HashTable *tab;
-  JSValue v;
-  unsigned int i, ec;
-
-#ifdef HIDDEN_CLASS
-  tab = obj_hidden_class_map(o);
-#else
-  tab = obj_map(o);
-#endif
-  printf("Object %016"PRIx64": (type = %x, n_props = %"PRIu64", map = %p)\n",
-         o, obj_header_tag(o), obj_n_props(o), tab);
-  ec = 0;
-  for (i = 0; i < tab->size; i++) {
-    if ((p = tab->body[i]) == NULL) continue;
-    do {
-      ec++;
-      printf(" (%d: (", i);
-      printf("%016"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
-      printf(", ");
-      printf("%016"PRIx64" = ", p->entry.data); simple_print(p->entry.data);
-      printf(", ");
-      v = obj_prop_index(o, (int)p->entry.data);
-      printf("%016"PRIx64" = ", v); simple_print(v);
-      printf("))");
-    } while ((p = p->next) != NULL);
-    if (ec >= tab->entry_count) break;
-  }
-  printf("\n");
-}
-
 char* ststrdup(const char* str) {
   uint64_t len = strlen(str)+1;
   char *dst = (char*)malloc(sizeof(char) * len);

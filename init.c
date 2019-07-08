@@ -49,8 +49,13 @@ void init_global_constants(void) {
  */
 void init_global_malloc_objects(void) {
 #ifdef HIDDEN_CLASS
+#ifdef RICH_HIDDEN_CLASS
+  gobjects.g_hidden_class_0 =
+    new_empty_hidden_class(NULL, HSIZE_NORMAL, PSIZE_NORMAL, HTYPE_TRANSIT);
+#else /* RICH_HIDDEN_CLASS */
   gobjects.g_hidden_class_0 =
     new_empty_hidden_class(NULL, HSIZE_NORMAL, HTYPE_TRANSIT);
+#endif /* RICH_HIDDEN_CLASS */
 #endif
 }
 

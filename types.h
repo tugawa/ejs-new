@@ -90,13 +90,18 @@ typedef uint16_t Tag;
  */
 typedef struct hidden_class {
   uint32_t n_entries;
-  int htype;              /* HTYPE_TRANSIT or HTYPE_GROW */
-  uint32_t n_enter;       /* number of times this class is used */
-  uint32_t n_exit;        /* number of times this class is left */
+  uint32_t htype;         /* HTYPE_TRANSIT or HTYPE_GROW */
   HashTable *map;         /* map which is explained above */
+#ifdef RICH_HIDDEN_CLASS
+  uint32_t n_props;       /* number of properties */
+  uint32_t limit_props;   /* capacity of the array for properties */
+#endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   struct hidden_class *prev;
-  int n_profile_enter;
+  uint32_t n_profile_enter; /* number of times this class is used for object
+			       marked for profilling */
+  uint32_t n_enter;         /* number of times this class is used */
+  uint32_t n_exit;          /* number of times this class is left */
 #endif /* PROFILE */
 } HiddenClass;
 
@@ -105,6 +110,10 @@ typedef struct hidden_class {
 #define hidden_n_enter(h)      ((h)->n_enter)
 #define hidden_n_exit(h)       ((h)->n_exit)
 #define hidden_map(h)          ((h)->map)
+#ifdef RICH_HIDDEN_CLASS
+#define hidden_n_props(h)      ((h)->n_props)
+#define hidden_limit_props(h)  ((h)->limit_props)
+#endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
 #define hidden_n_profile_enter(h) ((h)->n_profile_enter)
 #endif /* PROFILE */
@@ -122,8 +131,10 @@ typedef struct object_cell {
 #ifdef PROFILE
   int profile_id;
 #endif /* PROFILE */
+#ifndef RICH_HIDDEN_CLASS
   uint64_t n_props;       /* number of properties */
   uint64_t limit_props;
+#endif /* RICH_HIDDEN_CLASS */
 #ifdef HIDDEN_CLASS
   HiddenClass *class;     /* Hidden class for this object */
 #else
@@ -157,11 +168,11 @@ typedef struct object_cell {
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 
-#define PSIZE_NORMAL  20  /* default initial size of the property array */
+#define PSIZE_NORMAL   1  /* default initial size of the property array */
 #define PSIZE_BIG    100
-#define PSIZE_DELTA   20  /* delta when expanding the property array */
+#define PSIZE_DELTA    1  /* delta when expanding the property array */
 #define PSIZE_LIMIT  500  /* limit size of the property array */
-#define HSIZE_NORMAL  30  /* default initial size of the map (hash table) */
+#define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
 #define HSIZE_BIG    100
 
 #define increase_psize(n)     (((n) >= PSIZE_LIMIT)? (n): ((n) + PSIZE_DELTA))

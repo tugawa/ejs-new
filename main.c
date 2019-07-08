@@ -35,6 +35,9 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef GC_PROF
+int gcprof_flag;       /* print GC profile information */
+#endif /* GC_PROF */
 
 /*
 #define DEBUG_TESTTEST
@@ -155,6 +158,9 @@ struct commandline_option  options_table[] = {
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif
+#ifdef GC_PROF
+  { "--gc-prof",  0, &gcprof_flag,    NULL          },
+#endif /* GC_PROF */
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
 };
@@ -201,6 +207,14 @@ void print_cputime(time_t sec, suseconds_t usec) {
          n_hc, n_enter_hc, n_exit_hc);
 #endif
 }
+
+#ifdef GC_PROF
+void print_gc_prof()
+{
+  printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
+  printf("total alloc count = %"PRId64"\n", total_alloc_count);
+}
+#endif /* GC_PROF */
 
 #ifdef PROFILE
 void print_coverage(FunctionTable *ft, int n) {
@@ -457,6 +471,11 @@ int main(int argc, char *argv[]) {
       }
       print_cputime(sec, usec);
     }
+
+#ifdef GC_PROF
+    if (gcprof_flag == TRUE)
+      print_gc_prof();
+#endif /* GC_PROP */
     
     if (repl_flag == TRUE)
       fflush(stdout);

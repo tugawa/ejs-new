@@ -64,14 +64,15 @@ static int profile_object_count;
  * the next hidden class is temporary assigned to a static variable named
  * ``hclass''.
  */
-int prop_index(JSValue obj, JSValue name) {
+static int prop_index(JSValue obj, JSValue name) {
   HashData retv;
   int result;
 #ifdef HIDDEN_CLASS
   Attribute att;
 #endif
 
-  if (!is_object(obj)) return -1;   /* Is it necessary to check the type? */
+  ASSERT_OBJECT(obj);
+
 #ifdef HIDDEN_CLASS
   result =
     hash_get_with_attribute(obj_hidden_class_map(obj), name, &retv, &att);
@@ -264,6 +265,83 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
   }
 }
 
+#ifdef RICH_HIDDEN_CLASS
+/*
+ * sets an object's property value with its attribute
+ */
+int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
+                            JSValue v, Attribute attr)
+{
+  int index;
+
+  index = prop_index(obj, name);
+  if (index == -1) {
+    HiddenClass *hc;
+    int capacity;
+    hc = obj_hidden_class(obj);
+    index = hidden_n_props(hc);
+    capacity = hidden_limit_props(hc);
+    if (hidden_htype(hc) == HTYPE_TRANSIT) {
+      HiddenClass *nhc = hclass;
+      if (nhc == NULL) {
+        int ret;
+        GC_PUSH3(obj, name, v);
+        nhc = new_hidden_class(ctx, hc);
+        GC_POP3(v, name, obj);
+        hc = obj_hidden_class(obj);
+        ret = hash_put_with_attribute(hidden_map(nhc), name, index, attr);
+        if (ret != HASH_PUT_SUCCESS)
+          return FAIL;
+        hidden_n_entries(nhc)++;
+        hash_put_with_attribute(hidden_map(hc), name, (HashData)nhc,
+                                ATTR_NONE | ATTR_TRANSITION);
+        hidden_n_entries(hc)++;
+      }
+      if (capacity < hidden_limit_props(nhc)) {
+        JSValue * props;
+        GC_PUSH3(obj, v, nhc);
+        props = reallocate_prop_table(ctx, obj_prop(obj), capacity,
+                                      hidden_limit_props(nhc));
+        GC_POP3(nhc, v, obj);
+        obj_prop(obj) = props;
+      }
+#ifdef PROFILE
+      hidden_n_exit(obj_hidden_class(obj))++;
+      n_exit_hc++;
+#endif /* PROFILE */
+      obj_hidden_class(obj) = nhc;
+#ifdef PROFILE
+      hidden_n_enter(nhc)++;
+      n_enter_hc++;
+      if (obj_profile_id(obj))
+	hidden_n_profile_enter(nhc);
+#endif /* PROFILE */
+    } else { /* hidden_htype(oh) == HTYPE_GROW */
+      int ret;
+      if (capacity <= hidden_n_props(hc)) {
+        JSValue *props;
+        int newsize = increase_psize(hidden_n_props(hc));
+        if (newsize == hidden_n_props(hc)) {
+          LOG_EXIT("proptable overflow");
+          return FAIL;
+        }
+        hidden_limit_props(hc) = newsize;
+        GC_PUSH2(obj, v);
+        props = reallocate_prop_table(ctx, obj_prop(obj),
+                                      hidden_n_props(hc), newsize);
+        GC_POP2(v, obj);
+        obj_prop(obj) = props;
+      }
+      ret = hash_put_with_attribute(hidden_map(hc), name, index, attr);
+      hidden_n_props(hc)++;
+      if (ret != HASH_PUT_SUCCESS)
+        return FAIL;
+    }
+  }
+  obj_prop_index(obj, index) = v;
+  return SUCCESS;
+}
+#else /* RICH_HIDDEN_CLASS */
 /*
  * sets an object's property value with its attribute
  */
@@ -326,12 +404,14 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
         GC_POP2(oh, nexth);
         hidden_n_entries(oh)++;
       }
+#ifdef PROFILE
       hidden_n_exit(obj_hidden_class(obj))++;
       n_exit_hc++;
+#endif /* PROFILE */
       obj_hidden_class(obj) = nexth;
+#ifdef PROFILE
       hidden_n_enter(nexth)++;
       n_enter_hc++;
-#ifdef PROFILE
       if (obj_profile_id(obj))
 	hidden_n_profile_enter(nexth);
 #endif /* PROFILE */
@@ -355,6 +435,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
   obj_prop_index(obj, index) = v;
   return SUCCESS;
 }
+#endif /* RICH_HIDDEN_CLASS */
 
 /*
  * sets object's property
@@ -685,9 +766,15 @@ void set_object_members(Object *p, int hsize, int psize) {
     p->profile_id = 0;
 #endif /* PROFILE */
 #ifdef HIDDEN_CLASS
+#ifdef RICH_HIDDEN_CLASS
+  p->class = ((hsize == 0)?
+              gobjects.g_hidden_class_0:
+              new_empty_hidden_class(NULL, hsize, psize, HTYPE_GROW));
+#else /* RICH_HIDDEN_CLASS */
   p->class = ((hsize == 0)?
               gobjects.g_hidden_class_0:
               new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
+#endif /* RICH_HIDDEN_CLASS */
   hidden_n_enter(p->class)++;
   n_enter_hc++;
 #ifdef PROFILE
@@ -700,9 +787,13 @@ void set_object_members(Object *p, int hsize, int psize) {
   hash_create(a, hsize);
   p->map = a;
 #endif
+#ifdef RICH_HIDDEN_CLASS
+  p->prop = allocate_prop_table(p->class->limit_props);
+#else /* RICH_HIDDEN_CLASS */
   p->prop = allocate_prop_table(psize);
   p->n_props = 0;
   p->limit_props = psize;
+#endif /* RICH_HIDDEN_CLASS */
 }
 
 /*
@@ -844,7 +935,11 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
      * printf("Object %016llx: (type = %d, n_props = %lld)\n",
      *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
      */
+#ifdef RICH_HIDDEN_CLASS
+    size += hidden_n_props(obj_hidden_class(tmpobj));
+#else /* RICH_HIDDEN_CLASS */
     size += obj_n_props(tmpobj);
+#endif /* RICH_HIDDEN_CLASS */
   } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
   /* printf("size = %d\n", size); */
   GC_PUSH2(iter, obj);
@@ -976,7 +1071,13 @@ double cstr_to_double(char* cstr) {
 /*
  * allocates a new empty hidden class
  */
-HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
+#ifdef RICH_HIDDEN_CLASS
+HiddenClass *new_empty_hidden_class(Context *ctx, int hsize,
+                                    int psize, int htype)
+#else
+HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
+#endif /* RICH_HIDDEN_CLASS */
+{
   HiddenClass *c;
   Map *a;
 
@@ -989,6 +1090,10 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype) {
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
+#ifdef RICH_HIDDEN_CLASS
+  hidden_n_props(c) = 0;
+  hidden_limit_props(c) = psize;
+#endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   c->prev = NULL;
   c->n_profile_enter = 0;
@@ -1020,6 +1125,19 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
+#ifdef RICH_HIDDEN_CLASS
+  hidden_n_props(c) = ne + 1;
+  if (hidden_n_props(c) <= hidden_limit_props(oldc))
+    hidden_limit_props(c) = hidden_limit_props(oldc);
+  else {
+    uint64_t newsize = increase_psize(hidden_limit_props(oldc));
+    if (newsize == hidden_limit_props(oldc)) {
+      LOG_EXIT("proptable overflow\n");
+      return FAIL;
+    }
+    hidden_limit_props(c) = newsize;
+  }
+#endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   c->prev = oldc;
   c->n_profile_enter = 0;

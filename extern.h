@@ -206,7 +206,6 @@ extern int hash_copy(Context *, HashTable *, HashTable *);
 extern int hash_delete(HashTable *table, HashKey key);
 extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
-extern void print_object_properties(JSValue);
 
 extern HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
@@ -247,9 +246,6 @@ extern void debug_print(Context *, int);
 /*
  * object.c
  */
-#ifdef HIDDEN_CLASS
-extern int transit_hidden_class(Context *, JSValue, JSValue, HiddenClass *);
-#endif
 extern int get_prop(JSValue, JSValue, JSValue *);
 extern JSValue get_prop_prototype_chain(JSValue, JSValue);
 extern JSValue get_object_prop(Context *, JSValue, JSValue);
@@ -287,7 +283,11 @@ extern JSValue new_boolean_object(Context *, JSValue, int, int);
 extern JSValue new_string_object(Context *, JSValue, int, int);
 extern char *space_chomp(char *);
 #ifdef HIDDEN_CLASS
+#ifdef RICH_HIDDEN_CLASS
+extern HiddenClass *new_empty_hidden_class(Context *, int, int, int);
+#else /* RICH_HIDDEN_CLASS */
 extern HiddenClass *new_empty_hidden_class(Context *, int, int);
+#endif /* RICH_HIDDEN_CLASS */
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
 extern void print_hidden_class(char *, HiddenClass *);
 extern void print_all_hidden_class(void);
@@ -327,6 +327,12 @@ extern void init_builtin_math(Context *);
 extern void init_builtin_regexp(Context *);
 #endif /* need_regexp */
 #endif
+
+/*
+ * gc.c
+ */
+extern uint64_t total_alloc_bytes;
+extern uint64_t total_alloc_count;
 
 #ifdef __cplusplus
 }
