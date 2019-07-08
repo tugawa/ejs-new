@@ -461,12 +461,11 @@ int main(int argc, char *argv[]) {
     if (repl_flag == TRUE)
       fflush(stdout);
   }
+#ifdef PROFILE
 #ifdef HIDDEN_CLASS
   if (hcprint_flag == TRUE)
     print_all_hidden_class();
 #endif
-
-#ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)

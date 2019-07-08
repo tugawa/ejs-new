@@ -1002,6 +1002,7 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   return c;
 }
 
+#ifdef PROFILE
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
   printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
@@ -1035,5 +1036,5 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
 void print_all_hidden_class(void) {
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
 }
-
+#endif /* PROFILE */
 #endif
