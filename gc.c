@@ -1029,21 +1029,5 @@ STATIC void print_heap_stat(void)
 extern void** stack_start;
 STATIC void sanity_check()
 {
-#if 0
-  void **p;
-
-  for (p = top; p < stack_start; p++) {
-    /* JSValue ptr */
-    if (in_js_space(*p)) {
-      if (is_object(*p) || is_string(*p) || is_flonum(*p)) {
-	if (!is_marked_cell(remove_object_tag(*p))){
-	  printf("%p -> %p (unmarked)\n", p, *p);
-	  *(int*)p = 0xdeadbeef;
-	}
-      }
-    }
-  }
-  printf("sanity check done\n");
-#endif 
 }
 #endif /* GC_DEBUG */
