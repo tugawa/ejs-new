@@ -784,7 +784,7 @@ void set_object_members(Object *p, int hsize, int psize) {
   p->map = a;
 #endif
 #ifdef RICH_HIDDEN_CLASS
-  p->prop = allocate_prop_table(p->class->limit_props);
+  p->prop = allocate_prop_table(hidden_limit_props(p->class));
 #else /* RICH_HIDDEN_CLASS */
   p->prop = allocate_prop_table(psize);
   p->n_props = 0;
