@@ -115,7 +115,11 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
   /* printf("get_prop: index = %d\n", index); */
   if (index == -1) return FAIL;
   /* simple_print(obj_prop_index(obj, index)); putchar('\n'); */
+#ifdef EMBED_PROP
+  *ret = get_obj_prop_index(obj, index);
+#else /* EMBED_PROP */
   *ret = obj_prop_index(obj, index);
+#endif /* EMBED_PROP */
   return SUCCESS;
 }
 
@@ -266,6 +270,39 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
 }
 
 #ifdef RICH_HIDDEN_CLASS
+#ifdef EMBED_PROP
+static void expand_overflow_props(Context *ctx, JSValue obj,
+				  int old_size, int new_size)
+{
+  JSValue *props;
+  GC_PUSH(obj);
+  if (old_size == 0) {
+    props = allocate_prop_table(new_size);
+    props[0] = obj_ovf_props(obj, obj_hidden_class(obj));
+  } else {
+    HiddenClass *hc = obj_hidden_class(obj);
+    props = reallocate_prop_table(ctx, (JSValue *) obj_ovf_props(obj, hc),
+				  old_size, new_size);
+  }
+  obj_ovf_props(obj, obj_hidden_class(obj)) = (JSValue) props;
+  GC_POP(obj);
+}
+
+static int compute_new_limit_props(int n_embedded, int n_limit, int n_prop)
+{
+  if (n_limit == 0) {
+    if (n_prop > n_embedded)
+      return 1 + PSIZE_DELTA;
+  } else {
+    if (n_prop > n_embedded + n_limit - 1) {
+      CHECK_INCREASE_PROPERTY(n_embedded + n_limit - 1);
+      return n_limit + PSIZE_DELTA;
+    }
+  }
+  return n_limit;
+}
+#endif /* EMBED_PROP */
+
 /*
  * sets an object's property value with its attribute
  */
@@ -276,11 +313,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
 
   index = prop_index(obj, name);
   if (index == -1) {
-    HiddenClass *hc;
-    int capacity;
-    hc = obj_hidden_class(obj);
+    HiddenClass *hc = obj_hidden_class(obj);
+    int prev_limit = hidden_n_limit_props(hc);
     index = hidden_n_props(hc);
-    capacity = hidden_limit_props(hc);
     if (hidden_htype(hc) == HTYPE_TRANSIT) {
       HiddenClass *nhc = hclass;
       if (nhc == NULL) {
@@ -297,13 +332,19 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
                                 ATTR_NONE | ATTR_TRANSITION);
         hidden_n_entries(hc)++;
       }
-      if (capacity < hidden_limit_props(nhc)) {
+      if (prev_limit < hidden_n_limit_props(nhc)) {
+#ifdef EMBED_PROP
+        GC_PUSH3(obj, v, nhc);
+	expand_overflow_props(ctx, obj, prev_limit, hidden_n_limit_props(nhc));
+        GC_POP3(nhc, v, obj);
+#else /* EMBED_PROP */
         JSValue * props;
         GC_PUSH3(obj, v, nhc);
-        props = reallocate_prop_table(ctx, obj_prop(obj), capacity,
-                                      hidden_limit_props(nhc));
+        props = reallocate_prop_table(ctx, obj_prop(obj), prev_limit,
+                                      hidden_n_limit_props(nhc));
         GC_POP3(nhc, v, obj);
         obj_prop(obj) = props;
+#endif /* EMBED_PROP */
       }
       hidden_n_exit(obj_hidden_class(obj))++;
       n_exit_hc++;
@@ -314,29 +355,43 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
       if (obj_profile_id(obj))
 	hidden_n_profile_enter(nhc)++;
 #endif /* PROFILE */
-    } else { /* hidden_htype(oh) == HTYPE_GROW */
+    } else { /* hidden_htype(hc) == HTYPE_GROW */
       int ret;
-      if (capacity <= hidden_n_props(hc)) {
+#ifdef EMBED_PROP
+      int new_limit = compute_new_limit_props(hidden_n_embedded_props(hc),
+					      prev_limit,
+					      hidden_n_props(hc) + 1);
+      if (new_limit > prev_limit) {
+	hidden_n_limit_props(hc) = new_limit;
+	GC_PUSH2(obj, v);
+	expand_overflow_props(ctx, obj, prev_limit, new_limit);
+	GC_POP2(v, obj);
+      }
+#else /* EMBED_PROP */
+      if (prev_limit <= hidden_n_props(hc)) {
         JSValue *props;
-        int newsize = increase_psize(hidden_n_props(hc));
-        if (newsize == hidden_n_props(hc)) {
-          LOG_EXIT("proptable overflow");
-          return FAIL;
-        }
-        hidden_limit_props(hc) = newsize;
+	int new_limit;
+	CHECK_INCREASE_PROPERTY(hidden_n_props(hc));
+	new_limit = hidden_n_props(hc) + PSIZE_DELTA;
+	hidden_n_limit_props(hc) = new_limit;
         GC_PUSH2(obj, v);
         props = reallocate_prop_table(ctx, obj_prop(obj),
-                                      hidden_n_props(hc), newsize);
+                                      hidden_n_props(hc), new_limit);
         GC_POP2(v, obj);
         obj_prop(obj) = props;
       }
+#endif /* EMBED_PROP */
       ret = hash_put_with_attribute(hidden_map(hc), name, index, attr);
       hidden_n_props(hc)++;
       if (ret != HASH_PUT_SUCCESS)
         return FAIL;
     }
   }
+#ifdef EMBED_PROP
+  set_obj_prop_index(obj, index, v);
+#else /* EMBED_PROP */
   obj_prop_index(obj, index) = v;
+#endif /* EMBED_PROP */
   return SUCCESS;
 }
 #else /* RICH_HIDDEN_CLASS */
@@ -360,11 +415,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
     /* The specified property is not registered in the hash table. */
     retv = obj_n_props(obj);
     if (retv >= obj_limit_props(obj)) {
-      /* The property array is full */
-      if ((newsize = increase_psize(retv)) == retv) {
-        LOG_EXIT("proptable overflow\n");
-        return FAIL;
-      }
+      int newsize;
+      CHECK_INCREASE_PROPERTY(retv);
+      newsize = retv + PSIZE_DELTA;
       GC_PUSH3(obj, name, v);
       obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
       GC_POP3(v, name, obj);
@@ -620,7 +673,11 @@ int delete_object_prop(JSValue obj, HashKey key) {
   /* Set corresponding property as JS_UNDEFINED */
   index = prop_index(obj, key);
   if (index == - 1) return FAIL;
+#ifdef EMBED_PROP
+  set_obj_prop_index(obj, index, JS_UNDEFINED);
+#else /* EMBED_PROP */
   obj_prop_index(obj, index) = JS_UNDEFINED;
+#endif /* EMBED_PROP */
 
   /* Delete map */
 #ifdef HIDDEN_CLASS
@@ -754,7 +811,7 @@ int regexp_flag(JSValue re) {
  * If HIDDEN_CLASS is defined, hsize == 0 means that g_hidden_class_0
  * should be used instead of allocating a new hidden class.
  */
-void set_object_members(Object *p, int hsize, int psize) {
+static void set_object_members(Object *p, int hsize, int psize) {
 #ifdef PROFILE
   if (logflag())
     p->profile_id = ++profile_object_count;
@@ -784,7 +841,15 @@ void set_object_members(Object *p, int hsize, int psize) {
   p->map = a;
 #endif
 #ifdef RICH_HIDDEN_CLASS
-  p->prop = allocate_prop_table(hidden_limit_props(p->class));
+#ifdef EMBED_PROP
+  {
+    int i;
+    for (i = 0; i < psize; i++)
+      p->eprop[i] = JS_UNDEFINED;
+  }
+#else /* EMBED_PROP */
+  p->prop = allocate_prop_table(hidden_n_limit_props(p->class));
+#endif /* EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
   p->prop = allocate_prop_table(psize);
   p->n_props = 0;
@@ -803,7 +868,11 @@ JSValue new_simple_object_without_prototype(Context *ctx, int hsize,
   Object *p;
 
   /*  printf("new_simple_object_without_prototype\n"); */
+#ifdef EMBED_PROP
+  ret = make_simple_object(ctx, psize);
+#else /* EMBED_PROP */
   ret = make_simple_object(ctx);
+#endif /* EMBED_PROP */
   p = remove_simple_object_tag(ret);
   set_object_members(p, hsize, psize);
   return ret;
@@ -819,7 +888,11 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
   Object *p;
 
   /* printf("new_simple_object\n"); */
+#ifdef EMBED_PROP
+  ret = make_simple_object(ctx, psize);
+#else /* EMBED_PROP */
   ret = make_simple_object(ctx);
+#endif /* EMBED_PROP */
   GC_PUSH(ret);
   p = remove_simple_object_tag(ret);
   set_object_members(p, hsize, psize);
@@ -836,7 +909,11 @@ JSValue new_array(Context *ctx, int hsize, int vsize) {
 
   ret = make_array(ctx);
   disable_gc();  /* disable GC unitl Array is properly initialised */
+#ifdef EMBED_PROP
+  set_object_members(array_object_p(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, vsize);
+#endif /* EMBED_PROP */
   GC_PUSH(ret);
   set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
@@ -854,7 +931,11 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
 
   ret = make_array(ctx);
   disable_gc();  /* disable GC unitl Array is properly initialised */
+#ifdef EMBED_PROP
+  set_object_members(array_object_p(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, vsize);
+#endif /* EMBED_PROP */
   allocate_array_data_critical(ret, size, size);
   GC_PUSH(ret);
   set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
@@ -872,7 +953,11 @@ JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
 
   ret = make_function();
   disable_gc();
+#ifdef EMBED_PROP
+  set_object_members(func_object_p(ret), hsize, 1);
+#else
   set_object_members(func_object_p(ret), hsize, vsize);
+#endif /* EMBED_PROP */
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
   GC_PUSH(ret);
@@ -892,7 +977,11 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   JSValue ret;
 
   ret = make_builtin();
+#ifdef EMBED_PROP
+  set_object_members(builtin_object_p(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(builtin_object_p(ret), hsize, psize);
+#endif /* EMBED_PROP */
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
@@ -977,7 +1066,11 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   JSValue ret;
 
   ret = make_regexp();
+#ifdef EMBED_PROP
+  set_object_members(regexp_object_p(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(regexp_object_p(ret), hsize, vsize);
+#endif /* EMBED_PROP */
   /* pattern field is set in set_regexp_members */
   /* regexp_pattern(ret) = NULL; */
   regexp_reg(ret) = NULL;
@@ -1001,7 +1094,11 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(v);
   ret = make_number_object(ctx);
   GC_PUSH(ret);
+#ifdef EMBED_PROP
+  set_object_members(number_object_object_ptr(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(number_object_object_ptr(ret), hsize, psize);
+#endif /* EMBED_PROP */
   number_object_value(ret) = v;
   set___proto___none(ctx, ret, gconsts.g_number_proto);
   GC_POP2(ret,v);
@@ -1018,7 +1115,11 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(v);
   ret = make_boolean_object(ctx);
   GC_POP(v);
+#ifdef EMBED_PROP
+  set_object_members(boolean_object_object_ptr(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(boolean_object_object_ptr(ret), hsize, psize);
+#endif /* EMBED_PROP */
   boolean_object_value(ret) = v;
   GC_PUSH(ret);
   set___proto___none(ctx, ret, gconsts.g_boolean_proto);
@@ -1034,7 +1135,11 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
 
   GC_PUSH(v);
   ret = make_string_object(ctx);
+#ifdef EMBED_PROP
+  set_object_members(string_object_object_ptr(ret), hsize, 1);
+#else /* EMBED_PROP */
   set_object_members(string_object_object_ptr(ret), hsize, psize);
+#endif /* EMBED_PROP */
   string_object_value(ret) = v;
   GC_PUSH(ret);
   set___proto___none(ctx, ret, gconsts.g_string_proto);
@@ -1088,11 +1193,16 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
   hidden_n_props(c) = 0;
-  hidden_limit_props(c) = psize;
+#ifdef EMBED_PROP
+  hidden_n_limit_props(c) = 0;
+  hidden_n_embedded_props(c) = psize;
+#else /* EMBED_PROP */
+  hidden_n_limit_props(c) = psize;
+#endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
-  c->prev = NULL;
-  c->n_profile_enter = 0;
+  hidden_prev(c) = NULL;
+  hidden_n_profile_enter(c) = 0;
 #endif /* PROFILE */
   GC_PUSH(c);
   enable_gc(ctx);
@@ -1123,20 +1233,27 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
   hidden_n_props(c) = ne + 1;
-  if (hidden_n_props(c) <= hidden_limit_props(oldc))
-    hidden_limit_props(c) = hidden_limit_props(oldc);
-  else {
-    uint64_t newsize = increase_psize(hidden_limit_props(oldc));
-    if (newsize == hidden_limit_props(oldc)) {
-      LOG_EXIT("proptable overflow\n");
-      return FAIL;
-    }
-    hidden_limit_props(c) = newsize;
+#ifdef EMBED_PROP
+  {
+    int n_embedded = hidden_n_embedded_props(oldc);
+    int n_limit = hidden_n_limit_props(oldc);
+    int n_prop = ne + 1;
+    hidden_n_embedded_props(c) = n_embedded;
+    hidden_n_limit_props(c) =
+      compute_new_limit_props(n_embedded, n_limit, n_prop);
   }
+#else /* EMBED_PROP */
+  if (hidden_n_props(c) <= hidden_n_limit_props(oldc))
+    hidden_n_limit_props(c) = hidden_n_limit_props(oldc);
+  else {
+    CHECK_INCREASE_PROPERTY(hidden_n_limit_props(oldc));
+    hidden_n_limit_props(c) = hidden_n_limit_props(oldc) + PSIZE_DELTA;
+  }
+#endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
-  c->prev = oldc;
-  c->n_profile_enter = 0;
+  hidden_prev(c) = oldc;
+  hidden_n_profile_enter(c) = 0;
 #endif /* PROFILE */
   n_hc++;
   return c;

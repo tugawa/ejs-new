@@ -63,7 +63,11 @@ extern FlonumCell *allocate_flonum(double);
 #endif /* need_normal_flonum */
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
+#ifdef EMBED_PROP
+extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
+#else /* EMBED_PROP */
 extern Object *allocate_simple_object(Context *ctx);
+#endif /* EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);

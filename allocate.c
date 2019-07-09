@@ -55,11 +55,21 @@ StringCell *allocate_string(uint32_t length)
  * allocates a simple object
  * Note that the return value does not have a pointer tag.
  */
-Object *allocate_simple_object(Context *ctx)
+#ifdef EMBED_PROP
+Object *allocate_simple_object(Context *ctx, size_t n_embedded)
 {
-  Object *object = (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_SIMPLE_OBJECT);
+  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - 1);
+  Object *object = (Object *) gc_jsalloc(ctx, size, HTAG_SIMPLE_OBJECT);
   return object;
 }
+#else /* EMBED_PROP */
+Object *allocate_simple_object(Context *ctx)
+{
+  Object *object =
+    (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_SIMPLE_OBJECT);
+  return object;
+}
+#endif /* EMBED_PROP */
 
 /*
  * allocates an array

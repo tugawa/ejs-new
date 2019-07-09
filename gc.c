@@ -655,7 +655,22 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   trace_HashTable(&obj->map);
 #endif
 #ifdef RICH_HIDDEN_CLASS
+#ifdef EMBED_PROP
+  {
+    size_t n_limit_props = obj->class->n_limit_props;
+    size_t actual_embedded =
+      (n_limit_props == 0) ?
+      obj->class->n_props : (obj->class->n_embedded_props - 1);
+    size_t i;
+    for (i = 0; i < actual_embedded; i++)
+      trace_slot(&obj->eprop[i]);
+    if (n_limit_props != 0)
+      trace_JSValue_array((JSValue **) &obj->eprop[actual_embedded],
+			  obj->class->n_props - actual_embedded);
+  }
+#else /* EMBED_PROP */
   trace_JSValue_array(&obj->prop, obj->class->n_props);
+#endif /* EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
   trace_JSValue_array(&obj->prop, obj->n_props);
 #endif /* RICH_HIDDEN_CLASS */

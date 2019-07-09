@@ -94,7 +94,10 @@ typedef struct hidden_class {
   HashTable *map;         /* map which is explained above */
 #ifdef RICH_HIDDEN_CLASS
   uint32_t n_props;       /* number of properties */
-  uint32_t limit_props;   /* capacity of the array for properties */
+  uint32_t n_limit_props;   /* capacity of the array for properties */
+#ifdef EMBED_PROP
+  uint32_t n_embedded_props; /* number of properites embedded in the object */
+#endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   struct hidden_class *prev;
@@ -105,17 +108,21 @@ typedef struct hidden_class {
   uint32_t n_exit;          /* number of times this class is left */
 } HiddenClass;
 
-#define hidden_n_entries(h)    ((h)->n_entries)
-#define hidden_htype(h)        ((h)->htype)
-#define hidden_n_enter(h)      ((h)->n_enter)
-#define hidden_n_exit(h)       ((h)->n_exit)
-#define hidden_map(h)          ((h)->map)
+#define hidden_n_entries(h)        ((h)->n_entries)
+#define hidden_htype(h)            ((h)->htype)
+#define hidden_n_enter(h)          ((h)->n_enter)
+#define hidden_n_exit(h)           ((h)->n_exit)
+#define hidden_map(h)              ((h)->map)
 #ifdef RICH_HIDDEN_CLASS
-#define hidden_n_props(h)      ((h)->n_props)
-#define hidden_limit_props(h)  ((h)->limit_props)
+#define hidden_n_props(h)          ((h)->n_props)
+#define hidden_n_limit_props(h)    ((h)->n_limit_props)
+#ifdef EMBED_PROP
+#define hidden_n_embedded_props(h) ((h)->n_embedded_props)
+#endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
-#define hidden_n_profile_enter(h) ((h)->n_profile_enter)
+#define hidden_prev(h)             ((h)->prev)
+#define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
 #endif /* PROFILE */
 
 #define HTYPE_TRANSIT   0
@@ -140,15 +147,23 @@ typedef struct object_cell {
 #else
   HashTable *map;         /* map from property name to the index within prop */
 #endif
+#ifdef EMBED_PROP
+  JSValue eprop[1];
+#else /* EMBED_PROP */
   JSValue *prop;          /* array of property values */
+#endif /* EMBED_PROP */
 } Object;
 
 #define remove_simple_object_tag remove_normal_simple_object_tag
 #define put_simple_object_tag    put_normal_simple_object_tag
 
-#define make_simple_object(ctx)                         \
+#ifdef EMBED_PROP
+#define make_simple_object(ctx, n)				\
+  (put_simple_object_tag(allocate_simple_object(ctx, (n))))
+#else
+#define make_simple_object(ctx)				\
   (put_simple_object_tag(allocate_simple_object(ctx)))
-
+#endif /* EMBED_PROP */
 #define remove_object_tag(p)    ((Object *)clear_tag(p))
 
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
@@ -159,8 +174,35 @@ typedef struct object_cell {
 #else
 #define obj_map(p)             ((remove_object_tag(p))->map)
 #endif
+#ifdef EMBED_PROP
+#define obj_eprop(p)           ((remove_object_tag(p))->eprop)
+#define obj_ovf_props(p,hc)    (obj_eprop(p)[hidden_n_embedded_props(hc) - 1])
+static inline JSValue get_obj_prop_index(JSValue p, int index)
+{
+  HiddenClass *hc = obj_hidden_class(p);
+  int n_embedded = hidden_n_embedded_props(hc);
+  if (hidden_n_limit_props(hc) == 0 || index < n_embedded - 1)
+    return obj_eprop(p)[index];
+  else {
+    JSValue *of = (JSValue *) obj_ovf_props(p, hc);
+    return of[index - (n_embedded - 1)];
+  }
+}
+static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
+{
+  HiddenClass *hc = obj_hidden_class(p);
+  int n_embedded = hidden_n_embedded_props(hc);
+  if (hidden_n_limit_props(hc) == 0 || index < n_embedded - 1)
+    obj_eprop(p)[index] = v;
+  else {
+    JSValue *of = (JSValue *) obj_ovf_props(p, hc);
+    of[index - (n_embedded - 1)] = v;
+  }
+}
+#else /* EMBED_PROP */
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
+#endif /* EMBED_PROP */
 #ifdef PROFILE
 #define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
 #endif /* PROFILE */
@@ -175,7 +217,10 @@ typedef struct object_cell {
 #define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
 #define HSIZE_BIG    100
 
-#define increase_psize(n)     (((n) >= PSIZE_LIMIT)? (n): ((n) + PSIZE_DELTA))
+#define CHECK_INCREASE_PROPERTY(n) do {		\
+  if ((n) + PSIZE_DELTA > PSIZE_LIMIT)		\
+    LOG_EXIT("too many properties");		\
+} while(0)
 
 #ifdef HIDDEN_CLASS
 #define HHH 0
