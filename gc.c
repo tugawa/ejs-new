@@ -702,11 +702,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     assert(0);
     break;
 #ifdef USE_REGEXP
-#ifdef need_normal_regexp
   case HTAG_REGEXP:
     trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
     break;
-#endif /* need_normal_regexp */
 #endif /* USE_REGEXP */
   case HTAG_BOXED_STRING:
   case HTAG_BOXED_NUMBER:
@@ -988,10 +986,8 @@ STATIC void check_invariant_nobw_space(struct space *space)
     header_t header = *hdrp;
     if (HEADER0_GET_TYPE(header) == HTAG_STRING)
       ;
-#ifdef need_flonum
     else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
       ;
-#endif
     else if (HEADER0_GET_TYPE(header) == HTAG_CONTEXT)
       ;
     else if (HEADER0_GET_TYPE(header) == HTAG_STACK)

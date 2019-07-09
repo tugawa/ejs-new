@@ -528,12 +528,10 @@ void print_value(Context *context, JSValue v, int verbose) {
   else if (is_iterator(v))
     v = cstr_to_string(NULL, "iterator");
 #ifdef USE_REGEXP
-#ifdef need_regexp
   else if (is_regexp(v)) {
     printf("/%s/", regexp_pattern(v));
     return;
   }
-#endif /* need_regexp */
 #endif
   else if (is_string_object(v))
     v = cstr_to_string(NULL, "boxed-string");
