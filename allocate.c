@@ -18,7 +18,6 @@
 int count = 0;
 #endif /* DEBUG */
 
-#ifdef need_flonum
 /*
  * allocates a flonum
  * Note that the return value does not have a pointer tag.
@@ -30,7 +29,6 @@ FlonumCell *allocate_flonum(double d)
   n->value = d;
   return n;
 }
-#endif /* need_flonum */
 
 /*
  * allocates a string

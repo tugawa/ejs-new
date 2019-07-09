@@ -11,8 +11,6 @@
 #define EXTERN extern
 #include "header.h"
 
-#ifdef need_flonum
-
 #define set_a_number(x)                                         \
   (set_a(context,                                               \
          (isnan((x))? gconsts.g_flonum_nan:                     \
@@ -241,4 +239,3 @@ void init_builtin_math(Context *ctx)
   GC_POP(math);
 }
 
-#endif /* need_flonum */

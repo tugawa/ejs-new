@@ -424,19 +424,6 @@ typedef struct boxed_cell {
 /*
  * Flonum
  */
-#if !defined(need_flonum)
-
-#define flonum_value(p)      JS_UNDEFINED
-#define double_to_flonum(n)  JS_UNDEFINED
-#define int_to_flonum(i)     JS_UNDEFINED
-#define cint_to_flonum(i)    JS_UNDEFINED
-#define flonum_to_double(p)  0
-#define flonum_to_cint(p)    0
-#define flonum_to_int(p)     0
-#define is_nan(p) JS_FALSE
-
-#elif !defined(customised_flonum)
-
 #define flonum_value(p)      (normal_flonum_value(p))
 #define double_to_flonum(n)  (double_to_normal_flonum(n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
@@ -445,10 +432,6 @@ typedef struct boxed_cell {
 #define flonum_to_cint(p)    (normal_flonum_to_cint(p))
 #define flonum_to_int(p)     (normal_flonum_to_int(p))
 #define is_nan(p)            (normal_flonum_is_nan(p))
-
-#endif
-
-#ifdef need_normal_flonum
 
 /*
  * FlonumCell
@@ -468,22 +451,15 @@ typedef struct flonum_cell {
 #define normal_flonum_is_nan(p)                         \
   (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
-#endif /* need_flonum */
-
-
 /*
  * String
  */
-#ifndef customised_string
 #define string_value(p)   (normal_string_value(p))
 #define string_hash(p)    (normal_string_hash(p))
 #define string_length(p)  (normal_string_length(p))
 #define cstr_to_string(ctx,str) (cstr_to_normal_string((ctx),(str)))
 #define ejs_string_concat(ctx,str1,str2)                \
   (ejs_normal_string_concat((ctx),(str1),(str2)))
-#endif /* customised_string */
-
-#ifdef need_normal_string
 
 /*
  * StringCell
@@ -514,8 +490,6 @@ typedef struct string_cell {
  *       (string_concat is used for builtin function) */
 #define ejs_normal_string_concat(ctx, str1, str2)       \
   (string_concat_ool((ctx), (str1), (str2)))
-
-#endif /* need_normal_string */
 
 /*
  * Object header

@@ -58,9 +58,7 @@ extern "C" {
 /*
  * allocate.c
  */
-#ifdef need_normal_flonum
 extern FlonumCell *allocate_flonum(double);
-#endif /* need_normal_flonum */
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
 #ifdef EMBED_PROP
@@ -225,10 +223,8 @@ extern void hashCellFree(HashCell *cell);
  * string.c
  */
 extern void init_string_table(unsigned int);
-#ifdef need_normal_string
 extern JSValue cstr_to_string_ool(Context *context, const char *s);
 extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
-#endif /* need_normal_string */
 
 /*
  * init.c
