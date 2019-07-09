@@ -19,7 +19,7 @@ static int lcall_stack_pop(Context* context, int *pc);
 #ifdef PROFILE
 int logflag_stack[100];
 int logflag_sp = -1;
-#define push_logflag(f) logflag_stack[++logflag_sp] = f
+#define push_logflag(f) logflag_stack[++logflag_sp] = (f|forcelog_flag)
 #define pop_logflag()   logflag_sp--
 #else
 #define push_logflag(f)

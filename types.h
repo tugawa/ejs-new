@@ -100,9 +100,9 @@ typedef struct hidden_class {
   struct hidden_class *prev;
   uint32_t n_profile_enter; /* number of times this class is used for object
 			       marked for profilling */
+#endif /* PROFILE */
   uint32_t n_enter;         /* number of times this class is used */
   uint32_t n_exit;          /* number of times this class is left */
-#endif /* PROFILE */
 } HiddenClass;
 
 #define hidden_n_entries(h)    ((h)->n_entries)

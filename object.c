@@ -305,16 +305,14 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         GC_POP3(nhc, v, obj);
         obj_prop(obj) = props;
       }
-#ifdef PROFILE
       hidden_n_exit(obj_hidden_class(obj))++;
       n_exit_hc++;
-#endif /* PROFILE */
       obj_hidden_class(obj) = nhc;
-#ifdef PROFILE
       hidden_n_enter(nhc)++;
       n_enter_hc++;
+#ifdef PROFILE
       if (obj_profile_id(obj))
-	hidden_n_profile_enter(nhc);
+	hidden_n_profile_enter(nhc)++;
 #endif /* PROFILE */
     } else { /* hidden_htype(oh) == HTYPE_GROW */
       int ret;
@@ -404,16 +402,14 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
         GC_POP2(oh, nexth);
         hidden_n_entries(oh)++;
       }
-#ifdef PROFILE
       hidden_n_exit(obj_hidden_class(obj))++;
       n_exit_hc++;
-#endif /* PROFILE */
       obj_hidden_class(obj) = nexth;
-#ifdef PROFILE
       hidden_n_enter(nexth)++;
       n_enter_hc++;
+#ifdef PROFILE
       if (obj_profile_id(obj))
-	hidden_n_profile_enter(nexth);
+	hidden_n_profile_enter(nexth)++;
 #endif /* PROFILE */
     } else {                  /* hidden_htype(oh) == HTYPE_GROW */
       nexth = oh;
