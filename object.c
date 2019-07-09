@@ -900,28 +900,6 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 }
 
 /*
- * makes a new array
- */
-JSValue new_array(Context *ctx, int hsize, int vsize) {
-  JSValue ret;
-
-  ret = make_array(ctx);
-  disable_gc();  /* disable GC unitl Array is properly initialised */
-#ifdef EMBED_PROP
-  set_object_members(array_object_p(ret), hsize, 1);
-#else /* EMBED_PROP */
-  set_object_members(array_object_p(ret), hsize, vsize);
-#endif /* EMBED_PROP */
-  GC_PUSH(ret);
-  set___proto___all(ctx, ret, gconsts.g_array_proto);
-  allocate_array_data_critical(ret, 0, 0);
-  set_prop_ddde(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
-  enable_gc(ctx);
-  GC_POP(ret);
-  return ret;
-}
-
-/*
  * makes a new array with size
  */
 JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
@@ -934,9 +912,10 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
 #else /* EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, vsize);
 #endif /* EMBED_PROP */
+  set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, size, size);
-  GC_PUSH(ret);
   set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
+  GC_PUSH(ret);
   enable_gc(ctx);
   GC_POP(ret);
   return ret;
