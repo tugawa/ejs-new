@@ -99,14 +99,14 @@ typedef struct hidden_class {
   uint32_t n_embedded_props; /* number of properites embedded in the object */
 #ifdef ARRAY_EMBED_PROP
   uint32_t n_special_props;  /* number of properties that are not registered
-			      * in the map, which may not be JSValues */
+                              * in the map, which may not be JSValues */
 #endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   struct hidden_class *prev;
   uint32_t n_profile_enter; /* number of times this class is used for object
-			       marked for profilling */
+                               marked for profilling */
 #endif /* PROFILE */
   uint32_t n_enter;         /* number of times this class is used */
   uint32_t n_exit;          /* number of times this class is left */
@@ -145,10 +145,10 @@ typedef struct hidden_class {
 #define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
 #define HSIZE_BIG    100
 
-#define CHECK_INCREASE_PROPERTY(n) do {		\
-  if ((n) + PSIZE_DELTA > PSIZE_LIMIT)		\
-    LOG_EXIT("too many properties");		\
-} while(0)
+#define CHECK_INCREASE_PROPERTY(n) do {         \
+    if ((n) + PSIZE_DELTA > PSIZE_LIMIT)        \
+      LOG_EXIT("too many properties");          \
+  } while(0)
 
 typedef struct object_cell {
 #ifdef PROFILE
@@ -174,10 +174,10 @@ typedef struct object_cell {
 #define put_simple_object_tag    put_normal_simple_object_tag
 
 #ifdef EMBED_PROP
-#define make_simple_object(ctx, n)				\
+#define make_simple_object(ctx, n)                              \
   (put_simple_object_tag(allocate_simple_object(ctx, (n))))
 #else
-#define make_simple_object(ctx)				\
+#define make_simple_object(ctx)                         \
   (put_simple_object_tag(allocate_simple_object(ctx)))
 #endif /* EMBED_PROP */
 #define remove_object_tag(p)    ((Object *)clear_tag(p))
@@ -251,9 +251,9 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define new_big_builtin_with_constr(ctx, f, cons, na)                   \
   new_builtin_with_constr(ctx, f, cons, na, HSIZE_BIG, PSIZE_BIG)
 
-#define new_array(ctx, hsize, vsize)			\
+#define new_array(ctx, hsize, vsize)            \
   new_array_with_size(ctx, 0, (hsize), (vsize))
-#define new_normal_array(ctx)				\
+#define new_normal_array(ctx)                   \
   new_array(ctx, HHH, PSIZE_NORMAL)
 #define new_normal_array_with_size(ctx, n)              \
   new_array_with_size(ctx, n, HHH, PSIZE_NORMAL)
@@ -285,13 +285,13 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)        (remove_normal_array_tag(a))
-#define array_size(a)							\
+#define array_size(a)                                                   \
   (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_SIZE])
-#define array_length(a)							\
+#define array_length(a)                                                 \
   (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_LENGTH])
-#define array_body(a)							\
+#define array_body(a)                                                   \
   (*(JSValue**)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_BODY])
-#define array_body_index(a,i)			\
+#define array_body_index(a,i)                   \
   ((JSValue *)array_body(a))[(i)]
 
 #else /* ARRAY_EMBED_PROP */
@@ -383,11 +383,11 @@ typedef struct iterator {
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
-#define make_iterator()                                        \
+#define make_iterator()                                 \
   (put_normal_iterator_tag(allocate_iterator()))
 #define iterator_size(i)                        \
   ((remove_normal_iterator_tag(i))->size)
-#define iterator_index(i)                        \
+#define iterator_index(i)                       \
   ((remove_normal_iterator_tag(i))->index)
 #define iterator_body(i)                        \
   ((remove_normal_iterator_tag(i))->body)
@@ -455,9 +455,9 @@ typedef struct boxed_cell {
 #define string_object_object_ptr(s)             \
   (&((remove_normal_string_object_tag(s))->o))
 
-/*
- * Flonum
- */
+  /*
+   * Flonum
+   */
 #define flonum_value(p)      (normal_flonum_value(p))
 #define double_to_flonum(n)  (double_to_normal_flonum(n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
@@ -495,10 +495,10 @@ typedef struct flonum_cell {
 #define ejs_string_concat(ctx,str1,str2)                \
   (ejs_normal_string_concat((ctx),(str1),(str2)))
 
-/*
- * StringCell
- * tag == T_STRING
- */
+  /*
+   * StringCell
+   * tag == T_STRING
+   */
 typedef struct string_cell {
 #ifdef STROBJ_HAS_HASH
   uint32_t hash;           /* hash value before computing mod */

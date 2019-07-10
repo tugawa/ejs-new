@@ -63,10 +63,10 @@ extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
-#define allocate_simple_object(ctx, nemb)	\
+#define allocate_simple_object(ctx, nemb)        \
   allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
 extern Object *allocate_jsobject(Context *ctx, size_t n_embedded,
-				 cell_type_t htag);
+                                 cell_type_t htag);
 #else /* ARRAY_EMBED_PROP */
 extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
 #endif /* ARRAY_EMBED_PROP */
@@ -74,7 +74,7 @@ extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
 extern Object *allocate_simple_object(Context *ctx);
 #endif /* EMBED_PROP */
 #ifdef ARRAY_EMBED_PROP
-#define allocate_array(ctx)			\
+#define allocate_array(ctx)                        \
   allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY)
 #else /* ARRAY_EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);

@@ -272,7 +272,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
 #ifdef RICH_HIDDEN_CLASS
 #ifdef EMBED_PROP
 static void expand_overflow_props(Context *ctx, JSValue obj,
-				  int old_size, int new_size)
+                                  int old_size, int new_size)
 {
   JSValue *props;
   GC_PUSH(obj);
@@ -282,7 +282,7 @@ static void expand_overflow_props(Context *ctx, JSValue obj,
   } else {
     HiddenClass *hc = obj_hidden_class(obj);
     props = reallocate_prop_table(ctx, (JSValue *) obj_ovf_props(obj, hc),
-				  old_size, new_size);
+                                  old_size, new_size);
   }
   obj_ovf_props(obj, obj_hidden_class(obj)) = (JSValue) props;
   GC_POP(obj);
@@ -335,7 +335,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
       if (prev_limit < hidden_n_limit_props(nhc)) {
 #ifdef EMBED_PROP
         GC_PUSH3(obj, v, nhc);
-	expand_overflow_props(ctx, obj, prev_limit, hidden_n_limit_props(nhc));
+        expand_overflow_props(ctx, obj, prev_limit, hidden_n_limit_props(nhc));
         GC_POP3(nhc, v, obj);
 #else /* EMBED_PROP */
         JSValue * props;
@@ -353,27 +353,27 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
       n_enter_hc++;
 #ifdef PROFILE
       if (obj_profile_id(obj))
-	hidden_n_profile_enter(nhc)++;
+        hidden_n_profile_enter(nhc)++;
 #endif /* PROFILE */
     } else { /* hidden_htype(hc) == HTYPE_GROW */
       int ret;
 #ifdef EMBED_PROP
       int new_limit = compute_new_limit_props(hidden_n_embedded_props(hc),
-					      prev_limit,
-					      hidden_n_props(hc) + 1);
+                                              prev_limit,
+                                              hidden_n_props(hc) + 1);
       if (new_limit > prev_limit) {
-	hidden_n_limit_props(hc) = new_limit;
-	GC_PUSH4(obj, name, v, hc);
-	expand_overflow_props(ctx, obj, prev_limit, new_limit);
-	GC_POP4(hc, v, name, obj);
+        hidden_n_limit_props(hc) = new_limit;
+        GC_PUSH4(obj, name, v, hc);
+        expand_overflow_props(ctx, obj, prev_limit, new_limit);
+        GC_POP4(hc, v, name, obj);
       }
 #else /* EMBED_PROP */
       if (prev_limit <= hidden_n_props(hc)) {
         JSValue *props;
-	int new_limit;
-	CHECK_INCREASE_PROPERTY(hidden_n_props(hc));
-	new_limit = hidden_n_props(hc) + PSIZE_DELTA;
-	hidden_n_limit_props(hc) = new_limit;
+        int new_limit;
+        CHECK_INCREASE_PROPERTY(hidden_n_props(hc));
+        new_limit = hidden_n_props(hc) + PSIZE_DELTA;
+        hidden_n_limit_props(hc) = new_limit;
         GC_PUSH2(obj, v);
         props = reallocate_prop_table(ctx, obj_prop(obj),
                                       hidden_n_props(hc), new_limit);
@@ -462,7 +462,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       n_enter_hc++;
 #ifdef PROFILE
       if (obj_profile_id(obj))
-	hidden_n_profile_enter(nexth)++;
+        hidden_n_profile_enter(nexth)++;
 #endif /* PROFILE */
     } else {                  /* hidden_htype(oh) == HTYPE_GROW */
       nexth = oh;
@@ -825,7 +825,7 @@ static void set_object_members(Object *p, int hsize, int psize)
     set_object_members_with_class(p, gobjects.g_hidden_class_0);
   else {
     HiddenClass *hc = new_empty_hidden_class(NULL, hsize, psize,
-					     0, 0, HTYPE_GROW);
+                                             0, 0, HTYPE_GROW);
     set_object_members_with_class(p, hc);
   }
 }
@@ -934,7 +934,7 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(array_object_p(ret),
-				gobjects.g_hidden_class_array);
+                                gobjects.g_hidden_class_array);
 #else /* ARRAY_EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, 1);
 #endif /* ARRAY_EMBED_PROP */
@@ -1179,7 +1179,7 @@ double cstr_to_double(char* cstr) {
 #ifdef RICH_HIDDEN_CLASS
 #ifdef ARRAY_EMBED_PROP
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
-				    int n_prop, int n_special, int htype)
+                                    int n_prop, int n_special, int htype)
 #else /* ARRAY_EMBED_PROP */
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize,
                                     int psize, int htype)
@@ -1284,10 +1284,10 @@ void print_hidden_class(char *s, HiddenClass *hc) {
 #ifdef PROFILE
   printf("HC: %s %p %d %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
          s, hc, hc->n_profile_enter++, hc->prev,
-	 hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+         hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
 #else
   printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
-	 hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+         hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
 #endif /* PROFILE */
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);

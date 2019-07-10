@@ -32,10 +32,10 @@
     putc('\n', log_stream);  exit(1); }                 \
   while (0)
 
-#define ASSERT_OBJECT(o) do {				\
-  if (!is_object(o))					\
-    LOG_EXIT("assertion failed. not an object.");	\
-} while (0)
+#define ASSERT_OBJECT(o) do {                               \
+    if (!is_object(o))                                      \
+      LOG_EXIT("assertion failed. not an object.");         \
+  } while (0)
 
 #else
 
