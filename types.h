@@ -271,7 +271,7 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #ifdef ARRAY_EMBED_PROP
 
-/* Array -- a kind of Object */
+/* Array -- a kind of JSObject */
 
 #define ARRAY_SPECIAL_PROPS       3
 #define ARRAY_XPROP_INDEX_SIZE    0
@@ -282,15 +282,14 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define ARRAY_PROP_INDEX_LENGTH   4
 #define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
-#define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
+#define make_array(ctx)          (put_normal_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)        (remove_normal_array_tag(a))
-#define array_size(a)                                                   \
-  (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_SIZE])
-#define array_length(a)                                                 \
-  (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_LENGTH])
-#define array_body(a)                                                   \
-  (*(JSValue**)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_BODY])
+#define array_eprop(a,t,i)                              \
+  (*(t*)&(remove_normal_array_tag(a))->eprop[i])
+#define array_size(a)   array_eprop(a, uint64_t, ARRAY_XPROP_INDEX_SIZE)
+#define array_length(a) array_eprop(a, uint64_t, ARRAY_XPROP_INDEX_LENGTH)
+#define array_body(a)   array_eprop(a, JSValue *, ARRAY_XPROP_INDEX_BODY)
 #define array_body_index(a,i)                   \
   ((JSValue *)array_body(a))[(i)]
 
@@ -326,6 +325,32 @@ typedef struct array_cell {
 
 #define MINIMUM_ARRAY_SIZE  100
 
+#ifdef ARRAY_EMBED_PROP
+
+/* Function -- a kind of JSObject */
+
+#define make_function(ctx)   (put_normal_function_tag(allocate_function(ctx)))
+
+#define FUNC_SPECIAL_PROPS        2
+#define FUNC_XPROP_INDEX_FTENTRY  0
+#define FUNC_XPROP_INDEX_ENV      1
+#define FUNC_NORMAL_PROPS         2
+#define FUNC_PROP_INDEX_PROTO     2
+#define FUNC_PROP_INDEX_PROTOTYPE 3
+#define FUNC_EMBEDDED_PROPS       (FUNC_SPECIAL_PROPS + FUNC_NORMAL_PROPS)
+
+#undef remove_normal_function_tag
+#define remove_normal_function_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
+
+#define func_object_p(f)    (remove_normal_function_tag(f))
+#define func_eprop(f,t,i)                               \
+  (*(t*)&(remove_normal_function_tag(f))->eprop[i])
+#define func_table_entry(f)                                     \
+  func_eprop(f, FunctionTable *, FUNC_XPROP_INDEX_FTENTRY)
+#define func_environment(f)                             \
+  func_eprop(f, FunctionFrame *, FUNC_XPROP_INDEX_ENV)
+
+#else /* ARRAY_EMBED_PROP */
 /*
  * Function
  * tag == T_GENERIC
@@ -343,18 +368,11 @@ typedef struct function_cell {
 #define func_table_entry(f) ((remove_normal_function_tag(f))->func_table_entry)
 #define func_environment(f) ((remove_normal_function_tag(f))->environment)
 
+#endif /* ARRAY_EMBED_PROP */
+
 /*
  * Builtin
  * tag == T_GENERIC
- */
-
-/*
- * [FIXIT]
- * If variable number of arguments is allowed, the following information
- * is necessary.
- *   o number of required arguments
- *   o number of optional arguments
- *   etc.
  */
 
 typedef void (*builtin_function_t)(Context*, int, int);
@@ -363,7 +381,7 @@ typedef struct builtin_cell {
   Object o;
   builtin_function_t body;
   builtin_function_t constructor;
-  int n_args;
+  int n_args;            /* the number of required arguments */
 } BuiltinCell;
 
 #define make_builtin()          (put_normal_builtin_tag(allocate_builtin()))

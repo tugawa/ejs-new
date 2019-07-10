@@ -131,6 +131,8 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   array_size(a) = newsize;
 }
 
+
+#ifndef ARRAY_EMBED_PROP
 /*
  * allocates a function
  */
@@ -139,6 +141,7 @@ FunctionCell *allocate_function(void) {
     (FunctionCell *) gc_jsalloc_critical(sizeof(FunctionCell), HTAG_FUNCTION);
   return function;
 }
+#endif /* ARRAY_EMBED_PROP */
 
 /*
  * allocates a builtin

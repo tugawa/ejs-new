@@ -73,13 +73,29 @@ void init_global_malloc_objects(void) {
                            ARRAY_SPECIAL_PROPS,  /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
-                          gconsts.g_string_length,
-                          ARRAY_PROP_INDEX_LENGTH,
-                          ATTR_DDDE);
-  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
                           gconsts.g_string___proto__,
                           ARRAY_PROP_INDEX_PROTO,
                           ATTR_ALL);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
+                          gconsts.g_string_length,
+                          ARRAY_PROP_INDEX_LENGTH,
+                          ATTR_DDDE);
+
+  gobjects.g_hidden_class_function =
+    new_empty_hidden_class(NULL,                 /* context */
+                           FUNC_NORMAL_PROPS,    /* map size */
+                           FUNC_EMBEDDED_PROPS,  /* embedded props */
+                           FUNC_EMBEDDED_PROPS,  /* # of props */
+                           FUNC_SPECIAL_PROPS,   /* # of special props */
+                           HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
+                          gconsts.g_string___proto__,
+                          FUNC_PROP_INDEX_PROTO,
+                          ATTR_ALL);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
+                          gconsts.g_string_prototype,
+                          FUNC_PROP_INDEX_PROTOTYPE,
+                          ATTR_DDDE);
 #endif /* ARRAY_EMBED_PROP */
 }
 

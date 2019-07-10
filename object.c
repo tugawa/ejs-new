@@ -957,10 +957,15 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
 JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
   JSValue ret;
 
-  ret = make_function();
+  ret = make_function(ctx);
   disable_gc();
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(func_object_p(ret),
+                                gobjects.g_hidden_class_function);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(func_object_p(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else
   set_object_members(func_object_p(ret), hsize, vsize);
 #endif /* EMBED_PROP */

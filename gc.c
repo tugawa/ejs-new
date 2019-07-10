@@ -702,6 +702,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   case HTAG_ARRAY:
     {
 #ifdef ARRAY_EMBED_PROP
+      /* TODO: If a property is the last embedded one, it may overflow */
       size_t a_length    = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_LENGTH];
       size_t a_size      = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_SIZE];
       JSValue **a_body_p = (JSValue **)&obj->eprop[ARRAY_XPROP_INDEX_BODY];
@@ -720,9 +721,20 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     }
     break;
   case HTAG_FUNCTION:
+#ifdef ARRAY_EMBED_PROP
+    {
+      FunctionTable *ftentry =
+        *(FunctionTable **)&obj->eprop[FUNC_XPROP_INDEX_FTENTRY];
+      FunctionFrame **frame  =
+        (FunctionFrame **)&obj->eprop[FUNC_XPROP_INDEX_ENV];
+      scan_FunctionTable(ftentry);
+      trace_FunctionFrame(frame);
+    }
+#else /* ARRAY_EMBED_PROP */
     /* TODO: func_table_entry holds an inner pointer */
     scan_FunctionTable(((FunctionCell *) obj)->func_table_entry);
     trace_FunctionFrame(&((FunctionCell *) obj)->environment);
+#endif /* ARRAY_EMBED_PROP */
     break;
   case HTAG_BUILTIN:
     break;

@@ -147,6 +147,20 @@ BUILTIN_FUNCTION(builtin_printStatus)
 
   /* fp = get_fp(context); */
   regBase = (JSValue*)(&(get_stack(context, fp-1)));
+#ifdef ARRAY_EMBED_PROP
+  LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
+          (Object *)regBase[-CF_POS],
+          (int)regBase[-FP_POS],
+          (int)regBase[-PC_POS],
+          (void *)regBase[-LP_POS]);
+
+  regBase = (JSValue*)(&(get_stack(context, regBase[-FP_POS] - 1)));
+  LOG_ERR("\n-----prev spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
+          (Object *)regBase[-CF_POS],
+          (int)regBase[-FP_POS],
+          (int)regBase[-PC_POS],
+          (void *)regBase[-LP_POS]);
+#else /* ARRAY_EMBED_PROP */
   LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
           (FunctionCell *)regBase[-CF_POS],
           (int)regBase[-FP_POS],
@@ -159,6 +173,7 @@ BUILTIN_FUNCTION(builtin_printStatus)
           (int)regBase[-FP_POS],
           (int)regBase[-PC_POS],
           (void *)regBase[-LP_POS]);
+#endif /* ARRAY_EMBED_PROP */
 }
 
 /*
