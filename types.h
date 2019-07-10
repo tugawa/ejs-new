@@ -695,3 +695,9 @@ typedef uint64_t cuint;
 
 #define get___proto__(o, r) get_prop(o, gconsts.g_string___proto__, r)
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

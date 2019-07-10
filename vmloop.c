@@ -279,3 +279,8 @@ static int lcall_stack_pop(Context* context, int *pc)
   return 0;
 }
 
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

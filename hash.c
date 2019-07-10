@@ -179,7 +179,7 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
 
 HashCell** __hashMalloc(int size) {
   HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-						  HTAG_HASH_BODY);
+                                                  HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
@@ -305,3 +305,9 @@ char* ststrdup(const char* str) {
   strcpy(dst, str);
   return dst;
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -239,3 +239,8 @@ void init_builtin_math(Context *ctx)
   GC_POP(math);
 }
 
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

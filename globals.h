@@ -73,3 +73,9 @@ EXTERN struct global_malloced_objects {
 #endif /* ARRAY_EMBED_PROP */
 #endif
 } gobjects;
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

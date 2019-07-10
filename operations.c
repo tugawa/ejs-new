@@ -469,3 +469,9 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
 }
 
 #endif /* USE_TYPES_GENERATED */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

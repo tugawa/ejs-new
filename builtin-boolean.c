@@ -66,3 +66,9 @@ void init_builtin_boolean(Context *ctx)
   }
   GC_POP2(proto, b);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

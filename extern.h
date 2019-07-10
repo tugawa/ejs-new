@@ -94,7 +94,7 @@ extern RegexpCell *allocate_regexp(void);
 #endif
 extern BoxedCell *allocate_boxed(Context *,uint32_t);
 
-#define allocate_array_data_critical(a,s,l)	\
+#define allocate_array_data_critical(a,s,l)        \
   allocate_array_data(NULL,(a),(s),(l))
 /*
  * builtin.c
@@ -352,3 +352,9 @@ extern uint64_t total_alloc_count;
 #ifdef __cplusplus
 }
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

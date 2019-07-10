@@ -269,3 +269,9 @@ void init_builtin_global(Context *ctx)
   }
   GC_POP(g);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

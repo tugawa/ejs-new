@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
 /*
  * Objects
@@ -115,3 +123,9 @@
 #define need_normal_flonum 1
 #define need_normal_special 1
 #define need_normal_string 1
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
