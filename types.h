@@ -483,6 +483,55 @@ typedef struct regexp_cell {
 #define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
 #endif /* USE_REGEXP */
 
+#ifdef ARRAY_EMBED_PROP
+
+#define BOXED_SPECIAL_PROPS     1
+#define BOXED_XPROP_INDEX_VALUE 0
+#define BOXED_NORMAL_PROPS      1
+#define BOXED_PROP_INDEX_PROTO  1
+#define BOXED_EMBEDDED_PROPS    (BOXED_SPECIAL_PROPS + BOXED_NORMAL_PROPS)
+
+#undef remove_normal_number_object_tag
+#define remove_normal_number_object_tag(p)      \
+  ((Object *)remove_tag((p), T_GENERIC))
+#undef remove_normal_string_object_tag
+#define remove_normal_string_object_tag(p)      \
+  ((Object *)remove_tag((p), T_GENERIC))
+#undef remove_normal_boolean_object_tag
+#define remove_normal_boolean_object_tag(p)      \
+  ((Object *)remove_tag((p), T_GENERIC))
+
+#define make_number_object(ctx)                                         \
+  put_normal_number_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
+                                                 HTAG_BOXED_NUMBER))
+#define make_string_object(ctx)                                         \
+  put_normal_string_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
+                                                 HTAG_BOXED_STRING))
+#define make_boolean_object(ctx)                                         \
+  put_normal_boolean_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
+                                                 HTAG_BOXED_BOOLEAN))
+
+#define number_object_object_p(o)  (remove_normal_number_object_tag(o))
+#define string_object_object_p(o)  (remove_normal_string_object_tag(o))
+#define boolean_object_object_p(o) (remove_normal_boolean_object_tag(o))
+
+#define number_eprop(o,t,i)                                     \
+  (*(t*)&(remove_normal_number_object_tag(o))->eprop[i])
+#define number_object_value(o)                          \
+  number_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
+
+#define string_eprop(o,t,i)                                     \
+  (*(t*)&(remove_normal_string_object_tag(o))->eprop[i])
+#define string_object_value(o)                          \
+  string_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
+
+#define boolean_eprop(o,t,i)                                     \
+  (*(t*)&(remove_normal_boolean_object_tag(o))->eprop[i])
+#define boolean_object_value(o)                         \
+  boolean_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
+
+#else /* ARRAY_EMBED_PROP */
+
 /*
  * Boxed Object
  * tag == T_GENERIC
@@ -509,6 +558,8 @@ typedef struct boxed_cell {
 #define string_object_value(s)      (remove_normal_string_object_tag(s)->value)
 #define string_object_object_ptr(s)             \
   (&((remove_normal_string_object_tag(s))->o))
+
+#endif /* ARRAY_EMBED_PROP */
 
   /*
    * Flonum

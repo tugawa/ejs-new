@@ -112,6 +112,19 @@ void init_global_malloc_objects(void) {
                           gconsts.g_string_prototype,
                           BUILTIN_PROP_INDEX_PROTOTYPE,
                           ATTR_DDDE);
+
+  gobjects.g_hidden_class_boxed =
+    new_empty_hidden_class(NULL,                 /* context */
+                           BOXED_NORMAL_PROPS,   /* map size */
+                           BOXED_EMBEDDED_PROPS, /* embedded props */
+                           BOXED_EMBEDDED_PROPS, /* # of props */
+                           BOXED_SPECIAL_PROPS,  /* # of special props */
+                           HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed),
+                          gconsts.g_string___proto__,
+                          BOXED_PROP_INDEX_PROTO,
+                          ATTR_ALL);
+
 #endif /* ARRAY_EMBED_PROP */
 }
 

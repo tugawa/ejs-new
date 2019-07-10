@@ -72,6 +72,7 @@ EXTERN struct global_malloced_objects {
   HiddenClass *g_hidden_class_array;
   HiddenClass *g_hidden_class_function;
   HiddenClass *g_hidden_class_builtin;
+  HiddenClass *g_hidden_class_boxed;
 #endif /* ARRAY_EMBED_PROP */
 #endif
 } gobjects;

@@ -80,10 +80,12 @@ extern Object *allocate_simple_object(Context *ctx);
   allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
 #define allocate_builtin(ctx)                                   \
   allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
+/* allocate_jsobject is called directly in types.h for boxed types */
 #else /* ARRAY_EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
+extern BoxedCell *allocate_boxed(Context *,uint32_t);
 #endif /* ARRAY_EMBED_PROP */
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
@@ -96,7 +98,6 @@ extern void allocate_iterator_data(Context *, JSValue, int);
 extern RegexpCell *allocate_regexp(void);
 #endif /* need_normal_regexp */
 #endif
-extern BoxedCell *allocate_boxed(Context *,uint32_t);
 
 #define allocate_array_data_critical(a,s,l)        \
   allocate_array_data(NULL,(a),(s),(l))

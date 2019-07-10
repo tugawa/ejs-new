@@ -750,7 +750,11 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   case HTAG_BOXED_STRING:
   case HTAG_BOXED_NUMBER:
   case HTAG_BOXED_BOOLEAN:
+#ifdef ARRAY_EMBED_PROP
+    trace_slot(&obj->eprop[BOXED_XPROP_INDEX_VALUE]);
+#else /* ARRAY_EMBED_PROP */
     trace_slot(&((BoxedCell *) obj)->value);
+#endif /* ARRAY_EMBED_PROP */
     break;
   default:
     assert(0);
@@ -879,6 +883,10 @@ STATIC void scan_roots(Context *ctx)
    */
 #ifdef HIDDEN_CLASS
   trace_HiddenClass(&gobjects.g_hidden_class_0);
+  trace_HiddenClass(&gobjects.g_hidden_class_array);
+  trace_HiddenClass(&gobjects.g_hidden_class_function);
+  trace_HiddenClass(&gobjects.g_hidden_class_builtin);
+  trace_HiddenClass(&gobjects.g_hidden_class_boxed);
 #endif
 
   /* function table: do not trace.

@@ -221,6 +221,7 @@ RegexpCell *allocate_regexp(void)
 #endif /* need_normal_regexp */
 #endif
 
+#ifndef ARRAY_EMBED_PROP
 /*
  *  allocates a boxed object
  */
@@ -229,6 +230,7 @@ BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
   BoxedCell *box = (BoxedCell *) gc_jsalloc(ctx, sizeof(BoxedCell), type);
   return box;
 }
+#endif /* ARRAY_EMBED_PROP */
 
 /* Local Variables:      */
 /* mode: c               */

@@ -1109,7 +1109,12 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   ret = make_number_object(ctx);
   GC_PUSH(ret);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(number_object_object_p(ret),
+                                gobjects.g_hidden_class_boxed);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(number_object_object_ptr(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(number_object_object_ptr(ret), hsize, psize);
 #endif /* EMBED_PROP */
@@ -1130,7 +1135,12 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   ret = make_boolean_object(ctx);
   GC_POP(v);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(boolean_object_object_p(ret),
+                                gobjects.g_hidden_class_boxed);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(boolean_object_object_ptr(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(boolean_object_object_ptr(ret), hsize, psize);
 #endif /* EMBED_PROP */
@@ -1150,7 +1160,12 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(v);
   ret = make_string_object(ctx);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(string_object_object_p(ret),
+                                gobjects.g_hidden_class_boxed);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(string_object_object_ptr(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(string_object_object_ptr(ret), hsize, psize);
 #endif /* EMBED_PROP */
