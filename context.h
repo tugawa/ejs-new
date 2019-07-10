@@ -162,3 +162,9 @@ typedef struct context {
 /* #define INITIAL_ARRAY_SIZE  (1000) */
 
 void check_stack_invariant(Context *ctx);
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
