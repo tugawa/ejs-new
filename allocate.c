@@ -141,7 +141,6 @@ FunctionCell *allocate_function(void) {
     (FunctionCell *) gc_jsalloc_critical(sizeof(FunctionCell), HTAG_FUNCTION);
   return function;
 }
-#endif /* ARRAY_EMBED_PROP */
 
 /*
  * allocates a builtin
@@ -151,6 +150,8 @@ BuiltinCell *allocate_builtin(void) {
     (BuiltinCell *) gc_jsalloc_critical(sizeof(BuiltinCell), HTAG_BUILTIN);
   return builtin;
 }
+
+#endif /* ARRAY_EMBED_PROP */
 
 JSValue *allocate_prop_table(int size) {
   JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,

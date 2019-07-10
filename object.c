@@ -957,8 +957,8 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
 JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
   JSValue ret;
 
-  ret = make_function(ctx);
   disable_gc();
+  ret = make_function(ctx);
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(func_object_p(ret),
@@ -987,9 +987,15 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
                                 int psize) {
   JSValue ret;
 
-  ret = make_builtin();
+  disable_gc();
+  ret = make_builtin(ctx);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(builtin_object_p(ret),
+                                gobjects.g_hidden_class_builtin);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(builtin_object_p(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(builtin_object_p(ret), hsize, psize);
 #endif /* EMBED_PROP */
@@ -997,9 +1003,8 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
   GC_PUSH(ret);
+  enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
-  /* TODO: g_object_proto should be g_builtin_proto */
-  /* set___proto___none(ctx, ret, gconsts.g_object_proto); */
   set___proto___none(ctx, ret, gconsts.g_builtin_proto);
   GC_POP(ret);
   return ret;
@@ -1221,6 +1226,9 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_n_limit_props(c) = psize;
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
+#ifdef HC_DEBUG
+  hidden_dbg_prev(c) = NULL;
+#endif /* HC_DEBUG */
 #ifdef PROFILE
   hidden_prev(c) = NULL;
   hidden_n_profile_enter(c) = 0;
@@ -1275,6 +1283,9 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_n_special_props(c) = hidden_n_special_props(oldc);
 #endif /* ARRAY_EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
+#ifdef HC_DEBUG
+  hidden_dbg_prev(c) = oldc;
+#endif /* HC_DEBUG */
 #ifdef PROFILE
   hidden_prev(c) = oldc;
   hidden_n_profile_enter(c) = 0;

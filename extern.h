@@ -76,18 +76,17 @@ extern Object *allocate_simple_object(Context *ctx);
 #ifdef ARRAY_EMBED_PROP
 #define allocate_array(ctx)                                     \
   allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY)
+#define allocate_function(ctx)                                  \
+  allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
+#define allocate_builtin(ctx)                                   \
+  allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
 #else /* ARRAY_EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);
+extern FunctionCell *allocate_function(void);
+extern BuiltinCell *allocate_builtin(void);
 #endif /* ARRAY_EMBED_PROP */
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
-#ifdef ARRAY_EMBED_PROP
-#define allocate_function(ctx)                                          \
-  allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
-#else /* ARRAY_EMBED_PROP */
-extern FunctionCell *allocate_function(void);
-#endif /* ARRAY_EMBED_PROP */
-extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
 extern Iterator *allocate_iterator(void);

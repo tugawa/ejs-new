@@ -103,6 +103,10 @@ typedef struct hidden_class {
 #endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
+
+#ifdef HC_DEBUG
+  struct hidden_class *dbg_prev;
+#endif /* HC_DEBUG */
 #ifdef PROFILE
   struct hidden_class *prev;
   uint32_t n_profile_enter; /* number of times this class is used for object
@@ -127,6 +131,9 @@ typedef struct hidden_class {
 #endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
+#ifdef HC_DEBUG
+#define hidden_dbg_prev(h)         ((h)->dbg_prev)
+#endif /* HC_DEBUG */
 #ifdef PROFILE
 #define hidden_prev(h)             ((h)->prev)
 #define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
@@ -342,13 +349,13 @@ typedef struct array_cell {
 #undef remove_normal_function_tag
 #define remove_normal_function_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
 
-#define func_object_p(f)    (remove_normal_function_tag(f))
-#define func_eprop(f,t,i)                               \
-  (*(t*)&(remove_normal_function_tag(f))->eprop[i])
-#define func_table_entry(f)                                     \
-  func_eprop(f, FunctionTable *, FUNC_XPROP_INDEX_FTENTRY)
-#define func_environment(f)                             \
-  func_eprop(f, FunctionFrame *, FUNC_XPROP_INDEX_ENV)
+#define func_object_p(o)    (remove_normal_function_tag(o))
+#define func_eprop(o,t,i)                               \
+  (*(t*)&(remove_normal_function_tag(o))->eprop[i])
+#define func_table_entry(o)                                     \
+  func_eprop(o, FunctionTable *, FUNC_XPROP_INDEX_FTENTRY)
+#define func_environment(o)                             \
+  func_eprop(o, FunctionFrame *, FUNC_XPROP_INDEX_ENV)
 
 #else /* ARRAY_EMBED_PROP */
 /*
@@ -362,7 +369,7 @@ typedef struct function_cell {
   FunctionFrame *environment;
 } FunctionCell;
 
-#define make_function()     (put_normal_function_tag(allocate_function()))
+#define make_function(ctx)  (put_normal_function_tag(allocate_function()))
 
 #define func_object_p(f)    (&((remove_normal_function_tag(f))->o))
 #define func_table_entry(f) ((remove_normal_function_tag(f))->func_table_entry)
@@ -377,6 +384,34 @@ typedef struct function_cell {
 
 typedef void (*builtin_function_t)(Context*, int, int);
 
+#ifdef ARRAY_EMBED_PROP
+
+#define BUILTIN_SPECIAL_PROPS        3
+#define BUILTIN_XPROP_INDEX_BODY     0
+#define BUILTIN_XPROP_INDEX_CONSTR   1
+#define BUILTIN_XPROP_INDEX_ARGC     2
+#define BUILTIN_NORMAL_PROPS         2
+#define BUILTIN_PROP_INDEX_PROTO     3
+#define BUILTIN_PROP_INDEX_PROTOTYPE 4
+#define BUILTIN_EMBEDDED_PROPS (BUILTIN_SPECIAL_PROPS + BUILTIN_NORMAL_PROPS)
+
+#undef remove_normal_builtin_tag
+#define remove_normal_builtin_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
+
+#define make_builtin(ctx)   (put_normal_builtin_tag(allocate_builtin(ctx)))
+
+#define builtin_object_p(o)          (remove_normal_builtin_tag(o))
+#define builtin_eprop(o,t,i)                            \
+  (*(t*)&(remove_normal_builtin_tag(o))->eprop[i])
+#define builtin_body(o)                                         \
+  func_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_BODY)
+#define builtin_constructor(o)                          \
+  func_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_CONSTR)
+#define builtin_n_args(o)                               \
+  func_eprop(o, uint64_t, BUILTIN_XPROP_INDEX_ARGC)
+
+#else /* ARRAY_EMBED_PROP */
+
 typedef struct builtin_cell {
   Object o;
   builtin_function_t body;
@@ -384,12 +419,14 @@ typedef struct builtin_cell {
   int n_args;            /* the number of required arguments */
 } BuiltinCell;
 
-#define make_builtin()          (put_normal_builtin_tag(allocate_builtin()))
+#define make_builtin(ctx)       (put_normal_builtin_tag(allocate_builtin()))
 
 #define builtin_object_p(f)     (&((remove_normal_builtin_tag(f))->o))
 #define builtin_body(f)         ((remove_normal_builtin_tag(f))->body)
 #define builtin_constructor(f)  ((remove_normal_builtin_tag(f))->constructor)
 #define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
+
+#endif /* ARRAY_EMBED_PROP */
 
 /*
  * Iterator

@@ -96,6 +96,22 @@ void init_global_malloc_objects(void) {
                           gconsts.g_string_prototype,
                           FUNC_PROP_INDEX_PROTOTYPE,
                           ATTR_DDDE);
+
+  gobjects.g_hidden_class_builtin =
+    new_empty_hidden_class(NULL,                   /* context */
+                           BUILTIN_NORMAL_PROPS,   /* map size */
+                           BUILTIN_EMBEDDED_PROPS, /* embedded props */
+                           BUILTIN_EMBEDDED_PROPS, /* # of props */
+                           BUILTIN_SPECIAL_PROPS,  /* # of special props */
+                           HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
+                          gconsts.g_string___proto__,
+                          BUILTIN_PROP_INDEX_PROTO,
+                          ATTR_ALL);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
+                          gconsts.g_string_prototype,
+                          BUILTIN_PROP_INDEX_PROTOTYPE,
+                          ATTR_DDDE);
 #endif /* ARRAY_EMBED_PROP */
 }
 
