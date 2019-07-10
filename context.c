@@ -128,9 +128,9 @@ int is_valid_JSValue(JSValue x)
     return ((*(uint64_t *) (x & ~7)) & 0xff) == HTAG_FLONUM;
   case T_SPECIAL:
     return (x == JS_TRUE ||
-	    x == JS_FALSE ||
-	    x == JS_NULL ||
-	    x == JS_UNDEFINED);
+            x == JS_FALSE ||
+            x == JS_NULL ||
+            x == JS_UNDEFINED);
   case T_FIXNUM:
     return 1;
   default:
@@ -165,3 +165,9 @@ void check_stack_invariant(Context *ctx)
     cf = (FunctionTable *) get_stack(ctx, sp); sp--;
   }
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -800,3 +800,9 @@ void init_builtin_array(Context *ctx)
   }
   GC_POP(proto);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

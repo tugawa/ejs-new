@@ -1133,3 +1133,9 @@ uint32_t decode_escape_char(char *str) {
   *dst = '\0';
   return (uint32_t)(dst - str);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

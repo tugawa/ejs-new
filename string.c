@@ -37,8 +37,8 @@ static inline uint32_t finalise_hash(uint32_t hash)
 
 static
 int string_table_lookup2(const char *s1, uint32_t len1,
-			 const char *s2, uint32_t len2,
-			 uint32_t hash, JSValue *ret)
+                         const char *s2, uint32_t len2,
+                         uint32_t hash, JSValue *ret)
 {
   StrCons *c;
   JSValue v;
@@ -53,7 +53,7 @@ int string_table_lookup2(const char *s1, uint32_t len1,
 #endif /* STROBJ_HAS_HASH */
     /* REMARK: assume null termination */
     if (memcmp(s1, string_value(v), len1) == 0 &&
-	memcmp(s2, string_value(v) + len1, len2 + 1) == 0) {
+        memcmp(s2, string_value(v) + len1, len2 + 1) == 0) {
       *ret = v;
       return 1; /* found */
     }
@@ -115,7 +115,7 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
   hash = finalise_hash(hash);
 
   if (string_table_lookup2(string_value(v1), len1,
-			   string_value(v2), len2, hash, &v))
+                           string_value(v2), len2, hash, &v))
     return v;
 
   /* gc_push_tmp_root(&v1); */
@@ -192,3 +192,9 @@ JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
   return v;
 }
 #endif /* need_embedded_string */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

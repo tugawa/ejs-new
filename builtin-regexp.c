@@ -263,3 +263,9 @@ void init_builtin_regexp(Context *ctx)
 
 #endif /* need_regexp */
 #endif /* USE_REGEXP */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

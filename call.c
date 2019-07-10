@@ -275,3 +275,9 @@ JSValue invoke_builtin(Context *context, JSValue receiver, JSValue fn,
   set_sp(context, oldsp);
   return get_a(context);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -109,3 +109,9 @@ void init_builtin_function(Context *ctx)
     }
   }
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

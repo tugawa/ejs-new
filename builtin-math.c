@@ -242,3 +242,9 @@ void init_builtin_math(Context *ctx)
 }
 
 #endif /* need_flonum */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

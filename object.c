@@ -253,7 +253,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
     if (is_fixnum(num)) {
       n = fixnum_to_cint(num);
       if (0 <= n && n < array_size(a)) {
-	return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
+        return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
     }
     return get_prop_prototype_chain(a, p);
@@ -490,12 +490,12 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
       cint n;
       n = fixnum_to_cint(v);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-       	/*
-       	 * The property name is "length" and the given value is a fixnum.
-       	 * Thus, expands / shrinks the array.
-       	 */
+        /*
+         * The property name is "length" and the given value is a fixnum.
+         * Thus, expands / shrinks the array.
+         */
         GC_PUSH3(a, p, v);
-       	if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
+        if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
             == SUCCESS) {
           GC_POP3(v, p, a);
           return SUCCESS;
@@ -1039,3 +1039,9 @@ void print_all_hidden_class(void) {
 }
 
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

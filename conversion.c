@@ -676,3 +676,9 @@ JSValue cint_to_string(cint n) {
   snprintf(buf, BUFSIZE, "%"PRId64, n);
   return cstr_to_string(NULL, buf);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
