@@ -282,9 +282,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define ARRAY_PROP_INDEX_LENGTH   4
 #define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
-#undef remove_normal_array_tag
-#define remove_normal_array_tag(p) ((Object *)remove_tag((p), T_GENERIC))
-
 #define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)        (remove_normal_array_tag(a))
