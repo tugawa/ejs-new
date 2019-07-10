@@ -93,10 +93,14 @@ typedef struct hidden_class {
   uint32_t htype;         /* HTYPE_TRANSIT or HTYPE_GROW */
   HashTable *map;         /* map which is explained above */
 #ifdef RICH_HIDDEN_CLASS
-  uint32_t n_props;       /* number of properties */
-  uint32_t n_limit_props;   /* capacity of the array for properties */
+  uint32_t n_props;          /* number of properties */
+  uint32_t n_limit_props;    /* capacity of the array for properties */
 #ifdef EMBED_PROP
   uint32_t n_embedded_props; /* number of properites embedded in the object */
+#ifdef ARRAY_EMBED_PROP
+  uint32_t n_special_props;  /* number of properties that are not registered
+			      * in the map, which may not be JSValues */
+#endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
@@ -118,6 +122,9 @@ typedef struct hidden_class {
 #define hidden_n_limit_props(h)    ((h)->n_limit_props)
 #ifdef EMBED_PROP
 #define hidden_n_embedded_props(h) ((h)->n_embedded_props)
+#ifdef ARRAY_EMBED_PROP
+#define hidden_n_special_props(h)  ((h)->n_special_props)
+#endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
@@ -128,11 +135,20 @@ typedef struct hidden_class {
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
 
-/*
- * #define new_empty_hidden_class(cxt, name, hsize)      \
- *   new_hidden_class(cxt, NULL, name, 0, hsize)
- */
 #endif
+
+
+#define PSIZE_NORMAL   1  /* default initial size of the property array */
+#define PSIZE_BIG    100
+#define PSIZE_DELTA    1  /* delta when expanding the property array */
+#define PSIZE_LIMIT  500  /* limit size of the property array */
+#define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
+#define HSIZE_BIG    100
+
+#define CHECK_INCREASE_PROPERTY(n) do {		\
+  if ((n) + PSIZE_DELTA > PSIZE_LIMIT)		\
+    LOG_EXIT("too many properties");		\
+} while(0)
 
 typedef struct object_cell {
 #ifdef PROFILE
@@ -143,12 +159,12 @@ typedef struct object_cell {
   uint64_t limit_props;
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef HIDDEN_CLASS
-  HiddenClass *class;     /* Hidden class for this object */
+  HiddenClass *klass;     /* Hidden class for this object */
 #else
   HashTable *map;         /* map from property name to the index within prop */
 #endif
 #ifdef EMBED_PROP
-  JSValue eprop[1];
+  JSValue eprop[PSIZE_NORMAL];
 #else /* EMBED_PROP */
   JSValue *prop;          /* array of property values */
 #endif /* EMBED_PROP */
@@ -169,7 +185,7 @@ typedef struct object_cell {
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
 #ifdef HIDDEN_CLASS
-#define obj_hidden_class(p)    ((remove_object_tag(p))->class)
+#define obj_hidden_class(p)    ((remove_object_tag(p))->klass)
 #define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
 #else
 #define obj_map(p)             ((remove_object_tag(p))->map)
@@ -209,18 +225,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-
-#define PSIZE_NORMAL   1  /* default initial size of the property array */
-#define PSIZE_BIG    100
-#define PSIZE_DELTA    1  /* delta when expanding the property array */
-#define PSIZE_LIMIT  500  /* limit size of the property array */
-#define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
-#define HSIZE_BIG    100
-
-#define CHECK_INCREASE_PROPERTY(n) do {		\
-  if ((n) + PSIZE_DELTA > PSIZE_LIMIT)		\
-    LOG_EXIT("too many properties");		\
-} while(0)
 
 #ifdef HIDDEN_CLASS
 #define HHH 0
@@ -265,6 +269,36 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
 #endif
 
+#ifdef ARRAY_EMBED_PROP
+
+/* Array -- a kind of Object */
+
+#define ARRAY_SPECIAL_PROPS       3
+#define ARRAY_XPROP_INDEX_SIZE    0
+#define ARRAY_XPROP_INDEX_LENGTH  1
+#define ARRAY_XPROP_INDEX_BODY    2
+#define ARRAY_NORMAL_PROPS        2
+#define ARRAY_PROP_INDEX_PROTO    3
+#define ARRAY_PROP_INDEX_LENGTH   4
+#define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
+
+#undef remove_normal_array_tag
+#define remove_normal_array_tag(p) ((Object *)remove_tag((p), T_GENERIC))
+
+#define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
+
+#define array_object_p(a)        (remove_normal_array_tag(a))
+#define array_size(a)							\
+  (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_SIZE])
+#define array_length(a)							\
+  (*(uint64_t*)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_LENGTH])
+#define array_body(a)							\
+  (*(JSValue**)&(remove_normal_array_tag(a))->eprop[ARRAY_XPROP_INDEX_BODY])
+#define array_body_index(a,i)			\
+  ((JSValue *)array_body(a))[(i)]
+
+#else /* ARRAY_EMBED_PROP */
+
 /*
  * Array
  * tag == T_GENERIC
@@ -283,6 +317,8 @@ typedef struct array_cell {
 #define array_length(a)       ((remove_normal_array_tag(a))->length)
 #define array_body(a)         ((remove_normal_array_tag(a))->body)
 #define array_body_index(a,i) ((remove_normal_array_tag(a))->body[i])
+
+#endif /* ARRAY_EMBED_PROP */
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */

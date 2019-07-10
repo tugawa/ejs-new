@@ -54,12 +54,21 @@ StringCell *allocate_string(uint32_t length)
  * Note that the return value does not have a pointer tag.
  */
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+Object *allocate_jsobject(Context *ctx, size_t n_embedded, cell_type_t htag)
+{
+  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - 1);
+  Object *object = (Object *) gc_jsalloc(ctx, size, htag);
+  return object;
+}
+#else /* ARRAY_EMBED_PROP */
 Object *allocate_simple_object(Context *ctx, size_t n_embedded)
 {
   size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - 1);
   Object *object = (Object *) gc_jsalloc(ctx, size, HTAG_SIMPLE_OBJECT);
   return object;
 }
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
 Object *allocate_simple_object(Context *ctx)
 {
@@ -69,6 +78,7 @@ Object *allocate_simple_object(Context *ctx)
 }
 #endif /* EMBED_PROP */
 
+#ifndef ARRAY_EMBED_PROP
 /*
  * allocates an array
  * Note that the return value does not have a pointer tag.
@@ -78,6 +88,7 @@ ArrayCell *allocate_array(Context *ctx) {
     (ArrayCell *) gc_jsalloc(ctx, sizeof(ArrayCell), HTAG_ARRAY);
   return array;
 }
+#endif /* ARRAY_EMBED_PROP */
 
 /*
  * allocates an array body

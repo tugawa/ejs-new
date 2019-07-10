@@ -140,7 +140,14 @@ STATIC void trace_HashCell(HashCell **ptrp);
 #ifdef HIDDEN_CLASS
 STATIC void trace_HiddenClass(HiddenClass **ptrp);
 #endif
+#ifdef ARRAY_EMBED_PROP
+#define trace_JSValue_array(ptrp, length)	\
+  trace_JSValue_array_range((ptrp), 0, (length))
+STATIC void trace_JSValue_array_range(JSValue **ptrp,
+				      size_t start, size_t length);
+#else /* ARRAY_EMBED_PROP */
 STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
+#endif /* ARRAY_EMBED_PROP */
 STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
@@ -650,26 +657,40 @@ STATIC void trace_js_object(uintptr_t *ptrp)
 
   /* common header */
 #ifdef HIDDEN_CLASS
-  trace_HiddenClass(&obj->class);
+  trace_HiddenClass(&obj->klass);
 #else
   trace_HashTable(&obj->map);
 #endif
 #ifdef RICH_HIDDEN_CLASS
 #ifdef EMBED_PROP
   {
-    size_t n_limit_props = obj->class->n_limit_props;
+    size_t n_limit_props = obj->klass->n_limit_props;
     size_t actual_embedded =
       (n_limit_props == 0) ?
-      obj->class->n_props : (obj->class->n_embedded_props - 1);
+      obj->klass->n_props : (obj->klass->n_embedded_props - 1);
     size_t i;
+#ifdef ARRAY_EMBED_PROP
+    for (i = obj->klass->n_special_props; i < actual_embedded; i++)
+      trace_slot(&obj->eprop[i]);
+    if (n_limit_props != 0) {
+      int start = 0;
+      if (actual_embedded < obj->klass->n_special_props) {
+	/* The last special property is on the overflow array */
+	start = 1;
+      }
+      trace_JSValue_array_range((JSValue **) &obj->eprop[actual_embedded],
+				start, obj->klass->n_props - actual_embedded);
+    }
+#else /* ARRAY_EMBED_PROP */
     for (i = 0; i < actual_embedded; i++)
       trace_slot(&obj->eprop[i]);
     if (n_limit_props != 0)
       trace_JSValue_array((JSValue **) &obj->eprop[actual_embedded],
-			  obj->class->n_props - actual_embedded);
+			  obj->klass->n_props - actual_embedded);
+#endif /* ARRAY_EMBED_PROP */
   }
 #else /* EMBED_PROP */
-  trace_JSValue_array(&obj->prop, obj->class->n_props);
+  trace_JSValue_array(&obj->prop, obj->klass->n_props);
 #endif /* EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
   trace_JSValue_array(&obj->prop, obj->n_props);
@@ -680,6 +701,13 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
   case HTAG_ARRAY:
     {
+#ifdef ARRAY_EMBED_PROP
+      size_t a_length    = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_LENGTH];
+      size_t a_size      = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_SIZE];
+      JSValue **a_body_p = (JSValue **)&obj->eprop[ARRAY_XPROP_INDEX_BODY];
+      size_t len = a_length < a_size ? a_length : a_size;
+      trace_JSValue_array(a_body_p, len);
+#else /* ARRAY_EMBED_PROP */
       ArrayCell *a = (ArrayCell *) obj;
       size_t len = 0;
       if (a->length < a->size) {
@@ -688,6 +716,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
         len = a->size;
       }
       trace_JSValue_array(&a->body, len);
+#endif /* ARRAY_EMBED_PROP */
     }
     break;
   case HTAG_FUNCTION:
@@ -728,6 +757,23 @@ STATIC void trace_iterator(Iterator **ptrp)
     trace_JSValue_array(&obj->body, obj->size);
 }
 
+#ifdef ARRAY_EMBED_PROP
+STATIC void trace_JSValue_array_range(JSValue **ptrp,
+				      size_t start, size_t length)
+{
+  JSValue *ptr = *ptrp;
+  size_t i;
+
+  if (in_js_space(ptr)) {
+    if (test_and_mark_cell(ptr))
+      return;
+  }
+
+  /* SCAN */
+  for (i = start; i < length; i++, ptr++)
+    trace_slot(ptr);
+}
+#else /* ARRAY_EMBED_PROP */
 STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
 {
   JSValue *ptr = *ptrp;
@@ -742,6 +788,7 @@ STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
   for (i = 0; i < length; i++, ptr++)
     trace_slot(ptr);
 }
+#endif /* ARRAY_EMBED_PROP */
 
 STATIC void trace_slot(JSValue* ptr)
 {

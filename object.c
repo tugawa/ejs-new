@@ -363,9 +363,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
 					      hidden_n_props(hc) + 1);
       if (new_limit > prev_limit) {
 	hidden_n_limit_props(hc) = new_limit;
-	GC_PUSH2(obj, v);
+	GC_PUSH4(obj, name, v, hc);
 	expand_overflow_props(ctx, obj, prev_limit, new_limit);
-	GC_POP2(v, obj);
+	GC_POP4(hc, v, name, obj);
       }
 #else /* EMBED_PROP */
       if (prev_limit <= hidden_n_props(hc)) {
@@ -793,15 +793,6 @@ int regexp_flag(JSValue re) {
  */
 
 /*
- * The following arrays are sizes of map (hash) and property table.
- * The subscript given to these arrays is either PHASE_INIT (0) or
- * PHASE_VMLOOP (1).  The current phase number is stored in the global
- * variable `run_phase'.
- */
-/* static int hsize_table[] = { HSIZE_BIG, HSIZE_NORMAL }; */
-/* static int psize_table[] = { PSIZE_BIG, PSIZE_NORMAL }; */
-
-/*
  * sets members relating to property table
  *   hsize: size of the hash table
  *   psize: size of the property table
@@ -809,7 +800,38 @@ int regexp_flag(JSValue re) {
  * If HIDDEN_CLASS is defined, hsize == 0 means that g_hidden_class_0
  * should be used instead of allocating a new hidden class.
  */
-static void set_object_members(Object *p, int hsize, int psize) {
+#ifdef ARRAY_EMBED_PROP
+static void set_object_members_with_class(Object *p, HiddenClass *hc)
+{
+  size_t i;
+  size_t n_embedded = hidden_n_embedded_props(hc);
+#ifdef PROFILE
+  if (logflag()) {
+    p->profile_id = ++profile_object_count;
+    hidden_n_profile_enter(hc)++;
+  } else
+    p->profile_id = 0;
+#endif /* PROFILE */
+  p->klass = hc;
+  hidden_n_enter(p->klass)++;
+  n_enter_hc++;
+  for (i = 0; i < n_embedded; i++)
+    p->eprop[i] = JS_UNDEFINED;
+}
+
+static void set_object_members(Object *p, int hsize, int psize)
+{
+  if (hsize == 0)
+    set_object_members_with_class(p, gobjects.g_hidden_class_0);
+  else {
+    HiddenClass *hc = new_empty_hidden_class(NULL, hsize, psize,
+					     0, 0, HTYPE_GROW);
+    set_object_members_with_class(p, hc);
+  }
+}
+#else /* ARRAY_EMBED_PROP */
+static void set_object_members(Object *p, int hsize, int psize)
+{
 #ifdef PROFILE
   if (logflag())
     p->profile_id = ++profile_object_count;
@@ -818,19 +840,19 @@ static void set_object_members(Object *p, int hsize, int psize) {
 #endif /* PROFILE */
 #ifdef HIDDEN_CLASS
 #ifdef RICH_HIDDEN_CLASS
-  p->class = ((hsize == 0)?
+  p->klass = ((hsize == 0)?
               gobjects.g_hidden_class_0:
               new_empty_hidden_class(NULL, hsize, psize, HTYPE_GROW));
 #else /* RICH_HIDDEN_CLASS */
-  p->class = ((hsize == 0)?
+  p->klass = ((hsize == 0)?
               gobjects.g_hidden_class_0:
               new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
 #endif /* RICH_HIDDEN_CLASS */
-  hidden_n_enter(p->class)++;
+  hidden_n_enter(p->klass)++;
   n_enter_hc++;
 #ifdef PROFILE
   if (p->profile_id)
-    p->class->n_profile_enter++;
+    p->klass->n_profile_enter++;
 #endif /* PROFILE */
 #else
   Map *a;
@@ -846,7 +868,7 @@ static void set_object_members(Object *p, int hsize, int psize) {
       p->eprop[i] = JS_UNDEFINED;
   }
 #else /* EMBED_PROP */
-  p->prop = allocate_prop_table(hidden_n_limit_props(p->class));
+  p->prop = allocate_prop_table(hidden_n_limit_props(p->klass));
 #endif /* EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
   p->prop = allocate_prop_table(psize);
@@ -854,6 +876,7 @@ static void set_object_members(Object *p, int hsize, int psize) {
   p->limit_props = psize;
 #endif /* RICH_HIDDEN_CLASS */
 }
+#endif /* ARRAY_EMBED_PROP */
 
 /*
  * makes a simple object whose __proto__ property is not set yet
@@ -902,13 +925,19 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 /*
  * makes a new array with size
  */
-JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
+JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
+{
   JSValue ret;
 
   ret = make_array(ctx);
   disable_gc();  /* disable GC unitl Array is properly initialised */
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(array_object_p(ret),
+				gobjects.g_hidden_class_array);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, vsize);
 #endif /* EMBED_PROP */
@@ -1148,9 +1177,14 @@ double cstr_to_double(char* cstr) {
  * allocates a new empty hidden class
  */
 #ifdef RICH_HIDDEN_CLASS
+#ifdef ARRAY_EMBED_PROP
+HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
+				    int n_prop, int n_special, int htype)
+#else /* ARRAY_EMBED_PROP */
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize,
                                     int psize, int htype)
-#else
+#endif /* ARRAY_EMBED_PROP */
+#else /* RICH_HIDDEN_CLASS */
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
 #endif /* RICH_HIDDEN_CLASS */
 {
@@ -1167,10 +1201,17 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
+#ifdef ARRAY_EMBED_PROP
+  hidden_n_props(c) = n_prop;
+#else /* ARRAY_EMBED_PROP */
   hidden_n_props(c) = 0;
+#endif /* ARRAY_EMBED_PROP */
 #ifdef EMBED_PROP
   hidden_n_limit_props(c) = 0;
   hidden_n_embedded_props(c) = psize;
+#ifdef ARRAY_EMBED_PROP
+  hidden_n_special_props(c) = n_special;
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   hidden_n_limit_props(c) = psize;
 #endif /* EMBED_PROP */
@@ -1207,12 +1248,12 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
-  hidden_n_props(c) = ne + 1;
+  hidden_n_props(c) = hidden_n_props(oldc) + 1;
 #ifdef EMBED_PROP
   {
     int n_embedded = hidden_n_embedded_props(oldc);
     int n_limit = hidden_n_limit_props(oldc);
-    int n_prop = ne + 1;
+    int n_prop = hidden_n_props(c);
     hidden_n_embedded_props(c) = n_embedded;
     hidden_n_limit_props(c) =
       compute_new_limit_props(n_embedded, n_limit, n_prop);
@@ -1225,6 +1266,9 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
     hidden_n_limit_props(c) = hidden_n_limit_props(oldc) + PSIZE_DELTA;
   }
 #endif /* EMBED_PROP */
+#ifdef ARRAY_EMBED_PROP
+  hidden_n_special_props(c) = hidden_n_special_props(oldc);
+#endif /* ARRAY_EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
 #ifdef PROFILE
   hidden_prev(c) = oldc;

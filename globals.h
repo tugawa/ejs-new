@@ -68,5 +68,8 @@ EXTERN struct global_constant_objects {
 EXTERN struct global_malloced_objects {
 #ifdef HIDDEN_CLASS
   HiddenClass *g_hidden_class_0;
+#ifdef ARRAY_EMBED_PROP
+  HiddenClass *g_hidden_class_array;
+#endif /* ARRAY_EMBED_PROP */
 #endif
 } gobjects;

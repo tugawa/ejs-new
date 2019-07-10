@@ -62,11 +62,23 @@ extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+#define allocate_simple_object(ctx, nemb)	\
+  allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
+extern Object *allocate_jsobject(Context *ctx, size_t n_embedded,
+				 cell_type_t htag);
+#else /* ARRAY_EMBED_PROP */
 extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
 extern Object *allocate_simple_object(Context *ctx);
 #endif /* EMBED_PROP */
+#ifdef ARRAY_EMBED_PROP
+#define allocate_array(ctx)			\
+  allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY)
+#else /* ARRAY_EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);
+#endif /* ARRAY_EMBED_PROP */
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern FunctionCell *allocate_function(void);
@@ -283,7 +295,11 @@ extern JSValue new_string_object(Context *, JSValue, int, int);
 extern char *space_chomp(char *);
 #ifdef HIDDEN_CLASS
 #ifdef RICH_HIDDEN_CLASS
+#ifdef ARRAY_EMBED_PROP
+extern HiddenClass *new_empty_hidden_class(Context *, int, int, int, int, int);
+#else /* ARRAY_EMBED_PROP */
 extern HiddenClass *new_empty_hidden_class(Context *, int, int, int);
+#endif /* ARRAY_EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
 extern HiddenClass *new_empty_hidden_class(Context *, int, int);
 #endif /* RICH_HIDDEN_CLASS */

@@ -50,13 +50,37 @@ void init_global_constants(void) {
 void init_global_malloc_objects(void) {
 #ifdef HIDDEN_CLASS
 #ifdef RICH_HIDDEN_CLASS
+#ifdef ARRAY_EMBED_PROP
+  gobjects.g_hidden_class_0 =
+    new_empty_hidden_class(NULL, HSIZE_NORMAL, PSIZE_NORMAL,
+			   0, 0, HTYPE_TRANSIT);
+#else /* ARRAY_EMBED_PROP */
   gobjects.g_hidden_class_0 =
     new_empty_hidden_class(NULL, HSIZE_NORMAL, PSIZE_NORMAL, HTYPE_TRANSIT);
+#endif /* ARRAY_EMBED_PROP */
 #else /* RICH_HIDDEN_CLASS */
   gobjects.g_hidden_class_0 =
     new_empty_hidden_class(NULL, HSIZE_NORMAL, HTYPE_TRANSIT);
 #endif /* RICH_HIDDEN_CLASS */
 #endif
+
+#ifdef ARRAY_EMBED_PROP
+  gobjects.g_hidden_class_array =
+    new_empty_hidden_class(NULL,                 /* context */
+			   ARRAY_NORMAL_PROPS,   /* map size */
+			   ARRAY_EMBEDDED_PROPS, /* embedded props */
+			   ARRAY_EMBEDDED_PROPS, /* # of props */
+			   ARRAY_SPECIAL_PROPS,  /* # of special props */
+			   HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
+			  gconsts.g_string_length,
+			  ARRAY_PROP_INDEX_LENGTH,
+			  ATTR_DDDE);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
+			  gconsts.g_string___proto__,
+			  ARRAY_PROP_INDEX_PROTO,
+			  ATTR_ALL);
+#endif /* ARRAY_EMBED_PROP */
 }
 
 /*
