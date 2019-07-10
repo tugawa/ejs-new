@@ -744,8 +744,12 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
 #ifdef USE_REGEXP
   case HTAG_REGEXP:
+#ifdef ARRAY_EMBED_PROP
+    trace_leaf_object((uintptr_t *)&obj->eprop[REX_XPROP_INDEX_PATTERN]);
+#else /* ARRAY_EMBED_PROP */
     trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
-    break;
+#endif /* ARRAY_EMBED_PROP */
+  break;
 #endif /* USE_REGEXP */
   case HTAG_BOXED_STRING:
   case HTAG_BOXED_NUMBER:
@@ -887,6 +891,9 @@ STATIC void scan_roots(Context *ctx)
   trace_HiddenClass(&gobjects.g_hidden_class_function);
   trace_HiddenClass(&gobjects.g_hidden_class_builtin);
   trace_HiddenClass(&gobjects.g_hidden_class_boxed);
+#ifdef USE_REGEXP
+  trace_HiddenClass(&gobjects.g_hidden_class_regexp);
+#endif /* USE_REGEXP */
 #endif
 
   /* function table: do not trace.

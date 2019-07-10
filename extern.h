@@ -78,14 +78,19 @@ extern Object *allocate_simple_object(Context *ctx);
   allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY)
 #define allocate_function(ctx)                                  \
   allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
-#define allocate_builtin(ctx)                                   \
+#define allocate_builtin(ctx)                                           \
   allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
 /* allocate_jsobject is called directly in types.h for boxed types */
+#define allocate_regexp(ctx)                                    \
+  allocate_jsobject((ctx), REX_EMBEDDED_PROPS, HTAG_REGEXP)
 #else /* ARRAY_EMBED_PROP */
 extern ArrayCell *allocate_array(Context *ctx);
 extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern BoxedCell *allocate_boxed(Context *,uint32_t);
+#ifdef USE_REGEXP
+extern RegexpCell *allocate_regexp(void);
+#endif
 #endif /* ARRAY_EMBED_PROP */
 extern void allocate_array_data(Context *, JSValue, int, int);
 extern void reallocate_array_data(Context *, JSValue, int);
@@ -93,11 +98,6 @@ extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
 extern Iterator *allocate_iterator(void);
 extern void allocate_iterator_data(Context *, JSValue, int);
-#ifdef USE_REGEXP
-#ifdef need_normal_regexp
-extern RegexpCell *allocate_regexp(void);
-#endif /* need_normal_regexp */
-#endif
 
 #define allocate_array_data_critical(a,s,l)        \
   allocate_array_data(NULL,(a),(s),(l))

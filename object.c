@@ -1080,9 +1080,14 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   JSValue ret;
 
-  ret = make_regexp();
+  ret = make_regexp(ctx);
 #ifdef EMBED_PROP
+#ifdef ARRAY_EMBED_PROP
+  set_object_members_with_class(builtin_object_p(ret),
+                                gobjects.g_hidden_class_regexp);
+#else /* ARRAY_EMBED_PROP */
   set_object_members(regexp_object_p(ret), hsize, 1);
+#endif /* ARRAY_EMBED_PROP */
 #else /* EMBED_PROP */
   set_object_members(regexp_object_p(ret), hsize, vsize);
 #endif /* EMBED_PROP */

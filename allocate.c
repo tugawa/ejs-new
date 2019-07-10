@@ -207,6 +207,7 @@ void allocate_iterator_data(Context *ctx, JSValue a, int size)
   iterator_index(a) = 0;
 }
 
+#ifndef ARRAY_EMBED_PROP
 /*
  * allocates a regexp
  */
@@ -221,7 +222,6 @@ RegexpCell *allocate_regexp(void)
 #endif /* need_normal_regexp */
 #endif
 
-#ifndef ARRAY_EMBED_PROP
 /*
  *  allocates a boxed object
  */

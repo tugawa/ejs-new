@@ -125,6 +125,20 @@ void init_global_malloc_objects(void) {
                           BOXED_PROP_INDEX_PROTO,
                           ATTR_ALL);
 
+#ifdef USE_REGEXP
+  gobjects.g_hidden_class_regexp =
+    new_empty_hidden_class(NULL,               /* context */
+                           REX_NORMAL_PROPS,   /* map size */
+                           REX_EMBEDDED_PROPS, /* embedded props */
+                           REX_EMBEDDED_PROPS, /* # of props */
+                           REX_SPECIAL_PROPS,  /* # of special props */
+                           HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_regexp),
+                          gconsts.g_string___proto__,
+                          REX_PROP_INDEX_PROTO,
+                          ATTR_ALL);
+#endif /* USE_REGEXP */
+
 #endif /* ARRAY_EMBED_PROP */
 }
 

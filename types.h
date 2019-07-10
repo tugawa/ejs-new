@@ -453,6 +453,41 @@ typedef struct iterator {
 
 #include <oniguruma.h>
 
+#define F_REGEXP_NONE      (0x0)
+#define F_REGEXP_GLOBAL    (0x1)
+#define F_REGEXP_IGNORE    (0x2)
+#define F_REGEXP_MULTILINE (0x4)
+
+#ifdef ARRAY_EMBED_PROP
+
+#define REX_SPECIAL_PROPS       6
+#define REX_XPROP_INDEX_PATTERN 0
+#define REX_XPROP_INDEX_REX     1
+#define REX_XPROP_INDEX_GFLAG   2
+#define REX_XPROP_INDEX_IFLAG   3
+#define REX_XPROP_INDEX_MFLAG   4
+#define REX_XPROP_INDEX_LASTIDX 5
+#define REX_NORMAL_PROPS        1
+#define REX_PROP_INDEX_PROTO    6
+#define REX_EMBEDDED_PROPS      (REX_SPECIAL_PROPS + REX_NORMAL_PROPS)
+
+#undef remove_normal_regexp_tag
+#define remove_normal_regexp_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
+
+#define make_regexp(ctx)     (put_normal_regexp_tag(allocate_regexp(ctx)))
+
+#define regexp_object_p(o)   (remove_normal_regexp_tag(o))
+#define regexp_eprop(o,t,i)                             \
+  (*(t*)&(remove_normal_regexp_tag(o))->eprop[i])
+#define regexp_pattern(o)    regexp_eprop(o, char*,    REX_XPROP_INDEX_PATTERN)
+#define regexp_reg(o)        regexp_eprop(o, regex_t*, REX_XPROP_INDEX_REX)
+#define regexp_global(o)     regexp_eprop(o, int,      REX_XPROP_INDEX_GFLAG)
+#define regexp_ignorecase(o) regexp_eprop(o, int,      REX_XPROP_INDEX_IFLAG)
+#define regexp_multiline(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_MFLAG)
+#define regexp_lastindex(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_LASTIDX)
+
+#else /* ARRAY_EMBED_PROP */
+
 /*
  * Regexp
  * tag == T_GENERIC
@@ -467,12 +502,7 @@ typedef struct regexp_cell {
   int lastindex;
 } RegexpCell;
 
-#define F_REGEXP_NONE      (0x0)
-#define F_REGEXP_GLOBAL    (0x1)
-#define F_REGEXP_IGNORE    (0x2)
-#define F_REGEXP_MULTILINE (0x4)
-
-#define make_regexp()          (put_normal_regexp_tag(allocate_regexp()))
+#define make_regexp(ctx)       (put_normal_regexp_tag(allocate_regexp()))
 
 #define regexp_object_p(r)     (&((remove_normal_regexp_tag(r))->o))
 #define regexp_pattern(r)      ((remove_normal_regexp_tag(r))->pattern)
@@ -481,6 +511,8 @@ typedef struct regexp_cell {
 #define regexp_ignorecase(r)   ((remove_normal_regexp_tag(r))->ignorecase)
 #define regexp_multiline(r)    ((remove_normal_regexp_tag(r))->multiline)
 #define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
+
+#endif /* ARRAY_EMBED_PROP */
 #endif /* USE_REGEXP */
 
 #ifdef ARRAY_EMBED_PROP
