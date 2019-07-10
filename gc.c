@@ -116,6 +116,8 @@ int gc_usec;
 #ifdef GC_PROF
 uint64_t total_alloc_bytes;
 uint64_t total_alloc_count;
+uint64_t pertype_alloc_bytes[256];
+uint64_t pertype_alloc_count[256];
 #endif /* GC_PROF */
 
 #ifdef GC_DEBUG
@@ -362,6 +364,8 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 #ifdef GC_PROF
   total_alloc_bytes += request_bytes;
   total_alloc_count++;
+  pertype_alloc_bytes[type] += request_bytes;
+  pertype_alloc_count[type]++;
 #endif /* GC_PROF */
   return addr;
 }
@@ -887,13 +891,16 @@ STATIC void scan_roots(Context *ctx)
    */
 #ifdef HIDDEN_CLASS
   trace_HiddenClass(&gobjects.g_hidden_class_0);
+#ifdef ARRAY_EMBED_PROP
   trace_HiddenClass(&gobjects.g_hidden_class_array);
   trace_HiddenClass(&gobjects.g_hidden_class_function);
   trace_HiddenClass(&gobjects.g_hidden_class_builtin);
   trace_HiddenClass(&gobjects.g_hidden_class_boxed);
+  trace_HiddenClass(&gobjects.g_hidden_class_boxed_string);
 #ifdef USE_REGEXP
   trace_HiddenClass(&gobjects.g_hidden_class_regexp);
 #endif /* USE_REGEXP */
+#endif /* ARRAY_EMBED_PROP */
 #endif
 
   /* function table: do not trace.

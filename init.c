@@ -69,7 +69,7 @@ void init_global_malloc_objects(void) {
     new_empty_hidden_class(NULL,                 /* context */
                            ARRAY_NORMAL_PROPS,   /* map size */
                            ARRAY_EMBEDDED_PROPS, /* embedded props */
-                           ARRAY_EMBEDDED_PROPS, /* # of props */
+                           ARRAY_NORMAL_PROPS,   /* # of normal props */
                            ARRAY_SPECIAL_PROPS,  /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
@@ -85,7 +85,7 @@ void init_global_malloc_objects(void) {
     new_empty_hidden_class(NULL,                 /* context */
                            FUNC_NORMAL_PROPS,    /* map size */
                            FUNC_EMBEDDED_PROPS,  /* embedded props */
-                           FUNC_EMBEDDED_PROPS,  /* # of props */
+                           FUNC_NORMAL_PROPS,    /* # of normal props */
                            FUNC_SPECIAL_PROPS,   /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
@@ -101,7 +101,7 @@ void init_global_malloc_objects(void) {
     new_empty_hidden_class(NULL,                   /* context */
                            BUILTIN_NORMAL_PROPS,   /* map size */
                            BUILTIN_EMBEDDED_PROPS, /* embedded props */
-                           BUILTIN_EMBEDDED_PROPS, /* # of props */
+                           BUILTIN_NORMAL_PROPS,   /* # of normal props */
                            BUILTIN_SPECIAL_PROPS,  /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
@@ -117,7 +117,7 @@ void init_global_malloc_objects(void) {
     new_empty_hidden_class(NULL,                 /* context */
                            BOXED_NORMAL_PROPS,   /* map size */
                            BOXED_EMBEDDED_PROPS, /* embedded props */
-                           BOXED_EMBEDDED_PROPS, /* # of props */
+                           BOXED_NORMAL_PROPS,   /* # of normal props */
                            BOXED_SPECIAL_PROPS,  /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed),
@@ -125,13 +125,29 @@ void init_global_malloc_objects(void) {
                           BOXED_PROP_INDEX_PROTO,
                           ATTR_ALL);
 
+  gobjects.g_hidden_class_boxed_string =
+    new_empty_hidden_class(NULL,                    /* context */
+                           BOXEDSTR_NORMAL_PROPS,   /* map size */
+                           BOXEDSTR_EMBEDDED_PROPS, /* embedded props */
+                           BOXEDSTR_NORMAL_PROPS,   /* # of normal props */
+                           BOXED_SPECIAL_PROPS,     /* # of special props */
+                           HTYPE_TRANSIT);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed_string),
+                          gconsts.g_string___proto__,
+                          BOXED_PROP_INDEX_PROTO,
+                          ATTR_ALL);
+  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed_string),
+                          gconsts.g_string_length,
+                          BOXEDSTR_PROP_INDEX_LENGTH,
+                          ATTR_ALL);
+
 #ifdef USE_REGEXP
   gobjects.g_hidden_class_regexp =
-    new_empty_hidden_class(NULL,               /* context */
-                           REX_NORMAL_PROPS,   /* map size */
-                           REX_EMBEDDED_PROPS, /* embedded props */
-                           REX_EMBEDDED_PROPS, /* # of props */
-                           REX_SPECIAL_PROPS,  /* # of special props */
+    new_empty_hidden_class(NULL,                /* context */
+                           REX_NORMAL_PROPS,    /* map size */
+                           REX_EMBEDDED_PROPS,  /* embedded props */
+                           REX_NORMAL_PROPS,    /* # of normal props */
+                           REX_SPECIAL_PROPS,   /* # of special props */
                            HTYPE_TRANSIT);
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_regexp),
                           gconsts.g_string___proto__,

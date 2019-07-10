@@ -351,8 +351,12 @@ extern void init_builtin_regexp(Context *);
 /*
  * gc.c
  */
+#ifdef GC_PROF
 extern uint64_t total_alloc_bytes;
 extern uint64_t total_alloc_count;
+extern uint64_t pertype_alloc_bytes[];
+extern uint64_t pertype_alloc_count[];
+#endif /* GC_PROF */
 
 #ifdef __cplusplus
 }

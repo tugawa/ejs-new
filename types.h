@@ -523,6 +523,10 @@ typedef struct regexp_cell {
 #define BOXED_PROP_INDEX_PROTO  1
 #define BOXED_EMBEDDED_PROPS    (BOXED_SPECIAL_PROPS + BOXED_NORMAL_PROPS)
 
+#define BOXEDSTR_NORMAL_PROPS      2
+#define BOXEDSTR_PROP_INDEX_LENGTH 2
+#define BOXEDSTR_EMBEDDED_PROPS  (BOXED_SPECIAL_PROPS + BOXEDSTR_NORMAL_PROPS)
+
 #undef remove_normal_number_object_tag
 #define remove_normal_number_object_tag(p)      \
   ((Object *)remove_tag((p), T_GENERIC))
@@ -537,7 +541,8 @@ typedef struct regexp_cell {
   put_normal_number_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
                                                  HTAG_BOXED_NUMBER))
 #define make_string_object(ctx)                                         \
-  put_normal_string_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
+  put_normal_string_object_tag(allocate_jsobject((ctx),                 \
+                                                 BOXEDSTR_EMBEDDED_PROPS, \
                                                  HTAG_BOXED_STRING))
 #define make_boolean_object(ctx)                                         \
   put_normal_boolean_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \

@@ -73,6 +73,7 @@ EXTERN struct global_malloced_objects {
   HiddenClass *g_hidden_class_function;
   HiddenClass *g_hidden_class_builtin;
   HiddenClass *g_hidden_class_boxed;
+  HiddenClass *g_hidden_class_boxed_string;
 #ifdef USE_REGEXP
   HiddenClass *g_hidden_class_regexp;
 #endif /* USE_REGEXP */

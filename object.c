@@ -1167,7 +1167,7 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(string_object_object_p(ret),
-                                gobjects.g_hidden_class_boxed);
+                                gobjects.g_hidden_class_boxed_string);
 #else /* ARRAY_EMBED_PROP */
   set_object_members(string_object_object_ptr(ret), hsize, 1);
 #endif /* ARRAY_EMBED_PROP */
@@ -1209,7 +1209,7 @@ double cstr_to_double(char* cstr) {
 #ifdef RICH_HIDDEN_CLASS
 #ifdef ARRAY_EMBED_PROP
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
-                                    int n_prop, int n_special, int htype)
+                                    int n_normal, int n_special, int htype)
 #else /* ARRAY_EMBED_PROP */
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize,
                                     int psize, int htype)
@@ -1232,7 +1232,7 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
 #ifdef ARRAY_EMBED_PROP
-  hidden_n_props(c) = n_prop;
+  hidden_n_props(c) = n_normal + n_special;
 #else /* ARRAY_EMBED_PROP */
   hidden_n_props(c) = 0;
 #endif /* ARRAY_EMBED_PROP */
@@ -1353,6 +1353,22 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
 
 void print_all_hidden_class(void) {
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
+#ifdef ARRAY_EMBED_PROP
+  print_hidden_class_recursive("hidden_class_array",
+                               gobjects.g_hidden_class_array);
+  print_hidden_class_recursive("hidden_class_function",
+                               gobjects.g_hidden_class_function);
+  print_hidden_class_recursive("hidden_class_builtin",
+                               gobjects.g_hidden_class_builtin);
+  print_hidden_class_recursive("hidden_class_boxed",
+                               gobjects.g_hidden_class_boxed);
+  print_hidden_class_recursive("hidden_class_boxed_string",
+                               gobjects.g_hidden_class_boxed_string);
+#ifdef USE_REGEXP
+  print_hidden_class_recursive("hidden_class_regexp",
+                               gobjects.g_hidden_class_regexp);
+#endif /* USE_REGEXP */
+#endif /* ARRAY_EMBED_PROP */
 }
 #endif /* PROFILE */
 #endif

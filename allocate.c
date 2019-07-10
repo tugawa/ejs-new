@@ -57,14 +57,14 @@ StringCell *allocate_string(uint32_t length)
 #ifdef ARRAY_EMBED_PROP
 Object *allocate_jsobject(Context *ctx, size_t n_embedded, cell_type_t htag)
 {
-  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - 1);
+  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - PSIZE_NORMAL);
   Object *object = (Object *) gc_jsalloc(ctx, size, htag);
   return object;
 }
 #else /* ARRAY_EMBED_PROP */
 Object *allocate_simple_object(Context *ctx, size_t n_embedded)
 {
-  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - 1);
+  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - PSIZE_NORMAL);
   Object *object = (Object *) gc_jsalloc(ctx, size, HTAG_SIMPLE_OBJECT);
   return object;
 }

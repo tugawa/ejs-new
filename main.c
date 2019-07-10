@@ -211,8 +211,44 @@ void print_cputime(time_t sec, suseconds_t usec) {
 #ifdef GC_PROF
 void print_gc_prof()
 {
+  int i;
+  char *htag_name[] = {
+    /* 00 */ "free",
+    /* 01 */ "",
+    /* 02 */ "",
+    /* 03 */ "",
+    /* 04 */ "STRING",
+    /* 05 */ "FLONUM",
+    /* 06 */ "SIMPLE_OBJECT",
+    /* 07 */ "ARRAY",
+    /* 08 */ "FUNCTION",
+    /* 09 */ "BUILTIN",
+    /* 0A */ "ITERATOR",
+    /* 0B */ "REGEXP",
+    /* 0C */ "BOXED_STRING",
+    /* 0D */ "BOXED_NUMBER",
+    /* 0E */ "BOXED_BOOLEAN",
+    /* 0F */ "",
+    /* 10 */ "",
+    /* 11 */ "PROP",
+    /* 12 */ "ARRAY_DATA",
+    /* 13 */ "FUNCTION_FRAME",
+    /* 14 */ "HASH_BODY",
+    /* 15 */ "STR_CONS",
+    /* 16 */ "CONTEXT",
+    /* 17 */ "STACK",
+    /* 18 */ "HIDDEN_CLASS"
+  };
+
   printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
   printf("total alloc count = %"PRId64"\n", total_alloc_count);
+  for (i = 0; i < 255; i++)
+    if (pertype_alloc_count[i] > 0) {
+      printf("  type %02x ", i);
+      printf("bytes = %8"PRId64" ", pertype_alloc_bytes[i]);
+      printf("count = %8"PRId64" ", pertype_alloc_count[i]);
+      printf("%s\n", i <= 0x18 ? htag_name[i]: "");
+    }
 }
 #endif /* GC_PROF */
 
