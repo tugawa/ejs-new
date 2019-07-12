@@ -362,10 +362,15 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   }
 #endif /* GC_DEBUG */
 #ifdef GC_PROF
-  total_alloc_bytes += request_bytes;
-  total_alloc_count++;
-  pertype_alloc_bytes[type] += request_bytes;
-  pertype_alloc_count[type]++;
+  {
+    size_t alloc_bytes =
+      (request_bytes + BYTES_IN_JSVALUE * (HEADER_JSVALUES - 1)) &
+      ~((1 << LOG_BYTES_IN_JSVALUE) - 1);
+    total_alloc_bytes += alloc_bytes;
+    total_alloc_count++;
+    pertype_alloc_bytes[type] += alloc_bytes;
+    pertype_alloc_count[type]++;
+  }
 #endif /* GC_PROF */
   return addr;
 }

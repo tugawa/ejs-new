@@ -291,6 +291,9 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #define make_array(ctx)          (put_normal_array_tag(allocate_array(ctx)))
 
+#undef remove_normal_array_tag
+#define remove_normal_array_tag(p) ((Object *)remove_tag((p), T_GENERIC))
+
 #define array_object_p(a)        (remove_normal_array_tag(a))
 #define array_eprop(a,t,i)                              \
   (*(t*)&(remove_normal_array_tag(a))->eprop[i])

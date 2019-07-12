@@ -240,6 +240,13 @@ void print_gc_prof()
     /* 18 */ "HIDDEN_CLASS"
   };
 
+  printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
+  for (i = 0; i < 0x18; i++) {
+    printf(" %"PRId64" ", pertype_alloc_bytes[i]);
+    printf(" %"PRId64" ", pertype_alloc_count[i]);
+  }
+  printf("\n");
+
   printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
   printf("total alloc count = %"PRId64"\n", total_alloc_count);
   for (i = 0; i < 255; i++)
@@ -511,7 +518,7 @@ int main(int argc, char *argv[]) {
 #ifdef GC_PROF
     if (gcprof_flag == TRUE)
       print_gc_prof();
-#endif /* GC_PROP */
+#endif /* GC_PROF */
     
     if (repl_flag == TRUE)
       fflush(stdout);
