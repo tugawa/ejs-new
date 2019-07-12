@@ -265,7 +265,7 @@ extern int iterator_get_next_propname(JSValue, JSValue *);
 extern int regexp_flag(JSValue);
 #endif /* need_regexp */
 #endif
-extern JSValue new_simple_object_without_prototype(Context *, int, int);
+extern JSValue new_simple_object_without___proto__(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
 extern JSValue new_array(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);

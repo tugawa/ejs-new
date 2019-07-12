@@ -692,8 +692,9 @@ void set_object_members(Object *p, int hsize, int psize) {
  *   hsize: size of the hash table
  *   psize: size of the array of property values
  */
-JSValue new_simple_object_without_prototype(Context *ctx, int hsize,
-                                            int psize) {
+JSValue new_simple_object_without___proto__(Context *ctx, int hsize,
+                                            int psize)
+{
   JSValue ret;
   Object *p;
 
@@ -822,13 +823,9 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 
   /* allocate an itearator */
   do {
-    /*
-     * printf("Object %016llx: (type = %d, n_props = %lld)\n",
-     *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
-     */
     size += obj_n_props(tmpobj);
-  } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
-  /* printf("size = %d\n", size); */
+    get___proto__(tmpobj, &tmpobj);
+  } while (tmpobj != JS_NULL);
   GC_PUSH(iter);
   allocate_iterator_data(ctx, iter, size);
 
@@ -851,10 +848,10 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 #else
       if ((JSValue)p->entry.attr & ATTR_DE) continue;
 #endif
-      /* printf("key = "); simple_print((JSValue)p->entry.key); putchar('\n'); */
       iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
-  } while (get___proto__(obj, &obj) == SUCCESS);
+    get___proto__(obj, &obj);
+  } while (obj != JS_NULL);
   GC_POP(iter);
   return iter;
 }
