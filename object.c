@@ -131,19 +131,11 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
  */
 JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
-  extern JSValue prototype_object(JSValue);
-
-  /*
-   * printf("get_prop_prototype_chain: o = "); simple_print(o); printf("\n");
-   * printf("get_prop_prototype_chain: p = "); simple_print(p); printf("\n");
-   * printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n",
-   *         string_to_cstr(p), o);
-   * printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
-   */
-  do {
-    if (get_prop(o, p, &ret) == SUCCESS) return ret;
-  } while (get___proto__(o, &o) == SUCCESS);
-  /* is it necessary to search in the Object's prototype? */
+  while (is_object(o)) {
+    if (get_prop(o, p, &ret) == SUCCESS)
+      return ret;
+    get___proto__(o, &o);
+  }
   return JS_UNDEFINED;
 }
 
@@ -156,14 +148,14 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
 JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
   /*
    * if (p is not a string) p = to_string(p);
-   *   returns the value regsitered under the property p
-   * }
+   *   returns the value regsitered under the property p;
    */
-  /* printf("get_object_prop, o = %016lx, p = %016lx\n", o, p); */
   if (!is_string(p)) {
-    GC_PUSH(o);
+    JSValue o_gcroot = o;
+    GC_PUSH(o_gcroot);
     p = to_string(ctx, p);
-    GC_POP(o);
+    GC_POP(o_gcroot);
+    o = o_gcroot;
   }
   return get_prop_prototype_chain(o, p);
 }
@@ -176,11 +168,11 @@ JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
  */
 int has_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
-  extern JSValue prototype_object(JSValue);
-  do {
-    if (get_prop(o, p, &ret) == SUCCESS) return TRUE;
-  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
-  /* is it necessary to search in the Object's prototype? */
+  while (is_object(o)) {
+    if (get_prop(o, p, &ret) == SUCCESS)
+      return TRUE;
+    get___proto__(o, &o);
+  }
   return FALSE;
 }
 
@@ -883,8 +875,9 @@ static void set_object_members(Object *p, int hsize, int psize)
  *   hsize: size of the hash table
  *   psize: size of the array of property values
  */
-JSValue new_simple_object_without_prototype(Context *ctx, int hsize,
-                                            int psize) {
+JSValue new_simple_object_without___proto__(Context *ctx, int hsize,
+                                            int psize)
+{
   JSValue ret;
   Object *p;
 
@@ -1031,6 +1024,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   iter = make_iterator();
 
   /* allocate an itearator */
+  GC_PUSH(obj);
   do {
     /*
      * printf("Object %016llx: (type = %d, n_props = %lld)\n",
@@ -1041,9 +1035,10 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 #else /* RICH_HIDDEN_CLASS */
     size += obj_n_props(tmpobj);
 #endif /* RICH_HIDDEN_CLASS */
-  } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
+    get___proto__(tmpobj, &tmpobj);
+  } while (tmpobj != JS_NULL);
   /* printf("size = %d\n", size); */
-  GC_PUSH2(iter, obj);
+  GC_PUSH(iter);
   allocate_iterator_data(ctx, iter, size);
 
   /* fill the iterator with object properties */
@@ -1065,11 +1060,11 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 #else
       if ((JSValue)p->entry.attr & ATTR_DE) continue;
 #endif
-      /* printf("key = "); simple_print((JSValue)p->entry.key); putchar('\n'); */
       iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
-  } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_POP2(obj, iter);
+    get___proto__(obj, &obj);
+  } while (obj != JS_NULL);
+  GC_POP2(iter, obj);
   return iter;
 }
 
