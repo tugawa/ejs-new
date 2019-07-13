@@ -814,6 +814,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   iter = make_iterator();
 
   /* allocate an itearator */
+  GC_PUSH(obj);
   do {
     size += obj_n_props(tmpobj);
     get___proto__(tmpobj, &tmpobj);
@@ -844,7 +845,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     }
     get___proto__(obj, &obj);
   } while (obj != JS_NULL);
-  GC_POP(iter);
+  GC_POP2(iter, obj);
   return iter;
 }
 

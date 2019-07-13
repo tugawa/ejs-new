@@ -83,6 +83,7 @@ void init_builtin_function(Context *ctx)
   JSValue proto;
 
   gconsts.g_builtin_proto = proto = new_normal_object(ctx);
+  GC_PUSH(proto);
   gconsts.g_builtin =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
   set_prototype_all(ctx, gconsts.g_builtin, proto);
@@ -108,4 +109,5 @@ void init_builtin_function(Context *ctx)
       p++;
     }
   }
+  GC_POP(proto);
 }
