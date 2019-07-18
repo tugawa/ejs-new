@@ -24,8 +24,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import type.AstType;
-import type.AstType.JSValueType;
-import type.AstType.JSValueVMType;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
 
@@ -52,28 +50,45 @@ public class OperandSpecifications {
     
     void load(Scanner sc) {
         final String P_SYMBOL = "[a-zA-Z_]+";
-        final String P_OPERANDS = "\\(\\s*([^)]+)\\s*\\)";
+        final String P_OPERANDS = "\\(\\s*([^)]*)\\s*\\)";
         final String P_BEHAVIOUR = "accept|error|unspecified";
-        final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s+"+P_OPERANDS+"\\s+("+P_BEHAVIOUR+")\\s*$");
+        final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s*"+P_OPERANDS+"\\s*("+P_BEHAVIOUR+")\\s*$");
 
         spec = new ArrayList<OperandSpecificationRecord>();
         arities = new HashMap<String, Integer>();
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
+            if (line.startsWith("#"))
+                continue;
             Matcher matcher = splitter.matcher(line);
             if (matcher.matches()) {
                 MatchResult m = matcher.toMatchResult();
                 String insnName = m.group(1);
-                String[] allOps = m.group(2).split("\\s*,\\s*");
-                int n = 0;
-                for (String s: allOps)
-                    if (!s.equals("-"))
-                        n++;
-                String[] operandTypes = new String[n];
-                int i = 0;
-                for (String s: allOps)
-                    if (!s.equals("-"))
-                        operandTypes[i++] = s;
+                String[] operandTypes = null;
+
+                if (!m.group(2).equals("")) {
+                    int n = 0;
+                    String[] allOps = m.group(2).split("\\s*,\\s*");
+                    for (String s: allOps)
+                        if (!s.equals("-"))
+                            n++;
+                    operandTypes = new String[n];
+                    int i = 0;
+                    for (String s: allOps)
+                        if (!s.equals("-"))
+                            operandTypes[i++] = s;
+
+                    Integer arity = arities.get(insnName);
+                    if (arity == null)
+                        arities.put(insnName, n);
+                    else {
+                        if (arity != n)
+                            throw new Error("operand specification file error");
+                    }
+                } else {
+                    operandTypes = new String[0];
+                }
+
                 OperandSpecificationRecord.Behaviour behaviour;
                 if (m.group(3).equals("accept"))
                     behaviour = OperandSpecificationRecord.Behaviour.ACCEPT;
@@ -83,15 +98,7 @@ public class OperandSpecifications {
                     behaviour = OperandSpecificationRecord.Behaviour.UNSPECIFIED;
                 else
                     throw new Error("operand specification syntax error:"+ m.group());
-                Integer arity = arities.get(insnName);
-                if (DEBUG)
-                    System.out.println("arity of "+insnName+" = "+n);
-                if (arity == null)
-                    arities.put(insnName, n);
-                else {
-                    if (arity != n)
-                        throw new Error("operand specification file error");
-                }
+
                 OperandSpecificationRecord r = new OperandSpecificationRecord(insnName, operandTypes, behaviour);
                 spec.add(r);
             } else
@@ -108,24 +115,46 @@ public class OperandSpecifications {
         }
     }
 
-    boolean matchOperandTypes(String[] specTypes, VMDataType[] types) {
+    boolean matchOperandTypes(String[] specTypes, VMDataType[] types, String insnName) {
         if (specTypes.length != types.length)
+            throw new Error("number of operands mismatch: "+insnName+" insndef:"+types.length+", opspec: "+specTypes.length);
+        for (int i = 0; i < specTypes.length; i++) {
+            if (specTypes[i].equals("_"))
+                continue; // next operand
+            if (specTypes[i].startsWith("!") &&
+                    specTypes[i].substring(1).equals("object") &&
+                    !types[i].isObject())
+                continue; // next operand;
+            if (specTypes[i].startsWith("!") &&
+                    !specTypes[i].substring(1).equals(types[i].getName()))
+                continue; // next operand;
+            if (specTypes[i].equals("object") && types[i].isObject())
+                continue; // next operand
+            if (specTypes[i].equals(types[i].getName()))
+                continue; // next operand
             return false;
-        for (int i = 0; i < specTypes.length; i++)
-            if (!specTypes[i].equals("_") &&
-                    !(specTypes[i].equals("object") && types[i].isObject()) &&
-                    !specTypes[i].equals(types[i].getName()))
-                return false;
+        }
         return true;
     }
 
     OperandSpecificationRecord findSpecificationRecord(String insnName, VMDataType[] types) {
         for (OperandSpecificationRecord rec: spec) {
             if (insnName.equals(rec.insnName) &&
-                    matchOperandTypes(rec.operandTypes, types))
+                    matchOperandTypes(rec.operandTypes, types, insnName))
                 return rec;
         }
-        throw new Error("unexhaustive type specification for :"+insnName+"("+types[0].getName()+","+types[1].getName()+")");
+        /* construct error message */
+        StringBuilder sb = new StringBuilder();
+        sb.append("unexhaustive type specification for : ");
+        sb.append(insnName);
+        sb.append("(");
+        for (int i = 0; i < types.length; i++) {
+            if (i >= 1)
+                sb.append(",");
+            sb.append(types[i].getName());
+        }
+        sb.append(")");
+        throw new Error(sb.toString());
     }
 
     public Set<VMDataType[]> getOperands(String insnName, OperandSpecificationRecord.Behaviour behaviour) {

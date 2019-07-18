@@ -632,6 +632,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             HashMap<String, String> varmap = new HashMap<String, String>();
             varmap.put("cint", "int");
             varmap.put("cdouble", "double");
+            varmap.put("cstring", "char*");
+            varmap.put("Displacement", "Displacement");
+            varmap.put("Subscript", "Subscript");
             print(varmap.get(node.toText()));
         }
     }

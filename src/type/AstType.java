@@ -60,6 +60,8 @@ public class AstType {
         defineType("cint");
         defineType("cdouble");
         defineType("cstring");
+        defineType("Displacement");
+        defineType("Subscript");
         defineJSValueType("JSValue", null);
         JSValueType jsValType = (JSValueType) AstType.get("JSValue");
         defineJSValueType("Number", jsValType);

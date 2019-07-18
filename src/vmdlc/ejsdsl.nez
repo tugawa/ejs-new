@@ -199,7 +199,7 @@ Constant = Float
          / Char
          / Boolean
 
-Float = { DECIMAL_FLOAT FLOAT_SUFFIX? #Float } _
+Float = { [\-]? DECIMAL_FLOAT FLOAT_SUFFIX? #Float } _
 DECIMAL_FLOAT = FRACTION EXPONENT?
               / DIGIT+ EXPONENT
 FRACTION      = DIGIT* '.' DIGIT+
@@ -207,7 +207,7 @@ FRACTION      = DIGIT* '.' DIGIT+
 EXPONENT      = [eE] [+\-]? DIGIT+
 FLOAT_SUFFIX  = [flFL]
 
-Integer    = { (HEXICAL / DECIMAL / OCTAL) INT_SUFFIX? #Integer } _
+Integer    = { [\-]? (HEXICAL / DECIMAL / OCTAL) INT_SUFFIX? #Integer } _
 DECIMAL    = [1-9] DIGIT*
 HEXICAL    = '0' [xX] ( [0-9] / [A-F] / [a-f] )+
 OCTAL      = '0' [0-7]*
@@ -269,6 +269,9 @@ ObjectMemberAnnotation = { "embed" } _
 
 Ctypes = 'cint' !W
        / 'cdouble' !W
+       / 'cstring' !W
+       / 'Displacement' !W
+       / 'Subscript' !W
        / 'HeapObject' !W
 
 ////////////////////////////////

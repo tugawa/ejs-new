@@ -174,18 +174,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if (nJsvTypes > 0) {
                     String[] jsvParamNamesPacked = new String[nJsvTypes];
                     System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
-                    VMDataTypeVecSet vtvs = opSpec.getAccept(name, paramNames);
+                    VMDataTypeVecSet vtvs = opSpec.getAccept(name, jsvParamNamesPacked);
                     newDict.add(vtvs);                
                 }
             }
-            
+
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
             dict = visit((SyntaxTree)body, newDict);
 
             save(nameNode, dict);
             save(nodeName, dict);
             save(paramsNode, dict);
-
             return dict.select((Set<String>)domain);
         }
         public void saveType(SyntaxTree node, TypeMap dict) throws Exception {
@@ -565,6 +564,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     
     AstType tCint = AstType.get("cint");
     AstType tCdouble = AstType.get("cdouble");
+    AstType tCstring = AstType.get("cstring");
     
     private AstType numberOperator(SyntaxTree node, TypeMap dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
