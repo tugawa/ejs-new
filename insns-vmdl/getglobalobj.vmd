@@ -1,0 +1,9 @@
+externC (needContext) Get_globalobj : void -> JSValue
+
+(vmInstruction, needContext, tailCall)
+getglobalobj : void -> JSValue
+
+getglobalobj () {
+    return Get_globalobj();
+}
+

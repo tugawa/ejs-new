@@ -1,0 +1,8 @@
+externC NotImplemented : void -> void
+
+(vmInstruction, tailCall)
+typeof : (JSValue, JSValue) -> void
+
+typeof (dst, src) {
+    NotImplemented();
+}

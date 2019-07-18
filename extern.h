@@ -356,6 +356,25 @@ extern void init_builtin_regexp(Context *);
 #endif /* need_regexp */
 #endif
 
+/*
+ * vmdl-helper.c
+ */
+extern JSValue get_global_helper(Context* context, JSValue str);
+extern JSValue instanceof_helper(JSValue v1, JSValue v2);
+extern JSValue getarguments_helper(Context* context, int link, Subscript index);
+extern JSValue getlocal_helper(Context* context, int link, Subscript index);
+extern Displacement localret_helper(Context* context, int pc);
+extern void pophandler_helper(Context* context);
+extern void poplocal_helper(Context* context);
+extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
+extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
+extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
+extern void throw_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int pc, int fp);
+
+
+extern void ret_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int fp, int border);
+extern void newframe_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int frame_len, int make_arguments);
+
 #ifdef __cplusplus
 }
 #endif

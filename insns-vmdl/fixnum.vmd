@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
+
+(vmInstruction, tailCall)
+fixnum : cint -> Fixnum
+
+fixnum (i1) {
+    return CintToFixnum(i1);
+}

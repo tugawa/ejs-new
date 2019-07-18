@@ -1,0 +1,8 @@
+externC Seta : JSValue -> void
+
+(vmInstruction, needContext, tailCall)
+seta : JSValue -> void
+
+seta (v0) {
+    Seta(v0);
+}

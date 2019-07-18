@@ -1,0 +1,5 @@
+(vmInstruction, tailCall)
+unknown : void -> void
+
+unknown () {
+}

@@ -1,0 +1,8 @@
+externC Isundefined : JSValue -> JSValue
+
+(vmInstruction, tailCall)
+isundef : JSValue -> JSValue
+
+isundef (v1) {
+    return Isundefined(v1);
+}

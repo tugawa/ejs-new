@@ -1,0 +1,10 @@
+externC Jump : Displacement -> void
+externC Localret : void -> Displacement
+
+(vmInstruction, needContext, tailCall)
+localret : void -> void
+
+localret () {
+    Displacement disp = Localret();
+    Jump(disp);
+}

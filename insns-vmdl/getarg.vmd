@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) Getarguments: (cint, Subscript) -> JSValue
+
+(vmInstruction, needContext, triggerGC, tailCall)
+getarg : (cint, Subscript) -> JSValue
+
+getarg (link, index) {
+    return Getarguments(link, index);
+}

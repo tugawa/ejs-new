@@ -1,0 +1,8 @@
+externC Setglobal : (JSValue, JSValue) -> void
+
+(vmInstruction, needContext, tailCall)
+setglobal : (JSValue, JSValue) -> void
+
+setglobal (str, src) {
+    Setglobal(str, src);
+}

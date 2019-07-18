@@ -1,0 +1,8 @@
+externC Pophandler : void -> void
+
+(vmInstruction, needContext, tailCall)
+pophandler : void -> void
+
+pophandler () {
+    Pophandler();
+}

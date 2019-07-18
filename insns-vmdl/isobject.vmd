@@ -1,0 +1,16 @@
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+
+(vmInstruction, tailCall)
+isobject : JSValue -> JSValue
+
+isobject (v1) {
+    top: match (v1) {
+      case (object v1) {
+          return true;
+      }
+      case (true) {
+          return false;
+      }
+    }
+
+}

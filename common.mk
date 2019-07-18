@@ -167,18 +167,16 @@ INSN_GENERATED = \
     insns/setprop.inc \
     insns/sub.inc \
     insns/tailcall.inc \
-    insns/unsignedrightshift.inc
-
-INSN_HANDCRAFT = \
-    insns/end.inc \
+    insns/unsignedrightshift.inc \
     insns/error.inc \
+    insns/end.inc \
     insns/fixnum.inc \
     insns/geta.inc \
     insns/getarg.inc \
     insns/geterr.inc \
+    insns/getlocal.inc \
     insns/getglobal.inc \
     insns/getglobalobj.inc \
-    insns/getlocal.inc \
     insns/instanceof.inc \
     insns/isobject.inc \
     insns/isundef.inc \
@@ -186,29 +184,31 @@ INSN_HANDCRAFT = \
     insns/jumpfalse.inc \
     insns/jumptrue.inc \
     insns/localcall.inc \
-    insns/localret.inc \
     insns/makeclosure.inc \
-    insns/makesimpleiterator.inc \
+    insns/localret.inc \
     insns/move.inc \
-    insns/newframe.inc \
-    insns/nextpropnameidx.inc \
     insns/nop.inc \
     insns/not.inc \
     insns/number.inc \
     insns/pophandler.inc \
     insns/poplocal.inc \
     insns/pushhandler.inc \
-    insns/ret.inc \
     insns/seta.inc \
-    insns/setarg.inc \
-    insns/setarray.inc \
     insns/setfl.inc \
     insns/setglobal.inc \
-    insns/setlocal.inc \
     insns/specconst.inc \
     insns/throw.inc \
     insns/typeof.inc \
-    insns/unknown.inc
+    insns/unknown.inc \
+    insns/setarg.inc \
+    insns/setarray.inc \
+    insns/setlocal.inc \
+    insns/makeiterator.inc \
+    insns/nextpropnameidx.inc
+
+INSN_HANDCRAFT = \
+    insns/newframe.inc \
+    insns/ret.inc
 else
 INSN_GENERATED = \
     insns/add.inc \

@@ -1,0 +1,8 @@
+externC Poplocal : void -> void
+
+(vmInstruction, needContext, tailCall)
+poplocal : void -> void
+
+poplocal () {
+    Poplocal();
+}

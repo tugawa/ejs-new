@@ -1,0 +1,14 @@
+externC Save_context : void -> void
+externC Update_context : void -> void
+externC New_normal_function : Subscript -> JSValue
+
+(vmInstruction, needContext, tailCall)
+makeclosure : Subscript -> JSValue
+
+makeclosure (s1) {
+    Subscript ss = s1 + 1;
+    Save_context();
+    JSValue result = New_normal_function(ss);
+    Update_context();
+    return result;
+}

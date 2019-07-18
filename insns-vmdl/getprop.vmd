@@ -26,10 +26,10 @@ getprop : (JSValue, JSValue) -> JSValue
 getprop (obj, index) {
   top: match (obj) {
     case (Array obj) {
-      return getArrayProp(obj, index);     // DSL の関数
+      return getArrayProp(obj, index);
     }
     case (object obj) {
-      return getObjectProp(obj, index);  // DSL の関数
+      return getObjectProp(obj, index);
     }
     case (true) {
       JSValue obj2 = toObject(obj);

@@ -1,0 +1,8 @@
+externC Pushhandler : Displacement -> void
+
+(vmInstruction, needContext, tailCall)
+pushhandler : Displacement -> void
+
+pushhandler (d0) {
+    Pushhandler(d0);
+}

@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) Get_err : void -> JSValue
+
+(vmInstruction, needContext, tailCall)
+geterr : void -> JSValue
+
+geterr () {
+    return Get_err();
+}

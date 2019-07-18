@@ -1,0 +1,8 @@
+externC Setlocal : (cint, Subscript, JSValue) -> void
+
+(vmInstruction, needContext, tailCall)
+setlocal : (cint, Subscript, JSValue) -> void
+
+setlocal (link, index, v) {
+    Setlocal(link, index, v);
+}

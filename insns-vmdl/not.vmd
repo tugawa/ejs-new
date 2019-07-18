@@ -1,0 +1,8 @@
+externC Not : JSValue -> JSValue
+
+(vmInstruction, tailCall)
+not : JSValue -> JSValue
+
+not (obj) {
+    return Not(obj);
+}

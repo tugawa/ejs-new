@@ -1,0 +1,8 @@
+externC Newframe : (cint, cint) -> void
+
+(vmInstruction, needContext, tailCall)
+newframe : (cint, cint) -> void
+
+newframe (frame_len, make_arguments) {
+    Newframe(frame_len, make_arguments);
+}

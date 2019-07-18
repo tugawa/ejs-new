@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) Get_a : void -> JSValue
+
+(vmInstruction, needContext, tailCall)
+geta : void -> JSValue
+
+geta () {
+    return Get_a();
+}

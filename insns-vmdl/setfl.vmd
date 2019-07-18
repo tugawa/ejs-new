@@ -1,0 +1,8 @@
+externC Setfl : cint -> void
+
+(vmInstruction, needContext, tailCall)
+setfl : cint -> void
+
+setfl (i0) {
+    Setfl(i0);
+}

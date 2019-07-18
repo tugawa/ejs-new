@@ -1,0 +1,8 @@
+externC Setarray : (JSValue, Subscript, JSValue) -> void
+
+(vmInstruction, needContext, tailCall)
+setarray : (JSValue, Subscript, JSValue) -> void
+
+setarray (dst, index, src) {
+    Setarray(dst, index, src);
+}

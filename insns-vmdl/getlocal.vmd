@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) Getlocal: (cint, Subscript) -> JSValue
+
+(vmInstruction, needContext, triggerGC, tailCall)
+getlocal : (cint, Subscript) -> JSValue
+
+getlocal (link, index) {
+    return Getlocal(link, index);
+}

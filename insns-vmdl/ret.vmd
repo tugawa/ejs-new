@@ -1,0 +1,8 @@
+externC Ret : void -> void
+
+(vmInstruction, needContext, tailCall)
+ret : void -> void
+
+ret () {
+    Ret();
+}

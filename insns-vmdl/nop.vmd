@@ -1,0 +1,8 @@
+externC Nop : void -> void
+
+(vmInstruction, tailCall)
+nop : void -> void
+
+nop () {
+    Nop();
+}

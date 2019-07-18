@@ -1,0 +1,14 @@
+externC Jump : Displacement -> void
+externC Next_insn_noincpc : void -> void
+externC toBoolean : JSValue -> JSValue
+
+(vmInstruction, tailCall)
+jumptrue : (JSValue, Displacement) -> void
+
+jumptrue (v0, d1) {
+    if (v0 == true || toBoolean(v0) == true) {
+        Jump(d1);
+        Next_insn_noincpc();
+    } else {
+    }
+}

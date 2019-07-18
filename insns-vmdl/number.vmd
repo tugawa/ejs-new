@@ -1,0 +1,8 @@
+externC Get_literal : cint -> JSValue
+
+(vmInstruction, tailCall)
+number : cint -> JSValue
+
+number (d1) {
+    return Get_literal(d1);
+}

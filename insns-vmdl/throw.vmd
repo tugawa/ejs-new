@@ -1,0 +1,8 @@
+externC (needContext, triggerGC) Throw : void -> void
+
+(vmInstruction, tailCall)
+throw : void -> void
+
+throw () {
+    Throw();
+}

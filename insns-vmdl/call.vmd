@@ -38,6 +38,7 @@ call (fn, nargs) {
   cint newp = IsNewSend(op);
   Set_fp();
   Set_pc();
+  Try_gc();
   top: match (fn) {
     case (Function fn) {
       Call_function(fn, nargs, sendp);

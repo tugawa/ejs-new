@@ -18,18 +18,8 @@ externC (needContext, triggerGC) toObject: JSValue -> JSObject
 externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
 externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
 
-
 (vmInstruction, needContext, triggerGC, tailCall)
 add : (JSValue, JSValue) -> JSValue
-
-// 下のように人間が書くのは無理
-// add : ( (Number, Number) -> Number
-//       | (String, (Number | Special)) -> String
-//       | ((Number | Special), String) -> String
-//       | (String, String) -> String
-//       | (Generic, (Number | Special | String)) -> Number | String
-//       | ((Number | Special | String), Generic) -> Number | String
-//       | (Generic, Generic) ->  Number | String
 
 add (v1, v2) {
   top: match (v1, v2) {
@@ -38,8 +28,6 @@ add (v1, v2) {
       return CintToNumber(s);
     }
     case (String v1 && ffs v2) {
-      // ここでは v2 の型は一意に決まらないので ffs の LUB の型になる
-      // この場合は LUB(f,f,s) = JSValue なので v2 は JSValue 型
       String s = toString(v2);
       rematch top(v1, s);  // v1:string, s:string
     }
