@@ -5,10 +5,9 @@
    $dst = the next property name of $obj in $itr
  */
 {
-  JSValue itr = v0;
-  Register dst = r1;
+  Register dst = r0;
+  JSValue itr = v1;
   JSValue res = JS_UNDEFINED;
-    get_next_propname_simple_iterator(itr, &res);
+  iterator_get_next_propname(itr, &res);
   regbase[dst] = res;
-  //printf("nextpropnameidx: itr = %016lx ", itr); simple_print(itr); printf("\n");
 }

@@ -147,7 +147,6 @@ ifeq ($(SUPERINSN_MAKEINSN),true)
     INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
 endif
 
-ifeq ($(USE_VMDL),true)
 INSN_GENERATED = \
     insns/add.inc \
     insns/bitand.inc \
@@ -169,14 +168,13 @@ INSN_GENERATED = \
     insns/tailcall.inc \
     insns/unsignedrightshift.inc \
     insns/error.inc \
-    insns/end.inc \
     insns/fixnum.inc \
     insns/geta.inc \
     insns/getarg.inc \
     insns/geterr.inc \
-    insns/getlocal.inc \
     insns/getglobal.inc \
     insns/getglobalobj.inc \
+    insns/getlocal.inc \
     insns/instanceof.inc \
     insns/isobject.inc \
     insns/isundef.inc \
@@ -185,68 +183,7 @@ INSN_GENERATED = \
     insns/jumptrue.inc \
     insns/localcall.inc \
     insns/makeclosure.inc \
-    insns/localret.inc \
-    insns/move.inc \
-    insns/nop.inc \
-    insns/not.inc \
-    insns/number.inc \
-    insns/pophandler.inc \
-    insns/poplocal.inc \
-    insns/pushhandler.inc \
-    insns/seta.inc \
-    insns/setfl.inc \
-    insns/setglobal.inc \
-    insns/specconst.inc \
-    insns/throw.inc \
-    insns/typeof.inc \
-    insns/unknown.inc \
-    insns/setarg.inc \
-    insns/setarray.inc \
-    insns/setlocal.inc \
     insns/makeiterator.inc \
-    insns/nextpropnameidx.inc
-
-INSN_HANDCRAFT = \
-    insns/newframe.inc \
-    insns/ret.inc
-else
-INSN_GENERATED = \
-    insns/add.inc \
-    insns/bitand.inc \
-    insns/bitor.inc \
-    insns/call.inc \
-    insns/div.inc \
-    insns/eq.inc \
-    insns/equal.inc \
-    insns/getprop.inc \
-    insns/leftshift.inc \
-    insns/lessthan.inc \
-    insns/lessthanequal.inc \
-    insns/mod.inc \
-    insns/mul.inc \
-    insns/new.inc \
-    insns/rightshift.inc \
-    insns/setprop.inc \
-    insns/sub.inc \
-    insns/tailcall.inc \
-    insns/unsignedrightshift.inc \
-    insns/error.inc \
-    insns/fixnum.inc \
-    insns/geta.inc \
-    insns/getarg.inc \
-    insns/geterr.inc \
-    insns/getglobal.inc \
-    insns/getglobalobj.inc \
-    insns/getlocal.inc \
-    insns/instanceof.inc \
-    insns/isobject.inc \
-    insns/isundef.inc \
-    insns/jump.inc \
-    insns/jumpfalse.inc \
-    insns/jumptrue.inc \
-    insns/localcall.inc \
-    insns/makeclosure.inc \
-    insns/makesimpleiterator.inc \
     insns/move.inc \
     insns/newframe.inc \
     insns/nextpropnameidx.inc \
@@ -270,8 +207,7 @@ INSN_GENERATED = \
     insns/throw.inc \
     insns/unknown.inc
 
-INSN_HANDCRAFT = 
-endif
+INSN_HANDCRAFT =
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
@@ -292,6 +228,7 @@ ifeq ($(OPT_REGEXP),oniguruma)
 endif
 
 ifeq ($(DATATYPES),)
+    GENERATED_HFILES += types-handcraft.h
 else
     CFLAGS += -DUSE_TYPES_GENERATED=1
     GENERATED_HFILES += types-generated.h
@@ -394,7 +331,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(call tmp_idef,$@) \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p insns
@@ -402,7 +339,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
 	    $(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || rm $@
+	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 endif
 endif
 
@@ -439,7 +376,7 @@ endif
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) $< > $@ || rm $@
+	$(CPP) $(CFLAGS) $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
@@ -448,7 +385,7 @@ $(CHECKTARGETS):%.c.check: $(CHECKFILES_DIR)/%.c
 	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $<
 
 $(CHECKRESULTS):$(CHECKFILES_DIR)/%.c.checkresult: $(CHECKFILES_DIR)/%.c
-	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@ || rm $@
+	$(COCCINELLE) --sp-file $(GCCHECK_PATTERN) $< > $@ || (rm $@; exit 1)
 
 check: $(CHECKRESULTS)
 	cat $^

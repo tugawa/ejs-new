@@ -516,7 +516,7 @@ STATIC void trace_HashCell(HashCell **ptrp)
 }
 
 STATIC void trace_Instruction_array_part(Instruction **ptrp,
-					 size_t n_insns, size_t n_literals)
+					 size_t n_insns, size_t n_constants)
 {
   Instruction *ptr = (Instruction *) *ptrp;
   JSValue *litstart;
@@ -524,14 +524,14 @@ STATIC void trace_Instruction_array_part(Instruction **ptrp,
   if (test_and_mark_cell(ptr))
     return;
   litstart = (JSValue *)(&ptr[n_insns]);
-  for (i = 0; i < n_literals; i++)
+  for (i = 0; i < n_constants; i++)
     trace_slot((JSValue *)(&litstart[i]));
 }
 
 STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
-  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_literals);
+  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_constants);
 }
 
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
@@ -671,12 +671,8 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   case HTAG_BUILTIN:
     break;
   case HTAG_ITERATOR:
-    /* TODO: call scanHashIterator */
-    if (((IteratorCell *) obj)->iter.p != NULL)
-      trace_HashCell(&((IteratorCell *) obj)->iter.p);
-    break;
-  case HTAG_SIMPLE_ITERATOR:
-    /* TODO: call scanHashIterator */
+    /* iterator does not have a common header */
+    assert(0);
     break;
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
@@ -695,9 +691,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   }
 }
 
-STATIC void trace_simple_iterator(SimpleIterator **ptrp)
+STATIC void trace_iterator(Iterator **ptrp)
 {
-  SimpleIterator *obj = *ptrp;
+  Iterator *obj = *ptrp;
 
   assert(in_js_space((void *) obj));
   if (is_marked_cell((void *) obj))
@@ -730,10 +726,11 @@ STATIC void trace_slot(JSValue* ptr)
     jsv &= ~TAGMASK;
     trace_leaf_object((uintptr_t *) &jsv);
     *ptr = jsv | tag;
-  } else if (is_simple_iterator(jsv)) {
+  } else if (is_iterator(jsv)) {
+    /* iterator does not have common headers but does have pointers */
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
-    trace_simple_iterator((SimpleIterator **) &jsv);
+    trace_iterator((Iterator **) &jsv);
     *ptr = jsv | tag;
   } else if (is_pointer(jsv)) {
     uint8_t tag = jsv & TAGMASK;

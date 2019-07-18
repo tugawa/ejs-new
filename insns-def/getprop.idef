@@ -4,7 +4,7 @@
   dst = get_array_prop(context, obj, prop);
 \}
 
-\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:iterator || obj:function) \{
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
   dst = get_object_prop(context, obj, prop);
 \}
 

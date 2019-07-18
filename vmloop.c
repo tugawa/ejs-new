@@ -649,15 +649,6 @@ int vmrun_threaded(Context* context, int border) {
 #include "insns/makeiterator.def"
   }
   NEXT_INSN_INCPC();
-  
- I_MAKESIMPLEITERATOR:
-  ENTER_INSN(__LINE__);
-  {
-    Register r0 = get_first_operand_reg(insn);
-    Register r1 = get_second_operand_reg(insn);
-#include "insns/makesimpleiterator.def"
-  }
-  NEXT_INSN_INCPC();
 
  I_NEXTPROPNAME:
   ENTER_INSN(__LINE__);
@@ -1437,81 +1428,4 @@ static int lcall_stack_pop(Context* context, int *pc)
 		     cint_to_number((cint) context->lcall_stack_ptr));
   *pc = number_to_cint(v);
   return 0;
-}
-
-
-/*
- * vmdl helper functions 
-*/
-
-void newframe_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int frame_len, int make_arguments) {
-    FunctionFrame *fr;
-
-    int num_of_args, i;
-    JSValue args;
-
-    FunctionTable* curfn;
-    int pc, fp, codesize;
-
-    save_context();
-    fr = new_frame(context, get_cf(context), get_lp(context), frame_len);
-    set_lp(context, fr);
-    update_context();
-
-    if (make_arguments) {
-        num_of_args = get_ac(context);
-        save_context();
-        args = new_normal_array_with_size(context, num_of_args);
-        update_context();
-
-        for (i = 0; i < num_of_args; i++) {
-            array_body_index(args, i) = regbase[i + 2];
-        }
-        fframe_arguments(fr) = args;
-        fframe_locals_idx(fr, 0) = args;
-    }
-}
-
-void pophandler_helper(Context* context) {
-    int newpc;
-    int handler_fp;
-    exhandler_stack_pop(context, &newpc, &handler_fp);
-}
-
-void poplocal_helper(Context* context) {
-  int newpc;
-  lcall_stack_pop(context, &newpc);
-}
-
-void ret_helper(Context* context, Instruction *insns, JSValue *regbase,  void *const * jump_table, int fp, int border) {
-    FunctionTable* curfn;
-    int pc, codesize;
-
-    JSValue *stack;
-
-    if (fp == border)
-        return 1;
-    stack = &get_stack(context, 0);
-    restore_special_registers(context, stack, fp - 4);
-    set_sp(context, fp - 5);
-    update_context();
-}
-
-void throw_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int pc, int fp) {
-    FunctionTable* curfn;
-    int codesize;
-
-    Displacement disp;
-    int newpc;
-    int handler_fp;
-    exhandler_stack_pop(context, &newpc, &handler_fp);
-    while (handler_fp != fp) {
-        JSValue *stack;
-        stack = &get_stack(context, 0);
-        restore_special_registers(context, stack, fp - 4);
-        set_sp(context, fp - 5);
-        update_context();      /* TODO: optimise */
-    }
-    disp = (Displacement) (newpc - pc);
-    set_pc_relative(disp);
 }

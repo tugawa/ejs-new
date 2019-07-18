@@ -1,8 +1,12 @@
 externC Ret : void -> void
+externC Set_sp : cint -> void
+externC Update_context : void -> void
 
 (vmInstruction, needContext, tailCall)
 ret : void -> void
 
 ret () {
     Ret();
+    Set_sp(5);
+    Update_context();
 }

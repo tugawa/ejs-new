@@ -88,7 +88,13 @@ void init_builtin_object(Context *ctx)
    * set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
    *            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
    */
-  gconsts.g_function_proto = new_normal_object(ctx);
+  /*
+   * The next line is unnecessary because init_builtin_function has
+   * been already called and gconsts.g_function_proto has been
+   * properly set.
+   *
+   * gconsts.g_function_proto = new_normal_object(ctx);
+   */
   {
     ObjBuiltinProp *p = object_funcs;
     while (p->name != NULL) {

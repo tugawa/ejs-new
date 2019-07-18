@@ -1,0 +1,13 @@
+\inst makeiterator (Register dst, Value obj)
+
+\otherwise \{
+/*
+   makeiterator obj dst
+     dst : destination register
+   $dst = iterator object for iterating $obj
+ */
+
+  if (!is_object(obj))
+    LOG_EXIT("makeiterator: not an object\n");
+  dst = new_normal_iterator(context, obj);
+\}

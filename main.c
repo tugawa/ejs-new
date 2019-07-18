@@ -255,7 +255,7 @@ void **stack_start;
 int file_type(char *name) {
   int nlen = strlen(name);
 
-  if (nlen > 5 && name[nlen - 4] == '.' && name[nlen - 3] == 's' &&
+  if (nlen >= 5 && name[nlen - 4] == '.' && name[nlen - 3] == 's' &&
       name[nlen - 2] == 'b' && name[nlen - 1] == 'c')
     return FILE_SBC;
   return FILE_OBC;
@@ -505,8 +505,6 @@ void print_value(Context *context, JSValue v, int verbose) {
     v = cstr_to_string(NULL, "builtin");
   else if (is_iterator(v))
     v = cstr_to_string(NULL, "iterator");
-  else if (is_simple_iterator(v))
-    v = cstr_to_string(NULL, "simple_iterator");
 #ifdef USE_REGEXP
 #ifdef need_regexp
   else if (is_regexp(v)) {

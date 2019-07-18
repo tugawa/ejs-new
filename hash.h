@@ -15,7 +15,7 @@ typedef uint16_t Attribute;
 #define ATTR_NONE (0x0)
 #define ATTR_RO   (0x1) /* 001 ReadOnly */
 #define ATTR_DD   (0x2) /* 010 DontDelete */
-#define ATTR_DE   (0x4) /* 100 DoneEnum */
+#define ATTR_DE   (0x4) /* 100 DontEnum */
 #define ATTR_RODD (0x3) /* 011 */
 #define ATTR_RODE (0x5) /* 101 */
 #define ATTR_DDDE (0x6) /* 110 */

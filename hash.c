@@ -213,7 +213,7 @@ int rehash(HashTable *table) {
   HashCell** oldhash = table->body;
 
   iter = createHashIterator(table);
-  while (___hashNext(table, &iter, &p) != FAIL) {
+  while (nextHashCell(table, &iter, &p) != FAIL) {
     uint32_t index = string_hash(p->entry.key) % newsize;
     p->next = newhash[index];
     newhash[index] = p;
@@ -225,21 +225,6 @@ int rehash(HashTable *table) {
 }
 
 int init_hash_iterator(HashTable *t, HashIterator *h) {
-  int i, size;
-
-  size = t->size;
-  for (i = 0; i < size; i++) {
-    if (t->body[i] != NULL) {
-      h->p = t->body[i];
-      h->index = i;
-      return TRUE;
-    }
-  }
-  h->p = NULL;
-  return FALSE;
-}
-
-int init_hash_simple_iterator(HashTable *t, HashIterator *h) {
   int i, size;
 
   size = t->size;
@@ -269,36 +254,7 @@ HashIterator createHashIterator(HashTable *table) {
   return iter;
 }
 
-int hash_next(HashTable *table, HashIterator *iter, HashData *data) {
-  HashEntry e;
-  int r;
-
-  if ((r = __hashNext(table, iter, &e)) == SUCCESS) {
-    *data = e.data;
-  }
-  return r;
-}
-
-int hash_next_simple(HashTable *table, HashIterator *iter, HashData *data) {
-  HashEntry e;
-  int r;
-
-  if ((r = __hashNext(table, iter, &e)) == SUCCESS) {
-    *data = e.data;
-  }
-  return r;
-}
-
-int hash_next_key(HashTable *table, HashIterator *Iter, HashKey *key) {
-  HashEntry e;
-  int r;
-
-  if ((r = __hashNext(table, Iter, &e)) == SUCCESS)
-    *key = e.key;
-  return r;
-}
-
-int ___hashNext(HashTable *table, HashIterator *iter, HashCell **p) {
+int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   int i;
 
   if (iter->p == NULL) return FAIL;
@@ -318,53 +274,17 @@ int ___hashNext(HashTable *table, HashIterator *iter, HashCell **p) {
   return SUCCESS;
 }
 
-int __hashNext(HashTable *table, HashIterator *iter, HashEntry *ep) {
-  int i;
+#if 0
+int nextHashEntry(HashTable *table, HashIterator *iter, HashEntry *ep) {
+  HashCell *p;
+  int r;
 
-  if (iter->p == NULL) return FAIL;
-  *ep = iter->p->entry;
-  /*
-   * printf("            ep-key = %p, ep->data = %p\n", ep->key, ep->data);
-   * printf("            iter->p->next = %p\n", iter->p->next);
-   */
-  if (iter->p->next != NULL) {
-    iter->p = iter->p->next;
-    return SUCCESS;
+  if ((r = nextHashCell(table, iter, &p)) == SUCCESS) {
+    *ep = p->entry;
   }
-  /*
-   * printf("            iter->index = %d, table->size = %d\n",
-   *        iter->index, table->size);
-   */
-  for(i = iter->index + 1; i < table->size; i++) {
-    /* printf("            i = %d, table->body[i] %p\n", i, table->body[i]); */
-    if(table->body[i] != NULL) {
-      /*
-       *  printf("__hashNext: i = %d\n", i);
-       *  printf("  body[i]->key = %p, body[i]->data = %p\n",
-       *         table->body[i]->entry.key, table->body[i]->entry.data);
-       */
-      iter->index = i;
-      iter->p = table->body[i];
-      return SUCCESS;
-    }
-  }
-  iter->p = NULL;
-  return SUCCESS;
+  return r;
 }
-
-int __hashNextIdx(HashTable *table, int *idx, HashEntry *ep) {
-  
-  int i;
-  
-  for(i = *idx+1; i < table->size; i++) {
-    if(table->body[i] != NULL) {
-      *idx = i;
-      *ep = table->body[i]->entry;
-      return SUCCESS;
-    }
-  }
-  return FAIL;
-}
+#endif
 
 void hashBodyFree(HashCell** body) {
 #if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)

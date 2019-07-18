@@ -67,9 +67,8 @@ extern FunctionCell *allocate_function(void);
 extern BuiltinCell *allocate_builtin(void);
 extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
-extern IteratorCell *allocate_iterator(void);
-extern SimpleIterator *allocate_simple_iterator(void);
-extern void allocate_simple_iterator_data(Context *, JSValue, int);
+extern Iterator *allocate_iterator(void);
+extern void allocate_iterator_data(Context *, JSValue, int);
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
 extern RegexpCell *allocate_regexp(void);
@@ -136,10 +135,8 @@ extern void call_function(Context *, JSValue, int, int);
 extern void call_builtin(Context *, JSValue, int, int, int);
 extern void tailcall_function(Context *, JSValue, int, int);
 extern void tailcall_builtin(Context *, JSValue, int, int, int);
-extern JSValue invoke_function0(Context *, JSValue, JSValue, int);
-extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue *, int);
-JSValue call_builtin0(Context *, JSValue, JSValue, int);
-
+extern JSValue invoke_function(Context *, JSValue, JSValue, int, JSValue, int);
+extern JSValue invoke_builtin(Context *, JSValue, JSValue, int, JSValue, int);
 
 /*
  * codeloader.c
@@ -148,20 +145,7 @@ extern char *insn_nemonic(int);
 extern void init_code_loader(FILE *);
 extern void end_code_loader(void);
 extern int code_loader(Context *, FunctionTable *, int);
-extern void init_constant_cell(ConstantCell *, int);
-extern void end_constant_cell(ConstantCell *);
-extern int update_function_table(FunctionTable *, int, ConstantCell *,
-                                 Instruction *, int, int, int, int);
-
 extern JSValue specstr_to_jsvalue(const char *);
-
-extern int add_constant_number(Context *, ConstantCell *, double);
-extern int add_constant_string(Context *, ConstantCell *, char *);
-#ifdef USE_REGEXP
-#ifdef need_regexp
-extern int add_constant_regexp(Context *, ConstantCell *, char *, int);
-#endif /* need_regexp */
-#endif
 
 /*
  * context.c
@@ -220,28 +204,15 @@ extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 extern void print_object_properties(JSValue);
 
-/*
- * DELETE
- * int hashDelete(HashTable *table, HashKey key);
- */
-
-extern  HashIterator createHashIterator(HashTable *);
+extern HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
-extern int hash_next_simple(HashTable *, HashIterator *, HashData *);
-/* int hashNextKey(HashTable *table, HashIterator *Iter, HashKey *key); */
-extern int __hashNext(HashTable *table, HashIterator *Iter, HashEntry *ep);
-extern int ___hashNext(HashTable *table, HashIterator *iter, HashCell** p);
-
-extern int __hashNextIdx(HashTable *table, int *idx, HashEntry *ep);
-
+extern int nextHashEntry(HashTable *table, HashIterator *Iter, HashEntry *ep);
+extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
 extern int rehash(HashTable *table);
-
 extern HashCell **__hashMalloc(int size);
 extern HashCell *__hashCellMalloc();
-
 extern void hashBodyFree(HashCell **body);
 extern void hashCellFree(HashCell *cell);
-/* char* ststrdup(const char*); */
 
 /*
  * string.c
@@ -288,8 +259,7 @@ extern int set_array_prop(Context *, JSValue, JSValue, JSValue);
 extern void remove_array_props(JSValue, cint, cint);
 extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);
-extern int get_next_propname(JSValue, JSValue *);
-extern int get_next_propname_simple_iterator(JSValue, JSValue *);
+extern int iterator_get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 #ifdef need_regexp
 extern int regexp_flag(JSValue);
@@ -303,8 +273,7 @@ extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);
 extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_function_t, int, int, int);
 extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
-extern JSValue new_iterator(Context *, JSValue, int, int);
-extern JSValue new_simple_iterator(Context *, JSValue);
+extern JSValue new_iterator(Context *, JSValue);
 #ifdef USE_REGEXP
 #ifdef need_regexp
 extern JSValue new_regexp(Context *, char *, int, int, int);
@@ -364,16 +333,10 @@ extern JSValue instanceof_helper(JSValue v1, JSValue v2);
 extern JSValue getarguments_helper(Context* context, int link, Subscript index);
 extern JSValue getlocal_helper(Context* context, int link, Subscript index);
 extern Displacement localret_helper(Context* context, int pc);
-extern void pophandler_helper(Context* context);
-extern void poplocal_helper(Context* context);
 extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
 extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
 extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
-extern void throw_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int pc, int fp);
-
-
-extern void ret_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int fp, int border);
-extern void newframe_helper(Context* context, Instruction *insns, JSValue *regbase, void *const * jump_table, int frame_len, int make_arguments);
+extern JSValue nextpropnameidx_helper(JSValue itr);
 
 #ifdef __cplusplus
 }

@@ -1,8 +1,18 @@
-externC Newframe : (cint, cint) -> void
+externC Save_context : void -> void
+externC Update_context : void -> void
+externC Newframe : cint -> void
+externC Makearguments : void -> void
 
 (vmInstruction, needContext, tailCall)
 newframe : (cint, cint) -> void
 
 newframe (frame_len, make_arguments) {
-    Newframe(frame_len, make_arguments);
+    Save_context();
+    Newframe(frame_len);
+    Update_context();
+
+    if (make_arguments) {
+        Makearguments();
+    } else {
+    }
 }

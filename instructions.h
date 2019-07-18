@@ -408,15 +408,6 @@ typedef struct instruction {
 
 #define SMALLNUM_OPCODE 0
 
-/*
- * constant table
- * This has the number of constants and the pointer to the constant table.
- */
-typedef struct constant_cell {
-  int n_constant_values;        // number of constant values
-  JSValue *constant_values;     // pointer to the array of constant values
-} ConstantCell;
-
 #define LOAD_OK     0
 #define LOAD_FAIL  (-1)
 

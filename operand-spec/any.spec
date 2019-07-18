@@ -33,10 +33,10 @@ jumpfalse (-,_) accept
 jumptrue (-,_) accept
 localcall (-) accept
 makeclosure (-,-) accept
-makesimpleiterator (_,-) accept
+makeiterator (-,_) accept
 move (-,_) accept
 newframe (-,-) accept
-nextpropnameidx (_,-) accept
+nextpropnameidx (-,_) accept
 not (-,_) accept
 number (-,-) accept
 pushhandler (-) accept

@@ -50,6 +50,7 @@
 #define IsNewSend(op)   (((op) == NEWSEND)? TRUE : FALSE)
 #define Set_fp()        set_fp(context, fp)
 #define Set_pc()        set_pc(context, pc)
+#define Set_sp(n)       set_sp(context, fp - n)
 #define Try_gc()        try_gc(context)
 #define Call_function(fn, n, sendp)        call_function(context, (fn), (n), (sendp))
 #define Call_builtin(fn, n, sendp, newp)   call_builtin(context, (fn), (n), (sendp), (newp))
@@ -79,14 +80,12 @@
 #define Not(obj)                    true_false(obj == JS_FALSE || obj == FIXNUM_ZERO || obj == gconsts.g_flonum_nan || obj == gconsts.g_string_empty)
 #define Get_literal(d1)             get_literal(insns, d1)
 
-#define New_normal_simple_iterator(obj)  new_normal_simple_iterator(context, obj)
+#define New_normal_iterator(obj)  new_normal_iterator(context, obj)
 #define Logexit(str)                LOG_EXIT(str)
 
 #define Getarguments(link, index)  getarguments_helper(context, link, index)
 #define Getlocal(link, index)      getlocal_helper(context, link, index)
 #define Localret()                 localret_helper(context, pc)
-#define Pophandler()               pophandler_helper(context)
-#define Poplocal()                 poplocal_helper(context)
 #define Pushhandler(d0)            exhandler_stack_push(context, pc + d0, fp)
 
 #define Seta(v0)                   set_a(context, v0)
@@ -95,10 +94,40 @@
 #define Setfl(i0)                  setfl_helper(context, regbase, fp, i0)
 #define Setglobal(str, src)        setglobal_helper(context, str, src)
 #define Setlocal(link, index, v)   setlocal_helper(context, link, index, v)
-#define Throw()                    throw_helper(context, insns, regbase, jump_table, pc, fp)
 
-#define Newframe(frame_len, make_arguments)             newframe_helper(context, insns, regbase, jump_table, frame_len, make_arguments)
-#define Ret()                    ret_helper(context, insns, regbase, jump_table, fp, border)
+#define Pophandler()                int newpc, handler_fp;\
+                                    exhandler_stack_pop(context, &newpc, &handler_fp);
+#define Poplocal()                  int newpc; \
+                                    lcall_stack_pop(context, &newpc);
+
+#define Ret()                       if (fp == border) return 1; \
+                                    JSValue* stack = &get_stack(context, 0); \
+                                    restore_special_registers(context, stack, fp - 4);
+
+#define Newframe(frame_len)         FunctionFrame* fr = new_frame(context, get_cf(context), get_lp(context), frame_len); \
+                                    set_lp(context, fr);
+
+#define Makearguments(make_arguments)   int num_of_args = get_ac(context); \
+                                        save_context(); \
+                                        JSValue args = new_normal_array_with_size(context, num_of_args); \
+                                        update_context(); \
+                                        int i; \
+                                        for (i = 0; i < num_of_args; i++) \
+                                            array_body_index(args, i) = regbase[i + 2]; \
+                                        fframe_arguments(fr) = args; \
+                                        fframe_locals_idx(fr, 0) = args;
+
+#define Throw()                         int newpc, handler_fp; \
+                                        exhandler_stack_pop(context, &newpc, &handler_fp); \
+                                        while (handler_fp != fp) { \
+                                            JSValue *stack = &get_stack(context, 0); \
+                                            restore_special_registers(context, stack, fp - 4); \
+                                            set_sp(context, fp - 5); \
+                                            update_context(); \
+                                        } \
+                                        Displacement disp = (Displacement) (newpc - pc); \
+                                        set_pc_relative(disp);
+
 
 #define NotImplemented()            NOT_IMPLEMENTED()
-#define Nextpropnameidx(ite)     nextpropnameidx_helper(context, ite)
+#define Nextpropnameidx(ite)        nextpropnameidx_helper(ite)

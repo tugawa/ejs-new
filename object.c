@@ -561,54 +561,16 @@ int delete_array_element(JSValue a, cint n) {
   return delete_object_prop(a, cint_to_string(n));
 }
 
-#if 0
-static inline void setArrayBody(JSValue array, int size)
-{
-  if(size < MINIMUM_ARRAY_SIZE)
-    size = MINIMUM_ARRAY_SIZE;
-  ((ArrayCell*)array)->body = allocateArrayData(size);
-  setArraySize(array, size);
-}
-#endif
-
-int next_propname_idx(JSValue obj, int *idx, HashKey *key)
-{
-  HashEntry e;
-  int r;
-  Map *a;
-
-#ifdef HIDDEN_CLASS
-  a = obj_hidden_class_map(obj);
-
-  while ((r = __hashNextIdx(a, idx, &e)) != FAIL &&
-         ((e.attr & ATTR_DE) || (e.attr & ATTR_TRANSITION)));
-#else
-  a = obj_map(obj);
-  while ((r = __hashNextIdx(a, idx, &e)) != FAIL && (e.attr & ATTR_DE));
-#endif
-
-  if (r == FAIL) return FAIL;
-  *key = e.key;
-  return SUCCESS;
-}
-
 /*
- * obtains the next property name in a simple iterator
- * iter:SimpleIterator
+ * obtains the next property name in an iterator
+ * iter:Iterator
  */
-int get_next_propname_simple_iterator(JSValue iter, JSValue *name) {
-  /* fprintf( stderr, "Check:get_nextpropname_simple_iterator\n" ); */
-  int size = simple_iterator_size(iter);
-  /* fprintf(stderr,"size:%d\n",size); */
-  int index = simple_iterator_index(iter);
-  /* fprintf(stderr,"index:%d\n",index); */
-  if(index<size){
-    *name = simple_iterator_body_index(iter,index++);
-    /*
-     * printf("in get_next_propname_simple 1: name = %016lx: ", *name);
-     * simple_print(*name); printf("\n");
-     */
-    simple_iterator_index(iter) = index;
+int iterator_get_next_propname(JSValue iter, JSValue *name) {
+  int size = iterator_size(iter);
+  int index = iterator_index(iter);
+  if(index < size) {
+    *name = iterator_body_index(iter,index++);
+    iterator_index(iter) = index;
     return SUCCESS;
   }else{
     *name = JS_UNDEFINED;
@@ -773,7 +735,7 @@ JSValue new_array(Context *ctx, int hsize, int vsize) {
   GC_PUSH(ret);
   set___proto___all(ctx, ret, gconsts.g_array_proto);
   allocate_array_data_critical(ret, 0, 0);
-  set_prop_none(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
+  set_prop_ddde(ctx, ret, gconsts.g_string_length, FIXNUM_ZERO);
   enable_gc(ctx);
   GC_POP(ret);
   return ret;
@@ -790,7 +752,7 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize) {
   set_object_members(array_object_p(ret), hsize, vsize);
   allocate_array_data_critical(ret, size, size);
   GC_PUSH(ret);
-  set_prop_none(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
+  set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
   enable_gc(ctx);
   GC_POP(ret);
   return ret;
@@ -832,7 +794,8 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   GC_PUSH(ret);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   /* TODO: g_object_proto should be g_builtin_proto */
-  set___proto___none(ctx, ret, gconsts.g_object_proto);
+  /* set___proto___none(ctx, ret, gconsts.g_object_proto); */
+  set___proto___none(ctx, ret, gconsts.g_builtin_proto);
   GC_POP(ret);
   return ret;
 }
@@ -849,38 +812,51 @@ JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize,
 /*
  * makes a simple iterator object
  */
-JSValue new_simple_iterator(Context *ctx, JSValue obj) {
-  JSValue ret;
-  HashKey key;
-  int idx = 0;
+JSValue new_iterator(Context *ctx, JSValue obj) {
+  JSValue iter;
   int index = 0;
   int size = 0;
-
-  ret = make_simple_iterator();
   JSValue tmpobj = obj;
 
-  /* allocate simple itearator */
+  iter = make_iterator();
+
+  /* allocate an itearator */
   do {
     /*
-     * printf("Object %016lx: (type = %ld, n_props = %ld)\n",
-     *        obj, obj_header_tag(obj), obj_n_props(obj));
+     * printf("Object %016llx: (type = %d, n_props = %lld)\n",
+     *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
      */
-    size += obj_n_props(obj);
-  } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_PUSH(ret);
-  allocate_simple_iterator_data(ctx, ret, size);
+    size += obj_n_props(tmpobj);
+  } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
+  /* printf("size = %d\n", size); */
+  GC_PUSH(iter);
+  allocate_iterator_data(ctx, iter, size);
 
-  obj = tmpobj;
-
-  /* regist object prop to simple itearator */
+  /* fill the iterator with object properties */
   do {
-    idx = 0;
-    while (next_propname_idx(obj, &idx, &key)) {
-      simple_iterator_body_index(ret, index++) = key;
+    HashTable *ht;
+    HashIterator hi;
+    HashCell *p;
+
+#ifdef HIDDEN_CLASS
+    ht = obj_hidden_class_map(obj);
+#else
+    ht = obj_map(obj);
+#endif
+    init_hash_iterator(ht, &hi);
+
+    while (nextHashCell(ht, &hi, &p) == SUCCESS) {
+#ifdef HIDDEN_CLASS
+      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION)) continue;
+#else
+      if ((JSValue)p->entry.attr & ATTR_DE) continue;
+#endif
+      /* printf("key = "); simple_print((JSValue)p->entry.key); putchar('\n'); */
+      iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
   } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_POP(ret);
-  return ret;
+  GC_POP(iter);
+  return iter;
 }
 
 #ifdef USE_REGEXP

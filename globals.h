@@ -27,6 +27,8 @@ EXTERN struct global_constant_objects {
   JSValue g_string_proto;
   JSValue g_function;
   JSValue g_function_proto;
+  JSValue g_builtin;
+  JSValue g_builtin_proto;
   JSValue g_boolean;
   JSValue g_boolean_proto;
   JSValue g_date;

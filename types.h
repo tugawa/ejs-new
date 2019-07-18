@@ -13,131 +13,7 @@
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
-
-/*
- * Objects
- */
-#define T_GENERIC (0x0)  /* 000 */
-#define T_UNUSED0 (0x1)  /* 001 */
-#define T_UNUSED1 (0x2)  /* 010 */
-#define T_UNUSED2 (0x3)  /* 011 */
-
-/*
-  Constant
-*/
-#define T_STRING  (0x4)  /* 100 */
-#define T_FLONUM  (0x5)  /* 101 */
-#define T_SPECIAL (0x6)  /* 110 */
-#define T_FIXNUM  (0x7)  /* 111 */
-
-/*
- * is_object checks whether `p' is one of the object families,
- * i.e., simple object, array, function, builtin, iterator, regexp,
- * boxed string, boxed number, boxed boolean.
- * Note that is_object does not investigate the header tag.
- */
-#define is_object(p)             (equal_tag((p), T_GENERIC))
-#define is_number(p)             (is_fixnum((p)) || is_flonum((p)))
-
-#define is_simple_object(p)      is_obj_header_tag((p), HTAG_SIMPLE_OBJECT)
-#define is_array(p)              is_obj_header_tag((p), HTAG_ARRAY)
-#define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)
-#define is_builtin(p)            is_obj_header_tag((p), HTAG_BUILTIN)
-#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
-#define is_simple_iterator(p)    is_obj_header_tag((p), HTAG_SIMPLE_ITERATOR)
-#define is_regexp(r)             is_obj_header_tag((r), HTAG_REGEXP)
-#define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
-#define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
-#define is_string_object(p)      is_obj_header_tag((p), HTAG_BOXED_STRING)
-#define is_flonum(p)             (equal_tag((p), T_FLONUM))
-#define is_string(p)             (equal_tag((p), T_STRING))
-#define is_fixnum(p)             (equal_tag((p), T_FIXNUM))
-#define is_special(p)            (equal_tag((p), T_SPECIAL))
-
-#define remove_normal_flonum_tag(p)             \
-  ((FlonumCell *)remove_tag((p), T_FLONUM))
-#define remove_normal_simple_object_tag(p)      \
-  ((Object *)  remove_tag((p), T_GENERIC))
-#define remove_normal_array_tag(p)              \
-  ((ArrayCell *)   remove_tag((p), T_GENERIC))
-#define remove_normal_function_tag(p)           \
-  ((FunctionCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_builtin_tag(p)            \
-  ((BuiltinCell *) remove_tag((p), T_GENERIC))
-#define remove_normal_iterator_tag(p)           \
-  ((IteratorCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_simple_iterator_tag(p)            \
-  ((SimpleIterator *)remove_tag((p), T_GENERIC))
-#define remove_normal_string_tag(p)             \
-  ((StringCell *)remove_tag((p), T_STRING))
-#define remove_normal_regexp_tag(p)		\
-  ((RegexpCell *)  remove_tag((p), T_GENERIC))
-#define remove_normal_boolean_object_tag(p)     \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_number_object_tag(p)      \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_string_object_tag(p)      \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
-
-#define put_normal_simple_object_tag(p) (put_tag(p, T_GENERIC))
-#define put_normal_array_tag(p)         (put_tag(p, T_GENERIC))
-#define put_normal_function_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_builtin_tag(p)       (put_tag(p, T_GENERIC))
-#define put_normal_iterator_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_simple_iterator_tag(p)      (put_tag(p, T_GENERIC))
-#define put_normal_string_tag(p)         (put_tag((p), T_STRING))
-#define put_normal_regexp_tag(p)        (put_tag(p, T_GENERIC))
-#define put_normal_flonum_tag(p)        (put_tag(p, T_FLONUM))
-#define put_normal_normal_string_tag(p) (put_tag(p, T_STRING))
-#define put_normal_boolean_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_normal_number_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_normal_string_object_tag(p) (put_tag((p), T_GENERIC))
-
-#define HTAG_STRING        (0x4)
-#define HTAG_FLONUM        (0x5)
-#define HTAG_SIMPLE_OBJECT (0x6)
-#define HTAG_ARRAY         (0x7)
-#define HTAG_FUNCTION      (0x8)
-#define HTAG_BUILTIN       (0x9)
-#define HTAG_ITERATOR      (0xa)
-#ifdef USE_REGEXP
-#define HTAG_REGEXP        (0xb)
-#endif
-#define HTAG_BOXED_STRING  (0xc)
-#define HTAG_BOXED_NUMBER  (0xd)
-#define HTAG_BOXED_BOOLEAN (0xe)
-#define HTAG_SIMPLE_ITERATOR (0xf)
-
-#define is_pointer(p)     (((p) & 2) == 0)
-#define is_leaf_object(p) (((p) & 6) == 4)
-
-#define need_simple_object 1
-#define need_string 1
-#define need_boolean_object 1
-#define need_special 1
-#define need_number_object 1
-#define need_string_object 1
-#define need_regexp 1
-#define need_iterator 1
-#define need_flonum 1
-#define need_builtin 1
-#define need_fixnum 1
-#define need_array 1
-#define need_function 1
-
-#define need_normal_number_object 1
-#define need_normal_builtin 1
-#define need_normal_boolean_object 1
-#define need_normal_array 1
-#define need_normal_string_object 1
-#define need_normal_iterator 1
-#define need_normal_regexp 1
-#define need_normal_function 1
-#define need_normal_fixnum 1
-#define need_normal_flonum 1
-#define need_normal_special 1
-#define need_normal_string 1
-
+#include "types-handcraft.h"
 #endif /* USE_TYPES_GENERATED */
 
 /*
@@ -311,8 +187,7 @@ typedef struct object_cell {
   new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_string_object(ctx, v)        \
   new_string_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_iterator(ctx, o) new_iterator(ctx, o, HHH, PSIZE_NORMAL)
-#define new_normal_simple_iterator(ctx, o) new_simple_iterator(ctx, o)
+#define new_normal_iterator(ctx, o) new_iterator(ctx, o)
 
 #ifdef USE_REGEXP
 #define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
@@ -397,63 +272,41 @@ typedef struct builtin_cell {
  * Iterator
  * tag == T_GENERIC
  */
-typedef struct iterator_cell {
-  Object o;
-  HashIterator iter;
-} IteratorCell;
-
-#define make_iterator()          (put_normal_iterator_tag(allocate_iterator()))
-
-#define iterator_object_p(i)     (&((remove_normal_iterator_tag(i))->o))
-#ifdef HIDDEN_CLASS
-#define iterator_object_map(i)                                  \
-  (hidden_map((remove_normal_iterator_tag(i))->o.class))
-#else
-#define iterator_object_map(i)   ((remove_normal_iterator_tag(i))->o.map)
-#endif
-#define iterator_object_prop_index(i,k)         \
-  ((remove_normal_iterator_tag(i))->o.prop[k])
-#define iterator_iter(i)         ((remove_normal_iterator_tag(i))->iter)
-
-/*
- * SimpleIterator
- * tag == T_GENERIC
- */
-typedef struct simple_iterator {
+typedef struct iterator {
   uint64_t size;        /* array size */
   uint64_t index;       /* array index */
   JSValue *body;        /* pointer to a C array */
-} SimpleIterator;
+} Iterator;
 
-#define make_simple_iterator()                                  \
-  (put_normal_simple_iterator_tag(allocate_simple_iterator()))
-#define simple_iterator_size(i)                         \
-  ((remove_normal_simple_iterator_tag(i))->size)
-#define simple_iterator_index(i)                        \
-  ((remove_normal_simple_iterator_tag(i))->index)
-#define simple_iterator_body(i)                         \
-  ((remove_normal_simple_iterator_tag(i))->body)
-#define simple_iterator_body_index(a,i)                 \
-  ((remove_normal_simple_iterator_tag(a))->body[i])
+#define make_iterator()                                        \
+  (put_normal_iterator_tag(allocate_iterator()))
+#define iterator_size(i)                        \
+  ((remove_normal_iterator_tag(i))->size)
+#define iterator_index(i)                        \
+  ((remove_normal_iterator_tag(i))->index)
+#define iterator_body(i)                        \
+  ((remove_normal_iterator_tag(i))->body)
+#define iterator_body_index(a,i)                \
+  ((remove_normal_iterator_tag(a))->body[i])
 
 #ifdef USE_REGEXP
 #ifdef need_normal_regexp
 
 #include <oniguruma.h>
 
-  /*
-   * Regexp
-   * tag == T_GENERIC
-   */
-  typedef struct regexp_cell {
-    Object o;
-    char *pattern;
-    regex_t *reg;
-    bool global;
-    bool ignorecase;
-    bool multiline;
-    int lastindex;
-  } RegexpCell;
+/*
+ * Regexp
+ * tag == T_GENERIC
+ */
+typedef struct regexp_cell {
+  Object o;
+  char *pattern;
+  regex_t *reg;
+  bool global;
+  bool ignorecase;
+  bool multiline;
+  int lastindex;
+} RegexpCell;
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
@@ -487,7 +340,7 @@ typedef struct boxed_cell {
 #define number_object_object_ptr(n)             \
   (&((remove_normal_number_object_tag(n))->o))
 
-#define make_boolean_object(ctx)					\
+#define make_boolean_object(ctx)                                        \
   (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_BOOLEAN)))
 #define boolean_object_value(b)    (remove_normal_boolean_object_tag(b)->value)
 #define boolean_object_object_ptr(b)            \
@@ -499,9 +352,9 @@ typedef struct boxed_cell {
 #define string_object_object_ptr(s)             \
   (&((remove_normal_string_object_tag(s))->o))
 
-  /*
-   * Flonum
-   */
+/*
+ * Flonum
+ */
 #if !defined(need_flonum)
 
 #define flonum_value(p)      JS_UNDEFINED
@@ -742,6 +595,8 @@ typedef uint64_t cuint;
   set_prop_with_attribute(c, o, s, v, ATTR_NONE)
 #define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
 #define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
+#define set_prop_ddde(c, o, s, v)                       \
+  set_prop_with_attribute(c, o, s, v, ATTR_DDDE)
 
 #define set___proto___none(c, o, v)                     \
   set_prop_none(c, o, gconsts.g_string___proto__, v)

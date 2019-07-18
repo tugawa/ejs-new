@@ -105,8 +105,8 @@ void setlocal_helper(Context* context, int link, Subscript index, JSValue v2) {
     fframe_locals_idx(fr, index) = v2;
 }
 
-JSValue nextpropnameidx_helper(Context* context, JSValue itr) {
+JSValue nextpropnameidx_helper(JSValue itr) {
     JSValue res = JS_UNDEFINED;
-    get_next_propname_simple_iterator(itr, &res);
+    iterator_get_next_propname(itr, &res);
     return res;
 }

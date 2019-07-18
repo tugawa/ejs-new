@@ -14,6 +14,11 @@
 #define type_error_exception(s)  LOG_EXIT("Type error exception: " s "\n")
 #define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
+#define invoke_function0(ctx, receiver, fn, sendp)              \
+  invoke_function(ctx, receiver, fn, sendp, JS_UNDEFINED, 0)
+#define invoke_builtin0(ctx, receiver, fn, sendp)               \
+  invoke_builtin(ctx, receiver, fn, sendp, JS_UNDEFINED, 0)
+
 /*
  * Data conversion rules of JavaScript
  *
@@ -323,7 +328,7 @@ JSValue object_to_string(Context *context, JSValue v) {
       != JS_UNDEFINED) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT0;
@@ -338,7 +343,7 @@ JSValue object_to_string(Context *context, JSValue v) {
   if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof))
       != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else goto NEXT1;
     if (is_string(f)) return f;
     if (is_fixnum(f)) return fixnum_to_string(f);
@@ -363,7 +368,7 @@ JSValue object_to_number(Context *context, JSValue v) {
   if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT0;
@@ -377,7 +382,7 @@ JSValue object_to_number(Context *context, JSValue v) {
   if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP(v);
       goto NEXT1;
@@ -435,7 +440,7 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
   if ((f = get_prop_prototype_chain(v, fst)) != JS_UNDEFINED) {
     GC_PUSH2(v, snd);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else {
       GC_POP2(snd, v);
       goto NEXT0;
@@ -446,7 +451,7 @@ JSValue object_to_primitive(Context *context, JSValue v, int hint) {
  NEXT0:
   if ((f = get_prop_prototype_chain(v, snd)) != JS_UNDEFINED) {
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
-    else if (is_builtin(f)) f = call_builtin0(context, v, f, TRUE);
+    else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
     else goto NEXT1;
     if (is_primitive(f)) return f;
   }
@@ -656,7 +661,6 @@ char *type_name(JSValue v) {
   if (is_function(v)) return "Function";
   if (is_builtin(v)) return "Builtin";
   if (is_iterator(v)) return "Iterator";
-  if (is_simple_iterator(v)) return "SimpleIterator";
   if (is_number_object(v)) return "NumberObject";
   if (is_boolean_object(v)) return "BooleanObject";
   if (is_string_object(v)) return "StringObject";

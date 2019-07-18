@@ -1,13 +1,12 @@
 simple_object: +normal_simple_object
-string:  +normal_string
-flonum:  +normal_flonum
-special: +normal_special
-fixnum:  +normal_fixnum
-array:   +normal_array
+string:   +normal_string
+flonum:   +normal_flonum
+special:  +normal_special
+fixnum:   +normal_fixnum
+array:    +normal_array
 function: +normal_function
-builtin: +normal_builtin
+builtin:  +normal_builtin
 iterator: +normal_iterator
-simple_iterator: +normal_simple_iterator
 regexp: +normal_regexp
 string_object: +normal_string_object
 number_object: +normal_number_object
@@ -21,8 +20,7 @@ normal_simple_object:  T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
 normal_array:   T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
 normal_function:T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
 normal_builtin: T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
-normal_iterator:T_GENERIC(000)/HTAG_ITERATOR(10)       IteratorCell
-normal_simple_iterator:T_GENERIC(000)/HTAG_SIMPLE_ITERATOR(15)       SimpleIterator
+normal_iterator:T_GENERIC(000)/HTAG_ITERATOR(10)       Iterator
 normal_regexp:  T_GENERIC(000)/HTAG_REGEXP(11)         RegexpCell
 normal_string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)   BoxedCell
 normal_number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)   BoxedCell

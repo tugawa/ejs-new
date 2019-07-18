@@ -1,4 +1,4 @@
-externC (needContext, triggerGC) Nextpropnameidx : JSValue -> JSValue
+externC Nextpropnameidx : JSValue -> JSValue
 
 (vmInstruction, needContext, tailCall)
 nextpropnameidx : JSValue -> JSValue
