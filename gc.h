@@ -85,3 +85,9 @@ static cell_type_t gc_obj_header_type(void *p)
 
 #define gc_malloc_critical(s,t) (gc_malloc(NULL,(s),(t)))
 #define gc_jsalloc_critical(s,t) (gc_jsalloc(NULL,(s),(t)))
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

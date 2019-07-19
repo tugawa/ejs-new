@@ -128,3 +128,9 @@ void check_stack_invariant(Context *ctx)
     cf = (FunctionTable *) get_stack(ctx, sp); sp--;
   }
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

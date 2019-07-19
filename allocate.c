@@ -206,3 +206,9 @@ BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
   BoxedCell *box = (BoxedCell *) gc_jsalloc(ctx, sizeof(BoxedCell), type);
   return box;
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

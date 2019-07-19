@@ -81,3 +81,9 @@ typedef struct str_table {
 #define HASH_PUT_SUCCESS  (0)
 #define HASH_PUT_FAILED   (1)
 
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

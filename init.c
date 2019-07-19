@@ -102,3 +102,9 @@ void init_builtin(Context *ctx) {
   /* calls init_buitin_global after gconsts is properly set up */
   init_builtin_global(ctx);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

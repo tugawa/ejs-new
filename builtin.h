@@ -40,3 +40,9 @@ typedef struct obj_gconsts_prop {
   JSValue *addr;
   Attribute attr;
 } ObjGconstsProp;
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

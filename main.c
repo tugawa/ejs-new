@@ -560,3 +560,9 @@ void debug_print(Context *context, int n) {
   simple_print(res);
   printf("\n");
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

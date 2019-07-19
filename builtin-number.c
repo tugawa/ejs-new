@@ -179,3 +179,9 @@ void init_builtin_number(Context *ctx)
   }
   GC_POP2(proto, n);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -38,3 +38,9 @@
 #endif
 
 #endif /* PREFIX_H_ */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
