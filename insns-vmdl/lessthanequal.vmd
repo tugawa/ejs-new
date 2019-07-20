@@ -1,48 +1,10 @@
-pattern ffs v = Fixnum v || Flonum v || Special v
-pattern ffss v = Fixnum v || Flonum v || Special v || String v
-pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
-pattern number v = Fixnum v || Flonum v
+#include "patterns.vmdh"
 
-externC FixnumToCint : Fixnum -> cint
-externC (needContext, triggerGC) CintToNumber : cint -> Number
-externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
-externC (needContext, triggerGC) concat : (String, String) -> String
-externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
-externC (needContext, triggerGC) FixnumToString : Fixnum -> String
-externC (needContext, triggerGC) FlonumToString : Flonum -> String
-externC (needContext, triggerGC) SpecialToString : Special -> String
-externC (needContext, triggerGC) ObjectToString : JSValue -> String
-externC (needContext, triggerGC) toString : JSValue -> String
-externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
-externC (needContext, triggerGC) toNumber: JSValue -> Number
-externC (needContext, triggerGC) toObject: JSValue -> JSObject
-externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
-externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
-externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
-externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
-externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
-
-externC FixnumToCint: Fixnum -> cint
-externC FlonumToCint: Flonum -> cint
-
-externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
-externC FIXNUM_LESSTHANEQ: (Fixnum, Fixnum) -> cint
-externC FIXNUM_AND: (Fixnum, Fixnum) -> Fixnum
-
-externC string_to_cstr: String -> Top
-externC Strcmp: (Top, Top) -> cint
-externC Half_fixnum_range: cint -> cint
-
-externC IsFlonumInfinity: JSValue -> cint
-externC IsFlonumNegInfinity : JSValue -> cint
-externC IsFlonumNan : JSValue -> cint
-externC Fixnum_Zero : void -> Fixnum
-
-// int64_t のような型をどうするか
-// lessthan と同じ
+#include "externc.vmdh"
 
 (vmInstruction, needContext)
 lessthanequal : (JSValue, JSValue) -> Fixnum
+
 lessthanequal (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {

@@ -1,4 +1,4 @@
-externC (needContext) Get_globalobj : void -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 getglobalobj : void -> JSValue

@@ -1,5 +1,4 @@
-externC Jump : Displacement -> void
-externC Localret : void -> Displacement
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 localret : void -> void

@@ -1,4 +1,4 @@
-externC Nop : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 nop : void -> void

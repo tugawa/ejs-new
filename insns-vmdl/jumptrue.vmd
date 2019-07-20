@@ -1,6 +1,4 @@
-externC Jump : Displacement -> void
-externC Next_insn_noincpc : void -> void
-externC toBoolean : JSValue -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 jumptrue : (JSValue, Displacement) -> void

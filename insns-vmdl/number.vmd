@@ -1,4 +1,4 @@
-externC Get_literal : cint -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 number : cint -> JSValue

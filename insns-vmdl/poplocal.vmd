@@ -1,4 +1,4 @@
-externC Poplocal : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 poplocal : void -> void

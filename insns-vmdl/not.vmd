@@ -1,4 +1,4 @@
-externC Not : JSValue -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 not : JSValue -> JSValue

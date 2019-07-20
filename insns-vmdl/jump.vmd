@@ -1,4 +1,4 @@
-externC Jump : cint -> void
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 jump : cint -> void

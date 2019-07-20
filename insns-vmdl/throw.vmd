@@ -1,4 +1,4 @@
-externC (needContext, triggerGC) Throw : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 throw : void -> void

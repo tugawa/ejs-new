@@ -1,4 +1,4 @@
-externC NotImplemented : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 typeof : (JSValue, JSValue) -> void

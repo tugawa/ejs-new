@@ -1,4 +1,4 @@
-externC Isundefined : JSValue -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 isundef : JSValue -> JSValue

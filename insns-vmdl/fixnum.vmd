@@ -1,4 +1,4 @@
-externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 fixnum : cint -> Fixnum

@@ -1,7 +1,4 @@
-externC Save_context : void -> void
-externC Update_context : void -> void
-externC Newframe : cint -> void
-externC Makearguments : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 newframe : (cint, cint) -> void

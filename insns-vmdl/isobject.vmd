@@ -1,4 +1,6 @@
-pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+#include "patterns.vmdh"
+
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 isobject : JSValue -> JSValue

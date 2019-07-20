@@ -1,4 +1,4 @@
-externC (needContext, triggerGC) Get_err : void -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 geterr : void -> JSValue

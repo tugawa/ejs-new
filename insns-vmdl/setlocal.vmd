@@ -1,4 +1,4 @@
-externC Setlocal : (cint, Subscript, JSValue) -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 setlocal : (cint, Subscript, JSValue) -> void

@@ -1,6 +1,4 @@
-externC Save_context : void -> void
-externC Update_context : void -> void
-externC New_normal_function : Subscript -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 makeclosure : Subscript -> JSValue

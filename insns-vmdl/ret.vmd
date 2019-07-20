@@ -1,6 +1,4 @@
-externC Ret : void -> void
-externC Set_sp : cint -> void
-externC Update_context : void -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 ret : void -> void

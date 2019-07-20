@@ -1,6 +1,6 @@
-pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+#include "patterns.vmdh"
 
-externC (needContext) Instanceof : (JSValue, JSValue) -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, tailCall)
 instanceof : (JSValue, JSValue) -> JSValue

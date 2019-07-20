@@ -1,4 +1,4 @@
-externC Pushhandler : Displacement -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 pushhandler : Displacement -> void

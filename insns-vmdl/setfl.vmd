@@ -1,4 +1,4 @@
-externC Setfl : cint -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 setfl : cint -> void

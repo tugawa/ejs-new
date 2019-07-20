@@ -1,4 +1,4 @@
-externC Setarg : (cint, Subscript, JSValue) -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 setarg : (cint, Subscript, JSValue) -> void

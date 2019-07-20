@@ -1,4 +1,4 @@
-externC (needContext, triggerGC) Getarguments: (cint, Subscript) -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
 getarg : (cint, Subscript) -> JSValue

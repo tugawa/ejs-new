@@ -1,4 +1,4 @@
-externC Seta : JSValue -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 seta : JSValue -> void

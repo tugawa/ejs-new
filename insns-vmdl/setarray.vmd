@@ -1,4 +1,4 @@
-externC Setarray : (JSValue, Subscript, JSValue) -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 setarray : (JSValue, Subscript, JSValue) -> void

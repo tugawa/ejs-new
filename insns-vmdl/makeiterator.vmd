@@ -1,8 +1,4 @@
-pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
-
-externC Isobject : JSValue -> JSValue
-externC (needContext, triggerGC) New_normal_iterator : JSValue -> JSValue
-externC Logexit : cstring -> void
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 makeiterator : JSValue -> JSValue

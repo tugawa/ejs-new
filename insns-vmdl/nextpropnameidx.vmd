@@ -1,4 +1,4 @@
-externC Nextpropnameidx : JSValue -> JSValue
+#include "externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 nextpropnameidx : JSValue -> JSValue
