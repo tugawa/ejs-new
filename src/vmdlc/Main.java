@@ -3,6 +3,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.File;
 
 import dispatch.DispatchProcessor;
 import nez.ParserGenerator;
@@ -22,6 +23,7 @@ import vmdlc.AstToCVisitor;
 import vmdlc.DesugarVisitor;
 import vmdlc.SyntaxTree;
 import vmdlc.TypeCheckVisitor;
+
 
 public class Main {
     static final String VMDL_GRAMMAR = "ejsdsl.nez";
@@ -114,7 +116,18 @@ public class Main {
         
         if (sourceFile == null)
             throw new Error("no source file is specified");
-        SyntaxTree ast = parse(sourceFile);
+
+        try {
+            Runtime r = Runtime.getRuntime();
+            Process process = r.exec("cpp -E -P " + sourceFile + " -o " + sourceFile + ".tmp");
+    
+            if (process.waitFor() != 0) {
+                throw new Error("preprocess error");
+            }
+        } catch(Exception e) {
+            throw new Error("preprocess error");
+        }
+        SyntaxTree ast = parse(sourceFile + ".tmp");
         
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
@@ -122,6 +135,11 @@ public class Main {
         String program = new AstToCVisitor().start(ast);
         
         System.out.println(program);
+
+        File file = new File(sourceFile + ".tmp");
+        if (file.exists()) {
+            file.delete();
+        }
     }
     
     public static BufferedReader openFileInJar(String path){
