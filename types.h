@@ -163,8 +163,8 @@ typedef struct object_cell {
 #define new_normal_predef_object(ctx)                   \
   new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
 #define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#define new_big_predef_object_without_prototype(ctx)                    \
-  new_simple_object_without_prototype(ctx, HSIZE_BIG, PSIZE_BIG)
+#define new_big_predef_object_without___proto__(ctx)                    \
+  new_simple_object_without___proto__(ctx, HSIZE_BIG, PSIZE_BIG)
 
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
 
