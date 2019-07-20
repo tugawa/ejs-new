@@ -85,7 +85,6 @@ void init_builtin_function(Context *ctx)
   GC_PUSH(proto);
   gconsts.g_builtin =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  GC_PUSH(proto);
   set_prototype_all(ctx, gconsts.g_builtin, proto);
   {
     ObjBuiltinProp *p = builtin_funcs;
