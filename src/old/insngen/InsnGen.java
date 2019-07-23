@@ -64,6 +64,7 @@ public class InsnGen {
             return -1;
         }
 
+        @SuppressWarnings("unchecked")
         public <T> T getOption(AvailableOptions opt, T defaultValue) {
             Object val = options.get(opt);
             if (val == null)

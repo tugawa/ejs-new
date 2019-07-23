@@ -32,6 +32,7 @@ class IsConsistentVisitor extends NodeVisitor<Boolean> {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     <T> Boolean visitTagNode(TagNode<T> other) {
         if (currentNodex.getClass() != other.getClass())

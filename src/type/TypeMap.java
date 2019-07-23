@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import type.AstType.JSValueType;
-import type.AstType.AstBaseType;
 
 import java.lang.Error;
 
@@ -50,6 +49,7 @@ public class TypeMap {
         }
         return new TypeMap(newGamma);
     }
+    @SuppressWarnings("unchecked")
     public TypeMap clone() {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         newGamma = (HashMap<String, AstType>)this.dict.clone();
