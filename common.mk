@@ -371,7 +371,7 @@ types-generated.h: $(DATATYPES)
 	$(TYPESGEN_VMDL) $< > $@ || rm $@
 else
 types-generated.h: $(DATATYPES)
-	$(TYPESGEN_) $< > $@ || rm $@
+	$(TYPESGEN_VMGEN) $< > $@ || rm $@
 endif
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
