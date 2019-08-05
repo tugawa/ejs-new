@@ -138,6 +138,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
     public class FunctionDefinition extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> funNameNode = node.get(Symbol.unique("name"));
+            Tree<?> paramsNode = node.get(Symbol.unique("params"));
+            print("INSN_COUNT" + paramsNode.size() + "(" + funNameNode.toText());
+            for (int i = 0; i < paramsNode.size(); i++) {
+                print("," + paramsNode.get(i).toText());
+            }
+            println(");");
+
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
             visit(bodyNode, indent);
         }
@@ -168,7 +176,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             println("/* "+dict.toString()+" */");
             
             matchStack.add(new MatchRecord(currentFunctionName, label, node.getLineNum(), formalParams));
-            print(matchStack.peek().getHeadLabel()+":");
+            print(matchStack.peek().getHeadLabel()+":"+"\n");
             
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             for (int i = 0; i < mp.size(); i++) {
