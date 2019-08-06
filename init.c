@@ -20,6 +20,9 @@ void init_global_constants(void) {
     ((JSValue *)&gconsts)[i] = JS_UNDEFINED;
 
   /* string constants */
+#ifdef HIDDEN_CLASS_PROTO
+  gconsts.g_string___hidden_class__ = cstr_to_string(NULL, "__hidden_class__");
+#endif /* HIDDEN_CLASS_PROTO */
   gconsts.g_string_prototype = cstr_to_string(NULL, "prototype");
   gconsts.g_string___proto__ = cstr_to_string(NULL, "__proto__");
   gconsts.g_string_tostring  = cstr_to_string(NULL, "toString");

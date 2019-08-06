@@ -39,6 +39,10 @@ EXTERN struct global_constant_objects {
   JSValue g_flonum_to_string;
   /* JSValue g_string_to_index; */
 
+#ifdef HIDDEN_CLASS_PROTO
+  JSValue g_string___hidden_class__;
+#endif /* HIDDEN_CLASS_PROTO */
+
   JSValue g_string_prototype;
   JSValue g_string___proto__;
   JSValue g_string_tostring;

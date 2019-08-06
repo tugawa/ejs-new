@@ -836,6 +836,12 @@ STATIC void trace_slot(JSValue* ptr)
     jsv &= ~TAGMASK;
     trace_iterator((Iterator **) &jsv);
     *ptr = jsv | tag;
+#ifdef HIDDEN_CLASS_PROTO
+  } else if (is_obj_header_tag((jsv), HTAG_HIDDEN_CLASS)) {
+    /* TODO: make hidden class a JSValue */
+    trace_HiddenClass((HiddenClass **) &jsv);
+    *ptr = jsv;
+#endif /* HIDDEN_CLASS_PROTO */
   } else if (is_pointer(jsv)) {
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
