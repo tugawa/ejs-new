@@ -59,6 +59,7 @@ SILIST=$(SED) -e 's/^.*: *//'
 
 INSNGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
+SPECGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.SpecFileGen
 INSNGEN_VMDL=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar $(VMDLC_FLAGS)
 TYPESGEN_VMDL=java -cp $(EJSVM_DIR)/vmdl/vmdlc.jar vmdlc.TypesGen
 CPP=$(CC) -E
@@ -100,7 +101,8 @@ GENERATED_HFILES = \
     instructions-opcode.h \
     instructions-table.h \
     instructions-label.h \
-    cell-header.h
+    cell-header.h \
+    specfile-fingerprint.h
 
 HFILES = $(GENERATED_HFILES) \
     prefix.h \
@@ -239,7 +241,7 @@ GCCHECK_PATTERN = ../gccheck.cocci
 
 ######################################################
 
-ejsvm :: $(OFILES)
+ejsvm :: $(OFILES) ejsvm.spec
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
@@ -254,6 +256,17 @@ instructions-label.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	cp $(EJSVM_DIR)/gen-vmloop-cases-nonaka.rb ./gen-vmloop-cases-nonaka.rb
 	$(GOTTA) --gen-vmloop-cases -o $@
+
+ifeq ($(SUPERINSNTYPE),)
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
+		--fingerprint specfile-fingerprint.h
+else
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
+		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
+		--fingerprint specfile-fingerprint.h
+endif
 
 $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
@@ -354,6 +367,8 @@ instructions.h: instructions-opcode.h instructions-table.h
 %.h: $(EJSVM_DIR)/%.h
 	cp $< $@
 
+codeloader.o: specfile-fingerprint.h
+
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
@@ -376,7 +391,7 @@ endif
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) $< > $@ || (rm $@; exit 1)
+	$(CPP) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
