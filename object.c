@@ -320,7 +320,6 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
     JSValue proto = hidden_proto(hc);
     if (proto == v)
       return SUCCESS;
-    hidden_proto(hc) = JS_UNDEFINED;
   }
 #endif /* HIDDEN_CLASS_PROTO */
 
@@ -338,6 +337,11 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         GC_POP3(v, name, obj);
         hc = obj_hidden_class(obj);
         ret = hash_put_with_attribute(hidden_map(nhc), name, index, attr);
+#ifdef HIDDEN_CLASS_PROTO
+        /* "__proto__" is overrridden */
+        if (name == gconsts.g_string___proto__)
+          hidden_proto(nhc) = JS_UNDEFINED;
+#endif /* HIDDEN_CLASS_PROTO */
         if (ret != HASH_PUT_SUCCESS)
           return FAIL;
         hidden_n_entries(nhc)++;

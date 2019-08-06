@@ -90,12 +90,36 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   do {                                                  \
     insn = insns->code;                                 \
     if (trace_flag == TRUE) {                           \
-      printf("pc = %d, insn = %s, fp = %d\n",           \
-             pc, insn_nemonic(get_opcode(insn)), fp);   \
+      printf("pc = %d, fp = %d insn = %s",              \
+             pc, fp, insn_nemonic(get_opcode(insn)));   \
       if (get_opcode(insn) == STRING) {                 \
         Displacement disp = get_big_disp(insn);         \
         JSValue s = get_literal(insns, disp);           \
         printf("   %s\n", string_to_cstr(s));           \
+      } else if (get_opcode(insn) == SETGLOBAL) {       \
+        int r0 = get_first_operand_reg(insn);           \
+        int r1 = get_second_operand_reg(insn);          \
+        JSValue v0 = regbase[r0];                       \
+        JSValue v1 = regbase[r1];                       \
+        printf(" %d [%llx ", r0, v0);                   \
+        simple_print(v0);                               \
+        printf("] ");                                   \
+        printf(" %d [%llx ", r1, v1);                   \
+        simple_print(v1);                               \
+        printf("]\n");                                  \
+      } else if (get_opcode(insn) == GETGLOBAL) {       \
+        int r0 = get_first_operand_reg(insn);           \
+        int r1 = get_second_operand_reg(insn);          \
+        JSValue v1 = regbase[r1];                       \
+        printf(" %d ", r0);                             \
+        printf(" %d [%llx ", r1, v1);                   \
+        simple_print(v1);                               \
+        printf("]\n");                                  \
+      }else {                                           \
+        printf(" %d %d %d\n",                           \
+          get_first_operand_reg(insn),                  \
+               get_second_operand_reg(insn),            \
+               get_third_operand_reg(insn));            \
       }                                                 \
     }                                                   \
   } while (0)

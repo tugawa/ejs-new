@@ -13,9 +13,10 @@
     while (get___proto__(v1, &v1) == SUCCESS) {
       if (v1 == p) {
         ret = JS_TRUE;
-        break;
+	goto USELABEL(INSTANCEOF_RETURN);
       }
     }
   }
+DEFLABEL(INSTANCEOF_RETURN):
   dst = ret;
 \}
