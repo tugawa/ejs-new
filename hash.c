@@ -77,20 +77,6 @@ int hash_get(HashTable *table, HashKey key, HashData *data) {
    *  printf("hash_get: fail\n");
    */
   return r;
-#if 0
-  uint32_t hval;
-  HashCell *cell;
-
-  hval = string_hash(key) % table->size;
-  for (cell = table->body[hval]; cell != NULL; cell = cell->next)
-    if ((JSValue)(cell->entry.key) == key) {
-      /* found */
-      if (data != NULL ) *data = cell->entry.data;
-      return HASH_GET_SUCCESS;
-    }
-  /* not found */
-  return HASH_GET_FAILED;
-#endif
 }
 
 /*
@@ -193,7 +179,7 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
 
 HashCell** __hashMalloc(int size) {
   HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-						  HTAG_HASH_BODY);
+                                                  HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
@@ -273,18 +259,6 @@ int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   iter->p = NULL;
   return SUCCESS;
 }
-
-#if 0
-int nextHashEntry(HashTable *table, HashIterator *iter, HashEntry *ep) {
-  HashCell *p;
-  int r;
-
-  if ((r = nextHashCell(table, iter, &p)) == SUCCESS) {
-    *ep = p->entry;
-  }
-  return r;
-}
-#endif
 
 void hashBodyFree(HashCell** body) {
 #if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
@@ -367,3 +341,9 @@ char* ststrdup(const char* str) {
   strcpy(dst, str);
   return dst;
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -111,3 +111,9 @@ void init_builtin_object(Context *ctx)
 #endif
 #endif
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

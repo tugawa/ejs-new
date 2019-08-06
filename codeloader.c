@@ -13,6 +13,8 @@
 
 #define CPU_LITTLE_ENDIAN
 
+#define OBC_FILE_MAGIC 0xec
+
 #if !defined(USE_SBC) && !defined(USE_OBC)
 #error Either USE_SBC or USE_OBC should be defined.
 #endif
@@ -20,6 +22,19 @@
 #if !defined(USE_SBC) && defined(PROFILE)
 #error PROFILE can be defined only when USE_SBC is defined.
 #endif
+
+/*
+ * OBC file header (magic + fingerprint).
+ * The second byte is shared with SBC file.
+ */
+unsigned char obc_file_header[] = {
+  OBC_FILE_MAGIC,
+#include "specfile-fingerprint.h"
+};
+unsigned char obc_file_header_wildcard[] = {
+  OBC_FILE_MAGIC,
+  0xff
+};
 
 /*
  * information of instructions
@@ -146,6 +161,40 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #define buf_to_int(s)   buf_to_int_sbc(s)
 #endif
 
+#endif
+
+  /*
+   * check file header
+   */
+#if defined(USE_SBC) && defined(USE_OBC)
+  {
+    int header_value;
+    next_buf();
+    header_value = buf_to_int("fingerprint");
+    if (obcsbc == FILE_SBC) {
+      if (header_value != obc_file_header[1] &&
+          header_value != obc_file_header_wildcard[1])
+        LOG_EXIT("file header mismatch.");
+    } else {
+      if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
+          *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
+        LOG_EXIT("file header mismatch.");
+    }
+  }
+#elif defined(USE_OBC)
+  next_buf_obc();
+  if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
+      *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
+    LOG_EXIT("file header mismatch.");
+#else
+  {
+    int header_value;
+    next_buf();
+    header_value = buf_to_int("fingerprint");
+    if (header_value != obc_file_header[1] &&
+        header_value != obc_file_header_wildcard[1])
+      LOG_EXIT("file header mismatch.");
+  }
 #endif
 
   /*
@@ -1133,3 +1182,9 @@ uint32_t decode_escape_char(char *str) {
   *dst = '\0';
   return (uint32_t)(dst - str);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

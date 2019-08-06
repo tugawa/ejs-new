@@ -122,19 +122,11 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
  */
 JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
-  extern JSValue prototype_object(JSValue);
-
-  /*
-   * printf("get_prop_prototype_chain: o = "); simple_print(o); printf("\n");
-   * printf("get_prop_prototype_chain: p = "); simple_print(p); printf("\n");
-   * printf("get_prop_prototype_chain: prop = %s, obj = %016lx\n",
-   *         string_to_cstr(p), o);
-   * printf("Object.__proto__ = %016lx\n", gconsts.g_object_proto);
-   */
-  do {
-    if (get_prop(o, p, &ret) == SUCCESS) return ret;
-  } while (get___proto__(o, &o) == SUCCESS);
-  /* is it necessary to search in the Object's prototype? */
+  while (is_object(o)) {
+    if (get_prop(o, p, &ret) == SUCCESS)
+      return ret;
+    get___proto__(o, &o);
+  }
   return JS_UNDEFINED;
 }
 
@@ -147,14 +139,14 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
 JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
   /*
    * if (p is not a string) p = to_string(p);
-   *   returns the value regsitered under the property p
-   * }
+   *   returns the value regsitered under the property p;
    */
-  /* printf("get_object_prop, o = %016lx, p = %016lx\n", o, p); */
   if (!is_string(p)) {
-    GC_PUSH(o);
+    JSValue o_gcroot = o;
+    GC_PUSH(o_gcroot);
     p = to_string(ctx, p);
-    GC_POP(o);
+    GC_POP(o_gcroot);
+    o = o_gcroot;
   }
   return get_prop_prototype_chain(o, p);
 }
@@ -167,11 +159,11 @@ JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
  */
 int has_prop_prototype_chain(JSValue o, JSValue p) {
   JSValue ret;
-  extern JSValue prototype_object(JSValue);
-  do {
-    if (get_prop(o, p, &ret) == SUCCESS) return TRUE;
-  } while (get_prop(o, gconsts.g_string___proto__, &o) == SUCCESS);
-  /* is it necessary to search in the Object's prototype? */
+  while (is_object(o)) {
+    if (get_prop(o, p, &ret) == SUCCESS)
+      return TRUE;
+    get___proto__(o, &o);
+  }
   return FALSE;
 }
 
@@ -253,7 +245,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
     if (is_fixnum(num)) {
       n = fixnum_to_cint(num);
       if (0 <= n && n < array_size(a)) {
-	return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
+        return (n < array_length(a))? array_body_index(a, n): JS_UNDEFINED;
       }
     }
     return get_prop_prototype_chain(a, p);
@@ -490,12 +482,12 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v) {
       cint n;
       n = fixnum_to_cint(v);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-       	/*
-       	 * The property name is "length" and the given value is a fixnum.
-       	 * Thus, expands / shrinks the array.
-       	 */
+        /*
+         * The property name is "length" and the given value is a fixnum.
+         * Thus, expands / shrinks the array.
+         */
         GC_PUSH3(a, p, v);
-       	if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
+        if (set_array_index_value(ctx, a, n - 1, JS_UNDEFINED, TRUE)
             == SUCCESS) {
           GC_POP3(v, p, a);
           return SUCCESS;
@@ -692,8 +684,9 @@ void set_object_members(Object *p, int hsize, int psize) {
  *   hsize: size of the hash table
  *   psize: size of the array of property values
  */
-JSValue new_simple_object_without_prototype(Context *ctx, int hsize,
-                                            int psize) {
+JSValue new_simple_object_without___proto__(Context *ctx, int hsize,
+                                            int psize)
+{
   JSValue ret;
   Object *p;
 
@@ -821,14 +814,11 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   iter = make_iterator();
 
   /* allocate an itearator */
+  GC_PUSH(obj);
   do {
-    /*
-     * printf("Object %016llx: (type = %d, n_props = %lld)\n",
-     *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
-     */
     size += obj_n_props(tmpobj);
-  } while (get___proto__(tmpobj, &tmpobj) == SUCCESS);
-  /* printf("size = %d\n", size); */
+    get___proto__(tmpobj, &tmpobj);
+  } while (tmpobj != JS_NULL);
   GC_PUSH(iter);
   allocate_iterator_data(ctx, iter, size);
 
@@ -851,11 +841,11 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 #else
       if ((JSValue)p->entry.attr & ATTR_DE) continue;
 #endif
-      /* printf("key = "); simple_print((JSValue)p->entry.key); putchar('\n'); */
       iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
-  } while (get___proto__(obj, &obj) == SUCCESS);
-  GC_POP(iter);
+    get___proto__(obj, &obj);
+  } while (obj != JS_NULL);
+  GC_POP2(iter, obj);
   return iter;
 }
 
@@ -988,22 +978,21 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
 
   GC_PUSH(oldc);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
-  disable_gc();
+  GC_PUSH(c);
   a = malloc_hashtable();
   hash_create(a, oldc->map->size);
   hidden_map(c) = a;
-  ne = hash_copy(ctx, hidden_map(oldc), a); /* All Right: MissingAdd */
+  ne = hash_copy(ctx, hidden_map(oldc), a);
+  GC_POP2(c,oldc);
   hidden_n_entries(c) = ne;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  GC_PUSH(c);
-  enable_gc(ctx);
-  GC_POP2(c,oldc);
   n_hc++;
   return c;
 }
 
+#ifdef PROFILE
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
   printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
@@ -1037,5 +1026,11 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
 void print_all_hidden_class(void) {
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
 }
-
+#endif /* PROFILE */
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

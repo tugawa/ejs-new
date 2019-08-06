@@ -76,7 +76,7 @@ extern RegexpCell *allocate_regexp(void);
 #endif
 extern BoxedCell *allocate_boxed(Context *,uint32_t);
 
-#define allocate_array_data_critical(a,s,l)	\
+#define allocate_array_data_critical(a,s,l)        \
   allocate_array_data(NULL,(a),(s),(l))
 /*
  * builtin.c
@@ -265,7 +265,7 @@ extern int iterator_get_next_propname(JSValue, JSValue *);
 extern int regexp_flag(JSValue);
 #endif /* need_regexp */
 #endif
-extern JSValue new_simple_object_without_prototype(Context *, int, int);
+extern JSValue new_simple_object_without___proto__(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
 extern JSValue initialize_new_object(Context *ctx, JSValue, JSValue);
 extern JSValue new_array(Context *, int, int);
@@ -342,3 +342,9 @@ extern JSValue nextpropnameidx_helper(JSValue itr);
 #ifdef __cplusplus
 }
 #endif
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

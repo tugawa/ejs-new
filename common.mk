@@ -242,7 +242,7 @@ GCCHECK_PATTERN = ../gccheck.cocci
 ######################################################
 
 ejsvm :: $(OFILES) ejsvm.spec
-	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OFILES) $(LIBS)
 
 instructions-opcode.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 	$(GOTTA) --gen-insn-opcode -o $@

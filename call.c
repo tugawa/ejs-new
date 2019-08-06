@@ -169,51 +169,6 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp,
   restore_special_registers(context, stack, fp - 4);
 }
 
-#if 0
-/*
- * invokes a function with no arguments in a new vmloop
- */
-JSValue invoke_function0(Context *context, JSValue receiver, JSValue fn,
-                         int sendp) {
-  return invoke_function(context, receiver, fn, sendp, NULL, 0);
-
-  FunctionTable *t;
-  JSValue *stack, ret;
-  int sp, pos, oldfp, oldsp;
-
-  /*
-   * printf("invoke_function0: fp = %d, sp = %d\n", get_fp(context), get_sp(context));
-   */
-  stack = &get_stack(context, 0);
-  oldsp = sp = get_sp(context);
-  oldfp = get_fp(context);
-  pos = sp + 1;          /* place where cf register will be saved */
-  sp += 5;               /* makes room for cf, pc, lp, and fp */
-  stack[sp] = receiver;
-  save_special_registers(context, stack, pos);
-
-  /*
-   * sets special registers
-   */
-  set_fp(context, sp);
-  set_sp(context, sp);
-  set_ac(context, 0);
-  set_lp(context, func_environment(fn));
-  t = func_table_entry(fn);
-  set_cf(context, t);
-  if (sendp == TRUE)
-    set_pc(context, ftab_call_entry(t));
-  else
-    set_pc(context, ftab_send_entry(t));
-  vmrun_threaded(context, sp);
-  ret = get_a(context);
-  restore_special_registers(context, stack, pos);
-  set_fp(context, oldfp);
-  set_sp(context, oldsp);
-  return ret;
-}
-#endif
-
 /*
  * Invokes a function fn with arguments args in a new vmloop.
  * `as' is guaranteed to be an array.
@@ -275,3 +230,9 @@ JSValue invoke_builtin(Context *context, JSValue receiver, JSValue fn,
   set_sp(context, oldsp);
   return get_a(context);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

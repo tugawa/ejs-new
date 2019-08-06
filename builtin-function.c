@@ -38,7 +38,6 @@ BUILTIN_FUNCTION(function_apply) {
   if (is_function(fn)) {
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
   } else if (is_builtin(fn)) {
-    /* call_builtin(context, fn, na, true, false); */
     ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
   } else {
     LOG_EXIT("apply: the receiver has to be a function/builtin");
@@ -83,6 +82,7 @@ void init_builtin_function(Context *ctx)
   JSValue proto;
 
   gconsts.g_builtin_proto = proto = new_normal_object(ctx);
+  GC_PUSH(proto);
   gconsts.g_builtin =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
   set_prototype_all(ctx, gconsts.g_builtin, proto);
@@ -108,4 +108,11 @@ void init_builtin_function(Context *ctx)
       p++;
     }
   }
+  GC_POP(proto);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

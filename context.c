@@ -50,19 +50,6 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->iserr = false;
 }
 
-#if 0
-void pop_special_registers(Context *context, int fp, JSValue *regbase) {
-  set_fp(context, (int)regbase[-FP_POS]);
-  set_lp(context, (FunctionFrame *)regbase[-LP_POS]);
-  set_pc(context, (int)regbase[-PC_POS]);
-  set_cf(context, (FunctionTable *)regbase[-CF_POS]);
-  printf("pop_special_registers, fp: %p, lp: %p, pc: %p, cf: %p\n",
-         &regbase[-FP_POS], &regbase[-LP_POS], &regbase[-PC_POS],
-         &regbase[-CF_POS]);
-  set_sp(context, fp);
-}
-#endif
-
 void reset_context(Context *ctx, FunctionTable *ftab) {
   init_special_registers(&(ctx->spreg));
   ctx->function_table = ftab;
@@ -114,31 +101,7 @@ int in_malloc_space(void *addr_);
  */
 int is_valid_JSValue(JSValue x)
 {
-#if 0  /* temporarily disabled */
-  switch(get_tag(x)) {
-  case T_GENERIC:
-    return in_js_space((void *) x);
-  case T_STRING:
-    if (!in_js_space((void *) x))
-      return 0;
-    return ((*(uint64_t *) (x & ~7)) & 0xff) == HTAG_STRING;
-  case T_FLONUM:
-    if (!in_js_space((void *) x))
-      return 0;
-    return ((*(uint64_t *) (x & ~7)) & 0xff) == HTAG_FLONUM;
-  case T_SPECIAL:
-    return (x == JS_TRUE ||
-	    x == JS_FALSE ||
-	    x == JS_NULL ||
-	    x == JS_UNDEFINED);
-  case T_FIXNUM:
-    return 1;
-  default:
-    return 0;
-  }
-#else
   return 1;
-#endif
 }
 
 void check_stack_invariant(Context *ctx)
@@ -165,3 +128,9 @@ void check_stack_invariant(Context *ctx)
     cf = (FunctionTable *) get_stack(ctx, sp); sp--;
   }
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

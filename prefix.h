@@ -31,24 +31,6 @@
 
 #define USE_OBC
 
-#if 0
-#ifdef DEBUG_PRINT
-
-#define LOG(...) fprintf(stderr, __VA_ARGS__)
-#define LOG_FUNC fprintf(stderr, "%-16s: ", __func__)
-#define LOG_ERR(...) do { LOG_FUNC; fprintf(stderr, __VA_ARGS__); } while (0)
-#define LOG_EXIT(...)                                                   \
-  do { LOG_FUNC; fprintf(stderr, __VA_ARGS__); exit(1); } while (0)
-
-#else
-#define LOG
-#define LOG_FUNC
-#define LOG_ERR
-#define LOG_EXIT(...) exit(1)
-
-#endif /* DEBUG_PRINT */
-#endif
-
 #ifdef CALC_CALL
 #define CALLCOUNT_UP() callcount++
 #else
@@ -56,3 +38,9 @@
 #endif
 
 #endif /* PREFIX_H_ */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -158,40 +158,6 @@ BUILTIN_FUNCTION(array_concat)
   GC_POP(a);
   set_a(context, a);
   return;
-
-#if 0
-  int fp, i, j;
-  int putPoint;
-  JSValue *args;
-  JSValue item, ret, v;
-  uint64_t length;
-
-  putPoint = 0;
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-
-  ret = newArray();
-  set_prop_all(ret, gconsts.g_string___proto__, gArrayProto);
-
-
-  for(i=0; i<=nArgs; i++){
-    item = args[i];
-    if(is_object(item) && isArray(item)){
-
-      length = getArrayLength(item);
-      for(j=0; j<length; j++){
-        getArrayValue(item, j, &v);
-        setArrayValue(ret, putPoint++, v); }
-
-    }else{
-
-      setArrayValue(ret, putPoint++, item);
-    }
-  }
-
-  setA(context, ret);
-  return;
-#endif
 }
 
 BUILTIN_FUNCTION(array_pop)
@@ -253,29 +219,21 @@ BUILTIN_FUNCTION(array_reverse)
   builtin_prologue();
   len = array_length(args[0]);
   mid = len / 2;
-  /* All right : MissingAdd, MissingInit RemoveToAlloc */
+
+  lowerValue = JS_NULL;
+  GC_PUSH(lowerValue);
   for (lower = 0; lower < mid; lower++) {
     upper = len - lower - 1;
     lowerExists = has_array_element(args[0], lower);
+    upperExists = has_array_element(args[0], upper);
 
-    if (lowerExists) {
+    if (lowerExists)
       lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
-      upperExists = has_array_element(args[0], upper);
-      if (upperExists) {
-        GC_PUSH(lowerValue);
-        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
-        GC_POP(lowerValue);
-      }
-    } else {
-      upperExists = has_array_element(args[0], upper);
-      if (upperExists)
-        upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
-    }
+    if (upperExists)
+      upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
 
     if (lowerExists && upperExists) {
-      GC_PUSH(lowerValue);
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
-      GC_POP(lowerValue);
       set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
     } else if (!lowerExists && upperExists) {
       set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
@@ -287,29 +245,9 @@ BUILTIN_FUNCTION(array_reverse)
       /* No action is required */
     }
   }
+  GC_POP(lowerValue);
   set_a(context, args[0]);
   return;
-
-#if 0
-  int fp, i;
-  uint64_t length;
-  JSValue* args;
-  JSValue rsv, temp1, temp2;
-  fp = getFp(context);
-
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-
-  length = getArrayLength(rsv);
-  for(i=0; i<(length-1)/2; i++){
-    getArrayValue(rsv, i, &temp1);
-    getArrayValue(rsv, (int)(length-i-1), &temp2);
-    setArrayValue(rsv, i, temp2);
-    setArrayValue(rsv, (int)(length-i-1), temp1);
-  }
-  setA(context, rsv);
-  return;
-#endif
 }
 
 BUILTIN_FUNCTION(array_shift)
@@ -342,33 +280,6 @@ BUILTIN_FUNCTION(array_shift)
   GC_POP(first);
   set_a(context, first);
   return;
-
-#if 0
-  int fp, i;
-  uint64_t length;
-  JSValue* args;
-  JSValue rsv, ret, temp;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-  rsv = args[0];
-
-  length = getArrayLength(rsv);
-  if(length > 0){
-    getArrayValue(rsv, 0, &ret);
-    for(i=1; i<length; i++){
-      getArrayValue(rsv, i, &temp);
-      setArrayValue(rsv, i-1, temp); }
-
-    set_prop_none(rsv, gconsts.g_string_length, intToFixnum(length-1));
-    setArrayLength(rsv, length-1);
-    setA(context, ret);
-    return;
-  }else{
-    setA(context, JS_UNDEFINED);
-    return;
-  }
-#endif
 }
 
 
@@ -423,54 +334,6 @@ BUILTIN_FUNCTION(array_slice)
   GC_POP2(a, o);
   set_a(context, a);
   return;
-
-#if 0
-  JSValue* args;
-  JSValue startv, endv, src, array, rsv;
-  int fp, start, end, i, newLength;
-  double dstart, dend;
-  uint64_t length;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-
-  rsv = args[0];
-  length = getArrayLength(rsv);
-
-  startv = args[1];
-  endv = args[2];
-
-  if(is_object(startv)){
-    startv = objectToPrimitive(startv, context); }
-  dstart = PrimitiveToIntegralDouble(PrimitiveToDouble(startv));
-
-  if(dstart < 0){
-    start = (int)max(dstart + ((double)length), 0);
-  }else{ start = (int)min(dstart, length); }
-
-  if(isUndefined(endv)){
-    end = (int)length; }
-
-  else{
-    if(is_object(endv)){
-      endv = objectToPrimitive(endv, context); }
-
-    dend = PrimitiveToIntegralDouble(PrimitiveToDouble(endv));
-    if(dend < 0){
-      end = (int)max(dend + ((double)length), 0);
-    }else{ end = (int)min(dend, length); }
-  }
-
-  newLength = end - start;
-  array = newArrayWithSize(newLength);
-  set_prop_all(array, gconsts.g_string___proto__, gArrayProto);
-
-  for(i = 0; i < newLength; i++){
-    getArrayValue(rsv, i + start, &src);
-    setArrayValue(array, i, src); }
-  setA(context, array);
-  return;
-#endif
 }
 
 /*
@@ -683,61 +546,6 @@ BUILTIN_FUNCTION(array_sort)
   GC_POP(obj);
   set_a(context, obj);
   return;
-
-#if 0
-  JSValue* args;
-  JSValue rsv, comp, lenv, iv, jv, temp;
-  int i, j, index, fp, length;
-
-  fp = getFp(context);
-  args = (JSValue*)(&Stack(context, fp));
-
-  rsv = args[0];
-  comp = args[1];
-  getProp(rsv, cStrToString("length"), &lenv);
-  length = (int)fixnumToInt(PrimitiveToInteger(lenv));
-
-  if(isArray(rsv)){
-
-    if(isUndefined(comp)){
-      for(i=0; i<length; i++){
-        index = i;
-        getArrayValue(rsv, index, &iv);
-        for(j=i+1; j<length; j++){
-          getArrayValue(rsv, j, &jv);
-          if(slowLessthan(jv, iv, context) == JS_TRUE){
-            index = j; iv = jv; }}
-
-        getArrayValue(rsv, i, &temp);
-        setArrayValue(rsv, i, iv);
-        setArrayValue(rsv, index, temp);
-      }
-      setA(context, rsv);
-      return;
-    }
-
-    else if(isCallable(comp)){
-      JSValue compret;
-      for(i=0; i<length; i++){
-        index = i;
-        getArrayValue(rsv, index, &iv);
-        for(j=i+1; j<length; j++){
-          getArrayValue(rsv, j, &jv);
-          compret = invoke(Global(context), context, comp, 2, jv, iv);
-          if(slowLessthan(compret, FIXNUM_ZERO, context) == JS_TRUE){
-            index = j; iv = jv; }}
-
-        getArrayValue(rsv, i, &temp);
-        setArrayValue(rsv, i, iv);
-        setArrayValue(rsv, index, temp);
-      }
-      setA(context, rsv);
-      return;
-    }
-  }
-
-  LOG_EXIT("receiver is not array\n");
-#endif
 }
 
 BUILTIN_FUNCTION(array_debugarray)
@@ -800,3 +608,9 @@ void init_builtin_array(Context *ctx)
   }
   GC_POP(proto);
 }
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -195,7 +195,7 @@ STATIC header_t *get_shadow(void *ptr)
  * Other header bits are zero
  */
 STATIC void* space_alloc(struct space *space,
-			 size_t request_bytes, cell_type_t type)
+                         size_t request_bytes, cell_type_t type)
 {
   size_t  alloc_jsvalues;
   struct free_chunk **p;
@@ -210,30 +210,30 @@ STATIC void* space_alloc(struct space *space,
     size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
     if (chunk_jsvalues >= alloc_jsvalues) {
       if (chunk_jsvalues >= alloc_jsvalues + MINIMUM_FREE_CHUNK_JSVALUES) {
-	/* This chunk is large enough to leave a part unused.  Split it */
-	size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
-	uintptr_t addr =
-	  ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
-	HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
-	*(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
+        /* This chunk is large enough to leave a part unused.  Split it */
+        size_t new_chunk_jsvalues = chunk_jsvalues - alloc_jsvalues;
+        uintptr_t addr =
+          ((uintptr_t) chunk) + (new_chunk_jsvalues << LOG_BYTES_IN_JSVALUE);
+        HEADER0_SET_SIZE(chunk->header, new_chunk_jsvalues);
+        *(header_t *) addr = HEADER0_COMPOSE(alloc_jsvalues, 0, type);
 #ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
-	HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
+        HEADER0_SET_MAGIC(*(header_t *) addr, HEADER0_MAGIC);
+        HEADER0_SET_GEN_MASK(*(header_t *) addr, generation);
 #endif /* GC_DEBUG */
-	space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (void *) (addr + HEADER_BYTES);
+        space->free_bytes -= alloc_jsvalues << LOG_BYTES_IN_JSVALUE;
+        return (void *) (addr + HEADER_BYTES);
       } else {
-	/* This chunk is too small to split. */
-	*p = (*p)->next;
-	chunk->header =
-	  HEADER0_COMPOSE(chunk_jsvalues,
-			  chunk_jsvalues - alloc_jsvalues, type);
+        /* This chunk is too small to split. */
+        *p = (*p)->next;
+        chunk->header =
+          HEADER0_COMPOSE(chunk_jsvalues,
+                          chunk_jsvalues - alloc_jsvalues, type);
 #ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
-	HEADER0_SET_GEN_MASK(chunk->header, generation);
+        HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
+        HEADER0_SET_GEN_MASK(chunk->header, generation);
 #endif /* GC_DEBUG */
-	space->free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
-	return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
+        space->free_bytes -= chunk_jsvalues << LOG_BYTES_IN_JSVALUE;
+        return (void *) (((uintptr_t) chunk) + HEADER_BYTES);
       }
     }
   }
@@ -340,7 +340,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
     garbage_collect(ctx);
   addr = space_alloc(&js_space, request_bytes, type);
   GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
-	      request_bytes, type, addr);
+              request_bytes, type, addr);
 #ifdef GC_DEBUG
   {
   header_t *hdrp = (header_t *) (addr - HEADER_JSVALUES);
@@ -422,7 +422,7 @@ STATIC void mark_cell_header(header_t *hdrp)
     assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
     assert(HEADER0_GET_TYPE(header) == HEADER0_GET_TYPE(sheader));
     assert(HEADER0_GET_SIZE(header) - HEADER0_GET_EXTRA(header) ==
-	   HEADER0_GET_SIZE(sheader) - HEADER0_GET_EXTRA(sheader));
+           HEADER0_GET_SIZE(sheader) - HEADER0_GET_EXTRA(sheader));
     assert(HEADER0_GET_GEN(header) == HEADER0_GET_GEN(sheader));
   }
 #endif /* GC_DEBUG */
@@ -516,7 +516,7 @@ STATIC void trace_HashCell(HashCell **ptrp)
 }
 
 STATIC void trace_Instruction_array_part(Instruction **ptrp,
-					 size_t n_insns, size_t n_constants)
+                                         size_t n_insns, size_t n_constants)
 {
   Instruction *ptr = (Instruction *) *ptrp;
   JSValue *litstart;
@@ -851,10 +851,10 @@ STATIC void weak_clear_StrTable(StrTable *table)
     while (*p != NULL) {
       StringCell *cell = remove_normal_string_tag((*p)->str);
       if (!is_marked_cell(cell)) {
-	(*p)->str = JS_UNDEFINED;
-	*p = (*p)->next;
+        (*p)->str = JS_UNDEFINED;
+        *p = (*p)->next;
       } else
-	p = &(*p)->next;
+        p = &(*p)->next;
     }
   }
 }
@@ -879,7 +879,7 @@ STATIC void sweep_space(struct space *space)
     uintptr_t free_start;
     /* scan used area */
     while (scan < space->addr + space->bytes &&
-	   is_marked_cell_header((void *) scan)) {
+           is_marked_cell_header((void *) scan)) {
       header_t header = *(header_t *) scan;
       size_t size = HEADER0_GET_SIZE(header);
 #ifdef GC_DEBUG
@@ -891,7 +891,7 @@ STATIC void sweep_space(struct space *space)
     }
     free_start = scan;
     while (scan < space->addr + space->bytes &&
-	   !is_marked_cell_header((void *) scan)) {
+           !is_marked_cell_header((void *) scan)) {
       uint64_t header = *(uint64_t *) scan;
       uint32_t size = HEADER0_GET_SIZE(header);
 #ifdef GC_DEBUG
@@ -901,38 +901,38 @@ STATIC void sweep_space(struct space *space)
     }
     if (free_start < scan) {
       if (last_used != 0) {
-	uint64_t last_header = *(uint64_t *) last_used;
-	uint32_t extra = HEADER0_GET_EXTRA(last_header);
-	uint32_t size = HEADER0_GET_SIZE(last_header);
-	free_start -= extra << LOG_BYTES_IN_JSVALUE;
-	size -= extra;
-	HEADER0_SET_SIZE(*(uint64_t *) last_used, size);
-	HEADER0_SET_EXTRA(*(uint64_t *) last_used, 0);
+        uint64_t last_header = *(uint64_t *) last_used;
+        uint32_t extra = HEADER0_GET_EXTRA(last_header);
+        uint32_t size = HEADER0_GET_SIZE(last_header);
+        free_start -= extra << LOG_BYTES_IN_JSVALUE;
+        size -= extra;
+        HEADER0_SET_SIZE(*(uint64_t *) last_used, size);
+        HEADER0_SET_EXTRA(*(uint64_t *) last_used, 0);
       }
       if (scan - free_start >=
-	  MINIMUM_FREE_CHUNK_JSVALUES << LOG_BYTES_IN_JSVALUE) {
-	struct free_chunk *chunk = (struct free_chunk *) free_start;
-	GCLOG_SWEEP("add_cunk %x - %x (%d)\n",
-		    free_start - space->addr, scan - space->addr,
-		    scan - free_start);
+          MINIMUM_FREE_CHUNK_JSVALUES << LOG_BYTES_IN_JSVALUE) {
+        struct free_chunk *chunk = (struct free_chunk *) free_start;
+        GCLOG_SWEEP("add_cunk %x - %x (%d)\n",
+                    free_start - space->addr, scan - space->addr,
+                    scan - free_start);
 #ifdef GC_DEBUG
-	memset(chunk, 0xcc, scan - free_start);
+        memset(chunk, 0xcc, scan - free_start);
 #endif /* GC_DEBUG */
-	chunk->header =
-	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-			  0, HTAG_FREE);
+        chunk->header =
+          HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
+                          0, HTAG_FREE);
 #ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
+        HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
 #endif /* GC_DEBUG */
-	*p = chunk;
-	p = &chunk->next;
-	free_bytes += scan - free_start;
+        *p = chunk;
+        p = &chunk->next;
+        free_bytes += scan - free_start;
       } else  {
-	*(header_t *) free_start =
-	  HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-			  0, HTAG_FREE);
+        *(header_t *) free_start =
+          HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
+                          0, HTAG_FREE);
 #ifdef GC_DEBUG
-	HEADER0_SET_MAGIC(*(header_t *) free_start, HEADER0_MAGIC);
+        HEADER0_SET_MAGIC(*(header_t *) free_start, HEADER0_MAGIC);
 #endif /* GC_DEBUG */
       }
     }
@@ -971,20 +971,20 @@ STATIC void check_invariant_nobw_space(struct space *space)
       ;
     else if (is_marked_cell_header(hdrp)) {
       /* this object is black; should not contain a pointer to white */
-      size_t payload_jsvalues =	HEADER0_GET_SIZE(header);
+      size_t payload_jsvalues = HEADER0_GET_SIZE(header);
       size_t i;
       payload_jsvalues -= HEADER_JSVALUES;
       payload_jsvalues -= HEADER0_GET_EXTRA(header);
       for (i = 0; i < payload_jsvalues; i++) {
-	uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
-	if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
-	  if (i ==
-	      (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
-	    continue;
-	}
-	if (in_js_space((void *)(x & ~7))) {
-	  assert(is_marked_cell((void *) (x & ~7)));
-	}
+        uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
+        if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
+          if (i ==
+              (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
+            continue;
+        }
+        if (in_js_space((void *)(x & ~7))) {
+          assert(is_marked_cell((void *) (x & ~7)));
+        }
       }
     }
     scan += HEADER0_GET_SIZE(header) << LOG_BYTES_IN_JSVALUE;
@@ -1029,21 +1029,11 @@ STATIC void print_heap_stat(void)
 extern void** stack_start;
 STATIC void sanity_check()
 {
-#if 0
-  void **p;
-
-  for (p = top; p < stack_start; p++) {
-    /* JSValue ptr */
-    if (in_js_space(*p)) {
-      if (is_object(*p) || is_string(*p) || is_flonum(*p)) {
-	if (!is_marked_cell(remove_object_tag(*p))){
-	  printf("%p -> %p (unmarked)\n", p, *p);
-	  *(int*)p = 0xdeadbeef;
-	}
-      }
-    }
-  }
-  printf("sanity check done\n");
-#endif 
 }
 #endif /* GC_DEBUG */
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
