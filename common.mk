@@ -59,9 +59,9 @@ SILIST=$(SED) -e 's/^.*: *//'
 
 INSNGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
-SPECGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.SpecFileGen
 INSNGEN_VMDL=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar $(VMDLC_FLAGS)
 TYPESGEN_VMDL=java -cp $(EJSVM_DIR)/vmdl/vmdlc.jar vmdlc.TypesGen
+SPECGEN=java -cp $(EJSVM_DIR)/vmdl/vmdlc.jar vmdlc.SpecFileGen
 CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
