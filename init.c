@@ -51,9 +51,22 @@ void init_global_malloc_objects(void) {
 #ifdef HIDDEN_CLASS
 #ifdef RICH_HIDDEN_CLASS
 #ifdef ARRAY_EMBED_PROP
+#ifdef HIDDEN_CLASS_PROTO
+  gobjects.g_hidden_class_top =
+    new_empty_hidden_class(NULL,             /* context */
+                           HSIZE_BIG,        /* map size */
+                           PSIZE_BIG,        /* embedded props */
+                           0,                /* # of normal props */
+                           0,                /* # of special props */
+                           HTYPE_TRANSIT);   /* type */
+#endif /* HIDDEN_CLASS_PROTO */
   gobjects.g_hidden_class_0 =
-    new_empty_hidden_class(NULL, HSIZE_NORMAL, PSIZE_NORMAL,
-                           0, 0, HTYPE_TRANSIT);
+    new_empty_hidden_class(NULL,              /* context */
+                           HSIZE_NORMAL,      /* map size */
+                           PSIZE_NORMAL,      /* embedded props */
+                           0,                 /* # of normal props */
+                           0,                 /* # of special props */
+                           HTYPE_TRANSIT);    /* type */
 #else /* ARRAY_EMBED_PROP */
   gobjects.g_hidden_class_0 =
     new_empty_hidden_class(NULL, HSIZE_NORMAL, PSIZE_NORMAL, HTYPE_TRANSIT);
@@ -62,7 +75,6 @@ void init_global_malloc_objects(void) {
   gobjects.g_hidden_class_0 =
     new_empty_hidden_class(NULL, HSIZE_NORMAL, HTYPE_TRANSIT);
 #endif /* RICH_HIDDEN_CLASS */
-#endif
 
 #ifdef ARRAY_EMBED_PROP
   gobjects.g_hidden_class_array =
@@ -71,11 +83,13 @@ void init_global_malloc_objects(void) {
                            ARRAY_EMBEDDED_PROPS, /* embedded props */
                            ARRAY_NORMAL_PROPS,   /* # of normal props */
                            ARRAY_SPECIAL_PROPS,  /* # of special props */
-                           HTYPE_TRANSIT);
+                           HTYPE_TRANSIT);       /* type */
+#ifndef HIDDEN_CLASS_PROTO
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
                           gconsts.g_string___proto__,
                           ARRAY_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
                           gconsts.g_string_length,
                           ARRAY_PROP_INDEX_LENGTH,
@@ -87,11 +101,13 @@ void init_global_malloc_objects(void) {
                            FUNC_EMBEDDED_PROPS,  /* embedded props */
                            FUNC_NORMAL_PROPS,    /* # of normal props */
                            FUNC_SPECIAL_PROPS,   /* # of special props */
-                           HTYPE_TRANSIT);
+                           HTYPE_TRANSIT);       /* type */
+#ifndef HIDDEN_CLASS_PROTO
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
                           gconsts.g_string___proto__,
                           FUNC_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
                           gconsts.g_string_prototype,
                           FUNC_PROP_INDEX_PROTOTYPE,
@@ -103,16 +119,34 @@ void init_global_malloc_objects(void) {
                            BUILTIN_EMBEDDED_PROPS, /* embedded props */
                            BUILTIN_NORMAL_PROPS,   /* # of normal props */
                            BUILTIN_SPECIAL_PROPS,  /* # of special props */
-                           HTYPE_TRANSIT);
+                           HTYPE_TRANSIT);         /* type */
+#ifndef HIDDEN_CLASS_PROTO
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
                           gconsts.g_string___proto__,
                           BUILTIN_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
                           gconsts.g_string_prototype,
                           BUILTIN_PROP_INDEX_PROTOTYPE,
                           ATTR_DDDE);
 
+#ifdef HIDDEN_CLASS_PROTO
+  gobjects.g_hidden_class_boxed_number =
+    new_empty_hidden_class(NULL,                    /* context */
+                           BOXED_NORMAL_PROPS,      /* map size */
+                           BOXED_EMBEDDED_PROPS,    /* embedded props */
+                           BOXED_NORMAL_PROPS,      /* # of normal props */
+                           BOXED_SPECIAL_PROPS,     /* # of special props */
+                           HTYPE_TRANSIT);          /* type */
+  gobjects.g_hidden_class_boxed_boolean =
+    new_empty_hidden_class(NULL,                    /* context */
+                           BOXED_NORMAL_PROPS,      /* map size */
+                           BOXED_EMBEDDED_PROPS,    /* embedded props */
+                           BOXED_NORMAL_PROPS,      /* # of normal props */
+                           BOXED_SPECIAL_PROPS,     /* # of special props */
+                           HTYPE_TRANSIT);          /* type */
+#else /* HIDDEN_CLASS_PROTO */
   gobjects.g_hidden_class_boxed =
     new_empty_hidden_class(NULL,                 /* context */
                            BOXED_NORMAL_PROPS,   /* map size */
@@ -124,6 +158,7 @@ void init_global_malloc_objects(void) {
                           gconsts.g_string___proto__,
                           BOXED_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
 
   gobjects.g_hidden_class_boxed_string =
     new_empty_hidden_class(NULL,                    /* context */
@@ -132,10 +167,12 @@ void init_global_malloc_objects(void) {
                            BOXEDSTR_NORMAL_PROPS,   /* # of normal props */
                            BOXED_SPECIAL_PROPS,     /* # of special props */
                            HTYPE_TRANSIT);
+#ifndef HIDDEN_CLASS_PROTO
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed_string),
                           gconsts.g_string___proto__,
                           BOXED_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed_string),
                           gconsts.g_string_length,
                           BOXEDSTR_PROP_INDEX_LENGTH,
@@ -148,14 +185,16 @@ void init_global_malloc_objects(void) {
                            REX_EMBEDDED_PROPS,  /* embedded props */
                            REX_NORMAL_PROPS,    /* # of normal props */
                            REX_SPECIAL_PROPS,   /* # of special props */
-                           HTYPE_TRANSIT);
+                           HTYPE_TRANSIT);      /* type */
+#ifndef HIDDEN_CLASS_PROTO
   hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_regexp),
                           gconsts.g_string___proto__,
                           REX_PROP_INDEX_PROTO,
                           ATTR_ALL);
+#endif /* HIDDEN_CLASS_PROTO */
 #endif /* USE_REGEXP */
-
 #endif /* ARRAY_EMBED_PROP */
+#endif /* HIDDEN_CLASS */
 }
 
 /*
@@ -171,8 +210,13 @@ void init_global_objects(void) {
    *   Object.prototype.prototype is not defined.
    *                   (Object.prototype is not used as a constructor)
    */
+#ifdef HIDDEN_CLASS_PROTO
+  gconsts.g_object_proto = new_object_proto(NULL);
+  hidden_proto(gobjects.g_hidden_class_0) = gconsts.g_object_proto;
+#else /* HIDDEN_CLASS_PROTO */
   gconsts.g_object_proto = new_big_predef_object_without___proto__(NULL);
   set___proto___all(NULL, gconsts.g_object_proto, JS_NULL);
+#endif /* HIDDEN_CLASS_PROTO */
   /*
    * g_blobal: The global object, which contains global variables.
    * g_math:   The "Math" object.

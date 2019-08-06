@@ -107,6 +107,16 @@ static int prop_index(JSValue obj, JSValue name) {
 int get_prop(JSValue obj, JSValue name, JSValue *ret) {
   int index;
 
+#ifdef HIDDEN_CLASS_PROTO
+  if (name == gconsts.g_string___proto__) {
+    HiddenClass *hc = obj_hidden_class(obj);
+    JSValue proto = hidden_proto(hc);
+    if (proto != JS_UNDEFINED) {
+      *ret = proto;
+      return SUCCESS;
+    }
+  }
+#endif /* HIDDEN_CLASS_PROTO */
   /*
    * printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
    * simple_print(name); putchar('\n');
@@ -120,6 +130,7 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
 #else /* EMBED_PROP */
   *ret = obj_prop_index(obj, index);
 #endif /* EMBED_PROP */
+  /* printf("get_prop: => %llx\n", *ret); */
   return SUCCESS;
 }
 
@@ -303,6 +314,16 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
 {
   int index;
 
+#ifdef HIDDEN_CLASS_PROTO
+  if (name == gconsts.g_string___proto__) {
+    HiddenClass *hc = obj_hidden_class(obj);
+    JSValue proto = hidden_proto(hc);
+    if (proto == v)
+      return SUCCESS;
+    hidden_proto(hc) = JS_UNDEFINED;
+  }
+#endif /* HIDDEN_CLASS_PROTO */
+
   index = prop_index(obj, name);
   if (index == -1) {
     HiddenClass *hc = obj_hidden_class(obj);
@@ -380,6 +401,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
     }
   }
 #ifdef EMBED_PROP
+  /* printf("set_prop: index = %d\n", index); */
   set_obj_prop_index(obj, index, v);
 #else /* EMBED_PROP */
   obj_prop_index(obj, index) = v;
@@ -811,6 +833,7 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
     p->eprop[i] = JS_UNDEFINED;
 }
 
+#ifndef HIDDEN_CLASS_PROTO
 static void set_object_members(Object *p, int hsize, int psize)
 {
   if (hsize == 0)
@@ -821,6 +844,7 @@ static void set_object_members(Object *p, int hsize, int psize)
     set_object_members_with_class(p, hc);
   }
 }
+#endif /* HIDDEN_CLASS_PROTO */
 #else /* ARRAY_EMBED_PROP */
 static void set_object_members(Object *p, int hsize, int psize)
 {
@@ -870,6 +894,18 @@ static void set_object_members(Object *p, int hsize, int psize)
 }
 #endif /* ARRAY_EMBED_PROP */
 
+#ifdef HIDDEN_CLASS_PROTO
+JSValue new_object_proto_object(Context *ctx, int hsize, int psize)
+{
+  JSValue ret;
+  Object *p;
+
+  ret = make_simple_object(ctx, psize);
+  p = remove_simple_object_tag(ret);
+  set_object_members_with_class(p, gobjects.g_hidden_class_top);
+  return ret;
+}
+#else /* HIDDEN_CLASS_PROTO */
 /*
  * makes a simple object whose __proto__ property is not set yet
  *   hsize: size of the hash table
@@ -891,6 +927,7 @@ JSValue new_simple_object_without___proto__(Context *ctx, int hsize,
   set_object_members(p, hsize, psize);
   return ret;
 }
+#endif /* HIDDEN_CLASS_PROTO */
 
 /*
  * makes a new simple object
@@ -909,8 +946,12 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 #endif /* EMBED_PROP */
   GC_PUSH(ret);
   p = remove_simple_object_tag(ret);
+#ifdef HIDDEN_CLASS_PROTO
+  set_object_members_with_class(p, gobjects.g_hidden_class_0);
+#else /* HIDDEN_CLASS_PROTO */
   set_object_members(p, hsize, psize);
   set___proto___all(ctx, ret, gconsts.g_object_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -934,7 +975,9 @@ JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
 #else /* EMBED_PROP */
   set_object_members(array_object_p(ret), hsize, vsize);
 #endif /* EMBED_PROP */
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___all(ctx, ret, gconsts.g_array_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   allocate_array_data_critical(ret, size, size);
   set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
   GC_PUSH(ret);
@@ -967,7 +1010,9 @@ JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
   GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_function_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -998,7 +1043,9 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_builtin_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -1093,7 +1140,9 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   regexp_ignorecase(ret) = false;
   regexp_multiline(ret) = false;
   regexp_lastindex(ret) = 0;
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_regexp_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   return
     (set_regexp_members(ctx, ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
@@ -1110,8 +1159,13 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(ret);
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
+#ifdef HIDDEN_CLASS_PROTO
+  set_object_members_with_class(number_object_object_p(ret),
+                                gobjects.g_hidden_class_boxed_number);
+#else /* HIDDEN_CLASS_PROTO */
   set_object_members_with_class(number_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed);
+#endif /* HIDDEN_CLASS_PROTO */
 #else /* ARRAY_EMBED_PROP */
   set_object_members(number_object_object_ptr(ret), hsize, 1);
 #endif /* ARRAY_EMBED_PROP */
@@ -1119,7 +1173,9 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   set_object_members(number_object_object_ptr(ret), hsize, psize);
 #endif /* EMBED_PROP */
   number_object_value(ret) = v;
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_number_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   GC_POP2(ret,v);
   return ret;
 }
@@ -1136,8 +1192,13 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_POP(v);
 #ifdef EMBED_PROP
 #ifdef ARRAY_EMBED_PROP
+#ifdef HIDDEN_CLASS_PROTO
+  set_object_members_with_class(boolean_object_object_p(ret),
+                                gobjects.g_hidden_class_boxed_boolean);
+#else /* HIDDEN_CLASS_PROTO */
   set_object_members_with_class(boolean_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed);
+#endif /* HIDDEN_CLASS_PROTO */
 #else /* ARRAY_EMBED_PROP */
   set_object_members(boolean_object_object_ptr(ret), hsize, 1);
 #endif /* ARRAY_EMBED_PROP */
@@ -1146,7 +1207,9 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
 #endif /* EMBED_PROP */
   boolean_object_value(ret) = v;
   GC_PUSH(ret);
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_boolean_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -1171,7 +1234,9 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
 #endif /* EMBED_PROP */
   string_object_value(ret) = v;
   GC_PUSH(ret);
+#ifndef HIDDEN_CLASS_PROTO
   set___proto___none(ctx, ret, gconsts.g_string_proto);
+#endif /* HIDDEN_CLASS_PROTO */
   /*
    * A boxed string has a property ``length'' whose associated value
    * is the length of the string.
@@ -1227,6 +1292,9 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_n_exit(c) = 0;
 #ifdef RICH_HIDDEN_CLASS
 #ifdef ARRAY_EMBED_PROP
+#ifdef HIDDEN_CLASS_PROTO
+  hidden_proto(c) = JS_NULL;
+#endif /* HIDDEN_CLASS_PROTO */
   hidden_n_props(c) = n_normal + n_special;
 #else /* ARRAY_EMBED_PROP */
   hidden_n_props(c) = 0;
@@ -1295,6 +1363,9 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   }
 #endif /* EMBED_PROP */
 #ifdef ARRAY_EMBED_PROP
+#ifdef HIDDEN_CLASS_PROTO
+  hidden_proto(c) = hidden_proto(oldc);
+#endif /* HIDDEN_CLASS_PROTO */
   hidden_n_special_props(c) = hidden_n_special_props(oldc);
 #endif /* ARRAY_EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
@@ -1355,8 +1426,15 @@ void print_all_hidden_class(void) {
                                gobjects.g_hidden_class_function);
   print_hidden_class_recursive("hidden_class_builtin",
                                gobjects.g_hidden_class_builtin);
+#ifdef HIDDEN_CLASS_PROTO
+  print_hidden_class_recursive("hidden_class_boxed_number",
+                               gobjects.g_hidden_class_boxed_number);
+  print_hidden_class_recursive("hidden_class_boxed_boolean",
+                               gobjects.g_hidden_class_boxed_boolean);
+#else /* HIDDEN_CLASS_PROTO */
   print_hidden_class_recursive("hidden_class_boxed",
                                gobjects.g_hidden_class_boxed);
+#endif /* HIDDEN_CLASS_PROTO */
   print_hidden_class_recursive("hidden_class_boxed_string",
                                gobjects.g_hidden_class_boxed_string);
 #ifdef USE_REGEXP

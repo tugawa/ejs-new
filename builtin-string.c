@@ -672,6 +672,9 @@ void init_builtin_string(Context *ctx)
     new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
   GC_PUSH(proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
+#ifdef HIDDEN_CLASS_PROTO
+  hidden_proto(gobjects.g_hidden_class_boxed_string) = proto;
+#endif /* HIDDEN_CLASS_PROTO */
   set_prototype_de(ctx, str, proto);
   set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
               new_normal_builtin(ctx, string_fromCharCode, 0));

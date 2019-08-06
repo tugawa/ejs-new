@@ -282,7 +282,11 @@ extern int iterator_get_next_propname(JSValue, JSValue *);
 extern int regexp_flag(JSValue);
 #endif /* need_regexp */
 #endif
+#ifdef HIDDEN_CLASS_PROTO
+extern JSValue new_object_proto_object(Context *, int, int);
+#else /* HIDDEN_CLASS_PROTO */
 extern JSValue new_simple_object_without___proto__(Context *, int, int);
+#endif /* HIDDEN_CLASS_PROTO */
 extern JSValue new_simple_object(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);

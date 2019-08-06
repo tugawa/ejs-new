@@ -156,6 +156,9 @@ void init_builtin_number(Context *ctx)
   GC_PUSH(proto);
   gconsts.g_number_proto = proto;
   set___proto___all(ctx, proto, gconsts.g_object_proto);
+#ifdef HIDDEN_CLASS_PROTO
+  hidden_proto(gobjects.g_hidden_class_boxed_number) = proto;
+#endif /* HIDDEN_CLASS_PROTO */
 
   set_prototype_de(ctx, n, proto);
   set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);

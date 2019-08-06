@@ -624,6 +624,9 @@ STATIC void trace_HiddenClass(HiddenClass **ptrp)
   if (test_and_mark_cell(ptr))
     return;
   trace_HashTable(&hidden_map(ptr));
+#ifdef HIDDEN_CLASS_PROTO
+  trace_slot(&hidden_proto(ptr));
+#endif /* HIDDEN_CLASS_PROTO */
   /* printf("Exit trace_HiddenClass\n"); */
 }
 #endif
@@ -895,12 +898,20 @@ STATIC void scan_roots(Context *ctx)
    * registered in the gobjects.
    */
 #ifdef HIDDEN_CLASS
+#ifdef HIDDEN_CLASS_PROTO
+  trace_HiddenClass(&gobjects.g_hidden_class_top);
+#endif /* HIDDEN_CLASS_PROTO */
   trace_HiddenClass(&gobjects.g_hidden_class_0);
 #ifdef ARRAY_EMBED_PROP
   trace_HiddenClass(&gobjects.g_hidden_class_array);
   trace_HiddenClass(&gobjects.g_hidden_class_function);
   trace_HiddenClass(&gobjects.g_hidden_class_builtin);
+#ifdef HIDDEN_CLASS_PROTO
+  trace_HiddenClass(&gobjects.g_hidden_class_boxed_number);
+  trace_HiddenClass(&gobjects.g_hidden_class_boxed_boolean);
+#else /* HIDDEN_CLASS_PROTO */
   trace_HiddenClass(&gobjects.g_hidden_class_boxed);
+#endif /* HIDDEN_CLASS_PROTO */
   trace_HiddenClass(&gobjects.g_hidden_class_boxed_string);
 #ifdef USE_REGEXP
   trace_HiddenClass(&gobjects.g_hidden_class_regexp);

@@ -67,12 +67,20 @@ EXTERN struct global_constant_objects {
 
 EXTERN struct global_malloced_objects {
 #ifdef HIDDEN_CLASS
+#ifdef HIDDEN_CLASS_PROTO
+  HiddenClass *g_hidden_class_top;
+#endif /* HIDDEN_CLASS_PROTO */
   HiddenClass *g_hidden_class_0;
 #ifdef ARRAY_EMBED_PROP
   HiddenClass *g_hidden_class_array;
   HiddenClass *g_hidden_class_function;
   HiddenClass *g_hidden_class_builtin;
+#ifdef HIDDEN_CLASS_PROTO
+  HiddenClass *g_hidden_class_boxed_number;
+  HiddenClass *g_hidden_class_boxed_boolean;
+#else /* HIDDEN_CLASS_PROTO */
   HiddenClass *g_hidden_class_boxed;
+#endif /* HIDDEN_CLASS_PROTO */
   HiddenClass *g_hidden_class_boxed_string;
 #ifdef USE_REGEXP
   HiddenClass *g_hidden_class_regexp;

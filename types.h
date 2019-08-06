@@ -100,6 +100,10 @@ typedef struct hidden_class {
 #ifdef ARRAY_EMBED_PROP
   uint32_t n_special_props;  /* number of properties that are not registered
                               * in the map, which may not be JSValues */
+#ifdef HIDDEN_CLASS_PROTO
+  JSValue __proto__;      /* Hidden class or JS_EMPTY, which means
+                           * object instance has __proto__ property */
+#endif /* HIDDEN_CLASS_PROTO */
 #endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
@@ -128,6 +132,9 @@ typedef struct hidden_class {
 #define hidden_n_embedded_props(h) ((h)->n_embedded_props)
 #ifdef ARRAY_EMBED_PROP
 #define hidden_n_special_props(h)  ((h)->n_special_props)
+#ifdef HIDDEN_CLASS_PROTO
+#define hidden_proto(h)            ((h)->__proto__)
+#endif /* HIDDEN_CLASS_PROTO */
 #endif /* ARRAY_EMBED_PROP */
 #endif /* EMBED_PROP */
 #endif /* RICH_HIDDEN_CLASS */
@@ -243,8 +250,13 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define new_normal_predef_object(ctx)                   \
   new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
 #define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
+#ifdef HIDDEN_CLASS_PROTO
+#define new_object_proto(ctx)                               \
+  new_object_proto_object(ctx, HSIZE_BIG, PSIZE_BIG)
+#else /* HIDDEN_CLASS_PROTO */
 #define new_big_predef_object_without___proto__(ctx)                    \
   new_simple_object_without___proto__(ctx, HSIZE_BIG, PSIZE_BIG)
+#endif /* HIDDEN_CLASS_PROTO */
 
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
 
@@ -284,9 +296,14 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define ARRAY_XPROP_INDEX_SIZE    0
 #define ARRAY_XPROP_INDEX_LENGTH  1
 #define ARRAY_XPROP_INDEX_BODY    2
+#ifdef HIDDEN_CLASS_PROTO
+#define ARRAY_NORMAL_PROPS        1
+#define ARRAY_PROP_INDEX_LENGTH   3
+#else /* HIDDEN_CLASS_PROTO */
 #define ARRAY_NORMAL_PROPS        2
 #define ARRAY_PROP_INDEX_PROTO    3
 #define ARRAY_PROP_INDEX_LENGTH   4
+#endif /* HIDDEN_CLASS_PROTO */
 #define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
 #define make_array(ctx)          (put_normal_array_tag(allocate_array(ctx)))
@@ -344,9 +361,14 @@ typedef struct array_cell {
 #define FUNC_SPECIAL_PROPS        2
 #define FUNC_XPROP_INDEX_FTENTRY  0
 #define FUNC_XPROP_INDEX_ENV      1
+#ifdef HIDDEN_CLASS_PROTO
+#define FUNC_NORMAL_PROPS         1
+#define FUNC_PROP_INDEX_PROTOTYPE 2
+#else /* HIDDEN_CLASS_PROTO */
 #define FUNC_NORMAL_PROPS         2
 #define FUNC_PROP_INDEX_PROTO     2
 #define FUNC_PROP_INDEX_PROTOTYPE 3
+#endif /* HIDDEN_CLASS_PROTO */
 #define FUNC_EMBEDDED_PROPS       (FUNC_SPECIAL_PROPS + FUNC_NORMAL_PROPS)
 
 #undef remove_normal_function_tag
@@ -393,9 +415,14 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #define BUILTIN_XPROP_INDEX_BODY     0
 #define BUILTIN_XPROP_INDEX_CONSTR   1
 #define BUILTIN_XPROP_INDEX_ARGC     2
+#ifdef HIDDEN_CLASS_PROTO
+#define BUILTIN_NORMAL_PROPS         1
+#define BUILTIN_PROP_INDEX_PROTOTYPE 3
+#else /* HIDDEN_CLASS_PROTO */
 #define BUILTIN_NORMAL_PROPS         2
 #define BUILTIN_PROP_INDEX_PROTO     3
 #define BUILTIN_PROP_INDEX_PROTOTYPE 4
+#endif /* HIDDEN_CLASS_PROTO */
 #define BUILTIN_EMBEDDED_PROPS (BUILTIN_SPECIAL_PROPS + BUILTIN_NORMAL_PROPS)
 
 #undef remove_normal_builtin_tag
@@ -470,8 +497,12 @@ typedef struct iterator {
 #define REX_XPROP_INDEX_IFLAG   3
 #define REX_XPROP_INDEX_MFLAG   4
 #define REX_XPROP_INDEX_LASTIDX 5
+#ifdef HIDDEN_CLASS_PROTO
+#define REX_NORMAL_PROPS        1
+#else /* HIDDEN_CLASS_PROTO */
 #define REX_NORMAL_PROPS        1
 #define REX_PROP_INDEX_PROTO    6
+#endif /* HIDDEN_CLASS_PROTO */
 #define REX_EMBEDDED_PROPS      (REX_SPECIAL_PROPS + REX_NORMAL_PROPS)
 
 #undef remove_normal_regexp_tag
@@ -522,12 +553,21 @@ typedef struct regexp_cell {
 
 #define BOXED_SPECIAL_PROPS     1
 #define BOXED_XPROP_INDEX_VALUE 0
+#ifdef HIDDEN_CLASS_PROTO
+#define BOXED_NORMAL_PROPS      1
+#else /* HIDDEN_CLASS_PROTO */
 #define BOXED_NORMAL_PROPS      1
 #define BOXED_PROP_INDEX_PROTO  1
+#endif /* HIDDEN_CLASS_PROTO */
 #define BOXED_EMBEDDED_PROPS    (BOXED_SPECIAL_PROPS + BOXED_NORMAL_PROPS)
 
+#ifdef HIDDEN_CLASS_PROTO
+#define BOXEDSTR_NORMAL_PROPS      1
+#define BOXEDSTR_PROP_INDEX_LENGTH 1
+#else /* HIDDEN_CLASS_PROTO */
 #define BOXEDSTR_NORMAL_PROPS      2
 #define BOXEDSTR_PROP_INDEX_LENGTH 2
+#endif /* HIDDEN_CLASS_PROTO */
 #define BOXEDSTR_EMBEDDED_PROPS  (BOXED_SPECIAL_PROPS + BOXEDSTR_NORMAL_PROPS)
 
 #undef remove_normal_number_object_tag
