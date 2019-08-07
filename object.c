@@ -41,7 +41,6 @@
   ((hash_put_with_attribute((map),(name),(retv),(attr)) == HASH_PUT_SUCCESS)? \
    (int)(retv): (-1))
 
-#ifdef HIDDEN_CLASS
 static HiddenClass *hclass;
 int n_hc;
 int n_enter_hc;
@@ -50,7 +49,6 @@ int n_exit_hc;
 #ifdef PROFILE
 static int profile_object_count;
 #endif /* PROFILE */
-#endif
 
 /*
  * obtains the index of a property of an Object
@@ -64,39 +62,25 @@ static int profile_object_count;
  * the next hidden class is temporary assigned to a static variable named
  * ``hclass''.
  */
-static int prop_index(JSValue obj, JSValue name) {
+static int prop_index(JSValue obj, JSValue name)
+{
   HashData retv;
   int result;
-#ifdef HIDDEN_CLASS
   Attribute att;
-#endif
 
-  ASSERT_OBJECT(obj);
+  assert(is_object(obj));
 
-#ifdef HIDDEN_CLASS
   result =
     hash_get_with_attribute(obj_hidden_class_map(obj), name, &retv, &att);
-  /* printf("in prop_index: result = %d\n", result); */
   if (result == HASH_GET_FAILED) {
     hclass = NULL;
-    /* printf("in prop_index: hclass = NULL, returning -1\n"); */
     return -1;
   }
   if (is_transition(att)) {
     hclass = (HiddenClass *)retv;
-    /* printf("in prop_index: is_transition, returning -1\n"); */
     return -1;
-  } else {
-    /* printf("prop_index is returning %d\n", (int)retv); */
+  } else
     return (int)retv;
-  }
-#else
-  /* print_hash_table(obj_map(obj)); */
-  result = hash_get(obj_map(obj), name, &retv);
-  if (result == HASH_GET_FAILED) return -1;
-  /* printf("prop_index: "); simple_print(retv); putchar('\n'); */
-  return (int)retv;
-#endif
 }
 
 /*
@@ -104,10 +88,10 @@ static int prop_index(JSValue obj, JSValue name) {
  * and returns SUCCESS or FAIL
  * This function does not follow the prototype chain.
  */
-int get_prop(JSValue obj, JSValue name, JSValue *ret) {
+int get_prop(JSValue obj, JSValue name, JSValue *ret)
+{
   int index;
 
-#ifdef HIDDEN_CLASS_PROTO
   if (name == gconsts.g_string___proto__) {
     HiddenClass *hc = obj_hidden_class(obj);
     JSValue proto = hidden_proto(hc);
@@ -116,21 +100,10 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
       return SUCCESS;
     }
   }
-#endif /* HIDDEN_CLASS_PROTO */
-  /*
-   * printf("get_prop: obj = %016lx, prop = %s\n", obj, string_to_cstr(name));
-   * simple_print(name); putchar('\n');
-   */
   index = prop_index(obj, name);
-  /* printf("get_prop: index = %d\n", index); */
-  if (index == -1) return FAIL;
-  /* simple_print(obj_prop_index(obj, index)); putchar('\n'); */
-#ifdef EMBED_PROP
+  if (index == -1)
+    return FAIL;
   *ret = get_obj_prop_index(obj, index);
-#else /* EMBED_PROP */
-  *ret = obj_prop_index(obj, index);
-#endif /* EMBED_PROP */
-  /* printf("get_prop: => %llx\n", *ret); */
   return SUCCESS;
 }
 
@@ -140,7 +113,8 @@ int get_prop(JSValue obj, JSValue name, JSValue *ret) {
  *   o: object
  *   p: property, which is a string
  */
-JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
+JSValue get_prop_prototype_chain(JSValue o, JSValue p)
+{
   JSValue ret;
   while (is_object(o)) {
     if (get_prop(o, p, &ret) == SUCCESS)
@@ -156,11 +130,8 @@ JSValue get_prop_prototype_chain(JSValue o, JSValue p) {
  *   p: property (number / string / other type)
  * It is not necessary to check the type of `o'.
  */
-JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
-  /*
-   * if (p is not a string) p = to_string(p);
-   *   returns the value regsitered under the property p;
-   */
+JSValue get_object_prop(Context *ctx, JSValue o, JSValue p)
+{
   if (!is_string(p)) {
     JSValue o_gcroot = o;
     GC_PUSH(o_gcroot);
@@ -177,7 +148,8 @@ JSValue get_object_prop(Context *ctx, JSValue o, JSValue p) {
  *  o: object
  *  p: property, which is a string
  */
-int has_prop_prototype_chain(JSValue o, JSValue p) {
+int has_prop_prototype_chain(JSValue o, JSValue p)
+{
   JSValue ret;
   while (is_object(o)) {
     if (get_prop(o, p, &ret) == SUCCESS)
@@ -193,13 +165,16 @@ int has_prop_prototype_chain(JSValue o, JSValue p) {
  *  a: array
  *  n: subscript
  */
-int has_array_element(JSValue a, cint n) {
-  if (!is_array(a)) return FALSE;
-  if (n < 0 || array_length(a) <= n) return FALSE;
-  /* in body of a */
-  /* is it ok that a[n] (0 <= n < len) always exists? */
-  if (n < array_size(a)) return TRUE;
-  /* in property of a */
+int has_array_element(JSValue a, cint n)
+{
+  if (!is_array(a))
+    return FALSE;
+  if (n < 0 || array_length(a) <= n)
+    return FALSE;
+  /* in body of 'a' */
+  if (n < array_size(a))
+    return TRUE;
+  /* in property of 'a' */
   return has_prop_prototype_chain(a, cint_to_string(n));
 }
 
@@ -257,7 +232,7 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
     p = to_string(ctx, p);
     GC_POP(a);
   }
-  /* assert: is_string(p) == true */
+  assert(is_string(p));
   {
     JSValue num;
     cint n;
@@ -272,8 +247,6 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p) {
   }
 }
 
-#ifdef RICH_HIDDEN_CLASS
-#ifdef EMBED_PROP
 static void expand_overflow_props(Context *ctx, JSValue obj,
                                   int old_size, int new_size)
 {
@@ -304,7 +277,6 @@ static int compute_new_limit_props(int n_embedded, int n_limit, int n_prop)
   }
   return n_limit;
 }
-#endif /* EMBED_PROP */
 
 /*
  * sets an object's property value with its attribute
@@ -314,14 +286,12 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
 {
   int index;
 
-#ifdef HIDDEN_CLASS_PROTO
   if (name == gconsts.g_string___proto__) {
     HiddenClass *hc = obj_hidden_class(obj);
     JSValue proto = hidden_proto(hc);
     if (proto == v)
       return SUCCESS;
   }
-#endif /* HIDDEN_CLASS_PROTO */
 
   index = prop_index(obj, name);
   if (index == -1) {
@@ -337,11 +307,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         GC_POP3(v, name, obj);
         hc = obj_hidden_class(obj);
         ret = hash_put_with_attribute(hidden_map(nhc), name, index, attr);
-#ifdef HIDDEN_CLASS_PROTO
         /* "__proto__" is overrridden */
         if (name == gconsts.g_string___proto__)
           hidden_proto(nhc) = JS_UNDEFINED;
-#endif /* HIDDEN_CLASS_PROTO */
         if (ret != HASH_PUT_SUCCESS)
           return FAIL;
         hidden_n_entries(nhc)++;
@@ -350,18 +318,9 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         hidden_n_entries(hc)++;
       }
       if (prev_limit < hidden_n_limit_props(nhc)) {
-#ifdef EMBED_PROP
         GC_PUSH3(obj, v, nhc);
         expand_overflow_props(ctx, obj, prev_limit, hidden_n_limit_props(nhc));
         GC_POP3(nhc, v, obj);
-#else /* EMBED_PROP */
-        JSValue * props;
-        GC_PUSH3(obj, v, nhc);
-        props = reallocate_prop_table(ctx, obj_prop(obj), prev_limit,
-                                      hidden_n_limit_props(nhc));
-        GC_POP3(nhc, v, obj);
-        obj_prop(obj) = props;
-#endif /* EMBED_PROP */
       }
       hidden_n_exit(obj_hidden_class(obj))++;
       n_exit_hc++;
@@ -374,7 +333,6 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
 #endif /* PROFILE */
     } else { /* hidden_htype(hc) == HTYPE_GROW */
       int ret;
-#ifdef EMBED_PROP
       int new_limit = compute_new_limit_props(hidden_n_embedded_props(hc),
                                               prev_limit,
                                               hidden_n_props(hc) + 1);
@@ -384,125 +342,15 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         expand_overflow_props(ctx, obj, prev_limit, new_limit);
         GC_POP4(hc, v, name, obj);
       }
-#else /* EMBED_PROP */
-      if (prev_limit <= hidden_n_props(hc)) {
-        JSValue *props;
-        int new_limit;
-        CHECK_INCREASE_PROPERTY(hidden_n_props(hc));
-        new_limit = hidden_n_props(hc) + PSIZE_DELTA;
-        hidden_n_limit_props(hc) = new_limit;
-        GC_PUSH2(obj, v);
-        props = reallocate_prop_table(ctx, obj_prop(obj),
-                                      hidden_n_props(hc), new_limit);
-        GC_POP2(v, obj);
-        obj_prop(obj) = props;
-      }
-#endif /* EMBED_PROP */
       ret = hash_put_with_attribute(hidden_map(hc), name, index, attr);
       hidden_n_props(hc)++;
       if (ret != HASH_PUT_SUCCESS)
         return FAIL;
     }
   }
-#ifdef EMBED_PROP
-  /* printf("set_prop: index = %d\n", index); */
   set_obj_prop_index(obj, index, v);
-#else /* EMBED_PROP */
-  obj_prop_index(obj, index) = v;
-#endif /* EMBED_PROP */
   return SUCCESS;
 }
-#else /* RICH_HIDDEN_CLASS */
-/*
- * sets an object's property value with its attribute
- */
-int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, Attribute attr) {
-  uint64_t retv, newsize;
-  int index, r;
-#ifdef HIDDEN_CLASS
-  HiddenClass *nexth, *oh;
-#endif /* HIDDEN_CLASS */
-
-  /*
-   * printf("set_prop_with_attribute: obj = %p, name = %s, v = %p\n",
-   *        obj, string_to_cstr(name), v);
-   */
-  index = prop_index(obj, name);
-  /* printf("set_prop_with_index: index = %d\n", index); */
-  if (index == -1) {
-    /* The specified property is not registered in the hash table. */
-    retv = obj_n_props(obj);
-    if (retv >= obj_limit_props(obj)) {
-      int newsize;
-      CHECK_INCREASE_PROPERTY(retv);
-      newsize = retv + PSIZE_DELTA;
-      GC_PUSH3(obj, name, v);
-      obj_prop(obj) = reallocate_prop_table(ctx, obj_prop(obj), retv, newsize);
-      GC_POP3(v, name, obj);
-      obj_limit_props(obj) = newsize;
-    }
-    index = (cint)retv;
-    /* printf("set_prop_with_index: index = %d\n", index); */
-#ifdef HIDDEN_CLASS
-    oh = obj_hidden_class(obj);    /* source hidden class */
-    /*
-     * if (hidden_htype(oh) == HTYPE_TRANSIT)
-     *   print_hidden_class("transit_hidden_class: from (TRANSIT)", oh);
-     * else
-     *   print_hidden_class("transit_hidden_class: from (GROW)", oh);
-     */
-    if (hidden_htype(oh) == HTYPE_TRANSIT) {
-      nexth = hclass;    /* NULL or pointer to the next hidden class */
-      if (nexth == NULL) {
-        /* printf("transit_hidden_class: making the next hidden class\n"); */
-        GC_PUSH4(obj, name, v, oh);
-        nexth = new_hidden_class(ctx, oh);
-        GC_POP4(oh, v, name, obj);
-        /*
-         * print_hidden_class("transit_hidden_class: to (before put)", nexth);
-         */
-        GC_PUSH2(nexth, oh);
-        r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
-        if (r != HASH_PUT_SUCCESS) {
-          GC_POP2(oh, nexth);
-          return FAIL;
-        }
-        hidden_n_entries(nexth)++;
-        hash_put_with_attribute(hidden_map(oh), name, (HashData)nexth,
-                                ATTR_NONE | ATTR_TRANSITION);
-        GC_POP2(oh, nexth);
-        hidden_n_entries(oh)++;
-      }
-      hidden_n_exit(obj_hidden_class(obj))++;
-      n_exit_hc++;
-      obj_hidden_class(obj) = nexth;
-      hidden_n_enter(nexth)++;
-      n_enter_hc++;
-#ifdef PROFILE
-      if (obj_profile_id(obj))
-        hidden_n_profile_enter(nexth)++;
-#endif /* PROFILE */
-    } else {                  /* hidden_htype(oh) == HTYPE_GROW */
-      nexth = oh;
-      GC_PUSH(nexth);
-      r = hash_put_with_attribute(hidden_map(nexth), name, index, attr);
-      GC_POP(nexth);
-      if (r != HASH_PUT_SUCCESS) return FAIL;
-      hidden_n_entries(nexth)++;
-    }
-    /* print_hidden_class("transit_hidden_class: to (after put)", nexth); */
-#else /* HIDDEN_CLASS */
-    GC_PUSH(obj);
-    r = hash_put_with_attribute(obj_map(obj), name, index, attr);
-    GC_POP(obj);
-    if (r != HASH_PUT_SUCCESS) return FAIL;
-#endif /* HIDDEN_CLASS */
-    (obj_n_props(obj)) = index + 1;
-  }
-  obj_prop_index(obj, index) = v;
-  return SUCCESS;
-}
-#endif /* RICH_HIDDEN_CLASS */
 
 /*
  * sets object's property
@@ -517,7 +365,6 @@ int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v) {
     p = to_string(ctx, p);
     GC_POP2(v, o);
   }
-  /* printf("set_object_prop: "); print_value_verbose(ctx, p); printf("\n"); */
   return set_prop_none(ctx, o, p, v);
 }
 
@@ -683,29 +530,21 @@ void remove_array_props(JSValue a, cint from, cint to) {
  *   When using hidden class, this function does not delete a property
  *   of an object but merely sets the corresponding property as JS_UNDEFINED,
  */
-int delete_object_prop(JSValue obj, HashKey key) {
+int delete_object_prop(JSValue obj, HashKey key)
+{
   int index;
 
-  if (!is_object(obj)) return FAIL;
+  if (!is_object(obj))
+    return FAIL;
 
   /* Set corresponding property as JS_UNDEFINED */
   index = prop_index(obj, key);
-  if (index == - 1) return FAIL;
-#ifdef EMBED_PROP
+  if (index == - 1)
+    return FAIL;
   set_obj_prop_index(obj, index, JS_UNDEFINED);
-#else /* EMBED_PROP */
-  obj_prop_index(obj, index) = JS_UNDEFINED;
-#endif /* EMBED_PROP */
 
   /* Delete map */
-#ifdef HIDDEN_CLASS
-  /*
-   * LOG("To delete properties of an object is not completely implemented when using hidden class (instead set a property to undefined)\n");
-   */
-#else
-  /* Free the HashCell */
-  if(hash_delete(obj_map(obj), key) == HASH_GET_FAILED) return FAIL;
-#endif
+  LOG_EXIT("delete is not implemented");
   return SUCCESS;
 }
 
@@ -713,7 +552,8 @@ int delete_object_prop(JSValue obj, HashKey key) {
  * delete a[n]
  * Note that this function does not change a.length
  */
-int delete_array_element(JSValue a, cint n) {
+int delete_array_element(JSValue a, cint n)
+{
   if (n < array_size(a)) {
     array_body_index(a, n) = JS_UNDEFINED;
     return SUCCESS;
@@ -725,7 +565,8 @@ int delete_array_element(JSValue a, cint n) {
  * obtains the next property name in an iterator
  * iter:Iterator
  */
-int iterator_get_next_propname(JSValue iter, JSValue *name) {
+int iterator_get_next_propname(JSValue iter, JSValue *name)
+{
   int size = iterator_size(iter);
   int index = iterator_index(iter);
   if(index < size) {
@@ -742,7 +583,8 @@ int iterator_get_next_propname(JSValue iter, JSValue *name) {
 /*
  * sets a regexp's members and makes an Oniguruma's regexp object
  */
-int set_regexp_members(Context *ctx, JSValue re, char *pat, int flag) {
+int set_regexp_members(Context *ctx, JSValue re, char *pat, int flag)
+{
   OnigOptionType opt;
   OnigErrorInfo err;
   char *e;
@@ -789,7 +631,8 @@ int set_regexp_members(Context *ctx, JSValue re, char *pat, int flag) {
 /*
  * returns a flag value from a ragexp objext
  */
-int regexp_flag(JSValue re) {
+int regexp_flag(JSValue re)
+{
   int flag;
 
   flag = 0;
@@ -818,7 +661,6 @@ int regexp_flag(JSValue re) {
  * If HIDDEN_CLASS is defined, hsize == 0 means that g_hidden_class_0
  * should be used instead of allocating a new hidden class.
  */
-#ifdef ARRAY_EMBED_PROP
 static void set_object_members_with_class(Object *p, HiddenClass *hc)
 {
   size_t i;
@@ -837,68 +679,6 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
     p->eprop[i] = JS_UNDEFINED;
 }
 
-#ifndef HIDDEN_CLASS_PROTO
-static void set_object_members(Object *p, int hsize, int psize)
-{
-  if (hsize == 0)
-    set_object_members_with_class(p, gobjects.g_hidden_class_0);
-  else {
-    HiddenClass *hc = new_empty_hidden_class(NULL, hsize, psize,
-                                             0, 0, HTYPE_GROW);
-    set_object_members_with_class(p, hc);
-  }
-}
-#endif /* HIDDEN_CLASS_PROTO */
-#else /* ARRAY_EMBED_PROP */
-static void set_object_members(Object *p, int hsize, int psize)
-{
-#ifdef PROFILE
-  if (logflag())
-    p->profile_id = ++profile_object_count;
-  else
-    p->profile_id = 0;
-#endif /* PROFILE */
-#ifdef HIDDEN_CLASS
-#ifdef RICH_HIDDEN_CLASS
-  p->klass = ((hsize == 0)?
-              gobjects.g_hidden_class_0:
-              new_empty_hidden_class(NULL, hsize, psize, HTYPE_GROW));
-#else /* RICH_HIDDEN_CLASS */
-  p->klass = ((hsize == 0)?
-              gobjects.g_hidden_class_0:
-              new_empty_hidden_class(NULL, hsize, HTYPE_GROW));
-#endif /* RICH_HIDDEN_CLASS */
-  hidden_n_enter(p->klass)++;
-  n_enter_hc++;
-#ifdef PROFILE
-  if (p->profile_id)
-    p->klass->n_profile_enter++;
-#endif /* PROFILE */
-#else
-  Map *a;
-  a = malloc_hashtable();
-  hash_create(a, hsize);
-  p->map = a;
-#endif
-#ifdef RICH_HIDDEN_CLASS
-#ifdef EMBED_PROP
-  {
-    int i;
-    for (i = 0; i < psize; i++)
-      p->eprop[i] = JS_UNDEFINED;
-  }
-#else /* EMBED_PROP */
-  p->prop = allocate_prop_table(hidden_n_limit_props(p->klass));
-#endif /* EMBED_PROP */
-#else /* RICH_HIDDEN_CLASS */
-  p->prop = allocate_prop_table(psize);
-  p->n_props = 0;
-  p->limit_props = psize;
-#endif /* RICH_HIDDEN_CLASS */
-}
-#endif /* ARRAY_EMBED_PROP */
-
-#ifdef HIDDEN_CLASS_PROTO
 JSValue new_object_proto_object(Context *ctx, int hsize, int psize)
 {
   JSValue ret;
@@ -909,29 +689,6 @@ JSValue new_object_proto_object(Context *ctx, int hsize, int psize)
   set_object_members_with_class(p, gobjects.g_hidden_class_top);
   return ret;
 }
-#else /* HIDDEN_CLASS_PROTO */
-/*
- * makes a simple object whose __proto__ property is not set yet
- *   hsize: size of the hash table
- *   psize: size of the array of property values
- */
-JSValue new_simple_object_without___proto__(Context *ctx, int hsize,
-                                            int psize)
-{
-  JSValue ret;
-  Object *p;
-
-  /*  printf("new_simple_object_without_prototype\n"); */
-#ifdef EMBED_PROP
-  ret = make_simple_object(ctx, psize);
-#else /* EMBED_PROP */
-  ret = make_simple_object(ctx);
-#endif /* EMBED_PROP */
-  p = remove_simple_object_tag(ret);
-  set_object_members(p, hsize, psize);
-  return ret;
-}
-#endif /* HIDDEN_CLASS_PROTO */
 
 /*
  * makes a new simple object
@@ -942,20 +699,10 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
   JSValue ret;
   Object *p;
 
-  /* printf("new_simple_object\n"); */
-#ifdef EMBED_PROP
   ret = make_simple_object(ctx, psize);
-#else /* EMBED_PROP */
-  ret = make_simple_object(ctx);
-#endif /* EMBED_PROP */
   GC_PUSH(ret);
   p = remove_simple_object_tag(ret);
-#ifdef HIDDEN_CLASS_PROTO
   set_object_members_with_class(p, gobjects.g_hidden_class_0);
-#else /* HIDDEN_CLASS_PROTO */
-  set_object_members(p, hsize, psize);
-  set___proto___all(ctx, ret, gconsts.g_object_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -987,24 +734,13 @@ JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
 
   disable_gc();
   ret = make_function(ctx);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(func_object_p(ret),
                                 gobjects.g_hidden_class_function);
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(func_object_p(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else
-  set_object_members(func_object_p(ret), hsize, vsize);
-#endif /* EMBED_PROP */
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
   GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_function_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -1019,25 +755,14 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
 
   disable_gc();
   ret = make_builtin(ctx);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(builtin_object_p(ret),
                                 gobjects.g_hidden_class_builtin);
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(builtin_object_p(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(builtin_object_p(ret), hsize, psize);
-#endif /* EMBED_PROP */
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
   GC_PUSH(ret);
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_function_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -1069,11 +794,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
      * printf("Object %016llx: (type = %d, n_props = %lld)\n",
      *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
      */
-#ifdef RICH_HIDDEN_CLASS
     size += hidden_n_props(obj_hidden_class(tmpobj));
-#else /* RICH_HIDDEN_CLASS */
-    size += obj_n_props(tmpobj);
-#endif /* RICH_HIDDEN_CLASS */
     get___proto__(tmpobj, &tmpobj);
   } while (tmpobj != JS_NULL);
   /* printf("size = %d\n", size); */
@@ -1086,19 +807,12 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     HashIterator hi;
     HashCell *p;
 
-#ifdef HIDDEN_CLASS
     ht = obj_hidden_class_map(obj);
-#else
-    ht = obj_map(obj);
-#endif
     init_hash_iterator(ht, &hi);
 
     while (nextHashCell(ht, &hi, &p) == SUCCESS) {
-#ifdef HIDDEN_CLASS
-      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION)) continue;
-#else
-      if ((JSValue)p->entry.attr & ATTR_DE) continue;
-#endif
+      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION))
+        continue;
       iterator_body_index(iter, index++) = (JSValue)p->entry.key;
     }
     get___proto__(obj, &obj);
@@ -1115,26 +829,14 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
   JSValue ret;
 
   ret = make_regexp(ctx);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(builtin_object_p(ret),
                                 gobjects.g_hidden_class_regexp);
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(regexp_object_p(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(regexp_object_p(ret), hsize, vsize);
-#endif /* EMBED_PROP */
   /* pattern field is set in set_regexp_members */
-  /* regexp_pattern(ret) = NULL; */
   regexp_reg(ret) = NULL;
   regexp_global(ret) = false;
   regexp_ignorecase(ret) = false;
   regexp_multiline(ret) = false;
   regexp_lastindex(ret) = 0;
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_regexp_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   return
     (set_regexp_members(ctx, ret, pat, flag) == SUCCESS)? ret: JS_UNDEFINED;
 }
@@ -1149,25 +851,9 @@ JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(v);
   ret = make_number_object(ctx);
   GC_PUSH(ret);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
-#ifdef HIDDEN_CLASS_PROTO
   set_object_members_with_class(number_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed_number);
-#else /* HIDDEN_CLASS_PROTO */
-  set_object_members_with_class(number_object_object_p(ret),
-                                gobjects.g_hidden_class_boxed);
-#endif /* HIDDEN_CLASS_PROTO */
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(number_object_object_ptr(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(number_object_object_ptr(ret), hsize, psize);
-#endif /* EMBED_PROP */
   number_object_value(ret) = v;
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_number_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   GC_POP2(ret,v);
   return ret;
 }
@@ -1182,26 +868,10 @@ JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
   GC_PUSH(v);
   ret = make_boolean_object(ctx);
   GC_POP(v);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
-#ifdef HIDDEN_CLASS_PROTO
   set_object_members_with_class(boolean_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed_boolean);
-#else /* HIDDEN_CLASS_PROTO */
-  set_object_members_with_class(boolean_object_object_p(ret),
-                                gobjects.g_hidden_class_boxed);
-#endif /* HIDDEN_CLASS_PROTO */
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(boolean_object_object_ptr(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(boolean_object_object_ptr(ret), hsize, psize);
-#endif /* EMBED_PROP */
   boolean_object_value(ret) = v;
   GC_PUSH(ret);
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_boolean_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
 }
@@ -1214,21 +884,10 @@ JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
 
   GC_PUSH(v);
   ret = make_string_object(ctx);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
   set_object_members_with_class(string_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed_string);
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(string_object_object_ptr(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(string_object_object_ptr(ret), hsize, psize);
-#endif /* EMBED_PROP */
   string_object_value(ret) = v;
   GC_PUSH(ret);
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_string_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   /*
    * A boxed string has a property ``length'' whose associated value
    * is the length of the string.
@@ -1254,21 +913,11 @@ double cstr_to_double(char* cstr) {
   else return NAN;
 }
 
-#ifdef HIDDEN_CLASS
 /*
  * allocates a new empty hidden class
  */
-#ifdef RICH_HIDDEN_CLASS
-#ifdef ARRAY_EMBED_PROP
 HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
                                     int n_normal, int n_special, int htype)
-#else /* ARRAY_EMBED_PROP */
-HiddenClass *new_empty_hidden_class(Context *ctx, int hsize,
-                                    int psize, int htype)
-#endif /* ARRAY_EMBED_PROP */
-#else /* RICH_HIDDEN_CLASS */
-HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
-#endif /* RICH_HIDDEN_CLASS */
 {
   HiddenClass *c;
   Map *a;
@@ -1282,25 +931,11 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
   hidden_htype(c) = htype;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-#ifdef RICH_HIDDEN_CLASS
-#ifdef ARRAY_EMBED_PROP
-#ifdef HIDDEN_CLASS_PROTO
-  hidden_proto(c) = JS_NULL;
-#endif /* HIDDEN_CLASS_PROTO */
   hidden_n_props(c) = n_normal + n_special;
-#else /* ARRAY_EMBED_PROP */
-  hidden_n_props(c) = 0;
-#endif /* ARRAY_EMBED_PROP */
-#ifdef EMBED_PROP
+  hidden_proto(c) = JS_NULL;
   hidden_n_limit_props(c) = 0;
   hidden_n_embedded_props(c) = psize;
-#ifdef ARRAY_EMBED_PROP
   hidden_n_special_props(c) = n_special;
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  hidden_n_limit_props(c) = psize;
-#endif /* EMBED_PROP */
-#endif /* RICH_HIDDEN_CLASS */
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = NULL;
 #endif /* HC_DEBUG */
@@ -1335,9 +970,7 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-#ifdef RICH_HIDDEN_CLASS
   hidden_n_props(c) = hidden_n_props(oldc) + 1;
-#ifdef EMBED_PROP
   {
     int n_embedded = hidden_n_embedded_props(oldc);
     int n_limit = hidden_n_limit_props(oldc);
@@ -1346,21 +979,8 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
     hidden_n_limit_props(c) =
       compute_new_limit_props(n_embedded, n_limit, n_prop);
   }
-#else /* EMBED_PROP */
-  if (hidden_n_props(c) <= hidden_n_limit_props(oldc))
-    hidden_n_limit_props(c) = hidden_n_limit_props(oldc);
-  else {
-    CHECK_INCREASE_PROPERTY(hidden_n_limit_props(oldc));
-    hidden_n_limit_props(c) = hidden_n_limit_props(oldc) + PSIZE_DELTA;
-  }
-#endif /* EMBED_PROP */
-#ifdef ARRAY_EMBED_PROP
-#ifdef HIDDEN_CLASS_PROTO
   hidden_proto(c) = hidden_proto(oldc);
-#endif /* HIDDEN_CLASS_PROTO */
   hidden_n_special_props(c) = hidden_n_special_props(oldc);
-#endif /* ARRAY_EMBED_PROP */
-#endif /* RICH_HIDDEN_CLASS */
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = oldc;
 #endif /* HC_DEBUG */
@@ -1411,32 +1031,24 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
 
 void print_all_hidden_class(void) {
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
-#ifdef ARRAY_EMBED_PROP
   print_hidden_class_recursive("hidden_class_array",
                                gobjects.g_hidden_class_array);
   print_hidden_class_recursive("hidden_class_function",
                                gobjects.g_hidden_class_function);
   print_hidden_class_recursive("hidden_class_builtin",
                                gobjects.g_hidden_class_builtin);
-#ifdef HIDDEN_CLASS_PROTO
   print_hidden_class_recursive("hidden_class_boxed_number",
                                gobjects.g_hidden_class_boxed_number);
   print_hidden_class_recursive("hidden_class_boxed_boolean",
                                gobjects.g_hidden_class_boxed_boolean);
-#else /* HIDDEN_CLASS_PROTO */
-  print_hidden_class_recursive("hidden_class_boxed",
-                               gobjects.g_hidden_class_boxed);
-#endif /* HIDDEN_CLASS_PROTO */
   print_hidden_class_recursive("hidden_class_boxed_string",
                                gobjects.g_hidden_class_boxed_string);
 #ifdef USE_REGEXP
   print_hidden_class_recursive("hidden_class_regexp",
                                gobjects.g_hidden_class_regexp);
 #endif /* USE_REGEXP */
-#endif /* ARRAY_EMBED_PROP */
 }
 #endif /* PROFILE */
-#endif
 
 /* Local Variables:      */
 /* mode: c               */

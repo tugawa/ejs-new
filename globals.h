@@ -35,12 +35,8 @@ EXTERN struct global_constant_objects {
   JSValue g_regexp_proto;
   JSValue g_fixnum_to_string;
   JSValue g_flonum_to_string;
-  /* JSValue g_string_to_index; */
 
-#ifdef HIDDEN_CLASS_PROTO
   JSValue g_string___hidden_class__;
-#endif /* HIDDEN_CLASS_PROTO */
-
   JSValue g_string_prototype;
   JSValue g_string___proto__;
   JSValue g_string_tostring;
@@ -68,27 +64,17 @@ EXTERN struct global_constant_objects {
 } gconsts;
 
 EXTERN struct global_malloced_objects {
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_CLASS_PROTO
   HiddenClass *g_hidden_class_top;
-#endif /* HIDDEN_CLASS_PROTO */
   HiddenClass *g_hidden_class_0;
-#ifdef ARRAY_EMBED_PROP
   HiddenClass *g_hidden_class_array;
   HiddenClass *g_hidden_class_function;
   HiddenClass *g_hidden_class_builtin;
-#ifdef HIDDEN_CLASS_PROTO
   HiddenClass *g_hidden_class_boxed_number;
   HiddenClass *g_hidden_class_boxed_boolean;
-#else /* HIDDEN_CLASS_PROTO */
-  HiddenClass *g_hidden_class_boxed;
-#endif /* HIDDEN_CLASS_PROTO */
   HiddenClass *g_hidden_class_boxed_string;
 #ifdef USE_REGEXP
   HiddenClass *g_hidden_class_regexp;
 #endif /* USE_REGEXP */
-#endif /* ARRAY_EMBED_PROP */
-#endif
 } gobjects;
 
 /* Local Variables:      */

@@ -40,16 +40,14 @@ extern FILE *prof_stream;
 extern int logflag_stack[];
 extern int logflag_sp;
 #define logflag()   (logflag_sp >= 0 ? logflag_stack[logflag_sp] : 0)
-#endif
+#endif /* PROFILE */
 
 extern InsnInfo insn_info_table[];
 extern int numinsts;
 
-#ifdef HIDDEN_CLASS
 extern int n_hc;
 extern int n_enter_hc;
 extern int n_exit_hc;
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,19 +59,10 @@ extern "C" {
 extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
-#define allocate_simple_object(ctx, nemb)        \
+#define allocate_simple_object(ctx, nemb)               \
   allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
 extern Object *allocate_jsobject(Context *ctx, size_t n_embedded,
                                  cell_type_t htag);
-#else /* ARRAY_EMBED_PROP */
-extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-extern Object *allocate_simple_object(Context *ctx);
-#endif /* EMBED_PROP */
-#ifdef ARRAY_EMBED_PROP
 #define allocate_function(ctx)                                  \
   allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
 #define allocate_builtin(ctx)                                           \
@@ -81,15 +70,6 @@ extern Object *allocate_simple_object(Context *ctx);
 /* allocate_jsobject is called directly in types.h for boxed types */
 #define allocate_regexp(ctx)                                    \
   allocate_jsobject((ctx), REX_EMBEDDED_PROPS, HTAG_REGEXP)
-#else /* ARRAY_EMBED_PROP */
-extern ArrayCell *allocate_array(Context *ctx);
-extern FunctionCell *allocate_function(void);
-extern BuiltinCell *allocate_builtin(void);
-extern BoxedCell *allocate_boxed(Context *,uint32_t);
-#ifdef USE_REGEXP
-extern RegexpCell *allocate_regexp(void);
-#endif
-#endif /* ARRAY_EMBED_PROP */
 extern JSValue *allocate_jsvalue_array(Context *ctx, int size);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern JSValue *allocate_prop_table(int);
@@ -217,9 +197,7 @@ extern int hash_create(HashTable *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
 extern int hash_get(HashTable *, HashKey, HashData *);
 extern int hash_put_with_attribute(HashTable *, HashKey, HashData, Attribute);
-#ifdef HIDDEN_CLASS
 extern int hash_copy(Context *, HashTable *, HashTable *);
-#endif
 extern int hash_delete(HashTable *table, HashKey key);
 extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
@@ -276,15 +254,9 @@ extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);
 extern int iterator_get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
-#ifdef need_regexp
 extern int regexp_flag(JSValue);
-#endif /* need_regexp */
-#endif
-#ifdef HIDDEN_CLASS_PROTO
+#endif /* USE_REGEXP */
 extern JSValue new_object_proto_object(Context *, int, int);
-#else /* HIDDEN_CLASS_PROTO */
-extern JSValue new_simple_object_without___proto__(Context *, int, int);
-#endif /* HIDDEN_CLASS_PROTO */
 extern JSValue new_simple_object(Context *, int, int);
 extern JSValue new_array(Context *, int);
 extern JSValue new_function(Context *, Subscript, int, int);
@@ -292,28 +264,16 @@ extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_fu
 extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
 extern JSValue new_iterator(Context *, JSValue);
 #ifdef USE_REGEXP
-#ifdef need_regexp
 extern JSValue new_regexp(Context *, char *, int, int, int);
-#endif /* need_regexp */
-#endif // USE_REGEXP
+#endif /* USE_REGEXP */
 extern JSValue new_number_object(Context *, JSValue, int, int);
 extern JSValue new_boolean_object(Context *, JSValue, int, int);
 extern JSValue new_string_object(Context *, JSValue, int, int);
 extern char *space_chomp(char *);
-#ifdef HIDDEN_CLASS
-#ifdef RICH_HIDDEN_CLASS
-#ifdef ARRAY_EMBED_PROP
 extern HiddenClass *new_empty_hidden_class(Context *, int, int, int, int, int);
-#else /* ARRAY_EMBED_PROP */
-extern HiddenClass *new_empty_hidden_class(Context *, int, int, int);
-#endif /* ARRAY_EMBED_PROP */
-#else /* RICH_HIDDEN_CLASS */
-extern HiddenClass *new_empty_hidden_class(Context *, int, int);
-#endif /* RICH_HIDDEN_CLASS */
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
 extern void print_hidden_class(char *, HiddenClass *);
 extern void print_all_hidden_class(void);
-#endif
 
 /*
  * operations.c
@@ -345,10 +305,8 @@ extern void init_builtin_string(Context *);
 extern void init_builtin_boolean(Context *);
 extern void init_builtin_math(Context *);
 #ifdef USE_REGEXP
-#ifdef need_regexp
 extern void init_builtin_regexp(Context *);
-#endif /* need_regexp */
-#endif
+#endif /* USE_REGEXP */
 
 /*
  * gc.c
