@@ -72,11 +72,6 @@ typedef uint16_t Subscript;
 typedef uint16_t Tag;
 
 /*
- * Object
- * tag == T_GENERIC
- */
-#ifdef HIDDEN_CLASS
-/*
  * Hidden Class Transition
  *
  * A hidden class has a hash table, where each key is a property name
@@ -90,34 +85,26 @@ typedef uint16_t Tag;
  */
 typedef struct hidden_class {
   uint32_t n_entries;
-  uint32_t htype;         /* HTYPE_TRANSIT or HTYPE_GROW */
-  HashTable *map;         /* map which is explained above */
-#ifdef RICH_HIDDEN_CLASS
+  uint32_t htype;            /* HTYPE_TRANSIT or HTYPE_GROW */
+  HashTable *map;            /* map which is explained above */
   uint32_t n_props;          /* number of properties */
   uint32_t n_limit_props;    /* capacity of the array for properties */
-#ifdef EMBED_PROP
   uint32_t n_embedded_props; /* number of properites embedded in the object */
-#ifdef ARRAY_EMBED_PROP
   uint32_t n_special_props;  /* number of properties that are not registered
                               * in the map, which may not be JSValues */
-#ifdef HIDDEN_CLASS_PROTO
-  JSValue __proto__;      /* Hidden class or JS_EMPTY, which means
-                           * object instance has __proto__ property */
-#endif /* HIDDEN_CLASS_PROTO */
-#endif /* ARRAY_EMBED_PROP */
-#endif /* EMBED_PROP */
-#endif /* RICH_HIDDEN_CLASS */
+  JSValue __proto__;         /* Hidden class or JS_EMPTY, which means
+                              * object instance has __proto__ property */
 
 #ifdef HC_DEBUG
   struct hidden_class *dbg_prev;
 #endif /* HC_DEBUG */
 #ifdef PROFILE
   struct hidden_class *prev;
-  uint32_t n_profile_enter; /* number of times this class is used for object
-                               marked for profilling */
+  uint32_t n_profile_enter;  /* number of times this class is used for object
+                              * marked for profilling */
 #endif /* PROFILE */
-  uint32_t n_enter;         /* number of times this class is used */
-  uint32_t n_exit;          /* number of times this class is left */
+  uint32_t n_enter;          /* number of times this class is used */
+  uint32_t n_exit;           /* number of times this class is left */
 } HiddenClass;
 
 #define hidden_n_entries(h)        ((h)->n_entries)
@@ -125,19 +112,11 @@ typedef struct hidden_class {
 #define hidden_n_enter(h)          ((h)->n_enter)
 #define hidden_n_exit(h)           ((h)->n_exit)
 #define hidden_map(h)              ((h)->map)
-#ifdef RICH_HIDDEN_CLASS
 #define hidden_n_props(h)          ((h)->n_props)
 #define hidden_n_limit_props(h)    ((h)->n_limit_props)
-#ifdef EMBED_PROP
 #define hidden_n_embedded_props(h) ((h)->n_embedded_props)
-#ifdef ARRAY_EMBED_PROP
 #define hidden_n_special_props(h)  ((h)->n_special_props)
-#ifdef HIDDEN_CLASS_PROTO
 #define hidden_proto(h)            ((h)->__proto__)
-#endif /* HIDDEN_CLASS_PROTO */
-#endif /* ARRAY_EMBED_PROP */
-#endif /* EMBED_PROP */
-#endif /* RICH_HIDDEN_CLASS */
 #ifdef HC_DEBUG
 #define hidden_dbg_prev(h)         ((h)->dbg_prev)
 #endif /* HC_DEBUG */
@@ -148,9 +127,6 @@ typedef struct hidden_class {
 
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
-
-#endif
-
 
 #define PSIZE_NORMAL   1  /* default initial size of the property array */
 #define PSIZE_BIG    100
@@ -164,47 +140,29 @@ typedef struct hidden_class {
       LOG_EXIT("too many properties");          \
   } while(0)
 
+/*
+ * Object
+ * tag == T_GENERIC
+ */
 typedef struct object_cell {
 #ifdef PROFILE
   int profile_id;
 #endif /* PROFILE */
-#ifndef RICH_HIDDEN_CLASS
-  uint64_t n_props;       /* number of properties */
-  uint64_t limit_props;
-#endif /* RICH_HIDDEN_CLASS */
-#ifdef HIDDEN_CLASS
   HiddenClass *klass;     /* Hidden class for this object */
-#else
-  HashTable *map;         /* map from property name to the index within prop */
-#endif
-#ifdef EMBED_PROP
   JSValue eprop[PSIZE_NORMAL];
-#else /* EMBED_PROP */
-  JSValue *prop;          /* array of property values */
-#endif /* EMBED_PROP */
 } Object;
 
 #define remove_simple_object_tag remove_normal_simple_object_tag
 #define put_simple_object_tag    put_normal_simple_object_tag
 
-#ifdef EMBED_PROP
 #define make_simple_object(ctx, n)                              \
   (put_simple_object_tag(allocate_simple_object(ctx, (n))))
-#else
-#define make_simple_object(ctx)                         \
-  (put_simple_object_tag(allocate_simple_object(ctx)))
-#endif /* EMBED_PROP */
 #define remove_object_tag(p)    ((Object *)clear_tag(p))
 
 #define obj_n_props(p)         ((remove_object_tag(p))->n_props)
 #define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
-#ifdef HIDDEN_CLASS
 #define obj_hidden_class(p)    ((remove_object_tag(p))->klass)
 #define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
-#else
-#define obj_map(p)             ((remove_object_tag(p))->map)
-#endif
-#ifdef EMBED_PROP
 #define obj_eprop(p)           ((remove_object_tag(p))->eprop)
 #define obj_ovf_props(p,hc)    (obj_eprop(p)[hidden_n_embedded_props(hc) - 1])
 static inline JSValue get_obj_prop_index(JSValue p, int index)
@@ -229,10 +187,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
     of[index - (n_embedded - 1)] = v;
   }
 }
-#else /* EMBED_PROP */
-#define obj_prop(p)            ((remove_object_tag(p))->prop)
-#define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
-#endif /* EMBED_PROP */
 #ifdef PROFILE
 #define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
 #endif /* PROFILE */
@@ -240,23 +194,14 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
 
-#ifdef HIDDEN_CLASS
 #define HHH 0
-#else
-#define HHH HSIZE_NORMAL
-#endif
 
 #define new_normal_object(ctx)  new_simple_object(ctx, HHH, PSIZE_NORMAL)
 #define new_normal_predef_object(ctx)                   \
   new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
 #define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#ifdef HIDDEN_CLASS_PROTO
 #define new_object_proto(ctx)                               \
   new_object_proto_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#else /* HIDDEN_CLASS_PROTO */
-#define new_big_predef_object_without___proto__(ctx)                    \
-  new_simple_object_without___proto__(ctx, HSIZE_BIG, PSIZE_BIG)
-#endif /* HIDDEN_CLASS_PROTO */
 
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
 
@@ -282,22 +227,17 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
 #endif
 
-#ifdef ARRAY_EMBED_PROP
 
-/* Array -- a kind of JSObject */
+/*
+ * Array
+ */
 
 #define ARRAY_SPECIAL_PROPS       3
 #define ARRAY_XPROP_INDEX_SIZE    0
 #define ARRAY_XPROP_INDEX_LENGTH  1
 #define ARRAY_XPROP_INDEX_BODY    2
-#ifdef HIDDEN_CLASS_PROTO
 #define ARRAY_NORMAL_PROPS        1
 #define ARRAY_PROP_INDEX_LENGTH   3
-#else /* HIDDEN_CLASS_PROTO */
-#define ARRAY_NORMAL_PROPS        2
-#define ARRAY_PROP_INDEX_PROTO    3
-#define ARRAY_PROP_INDEX_LENGTH   4
-#endif /* HIDDEN_CLASS_PROTO */
 #define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
 #undef remove_normal_array_tag
@@ -317,32 +257,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define array_body_index(a,i)                   \
   ((JSValue *)array_body(a))[(i)]
 
-#else /* ARRAY_EMBED_PROP */
-
-/*
- * Array
- * tag == T_GENERIC
- */
-typedef struct array_cell {
-  Object o;
-  uint64_t size;        /* size of the C array pointed from `body' field */
-  uint64_t length;      /* length of the array, i.e., max subscript - 1 */
-  JSValue *body;        /* pointer to a C array */
-} ArrayCell;
-
-#define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
-
-#define new_normal_array_with_size(ctx, n)      \
-  new_array(ctx, n, HHH, PSIZE_NORMAL)
-
-#define array_object_p(a)     (&((remove_normal_array_tag(a))->o))
-#define array_size(a)         ((remove_normal_array_tag(a))->size)
-#define array_length(a)       ((remove_normal_array_tag(a))->length)
-#define array_body(a)         ((remove_normal_array_tag(a))->body)
-#define array_body_index(a,i) ((remove_normal_array_tag(a))->body[i])
-
-#endif /* ARRAY_EMBED_PROP */
-
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
@@ -352,23 +266,18 @@ typedef struct array_cell {
 
 #define MINIMUM_ARRAY_SIZE  100
 
-#ifdef ARRAY_EMBED_PROP
 
-/* Function -- a kind of JSObject */
+/*
+ * Function
+ */
 
 #define make_function(ctx)   (put_normal_function_tag(allocate_function(ctx)))
 
 #define FUNC_SPECIAL_PROPS        2
 #define FUNC_XPROP_INDEX_FTENTRY  0
 #define FUNC_XPROP_INDEX_ENV      1
-#ifdef HIDDEN_CLASS_PROTO
 #define FUNC_NORMAL_PROPS         1
 #define FUNC_PROP_INDEX_PROTOTYPE 2
-#else /* HIDDEN_CLASS_PROTO */
-#define FUNC_NORMAL_PROPS         2
-#define FUNC_PROP_INDEX_PROTO     2
-#define FUNC_PROP_INDEX_PROTOTYPE 3
-#endif /* HIDDEN_CLASS_PROTO */
 #define FUNC_EMBEDDED_PROPS       (FUNC_SPECIAL_PROPS + FUNC_NORMAL_PROPS)
 
 #undef remove_normal_function_tag
@@ -382,47 +291,19 @@ typedef struct array_cell {
 #define func_environment(o)                             \
   func_eprop(o, FunctionFrame *, FUNC_XPROP_INDEX_ENV)
 
-#else /* ARRAY_EMBED_PROP */
-/*
- * Function
- * tag == T_GENERIC
- */
-
-typedef struct function_cell {
-  Object o;
-  FunctionTable *func_table_entry;
-  FunctionFrame *environment;
-} FunctionCell;
-
-#define make_function(ctx)  (put_normal_function_tag(allocate_function()))
-
-#define func_object_p(f)    (&((remove_normal_function_tag(f))->o))
-#define func_table_entry(f) ((remove_normal_function_tag(f))->func_table_entry)
-#define func_environment(f) ((remove_normal_function_tag(f))->environment)
-
-#endif /* ARRAY_EMBED_PROP */
 
 /*
  * Builtin
- * tag == T_GENERIC
  */
 
 typedef void (*builtin_function_t)(Context*, int, int);
-
-#ifdef ARRAY_EMBED_PROP
 
 #define BUILTIN_SPECIAL_PROPS        3
 #define BUILTIN_XPROP_INDEX_BODY     0
 #define BUILTIN_XPROP_INDEX_CONSTR   1
 #define BUILTIN_XPROP_INDEX_ARGC     2
-#ifdef HIDDEN_CLASS_PROTO
 #define BUILTIN_NORMAL_PROPS         1
 #define BUILTIN_PROP_INDEX_PROTOTYPE 3
-#else /* HIDDEN_CLASS_PROTO */
-#define BUILTIN_NORMAL_PROPS         2
-#define BUILTIN_PROP_INDEX_PROTO     3
-#define BUILTIN_PROP_INDEX_PROTOTYPE 4
-#endif /* HIDDEN_CLASS_PROTO */
 #define BUILTIN_EMBEDDED_PROPS (BUILTIN_SPECIAL_PROPS + BUILTIN_NORMAL_PROPS)
 
 #undef remove_normal_builtin_tag
@@ -440,46 +321,11 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #define builtin_n_args(o)                               \
   builtin_eprop(o, uint64_t, BUILTIN_XPROP_INDEX_ARGC)
 
-#else /* ARRAY_EMBED_PROP */
-
-typedef struct builtin_cell {
-  Object o;
-  builtin_function_t body;
-  builtin_function_t constructor;
-  int n_args;            /* the number of required arguments */
-} BuiltinCell;
-
-#define make_builtin(ctx)       (put_normal_builtin_tag(allocate_builtin()))
-
-#define builtin_object_p(f)     (&((remove_normal_builtin_tag(f))->o))
-#define builtin_body(f)         ((remove_normal_builtin_tag(f))->body)
-#define builtin_constructor(f)  ((remove_normal_builtin_tag(f))->constructor)
-#define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
-
-#endif /* ARRAY_EMBED_PROP */
-
-/*
- * Iterator
- * tag == T_GENERIC
- */
-typedef struct iterator {
-  uint64_t size;        /* array size */
-  uint64_t index;       /* array index */
-  JSValue *body;        /* pointer to a C array */
-} Iterator;
-
-#define make_iterator()                                 \
-  (put_normal_iterator_tag(allocate_iterator()))
-#define iterator_size(i)                        \
-  ((remove_normal_iterator_tag(i))->size)
-#define iterator_index(i)                       \
-  ((remove_normal_iterator_tag(i))->index)
-#define iterator_body(i)                        \
-  ((remove_normal_iterator_tag(i))->body)
-#define iterator_body_index(a,i)                \
-  ((remove_normal_iterator_tag(a))->body[i])
 
 #ifdef USE_REGEXP
+/*
+ * Regexp
+ */
 
 #include <oniguruma.h>
 
@@ -488,8 +334,6 @@ typedef struct iterator {
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
 
-#ifdef ARRAY_EMBED_PROP
-
 #define REX_SPECIAL_PROPS       6
 #define REX_XPROP_INDEX_PATTERN 0
 #define REX_XPROP_INDEX_REX     1
@@ -497,12 +341,7 @@ typedef struct iterator {
 #define REX_XPROP_INDEX_IFLAG   3
 #define REX_XPROP_INDEX_MFLAG   4
 #define REX_XPROP_INDEX_LASTIDX 5
-#ifdef HIDDEN_CLASS_PROTO
 #define REX_NORMAL_PROPS        1
-#else /* HIDDEN_CLASS_PROTO */
-#define REX_NORMAL_PROPS        1
-#define REX_PROP_INDEX_PROTO    6
-#endif /* HIDDEN_CLASS_PROTO */
 #define REX_EMBEDDED_PROPS      (REX_SPECIAL_PROPS + REX_NORMAL_PROPS)
 
 #undef remove_normal_regexp_tag
@@ -520,54 +359,18 @@ typedef struct iterator {
 #define regexp_multiline(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_MFLAG)
 #define regexp_lastindex(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_LASTIDX)
 
-#else /* ARRAY_EMBED_PROP */
-
-/*
- * Regexp
- * tag == T_GENERIC
- */
-typedef struct regexp_cell {
-  Object o;
-  char *pattern;
-  regex_t *reg;
-  bool global;
-  bool ignorecase;
-  bool multiline;
-  int lastindex;
-} RegexpCell;
-
-#define make_regexp(ctx)       (put_normal_regexp_tag(allocate_regexp()))
-
-#define regexp_object_p(r)     (&((remove_normal_regexp_tag(r))->o))
-#define regexp_pattern(r)      ((remove_normal_regexp_tag(r))->pattern)
-#define regexp_reg(r)          ((remove_normal_regexp_tag(r))->reg)
-#define regexp_global(r)       ((remove_normal_regexp_tag(r))->global)
-#define regexp_ignorecase(r)   ((remove_normal_regexp_tag(r))->ignorecase)
-#define regexp_multiline(r)    ((remove_normal_regexp_tag(r))->multiline)
-#define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
-
-#endif /* ARRAY_EMBED_PROP */
 #endif /* USE_REGEXP */
 
-#ifdef ARRAY_EMBED_PROP
-
+/*
+ * Boxed values
+ */
 #define BOXED_SPECIAL_PROPS     1
 #define BOXED_XPROP_INDEX_VALUE 0
-#ifdef HIDDEN_CLASS_PROTO
 #define BOXED_NORMAL_PROPS      1
-#else /* HIDDEN_CLASS_PROTO */
-#define BOXED_NORMAL_PROPS      1
-#define BOXED_PROP_INDEX_PROTO  1
-#endif /* HIDDEN_CLASS_PROTO */
 #define BOXED_EMBEDDED_PROPS    (BOXED_SPECIAL_PROPS + BOXED_NORMAL_PROPS)
 
-#ifdef HIDDEN_CLASS_PROTO
 #define BOXEDSTR_NORMAL_PROPS      1
 #define BOXEDSTR_PROP_INDEX_LENGTH 1
-#else /* HIDDEN_CLASS_PROTO */
-#define BOXEDSTR_NORMAL_PROPS      2
-#define BOXEDSTR_PROP_INDEX_LENGTH 2
-#endif /* HIDDEN_CLASS_PROTO */
 #define BOXEDSTR_EMBEDDED_PROPS  (BOXED_SPECIAL_PROPS + BOXEDSTR_NORMAL_PROPS)
 
 #undef remove_normal_number_object_tag
@@ -610,36 +413,28 @@ typedef struct regexp_cell {
 #define boolean_object_value(o)                         \
   boolean_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
 
-#else /* ARRAY_EMBED_PROP */
 
 /*
- * Boxed Object
+ * Iterator
  * tag == T_GENERIC
  */
-typedef struct boxed_cell {
-  Object o;
-  JSValue value;   /* boxed value; it is number, boolean, or string */
-} BoxedCell;
+typedef struct iterator {
+  uint64_t size;        /* array size */
+  uint64_t index;       /* array index */
+  JSValue *body;        /* pointer to a C array */
+} Iterator;
 
-#define make_number_object(ctx)                                         \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_NUMBER)))
-#define number_object_value(n)     (remove_normal_number_object_tag(n)->value)
-#define number_object_object_ptr(n)             \
-  (&((remove_normal_number_object_tag(n))->o))
+#define make_iterator()                                 \
+  (put_normal_iterator_tag(allocate_iterator()))
+#define iterator_size(i)                        \
+  ((remove_normal_iterator_tag(i))->size)
+#define iterator_index(i)                       \
+  ((remove_normal_iterator_tag(i))->index)
+#define iterator_body(i)                        \
+  ((remove_normal_iterator_tag(i))->body)
+#define iterator_body_index(a,i)                \
+  ((remove_normal_iterator_tag(a))->body[i])
 
-#define make_boolean_object(ctx)                                        \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_BOOLEAN)))
-#define boolean_object_value(b)    (remove_normal_boolean_object_tag(b)->value)
-#define boolean_object_object_ptr(b)            \
-  (&((remove_normal_boolean_object_tag(b))->o))
-
-#define make_string_object(ctx)                                         \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_STRING)))
-#define string_object_value(s)      (remove_normal_string_object_tag(s)->value)
-#define string_object_object_ptr(s)             \
-  (&((remove_normal_string_object_tag(s))->o))
-
-#endif /* ARRAY_EMBED_PROP */
 
   /*
    * Flonum
@@ -739,9 +534,7 @@ typedef struct string_cell {
 #define HTAG_STR_CONS       (0x15)
 #define HTAG_CONTEXT        (0x16)
 #define HTAG_STACK          (0x17)
-#ifdef HIDDEN_CLASS
 #define HTAG_HIDDEN_CLASS   (0x18)
-#endif
 
 /*
  * Fixnum
