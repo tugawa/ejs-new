@@ -28,7 +28,7 @@ externC FIXNUM_EQ: (Fixnum, Fixnum) -> cint
 externC FIXNUM_AND: (Fixnum, Fixnum) -> Fixnum
 externC FIXNUM_OR: (Fixnum, Fixnum) -> Fixnum
 
-externC string_to_cstr: String -> Top
+externC String_to_cstr: String -> Top
 externC Strcmp: (Top, Top) -> cint
 externC Half_fixnum_range: cint -> cint
 
