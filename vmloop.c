@@ -16,6 +16,8 @@ static int exhandler_stack_pop(Context* context, int *pc, int *fp);
 static void lcall_stack_push(Context* context, int pc);
 static int lcall_stack_pop(Context* context, int *pc);
 
+extern void print_bytecode(Instruction *, int);
+
 #define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
            insn_nemonic(get_opcode(insn)))
@@ -80,13 +82,8 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   do {                                                  \
     insn = insns->code;                                 \
     if (trace_flag == TRUE) {                           \
-      printf("pc = %d, insn = %s, fp = %d\n",           \
-             pc, insn_nemonic(get_opcode(insn)), fp);   \
-      if (get_opcode(insn) == STRING) {                 \
-        Displacement disp = get_big_disp(insn);         \
-        JSValue s = get_literal(insns, disp);           \
-        printf("   %s\n", string_to_cstr(s));           \
-      }                                                 \
+      printf("pc = %d, fp = %d: ", pc, fp);             \
+      print_bytecode(insns, 0);                         \
     }                                                   \
   } while (0)
 #else /* DEBUG */

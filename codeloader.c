@@ -94,8 +94,8 @@ FILE *file_pointer;
 /*
  * reads the next line from the input stream
  */
-inline void step_load_code(char *buf, int buflen) {
-  fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
+inline char *step_load_code(char *buf, int buflen) {
+  return fgets(buf, buflen, file_pointer == NULL? stdin: file_pointer);
 }
 
 #define DELIM " \n\r"
@@ -130,12 +130,14 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #endif
 
 #ifdef USE_SBC
-#define next_buf_sbc()      step_load_code(buf, LOADBUFLEN)
+// #define next_buf_sbc()      step_load_code(buf, LOADBUFLEN)
+#define next_buf_sbc() (step_load_code(buf, LOADBUFLEN) != NULL)
 #define buf_to_int_sbc(s)   check_read_token(buf, s)
 #endif
 
 #ifdef USE_OBC
-#define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
+// #define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
+#define next_buf_obc() (fread(b, sizeof(unsigned char), 2, file_pointer) > 0)
 #ifdef CPU_LITTLE_ENDIAN
 #define buf_to_int_obc(s)   (b[0] * 256 + b[1])
 #else
@@ -145,19 +147,20 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 
 #if defined(USE_OBC) && defined(USE_SBC)
 
-#define next_buf()    (obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc())
+#define next_buf()                                                   \
+  if ((obcsbc == FILE_OBC? next_buf_obc(): next_buf_sbc()) == 0) return 0
 #define buf_to_int(s)                                                \
   (obcsbc == FILE_OBC? buf_to_int_obc(s): buf_to_int_sbc(s))
 
 #else
 
 #ifdef USE_OBC
-#define next_buf()      next_buf_obc()
+#define next_buf()      if (next_buf_obc() == 0) return 0
 #define buf_to_int(s)   buf_to_int_obc(s)
 #endif
 
 #ifdef USE_SBC
-#define next_buf()      next_buf_sbc()
+#define next_buf()      if (next_buf_sbc() == 0) return 0
 #define buf_to_int(s)   buf_to_int_sbc(s)
 #endif
 
@@ -1018,7 +1021,7 @@ void print_bytecode(Instruction *insns, int pc) {
     break;
   case BIGPRIMITIVE:
     {
-      printf("%d", get_first_operand_reg(code));
+      printf(" %d", get_first_operand_reg(code));
       print_constant(insns, pc, get_big_disp(code));
     }
     break;
@@ -1056,7 +1059,7 @@ void print_bytecode(Instruction *insns, int pc) {
       Register dst, r1;
       dst = get_first_operand_reg(code);
       r1 = get_second_operand_reg(code);
-      printf("%d %d", dst, r1);
+      printf(" %d %d", dst, r1);
     }
     break;
   case ONEOP:
