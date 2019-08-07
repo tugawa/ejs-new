@@ -91,24 +91,16 @@ ArrayCell *allocate_array(Context *ctx) {
 #endif /* ARRAY_EMBED_PROP */
 
 /*
- * allocates an array body
- *   size : number of elements in the body (size >= len)
- *   len  : length of the array, i.e., subscripts that are less than len
- *          are acrutally used
+ * allocates an initialised array of JSValue
  */
-void allocate_array_data(Context *ctx, JSValue a, int size, int len)
+JSValue *allocate_jsvalue_array(Context *ctx, int size)
 {
-  JSValue *body;
   int i;
-
-  GC_PUSH(a);
-  body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-                               HTAG_ARRAY_DATA);
-  GC_POP(a);
-  for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
-  array_body(a) = body;
-  array_size(a) = size;
-  array_length(a) = len;
+  JSValue* array = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
+                                         HTAG_ARRAY_DATA);
+  for (i = 0; i < size; i++)
+    array[i] = JS_UNDEFINED;
+  return array;
 }
 
 /*

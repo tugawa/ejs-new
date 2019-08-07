@@ -14,11 +14,13 @@
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
 
-BUILTIN_FUNCTION(function_constr) {
+BUILTIN_FUNCTION(function_constr)
+{
   not_implemented("function_constr");
 }
 
-BUILTIN_FUNCTION(function_apply) {
+BUILTIN_FUNCTION(function_apply)
+{
   builtin_prologue();
   JSValue fn;
   JSValue thisobj;
@@ -26,22 +28,21 @@ BUILTIN_FUNCTION(function_apply) {
   JSValue ret;
   int alen = 0;
 
-  if (as == JS_UNDEFINED || as == JS_NULL) {
-    as = new_array(context, 0, 0);
-  } else if (!is_array(as))
+  if (as == JS_UNDEFINED || as == JS_NULL)
+    as = new_array(context, 0);
+  else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 
   fn = args[0];
   thisobj = args[1];
 
   alen = array_length(as);
-  if (is_function(fn)) {
+  if (is_function(fn))
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
-  } else if (is_builtin(fn)) {
+  else if (is_builtin(fn))
     ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
-  } else {
+  else
     LOG_EXIT("apply: the receiver has to be a function/builtin");
-  }
   set_a(context, ret);
 }
 

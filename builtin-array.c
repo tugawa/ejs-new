@@ -44,42 +44,39 @@ BUILTIN_FUNCTION(array_constr)
   cint size, length;
 
   builtin_prologue();
-  rsv = new_normal_array(context); /* this sets the `length' property to 0 */
-  GC_PUSH(rsv);
-  if (na == 0) {
-    allocate_array_data(context, rsv, ASIZE_INIT, 0);
-    set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
-  } else if (na == 1) {
-    JSValue n = args[1];  /* GC: n is used in uninterraptible section */
-    if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
-      size = compute_asize(length);
-      allocate_array_data(context, rsv, size, length);
-      /*
-       * printf("array_constr: length = %ld, size = %ld,
-       *        rsv = %lx\n", length, size, rsv);
-       */
-      set_prop_none(context, rsv, gconsts.g_string_length,
-                    cint_to_fixnum(length));
-    } else {
-      allocate_array_data(context, rsv, ASIZE_INIT, 0);
-      set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
-    }
+
+  /* compute sizes */
+  if (na == 0)
+    length = 0;
+  else if (na == 1) {
+    JSValue n = args[1];
+    if (!is_fixnum(n) || (length = fixnum_to_cint(n)) < 0)
+      length = 0;
   } else {
     /*
      * na >= 2, e.g., Array(2,4,5,1)
      * This means that the array's length is four whose elements are
      * 2, 4, 5, and 1.
      */
-    int i;
     length = na;
-    size = compute_asize(length);
-    allocate_array_data(context, rsv, size, length);
-    set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
+  }
+  size = compute_asize(length);
+
+  /* allocate the array */
+  rsv = new_array(context, size);
+
+  /* fill elements if supplied */
+  if (na >= 2) {
+    int i;
     for (i = 0; i < length; i++)
       array_body_index(rsv, i) = args[i + 1];
   }
-  GC_POP(rsv);
+
+  /* set as the return value */
   set_a(context, rsv);
+
+  /* adjust length (put at the end to omit GC_PUSH) */
+  set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
 }
 
 BUILTIN_FUNCTION(array_toString)
@@ -123,7 +120,7 @@ BUILTIN_FUNCTION(array_concat)
   cint n, k, i, len;
 
   builtin_prologue();
-  a = new_normal_array(context);
+  a = new_array(context, 0);
   n = 0;
   GC_PUSH(a);
   for (i = 0; i <= na; i++) {
@@ -318,7 +315,7 @@ BUILTIN_FUNCTION(array_slice)
   else final = min(relativeEnd, len);
 
   count = max(final - k, 0);
-  a = new_normal_array_with_size(context, count);
+  a = new_array(context, count);
   GC_PUSH(a);
   set_prop_all(context, a, gconsts.g_string___proto__, gconsts.g_array_proto);
 

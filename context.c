@@ -81,9 +81,9 @@ static Context *allocate_context(size_t stack_size)
   Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
                                               HTAG_STACK);
-  ctx->exhandler_stack = new_array(NULL, 0, 0);
+  ctx->exhandler_stack = new_array(NULL, 0);
   ctx->exhandler_stack_ptr = 0;
-  ctx->lcall_stack = new_array(NULL, 0, 0);
+  ctx->lcall_stack = new_array(NULL, 0);
   ctx->lcall_stack_ptr = 0;
   return ctx;
 }

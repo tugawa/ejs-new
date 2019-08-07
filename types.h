@@ -270,12 +270,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define new_big_builtin_with_constr(ctx, f, cons, na)                   \
   new_builtin_with_constr(ctx, f, cons, na, HSIZE_BIG, PSIZE_BIG)
 
-#define new_array(ctx, hsize, vsize)            \
-  new_array_with_size(ctx, 0, (hsize), (vsize))
-#define new_normal_array(ctx)                   \
-  new_array(ctx, HHH, PSIZE_NORMAL)
-#define new_normal_array_with_size(ctx, n)              \
-  new_array_with_size(ctx, n, HHH, PSIZE_NORMAL)
 #define new_normal_number_object(ctx, v)        \
   new_number_object(ctx, v, HHH, PSIZE_NORMAL)
 #define new_normal_boolean_object(ctx, v)       \
@@ -306,10 +300,13 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #endif /* HIDDEN_CLASS_PROTO */
 #define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
-#define make_array(ctx)          (put_normal_array_tag(allocate_array(ctx)))
-
 #undef remove_normal_array_tag
 #define remove_normal_array_tag(p) ((Object *)remove_tag((p), T_GENERIC))
+
+#define allocate_array(ctx)                                     \
+  (allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY))
+#define make_array(ctx)                         \
+  (put_normal_array_tag(allocate_array(ctx)))
 
 #define array_object_p(a)        (remove_normal_array_tag(a))
 #define array_eprop(a,t,i)                              \
@@ -334,6 +331,9 @@ typedef struct array_cell {
 } ArrayCell;
 
 #define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
+
+#define new_normal_array_with_size(ctx, n)      \
+  new_array(ctx, n, HHH, PSIZE_NORMAL)
 
 #define array_object_p(a)     (&((remove_normal_array_tag(a))->o))
 #define array_size(a)         ((remove_normal_array_tag(a))->size)

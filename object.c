@@ -963,29 +963,17 @@ JSValue new_simple_object(Context *ctx, int hsize, int psize) {
 /*
  * makes a new array with size
  */
-JSValue new_array_with_size(Context *ctx, int size, int hsize, int vsize)
+JSValue new_array(Context *ctx, int size)
 {
-  JSValue ret;
-
-  ret = make_array(ctx);
-  disable_gc();  /* disable GC unitl Array is properly initialised */
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
+  JSValue ret = make_array(ctx);
+  GC_PUSH(ret);
   set_object_members_with_class(array_object_p(ret),
                                 gobjects.g_hidden_class_array);
-#else /* ARRAY_EMBED_PROP */
-  set_object_members(array_object_p(ret), hsize, 1);
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-  set_object_members(array_object_p(ret), hsize, vsize);
-#endif /* EMBED_PROP */
-#ifndef HIDDEN_CLASS_PROTO
-  set___proto___all(ctx, ret, gconsts.g_array_proto);
-#endif /* HIDDEN_CLASS_PROTO */
-  allocate_array_data_critical(ret, size, size);
+  array_body(ret) = NULL;  /* tell GC this is under initalisation */
+  array_body(ret) = allocate_jsvalue_array(ctx, size);
+  array_size(ret) = size;
+  array_length(ret) = size;
   set_prop_ddde(ctx, ret, gconsts.g_string_length, int_to_fixnum(size));
-  GC_PUSH(ret);
-  enable_gc(ctx);
   GC_POP(ret);
   return ret;
 }
@@ -1048,7 +1036,7 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
 #ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_builtin_proto);
+  set___proto___none(ctx, ret, gconsts.g_function_proto);
 #endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;

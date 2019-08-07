@@ -713,22 +713,29 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
   case HTAG_ARRAY:
     {
+      /* If a-> body is NULL, the x-properties of the array has not
+       * been initialised.  Note that common fields has been done.
+       */
 #ifdef ARRAY_EMBED_PROP
-      /* TODO: If a property is the last embedded one, it may overflow */
-      size_t a_length    = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_LENGTH];
-      size_t a_size      = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_SIZE];
-      JSValue **a_body_p = (JSValue **)&obj->eprop[ARRAY_XPROP_INDEX_BODY];
-      size_t len = a_length < a_size ? a_length : a_size;
-      trace_JSValue_array(a_body_p, len);
-#else /* ARRAY_EMBED_PROP */
-      ArrayCell *a = (ArrayCell *) obj;
-      size_t len = 0;
-      if (a->length < a->size) {
-        len = a->length;
-      } else {
-        len = a->size;
+      if (((JSValue**) obj->eprop[ARRAY_XPROP_INDEX_BODY]) != NULL) {
+        /* TODO: If an x-property is the last embedded one, it may overflow */
+        JSValue **a_body_p = (JSValue **)&obj->eprop[ARRAY_XPROP_INDEX_BODY];
+        size_t a_length    = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_LENGTH];
+        size_t a_size      = *(size_t *)&obj->eprop[ARRAY_XPROP_INDEX_SIZE];
+        size_t len = a_length < a_size ? a_length : a_size;
+        trace_JSValue_array(a_body_p, len);
       }
-      trace_JSValue_array(&a->body, len);
+#else /* ARRAY_EMBED_PROP */
+      if (a->body != NULL) {
+        ArrayCell *a = (ArrayCell *) obj;
+        size_t len = 0;
+        if (a->length < a->size) {
+          len = a->length;
+        } else {
+          len = a->size;
+        }
+        trace_JSValue_array(&a->body, len);
+      }
 #endif /* ARRAY_EMBED_PROP */
     }
     break;

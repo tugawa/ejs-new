@@ -22,7 +22,7 @@
   if (make_arguments) {
     num_of_args = get_ac(context);
     save_context();
-    args = new_normal_array_with_size(context, num_of_args);
+    args = new_normal_array(context, num_of_args);
     update_context();
 
     for (i = 0; i < num_of_args; i++) {

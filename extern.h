@@ -74,8 +74,6 @@ extern Object *allocate_simple_object(Context *ctx, size_t n_embedded);
 extern Object *allocate_simple_object(Context *ctx);
 #endif /* EMBED_PROP */
 #ifdef ARRAY_EMBED_PROP
-#define allocate_array(ctx)                                     \
-  allocate_jsobject((ctx), ARRAY_EMBEDDED_PROPS, HTAG_ARRAY)
 #define allocate_function(ctx)                                  \
   allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
 #define allocate_builtin(ctx)                                           \
@@ -92,7 +90,7 @@ extern BoxedCell *allocate_boxed(Context *,uint32_t);
 extern RegexpCell *allocate_regexp(void);
 #endif
 #endif /* ARRAY_EMBED_PROP */
-extern void allocate_array_data(Context *, JSValue, int, int);
+extern JSValue *allocate_jsvalue_array(Context *ctx, int size);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern JSValue *allocate_prop_table(int);
 extern JSValue *reallocate_prop_table(Context *, JSValue *, int, int);
@@ -288,7 +286,7 @@ extern JSValue new_object_proto_object(Context *, int, int);
 extern JSValue new_simple_object_without___proto__(Context *, int, int);
 #endif /* HIDDEN_CLASS_PROTO */
 extern JSValue new_simple_object(Context *, int, int);
-extern JSValue new_array_with_size(Context *, int, int, int);
+extern JSValue new_array(Context *, int);
 extern JSValue new_function(Context *, Subscript, int, int);
 extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_function_t, int, int, int);
 extern JSValue new_builtin(Context *, builtin_function_t, int, int, int);
