@@ -594,9 +594,7 @@ void init_builtin_array(Context *ctx)
   proto = new_big_predef_object(ctx);
   GC_PUSH(proto);
   gconsts.g_array_proto = proto;
-#ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_array) = gconsts.g_array_proto;
-#endif /* HIDDEN_CLASS_PROTO */
   set_prototype_all(ctx, gconsts.g_array, proto);
   {
     ObjBuiltinProp *p = array_funcs;

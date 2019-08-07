@@ -75,10 +75,8 @@ void init_builtin_function(Context *ctx)
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
   gconsts.g_function_proto = proto = new_normal_object(ctx);
   GC_PUSH(proto);
-#ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_function) = proto;
   hidden_proto(gobjects.g_hidden_class_builtin) = proto;
-#endif /* HIDDEN_CLASS_PROTO */
   set_prototype_all(ctx, gconsts.g_function, proto);
   {
     ObjBuiltinProp *p = function_funcs;

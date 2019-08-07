@@ -139,17 +139,11 @@ STATIC int check_gc_request(Context *);
 STATIC void garbage_collect(Context *ctx);
 STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
 STATIC void trace_HashCell(HashCell **ptrp);
-#ifdef HIDDEN_CLASS
 STATIC void trace_HiddenClass(HiddenClass **ptrp);
-#endif
-#ifdef ARRAY_EMBED_PROP
 #define trace_JSValue_array(ptrp, length)        \
   trace_JSValue_array_range((ptrp), 0, (length))
 STATIC void trace_JSValue_array_range(JSValue **ptrp,
                                       size_t start, size_t length);
-#else /* ARRAY_EMBED_PROP */
-STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
-#endif /* ARRAY_EMBED_PROP */
 STATIC void trace_slot(JSValue* ptr);
 STATIC void scan_roots(Context *ctx);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
@@ -531,10 +525,8 @@ STATIC void trace_HashCell(HashCell **ptrp)
     return;
 
   trace_slot(&ptr->entry.key);
-#ifdef HIDDEN_CLASS
   if (is_transition(ptr->entry.attr))
     trace_HiddenClass((HiddenClass **)&ptr->entry.data);
-#endif
   if (ptr->next != NULL)
     trace_HashCell(&ptr->next);
 }
@@ -616,20 +608,14 @@ STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
       trace_StrCons(ptr + i);
 }
 
-#ifdef HIDDEN_CLASS
 STATIC void trace_HiddenClass(HiddenClass **ptrp)
 {
   HiddenClass *ptr = *ptrp;
-  /* printf("Enter trace_HiddenClass\n"); */
   if (test_and_mark_cell(ptr))
     return;
   trace_HashTable(&hidden_map(ptr));
-#ifdef HIDDEN_CLASS_PROTO
   trace_slot(&hidden_proto(ptr));
-#endif /* HIDDEN_CLASS_PROTO */
-  /* printf("Exit trace_HiddenClass\n"); */
 }
-#endif
 
 /*
  * we do not move context
@@ -668,20 +654,13 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   mark_cell((void *) ptr);
 
   /* common header */
-#ifdef HIDDEN_CLASS
   trace_HiddenClass(&obj->klass);
-#else
-  trace_HashTable(&obj->map);
-#endif
-#ifdef RICH_HIDDEN_CLASS
-#ifdef EMBED_PROP
   {
     size_t n_limit_props = obj->klass->n_limit_props;
     size_t actual_embedded =
       (n_limit_props == 0) ?
       obj->klass->n_props : (obj->klass->n_embedded_props - 1);
     size_t i;
-#ifdef ARRAY_EMBED_PROP
     for (i = obj->klass->n_special_props; i < actual_embedded; i++)
       trace_slot(&obj->eprop[i]);
     if (n_limit_props != 0) {
@@ -693,20 +672,7 @@ STATIC void trace_js_object(uintptr_t *ptrp)
       trace_JSValue_array_range((JSValue **) &obj->eprop[actual_embedded],
                                 start, obj->klass->n_props - actual_embedded);
     }
-#else /* ARRAY_EMBED_PROP */
-    for (i = 0; i < actual_embedded; i++)
-      trace_slot(&obj->eprop[i]);
-    if (n_limit_props != 0)
-      trace_JSValue_array((JSValue **) &obj->eprop[actual_embedded],
-                          obj->klass->n_props - actual_embedded);
-#endif /* ARRAY_EMBED_PROP */
   }
-#else /* EMBED_PROP */
-  trace_JSValue_array(&obj->prop, obj->klass->n_props);
-#endif /* EMBED_PROP */
-#else /* RICH_HIDDEN_CLASS */
-  trace_JSValue_array(&obj->prop, obj->n_props);
-#endif /* RICH_HIDDEN_CLASS */
 
   switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
   case HTAG_SIMPLE_OBJECT:
@@ -716,7 +682,6 @@ STATIC void trace_js_object(uintptr_t *ptrp)
       /* If a-> body is NULL, the x-properties of the array has not
        * been initialised.  Note that common fields has been done.
        */
-#ifdef ARRAY_EMBED_PROP
       if (((JSValue**) obj->eprop[ARRAY_XPROP_INDEX_BODY]) != NULL) {
         /* TODO: If an x-property is the last embedded one, it may overflow */
         JSValue **a_body_p = (JSValue **)&obj->eprop[ARRAY_XPROP_INDEX_BODY];
@@ -725,22 +690,9 @@ STATIC void trace_js_object(uintptr_t *ptrp)
         size_t len = a_length < a_size ? a_length : a_size;
         trace_JSValue_array(a_body_p, len);
       }
-#else /* ARRAY_EMBED_PROP */
-      if (a->body != NULL) {
-        ArrayCell *a = (ArrayCell *) obj;
-        size_t len = 0;
-        if (a->length < a->size) {
-          len = a->length;
-        } else {
-          len = a->size;
-        }
-        trace_JSValue_array(&a->body, len);
-      }
-#endif /* ARRAY_EMBED_PROP */
     }
     break;
   case HTAG_FUNCTION:
-#ifdef ARRAY_EMBED_PROP
     {
       FunctionTable *ftentry =
         *(FunctionTable **)&obj->eprop[FUNC_XPROP_INDEX_FTENTRY];
@@ -749,11 +701,6 @@ STATIC void trace_js_object(uintptr_t *ptrp)
       scan_FunctionTable(ftentry);
       trace_FunctionFrame(frame);
     }
-#else /* ARRAY_EMBED_PROP */
-    /* TODO: func_table_entry holds an inner pointer */
-    scan_FunctionTable(((FunctionCell *) obj)->func_table_entry);
-    trace_FunctionFrame(&((FunctionCell *) obj)->environment);
-#endif /* ARRAY_EMBED_PROP */
     break;
   case HTAG_BUILTIN:
     break;
@@ -763,21 +710,13 @@ STATIC void trace_js_object(uintptr_t *ptrp)
     break;
 #ifdef USE_REGEXP
   case HTAG_REGEXP:
-#ifdef ARRAY_EMBED_PROP
     trace_leaf_object((uintptr_t *)&obj->eprop[REX_XPROP_INDEX_PATTERN]);
-#else /* ARRAY_EMBED_PROP */
-    trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
-#endif /* ARRAY_EMBED_PROP */
-  break;
+    break;
 #endif /* USE_REGEXP */
   case HTAG_BOXED_STRING:
   case HTAG_BOXED_NUMBER:
   case HTAG_BOXED_BOOLEAN:
-#ifdef ARRAY_EMBED_PROP
     trace_slot(&obj->eprop[BOXED_XPROP_INDEX_VALUE]);
-#else /* ARRAY_EMBED_PROP */
-    trace_slot(&((BoxedCell *) obj)->value);
-#endif /* ARRAY_EMBED_PROP */
     break;
   default:
     assert(0);
@@ -796,7 +735,6 @@ STATIC void trace_iterator(Iterator **ptrp)
     trace_JSValue_array(&obj->body, obj->size);
 }
 
-#ifdef ARRAY_EMBED_PROP
 STATIC void trace_JSValue_array_range(JSValue **ptrp,
                                       size_t start, size_t length)
 {
@@ -812,22 +750,6 @@ STATIC void trace_JSValue_array_range(JSValue **ptrp,
   for (i = start; i < length; i++, ptr++)
     trace_slot(ptr);
 }
-#else /* ARRAY_EMBED_PROP */
-STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
-{
-  JSValue *ptr = *ptrp;
-  size_t i;
-
-  if (in_js_space(ptr)) {
-    if (test_and_mark_cell(ptr))
-      return;
-  }
-
-  /* SCAN */
-  for (i = 0; i < length; i++, ptr++)
-    trace_slot(ptr);
-}
-#endif /* ARRAY_EMBED_PROP */
 
 STATIC void trace_slot(JSValue* ptr)
 {
@@ -843,12 +765,10 @@ STATIC void trace_slot(JSValue* ptr)
     jsv &= ~TAGMASK;
     trace_iterator((Iterator **) &jsv);
     *ptr = jsv | tag;
-#ifdef HIDDEN_CLASS_PROTO
   } else if (is_obj_header_tag((jsv), HTAG_HIDDEN_CLASS)) {
     /* TODO: make hidden class a JSValue */
     trace_HiddenClass((HiddenClass **) &jsv);
     *ptr = jsv;
-#endif /* HIDDEN_CLASS_PROTO */
   } else if (is_pointer(jsv)) {
     uint8_t tag = jsv & TAGMASK;
     jsv &= ~TAGMASK;
@@ -881,10 +801,8 @@ STATIC void trace_root_pointer(void **ptrp)
     trace_Context((Context **)ptrp); break;
   case HTAG_STACK:
     printf("HTAG_STACK in trace_root_pointer\n"); break;
-#ifdef HIDDEN_CLASS
   case HTAG_HIDDEN_CLASS:
     trace_HiddenClass((HiddenClass **)ptrp); break;
-#endif
   default:
     trace_slot((JSValue *) ptrp);
     return;
@@ -910,27 +828,17 @@ STATIC void scan_roots(Context *ctx)
    * For simplicity, we do not use a `for' loop to visit every object
    * registered in the gobjects.
    */
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_CLASS_PROTO
   trace_HiddenClass(&gobjects.g_hidden_class_top);
-#endif /* HIDDEN_CLASS_PROTO */
   trace_HiddenClass(&gobjects.g_hidden_class_0);
-#ifdef ARRAY_EMBED_PROP
   trace_HiddenClass(&gobjects.g_hidden_class_array);
   trace_HiddenClass(&gobjects.g_hidden_class_function);
   trace_HiddenClass(&gobjects.g_hidden_class_builtin);
-#ifdef HIDDEN_CLASS_PROTO
   trace_HiddenClass(&gobjects.g_hidden_class_boxed_number);
   trace_HiddenClass(&gobjects.g_hidden_class_boxed_boolean);
-#else /* HIDDEN_CLASS_PROTO */
-  trace_HiddenClass(&gobjects.g_hidden_class_boxed);
-#endif /* HIDDEN_CLASS_PROTO */
   trace_HiddenClass(&gobjects.g_hidden_class_boxed_string);
 #ifdef USE_REGEXP
   trace_HiddenClass(&gobjects.g_hidden_class_regexp);
 #endif /* USE_REGEXP */
-#endif /* ARRAY_EMBED_PROP */
-#endif
 
   /* function table: do not trace.
    *                 Used slots should be traced through Function objects

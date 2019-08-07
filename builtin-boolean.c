@@ -20,16 +20,9 @@ BUILTIN_FUNCTION(boolean_constr)
 
   builtin_prologue();  
   rsv = new_normal_boolean_object(context, JS_TRUE);
-#ifndef HIDDEN_CLASS_PROTO
-  GC_PUSH(rsv);
-  set___proto___all(context, rsv, gconsts.g_boolean_proto);
-#endif /* HIDDEN_CLASS_PROTO */
   if (na > 0)
     boolean_object_value(rsv) = to_boolean(args[1]);
   set_a(context, rsv);
-#ifndef HIDDEN_CLASS_PROTO
-  GC_POP(rsv);
-#endif /* HIDDEN_CLASS_PROTO */
 }
 
 BUILTIN_FUNCTION(boolean_valueOf)
@@ -58,9 +51,7 @@ void init_builtin_boolean(Context *ctx)
   proto = new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
   gconsts.g_boolean_proto = proto;
   GC_PUSH(proto);
-#ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_boxed_boolean) = proto;
-#endif /* HIDDEN_CLASS_PROTO */
   set_prototype_de(ctx, b, proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   {

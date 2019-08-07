@@ -66,22 +66,17 @@ void init_builtin_object(Context *ctx)
   JSValue obj, proto;
 
   obj = new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
-  // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
   GC_PUSH(obj);
   gconsts.g_object = obj;
-#ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_object", obj_hidden_class(obj));
-#endif
-#endif
+#endif /* HIDDEN_DEBUG */
   proto = gconsts.g_object_proto;
   GC_PUSH(proto);
   set_prototype_de(ctx, obj, proto);
-#ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_object", obj_hidden_class(obj));
-#endif
-#endif
+#endif /* HIDDEN_DEBUG */
 
   /*
    * not implemented yet
@@ -104,12 +99,10 @@ void init_builtin_object(Context *ctx)
     }
   }
   GC_POP2(proto, obj);
-#ifdef HIDDEN_CLASS
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_function_proto",
                      obj_hidden_class(gconsts.g_function_proto));
-#endif
-#endif
+#endif /* HIDDEN_DEBUG */
 }
 
 /* Local Variables:      */
