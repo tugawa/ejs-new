@@ -196,15 +196,8 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #define HHH 0
 
-#define new_normal_object(ctx)  new_simple_object(ctx, HHH, PSIZE_NORMAL)
-#define new_normal_predef_object(ctx)                   \
-  new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
-#define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#define new_object_proto(ctx)                               \
-  new_object_proto_object(ctx, HSIZE_BIG, PSIZE_BIG)
-
+#define new_normal_object(ctx)           new_simple_object(ctx)
 #define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
-
 #define new_normal_builtin(ctx, f, na)          \
   new_builtin(ctx, f, na, HHH, PSIZE_NORMAL)
 #define new_normal_builtin_with_constr(ctx, f, cons, na)        \

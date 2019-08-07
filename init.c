@@ -152,14 +152,16 @@ void init_global_objects(void) {
    *   Object.prototype.prototype is not defined.
    *                   (Object.prototype is not used as a constructor)
    */
-  gconsts.g_object_proto = new_object_proto(NULL);
+  gconsts.g_object_proto =
+    new_object_with_class(NULL, gobjects.g_hidden_class_top);
   hidden_proto(gobjects.g_hidden_class_0) = gconsts.g_object_proto;
   /*
    * g_blobal: The global object, which contains global variables.
    * g_math:   The "Math" object.
    */
-  gconsts.g_global = new_big_predef_object(NULL);
-  gconsts.g_math = new_big_predef_object(NULL);
+  /* TODO: give a special hidden class with large embedded properties */
+  gconsts.g_global = new_normal_object(NULL);
+  gconsts.g_math = new_normal_object(NULL);
 
 #ifdef HIDDEN_DEBUG
   print_hidden_class("g_object_proto",

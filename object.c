@@ -679,31 +679,25 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
     p->eprop[i] = JS_UNDEFINED;
 }
 
-JSValue new_object_proto_object(Context *ctx, int hsize, int psize)
+/*
+ * makes a new simple object with default hidden class
+ */
+JSValue new_simple_object(Context *ctx)
 {
-  JSValue ret;
-  Object *p;
-
-  ret = make_simple_object(ctx, psize);
-  p = remove_simple_object_tag(ret);
-  set_object_members_with_class(p, gobjects.g_hidden_class_top);
-  return ret;
+  return new_object_with_class(ctx, gobjects.g_hidden_class_0);
 }
 
 /*
  * makes a new simple object
- *   hsize: size of the hash table
- *   psize: size of the array of property values
  */
-JSValue new_simple_object(Context *ctx, int hsize, int psize) {
+JSValue new_object_with_class(Context *ctx, HiddenClass *hc)
+{
   JSValue ret;
   Object *p;
 
-  ret = make_simple_object(ctx, psize);
-  GC_PUSH(ret);
+  ret = make_simple_object(ctx, hidden_n_embedded_props(hc));
   p = remove_simple_object_tag(ret);
-  set_object_members_with_class(p, gobjects.g_hidden_class_0);
-  GC_POP(ret);
+  set_object_members_with_class(p, hc);
   return ret;
 }
 

@@ -247,8 +247,7 @@ void init_builtin_regexp(Context *ctx)
 
   gconsts.g_regexp = r =
     new_normal_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = proto =
-    new_normal_predef_object(ctx);
+  gconsts.g_regexp_proto = proto = new_normal_object(ctx);
 
 #ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_regexp) = proto;

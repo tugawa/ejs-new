@@ -247,8 +247,8 @@ extern int iterator_get_next_propname(JSValue, JSValue *);
 #ifdef USE_REGEXP
 extern int regexp_flag(JSValue);
 #endif /* USE_REGEXP */
-extern JSValue new_object_proto_object(Context *, int, int);
-extern JSValue new_simple_object(Context *, int, int);
+extern JSValue new_object_with_class(Context *ctx, HiddenClass *hc);
+extern JSValue new_simple_object(Context *);
 extern JSValue new_array(Context *, int);
 extern JSValue new_function(Context *, Subscript, int, int);
 extern JSValue new_builtin_with_constr(Context *, builtin_function_t, builtin_function_t, int, int, int);

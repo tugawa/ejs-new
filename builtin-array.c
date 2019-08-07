@@ -591,9 +591,8 @@ void init_builtin_array(Context *ctx)
 
   gconsts.g_array =
     new_normal_builtin_with_constr(ctx, array_constr, array_constr, 0);
-  proto = new_big_predef_object(ctx);
+  gconsts.g_array_proto = proto = new_normal_object(ctx);
   GC_PUSH(proto);
-  gconsts.g_array_proto = proto;
   hidden_proto(gobjects.g_hidden_class_array) = gconsts.g_array_proto;
   set_prototype_all(ctx, gconsts.g_array, proto);
   {
