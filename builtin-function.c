@@ -55,24 +55,8 @@ BUILTIN_FUNCTION(function_toString)
   return;
 }
 
-BUILTIN_FUNCTION(builtin_toString)
-{
-  JSValue ret;
-  builtin_prologue();
-  args = NULL;     /* suppress warning message */
-  ret = cstr_to_string(context, "[builtin]");
-  set_a(context, ret);
-  return;
-}
-
 ObjBuiltinProp function_funcs[] = {
   { "toString", function_toString, 0, ATTR_DE },
-  { "apply",    function_apply,    2, ATTR_DE },
-  { NULL, NULL, 0, ATTR_DE }
-};
-
-ObjBuiltinProp builtin_funcs[] = {
-  { "toString", builtin_toString,  0, ATTR_DE },
   { "apply",    function_apply,    2, ATTR_DE },
   { NULL, NULL, 0, ATTR_DE }
 };
@@ -81,29 +65,13 @@ void init_builtin_function(Context *ctx)
 {
   JSValue proto;
 
-  gconsts.g_builtin_proto = proto = new_normal_object(ctx);
-  GC_PUSH(proto);
-  gconsts.g_builtin =
-    new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-#ifdef HIDDEN_CLASS_PROTO
-  hidden_proto(gobjects.g_hidden_class_builtin) = proto;
-#endif /* HIDDEN_CLASS_PROTO */
-  set_prototype_all(ctx, gconsts.g_builtin, proto);
-  {
-    ObjBuiltinProp *p = builtin_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-
   gconsts.g_function =
     new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  /* gconsts.g_function_proto = proto = new_big_predef_object(ctx); */
   gconsts.g_function_proto = proto = new_normal_object(ctx);
+  GC_PUSH(proto);
 #ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_function) = proto;
+  hidden_proto(gobjects.g_hidden_class_builtin) = proto;
 #endif /* HIDDEN_CLASS_PROTO */
   set_prototype_all(ctx, gconsts.g_function, proto);
   {
