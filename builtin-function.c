@@ -26,6 +26,7 @@ BUILTIN_FUNCTION(function_apply)
   JSValue thisobj;
   JSValue as = args[2];
   JSValue ret;
+  JSValue alen_jsv;
   int alen = 0;
 
   if (as == JS_UNDEFINED || as == JS_NULL)
@@ -36,7 +37,11 @@ BUILTIN_FUNCTION(function_apply)
   fn = args[0];
   thisobj = args[1];
 
-  alen = array_length(as);
+  if (get_prop(as, gconsts.g_string_length, &alen_jsv) == SUCCESS)
+    alen = number_to_cint(to_number(context, alen_jsv));
+  else
+    alen = 0;
+
   if (is_function(fn))
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
   else if (is_builtin(fn))
