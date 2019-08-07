@@ -53,42 +53,12 @@ StringCell *allocate_string(uint32_t length)
  * allocates a simple object
  * Note that the return value does not have a pointer tag.
  */
-#ifdef EMBED_PROP
-#ifdef ARRAY_EMBED_PROP
 Object *allocate_jsobject(Context *ctx, size_t n_embedded, cell_type_t htag)
 {
   size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - PSIZE_NORMAL);
   Object *object = (Object *) gc_jsalloc(ctx, size, htag);
   return object;
 }
-#else /* ARRAY_EMBED_PROP */
-Object *allocate_simple_object(Context *ctx, size_t n_embedded)
-{
-  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - PSIZE_NORMAL);
-  Object *object = (Object *) gc_jsalloc(ctx, size, HTAG_SIMPLE_OBJECT);
-  return object;
-}
-#endif /* ARRAY_EMBED_PROP */
-#else /* EMBED_PROP */
-Object *allocate_simple_object(Context *ctx)
-{
-  Object *object =
-    (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_SIMPLE_OBJECT);
-  return object;
-}
-#endif /* EMBED_PROP */
-
-#ifndef ARRAY_EMBED_PROP
-/*
- * allocates an array
- * Note that the return value does not have a pointer tag.
- */
-ArrayCell *allocate_array(Context *ctx) {
-  ArrayCell *array =
-    (ArrayCell *) gc_jsalloc(ctx, sizeof(ArrayCell), HTAG_ARRAY);
-  return array;
-}
-#endif /* ARRAY_EMBED_PROP */
 
 /*
  * allocates an initialised array of JSValue
@@ -122,28 +92,6 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   array_body(a) = body;
   array_size(a) = newsize;
 }
-
-
-#ifndef ARRAY_EMBED_PROP
-/*
- * allocates a function
- */
-FunctionCell *allocate_function(void) {
-  FunctionCell *function =
-    (FunctionCell *) gc_jsalloc_critical(sizeof(FunctionCell), HTAG_FUNCTION);
-  return function;
-}
-
-/*
- * allocates a builtin
- */
-BuiltinCell *allocate_builtin(void) {
-  BuiltinCell *builtin =
-    (BuiltinCell *) gc_jsalloc_critical(sizeof(BuiltinCell), HTAG_BUILTIN);
-  return builtin;
-}
-
-#endif /* ARRAY_EMBED_PROP */
 
 JSValue *allocate_prop_table(int size) {
   JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
@@ -198,31 +146,6 @@ void allocate_iterator_data(Context *ctx, JSValue a, int size)
   iterator_size(a) = size;
   iterator_index(a) = 0;
 }
-
-#ifndef ARRAY_EMBED_PROP
-/*
- * allocates a regexp
- */
-#ifdef USE_REGEXP
-#ifdef need_normal_regexp
-RegexpCell *allocate_regexp(void)
-{
-  RegexpCell *regexp =
-    (RegexpCell *) gc_jsalloc_critical(sizeof(RegexpCell), HTAG_REGEXP);
-  return regexp;
-}
-#endif /* need_normal_regexp */
-#endif
-
-/*
- *  allocates a boxed object
- */
-BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
-{
-  BoxedCell *box = (BoxedCell *) gc_jsalloc(ctx, sizeof(BoxedCell), type);
-  return box;
-}
-#endif /* ARRAY_EMBED_PROP */
 
 /* Local Variables:      */
 /* mode: c               */

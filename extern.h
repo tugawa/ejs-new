@@ -59,17 +59,8 @@ extern "C" {
 extern FlonumCell *allocate_flonum(double);
 extern StringCell *allocate_string(uint32_t);
 extern JSValue allocate_string2(Context *ctx, const char *, const char *);
-#define allocate_simple_object(ctx, nemb)               \
-  allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
 extern Object *allocate_jsobject(Context *ctx, size_t n_embedded,
                                  cell_type_t htag);
-#define allocate_function(ctx)                                  \
-  allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
-#define allocate_builtin(ctx)                                           \
-  allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
-/* allocate_jsobject is called directly in types.h for boxed types */
-#define allocate_regexp(ctx)                                    \
-  allocate_jsobject((ctx), REX_EMBEDDED_PROPS, HTAG_REGEXP)
 extern JSValue *allocate_jsvalue_array(Context *ctx, int size);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern JSValue *allocate_prop_table(int);

@@ -155,12 +155,12 @@ typedef struct object_cell {
 #define remove_simple_object_tag remove_normal_simple_object_tag
 #define put_simple_object_tag    put_normal_simple_object_tag
 
+#define allocate_simple_object(ctx, nemb)               \
+  allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
 #define make_simple_object(ctx, n)                              \
   (put_simple_object_tag(allocate_simple_object(ctx, (n))))
 #define remove_object_tag(p)    ((Object *)clear_tag(p))
 
-#define obj_n_props(p)         ((remove_object_tag(p))->n_props)
-#define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
 #define obj_hidden_class(p)    ((remove_object_tag(p))->klass)
 #define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
 #define obj_eprop(p)           ((remove_object_tag(p))->eprop)
@@ -271,6 +271,8 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
  * Function
  */
 
+#define allocate_function(ctx)                                  \
+  allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
 #define make_function(ctx)   (put_normal_function_tag(allocate_function(ctx)))
 
 #define FUNC_SPECIAL_PROPS        2
@@ -309,6 +311,8 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #undef remove_normal_builtin_tag
 #define remove_normal_builtin_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
 
+#define allocate_builtin(ctx)                                           \
+  allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
 #define make_builtin(ctx)   (put_normal_builtin_tag(allocate_builtin(ctx)))
 
 #define builtin_object_p(o)          (remove_normal_builtin_tag(o))
@@ -347,6 +351,8 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #undef remove_normal_regexp_tag
 #define remove_normal_regexp_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
 
+#define allocate_regexp(ctx)                                    \
+  allocate_jsobject((ctx), REX_EMBEDDED_PROPS, HTAG_REGEXP)
 #define make_regexp(ctx)     (put_normal_regexp_tag(allocate_regexp(ctx)))
 
 #define regexp_object_p(o)   (remove_normal_regexp_tag(o))
