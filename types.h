@@ -434,11 +434,11 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #define builtin_eprop(o,t,i)                            \
   (*(t*)&(remove_normal_builtin_tag(o))->eprop[i])
 #define builtin_body(o)                                         \
-  func_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_BODY)
+  builtin_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_BODY)
 #define builtin_constructor(o)                          \
-  func_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_CONSTR)
+  builtin_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_CONSTR)
 #define builtin_n_args(o)                               \
-  func_eprop(o, uint64_t, BUILTIN_XPROP_INDEX_ARGC)
+  builtin_eprop(o, uint64_t, BUILTIN_XPROP_INDEX_ARGC)
 
 #else /* ARRAY_EMBED_PROP */
 
