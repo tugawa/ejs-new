@@ -141,7 +141,6 @@ int hash_delete(HashTable *table, HashKey key) {
   return HASH_GET_FAILED;
 }
 
-#ifdef HIDDEN_CLASS
 /*
  * copies a hash table
  * This function is used only for copying a hash table in a hidden class.
@@ -175,7 +174,6 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   to->filled = from->filled;
   return n;
 }
-#endif
 
 HashCell** __hashMalloc(int size) {
   HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,

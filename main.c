@@ -148,16 +148,14 @@ struct commandline_option  options_table[] = {
   { "-a",         0, &all_flag,       NULL          },
   { "-u",         0, &cputime_flag,   NULL          },
   { "-R",         0, &repl_flag,      NULL          },
-#ifdef HIDDEN_CLASS
   { "-h",         0, &hcprint_flag,   NULL          },
-#endif
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
-#endif
+#endif /* PROFILE */
 #ifdef GC_PROF
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
@@ -202,10 +200,8 @@ void print_cputime(time_t sec, suseconds_t usec) {
   printf("total CPU time = %ld.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
          sec * 1000 + usec / 1000, (int)(usec % 1000),
          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
-#ifdef HIDDEN_CLASS
   printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
          n_hc, n_enter_hc, n_exit_hc);
-#endif
 }
 
 #ifdef GC_PROF
@@ -524,17 +520,15 @@ int main(int argc, char *argv[]) {
       fflush(stdout);
   }
 #ifdef PROFILE
-#ifdef HIDDEN_CLASS
   if (hcprint_flag == TRUE)
     print_all_hidden_class();
-#endif
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-#endif
+#endif /* PROFILE */
 
   return 0;
 }
