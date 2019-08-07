@@ -140,9 +140,19 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> funNameNode = node.get(Symbol.unique("name"));
             Tree<?> paramsNode = node.get(Symbol.unique("params"));
-            print("INSN_COUNT" + paramsNode.size() + "(" + funNameNode.toText());
+            String[] jsvParams = new String[paramsNode.size()];
+            int jsvNum = 0;
+            
             for (int i = 0; i < paramsNode.size(); i++) {
-                print("," + paramsNode.get(i).toText());
+                String paramName = paramsNode.get(i).toText();
+                // JSValue parameter's name starts with v as defined in InstructionDefinitions.java
+                if (paramName.startsWith("v")) {
+                    jsvParams[jsvNum++] = paramName;
+                }
+            }
+            print("INSN_COUNT" + jsvNum + "(" + funNameNode.toText());
+            for (int i = 0; i < jsvNum; i++) {
+                print("," + jsvParams[i]);
             }
             println(");");
 
