@@ -6,7 +6,6 @@
   o = new_normal_object(context);
   update_context();
   get_prop(con, gconsts.g_string_prototype, &p);
-#ifdef HIDDEN_CLASS_PROTO
   if (is_object(p) && p != gconsts.g_object_proto) {
     HiddenClass *hc;
     if (get_prop(p, gconsts.g_string___hidden_class__,
@@ -21,10 +20,6 @@
     }
     obj_hidden_class(o) = hc;   /* TODO: make new_normal_object_with_class */
   }
-#else /* HIDDEN_CLASS_PROTO */
-  if (!is_object(p)) p = gconsts.g_object_proto;
-  set___proto___all(context, o, p);
-#endif /* HIDDEN_CLASS_PROTO */
   dst = o;
 \}
 
