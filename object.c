@@ -295,7 +295,7 @@ static HiddenClass *expand_hidden_class(Context *ctx , HiddenClass *hc,
 {
   HiddenClass *nhc;
 
-  GC_PUSH3(hc, name, attr);
+  GC_PUSH2(hc, name);
   nhc = new_hidden_class(ctx, hc);
   GC_PUSH(nhc);
   hash_put_with_attribute(hidden_map(nhc), name, index, attr);
@@ -305,7 +305,7 @@ static HiddenClass *expand_hidden_class(Context *ctx , HiddenClass *hc,
   hash_put_with_attribute(hidden_map(hc), name, (HashData) nhc,
                           ATTR_NONE | ATTR_TRANSITION);
   hidden_n_entries(hc)++;
-  GC_POP4(nhc, attr, name, hc);
+  GC_POP3(nhc, name, hc);
   return nhc;
 }
 
