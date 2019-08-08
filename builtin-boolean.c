@@ -45,24 +45,25 @@ void init_builtin_boolean(Context *ctx)
 {
   JSValue b, proto;
 
-  b = new_normal_builtin(ctx, boolean_constr, 1);
-  GC_PUSH(b);
-  gconsts.g_boolean = b;
-  proto = new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
-  gconsts.g_boolean_proto = proto;
+  gconsts.g_boolean_proto = proto =
+    new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
   GC_PUSH(proto);
-  hidden_proto(gobjects.g_hidden_class_boxed_boolean) = proto;
-  set_prototype_de(ctx, b, proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
+  hidden_proto(gobjects.g_hidden_class_boxed_boolean) = proto;
+
+  gconsts.g_boolean = b =
+    new_builtin_with_constr(ctx, boolean_constr, boolean_constr, 1);
+  GC_PUSH(b);
+  set_prototype_de(ctx, b, proto);
   {
     ObjBuiltinProp *p = boolean_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
-  GC_POP2(proto, b);
+  GC_POP2(b, proto);
 }
 
 /* Local Variables:      */

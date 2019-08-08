@@ -65,44 +65,28 @@ void init_builtin_object(Context *ctx)
 {
   JSValue obj, proto;
 
-  obj = new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
-  GC_PUSH(obj);
-  gconsts.g_object = obj;
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object", obj_hidden_class(obj));
-#endif /* HIDDEN_DEBUG */
   proto = gconsts.g_object_proto;
   GC_PUSH(proto);
-  set_prototype_de(ctx, obj, proto);
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object", obj_hidden_class(obj));
-#endif /* HIDDEN_DEBUG */
+
+  gconsts.g_object = obj =
+    new_builtin_with_constr(ctx, object_constr, object_constr, 0);
+  GC_PUSH(obj);
+  set_prototype_all(ctx, obj, proto);
 
   /*
    * not implemented yet
    * set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
    *            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
    */
-  /*
-   * The next line is unnecessary because init_builtin_function has
-   * been already called and gconsts.g_function_proto has been
-   * properly set.
-   *
-   * gconsts.g_function_proto = new_normal_object(ctx);
-   */
   {
     ObjBuiltinProp *p = object_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name, 
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
-  GC_POP2(proto, obj);
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_function_proto",
-                     obj_hidden_class(gconsts.g_function_proto));
-#endif /* HIDDEN_DEBUG */
+  GC_POP2(obj, proto);
 }
 
 /* Local Variables:      */

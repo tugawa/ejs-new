@@ -271,7 +271,7 @@ void init_builtin_global(Context *ctx)
     ObjBuiltinProp *p = global_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, g, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

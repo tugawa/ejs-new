@@ -665,28 +665,27 @@ void init_builtin_string(Context *ctx)
 {
   JSValue str, proto;
 
-  str = gconsts.g_string =
-    new_normal_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
-  GC_PUSH(str);
-  proto = gconsts.g_string_proto =
+  gconsts.g_string_proto = proto =
     new_string_object(ctx, gconsts.g_string_empty, HSIZE_NORMAL, PSIZE_NORMAL);
   GC_PUSH(proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
-#ifdef HIDDEN_CLASS_PROTO
   hidden_proto(gobjects.g_hidden_class_boxed_string) = proto;
-#endif /* HIDDEN_CLASS_PROTO */
-  set_prototype_de(ctx, str, proto);
+
+  gconsts.g_string = str =
+    new_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
+  GC_PUSH(str);
+  set_prototype_all(ctx, str, proto);
   set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
-              new_normal_builtin(ctx, string_fromCharCode, 0));
+              new_builtin(ctx, string_fromCharCode, 0));
   {
     ObjBuiltinProp *p = string_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
-    GC_POP2(proto,str);
   }
+  GC_POP2(str, proto);
 }
 
 /* Local Variables:      */

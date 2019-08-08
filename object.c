@@ -742,19 +742,17 @@ JSValue new_function(Context *ctx, Subscript subscr)
  *  makes a new built-in function object with constructor
  */
 JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
-                                builtin_function_t cons, int na, int hsize,
-                                int psize) {
+                                builtin_function_t cons, int na)
+{
   JSValue ret;
 
-  disable_gc();
   ret = make_builtin(ctx);
+  GC_PUSH(ret);
   set_object_members_with_class(builtin_object_p(ret),
                                 gobjects.g_hidden_class_builtin);
   builtin_body(ret) = f;
   builtin_constructor(ret) = cons;
   builtin_n_args(ret) = na;
-  GC_PUSH(ret);
-  enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   GC_POP(ret);
   return ret;
@@ -763,10 +761,9 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
 /*
  *  makes a new built-in function object
  */
-JSValue new_builtin(Context *ctx, builtin_function_t f, int na, int hsize,
-                    int psize) {
-  return new_builtin_with_constr(ctx, f, builtin_not_a_constructor, na,
-                                 hsize, psize);
+JSValue new_builtin(Context *ctx, builtin_function_t f, int na)
+{
+  return new_builtin_with_constr(ctx, f, builtin_not_a_constructor, na);
 }
 
 /*

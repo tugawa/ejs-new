@@ -147,18 +147,17 @@ ObjDoubleProp number_values[] = {
 void init_builtin_number(Context *ctx)
 {
   JSValue n, proto;
-
   
-  n = new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
-  GC_PUSH(n);
-  gconsts.g_number = n;
-  proto = new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  gconsts.g_number_proto = proto =
+    new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
   GC_PUSH(proto);
-  gconsts.g_number_proto = proto;
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   hidden_proto(gobjects.g_hidden_class_boxed_number) = proto;
 
-  set_prototype_de(ctx, n, proto);
+  gconsts.g_number = n =
+    new_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
+  GC_PUSH(n);
+  set_prototype_all(ctx, n, proto);
   set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
   set_obj_cstr_prop(ctx, n, "NEGATIVE_INFINITY",
                     gconsts.g_flonum_negative_infinity, ATTR_ALL);
@@ -167,7 +166,7 @@ void init_builtin_number(Context *ctx)
     ObjBuiltinProp *p = number_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }
@@ -178,7 +177,7 @@ void init_builtin_number(Context *ctx)
       p++;
     }
   }
-  GC_POP2(proto, n);
+  GC_POP2(n, proto);
 }
 
 /* Local Variables:      */

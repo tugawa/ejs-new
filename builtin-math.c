@@ -232,7 +232,7 @@ void init_builtin_math(Context *ctx)
     ObjBuiltinProp *p = math_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, math, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

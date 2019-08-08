@@ -71,18 +71,24 @@ void init_builtin_function(Context *ctx)
 {
   JSValue proto;
 
-  gconsts.g_function =
-    new_normal_builtin_with_constr(ctx, function_constr, function_constr, 0);
+  /* TODO: implement an empty builtin function for prototype of Function
+   *   Function.prototype is not an ordinary object but an empty
+   *   function.
+   */
   gconsts.g_function_proto = proto = new_normal_object(ctx);
   GC_PUSH(proto);
+  set___proto___all(ctx, proto, gconsts.g_object_proto);
   hidden_proto(gobjects.g_hidden_class_function) = proto;
   hidden_proto(gobjects.g_hidden_class_builtin) = proto;
+
+  gconsts.g_function =
+    new_builtin_with_constr(ctx, function_constr, function_constr, 0);
   set_prototype_all(ctx, gconsts.g_function, proto);
   {
     ObjBuiltinProp *p = function_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

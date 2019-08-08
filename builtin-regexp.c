@@ -245,13 +245,13 @@ void init_builtin_regexp(Context *ctx)
 {
   JSValue r, proto;
 
+  gconsts.g_regexp_proto = proto = new_normal_object(ctx);
+  GC_PUSH(proto);
+  hidden_proto(gobjects.g_hidden_class_regexp) = proto;
+
   gconsts.g_regexp = r =
     new_normal_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = proto = new_normal_object(ctx);
-
-#ifdef HIDDEN_CLASS_PROTO
-  hidden_proto(gobjects.g_hidden_class_regexp) = proto;
-#endif /* HIDDEN_CLASS_PROTO */
+  GC_PUSH(r);
   set_prototype_all(ctx, r, proto);
   set_obj_cstr_prop(ctx, proto, "constructor", r, ATTR_DE);
   {
@@ -262,6 +262,7 @@ void init_builtin_regexp(Context *ctx)
       p++;
     }
   }
+  GC_POP2(r, proto);
 }
 
 #endif /* need_regexp */

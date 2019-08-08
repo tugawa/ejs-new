@@ -589,17 +589,18 @@ void init_builtin_array(Context *ctx)
 {
   JSValue proto;
 
-  gconsts.g_array =
-    new_normal_builtin_with_constr(ctx, array_constr, array_constr, 0);
-  gconsts.g_array_proto = proto = new_normal_object(ctx);
+  gconsts.g_array_proto = proto = new_array(ctx, 0);
   GC_PUSH(proto);
-  hidden_proto(gobjects.g_hidden_class_array) = gconsts.g_array_proto;
+  set___proto___all(ctx, proto, gconsts.g_object_proto);
+  hidden_proto(gobjects.g_hidden_class_array) = proto;
+
+  gconsts.g_array = new_builtin_with_constr(ctx, array_constr, array_constr, 0);
   set_prototype_all(ctx, gconsts.g_array, proto);
   {
     ObjBuiltinProp *p = array_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

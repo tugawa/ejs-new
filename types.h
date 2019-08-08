@@ -197,15 +197,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define HHH 0
 
 #define new_normal_object(ctx)          new_simple_object(ctx)
-#define new_normal_builtin(ctx, f, na)          \
-  new_builtin(ctx, f, na, HHH, PSIZE_NORMAL)
-#define new_normal_builtin_with_constr(ctx, f, cons, na)        \
-  new_builtin_with_constr(ctx, f, cons, na, HHH, PSIZE_NORMAL)
-
-#define new_big_builtin(ctx, f, cons, na)       \
-  new_builtin(ctx, f, na, HSIZE_BIG, PSIZE_BIG)
-#define new_big_builtin_with_constr(ctx, f, cons, na)                   \
-  new_builtin_with_constr(ctx, f, cons, na, HSIZE_BIG, PSIZE_BIG)
 
 #define new_normal_number_object(ctx, v)        \
   new_number_object(ctx, v, HHH, PSIZE_NORMAL)
