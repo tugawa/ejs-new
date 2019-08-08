@@ -1,10 +1,10 @@
 /*
  * eJS Project
  * Kochi University of Technology
- * the University of Electro-communications
+ * The University of Electro-communications
  *
- * The eJS Project is the successor of the SSJS Project at the University of
- * Electro-communications, which was contributed by the following members.
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
  */
 
 #include "prefix.h"

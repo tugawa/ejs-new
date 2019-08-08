@@ -812,10 +812,6 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   /* allocate an itearator */
   GC_PUSH(obj);
   do {
-    /*
-     * printf("Object %016llx: (type = %d, n_props = %lld)\n",
-     *        obj, obj_header_tag(tmpobj), obj_n_props(tmpobj));
-     */
     size += hidden_n_props(obj_hidden_class(tmpobj));
     get___proto__(tmpobj, &tmpobj);
   } while (tmpobj != JS_NULL);
