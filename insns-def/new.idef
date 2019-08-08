@@ -1,13 +1,10 @@
 \inst new (Register dst, Value con)
 
 \when con:function \{
-  JSValue o, p;
-  save_context();
-  o = new_normal_object(context);
-  update_context();
+  JSValue p;
+  HiddenClass *hc;
   get_prop(con, gconsts.g_string_prototype, &p);
   if (is_object(p) && p != gconsts.g_object_proto) {
-    HiddenClass *hc;
     if (get_prop(p, gconsts.g_string___hidden_class__,
 		 (JSValue *)&hc) == FAIL) {
       save_context();
@@ -18,9 +15,11 @@
       update_context();
       hidden_proto(hc) = p;
     }
-    obj_hidden_class(o) = hc;   /* TODO: make new_normal_object_with_class */
-  }
-  dst = o;
+  } else
+    hc = gobjects.g_hidden_class_0;
+  save_context();
+  dst = new_object_with_class(context, hc);
+  update_context();
 \}
 
 \otherwise \{
