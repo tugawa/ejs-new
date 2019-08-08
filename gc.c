@@ -549,6 +549,18 @@ STATIC void scan_FunctionTable(FunctionTable *ptr)
 {
   /* trace constant pool */
   trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_constants);
+  /* scan Allocation Sites */
+  {
+    size_t i;
+    for (i = 0; i < ptr->n_insns; i++) {
+      Instruction *insn = &ptr->insns[i];
+      AllocSite *alloc_site = &insn->alloc_site;
+      if (alloc_site->hc != NULL)
+        trace_HiddenClass(&alloc_site->hc);
+      if (alloc_site->preformed_hc != NULL)
+        trace_HiddenClass(&alloc_site->preformed_hc);
+    }
+  }
 }
 
 STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
