@@ -94,11 +94,12 @@ typedef struct hidden_class {
                               * in the map, which may not be JSValues */
   JSValue __proto__;         /* Hidden class or JS_EMPTY, which means
                               * object instance has __proto__ property */
+  struct hidden_class *prev; /* previous hidden class */
+  struct hidden_class *base; /* base hidden class. NULL for base hidden classes */
 #ifdef HC_DEBUG
   struct hidden_class *dbg_prev;
 #endif /* HC_DEBUG */
 #ifdef PROFILE
-  struct hidden_class *prev;
   uint32_t n_profile_enter;  /* number of times this class is used for object
                               * marked for profilling */
 #endif /* PROFILE */
@@ -116,11 +117,12 @@ typedef struct hidden_class {
 #define hidden_n_embedded_props(h) ((h)->n_embedded_props)
 #define hidden_n_special_props(h)  ((h)->n_special_props)
 #define hidden_proto(h)            ((h)->__proto__)
+#define hidden_prev(h)             ((h)->prev)
+#define hidden_base(h)             ((h)->base)
 #ifdef HC_DEBUG
 #define hidden_dbg_prev(h)         ((h)->dbg_prev)
 #endif /* HC_DEBUG */
 #ifdef PROFILE
-#define hidden_prev(h)             ((h)->prev)
 #define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
 #endif /* PROFILE */
 

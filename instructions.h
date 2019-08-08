@@ -164,6 +164,9 @@ typedef void *InsnLabel;
  */
 typedef struct alloc_site {
   struct hidden_class *hc;
+  struct hidden_class *preformed_hc;
+  struct alloc_site *next_affected;
+  int polymorphic;
 } AllocSite;
 
 /*

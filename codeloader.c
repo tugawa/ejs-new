@@ -605,7 +605,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   ctop = (JSValue *)(&insns[ninsns]);
   step_load_code(buf, LOADBUFLEN);
   tokp = first_token(buf);
-  insns[pc].alloc_site.hc = NULL;
+  init_alloc_site(&insns[pc].alloc_site);
 
 #ifdef PROFILE
   {
@@ -819,7 +819,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     LOG_ERR("Error: cannot read %dth bytecode", pc);
   oc = buf[0] * 256 + buf[1];
   bc = convertToBc(buf);
-  insns[pc].alloc_site.hc = NULL;
+  init_alloc_site(&insns[pc].alloc_site);
 
   switch (insn_info_table[oc].otype) {
   case BIGPRIMITIVE:

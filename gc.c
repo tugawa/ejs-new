@@ -156,6 +156,7 @@ STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
 #endif /* GC_DEBUG */
 
+
 /*
  *  Space
  */
@@ -615,6 +616,10 @@ STATIC void trace_HiddenClass(HiddenClass **ptrp)
     return;
   trace_HashTable(&hidden_map(ptr));
   trace_slot(&hidden_proto(ptr));
+  if (hidden_prev(ptr) != NULL)
+    trace_HiddenClass(&hidden_prev(ptr));
+  if (hidden_base(ptr) != NULL)
+    trace_HiddenClass(&hidden_base(ptr));
 }
 
 /*
@@ -643,6 +648,39 @@ STATIC void trace_Context(Context **contextp)
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
+STATIC HiddenClass *find_lub(HiddenClass *a, HiddenClass *b)
+{
+  HiddenClass *p;
+  int alen = 0;
+  int blen = 0;
+
+  for (p = a; p != NULL; p = p->prev, alen++)
+    if (p == b)
+      return p;
+  for (p = b; p != NULL; p = p->prev, blen++)
+    if (p == a)
+      return p;
+  while (alen > blen) {
+    a = a->prev;
+    alen--;
+  }
+  while (alen < blen) {
+    b = b->prev;
+    blen--;
+  }
+  while (a != b) {
+    a = a->prev;
+    b = b->prev;
+  }
+  return a;
+}
+
+STATIC void alloc_site_update_hc(AllocSite *alloc_site, HiddenClass *hc)
+{
+  alloc_site->hc = hc;
+  alloc_site->preformed_hc = NULL;
+}
+
 STATIC void trace_js_object(uintptr_t *ptrp)
 {
   uintptr_t ptr = *ptrp;
@@ -652,6 +690,40 @@ STATIC void trace_js_object(uintptr_t *ptrp)
   if (is_marked_cell((void *) ptr))
     return;
   mark_cell((void *) ptr);
+
+  /* feedback hidden class statistics to allocation sites. */
+  if (obj->alloc_site != NULL) {
+    HiddenClass *obj_hc = obj->klass;
+    if (hidden_base(obj_hc) != NULL)
+      obj_hc = hidden_base(obj_hc);
+    if (obj->alloc_site->polymorphic) {
+      if (obj->alloc_site->hc != NULL)
+        alloc_site_update_hc(obj->alloc_site,
+                             find_lub(obj_hc, obj->alloc_site->hc));
+    } else {
+      if (obj->alloc_site->hc == NULL)
+        alloc_site_update_hc(obj->alloc_site, obj_hc);
+      else {
+        HiddenClass *p;
+        /* check monomorphism */
+        for (p = obj->alloc_site->hc; p != NULL; p = p->prev)
+          if (p == obj_hc)
+            break;
+        if (p == NULL) {
+          for (p = obj_hc; p != NULL; p = p->prev)
+            if (p == obj->alloc_site->hc) {
+              alloc_site_update_hc(obj->alloc_site, obj_hc);
+              break;
+            }
+        }
+        if (p == NULL) {
+          obj->alloc_site->polymorphic = 1;
+          alloc_site_update_hc(obj->alloc_site,
+                               find_lub(obj_hc, obj->alloc_site->hc));
+        }
+      }
+    }
+  }
 
   /* common header */
   trace_HiddenClass(&obj->klass);

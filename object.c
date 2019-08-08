@@ -50,6 +50,12 @@ int n_exit_hc;
 static int profile_object_count;
 #endif /* PROFILE */
 
+static HiddenClass *new_hidden_class_with_map(Context *ctx,
+                                              HiddenClass *oldc,
+                                              Map *map,
+                                              int n_map_entries);
+
+
 /*
  * obtains the index of a property of an Object
  * If the specified property does not exist, returns -1.
@@ -279,6 +285,31 @@ static int compute_new_limit_props(int n_embedded, int n_limit, int n_prop)
 }
 
 /*
+ * Create a new hidden class extended from `hc' by adding property
+ * `name' with attribute `attr' to it.
+ * The hidden class `hc' should not have either the property or a
+ * transistion to a hidden class with the property.
+ */
+static HiddenClass *expand_hidden_class(Context *ctx , HiddenClass *hc,
+                                        JSValue name, int index, Attribute attr)
+{
+  HiddenClass *nhc;
+
+  GC_PUSH3(hc, name, attr);
+  nhc = new_hidden_class(ctx, hc);
+  GC_PUSH(nhc);
+  hash_put_with_attribute(hidden_map(nhc), name, index, attr);
+  if (name == gconsts.g_string___proto__)
+    hidden_proto(nhc) = JS_UNDEFINED;
+  hidden_n_entries(nhc)++;
+  hash_put_with_attribute(hidden_map(hc), name, (HashData) nhc,
+                          ATTR_NONE | ATTR_TRANSITION);
+  hidden_n_entries(hc)++;
+  GC_POP4(nhc, attr, name, hc);
+  return nhc;
+}
+
+/*
  * sets an object's property value with its attribute
  */
 int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
@@ -301,21 +332,21 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
     if (hidden_htype(hc) == HTYPE_TRANSIT) {
       HiddenClass *nhc = hclass;
       if (nhc == NULL) {
-        int ret;
         GC_PUSH3(obj, name, v);
-        nhc = new_hidden_class(ctx, hc);
+        if (hidden_base(hc) != NULL) {
+          HiddenClass *base = hidden_base(hc);
+          GC_PUSH(hc);
+          base = expand_hidden_class(ctx, hidden_base(base),
+                                     name, index, attr);
+          GC_PUSH(base);
+          nhc = new_hidden_class_with_map(ctx, hc,
+                                          hidden_map(base),
+                                          hidden_n_entries(base));
+          hidden_base(nhc) = base;
+          GC_POP2(base, hc);
+        } else
+          nhc = expand_hidden_class(ctx, hc, name, index, attr);
         GC_POP3(v, name, obj);
-        hc = obj_hidden_class(obj);
-        ret = hash_put_with_attribute(hidden_map(nhc), name, index, attr);
-        /* "__proto__" is overrridden */
-        if (name == gconsts.g_string___proto__)
-          hidden_proto(nhc) = JS_UNDEFINED;
-        if (ret != HASH_PUT_SUCCESS)
-          return FAIL;
-        hidden_n_entries(nhc)++;
-        hash_put_with_attribute(hidden_map(hc), name, (HashData)nhc,
-                                ATTR_NONE | ATTR_TRANSITION);
-        hidden_n_entries(hc)++;
       }
       if (prev_limit < hidden_n_limit_props(nhc)) {
         GC_PUSH3(obj, v, nhc);
@@ -927,11 +958,12 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
   hidden_n_limit_props(c) = 0;
   hidden_n_embedded_props(c) = psize;
   hidden_n_special_props(c) = n_special;
+  hidden_prev(c) = NULL;
+  hidden_base(c) = NULL;
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = NULL;
 #endif /* HC_DEBUG */
 #ifdef PROFILE
-  hidden_prev(c) = NULL;
   hidden_n_profile_enter(c) = 0;
 #endif /* PROFILE */
   GC_PUSH(c);
@@ -942,44 +974,100 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
 }
 
 /*
- * allocates a new hidden class on the basis of oldc and name
+ * Create a new hidden class on the basis of `oldc', with the
+ * specified `map', so that multiple hidden classes can sahre
+ * a map.
  */
-HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
+static HiddenClass *new_hidden_class_with_map(Context *ctx,
+                                              HiddenClass *oldc,
+                                              Map *map,
+                                              int n_map_entries)
+{
   HiddenClass *c;
-  Map *a;
-  int ne;
+  int n_embedded = hidden_n_embedded_props(oldc);
+  int n_prop = hidden_n_props(oldc) + 1;
+  int n_limit = compute_new_limit_props(n_embedded,
+                                        hidden_n_limit_props(oldc), n_prop);
 
   GC_PUSH(oldc);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
-  GC_PUSH(c);
-  a = malloc_hashtable();
-  hash_create(a, oldc->map->size);
-  hidden_map(c) = a;
-  ne = hash_copy(ctx, hidden_map(oldc), a);
-  GC_POP2(c,oldc);
-  hidden_n_entries(c) = ne;
+  hidden_map(c) = map;
+  GC_POP(oldc);
+  hidden_n_entries(c) = n_map_entries;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
   hidden_n_exit(c) = 0;
-  hidden_n_props(c) = hidden_n_props(oldc) + 1;
-  {
-    int n_embedded = hidden_n_embedded_props(oldc);
-    int n_limit = hidden_n_limit_props(oldc);
-    int n_prop = hidden_n_props(c);
-    hidden_n_embedded_props(c) = n_embedded;
-    hidden_n_limit_props(c) =
-      compute_new_limit_props(n_embedded, n_limit, n_prop);
-  }
+  hidden_n_props(c) = n_prop;
+  hidden_n_embedded_props(c) = n_embedded;
+  hidden_n_limit_props(c) = n_limit;
   hidden_proto(c) = hidden_proto(oldc);
   hidden_n_special_props(c) = hidden_n_special_props(oldc);
+  hidden_prev(c) = oldc;
+  hidden_base(c) = NULL;
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = oldc;
 #endif /* HC_DEBUG */
 #ifdef PROFILE
-  hidden_prev(c) = oldc;
   hidden_n_profile_enter(c) = 0;
 #endif /* PROFILE */
   n_hc++;
+  return c;
+}
+
+/*
+ * Create a hidden class that shares the map with `base', but all
+ * known properties will be embedded in objects.
+ */
+HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
+{
+  HiddenClass *c;
+  int n_embedded = hidden_n_props(base);
+  int n_prop = hidden_n_props(base);
+  int n_limit = 0;
+  Map * map = hidden_map(base);
+  int n_map_entries = hidden_n_entries(base);
+  
+  GC_PUSH(base);
+  c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
+  hidden_map(c) = map;
+  GC_POP(base);
+  hidden_n_entries(c) = n_map_entries;
+  hidden_htype(c) = HTYPE_TRANSIT;
+  hidden_n_enter(c) = 0;
+  hidden_n_exit(c) = 0;
+  hidden_n_props(c) = n_prop;
+  hidden_n_embedded_props(c) = n_embedded;
+  hidden_n_limit_props(c) = n_limit;
+  hidden_proto(c) = hidden_proto(base);
+  hidden_n_special_props(c) = hidden_n_special_props(base);
+  hidden_prev(c) = NULL;
+  hidden_base(c) = base;
+#ifdef HC_DEBUG
+  hidden_dbg_prev(c) = base;
+#endif /* HC_DEBUG */
+#ifdef PROFILE
+  hidden_n_profile_enter(c) = 0;
+#endif /* PROFILE */
+  n_hc++;
+  return c;
+}
+
+/*
+ * allocates a new hidden class on the basis of oldc
+ */
+HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc)
+{
+  HiddenClass *c;
+  Map *map;
+  int n_map_entries;
+
+  GC_PUSH(oldc);
+  map = malloc_hashtable();
+  GC_PUSH(map);
+  hash_create(map, oldc->map->size);
+  n_map_entries = hash_copy(ctx, hidden_map(oldc), map);
+  c = new_hidden_class_with_map(ctx, oldc, map, n_map_entries);
+  GC_POP2(map, oldc);
   return c;
 }
 
@@ -1040,6 +1128,14 @@ void print_all_hidden_class(void) {
 #endif /* USE_REGEXP */
 }
 #endif /* PROFILE */
+
+void init_alloc_site(AllocSite *alloc_site)
+{
+  alloc_site->hc = NULL;
+  alloc_site->preformed_hc = NULL;
+  alloc_site->next_affected = NULL;
+  alloc_site->polymorphic = 0;
+}
 
 /* Local Variables:      */
 /* mode: c               */

@@ -20,9 +20,13 @@
                                 (JSValue) hc, ATTR_ALL);
         update_context();
         hidden_proto(hc) = p;
+        hidden_prev(hc) = NULL;
       }
     } else
       hc = gobjects.g_hidden_class_0;
+    if (insns->alloc_site.preformed_hc != NULL &&
+        hidden_proto(insns->alloc_site.preformed_hc) == hidden_proto(hc))
+    hc = insns->alloc_site.preformed_hc;
     save_context(); // GC
     o = new_normal_object_with_class(context, hc);
     obj_alloc_site(o) = &insns->alloc_site;
