@@ -673,6 +673,7 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
     p->profile_id = 0;
 #endif /* PROFILE */
   p->klass = hc;
+  p->alloc_site = NULL;
   hidden_n_enter(p->klass)++;
   n_enter_hc++;
   for (i = 0; i < n_embedded; i++)

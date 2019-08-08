@@ -148,6 +148,7 @@ typedef struct object_cell {
   int profile_id;
 #endif /* PROFILE */
   HiddenClass *klass;     /* Hidden class for this object */
+  AllocSite *alloc_site;
   JSValue eprop[PSIZE_NORMAL];
 } Object;
 
@@ -160,6 +161,7 @@ typedef struct object_cell {
   (put_simple_object_tag(allocate_simple_object(ctx, (n))))
 #define remove_object_tag(p)    ((Object *)clear_tag(p))
 
+#define obj_alloc_site(p)      ((remove_object_tag(p))->alloc_site)
 #define obj_hidden_class(p)    ((remove_object_tag(p))->klass)
 #define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
 #define obj_eprop(p)           ((remove_object_tag(p))->eprop)

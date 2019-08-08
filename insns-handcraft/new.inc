@@ -25,6 +25,7 @@
       hc = gobjects.g_hidden_class_0;
     save_context(); // GC
     o = new_normal_object_with_class(context, hc);
+    obj_alloc_site(o) = &insns->alloc_site;
     update_context(); // GC
   } else
     o = JS_UNDEFINED;

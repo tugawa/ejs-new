@@ -1,7 +1,7 @@
 \inst new (Register dst, Value con)
 
 \when con:function \{
-  JSValue p;
+  JSValue p, o;
   HiddenClass *hc;
   get_prop(con, gconsts.g_string_prototype, &p);
   if (is_object(p) && p != gconsts.g_object_proto) {
@@ -21,8 +21,10 @@
       hidden_proto(insns->alloc_site.hc) == hidden_proto(hc))
     hc = insns->alloc_site.hc;
   save_context();
-  dst = new_object_with_class(context, hc);
+  o = new_object_with_class(context, hc);
+  obj_alloc_site(o) = &insns->alloc_site;
   update_context();
+  dst = o;
 \}
 
 \otherwise \{
