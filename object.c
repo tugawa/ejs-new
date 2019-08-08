@@ -815,7 +815,8 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 /*
  * makes a new regexp
  */
-JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
+JSValue new_regexp(Context *ctx, char *pat, int flag)
+{
   JSValue ret;
 
   ret = make_regexp(ctx);
@@ -835,41 +836,40 @@ JSValue new_regexp(Context *ctx, char *pat, int flag, int hsize, int vsize) {
 /*
  * makes a new boxed number
  */
-JSValue new_number_object(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_number_object(Context *ctx, JSValue v)
+{
   JSValue ret;
 
   GC_PUSH(v);
   ret = make_number_object(ctx);
-  GC_PUSH(ret);
   set_object_members_with_class(number_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed_number);
   number_object_value(ret) = v;
-  GC_POP2(ret,v);
+  GC_POP(v);
   return ret;
 }
 
 /*
  * makes a new boxed boolean
  */
-JSValue new_boolean_object(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_boolean_object(Context *ctx, JSValue v)
+{
   JSValue ret;
 
-  /* We do not need to gc_push v because v should be a boolean */
   GC_PUSH(v);
   ret = make_boolean_object(ctx);
-  GC_POP(v);
   set_object_members_with_class(boolean_object_object_p(ret),
                                 gobjects.g_hidden_class_boxed_boolean);
   boolean_object_value(ret) = v;
-  GC_PUSH(ret);
-  GC_POP(ret);
+  GC_POP(v);
   return ret;
 }
 
 /*
  * makes a new boxed string
  */
-JSValue new_string_object(Context *ctx, JSValue v, int hsize, int psize) {
+JSValue new_string_object(Context *ctx, JSValue v)
+{
   JSValue ret;
 
   GC_PUSH(v);

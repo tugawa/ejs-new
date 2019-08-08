@@ -575,7 +575,6 @@ int load_string_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
 }
 
 #ifdef USE_REGEXP
-#ifdef need_regexp
 int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
                     int ninsns, int nconsts, int flag) {
   char *str;
@@ -587,14 +586,13 @@ int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
   decode_escape_char(str);
   v0 = ctop[index];
   if (v0 == JS_UNDEFINED)
-    ctop[index] = new_normal_regexp(ctx, str, flag);
+    ctop[index] = new_regexp(ctx, str, flag);
   /*
    * else, it is necessary to check the consistency of v0 and str
    * but this check in not implemented yet.
    */
   return index;
 }
-#endif /* need_regexp */
 #endif /* USE_REGEXP */
 
 int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,

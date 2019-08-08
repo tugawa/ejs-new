@@ -54,7 +54,7 @@ int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr,
   
   if ((err = cstr_to_regexp_flag(flagstr, &flag)) == FAIL)
     return FAIL;
-  if ((re = new_normal_regexp(ctx, pat, flag)) == JS_UNDEFINED)
+  if ((re = new_regexp(ctx, pat, flag)) == JS_UNDEFINED)
     return FAIL;
   set_obj_cstr_prop(ctx, re, "source", cstr_to_string(NULL, pat), ATTR_ALL);
   regexp_lastindex(re) = 0;
@@ -250,7 +250,7 @@ void init_builtin_regexp(Context *ctx)
   hidden_proto(gobjects.g_hidden_class_regexp) = proto;
 
   gconsts.g_regexp = r =
-    new_normal_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
+    new_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
   GC_PUSH(r);
   set_prototype_all(ctx, r, proto);
   set_obj_cstr_prop(ctx, proto, "constructor", r, ATTR_DE);
@@ -258,7 +258,7 @@ void init_builtin_regexp(Context *ctx)
     ObjBuiltinProp *p = regexp_funcs;
     while (p->name != NULL) {
       set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
+                        new_builtin(ctx, p->fn, p->na), p->attr);
       p++;
     }
   }

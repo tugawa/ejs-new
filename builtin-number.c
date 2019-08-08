@@ -19,7 +19,7 @@ BUILTIN_FUNCTION(number_constr)
   JSValue rsv;
 
   builtin_prologue();
-  rsv = new_normal_number_object(context, FIXNUM_ZERO);
+  rsv = new_number_object(context, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
@@ -148,8 +148,7 @@ void init_builtin_number(Context *ctx)
 {
   JSValue n, proto;
   
-  gconsts.g_number_proto = proto =
-    new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
+  gconsts.g_number_proto = proto = new_number_object(ctx, FIXNUM_ZERO);
   GC_PUSH(proto);
   set___proto___all(ctx, proto, gconsts.g_object_proto);
   hidden_proto(gobjects.g_hidden_class_boxed_number) = proto;

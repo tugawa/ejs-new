@@ -152,7 +152,7 @@ JSValue special_to_object(Context *ctx, JSValue v) {
     return JS_UNDEFINED;
   case JS_TRUE:
   case JS_FALSE:
-    return new_normal_boolean_object(ctx, v);
+    return new_boolean_object(ctx, v);
   default:
     type_error("special expected in special_to_object");
     return JS_UNDEFINED;
@@ -216,7 +216,7 @@ JSValue string_to_object(Context *ctx, JSValue v) {
     type_error("string expected in string_to_object");
     return JS_UNDEFINED;
   }
-  return new_normal_string_object(ctx, v);
+  return new_string_object(ctx, v);
 }
 
 #define BUFSIZE 1000
@@ -300,7 +300,7 @@ JSValue fixnum_to_object(Context *ctx, JSValue v) {
     type_error("fixnum expected in fixnum_to_object");
     return JS_UNDEFINED;
   }
-  return new_normal_number_object(ctx, v);
+  return new_number_object(ctx, v);
 }
 
 /*
@@ -311,7 +311,7 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
     type_error("flonum expected in flonum_to_object");
     return JS_UNDEFINED;
   }
-  return new_normal_number_object(ctx, v);
+  return new_number_object(ctx, v);
 }
 
 /*

@@ -196,20 +196,8 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #define HHH 0
 
-#define new_normal_object(ctx)          new_simple_object(ctx)
-
-#define new_normal_number_object(ctx, v)        \
-  new_number_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_boolean_object(ctx, v)       \
-  new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_string_object(ctx, v)        \
-  new_string_object(ctx, v, HHH, PSIZE_NORMAL)
+#define new_normal_object(ctx)      new_simple_object(ctx)
 #define new_normal_iterator(ctx, o) new_iterator(ctx, o)
-
-#ifdef USE_REGEXP
-#define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
-#endif
-
 
 /*
  * Array

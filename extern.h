@@ -256,11 +256,11 @@ extern JSValue new_builtin_with_constr(Context *, builtin_function_t,
 extern JSValue new_builtin(Context *, builtin_function_t, int);
 extern JSValue new_iterator(Context *, JSValue);
 #ifdef USE_REGEXP
-extern JSValue new_regexp(Context *, char *, int, int, int);
+extern JSValue new_regexp(Context *, char *, int);
 #endif /* USE_REGEXP */
-extern JSValue new_number_object(Context *, JSValue, int, int);
-extern JSValue new_boolean_object(Context *, JSValue, int, int);
-extern JSValue new_string_object(Context *, JSValue, int, int);
+extern JSValue new_number_object(Context *, JSValue);
+extern JSValue new_boolean_object(Context *, JSValue);
+extern JSValue new_string_object(Context *, JSValue);
 extern char *space_chomp(char *);
 extern HiddenClass *new_empty_hidden_class(Context *, int, int, int, int, int);
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
