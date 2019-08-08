@@ -160,11 +160,19 @@ typedef uint32_t Counter;
 typedef void *InsnLabel;
 
 /*
+ * allocation site information
+ */
+typedef struct alloc_site {
+  struct hidden_class *hc;
+} AllocSite;
+
+/*
  * instruction
  */
 typedef struct instruction {
   InsnLabel ilabel;  /* It is important that ilabel is the first member */
   Bytecode code;
+  AllocSite alloc_site;
 #ifdef PROFILE
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */

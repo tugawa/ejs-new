@@ -81,7 +81,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   curfn->ilabel_created = true;
 }
 
-#define STRCON(x,y)  x #y
 #define INCPC()      do { pc++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 
@@ -124,17 +123,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     }                                                   \
   } while (0)
 #else /* DEBUG */
-/*
- * #define INSNLOAD()                                                   \
- *   do {                                                               \
- *     insn = insns->code;                                              \
- *     if (trace_flag == TRUE) {                                        \
- *       printf("pc = %d, insn = %s, fp = %d\n",                        \
- *              pc, insn_nemonic(get_opcode(insn)), fp);                \
- *       fflush(stdout);                                                \
- *     }                                                                \
- *   } while (0)
- */
 #define INSNLOAD() (insn = insns->code)
 #endif /* DEBUG */
 
@@ -143,11 +131,11 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   do {                                                                  \
     push_logflag(insns->logflag);                                       \
     if (insns->logflag == TRUE) headcount = 0, insns->count++;          \
-    asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));     \
+    asm volatile("#enter insn, loc = " #x "\n\t");                    \
   } while (0)
 #else
-#define ENTER_INSN(x)                                                   \
-  asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t))
+#define ENTER_INSN(x)                                   \
+  asm volatile("#enter insn, loc = " #x "\n\t")
 #endif
 
 #ifdef USE_ASM2
@@ -162,8 +150,8 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 
 #define GET_NEXT_INSN_ADDR(ins)  (jump_table[get_opcode(ins)])
 
-#define INSN_PRINT(x)                                           \
-  asm volatile(STRCON(STRCON("#jump, loc = ", (x)), \n\t))
+#define INSN_PRINT(x)                           \
+  asm volatile("#jump, loc = " #x "\n\t")
 
 #define NEXT_INSN_ASM(addr)                             \
   asm("jmp *%0\n\t# -- inserted main.c" : : "A" (addr))
@@ -183,10 +171,19 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
   } while (0)
 
-#else
+#else /* USE_ASM */
 
-#define NEXT_INSN_INCPC()   do { pop_logflag(); INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
-#define NEXT_INSN_NOINCPC() do { pop_logflag(); INSNLOAD(); NEXT_INSN(); } while(0)
+#define NEXT_INSN_INCPC()   do {                                \
+    pop_logflag();                                              \
+    INCPC();                                                    \
+    INSNLOAD();                                                 \
+    NEXT_INSN();                                                \
+  } while(0)
+#define NEXT_INSN_NOINCPC() do {                \
+    pop_logflag();                              \
+    INSNLOAD();                                 \
+    NEXT_INSN();                                \
+  } while(0)
 
 #endif /* USE_ASM */
 

@@ -94,7 +94,6 @@ typedef struct hidden_class {
                               * in the map, which may not be JSValues */
   JSValue __proto__;         /* Hidden class or JS_EMPTY, which means
                               * object instance has __proto__ property */
-
 #ifdef HC_DEBUG
   struct hidden_class *dbg_prev;
 #endif /* HC_DEBUG */
@@ -193,8 +192,6 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-
-#define HHH 0
 
 #define new_normal_object(ctx)      new_simple_object(ctx)
 #define new_normal_iterator(ctx, o) new_iterator(ctx, o)
