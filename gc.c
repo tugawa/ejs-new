@@ -1016,15 +1016,22 @@ STATIC void check_invariant_nobw_space(struct space *space)
       size_t i;
       payload_jsvalues -= HEADER_JSVALUES;
       payload_jsvalues -= HEADER0_GET_EXTRA(header);
-      for (i = 0; i < payload_jsvalues; i++) {
-        uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
-        if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
-          if (i ==
-              (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
-            continue;
-        }
-        if (in_js_space((void *)(x & ~7))) {
-          assert(is_marked_cell((void *) (x & ~7)));
+      if (HEADER0_GET_TYPE(header) == HTAG_ARRAY_DATA) {
+        /* It is possible that a part of array data (from 0 to length)
+         * is used and other parts are left uninitialised.  Therefore,
+         * this black->white check does not work for this datatype.
+         */
+      } else {
+        for (i = 0; i < payload_jsvalues; i++) {
+          uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
+          if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
+            if (i ==
+                (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
+              continue;
+          }
+          if (in_js_space((void *)(x & ~7))) {
+            assert(is_marked_cell((void *) (x & ~7)));
+          }
         }
       }
     }
