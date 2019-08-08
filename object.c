@@ -723,17 +723,16 @@ JSValue new_array(Context *ctx, int size)
  * makes a function
  * The name of this function was formerly new_closure.
  */
-JSValue new_function(Context *ctx, Subscript subscr, int hsize, int vsize) {
+JSValue new_function(Context *ctx, Subscript subscr)
+{
   JSValue ret;
 
-  disable_gc();
   ret = make_function(ctx);
+  GC_PUSH(ret);
   set_object_members_with_class(func_object_p(ret),
                                 gobjects.g_hidden_class_function);
   func_table_entry(ret) = &(ctx->function_table[subscr]);
   func_environment(ret) = get_lp(ctx);
-  GC_PUSH(ret);
-  enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
   GC_POP(ret);
   return ret;
