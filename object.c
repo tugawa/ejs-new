@@ -417,7 +417,7 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
  * sets an object's property value with its attribute
  */
 int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, Attribute attr) {
-  uint64_t retv, newsize;
+  uint64_t retv;
   int index, r;
 #ifdef HIDDEN_CLASS
   HiddenClass *nexth, *oh;
@@ -1048,7 +1048,7 @@ JSValue new_builtin_with_constr(Context *ctx, builtin_function_t f,
   enable_gc(ctx);
   set_prototype_none(ctx, ret, new_normal_object(ctx));
 #ifndef HIDDEN_CLASS_PROTO
-  set___proto___none(ctx, ret, gconsts.g_builtin_proto);
+  set___proto___none(ctx, ret, gconsts.g_function_proto);
 #endif /* HIDDEN_CLASS_PROTO */
   GC_POP(ret);
   return ret;
