@@ -64,6 +64,7 @@ BUILTIN_FUNCTION(array_constr)
 
   /* allocate the array */
   rsv = new_array(context, size);
+  array_length(rsv) = length;  /* TODO: implement property */
 
   /* fill elements if supplied */
   if (na >= 2) {
