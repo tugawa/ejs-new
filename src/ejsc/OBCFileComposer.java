@@ -320,7 +320,8 @@ public class OBCFileComposer extends OutputFileComposer {
         public void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
-            int b = index + functionNumberOffset;
+            // int b = index + functionNumberOffset;
+            int b = index;
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
             instructions.add(insn);
         }
