@@ -70,7 +70,7 @@ typedef struct {
 #define LOADBUFLEN 1024
 
 #ifdef USE_SBC
-extern int insn_load_sbc(Context *, Instruction *, int, int, int);
+extern int insn_load_sbc(Context *, Instruction *, int, int, int, int);
 #endif
 
 #ifdef USE_OBC
@@ -78,7 +78,7 @@ extern void init_constant_info(CItable *citable, int nconsts, int i);
 extern void add_constant_info(CItable *ci, Opcode oc, int index,
                               InsnOperandType type);
 extern void const_load(Context *, int, JSValue *, CItable *);
-extern int insn_load_obc(Context *, Instruction *, int, int, CItable *);
+extern int insn_load_obc(Context *, Instruction *, int, int, CItable *, int);
 #endif
 
 extern uint32_t decode_escape_char(char *);
@@ -258,14 +258,14 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     for (j = 0; j < ninsns; j++) {
 #if defined(USE_OBC) && defined(USE_SBC)
       ret = (obcsbc == FILE_OBC?
-             insn_load_obc(ctx, insns, ninsns, j, &citable):
-             insn_load_sbc(ctx, insns, ninsns, nconsts, j));
+             insn_load_obc(ctx, insns, ninsns, j, &citable, ftbase):
+             insn_load_sbc(ctx, insns, ninsns, nconsts, j, ftbase));
 #else
 #ifdef USE_OBC
-      ret = insn_load_obc(ctx, insns, ninsns, j, &citable);
+      ret = insn_load_obc(ctx, insns, ninsns, j, &citable, ftbase);
 #endif
 #ifdef USE_SBC
-      ret = insn_load_sbc(ctx, insns, ninsns, nconsts, j);
+      ret = insn_load_sbc(ctx, insns, ninsns, nconsts, j, ftbase);
 #endif
 #endif
       if (ret == LOAD_FAIL)
@@ -601,7 +601,7 @@ int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
 #endif /* USE_REGEXP */
 
 int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
-                  int nconsts, int pc) {
+                  int nconsts, int pc, int ftbase) {
   char buf[LOADBUFLEN];
   char *tokp;
   Opcode oc;
@@ -783,7 +783,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       uint16_t index;
       dst = atoi(next_token());
       index = (uint16_t)atoi(next_token());
-      insns[pc].code = makecode_makeclosure(oc, dst, index);
+      // insns[pc].code = makecode_makeclosure(oc, dst, index);
+      insns[pc].code = makecode_makeclosure(oc, dst, index + ftbase);
       return LOAD_OK;
     }
 
@@ -808,7 +809,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 
 #ifdef USE_OBC
 int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
-                  CItable *citable) {
+                  CItable *citable, int ftbase) {
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
   Subscript index;
@@ -845,6 +846,16 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     }
     break;
 
+  case MAKECLOSUREOP:
+    if (ftbase > 0) {
+      index = buf[4] * 256 + buf[5] + ftbase;
+      buf[4] = index >> 8;
+      buf[5] = index & 0xff;
+      bc = convertToBc(buf);
+    }
+    insns[pc].code = bc;
+    return LOAD_OK;
+    
   case THREEOP:
     for (i = 0; i < 3; i++) {
       InsnOperandType type = si_optype(oc, i);
