@@ -34,7 +34,6 @@ BUILTIN_FUNCTION(function_apply)
   else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 
-
   GC_PUSH(as);
 
   if (get_prop(as, gconsts.g_string_length, &alen_jsv) == SUCCESS)

@@ -732,6 +732,7 @@ JSValue new_object_with_class(Context *ctx, HiddenClass *hc)
   p = remove_simple_object_tag(ret);
   set_object_members_with_class(p, hc);
   GC_POP(hc);
+
   return ret;
 }
 
