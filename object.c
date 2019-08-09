@@ -727,9 +727,11 @@ JSValue new_object_with_class(Context *ctx, HiddenClass *hc)
   JSValue ret;
   Object *p;
 
+  GC_PUSH(hc);
   ret = make_simple_object(ctx, hidden_n_embedded_props(hc));
   p = remove_simple_object_tag(ret);
   set_object_members_with_class(p, hc);
+  GC_POP(hc);
   return ret;
 }
 

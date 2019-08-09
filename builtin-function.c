@@ -34,13 +34,17 @@ BUILTIN_FUNCTION(function_apply)
   else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 
-  fn = args[0];
-  thisobj = args[1];
+
+  GC_PUSH(as);
 
   if (get_prop(as, gconsts.g_string_length, &alen_jsv) == SUCCESS)
+    /* gccheck reports an error about alen_jsv falsely here */
     alen = number_to_cint(to_number(context, alen_jsv));
   else
     alen = 0;
+
+  fn = args[0];
+  thisobj = args[1];
 
   if (is_function(fn))
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
@@ -48,6 +52,9 @@ BUILTIN_FUNCTION(function_apply)
     ret = invoke_builtin(context, thisobj, fn, TRUE, as, alen);
   else
     LOG_EXIT("apply: the receiver has to be a function/builtin");
+
+  GC_POP(as);
+
   set_a(context, ret);
 }
 
