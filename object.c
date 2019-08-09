@@ -988,10 +988,10 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
   int n_limit = compute_new_limit_props(n_embedded,
                                         hidden_n_limit_props(oldc), n_prop);
 
-  GC_PUSH(oldc);
+  GC_PUSH2(oldc, map);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
   hidden_map(c) = map;
-  GC_POP(oldc);
+  GC_POP2(map, oldc);
   hidden_n_entries(c) = n_map_entries;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
@@ -1026,10 +1026,10 @@ HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
   Map * map = hidden_map(base);
   int n_map_entries = hidden_n_entries(base);
   
-  GC_PUSH(base);
+  GC_PUSH2(base, map);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
   hidden_map(c) = map;
-  GC_POP(base);
+  GC_POP2(map, base);
   hidden_n_entries(c) = n_map_entries;
   hidden_htype(c) = HTYPE_TRANSIT;
   hidden_n_enter(c) = 0;
