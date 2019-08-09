@@ -235,7 +235,7 @@ else
 endif
 
 CHECKFILES_DIR = checkfiles
-GCCHECK_PATTERN = ../gccheck.cocci
+GCCHECK_PATTERN = $(EJSVM_DIR)/gccheck.cocci
 
 ######################################################
 
