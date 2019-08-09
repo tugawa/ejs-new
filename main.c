@@ -229,11 +229,13 @@ void print_gc_prof()
     /* 11 */ "PROP",
     /* 12 */ "ARRAY_DATA",
     /* 13 */ "FUNCTION_FRAME",
-    /* 14 */ "HASH_BODY",
-    /* 15 */ "STR_CONS",
-    /* 16 */ "CONTEXT",
-    /* 17 */ "STACK",
-    /* 18 */ "HIDDEN_CLASS"
+    /* 14 */ "STR_CONS",
+    /* 15 */ "CONTEXT",
+    /* 16 */ "STACK",
+    /* 17 */ "HIDDEN_CLASS"
+    /* 18 */ "HASHTABLE",
+    /* 19 */ "HASH_BODY",
+    /* 20 */ "HASH_CELL",
   };
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
