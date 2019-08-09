@@ -469,14 +469,14 @@ typedef struct string_cell {
  * header tags for non-JS objects
  */
 /* HTAG_FREE is defined in gc.c */
-#define HTAG_PROP           (0x11)
-#define HTAG_ARRAY_DATA     (0x12)
-#define HTAG_FUNCTION_FRAME (0x13)
-#define HTAG_STR_CONS       (0x14)
-#define HTAG_CONTEXT        (0x15)
-#define HTAG_STACK          (0x16)
+#define HTAG_PROP           (0x11) /* Array of JSValues (partly uninitialised) */
+#define HTAG_ARRAY_DATA     (0x12) /* Array of JSValues */
+#define HTAG_FUNCTION_FRAME (0x13) /* FunctionFrame */
+#define HTAG_STR_CONS       (0x14) /* StrCons */
+#define HTAG_CONTEXT        (0x15) /* Context */
+#define HTAG_STACK          (0x16) /* Array of JSValues */
 #ifdef HIDDEN_CLASS
-#define HTAG_HIDDEN_CLASS   (0x17)
+#define HTAG_HIDDEN_CLASS   (0x17) /* HiddenClass */
 #endif
 #define HTAG_HASHTABLE      (0x18)
 #define HTAG_HASH_BODY      (0x19)
