@@ -20,7 +20,10 @@
  * allocates a hash table
  */
 HashTable *malloc_hashtable(void) {
-  return (HashTable*)malloc(sizeof(HashTable));
+  HashTable *ht = (HashTable*)gc_malloc(NULL,
+                                        sizeof(HashTable), HTAG_HASHTABLE);
+  ht->body = NULL;
+  return ht;
 }
 
 /*
@@ -176,14 +179,14 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
 }
 
 HashCell** __hashMalloc(int size) {
-  HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-                                                  HTAG_HASH_BODY);
+  HashCell** ret = (HashCell**)gc_malloc(NULL, sizeof(HashCell*) * size,
+                                         HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
 
 HashCell* __hashCellMalloc() {
-  HashCell* cell = (HashCell*)malloc(sizeof(HashCell));
+  HashCell* cell = (HashCell*)gc_malloc(NULL, sizeof(HashCell), HTAG_HASH_CELL);
   cell->next = NULL;
   return cell;
 }

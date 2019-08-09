@@ -508,11 +508,15 @@ typedef struct string_cell {
 #define HTAG_PROP           (0x11)
 #define HTAG_ARRAY_DATA     (0x12)
 #define HTAG_FUNCTION_FRAME (0x13)
-#define HTAG_HASH_BODY      (0x14)
-#define HTAG_STR_CONS       (0x15)
-#define HTAG_CONTEXT        (0x16)
-#define HTAG_STACK          (0x17)
-#define HTAG_HIDDEN_CLASS   (0x18)
+#define HTAG_STR_CONS       (0x14)
+#define HTAG_CONTEXT        (0x15)
+#define HTAG_STACK          (0x16)
+#ifdef HIDDEN_CLASS
+#define HTAG_HIDDEN_CLASS   (0x17)
+#endif
+#define HTAG_HASHTABLE      (0x18)
+#define HTAG_HASH_BODY      (0x19)
+#define HTAG_HASH_CELL      (0x20)
 
 /*
  * Fixnum
