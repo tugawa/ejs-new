@@ -52,8 +52,11 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
+#ifdef EXCESSIVE_GC
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+#else  /* EXCESSIVE_GC */
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-/* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
+#endif /* EXCESSIVE_GC */
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -245,7 +248,23 @@ STATIC void* space_alloc(struct space *space,
     }
   }
 
-  printf("memory exhausted\n");
+#ifdef DEBUG
+  {
+    struct free_chunk *chunk;
+    for (chunk = space->freelist; chunk != NULL; chunk = chunk->next) {
+      size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
+      LOG(" %lu", chunk_jsvalues * BYTES_IN_JSVALUE);
+    }
+  }
+  LOG("\n");
+  LOG("js_space.bytes = %lu\n", js_space.bytes);
+  LOG("js_space.free_bytes = %lu\n", js_space.free_bytes);
+  LOG("gc_disabled = %d\n", gc_disabled);
+  LOG("request = %lu\n", request_bytes);
+  LOG("type = 0x%x\n", type);
+  LOG("memory exhausted\n");
+#endif /* DEBUG */
+  abort();
   return NULL;
 }
 
@@ -502,7 +521,8 @@ STATIC void trace_HashTable(HashTable **ptrp)
   if (test_and_mark_cell(ptr))
     return;
 
-  trace_HashCell_array(&ptr->body, ptr->size);
+  if (ptr->body != NULL)
+    trace_HashCell_array(&ptr->body, ptr->size);
 }
 
 STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
@@ -788,13 +808,11 @@ STATIC void trace_root_pointer(void **ptrp)
 
   switch (obj_header_tag(ptr)) {
   case HTAG_PROP:
-    printf("HTAG_PROP in trace_root_pointer\n"); break;
+    LOG_EXIT("HTAG_PROP in trace_root_pointer\n"); break;
   case HTAG_ARRAY_DATA:
-    printf("HTAG_ARRAY_DATA in trace_root_pointer\n"); break;
+    LOG_EXIT("HTAG_ARRAY_DATA in trace_root_pointer\n"); break;
   case HTAG_FUNCTION_FRAME:
     trace_FunctionFrame((FunctionFrame **)ptrp); break;
-  case HTAG_HASH_BODY:
-    trace_HashTable((HashTable **)ptrp); break;
   case HTAG_STR_CONS:
     trace_StrCons((StrCons **)ptrp); break;
   case HTAG_CONTEXT:
@@ -803,6 +821,12 @@ STATIC void trace_root_pointer(void **ptrp)
     printf("HTAG_STACK in trace_root_pointer\n"); break;
   case HTAG_HIDDEN_CLASS:
     trace_HiddenClass((HiddenClass **)ptrp); break;
+  case HTAG_HASHTABLE:
+    trace_HashTable((HashTable **)ptrp); break;
+  case HTAG_HASH_BODY:
+    LOG_EXIT("HTAG_HASH_BODY in trace_root_pointer\n"); break;
+  case HTAG_HASH_CELL:
+    LOG_EXIT("HTAG_HASH_CELL in trace_root_pointer\n"); break;
   default:
     trace_slot((JSValue *) ptrp);
     return;
