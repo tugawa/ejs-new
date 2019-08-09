@@ -15,7 +15,7 @@ import os.path
 type_list = ["JSValue", "Object*", "FunctionFrame*", "HiddenClass*", "StrCons*",
              "ArrayCell*", "BoxedCell*", "BuiltinCell*", "FlonumCell*", "FunctionCell*",
              "IteratorCell*", "RegexpCell*", "StringCell*", "HashTable*",
-             "HashCell**", "HashCell*"]
+             "HashCell**", "HashCell*", "Map*"]
 
 // PUSH function
 push_function = "gc_push_checked"
