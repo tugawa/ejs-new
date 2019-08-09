@@ -34,13 +34,13 @@ BUILTIN_FUNCTION(function_apply)
   else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 
-  fn = args[0];
-  thisobj = args[1];
-
   if (get_prop(as, gconsts.g_string_length, &alen_jsv) == SUCCESS)
     alen = number_to_cint(to_number(context, alen_jsv));
   else
     alen = 0;
+
+  fn = args[0];
+  thisobj = args[1];
 
   if (is_function(fn))
     ret = invoke_function(context, thisobj, fn, TRUE, as, alen);
