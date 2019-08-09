@@ -1111,26 +1111,23 @@ STATIC void check_invariant_nobw_space(struct space *space)
   while (scan < space->addr + space->bytes) {
     header_t *hdrp = (header_t *) scan;
     header_t header = *hdrp;
-    if (HEADER0_GET_TYPE(header) == HTAG_STRING)
-      ;
-    else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
-      ;
-    else if (HEADER0_GET_TYPE(header) == HTAG_CONTEXT)
-      ;
-    else if (HEADER0_GET_TYPE(header) == HTAG_STACK)
-      ;
-    else if (is_marked_cell_header(hdrp)) {
-      /* this object is black; should not contain a pointer to white */
-      size_t payload_jsvalues = HEADER0_GET_SIZE(header);
-      size_t i;
-      payload_jsvalues -= HEADER_JSVALUES;
-      payload_jsvalues -= HEADER0_GET_EXTRA(header);
-      if (HEADER0_GET_TYPE(header) == HTAG_ARRAY_DATA) {
-        /* It is possible that a part of array data (from 0 to length)
-         * is used and other parts are left uninitialised.  Therefore,
-         * this black->white check does not work for this datatype.
-         */
-      } else {
+    switch (HEADER0_GET_TYPE(header)) {
+    case HTAG_STRING:
+    case HTAG_FLONUM:
+    case HTAG_ARRAY_DATA:
+    case HTAG_CONTEXT:
+    case HTAG_STACK:
+    case HTAG_HIDDEN_CLASS:
+    case HTAG_HASHTABLE:
+    case HTAG_HASH_CELL:
+      break;
+    default:
+      if (is_marked_cell_header(hdrp)) {
+        /* this object is black; should not contain a pointer to white */
+        size_t payload_jsvalues = HEADER0_GET_SIZE(header);
+        size_t i;
+        payload_jsvalues -= HEADER_JSVALUES;
+        payload_jsvalues -= HEADER0_GET_EXTRA(header);
         for (i = 0; i < payload_jsvalues; i++) {
           uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
           if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
@@ -1143,6 +1140,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
           }
         }
       }
+      break;
     }
     scan += HEADER0_GET_SIZE(header) << LOG_BYTES_IN_JSVALUE;
   }
