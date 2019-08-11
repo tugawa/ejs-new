@@ -59,7 +59,7 @@ SILIST=$(SED) -e 's/^.*: *//'
 
 INSNGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
-INSNGEN_VMDL=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar $(VMDLC_FLAGS)
+INSNGEN_VMDL=java -jar $(EJSVM_DIR)/vmdl/vmdlc.jar
 TYPESGEN_VMDL=java -cp $(EJSVM_DIR)/vmdl/vmdlc.jar vmdlc.TypesGen
 SPECGEN=java -cp $(EJSVM_DIR)/vmdl/vmdlc.jar vmdlc.SpecFileGen
 CPP=$(CC) -E
@@ -259,7 +259,8 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 
 ifeq ($(SUPERINSNTYPE),)
 ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def
-	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
+	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
+		-o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
 else
 ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
@@ -280,7 +281,11 @@ else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 ifeq ($(USE_VMDL), true)
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLCs_FLAGS) -d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	$(INSNGEN_VMDL) $(VMDLCs_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer \
+		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)`\
+	-d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
@@ -288,21 +293,22 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)`\
-		-Xgen:type_label true \
 		$(DATATYPES) $< $(OPERANDSPEC) insns
 endif
 else
 ifeq ($(USE_VMDL), true)
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) -d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+		-d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
 	$(INSNGEN_VMGEN) $(INSNGEN_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-		-Xgen:type_label true \
 		$(DATATYPES) $< $(OPERANDSPEC) insns
 endif
 endif
