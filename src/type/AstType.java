@@ -78,7 +78,6 @@ public class AstType {
         defineJSValueVMType("Function", jsObjType, VMDataType.get("function"));
         defineJSValueVMType("Builtin", jsObjType, VMDataType.get("builtin"));
         defineJSValueVMType("Iterator", jsObjType, VMDataType.get("iterator"));
-        defineJSValueVMType("SimpleIterator", jsObjType, VMDataType.get("simple_iterator"));
         defineJSValueVMType("Regexp", jsObjType, VMDataType.get("regexp"));
         defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));

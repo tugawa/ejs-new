@@ -24,6 +24,8 @@ import dispatch.RuleSet.Rule;
 import type.TypeDefinition;
 import type.VMDataType;
 
+import vmdlc.Main;
+
 
 public class InsnGen {
     public static class Option {
@@ -165,8 +167,9 @@ public class InsnGen {
         RuleSet p = new RuleSet(insnDef.dispatchVars, rules);
         dispatch.DispatchProcessor dispatchProcessor = new dispatch.DispatchProcessor();
         dispatchProcessor.setLabelPrefix(insnDef.name);
-        dispatch.DispatchPlan dispatchPlan = new dispatch.DispatchPlan(2, false);
-        String dispatchCode = dispatchProcessor.translate(p, dispatchPlan);
+//        dispatch.DispatchPlan dispatchPlan = new dispatch.DispatchPlan(2, false);
+//        String dispatchCode = dispatchProcessor.translate(p, dispatchPlan);
+        String dispatchCode = ""; //dispatchProcessor.translate(p, dispatchPlan);
 
         //
         // Add prologue, epilogue, and branches for unused operand datatypes

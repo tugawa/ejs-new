@@ -10,7 +10,6 @@ import nez.ParserGenerator;
 import nez.lang.Grammar;
 import nez.parser.Parser;
 import nez.parser.ParserStrategy;
-//import nez.parser.io.StringSource;
 import nez.parser.io.FileSource;
 import nez.parser.io.StringSource;
 import nez.ast.Source;
@@ -33,22 +32,26 @@ public class Main {
     static String operandSpecFile;
     static String insnDefFile;
     
+    static Option option = new Option();
+
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
             String opt = args[i++];
-            if (opt.equals("-d"))
+            if (opt.equals("-d")) {
                 dataTypeDefFile = args[i++];
-            else if (opt.equals("-g"))
+            } else if (opt.equals("-g")) {
                 vmdlGrammarFile = args[i++];
-            else if (opt.equals("-o"))
+            } else if (opt.equals("-o")) {
                 operandSpecFile = args[i++];
-            else if (opt.equals("-no-match-opt"))
-                Option.mDisableMatchOptimisation = true;
-            else if (opt.equals("-r")) {
-                int seed = Integer.parseInt(args[i++]);
-                DispatchProcessor.srand(seed);
+            } else if (opt.equals("-no-match-opt")) {
+                option.mDisableMatchOptimisation = true;
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
+            } else if (opt.startsWith("-X")) {
+                i = option.addOption(opt, args, i);
+                if (i == -1) {
+                    break;
+                }
             } else {
                 sourceFile = opt;
                 break;
@@ -61,13 +64,22 @@ public class Main {
             System.out.println("   -o file   operand specification file");
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.out.println("   -no-match-opt  disable optimisation for match statement");
-            System.out.println("   -r n      set random seed of dispatch processor");
             System.out.println("   -i file   instruction defs");
+            System.out.println("   -Xcmp:verify_diagram [true|false]");
+            System.out.println("   -Xcmp:opt_pass [MR:S]");
+            System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
+            System.out.println("   -Xcmp:tree_layer p0:p1:h0:h1");
+            System.out.println("   -Xgen:use_goto [true|false]");
+            System.out.println("   -Xgen:pad_cases [true|false]");
+            System.out.println("   -Xgen:use_default [true|false]");
+            System.out.println("   -Xgen:magic_comment [true|false]");
+            System.out.println("   -Xgen:debug_comment [true|false]");
+            System.out.println("   -Xgen:label_prefix xxx   set xxx as goto label");
+            System.out.println("   -Xgen:type_label [true|false]");
             System.exit(1);
         }
     }
     
-       
     static SyntaxTree parse(String sourceFile) throws IOException {
         ParserGenerator pg = new ParserGenerator();
         Grammar grammar = null;
@@ -117,6 +129,9 @@ public class Main {
         if (sourceFile == null)
             throw new Error("no source file is specified");
 
+        Integer seed = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, 0);
+        DispatchProcessor.srand(seed);
+
         try {
             Runtime r = Runtime.getRuntime();
             Process process = r.exec("cpp -E -P " + sourceFile + " -o " + sourceFile + ".tmp");
@@ -132,6 +147,7 @@ public class Main {
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec);
+
         String program = new AstToCVisitor().start(ast);
         
         System.out.println(program);

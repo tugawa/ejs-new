@@ -13,6 +13,7 @@ package dispatch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -20,6 +21,8 @@ import dispatch.LLRuleSet.LLRule;
 import type.VMRepType;
 import type.VMRepType.HT;
 import type.VMRepType.PT;
+
+import vmdlc.Option;
 
 public class DecisionDiagram {
     public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
@@ -353,8 +356,8 @@ public class DecisionDiagram {
         return root == null;
     }
 
-    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-        return generateCodeForNode(root, varNames, tagMacro);
+    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
+        return generateCodeForNode(root, varNames, tagMacro, option, typeLabels, labelPrefix);
     }
 
     public void skipBranchless() {
@@ -369,8 +372,8 @@ public class DecisionDiagram {
     // static method
     ////
 
-    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro) {
-        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro);
+    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
+        CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option, typeLabels, labelPrefix);
         node.accept(gen);
         return gen.toString();
     }
@@ -399,7 +402,9 @@ public class DecisionDiagram {
         return (LLRule) root.accept(v);
     }
 
+    /*
     static String debugGenerateCodeForNode(Node node) {
         return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
     }
+    */
 }

@@ -2,6 +2,7 @@ package dispatch;
 
 import java.util.ArrayList;
 import java.util.List;
+import vmdlc.Option;
 
 public class DispatchPlan {
     static abstract class DispatchCriterion {
@@ -18,9 +19,25 @@ public class DispatchPlan {
     ArrayList<DispatchPlan.DispatchCriterion> plan = new ArrayList<DispatchPlan.DispatchCriterion>();
 
     // create empty DispatchPlan
-    public DispatchPlan() {}
+    public DispatchPlan(Option option) {
+        String layers = option.getOption(Option.AvailableOptions.CMP_TREE_LAYER, "p0:p1:h0:h1");
+        for (String layer: layers.split(":")) {
+            if (layer.equals("tp"))
+                addTagPair();
+            else {
+                int opIndex = Integer.parseInt(layer.substring(1));
+                if (layer.charAt(0) == 'p')
+                    addPT(opIndex);
+                else if (layer.charAt(0) == 'h')
+                    addHT(opIndex);
+                else
+                    throw new Error();
+            }
+        }
+    }
     
     // create standard DispatchPlan
+    /*
     public DispatchPlan(int nrands, boolean useTagPair) {
         if (useTagPair)
             addTagPair();
@@ -29,6 +46,7 @@ public class DispatchPlan {
         for (int i = 0; i < nrands; i++)
             addHT(i);
     }
+    */
     
     void addTagPair() {
         plan.add(new DispatchPlan.TagPairDispatch());

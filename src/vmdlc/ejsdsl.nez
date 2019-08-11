@@ -30,7 +30,7 @@ LabelName = Name
 
 JSValueTypeName = 'JSValue' / 'Number' / 'Bool' / 'JSObject'
                 / 'String' / 'Fixnum' / 'Flonum' / 'Special' / 'SimpleObject' / 'Array' / 'Function'
-                / 'Builtin' / 'SimpleIterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
+                / 'Builtin' / 'Iterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
 
 ////////////////////////////////
 //// Block and Statement

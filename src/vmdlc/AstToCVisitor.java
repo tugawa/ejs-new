@@ -191,7 +191,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
-                if (!Option.disableMatchOptimisation())
+                if (!Main.option.disableMatchOptimisation())
                     vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
                     continue;
@@ -225,10 +225,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             RuleSet rs = new RuleSet(formalParams, rules);
             
-            DispatchPlan dp = new DispatchPlan(formalParams.length, false);
+            DispatchPlan dp = new DispatchPlan(Main.option);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
             dispatchProcessor.setLabelPrefix(currentFunctionName + "_"+ matchStack.peek().name + "_");
-            String s = dispatchProcessor.translate(rs, dp);
+            String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
             println(matchStack.pop().getTailLabel()+": ;");
         }

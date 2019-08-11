@@ -10,6 +10,8 @@
  */
 package dispatch;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -22,13 +24,14 @@ import dispatch.DecisionDiagram.TagPairNode.TagPair;
 import type.VMRepType;
 import type.VMRepType.HT;
 import type.VMRepType.PT;
+import vmdlc.Option;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
     static boolean USE_GOTO = true;
-    static boolean PAD_CASES = false;
-    static boolean USE_DEFAULT = false;  // exclusive to PAD_CASES
-    static boolean DEBUG_COMMENT = false;
-    static boolean GEN_MAGIC_COMMENT = true;
+    static boolean PAD_CASES = true;
+    static boolean USE_DEFAULT = false;  // add default by the same strategy as -old (exclusive to PAD_CASES)
+    static boolean DEBUG_COMMENT = true;
+
     static class Macro {
         int nextLabel = 0;
 
@@ -49,19 +52,29 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         }
     }
 
+    Option option;
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
-    TreeMap<Node, String> labels = new TreeMap<Node, String>();
+    Map<Node, String> gotoLabels = new TreeMap<Node, String>();
+    Map<Node, Set<String>> typeLabels;
+    String labelPrefix;
 
-    public CodeGenerateVisitor(String[] varNames, Macro tagMacro) {
+    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
         this.varNames = varNames;
         this.tagMacro = tagMacro;
+        this.typeLabels = typeLabels;
+        this.option = option;
+        USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
+        PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
+        USE_DEFAULT = option.getOption(Option.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
+        DEBUG_COMMENT = option.getOption(Option.AvailableOptions.GEN_DEBUG_COMMENT, DEBUG_COMMENT);
+        this.labelPrefix = labelPrefix;
     }
 
     @Override
     public String toString() {
-        if (GEN_MAGIC_COMMENT) {
+        if (option.getOption(Option.AvailableOptions.GEN_MAGIC_COMMENT, false)) {
             return sb.toString() +
                     "/* Local Variables: */\n" +
                     "/* mode: c */\n" +
@@ -73,22 +86,34 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 
     boolean processSharedNode(Node node) {
         if (USE_GOTO) {
-            String label = labels.get(node);
+            String label = gotoLabels.get(node);
             if (label != null) {
                 sb.append("goto ").append(label).append(";\n");
                 return true;
             }
             label = tagMacro.getLabel();
-            labels.put(node, label);
+            gotoLabels.put(node, label);
             sb.append(label).append(":");
         }
         return false;
+    }
+
+    private void addTypeLabels(Node node) {
+        if (typeLabels != null) {
+            Set<String> labels = typeLabels.get(node);
+            if (labels == null)
+                return;
+            sb.append("\n");
+            for (String label: labels)
+                sb.append("TL").append(labelPrefix).append(label).append(":\n");
+        }
     }
 
     @Override
     Void visitLeaf(Leaf node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         sb.append("{");
         if (DEBUG_COMMENT) {
             sb.append(" //");
@@ -103,6 +128,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitTagPairNode(TagPairNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         TreeMap<Node, TreeSet<TagPairNode.TagPair>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.composeTagPairCode(varNames[0], varNames[1])).append("){");
         if (DEBUG_COMMENT)
@@ -143,7 +169,8 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
             if (USE_DEFAULT) {
                 if (child == defaultChild)
                     sb.append("default:\n");
-            }			child.accept(this);
+            }
+            child.accept(this);
             sb.append("break;\n");
         }
         sb.append("}");
@@ -156,6 +183,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitPTNode(PTNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         TreeMap<Node, TreeSet<PT>> childToTags = node.getChildToTagsMap();
         sb.append("switch(").append(tagMacro.getPTCode(varNames[node.getOpIndex()])).append("){");
         if (DEBUG_COMMENT)
@@ -210,6 +238,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Void visitHTNode(HTNode node) {
         if (processSharedNode(node))
             return null;
+        addTypeLabels(node);
         if (node.isNoHT()) {
             node.getChild().accept(this);
             return null;
