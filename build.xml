@@ -30,11 +30,6 @@
     </jar>
   </target>
 
-  <target name="oldinsngen" depends="compile">
-    <jar jarfile="oldinsngen.jar" basedir="${bin}"
-          manifest="manifest/oldinsngen.mf"/>
-  </target>
-  
   <target name="clean">
     <delete dir="${bin}"/>
   </target>
