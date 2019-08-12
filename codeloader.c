@@ -130,13 +130,11 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #endif
 
 #ifdef USE_SBC
-// #define next_buf_sbc()      step_load_code(buf, LOADBUFLEN)
 #define next_buf_sbc() (step_load_code(buf, LOADBUFLEN) != NULL)
 #define buf_to_int_sbc(s)   check_read_token(buf, s)
 #endif
 
 #ifdef USE_OBC
-// #define next_buf_obc()      fread(b, sizeof(unsigned char), 2, file_pointer)
 #define next_buf_obc() (fread(b, sizeof(unsigned char), 2, file_pointer) > 0)
 #ifdef CPU_LITTLE_ENDIAN
 #define buf_to_int_obc(s)   (b[0] * 256 + b[1])
@@ -783,7 +781,6 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       uint16_t index;
       dst = atoi(next_token());
       index = (uint16_t)atoi(next_token());
-      // insns[pc].code = makecode_makeclosure(oc, dst, index);
       insns[pc].code = makecode_makeclosure(oc, dst, index + ftbase);
       return LOAD_OK;
     }
@@ -855,7 +852,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     }
     insns[pc].code = bc;
     return LOAD_OK;
-    
+
   case THREEOP:
     for (i = 0; i < 3; i++) {
       InsnOperandType type = si_optype(oc, i);
