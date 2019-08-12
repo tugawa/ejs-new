@@ -1,14 +1,3 @@
-/*
-   DslParser.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Takafumi Kataoka, 2016-18
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
- */
 package old.insngen;
 import java.io.BufferedReader;
 import java.io.FileReader;

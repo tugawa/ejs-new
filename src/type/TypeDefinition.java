@@ -1,13 +1,3 @@
-/*
-   TypeDefinition.java
-
-   eJS Project
-     Kochi University of Technology
-     the University of Electro-communications
-
-     Tomoharu Ugawa, 2016-18
-     Hideya Iwasaki, 2016-18
- */
 package type;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
