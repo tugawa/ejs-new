@@ -131,3 +131,5 @@
 
 #define NotImplemented()            NOT_IMPLEMENTED()
 #define Nextpropnameidx(ite)        nextpropnameidx_helper(ite)
+
+#define GOTO(l)                     goto l

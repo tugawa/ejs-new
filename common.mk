@@ -281,10 +281,10 @@ else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 ifeq ($(USE_VMDL), true)
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLCs_FLAGS) \
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
-		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)`\
+		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
 	-d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
@@ -292,7 +292,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	$(INSNGEN_VMGEN) $(INSNGEN_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
-		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)`\
+		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
 		$(DATATYPES) $< $(OPERANDSPEC) insns
 endif
 else
@@ -319,7 +319,11 @@ SI_OTSPECS = $(patsubst %,$(SI_OTSPEC_DIR)/%.ot,$(SUPERINSNS))
 ifeq ($(SUPERINSN_CUSTOMIZE_OT),true)
 $(SI_OTSPECS): $(OPERANDSPEC) $(SUPERINSNSPEC)
 	mkdir -p $(SI_OTSPEC_DIR)
+ifeq ($(USE_VMDL), true)
 	$(GOTTA) --gen-ot-spec $(patsubst $(SI_OTSPEC_DIR)/%.ot,%,$@) -o $@
+else
+	$(GOTTA) --gen-ot-spec $(patsubst $(SI_OTSPEC_DIR)/%.ot,%,$@) -o $@
+endif
 else
 $(SI_OTSPECS): $(OPERANDSPEC)
 	mkdir -p $(SI_OTSPEC_DIR)
@@ -340,25 +344,53 @@ orig_insn = \
 tmp_idef = $(SI_IDEF_DIR)/$(patsubst insns/%.inc,%,$1).idef
 
 ifeq ($(SUPERINSN_PSEUDO_IDEF),true)
+ifeq ($(USE_VMDL), true)
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+	mkdir -p $(SI_IDEF_DIR)
+	$(GOTTA) \
+		--gen-pseudo-vmdl $(call orig_insn,$@) $(patsubst insns/%.inc,%,$@) \
+		-o $(call tmp_idef,$@)
+	mkdir -p insns
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+		-d $(DATATYPES) \
+		-i $(EJSVM_DIR)/instructions.def \
+		-o $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) \
+		$(call tmp_idef,$@) > $@ || (rm $@; exit 1)
+else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p $(SI_IDEF_DIR)
 	$(GOTTA) \
-	    --gen-pseudo-idef $(call orig_insn,$@) \
-	    -o $(call tmp_idef,$@)
+		--gen-pseudo-idef $(call orig_insn,$@) \
+		-o $(call tmp_idef,$@)
 	mkdir -p insns
 	$(INSNGEN_VMGEN) $(INSNGEN_FLAGS) \
-	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
-	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
-	    $(call tmp_idef,$@) \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
+		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
+		$(call tmp_idef,$@) \
+		$(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
+endif
+else
+ifeq ($(USE_VMDL), true)
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+	mkdir -p insns
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+		-d $(DATATYPES) \
+		-i $(EJSVM_DIR)/instructions.def \
+		-o $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) \
+		$(EJSVM_DIR)/insns-vmdl/$(call orig_insn,$@).vmd > $@ || (rm $@; exit 1)
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p insns
 	$(INSNGEN_VMGEN) $(INSNGEN_FLAGS) \
-	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
-	    -Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
-	    $(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
-	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
+		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
+		$(EJSVM_DIR)/insns-def/$(call orig_insn,$@).idef \
+		$(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
+endif
 endif
 endif
 

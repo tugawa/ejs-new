@@ -274,6 +274,7 @@ def process_argv():
   argparser.add_argument("--gen-insn-label", action = "store_true")
   argparser.add_argument("--gen-vmloop-cases", action = "store_true")
   argparser.add_argument("--gen-pseudo-idef", action = "store", type = str)
+  argparser.add_argument("--gen-pseudo-vmdl", action = "store", type = str, nargs=2)
   argparser.add_argument("--gen-ot-spec", action = "store", type = str)
   argparser.add_argument("--print-dispatch-order", action = "store", type = str)
   argparser.add_argument("--list-si", action = "store_true")
@@ -671,6 +672,78 @@ def gen_pseudo_idef(args):
     ofile.write("  goto %s;\n" % goto_label)
     ofile.write("\\}\n")
 
+def gen_pseudo_vmdl(args):
+  insn_name = args.gen_pseudo_vmdl[0]
+  si_name = args.gen_pseudo_vmdl[1]
+  insndefs = read_insndef(args)
+  vmdatatypes = [
+    "Fixnum",
+    "Flonum",
+    "String",
+    "Special",
+    "SimpleObject",
+    "Builtin",
+    "Function",
+    "Array",
+    "Iterator",
+    "Regexp",
+    "NumberObject",
+    "StringObject",
+    "BooleanObject"
+  ]
+  tagtype = [
+    "fixnum",
+    "flonum",
+    "string",
+    "special",
+    "simple_object",
+    "builtin",
+    "function",
+    "array",
+    "iterator",
+    "regexp",
+    "number_object",
+    "string_object",
+    "boolean_object"
+  ]
+  totag = lambda x: tagtype[vmdatatypes.index(x)]
+
+  # find insninfo
+  insninfo = [x for x in insndefs if x["insn"] == insn_name][0]
+
+  # count the number of JSValue operands
+  jsvalue_count = 0
+  ts = []
+  vs = []
+  rettype = insninfo["ops"][0]
+  if (rettype == "Register"):
+    rettype = "JSValue"
+  for (i, operand) in enumerate(insninfo["ops"][1:]):
+    if operand == "JSValue":
+      ts.append("JSValue")
+      vs.append("_vv_" + str(jsvalue_count))
+      jsvalue_count += 1
+    else:
+      ts.append("%s" % operand)
+      vs.append("x%d" % i)
+
+  # print
+  indent = ' ' * 4
+  ofile.write("externC GOTO : Top -> void\n")
+  ofile.write("(vmInstruction, needContext, triggerGC, tailCall)\n")
+  ofile.write("%s : (%s) -> %s\n" % (insn_name, ", ".join(ts), rettype))
+  ofile.write("%s (%s) {\n" % (insn_name, ", ".join(vs)))
+  ofile.write("%stop: match (%s) {\n" % (indent, ", ".join(vs)))
+  for oplist in itertools.product(vmdatatypes, repeat=jsvalue_count):
+    cond_list = [t + " _vv_"+str(v) for (v, t) in enumerate(oplist)]
+    cond = " && ".join(cond_list)
+    goto_label = "TL" + insn_name + "_" + "_".join(map(totag, oplist))
+    ofile.write("%scase (%s) {\n" % (indent * 2, cond))
+    ofile.write("%sGOTO(%s);\n" % (indent * 3, goto_label))
+    ofile.write("%s}\n" % (indent * 2))
+  ofile.write("%s}\n" % (indent))
+  ofile.write("}\n")
+
 def gen_sinsn_operandspec(args):
   sinsn_name = args.gen_ot_spec
   sinsns = read_sinsns(args)
@@ -741,6 +814,8 @@ def main():
     gen_vmloop_cases(args)
   if args.gen_pseudo_idef:
     gen_pseudo_idef(args)
+  if args.gen_pseudo_vmdl:
+    gen_pseudo_vmdl(args)
   if args.gen_ot_spec:
     gen_sinsn_operandspec(args)
   if args.print_dispatch_order:
