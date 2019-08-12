@@ -43,10 +43,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             this.opNames = opNames;
         }
         String getHeadLabel() {
-            return "MATCH_HEAD_"+functionName+"_"+name;
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            return "MATCH_HEAD_"+labelPrefix+"_"+name;
         }
         String getTailLabel() {
-            return "MATCH_TAIL_"+functionName+"_"+name;
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            return "MATCH_TAIL_"+labelPrefix+"_"+name;
         }
         boolean hasMatchLabelOf(String label) {
             return matchLabel != null && matchLabel.equals(label);
@@ -111,7 +113,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private String getEpilogueLabel() {
-        return "L"+currentFunctionName+"_EPILOGUE";
+        String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+        return "L"+labelPrefix+"_EPILOGUE";
     }
     
     public class DefaultVisitor {
@@ -150,6 +153,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     jsvParams[jsvNum++] = paramName;
                 }
             }
+            println("DEFLABEL(HEAD):");
             print("INSN_COUNT" + jsvNum + "(" + funNameNode.toText());
             for (int i = 0; i < jsvNum; i++) {
                 print("," + jsvParams[i]);
@@ -227,7 +231,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             
             DispatchPlan dp = new DispatchPlan(Main.option);
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
-            dispatchProcessor.setLabelPrefix(currentFunctionName + "_"+ matchStack.peek().name + "_");
+            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+            dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
             println(matchStack.pop().getTailLabel()+": ;");
