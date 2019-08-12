@@ -267,7 +267,8 @@ public class SBCFileComposer extends OutputFileComposer {
         public void addMakeClosureOp(String insnName, boolean log, Register dst, int index) {
             insnName = decorateInsnName(insnName, log);
             String a = Integer.toString(dst.getRegisterNumber());
-            String b = Integer.toString(index + functionNumberOffset);
+            // String b = Integer.toString(index + functionNumberOffset);
+            String b = Integer.toString(index);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
         }
