@@ -741,10 +741,41 @@ JSValue new_object_with_class(Context *ctx, HiddenClass *hc)
  */
 JSValue new_array(Context *ctx, int size)
 {
-  JSValue ret = make_array(ctx);
+  return new_array_with_class(ctx, size, gobjects.g_hidden_class_array);
+}
+
+JSValue new_preformed_array(Context *ctx, int size)
+{
+  HiddenClass *hc;
+  JSValue ret;
+  AllocSite* alloc_site;
+
+  assert(ctx != NULL);
+  alloc_site = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
+
+  /* select hidden class */
+  if (alloc_site->hc != NULL &&
+      hidden_proto(alloc_site->hc) == gconsts.g_array_proto) {
+    if (alloc_site->preformed_hc == NULL)
+      alloc_site->preformed_hc =
+        new_hidden_class_from_base(ctx, alloc_site->hc);
+    hc = alloc_site->preformed_hc;
+  } else
+    hc = gobjects.g_hidden_class_array;
+
+  /* make an array */
+  ret = new_array_with_class(ctx, size, hc);
+
+  /* record allocation site */
+  obj_alloc_site(ret) = alloc_site;
+  return ret;
+}
+
+JSValue new_array_with_class(Context *ctx, int size, HiddenClass *hc)
+{
+  JSValue ret = make_array(ctx, hidden_n_embedded_props(hc));
   GC_PUSH(ret);
-  set_object_members_with_class(array_object_p(ret),
-                                gobjects.g_hidden_class_array);
+  set_object_members_with_class(array_object_p(ret), hc);
   array_body(ret) = NULL;  /* tell GC this is under initalisation */
   array_body(ret) = allocate_jsvalue_array(ctx, size);
   array_size(ret) = size;

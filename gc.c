@@ -22,18 +22,17 @@
 #define STATIC static
 #endif
 
-/*
- * #define GCLOG(...) LOG(__VA_ARGS__)
- * #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
- * #define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
- * #define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
- */
-
+#if 0
+#define GCLOG(...) LOG(__VA_ARGS__)
+#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+#else /* 0 */
 #define GCLOG(...)
 #define GCLOG_TRIGGER(...)
 #define GCLOG_ALLOC(...)
 #define GCLOG_SWEEP(...)
-
+#endif /* 0 */
 
 /*
  * defined in header.h

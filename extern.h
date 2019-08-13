@@ -250,6 +250,8 @@ extern int regexp_flag(JSValue);
 extern JSValue new_object_with_class(Context *ctx, HiddenClass *hc);
 extern JSValue new_simple_object(Context *);
 extern JSValue new_array(Context *, int);
+extern JSValue new_preformed_array(Context *ctx, int size);
+extern JSValue new_array_with_class(Context *ctx, int size, HiddenClass* hc);
 extern JSValue new_function(Context *, Subscript);
 extern JSValue new_builtin_with_constr(Context *, builtin_function_t,
                                        builtin_function_t, int);

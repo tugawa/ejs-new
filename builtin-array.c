@@ -63,7 +63,7 @@ BUILTIN_FUNCTION(array_constr)
   size = compute_asize(length);
 
   /* allocate the array */
-  rsv = new_array(context, size);
+  rsv = new_preformed_array(context, size);
   array_length(rsv) = length;  /* TODO: implement property */
 
   /* fill elements if supplied */
