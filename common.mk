@@ -21,6 +21,9 @@ endif
 ifeq ($(PYTHON),)
     PYTHON = python
 endif
+ifeq ($(CPP_VMDL),)
+    CPP_VMDL=$(CC) -E -x c -P
+endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
 endif
@@ -273,13 +276,17 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 
+insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd
+	mkdir -p insns-vmdl
+	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
+
 ifeq ($(DATATYPES),)
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
@@ -297,7 +304,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/%.vmd
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
@@ -451,5 +458,6 @@ clean:
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
+	rm -rf insns-vmdl
 
 

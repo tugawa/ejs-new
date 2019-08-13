@@ -36,6 +36,7 @@ SED = gsed
 RUBY = ruby
 PYTHON = python
 # PYTHON = python3
+# CPP_VMDL = $(CPP) -E -x c -P
 COCCINELLE = spatch
 # COCCINELLE = spatch --python python3
 
