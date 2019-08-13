@@ -132,17 +132,7 @@ public class Main {
         Integer seed = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, 0);
         DispatchProcessor.srand(seed);
 
-        try {
-            Runtime r = Runtime.getRuntime();
-            Process process = r.exec("cpp -E -P " + sourceFile + " -o " + sourceFile + ".tmp");
-    
-            if (process.waitFor() != 0) {
-                throw new Error("preprocess error");
-            }
-        } catch(Exception e) {
-            throw new Error("preprocess error");
-        }
-        SyntaxTree ast = parse(sourceFile + ".tmp");
+        SyntaxTree ast = parse(sourceFile);
         
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);

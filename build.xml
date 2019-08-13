@@ -16,7 +16,7 @@
   
   <target name="compile" depends="init">
     <javac srcdir="${src}" destdir="${bin}" classpathref="classpath"
-          includeantruntime="false">
+          includeantruntime="false" debug="true">
       <compilerarg value="-Xlint:unchecked" />
     </javac>
   </target>
