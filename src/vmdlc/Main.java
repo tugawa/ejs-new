@@ -141,11 +141,6 @@ public class Main {
         String program = new AstToCVisitor().start(ast);
         
         System.out.println(program);
-
-        File file = new File(sourceFile + ".tmp");
-        if (file.exists()) {
-            file.delete();
-        }
     }
     
     public static BufferedReader openFileInJar(String path){
