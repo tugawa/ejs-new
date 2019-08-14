@@ -32,6 +32,6 @@ bitand (v1, v2) {
       Number u1 = toNumber(v1);
       Number u2 = toNumber(v2);
       rematch top(u1, u2);
-    }    
+    }
   }
 }
