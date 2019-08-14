@@ -388,7 +388,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_
 		-d $(DATATYPES) \
 		-i $(EJSVM_DIR)/instructions.def \
 		-o $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) \
-		$(EJSVM_DIR)/insns-vmdl/$(call orig_insn,$@).vmd > $@ || (rm $@; exit 1)
+		insns-vmdl/$(call orig_insn,$@).vmd > $@ || (rm $@; exit 1)
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p insns
