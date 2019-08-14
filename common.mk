@@ -348,7 +348,7 @@ else
 SI_IDEF_DIR = si/idefs
 orig_insn = \
     $(shell $(GOTTA) --print-original-insn-name $(patsubst insns/%.inc,%,$1))
-tmp_idef = $(SI_IDEF_DIR)/$(patsubst insns/%.inc,%,$1).idef
+tmp_idef = $(SI_IDEF_DIR)/$(patsubst insns/%.inc,%,$1)
 
 ifeq ($(SUPERINSN_PSEUDO_IDEF),true)
 ifeq ($(USE_VMDL), true)
@@ -356,7 +356,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_
 	mkdir -p $(SI_IDEF_DIR)
 	$(GOTTA) \
 		--gen-pseudo-vmdl $(call orig_insn,$@) $(patsubst insns/%.inc,%,$@) \
-		-o $(call tmp_idef,$@)
+		-o $(call tmp_idef,$@).vmd
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
@@ -364,18 +364,18 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_
 		-d $(DATATYPES) \
 		-i $(EJSVM_DIR)/instructions.def \
 		-o $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) \
-		$(call tmp_idef,$@) > $@ || (rm $@; exit 1)
+		$(call tmp_idef,$@).vmd > $@ || (rm $@; exit 1)
 else
 $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
 	mkdir -p $(SI_IDEF_DIR)
 	$(GOTTA) \
 		--gen-pseudo-idef $(call orig_insn,$@) \
-		-o $(call tmp_idef,$@)
+		-o $(call tmp_idef,$@).idef
 	mkdir -p insns
 	$(INSNGEN_VMGEN) $(INSNGEN_FLAGS) \
 		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 $(DATATYPES) \
-		$(call tmp_idef,$@) \
+		$(call tmp_idef,$@).idef \
 		$(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 endif
 else
