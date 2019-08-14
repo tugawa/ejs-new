@@ -9,7 +9,6 @@ OPERANDSPEC = ../operand-spec/any.spec
 # OPERANDSPEC = ../operand-spec/fixnum-unspec.spec
 SUPERINSNSPEC = ../superinsn-spec/all.si
 SUPERINSNTYPE = 3
-VMDLC_OPERANDSPEC=../operand-spec/any.vmdlc-spec
 VMDLC_FLAGS=-no-match-opt
 
 ##

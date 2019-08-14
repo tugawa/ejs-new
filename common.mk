@@ -292,7 +292,7 @@ $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
-	-d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
@@ -309,7 +309,7 @@ $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-		-d $(DATATYPES) -o $(VMDLC_OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 	mkdir -p insns
