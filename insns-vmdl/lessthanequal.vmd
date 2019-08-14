@@ -16,7 +16,6 @@ lessthanequal (v1, v2) {
       return x1 <= x2 ? true : false;
     }
     case (String v1 && String v2) {
-      // char* 型をどうするか
       return Strcmp(String_to_cstr(v1), String_to_cstr(v2)) <= 0 ? true : false;
     }
     case ((String v1 || Special v1) && (String v2 || Special v2)) {
