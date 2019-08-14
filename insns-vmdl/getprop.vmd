@@ -5,7 +5,7 @@
 (vmInstruction, needContext)
 getprop : (JSValue, JSValue) -> JSValue
 getprop (obj, index) {
-  top: match (obj) {
+  top: match (obj, index) {
     case (Array obj) {
       return getArrayProp(obj, index);
     }
@@ -14,7 +14,7 @@ getprop (obj, index) {
     }
     case (true) {
       JSValue obj2 = toObject(obj);
-      rematch top (obj2);
+      rematch top (obj2, index);
     }
   }
 }

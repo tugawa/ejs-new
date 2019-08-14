@@ -5,7 +5,7 @@
 (vmInstruction, needContext)
 setprop : (JSValue, JSValue, JSValue) -> void
 setprop (obj, prop, val) {
-  match (obj) {
+  match (obj, prop, val) {
     case (Array obj) {
       SetArrayProp(obj, prop, val);
     }
