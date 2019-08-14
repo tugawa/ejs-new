@@ -73,27 +73,27 @@ LIBS   += -lm
 ######################################################
 # superinstructions
 
-ifeq ($(SUPERINSNTYPE),1)
+ifeq ($(SUPERINSNTYPE),1)      # S1 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_MAKEINSN=true
     SUPERINSN_CUSTOMIZE_OT=false
     SUPERINSN_PSEUDO_IDEF=false
     SUPERINSN_REORDER_DISPATCH=false
-else ifeq ($(SUPERINSNTYPE),2)
+else ifeq ($(SUPERINSNTYPE),2) # S4 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_MAKEINSN=true
     SUPERINSN_CUSTOMIZE_OT=true
     SUPERINSN_PSEUDO_IDEF=false
     SUPERINSN_REORDER_DISPATCH=false
-else ifeq ($(SUPERINSNTYPE),3)
+else ifeq ($(SUPERINSNTYPE),3) # S5 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_MAKEINSN=true
     SUPERINSN_CUSTOMIZE_OT=true
     SUPERINSN_PSEUDO_IDEF=true
     SUPERINSN_REORDER_DISPATCH=false
-else ifeq ($(SUPERINSNTYPE),4)
+else ifeq ($(SUPERINSNTYPE),4) # S3 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_MAKEINSN=false
     SUPERINSN_CUSTOMIZE_OT=false
     SUPERINSN_PSEUDO_IDEF=false
     SUPERINSN_REORDER_DISPATCH=true
-else ifeq ($(SUPERINSNTYPE),5)
+else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_MAKEINSN=false
     SUPERINSN_CUSTOMIZE_OT=false
     SUPERINSN_PSEUDO_IDEF=false
