@@ -715,11 +715,14 @@ def gen_pseudo_vmdl(args):
   jsvalue_count = 0
   ts = []
   vs = []
-  rettype = insninfo["ops"][0]
-  if (rettype == "Register"):
+  if (insninfo["ops"][0] == "Register"):
     rettype = "JSValue"
-  for (i, operand) in enumerate(insninfo["ops"][1:]):
-    if operand == "JSValue":
+  else:
+    rettype = "void"
+  for (i, operand) in enumerate(insninfo["ops"]):
+    if operand == "Register" and i == 0:
+      pass
+    elif operand == "JSValue":
       ts.append("JSValue")
       vs.append("_vv_" + str(jsvalue_count))
       jsvalue_count += 1
