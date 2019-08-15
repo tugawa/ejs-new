@@ -6,7 +6,7 @@
   get_prop(con, gconsts.g_string_prototype, &p);
   if (is_object(p) && p != gconsts.g_object_proto) {
     if (get_prop(p, gconsts.g_string___hidden_class__,
-                      (JSValue *)&hc) == FAIL) {
+                 (JSValue *)&hc) == FAIL) {
       save_context();
       hc = new_hidden_class(context, gobjects.g_hidden_class_0);
       hidden_n_props(hc) = 0;   /* TODO: do this in new_hidden_class() */
@@ -37,5 +37,9 @@
 
 \otherwise \{
 dst = JS_UNDEFINED;
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}
-

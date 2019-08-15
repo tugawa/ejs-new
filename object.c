@@ -335,15 +335,33 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
         GC_PUSH3(obj, name, v);
         if (hidden_base(hc) != NULL) {
           HiddenClass *base = hidden_base(hc);
+#ifdef SHARE_MAP
           GC_PUSH(hc);
           base = expand_hidden_class(ctx, hidden_base(base),
                                      name, index, attr);
           GC_PUSH(base);
-          nhc = new_hidden_class_with_map(ctx, hc,
-                                          hidden_map(base),
+          nhc = new_hidden_class_with_map(ctx, hc, base,
                                           hidden_n_entries(base));
           hidden_base(nhc) = base;
           GC_POP2(base, hc);
+#else /* SHARE_MAP */
+          GC_PUSH(hc);
+          {
+            int result;
+            Attribute xa;
+            HashData b;
+            result = hash_get_with_attribute(hidden_map(hc), name, &b, &xa);
+            if (result == HASH_GET_FAILED)
+              base = expand_hidden_class(ctx, base, name, index, attr);
+            else {
+              assert(is_transition(attr));
+              base = (HiddenClass *)b;
+            }
+          }
+          nhc = expand_hidden_class(ctx, hc, name, index, attr);
+          hidden_base(nhc) = base;
+          GC_POP(hc);
+#endif /* SHARE_MAP */
         } else
           nhc = expand_hidden_class(ctx, hc, name, index, attr);
         GC_POP3(v, name, obj);
@@ -1054,9 +1072,24 @@ HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
   int n_embedded = hidden_n_props(base);
   int n_prop = hidden_n_props(base);
   int n_limit = 0;
-  Map * map = hidden_map(base);
-  int n_map_entries = hidden_n_entries(base);
-  
+  Map * map;
+  int n_map_entries;
+
+#ifdef SHARE_MAP
+  map = hidden_map(base);
+  n_map_entries = hidden_n_entries(base);
+#else /* SHARE_MAP */
+  /* TODO: If there is a transition in the map and it is unique,
+   *       more properties can be pre-allocated.
+   */
+  GC_PUSH(base);
+  map = malloc_hashtable();
+  GC_PUSH(map);
+  hash_create(map, hidden_map(base)->size);
+  n_map_entries = hash_copy(ctx, hidden_map(base), map);
+  GC_POP2(map, base);
+#endif /* SHARE_MAP */
+
   GC_PUSH2(base, map);
   c = (HiddenClass *)gc_malloc(ctx, sizeof(HiddenClass), HTAG_HIDDEN_CLASS);
   hidden_map(c) = map;
