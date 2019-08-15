@@ -239,7 +239,7 @@ void print_gc_prof()
     /* 17 */ "HIDDEN_CLASS",
     /* 18 */ "HASHTABLE",
     /* 19 */ "HASH_BODY",
-    /* 20 */ "HASH_CELL",
+    /* 1a */ "HASH_CELL",
   };
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
@@ -254,9 +254,13 @@ void print_gc_prof()
   for (i = 0; i < 255; i++)
     if (pertype_alloc_count[i] > 0) {
       printf("  type %02x ", i);
-      printf("bytes = %8"PRId64" ", pertype_alloc_bytes[i]);
-      printf("count = %8"PRId64" ", pertype_alloc_count[i]);
-      printf("%s\n", i <= 0x20 ? htag_name[i]: "");
+      printf("a.bytes = %7"PRId64" ", pertype_alloc_bytes[i]);
+      printf("a.count = %5"PRId64" ", pertype_alloc_count[i]);
+      if (generation > 0) {
+        printf("l.bytes = %7"PRId64" ", pertype_live_bytes[i] / generation);
+        printf("l.count = %4"PRId64" ", pertype_live_count[i] / generation);
+      }
+      printf("%s\n", i <= 0x1a ? htag_name[i]: "");
     }
 }
 #endif /* GC_PROF */
