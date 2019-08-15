@@ -121,6 +121,8 @@ uint64_t total_alloc_bytes;
 uint64_t total_alloc_count;
 uint64_t pertype_alloc_bytes[256];
 uint64_t pertype_alloc_count[256];
+uint64_t pertype_live_bytes[256];
+uint64_t pertype_live_count[256];
 #endif /* GC_PROF */
 
 #ifdef GC_DEBUG
@@ -377,7 +379,7 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 #ifdef GC_PROF
   {
     size_t alloc_bytes =
-      (request_bytes + BYTES_IN_JSVALUE * (HEADER_JSVALUES - 1)) &
+      (request_bytes + BYTES_IN_JSVALUE * (HEADER_JSVALUES + 1) - 1) &
       ~((1 << LOG_BYTES_IN_JSVALUE) - 1);
     total_alloc_bytes += alloc_bytes;
     total_alloc_count++;
@@ -952,6 +954,15 @@ STATIC void sweep_space(struct space *space)
 #ifdef GC_DEBUG
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
 #endif /* GC_DEBUG */
+#ifdef GC_PROF
+      {
+        cell_type_t type = HEADER0_GET_TYPE(header);
+        size_t net_size =
+          (size - HEADER0_GET_EXTRA(header)) << LOG_BYTES_IN_JSVALUE;
+        pertype_live_bytes[type]+= net_size;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
       unmark_cell_header((void *) scan);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;

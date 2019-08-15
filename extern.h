@@ -308,6 +308,8 @@ extern uint64_t total_alloc_bytes;
 extern uint64_t total_alloc_count;
 extern uint64_t pertype_alloc_bytes[];
 extern uint64_t pertype_alloc_count[];
+extern uint64_t pertype_live_bytes[];
+extern uint64_t pertype_live_count[];
 #endif /* GC_PROF */
 
 #ifdef __cplusplus
