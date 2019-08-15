@@ -47,9 +47,9 @@ int n_hc;
 int n_enter_hc;
 int n_exit_hc;
 
-#ifdef PROFILE
+#ifdef HC_PROF
 static int profile_object_count;
-#endif /* PROFILE */
+#endif /* HC_PROF */
 #endif
 
 /*
@@ -368,10 +368,10 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
       obj_hidden_class(obj) = nhc;
       hidden_n_enter(nhc)++;
       n_enter_hc++;
-#ifdef PROFILE
+#ifdef HC_PROF
       if (obj_profile_id(obj))
         hidden_n_profile_enter(nhc)++;
-#endif /* PROFILE */
+#endif /* HC_PROF */
     } else { /* hidden_htype(hc) == HTYPE_GROW */
       int ret;
 #ifdef EMBED_PROP
@@ -478,10 +478,10 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name, JSValue v, 
       obj_hidden_class(obj) = nexth;
       hidden_n_enter(nexth)++;
       n_enter_hc++;
-#ifdef PROFILE
+#ifdef HC_PROF
       if (obj_profile_id(obj))
         hidden_n_profile_enter(nexth)++;
-#endif /* PROFILE */
+#endif /* HC_PROF */
     } else {                  /* hidden_htype(oh) == HTYPE_GROW */
       nexth = oh;
       GC_PUSH(nexth);
@@ -823,13 +823,10 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
 {
   size_t i;
   size_t n_embedded = hidden_n_embedded_props(hc);
-#ifdef PROFILE
-  if (logflag()) {
-    p->profile_id = ++profile_object_count;
-    hidden_n_profile_enter(hc)++;
-  } else
-    p->profile_id = 0;
-#endif /* PROFILE */
+#ifdef HC_PROF
+  p->profile_id = ++profile_object_count;
+  hidden_n_profile_enter(hc)++;
+#endif /* HC_PROF */
   p->klass = hc;
   hidden_n_enter(p->klass)++;
   n_enter_hc++;
@@ -852,12 +849,9 @@ static void set_object_members(Object *p, int hsize, int psize)
 #else /* ARRAY_EMBED_PROP */
 static void set_object_members(Object *p, int hsize, int psize)
 {
-#ifdef PROFILE
-  if (logflag())
-    p->profile_id = ++profile_object_count;
-  else
-    p->profile_id = 0;
-#endif /* PROFILE */
+#ifdef HC_PROF
+  p->profile_id = ++profile_object_count;
+#endif /* HC_PROF */
 #ifdef HIDDEN_CLASS
 #ifdef RICH_HIDDEN_CLASS
   p->klass = ((hsize == 0)?
@@ -870,10 +864,10 @@ static void set_object_members(Object *p, int hsize, int psize)
 #endif /* RICH_HIDDEN_CLASS */
   hidden_n_enter(p->klass)++;
   n_enter_hc++;
-#ifdef PROFILE
+#ifdef HC_PROF
   if (p->profile_id)
     p->klass->n_profile_enter++;
-#endif /* PROFILE */
+#endif /* HC_PROF */
 #else
   Map *a;
   a = malloc_hashtable();
@@ -1316,10 +1310,10 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int htype)
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = NULL;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   hidden_prev(c) = NULL;
   hidden_n_profile_enter(c) = 0;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   GC_PUSH(c);
   enable_gc(ctx);
   GC_POP(c);
@@ -1376,25 +1370,20 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc) {
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = oldc;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   hidden_prev(c) = oldc;
   hidden_n_profile_enter(c) = 0;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   n_hc++;
   return c;
 }
 
-#ifdef PROFILE
+#ifdef HC_PROF
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
-#ifdef PROFILE
   printf("HC: %s %p %d %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
          s, hc, hc->n_profile_enter++, hc->prev,
          hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
-#else
-  printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
-         hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
-#endif /* PROFILE */
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);
 }
@@ -1447,7 +1436,7 @@ void print_all_hidden_class(void) {
 #endif /* USE_REGEXP */
 #endif /* ARRAY_EMBED_PROP */
 }
-#endif /* PROFILE */
+#endif /* HC_PROF */
 #endif
 
 /* Local Variables:      */

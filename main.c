@@ -26,8 +26,10 @@ int all_flag;          /* all flag values are true */
 int cputime_flag;      /* prints the cpu time */
 int repl_flag;         /* for REPL */
 #ifdef HIDDEN_CLASS
+#ifdef HC_PROF
 int hcprint_flag;      /* prints all transitive hidden classes */
-#endif
+#endif /* HC_PROF */
+#endif /* HIDDEN_CLASS */
 #ifdef PROFILE
 int profile_flag;      /* print the profile information */
 char *poutput_name;    /* name of logging file */
@@ -149,8 +151,10 @@ struct commandline_option  options_table[] = {
   { "-u",         0, &cputime_flag,   NULL          },
   { "-R",         0, &repl_flag,      NULL          },
 #ifdef HIDDEN_CLASS
-  { "-h",         0, &hcprint_flag,   NULL          },
-#endif
+#ifdef HC_PROF
+  { "--hc-prof",  0, &hcprint_flag,   NULL          },
+#endif /* HC_PROF */
+#endif /* HIDDEN_CLASS */
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
@@ -533,18 +537,20 @@ int main(int argc, char *argv[]) {
     if (repl_flag == TRUE)
       fflush(stdout);
   }
-#ifdef PROFILE
 #ifdef HIDDEN_CLASS
+#ifdef HC_PROF
   if (hcprint_flag == TRUE)
     print_all_hidden_class();
-#endif
+#endif /* HC_PROF */
+#endif /* HIDDEN_CLASS */
+#ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-#endif
+#endif /* PROFILE */
 
   return 0;
 }

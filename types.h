@@ -111,11 +111,11 @@ typedef struct hidden_class {
 #ifdef HC_DEBUG
   struct hidden_class *dbg_prev;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   struct hidden_class *prev;
   uint32_t n_profile_enter; /* number of times this class is used for object
                                marked for profilling */
-#endif /* PROFILE */
+#endif /* HC_PROF */
   uint32_t n_enter;         /* number of times this class is used */
   uint32_t n_exit;          /* number of times this class is left */
 } HiddenClass;
@@ -141,10 +141,10 @@ typedef struct hidden_class {
 #ifdef HC_DEBUG
 #define hidden_dbg_prev(h)         ((h)->dbg_prev)
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
 #define hidden_prev(h)             ((h)->prev)
 #define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
@@ -165,9 +165,9 @@ typedef struct hidden_class {
   } while(0)
 
 typedef struct object_cell {
-#ifdef PROFILE
+#ifdef HC_PROF
   int profile_id;
-#endif /* PROFILE */
+#endif /* HC_PROF */
 #ifndef RICH_HIDDEN_CLASS
   uint64_t n_props;       /* number of properties */
   uint64_t limit_props;
@@ -233,9 +233,9 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
 #define obj_prop(p)            ((remove_object_tag(p))->prop)
 #define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
 #endif /* EMBED_PROP */
-#ifdef PROFILE
+#ifdef HC_PROF
 #define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
