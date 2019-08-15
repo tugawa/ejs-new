@@ -46,9 +46,9 @@ int n_hc;
 int n_enter_hc;
 int n_exit_hc;
 
-#ifdef PROFILE
+#ifdef HC_PROF
 static int profile_object_count;
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 static HiddenClass *new_hidden_class_with_map(Context *ctx,
                                               HiddenClass *oldc,
@@ -358,10 +358,10 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
       obj_hidden_class(obj) = nhc;
       hidden_n_enter(nhc)++;
       n_enter_hc++;
-#ifdef PROFILE
+#ifdef HC_PROF
       if (obj_profile_id(obj))
         hidden_n_profile_enter(nhc)++;
-#endif /* PROFILE */
+#endif /* HC_PROF */
     } else { /* hidden_htype(hc) == HTYPE_GROW */
       int ret;
       int new_limit = compute_new_limit_props(hidden_n_embedded_props(hc),
@@ -696,13 +696,10 @@ static void set_object_members_with_class(Object *p, HiddenClass *hc)
 {
   size_t i;
   size_t n_embedded = hidden_n_embedded_props(hc);
-#ifdef PROFILE
-  if (logflag()) {
-    p->profile_id = ++profile_object_count;
-    hidden_n_profile_enter(hc)++;
-  } else
-    p->profile_id = 0;
-#endif /* PROFILE */
+#ifdef HC_PROF
+  p->profile_id = ++profile_object_count;
+  hidden_n_profile_enter(hc)++;
+#endif /* HC_PROF */
   p->klass = hc;
   p->alloc_site = NULL;
   hidden_n_enter(p->klass)++;
@@ -993,9 +990,9 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = NULL;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   GC_PUSH(c);
   enable_gc(ctx);
   GC_POP(c);
@@ -1037,9 +1034,9 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = oldc;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   n_hc++;
   return c;
 }
@@ -1075,9 +1072,9 @@ HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
 #ifdef HC_DEBUG
   hidden_dbg_prev(c) = base;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   n_hc++;
   return c;
 }
@@ -1101,17 +1098,12 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc)
   return c;
 }
 
-#ifdef PROFILE
+#ifdef HC_PROF
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
-#ifdef PROFILE
   printf("HC: %s %p %d %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
          s, hc, hc->n_profile_enter++, hc->prev,
          hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
-#else
-  printf("HC: %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
-         hc, hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
-#endif /* PROFILE */
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);
 }
@@ -1157,7 +1149,7 @@ void print_all_hidden_class(void) {
                                gobjects.g_hidden_class_regexp);
 #endif /* USE_REGEXP */
 }
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 void init_alloc_site(AllocSite *alloc_site)
 {

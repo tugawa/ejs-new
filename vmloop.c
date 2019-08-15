@@ -231,7 +231,7 @@ int vmrun_threaded(Context* context, int border) {
   };
 #ifdef PROFILE
   int headcount = 0;
-#endif
+#endif /* PROFILE */
 
   update_context();
   /*
