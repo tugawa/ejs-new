@@ -246,6 +246,10 @@ void print_gc_prof()
   for (i = 0; i <= 0x20; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
   }
   printf("\n");
 
@@ -256,10 +260,10 @@ void print_gc_prof()
       printf("  type %02x ", i);
       printf("a.bytes = %7"PRId64" ", pertype_alloc_bytes[i]);
       printf("a.count = %5"PRId64" ", pertype_alloc_count[i]);
-      if (generation > 0) {
-        printf("l.bytes = %7"PRId64" ", pertype_live_bytes[i] / generation);
-        printf("l.count = %4"PRId64" ", pertype_live_count[i] / generation);
-      }
+      printf("l.bytes = %7"PRId64" ",
+             generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+      printf("l.count = %4"PRId64" ",
+             generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
       printf("%s\n", i <= 0x1a ? htag_name[i]: "");
     }
 }
