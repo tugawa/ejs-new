@@ -98,13 +98,13 @@ typedef struct hidden_class {
 #ifdef HC_DEBUG
   struct hidden_class *dbg_prev;
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
   struct hidden_class *prev;
-  uint32_t n_profile_enter;  /* number of times this class is used for object
-                              * marked for profilling */
-#endif /* PROFILE */
-  uint32_t n_enter;          /* number of times this class is used */
-  uint32_t n_exit;           /* number of times this class is left */
+  uint32_t n_profile_enter; /* number of times this class is used for object
+                               marked for profilling */
+#endif /* HC_PROF */
+  uint32_t n_enter;         /* number of times this class is used */
+  uint32_t n_exit;          /* number of times this class is left */
 } HiddenClass;
 
 #define hidden_n_entries(h)        ((h)->n_entries)
@@ -120,10 +120,10 @@ typedef struct hidden_class {
 #ifdef HC_DEBUG
 #define hidden_dbg_prev(h)         ((h)->dbg_prev)
 #endif /* HC_DEBUG */
-#ifdef PROFILE
+#ifdef HC_PROF
 #define hidden_prev(h)             ((h)->prev)
 #define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 #define HTYPE_TRANSIT   0
 #define HTYPE_GROW      1
@@ -145,9 +145,9 @@ typedef struct hidden_class {
  * tag == T_GENERIC
  */
 typedef struct object_cell {
-#ifdef PROFILE
+#ifdef HC_PROF
   int profile_id;
-#endif /* PROFILE */
+#endif /* HC_PROF */
   HiddenClass *klass;     /* Hidden class for this object */
   JSValue eprop[PSIZE_NORMAL];
 } Object;
@@ -187,9 +187,9 @@ static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
     of[index - (n_embedded - 1)] = v;
   }
 }
-#ifdef PROFILE
+#ifdef HC_PROF
 #define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
-#endif /* PROFILE */
+#endif /* HC_PROF */
 
 #define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
 #define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
