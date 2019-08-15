@@ -157,7 +157,9 @@ public class TypeMap {
                     JSValueType t = (JSValueType) xt;
                     if (!t.isSuperOrEqual(dt))
                         continue NEXT_DTS;
-                } else
+                } else if (xt == AstType.BOT)
+                    continue NEXT_DTS;
+                else
                     throw new Error("internal error");
             }
             filtered.add(dts);
