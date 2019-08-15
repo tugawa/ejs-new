@@ -514,7 +514,7 @@ typedef struct string_cell {
 #endif
 #define HTAG_HASHTABLE      (0x18)
 #define HTAG_HASH_BODY      (0x19)
-#define HTAG_HASH_CELL      (0x20)
+#define HTAG_HASH_CELL      (0x1A)
 
 /*
  * Fixnum
