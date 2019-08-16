@@ -54,7 +54,6 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
                                               HiddenClass *oldc,
                                               Map *map,
                                               int n_map_entries);
-static void register_hidden_class_entrypoint(HiddenClass *hc);
 
 /*
  * obtains the index of a property of an Object
@@ -306,6 +305,7 @@ static HiddenClass *expand_hidden_class(Context *ctx , HiddenClass *hc,
                           ATTR_NONE | ATTR_TRANSITION);
   hidden_n_entries(hc)++;
   GC_POP3(nhc, name, hc);
+
   return nhc;
 }
 
@@ -350,11 +350,11 @@ int set_prop_with_attribute(Context *ctx, JSValue obj, JSValue name,
             int result;
             Attribute xa;
             HashData b;
-            result = hash_get_with_attribute(hidden_map(hc), name, &b, &xa);
+            result = hash_get_with_attribute(hidden_map(base), name, &b, &xa);
             if (result == HASH_GET_FAILED)
               base = expand_hidden_class(ctx, base, name, index, attr);
             else {
-              assert(is_transition(attr));
+              assert(is_transition(xa));
               base = (HiddenClass *)b;
             }
           }
@@ -783,6 +783,7 @@ JSValue new_preformed_array(Context *ctx, int size)
 
   /* record allocation site */
   obj_alloc_site(ret) = alloc_site;
+
   return ret;
 }
 
@@ -1011,6 +1012,7 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
   hidden_is_dead(c) = 0;
+  hidden_is_printed(c) = 0;
 #endif /* HC_PROF */
   GC_PUSH(c);
   enable_gc(ctx);
@@ -1056,6 +1058,7 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
   hidden_is_dead(c) = 0;
+  hidden_is_printed(c) = 0;
 #endif /* HC_PROF */
   n_hc++;
   return c;
@@ -1110,6 +1113,7 @@ HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
   hidden_is_dead(c) = 0;
+  hidden_is_printed(c) = 0;
   register_hidden_class_entrypoint(c);
 #endif /* HC_PROF */
   n_hc++;
@@ -1138,10 +1142,10 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc)
 #ifdef HC_PROF
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
-  printf("HC: %s %p %d %p %d (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d, base = %p)\n",
+  printf("HC: %s %p %d %p %d (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d, base = %p, n_embedded = %d)\n",
          s, hc, hc->n_profile_enter++, hc->prev, hc->is_dead,
          hc->n_entries, hc->htype, hc->n_enter, hc->n_exit,
-         hc->base);
+         hc->base, hc->n_embedded_props);
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);
 }
@@ -1153,6 +1157,10 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
   HashCell *p;
   int i;
   char buf[128];
+
+  if (hc->is_printed)
+    return;
+  hc->is_printed = 1;
 
   sprintf(buf, "%d: %s", nhc, s);
   print_hidden_class(buf, hc);
@@ -1166,6 +1174,10 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
                                      (HiddenClass *)p->entry.data);
     } while ((p = p->next) != NULL);
   }
+  if (hc->base)
+    print_hidden_class_recursive("BASE", hc->base);
+  if (hc->prev)
+    print_hidden_class_recursive("PREV", hc->prev);
 }
 
 #define MAX_HCPROF_CLASSES 1000
@@ -1175,6 +1187,7 @@ int hcprof_n_entrypoints;
 void print_all_hidden_class(void) {
   int i;
 
+  print_hidden_class_recursive("hidden_class_top", gobjects.g_hidden_class_top);
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
   print_hidden_class_recursive("hidden_class_array",
                                gobjects.g_hidden_class_array);
@@ -1196,7 +1209,7 @@ void print_all_hidden_class(void) {
     print_hidden_class_recursive("<dynamic>", hcprof_entrypoints[i]);
 }
 
-static void register_hidden_class_entrypoint(HiddenClass *hc)
+void register_hidden_class_entrypoint(HiddenClass *hc)
 {
   hcprof_entrypoints[hcprof_n_entrypoints++] = hc;
 }

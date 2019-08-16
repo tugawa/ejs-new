@@ -129,6 +129,10 @@ STATIC void **top;
 STATIC void sanity_check();
 #endif /* GC_DEBUG */
 
+#ifdef HC_PROF
+int traversing_weaks;
+#endif /* HC_PROF */
+
 /*
  * prototype
  */
@@ -422,8 +426,17 @@ STATIC void garbage_collect(Context *ctx)
   /* print_memory_status(); */
   if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
+#ifdef HC_PROF
+  traversing_weaks = FALSE;
+#endif /* HC_PROF */
   scan_roots(ctx);
+#ifdef HC_PROF
+  traversing_weaks = TRUE;
+#endif /* HC_PROF */
   weak_clear();
+#ifdef HC_PROF
+  traversing_weaks = FALSE;
+#endif /* HC_PROF */
   sweep();
   GCLOG("After Garbage Collection\n");
   /* print_memory_status(); */
@@ -647,6 +660,9 @@ STATIC void trace_HiddenClass(HiddenClass **ptrp)
   HiddenClass *ptr = *ptrp;
   if (test_and_mark_cell(ptr))
     return;
+#ifdef HC_PROF
+  ptr->is_dead = traversing_weaks;
+#endif /* HC_PROF */
   trace_HashTable(&hidden_map(ptr));
   trace_slot(&hidden_proto(ptr));
   if (hidden_prev(ptr) != NULL)
@@ -1019,11 +1035,8 @@ STATIC void weak_clear_hcprof_entrypoints()
   int i;
   for (i = 0; i < hcprof_n_entrypoints; i++) {
     HiddenClass *hc = hcprof_entrypoints[i];
-    if (!is_marked_cell(hc)) {
-      hc->is_dead = 1;
-      printf("dead HC %p\n", hc);
+    if (!is_marked_cell(hc))
       trace_HiddenClass(&hcprof_entrypoints[i]);
-    }
   }
 }
 #endif /* HC_PROF */

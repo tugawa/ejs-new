@@ -267,9 +267,12 @@ extern char *space_chomp(char *);
 extern HiddenClass *new_empty_hidden_class(Context *, int, int, int, int, int);
 extern HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base);
 extern HiddenClass *new_hidden_class(Context *, HiddenClass *);
+extern void init_alloc_site(AllocSite *alloc_site);
+#ifdef HC_PROF
 extern void print_hidden_class(char *, HiddenClass *);
 extern void print_all_hidden_class(void);
-extern void init_alloc_site(AllocSite *alloc_site);
+extern void register_hidden_class_entrypoint(HiddenClass *hc);
+#endif /* HC_PROF */
 
 /*
  * operations.c

@@ -9,6 +9,9 @@
                  (JSValue *)&hc) == FAIL) {
       save_context();
       hc = new_hidden_class(context, gobjects.g_hidden_class_0);
+#ifdef HC_PROF
+      register_hidden_class_entrypoint(hc);
+#endif /* HC_PROF */
       hidden_n_props(hc) = 0;   /* TODO: do this in new_hidden_class() */
       set_prop_with_attribute(context, p, gconsts.g_string___hidden_class__,
 			      (JSValue) hc, ATTR_ALL);
