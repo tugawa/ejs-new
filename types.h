@@ -102,6 +102,8 @@ typedef struct hidden_class {
 #ifdef HC_PROF
   uint32_t n_profile_enter; /* number of times this class is used for object
                                marked for profilling */
+  uint32_t is_dead;         /* true if this is unreachable apart from pointer
+                               from "hcprof_entrypoints" */
 #endif /* HC_PROF */
   uint32_t n_enter;         /* number of times this class is used */
   uint32_t n_exit;          /* number of times this class is left */
@@ -124,6 +126,7 @@ typedef struct hidden_class {
 #endif /* HC_DEBUG */
 #ifdef HC_PROF
 #define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
+#define hidden_is_dead(h)          ((h)->is_dead)
 #endif /* HC_PROF */
 
 #define HTYPE_TRANSIT   0

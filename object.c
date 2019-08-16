@@ -54,7 +54,7 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
                                               HiddenClass *oldc,
                                               Map *map,
                                               int n_map_entries);
-
+static void register_hidden_class_entrypoint(HiddenClass *hc);
 
 /*
  * obtains the index of a property of an Object
@@ -1010,6 +1010,7 @@ HiddenClass *new_empty_hidden_class(Context *ctx, int hsize, int psize,
 #endif /* HC_DEBUG */
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
+  hidden_is_dead(c) = 0;
 #endif /* HC_PROF */
   GC_PUSH(c);
   enable_gc(ctx);
@@ -1054,6 +1055,7 @@ static HiddenClass *new_hidden_class_with_map(Context *ctx,
 #endif /* HC_DEBUG */
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
+  hidden_is_dead(c) = 0;
 #endif /* HC_PROF */
   n_hc++;
   return c;
@@ -1107,6 +1109,8 @@ HiddenClass *new_hidden_class_from_base(Context *ctx, HiddenClass *base)
 #endif /* HC_DEBUG */
 #ifdef HC_PROF
   hidden_n_profile_enter(c) = 0;
+  hidden_is_dead(c) = 0;
+  register_hidden_class_entrypoint(c);
 #endif /* HC_PROF */
   n_hc++;
   return c;
@@ -1134,9 +1138,10 @@ HiddenClass *new_hidden_class(Context *ctx, HiddenClass *oldc)
 #ifdef HC_PROF
 void print_hidden_class(char *s, HiddenClass *hc) {
   printf("======= %s start ======\n", s);
-  printf("HC: %s %p %d %p (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d)\n",
-         s, hc, hc->n_profile_enter++, hc->prev,
-         hc->n_entries, hc->htype, hc->n_enter, hc->n_exit);
+  printf("HC: %s %p %d %p %d (n_entries = %d, htype = %d, n_enter = %d, n_exit = %d, base = %p)\n",
+         s, hc, hc->n_profile_enter++, hc->prev, hc->is_dead,
+         hc->n_entries, hc->htype, hc->n_enter, hc->n_exit,
+         hc->base);
   print_hash_table(hc->map);
   printf("======= %s end ======\n", s);
 }
@@ -1163,7 +1168,13 @@ void print_hidden_class_recursive(char *s, HiddenClass *hc) {
   }
 }
 
+#define MAX_HCPROF_CLASSES 1000
+HiddenClass *hcprof_entrypoints[MAX_HCPROF_CLASSES];
+int hcprof_n_entrypoints;
+
 void print_all_hidden_class(void) {
+  int i;
+
   print_hidden_class_recursive("hidden_class_0", gobjects.g_hidden_class_0);
   print_hidden_class_recursive("hidden_class_array",
                                gobjects.g_hidden_class_array);
@@ -1181,7 +1192,15 @@ void print_all_hidden_class(void) {
   print_hidden_class_recursive("hidden_class_regexp",
                                gobjects.g_hidden_class_regexp);
 #endif /* USE_REGEXP */
+  for (i = 0; i < hcprof_n_entrypoints; i++)
+    print_hidden_class_recursive("<dynamic>", hcprof_entrypoints[i]);
 }
+
+static void register_hidden_class_entrypoint(HiddenClass *hc)
+{
+  hcprof_entrypoints[hcprof_n_entrypoints++] = hc;
+}
+
 #endif /* HC_PROF */
 
 void init_alloc_site(AllocSite *alloc_site)

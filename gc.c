@@ -1011,9 +1011,29 @@ STATIC void weak_clear_StrTable(StrTable *table)
   }
 }
 
+#ifdef HC_PROF
+extern HiddenClass *hcprof_entrypoints[];
+extern int hcprof_n_entrypoints;
+STATIC void weak_clear_hcprof_entrypoints()
+{
+  int i;
+  for (i = 0; i < hcprof_n_entrypoints; i++) {
+    HiddenClass *hc = hcprof_entrypoints[i];
+    if (!is_marked_cell(hc)) {
+      hc->is_dead = 1;
+      printf("dead HC %p\n", hc);
+      trace_HiddenClass(&hcprof_entrypoints[i]);
+    }
+  }
+}
+#endif /* HC_PROF */
+
 STATIC void weak_clear(void)
 {
   weak_clear_StrTable(&string_table);
+#ifdef HC_PROF
+  weak_clear_hcprof_entrypoints();
+#endif /* HC_PROF */
 }
 
 STATIC void sweep_space(struct space *space)
