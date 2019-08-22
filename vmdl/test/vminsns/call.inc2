@@ -1,0 +1,25 @@
+// 途中
+// Function や Builtin をどうするか
+// isForeign をどうするか
+
+(vmInstruction, noIncPc)
+call : (JSValue, cint) -> void
+call (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = (op != CALL);
+  cint newp = (op == NEWSEND);
+  match (fn) {
+    case (Function fn) {
+      // set_fp();   // 自動で出力できる?
+      // set_pc();   // 自動で出力できる?
+      Call_function(fn, nargs, sendp);
+      // こちらは NO_INC_PC
+    }
+    case (Builtin fn) {
+      // set_fp();   // 自動で出力できる?
+      // set_pc();   // 自動で出力できる?
+      Call_builtin(fn, nargs, sendp, newp);
+      // こちらは INC_PC
+    }
+  }
+}

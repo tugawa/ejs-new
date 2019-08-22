@@ -1,0 +1,63 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+pattern number v = Fixnum v || Flonum v
+
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
+externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
+externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
+externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
+externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
+externC string_to_cstr: (String) -> Top
+externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
+externC Strcmp: (Top, Top) -> cint
+externC Half_fixnum_range: cint -> cint
+
+(vmInstruction, needContext, triggerGC, tailCall)
+mul : (JSValue, JSValue) -> JSValue
+mul (v1, v2) {
+  top: match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      cint n1 = FixnumToCint(v1);
+      cint n2 = FixnumToCint(v2);
+      if (Half_fixnum_range(n1) && Half_fixnum_range(n2)) {
+        cint p = n1 * n2;
+        return CintToFixnum(p);
+      } else {
+        cdouble d = n1 * n2;
+        return CdoubleToNumber(d);
+      }
+    }
+    case (number v1 && number v2) {
+      cdouble x1 = toCdouble(v1);
+      cdouble x2 = toCdouble(v2);
+      return CdoubleToNumber(x1 * x2);
+    }
+    case (number v1) {
+      Number u2 = toNumber(v2);
+      rematch top(v1, u2);
+    }
+    case (number v2) {
+      Number u1 = toNumber(v1);
+      rematch top(u1, v2);
+    }
+    case (true) {
+      Number u1 = toNumber(v1);
+      Number u2 = toNumber(v2);
+      rematch top(u1, u2);
+    }
+  }
+}

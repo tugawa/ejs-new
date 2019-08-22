@@ -1,0 +1,11 @@
+// 途中
+// 値を 2 つ返してほしいときにはどうするか?
+
+(vmInstruction, needContext)
+pophandler : void -> void
+pophandler() {
+cint newpc;
+  cint newpc;
+  cint handler_fp;
+  (newpc, handler_fp) <- Exhandler_stack_pop();
+}

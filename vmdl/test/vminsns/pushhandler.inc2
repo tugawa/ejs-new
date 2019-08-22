@@ -1,0 +1,10 @@
+// 途中
+// 命令から disp を取るのをどうするか
+// pc や fp の扱いは?
+
+(vmInstruction, needContext)
+pushhandler : void -> void
+pushhandler(d0) {
+  cint newpc;
+  Exhandler_stack_push(pc + d0, fp);
+}

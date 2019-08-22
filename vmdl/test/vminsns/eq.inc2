@@ -1,0 +1,18 @@
+(vmInstruction)
+eq : (JSValue, JSValue) -> Bool
+eq (v1, v2) {
+  if (v1 == v2) {    // JSValue 同士の == はアドレスを比べる
+    return !isnan(v1);  // isnan は DSL の関数，C の関数 Isnan とは別
+  } else {
+    match (v1, v2) {
+      case (Flonum v1 && Flonum v2) {
+        cdouble n1 = FlonumToCdouble(v1);
+        cdouble n2 = FlonumToCdouble(v2);
+        return n1 == n2;
+      }
+      case (JSValue v1 && JSValue v2) {
+        return false;   /// false は JS_Value 型の DSL の定数
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+(vmInstruction)
+nop : void -> void
+nop () {
+}

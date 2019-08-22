@@ -1,0 +1,13 @@
+(vmInstruction, needContext)
+instanceof : (JSValue, JSValue) -> JSValue
+instanceof (v1, v2) {
+  match (v1, v2) {
+    case (JSObject v1 && JSObject v2) {
+      cint ret = Instanceof(v1, v2);      // C 側に prototype チェーンを探索する関数を用意する
+      return ret ? true : false;
+    }
+    case (JSValue v1 && JSValue v2) {
+      // error
+    }
+  }
+}

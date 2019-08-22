@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="vmdl" default="vmdlc.jar" basedir=".">
+  <property name="src" location="src"/>
+  <property name="bin" location="bin"/>
+
+  <path id="classpath">
+    <pathelement location="lib/nez.jar" />
+    <pathelement location="bin" />
+  </path>
+
+  <target name="init">
+    <mkdir dir="${bin}"/>
+    <unjar src="lib/nez.jar" dest="${bin}"/>
+  </target>
+  
+  <target name="compile" depends="init">
+    <javac srcdir="${src}" destdir="${bin}" classpathref="classpath"
+          includeantruntime="false" debug="true">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+  </target>
+
+  <target name="vmdlc.jar" depends="compile">
+    <jar jarfile="vmdlc.jar" basedir="${bin}">
+      <fileset file="${src}/vmdlc/ejsdsl.nez" />
+      <manifest>
+	<attribute name="Main-Class" value="vmdlc.Main"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="clean">
+    <delete dir="${bin}"/>
+  </target>
+
+  <target name="test_vmdlc" depends="vmdlc.jar" description="Building">
+    <javac srcdir="test/" destdir="${bin}" includeantruntime="false"
+          classpathref="classpath">
+      <compilerarg value="-Xlint:unchecked" />
+    </javac>
+    <java classname="TestVMDLC" failonerror="true" fork="true" dir="test">
+      <classpath refid="classpath"/>
+    </java>
+  </target>
+</project>
+    

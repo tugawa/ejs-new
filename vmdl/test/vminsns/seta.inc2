@@ -1,0 +1,5 @@
+(vmInstruction, needContext, changeContext)
+seta : JSValue -> void
+seta (v) {
+  Set_a(v);
+}

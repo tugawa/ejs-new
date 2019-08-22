@@ -1,0 +1,9 @@
+(vmInstruction, needContext)
+setlocal : (cint, Subscript, JSValue) -> void
+setlocal (link, index, v) {
+  FunctionFrame fr = Get_lp();
+  do (cint i = 0 step i+1) {
+    fr <- Fframe_prev(fr);     // 代入
+  }
+  fr.locals[index] <- v;       // newframe.inc2 のように，DSL でこの書き方ができる
+}

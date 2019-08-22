@@ -1,0 +1,5 @@
+(vmInstruction, needContext)
+ret : void -> void
+ret () {
+  Ret();
+}

@@ -1,0 +1,5 @@
+(vmInstruction, needContext)
+jump : cint -> void
+jump (d) {
+  Set_pc_relative(d);
+}

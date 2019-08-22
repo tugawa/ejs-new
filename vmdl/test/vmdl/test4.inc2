@@ -1,0 +1,42 @@
+
+numberToCdouble : Number -> cdouble
+numberToCdouble (v) {
+}
+
+(needContext, triggerGC)
+toNumber : JSValue -> Number
+toNumber (v) {
+}
+
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (Flonum, Fixnum) -> JSValue
+add (v1, v2) {
+  String u1 = "abcde";
+  Number u2 = 1;
+  JSValue u3 = toNumber(v2);
+  cdouble x1 = numberToCdouble(v1);
+
+  /*
+  if (u1 == Flonum_Infinity || u1 == Flonum_NegInfinity || u1 == Flonum_Nan) {
+    return leftshift(Fixnum_Zero, v2);
+  } else {
+    return leftshift(u1, v2);
+  }
+  cdouble x1 = numberToCdouble(v1);
+  cdouble x2 = numberToCdouble(v2);
+  return x1 < x2 ? true : false;
+
+  cint na = Get_ac();
+
+  do (cint i=0 step i+1) {
+    if (na < i) {
+      break;
+    }
+  }
+  */
+  //cint newpc;
+  //cint handler_fp;
+  //(newpc, handler_fp) <- Exhandler_stack_pop(a);
+  
+//  Set_a(1.0f, "abcd");
+}

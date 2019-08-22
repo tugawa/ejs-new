@@ -1,0 +1,16 @@
+// 途中
+// regbase[oldfl] = JS_UNDEFINED をどう書くか
+
+(vmInstruction, needContext)
+setfl : cint -> void
+setfl (newfl) {
+  cint oldfl = Get_sp() - fp + 1;    // fp をどうするか
+  if (fp + newfl > STACK_LIMIT) {
+    // error
+  } else {
+    Set_sp(fp + newfl -1);
+    do (step oldfl+1) {
+      // regbase[oldfl] = JS_UNDEFINED をどう書くか
+    }
+  }
+}

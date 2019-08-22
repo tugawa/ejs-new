@@ -1,0 +1,5 @@
+(vmInstruction)
+move : JSValue -> JSValue
+move (src) {
+  return src;
+}

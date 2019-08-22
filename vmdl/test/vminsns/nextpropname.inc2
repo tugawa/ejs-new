@@ -1,0 +1,5 @@
+(vmInstruction, needContext, triggerGC)
+nextpropname : (JSValue, JSValue) -> JSValue
+nextpropname (obj, itr) {
+  return Get_next_propname(obj, itr);
+}

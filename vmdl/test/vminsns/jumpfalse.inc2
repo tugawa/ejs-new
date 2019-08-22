@@ -1,0 +1,11 @@
+// 途中
+// if で INC_PC と NO_INC_PC が分かれる場合はどうするのか
+
+(vmInstruction, needContext, noIncPc)
+jumpfalse : (JSValue, cint) -> void
+jumpfalse (v, d) {
+  if (v == false || toBoolean(v) == false) {
+    Set_pc_relative(d);
+    // NOINCPC
+  }
+}

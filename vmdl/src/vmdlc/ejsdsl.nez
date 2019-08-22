@@ -1,0 +1,577 @@
+File       = _ { ( $(TopLevel) / _ )* #Source } EOT
+
+TopLevel   = Directive
+           / Definition
+           / PatternDefinition
+
+Directive  = "#include" { (!'\n' . )* #Include }
+Definition = ExternC
+           / FunctionMeta
+
+FunctionMeta  = { $annotations(Annotations) $name(FunctionName) ":"
+                        $type(Type) $definition(_FunctionDefinition) #FunctionMeta }
+_FunctionDefinition = { $name(FunctionName) "(" $params(Parameters) ")" $body(Block) #FunctionDefinition }
+Parameters = { $(VarName) ( "," $(VarName) )* #Parameters }
+           / _
+
+PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $pattern(Pattern) #PatternDefinition }
+
+////////////////////////////////
+//// Names
+////////////////////////////////
+TypeName   = { 'void' #VoidTypeName } !W _
+           / { 'Top' #TopTypeName } !W _ 
+           / CTypeName
+           / { JSValueTypeName #JSValueTypeName } !W _
+           / { NAME #UserTypeName } _
+VarName      = Name
+FunctionName = Name
+LabelName = Name
+
+JSValueTypeName = 'JSValue' / 'Number' / 'Bool' / 'JSObject'
+                / 'String' / 'Fixnum' / 'Flonum' / 'Special' / 'SimpleObject' / 'Array' / 'Function'
+                / 'Builtin' / 'Iterator' / 'Regexp' / 'StringObject' / 'NumberObject' / 'BooleanObject'
+
+////////////////////////////////
+//// Block and Statement
+////////////////////////////////
+Block = "{" { $(Statement)* #Block } "}"
+Statement = Block
+          / Match
+          / Return
+          / Assignment     // the order of important
+          / ExpressionStatement
+          / Declaration
+          / If
+          / Do
+          / Rematch
+
+
+Match           = { ($label(LabelName) ':' _ )? "match" _ $params(MatchParameters) "{" $cases(Cases) "}" #Match }
+MatchParameters = "(" { $(VarName) ( "," $(VarName) )* #MatchParameters } ")"
+                / "(" _ ")"
+Cases           = { $(Case)+ #Cases }
+Case            = { "case" _ "(" $pattern(Pattern) ")" $body(Block) #Case }
+                / { "case" _ "(" "true" ")" $body(Block) #AnyCase }
+Pattern         = OrPattern
+OrPattern       = AndPattern {$ "||"  $(AndPattern) #OrPattern }*
+AndPattern      = TypePattern {$ "&&" $(TypePattern) #AndPattern }*
+TypePattern     = { $type(TypeName) $var(VarName) #TypePattern }
+                / { "!" $(TypePattern) #NotPattern }
+                / "(" OrPattern ")"
+
+Return = { "return" _ $(Expression)? ";" #Return }
+
+ExpressionStatement = { $(Expression) ";" #ExpressionStatement}
+
+Declaration = { $type(TypeName) $var(VarName) "=" $expr(Expression) ";" #Declaration }
+
+If = { "if" _ "(" $cond(Expression) ")"
+       $then(Statement)
+       ("else" _ $else(Statement))? #If }
+
+Do     = { "do" _ "(" $init(DoInit)? "step" _ $step(DoStep)? ")"
+                  $block(Block) #Do }
+DoInit = { $type(TypeName) $var(VarName) "=" $expr(Expression) #DoInit}
+DoStep = { $(Expression) #DoStep }
+
+Rematch = { "rematch" _ $label(LabelName) "(" $(VarName) ("," $(VarName))* ")" ";" #Rematch }
+
+Assignment             = { $left(LeftHandSide) "<-" $right(Expression) ";" #Assignment }
+                       / { $left(Pairs) "<-" $right(FunctionCall) ";" #AssignmentPair }
+
+Pairs                  = { "(" $(VarName) ( "," $(VarName) )* ")" #Pairs}
+LeftHandSide           = _LeftHandSidePrimitive {$recv _FunctionCall / _Index / _Field }*
+_LeftHandSidePrimitive = "(" LeftHandSide ")"
+                       / VarName
+
+////////////////////////////////
+//// Expression
+////////////////////////////////
+Expression = ConditionalExpression
+
+ConditionalExpression = LogicalORExpression
+                          {$cond "?" $then(Expression) ":" $else(LogicalORExpression) #Trinary }*
+LogicalORExpression   = LogicalANDExpression
+                          {$left "||" $right(LogicalANDExpression) #Or }*
+LogicalANDExpression  = InclusiveORExpression
+                          {$left "&&" $right(InclusiveORExpression) #And }*
+InclusiveORExpression = ExclusiveORExpression
+                          {$left "|" $right(ExclusiveORExpression) #BitwiseOr }*
+ExclusiveORExpression = ANDExpression
+                          {$left "^"
+                           $right(ANDExpression) #BitwiseXor }*
+ANDExpression         = EqualityExpression
+                          {$left "&"
+                           $right(EqualityExpression) #BitwiseAnd }*
+EqualityExpression    = RelationalExpression
+                          {$left ("==" #Equals / "!=" #NotEquals)
+                           $right(EqualityExpression) }*
+RelationalExpression  = ShiftExpression
+                          {$left ("<=" #LessThanEquals /
+                                  ">=" #GreaterThanEquals /
+                                  "<" #LessThan /
+                                  ">" #GreaterThan)
+                           $right(AdditiveExpression)}*
+ShiftExpression       = AdditiveExpression
+                          {$left ("<<" #LeftShift / ">>" #RightShift)
+                           $right(AdditiveExpression) }*
+AdditiveExpression    = MultiplicativeExpression
+                          {$left ("+" #Add / "-" #Sub)
+                           $right(MultiplicativeExpression) }*
+MultiplicativeExpression = UnaryExpression {$left ("*" #Mul / "/" #Div / "%" #Mod)
+                                            $right(UnaryExpression) }*
+UnaryExpression = PostfixExpression
+                / { "+" $expr(PostfixExpression) #Plus }
+                / { "-" $expr(PostfixExpression) #Minus }
+                / { "~" $expr(PostfixExpression) #Compl }
+                / { "!" $expr(PostfixExpression) #Not }
+PostfixExpression = PrimaryExpression {$recv _FunctionCall #FunctionCall / _Index #ArrayIndex / _Field #FieldAccess }*
+PrimaryExpression = Constant
+                  / String
+                  / "(" Expression ")"
+                  / VarName
+
+FunctionCall = VarName {$recv _FunctionCall}*
+_FunctionCall = $({ "(" Arguments? ")" #ArgList })
+_Index        = "[" $(Expression) "]"
+_Field        = "." $(VarName)
+Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
+
+////////////////////////////////
+//// ExternC
+////////////////////////////////
+CTypeName  = { Ctypes #Ctype } _
+CValue     = '"' { StringContent* #CValue } '"'
+StringContent = ESCAPE
+              / &'\\\n' . . / ![\"\n\\] .
+
+ExternC = "externC" _ CTypeDefinition
+        / "externC" _ CFunctionDefinition
+        / "externC" _ CConstantDefinition
+CTypeDefinition = { "type" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CTypedef }
+                / { ObjectMapping #CObjectmapping }
+ObjectMapping   = "mapping" _ $type(TypeName) "{" $members(ObjectMembers) "}" ";"
+ObjectMembers   = { $(ObjectMember)* #Members }
+ObjectMember    = { $annotations(ObjectMemberAnnotation)*
+                    $type(TypeName)
+                    $var(VarName)#Member ";" }
+
+Annotations = { "(" $(Annotation) ( "," $(Annotation) )* ")" #Annotations }
+            / _
+
+CFunctionDefinition = { $annotations(Annotations) $name(FunctionName) ":" $type(Type) #CFunction }
+Type = { $(TypePair) (TypeProduct)+ #TypeProduct }
+     / TypePair
+     / {$(TypeName) (TypeProduct)+ #TypeProduct}
+     / TypeName
+TypePair = { "(" $(Type) ( "," $(Type) )* ")" #TypePair }
+         / "(" { #TypePair } _ ")"
+TypeProduct = "->" $(Type)
+
+CConstantDefinition = { "constant" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CConstantDef }
+
+////////////////////////////////
+//// Utilities
+////////////////////////////////
+_            = ( WS / BLOCKCOMMENT / LINECOMMENT )*
+WS           = [ \n\r\t\u000B\u000C ]
+BLOCKCOMMENT = '/*' ( !'*/' . )* '*/'
+LINECOMMENT  = '//' ( !'\n' . )*
+EOT  = !.
+
+DIGIT = [0-9]
+W = [a-zA-Z0-9_]
+  / UCHAR
+UCHAR = '\\u' HEX4
+      / '\\U' HEX4
+HEX4 = HEX HEX HEX HEX
+HEX  = [A-Fa-f0-9]
+Name = { NAME #Name } _
+NAME = !DIGIT !( KEYWORD !W ) W+
+
+////////////////////////////////
+//// Literals
+////////////////////////////////
+
+Constant = Float
+         / Integer
+         / Char
+         / Boolean
+
+Float = { [\-]? DECIMAL_FLOAT FLOAT_SUFFIX? #Float } _
+DECIMAL_FLOAT = FRACTION EXPONENT?
+              / DIGIT+ EXPONENT
+FRACTION      = DIGIT* '.' DIGIT+
+              / DIGIT+ '.'
+EXPONENT      = [eE] [+\-]? DIGIT+
+FLOAT_SUFFIX  = [flFL]
+
+Integer    = { [\-]? (HEXICAL / DECIMAL / OCTAL) INT_SUFFIX? #Integer } _
+DECIMAL    = [1-9] DIGIT*
+HEXICAL    = '0' [xX] ( [0-9] / [A-F] / [a-f] )+
+OCTAL      = '0' [0-7]*
+INT_SUFFIX = [uU] LONG_SUFFIX?
+           / LONG_SUFFIX [uU]?
+LONG_SUFFIX = 'll'
+            / 'LL'
+            / [lL]
+
+String         = '"' { STRING_CONTENT* #String } '"' _
+Char           = 'L'? "'" { CHAR_CONTENT* #Character } "'" _
+STRING_CONTENT = ESCAPE
+               / &'\\\n' . . / ![\"\n\\] .
+CHAR_CONTENT   = ESCAPE
+               / !['\n\\] .
+ESCAPE         = SIMPLE_ESCAPE
+               / OCTAL_ESCAPE
+               / HEX_ESCAPE
+               / UCHAR
+SIMPLE_ESCAPE  = '\\' ['\"?\\abfnrtv]
+OCTAL_ESCAPE   = '\\' [0-7] [0-7]? [0-7]?
+HEX_ESCAPE     = '\\x' HEX+
+
+Boolean = { "true" #True } _
+        / { "false" #False } _
+
+////////////////////////////////
+//// Keywords
+////////////////////////////////
+
+KEYWORD = "#include"
+        / "type"
+        / "constant"
+        / "mapping"
+        / "return"
+        / "externC"
+        / "match"
+        / "case"
+        / "if"
+        / "else"
+        / "do"
+        / "step"
+        / "pattern"
+        / "true"
+        / "false"
+        / "rematch"
+        / Annotation
+        / JSValueTypeName !W
+        / 'Top' !W
+        / 'void' !W
+
+Annotation = { 'vmInstruction' } !W _
+           / { 'needContext' } !W _
+           / { 'triggerGC' } !W _
+           / { 'tailCall' } !W _
+           / { 'noIncPC' } !W _
+
+ObjectMemberAnnotation = { "embed" } _
+
+Ctypes = 'cint' !W
+       / 'cdouble' !W
+       / 'cstring' !W
+       / 'Displacement' !W
+       / 'Subscript' !W
+       / 'HeapObject' !W
+
+////////////////////////////////
+//// Symbols
+////////////////////////////////
+"(" = '(' _
+")" = ')' _
+"{" = '{' _
+"}" = '}' _
+"[" = '[' _
+"]" = ']' _
+"#include" = '#include' !W
+"type" = 'type' !W
+"mapping" = 'mapping' !W
+"=" = '=' _
+";" = ';' _
+":" = ':' _
+"," = ',' _
+"->" = '->' _
+"constant" = 'constant' !W
+"embed" = 'embed' !W
+"match" = 'match' !W
+"case" = 'case' !W
+"if" = 'if' !W
+"else" = 'else' !W
+"do" = 'do' !W
+"step" = 'step' !W
+"rematch" = 'rematch' !W
+"pattern" = 'pattern' !W
+"externC" = 'externC' !W
+"return" = 'return' !W
+"true" = 'true' !W
+"false" = 'false' !W
+"." = '.' _
+"||" = '||' _
+"&&" = '&&' _
+"+" = '+' _
+"-" = '-' _
+"*" = '*' _
+"/" = '/' _
+"%" = '%' _
+"'" = '\'' _
+"==" = '==' _
+"!=" = '!=' _
+"<" = '<' ![=] _
+">" = '>' ![=] _
+">=" = '>=' _
+"<=" = '<=' _
+"?" = '?' _
+"|" = '|' _
+"&" = '&' _
+"^" = '^' _
+"!" = '!' _
+"~" = '~' _
+"<<" = '<<' ![=] _
+">>" = '>>' ![=] _
+"<-" = '<-' _
+
+////////////////////////////////
+//// Examples
+////////////////////////////////
+
+/*
+
+example ExternC ~0 '''
+externC constant cint aaa = "-1";
+'''
+
+example ExternC ~1 '''
+externC (needContext, triggerGC)
+FixnumToString : Fixnum -> String
+'''
+
+example ExternC ~10 '''
+externC type HeapObject FunctionTable = "FunctionTable*";
+'''
+
+example ExternC ~11 '''
+externC mapping FunctionFrame {
+  FunctionFrame prev_frame;
+  Array arguments;
+  embed JSValue locals[];
+};
+'''
+
+example FunctionMeta ~2 '''
+vmInstruction
+test : Fixnum -> cint
+test(v1) {}
+'''
+
+example FunctionMeta ~3 '''
+vmInstruction
+test : (Fixnum, String) -> cint
+test(v1) {}
+'''
+
+example FunctionMeta ~4 '''
+vmInstruction
+test : (Fixnum, String) -> cint -> JSObject
+test(v1, v2) {}
+'''
+
+example FunctionMeta ~5 '''
+vmInstruction
+test : (Fixnum, String) -> cint -> (JSObject, Fixnum)
+test(v1, v2) {}
+'''
+
+example Match ~6 '''
+match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+    }
+}
+'''
+
+example Match ~7 '''
+match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+    }
+    case (cint v2 && cdouble v3) {
+    }
+}
+'''
+
+example Return ~8 '''
+return v;
+'''
+
+example Expression ~9 '''
+Special_to_object(v);
+'''
+
+example Block ~10 '''
+{
+    Special_to_object(v);
+    return v;
+}
+'''
+
+example Block ~11 '''
+{
+    cint s = FixnumToCint(v1) + FixnumToCint(v2);
+    return s;
+}
+'''
+
+example Expression ~11 '''
+add(u1, u2);
+'''
+
+example Statement ~13 '''
+cint newp = (op != NEWSEND);
+'''
+
+example If ~14 '''
+if (n1 > 0) {
+  return Flonum_Infinity;
+}
+'''
+
+example If ~14 '''
+if (n1 > 0) {
+  return Flonum_Infinity;
+} else {
+  return Flonum_NegInfinity;
+}
+'''
+
+example If ~14 '''
+if (n1 > 0) {
+  return Flonum_Infinity;
+} else if (n1 == 0) {
+  return Flonum_Nan;
+} else {
+  return Flonum_NegInfinity;
+}
+'''
+
+example Expression ~15 '''
+CintToNumber(u1 & u2)
+'''
+
+example Statement ~16 '''
+return d > 0 ? Flonum_Infinity : Flonum_NegInfinity;
+'''
+
+example Expression ~17 '''
+!isnan(v1)
+'''
+
+example Statement ~18 '''
+return toBool(n1 == n2);
+'''
+
+example Statement ~19 '''
+FunctionFrame fr = get_lp();
+'''
+
+example Statement ~20 '''
+do (cint i = 0 step i+1) {
+    if (link < i) {
+      break;
+    }
+  }
+'''
+
+example Statement ~22 '''
+return locals[index] ;
+'''
+example Statement ~23 '''
+return fr.locals[index];
+'''
+example Statement ~24 '''
+Set_pc_relative(d);
+'''
+example Statement ~25 '''
+if (v == false || toBoolean(v) == false) {
+  Set_pc_relative(d);
+}
+'''
+example Statement ~26 '''
+return CintToFixnum(x1 >> x2);
+'''
+
+example Statement ~27 '''
+do (step oldfl+1) {
+      // regbase[oldfl] = JS_UNDEFINED
+}
+'''
+
+example Statement ~24 '''
+Set_pc_relative(d);
+'''
+
+// TODO: Assignment 
+// getargs.vmd, getlocal.vmd, mod.vmd, new.vmd, newargs.vmd, setarg.vmd, setlocal.vmd 
+example Statement ~21 '''
+do (cint i=0 step i+1) {
+    if (link < i) {
+      break;
+    }
+    fr <- Fframe_prev(fr);
+  }
+'''
+
+// newargs.vmd ,newframe.vmd, setarray.vmd, setlocal.vmd
+example Statement ~25 '''
+args.body[i] <- Get_register(i + 2);
+'''
+
+// pophandler.vmd
+example Statement ~25 '''
+(newpc, handler_fp) <- Exhandler_stack_pop();
+'''
+
+example File ~26 '''
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+}
+'''
+
+example File ~27 '''
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+}
+'''
+
+example File ~28 '''
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+  match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      cint s = FixnumToCint(v1) + FixnumToCint(v2);
+      return CintToNumber(s);
+    }
+  }
+}
+'''
+
+
+example Source ~29 '''
+pattern ffs v = Fixnum v || Flonum v || Special v
+
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+add (v1, v2) {
+  match (v1, v2) {
+    case (ffs v1 && Fixnum v2) {
+      cint s = FixnumToCint(v1) + FixnumToCint(v2);
+      return CintToNumber(s);
+    }
+  }
+}
+'''
+*/
+
+example Source ~29 '''
+externC (needContext)
+Get_ac : () -> cint
+'''

@@ -1,0 +1,24 @@
+// uint32_t のような型をどうするか
+
+(vmInstruction, needContext, tailCall)
+unsignedrightshift : (JSValue, JSValue) -> Fixnum
+unsignedrightshift (v1, v2) {
+  match (v1, v2) {
+    case (Number v1 && Number v2) {
+      uint32_t x1 = numberToCint(v1);
+      cint x2 = numberToCint(v2);
+      return CintToFixnum(x1 >> x2);
+    }
+    case (JSValue v1 && Number v2) {
+      Number u1 = toNumber(v1);
+      return unsignedrightshift(u1, v2);
+    }
+    case (Number v1 && JSValue v2) {
+      Number u2 = toNumber(v2);
+      return unsignedrightshift(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      return Flonum_nan;
+    }
+  }
+}

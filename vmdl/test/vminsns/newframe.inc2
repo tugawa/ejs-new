@@ -1,0 +1,30 @@
+
+(vmInstruction, needContext, triggerGC)
+newframe : (cint, cint) -> void
+newframe (framelen, makeargs) {
+  // save_context();// 必要に応じて DSL が save_context() を挿入する
+
+  FunctionFrame fr = New_frame(Gcf(), Get_lp(), framelen);
+  Set_lp(fr);
+
+  // update_context(); // 必要に応じて DSL が update_context() を挿入する
+
+  if (makeargs) {
+    cint num_of_args = Get_ac();
+    Array args = New_normal_array_with_size(num_of_args);
+
+    //for (i = 0; i < num_of_args; i++) {
+    //do (cint i=1 step i+1, cint j=0 step i+j while i < num_of_args) {
+    do (cint i=1 step i+1) {
+      if (num_of_args <= i) {
+        break;
+      }
+      // array の中に body という要素があることを知っている前提
+      // regbase の 1 番は this 
+      // [i] のような書き方ができる newargs.inc2 にもある
+      args.body[i] <- Get_register(i + 1);
+    }
+    fr.arguments <- args;
+    fr.locals[0] <- args;
+  }
+}

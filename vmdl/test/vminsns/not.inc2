@@ -1,0 +1,9 @@
+(vmInstruction)
+not : JSValue -> JSValue
+not (v) {
+  if (v == false || v == Fixnum_Zero || v == Flonum_Nan || v == String_Empty){
+    return true;
+  } else {
+    return false;
+  }
+}

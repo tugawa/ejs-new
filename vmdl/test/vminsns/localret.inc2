@@ -1,0 +1,9 @@
+// PC はどうすればよいか
+
+(vmInstruction, needContext)
+localret : void -> void
+localret () {
+  cint newpc = Lcall_stack_pop();     // context は渡せるけど pc はどうする?
+  Displacement disp = newpc - pc;     // pc はどうする?
+  Set_pc_relative(disp);
+}

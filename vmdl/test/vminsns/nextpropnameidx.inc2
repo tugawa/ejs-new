@@ -1,0 +1,5 @@
+(vmInstruction, needContext, triggerGC)
+nextpropnameidx : JSValue -> JSValue
+nextpropnameidx (itr) {
+  return Get_next_propname_simple_iterator(itr);
+}

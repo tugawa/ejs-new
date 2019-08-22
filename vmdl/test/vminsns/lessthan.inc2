@@ -1,0 +1,49 @@
+// int64_t のような型をどうするか
+// Object_to_primitive がイマイチ
+
+(vmInstruction, needContext)
+lessthan : (JSValue, JSValue) -> Fixnum
+lessthan (v1, v2) {
+  match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      return v1 < v2 ? true : false;     // JSValue 同士の比較の結果は JSValue の true にするべきか
+    }
+    case (Number v1 && Number v2) {
+      cdouble x1 = numberToCdouble(v1);
+      cdouble x2 = numberToCdouble(v2);
+      return x1 < x2 ? true : false;
+    }
+    case (String v1 && String v2) {
+      // char* 型をどうするか
+      return Strcmp(String_to_cstr(v1), String_to_cstr(v2)) < 0 ? true : false;
+    }
+    case (JSObject v1 && JSValue v2) {
+      JSValue u1 = Object_to_primitive(v1, HINT_NUMBER);
+         // Object_to_primitive は第二引数で toString => valueOf にするか
+         // valueOf => toString にするか指定する．これが DSL 上にあってもよいか
+      return lessthan(u1, v2);
+    }
+    case (Special v1 && JSValue v2) {
+      Special u1 = SpecialToNumber(v1);
+      return lessthan(u1, v2);
+    }
+    case (JSValue v1 && JSObject v2) {
+      JSValue u2 = Object_to_primitive(v2, HINT_NUMBER);
+         // Object_to_primitive は第二引数で toString => valueOf にするか
+         // valueOf => toString にするか指定する．これが DSL 上にあってもよいか
+      return lessthan(v1, u2);
+    }
+    case (JSValue v1 && Special v2) {
+      Special u2 = SpecialToNumber(v2);
+      return lessthan(v1, u2);
+    }
+    case (String v1 && JSValue v2) {
+      JSValue u1 = StringToNumber(v1);
+      return lessthan(u1, v2);
+    }
+    case (JSValue && String v2) {
+      JSValue u2 = StringToNumber(v2);
+      return lessthan(v1, u2);
+    }
+  }
+}

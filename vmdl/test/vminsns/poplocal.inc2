@@ -1,0 +1,5 @@
+(vmInstruction, needContext)
+poplocal : void -> void
+poplocal () {
+  cint newpc = Lcall_stack_pop();
+}

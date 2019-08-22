@@ -1,0 +1,4 @@
+(vmInstruction, needContext)
+typeof : void -> void
+typeof () {
+}

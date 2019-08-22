@@ -1,0 +1,71 @@
+pattern ffs v = Fixnum v || Flonum v || Special v
+pattern ffss v = Fixnum v || Flonum v || Special v || String v
+pattern object v = SimpleObject v || Array v || Function v || Builtin v || SimpleIterator v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
+pattern number v = Fixnum v || Flonum v
+
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
+externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
+
+
+(vmInstruction, needContext, triggerGC, tailCall)
+add : (JSValue, JSValue) -> JSValue
+
+// 下のように人間が書くのは無理
+// add : ( (Number, Number) -> Number
+//       | (String, (Number | Special)) -> String
+//       | ((Number | Special), String) -> String
+//       | (String, String) -> String
+//       | (Generic, (Number | Special | String)) -> Number | String
+//       | ((Number | Special | String), Generic) -> Number | String
+//       | (Generic, Generic) ->  Number | String
+
+add (v1, v2) {
+  top: match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      cint s = FixnumToCint(v1) + FixnumToCint(v2);
+      return CintToNumber(s);
+    }
+    case (String v1 && ffs v2) {
+      // ここでは v2 の型は一意に決まらないので ffs の LUB の型になる
+      // この場合は LUB(f,f,s) = JSValue なので v2 は JSValue 型
+      String s = toString(v2);
+      rematch top(v1, s);  // v1:string, s:string
+    }
+    case (ffs v1 && String v2) {
+      String s = toString(v1);
+      rematch top(s, v2);  // s:string, v2:string
+    }
+    case (String v1 && String v2) {
+      return concat(v1, v2);
+    }
+    case (object v1 && ffss v2) {
+      JSValue u1 = toString(v1);
+      rematch top(u1, v2);  // u1:string, v2:LUB(ffss \cap type(v2)@top)
+    }
+    case (ffss v1 && object v2) {
+      JSValue u2 = toString(v2);
+      rematch top(v1, u2);  // v1:LUB(ffss \cap type(v1)@top), u2:string
+      // JSValue u1 = v1;
+      // JSValue u2 = toString(v2);
+      // rematch top(u1, u2);
+    }
+    case (true)
+     {
+      cdouble u1 = toCdouble(v1);
+      cdouble u2 = toCdouble(v2);
+      return CdoubleToNumber(u1 + u2);
+    }
+  }
+}

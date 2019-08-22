@@ -1,0 +1,331 @@
+\documentclass[a4j]{article}
+\usepackage{amsthm}
+\usepackage{bussproofs}
+
+\def\stt:#1{\texttt{#1}}
+
+\newcommand{\typestmt}[4]{(#1, #2, #3, #4)}
+
+\newcommand{\true}{\texttt{true}}
+\newcommand{\false}{\texttt{false}}
+
+\newcommand{\cint}{\textrm{cint}}
+\newcommand{\cdouble}{\textrm{cdouble}}
+\newcommand{\JSBool}{\textrm{JSBool}}
+\newcommand{\JSValue}{\textrm{JSValue}}
+
+
+\def\op!#1{\textit{#1op}}
+%\newcommand{\op}{\textit{op}}
+
+\newcommand{\limit}{\textit{limit}}
+\newcommand{\update}{\textit{update}}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+\newcommand{\domain}{\textrm{dom}}
+\newcommand{\typevecs}{\textit{typevecs}}
+
+\newcommand{\ifstmt}{
+  \texttt{if (} e \texttt{) } S_1 \texttt{ else } S_2
+}
+
+\newcommand{\match}{
+  l\texttt{:} \texttt{match (}\vec{v}\texttt{) \{}
+  \texttt{case (}P_1\texttt{) }S_1 \ldots
+  \texttt{case (}P_n\texttt{) }S_n
+  \texttt{\}}
+}
+
+\newcommand{\rematch}{
+  \texttt{rematch } l \texttt{ (}\vec{a}\texttt{)}
+}
+
+\newcommand{\dostmt}{
+  \texttt{do (}\tau\ v \texttt{ = } e_1 \texttt{ to } e_2 \texttt{ step } e_3\texttt{)} S
+}
+
+\begin{document}
+
+%%%
+%%% Expression
+%%%
+\section{Expression}
+
+\subsection{Primary Expression}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash n: \cint$ where $n$ is an integer}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash n: \cdouble$ where $n$ is a decimal number}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash s: \top$ where $s$ is a string}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash \true: \JSBool$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash \false: \JSBool$}
+\end{prooftree}
+
+\begin{prooftree}
+  \AxiomC{$\Gamma(\vec{v}) = \vec{\tau}$}
+  \UnaryInfC{$\Gamma \vdash \vec{v}: \vec{\tau}$}
+\end{prooftree}
+Remark: $\Gamma$ is a map from a vector of variables to a vector of types.
+The $\update$ function may extend $\Gamma$ with a relation from a var-vector
+to a type-vector.
+
+\subsection{Promotion}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \cint$}
+  \UnaryInfC{$\Gamma \vdash e: \cdouble$}
+\end{prooftree}
+
+\subsection{Operator}
+% arith
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e_1: \tau$}
+  \AxiomC{$\Gamma \vdash e_2: \tau$}
+  \AxiomC{$\tau \in \{\cint, \cdouble\}$}
+  \TrinaryInfC{$\Gamma \vdash e_1\ \op!a\ e_2: \tau$
+    where $\op!a \in \{\stt:+, \stt:-, \stt:*, \stt:/\}$}
+\end{prooftree}
+
+% bit
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e_1: \cint$}
+  \AxiomC{$\Gamma \vdash e_2: \cint$}
+  \BinaryInfC{$\Gamma \vdash e_1\ \op!b\ e_2: \cint$
+    where $\op!b \in \{\stt:\&, \stt:|, \stt:{\^{}}, \stt:{<<}, \stt:{>>}\}$}
+\end{prooftree}
+
+% rel
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e_1: \tau$}
+  \AxiomC{$\Gamma \vdash e_2: \tau$}
+  \AxiomC{$\tau \in \{\cint, \cdouble\}$}
+  \TrinaryInfC{$\Gamma \vdash e_1\ \op!r\ e_2: \cint$
+    where $\op!r \in
+    \{\stt:{==}, \stt:{!=}, \stt:{<=}, \stt:{=>}, \stt:< \stt:> \}$}
+\end{prooftree}
+
+% log
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e_1: \cint$}
+  \AxiomC{$\Gamma \vdash e_2: \cint$}
+  \BinaryInfC{$\Gamma \vdash e_1\ \op!l\ e_2: \cint$
+    where $\op!l \in \{\stt:{\&\&}, \stt:{||}\}$}
+\end{prooftree}
+
+% unary arith
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \tau$}
+  \AxiomC{$\tau \in \{\cint, \cdouble\}$}
+  \BinaryInfC{$\Gamma \vdash \op!u\ e: \tau$ where $\op!u \in \{\stt:+,\stt:-\}$}
+\end{prooftree}
+
+% unary bit, log
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \cint$}
+  \UnaryInfC{$\Gamma \vdash \op!v\ e: \cint$
+    where $\op!v \in \{\stt:!,\stt:\textasciitilde\}\}$}
+\end{prooftree}
+
+% ternary
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e_1: \cint$}
+  \AxiomC{$\Gamma \vdash e_2: \tau_2$}
+  \AxiomC{$\Gamma \vdash e_3: \tau_3$}
+%  \AxiomC{$\tau^{\prime} = \tau_1 \sqcup \tau_2$}
+%  \QuaternaryInfC{$\Gamma \vdash e_1 \stt:? e_2 \stt:: e_3 : \tau^{\prime}$}
+  \TrinaryInfC{$\Gamma \vdash e_1 \stt:? e_2 \stt:: e_3 : \tau_2 \sqcup \tau_3$}
+\end{prooftree}
+
+\subsection{Function Call}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash f: \tau_1 \to \tau_2$}
+  \AxiomC{$\Gamma \vdash \vec{e}: \tau_1$}
+  \BinaryInfC{$\Gamma \vdash f(\vec{e}) : \tau_2$}
+\end{prooftree}
+
+
+%%%
+%%% Statement
+%%% 
+\section{Statement}
+
+% assignment
+\subsection{Assignment}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash v: \tau_v$}
+  \AxiomC{$\Gamma \vdash e: \tau_e$}
+  \AxiomC{$\tau_v, \tau_e \not\sqsubseteq \JSValue$}
+  \AxiomC{$\tau_e \sqsubseteq \tau_v$}
+%  \AxiomC{$\tau \in \{\cint, \cdouble\}$}
+%  \TrinaryInfC{$(\Gamma, v \texttt{ <- } e, \Gamma, \Sigma)$}
+  \QuaternaryInfC{$(\Gamma, v \texttt{ <- } e \texttt{;}, \Gamma, \Sigma)$}
+\end{prooftree}
+Should we ristrict an assignment of a value of type $\top$?
+
+% var intro
+\subsection{Variable Introduction}
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma \vdash e: \tau_e$}
+%%   \AxiomC{$\tau_e \sqsubseteq \tau$}
+%%   \AxiomC{$([v \to \tau]\Gamma, S, \Gamma^{\prime}, \Sigma)$}
+%%   \AxiomC{$v \not \in \domain(\Gamma)$}
+%%   \QuaternaryInfC{$(\Gamma, \tau\ v \texttt{ = } e \texttt{ ; } S,
+%%     \left.\Gamma^{\prime}\right|_{\domain(\Gamma)}, \Sigma)$
+%%     where $\tau \not\sqsubseteq \JSValue$}
+%% \end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \tau_e$}
+  \AxiomC{$\tau_e \sqsubseteq \tau$}
+  \AxiomC{$v \not \in \domain(\Gamma)$}
+  \TrinaryInfC{$(\Gamma, \tau\ v \texttt{ = } e \texttt{;},
+    [v \to \tau]\Gamma, \Sigma)$
+    where $\tau \not\sqsubseteq \JSValue$}
+\end{prooftree}
+Values of $\JSValue$ type have dynamic types while other values have
+static ones.  Even if a variable is declared as of type $\tau$ such
+that $\tau \sqsubseteq \JSValue$, program may store any subtype
+of $\JSValue$ or $\JSValue$ itself to the variable,
+which can be greater than $\tau$.
+Thus, this typing rule prevents programs from declaring variables
+of subtypes of $\JSValue$.
+
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma \vdash e: \tau_e$}
+%%   \AxiomC{$\tau_e \sqsubseteq \JSValue$}
+%%   \AxiomC{$([v \to \tau_e]\Gamma, S, \Gamma^{\prime}, \Sigma)$}
+%%   \AxiomC{$v \not \in \domain(\Gamma)$}
+%%   \QuaternaryInfC{$(\Gamma, \texttt{JSValue } v \texttt{ = } e \texttt{ ; } S,
+%%     \left.\Gamma^{\prime}\right|_{\domain(\Gamma)}, \Sigma)$}
+%% \end{prooftree}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \tau_e$}
+  \AxiomC{$\tau_e \sqsubseteq \JSValue$}
+  \AxiomC{$v \not \in \domain(\Gamma)$}
+  \TrinaryInfC{$(\Gamma, \texttt{JSValue } v \texttt{ = } e \texttt{;},
+    [v \to \tau_e]\Gamma, \Sigma)$}
+\end{prooftree}
+Because we are interested in the possible dynamic types of each variable,
+$\Gamma$ records the \emph{actual} type rather than the declared type
+for $\JSValue$ variables.
+
+% exp stmt
+\subsection{Expression Statement}
+\begin{prooftree}
+  \AxiomC{$\Gamma e: \tau$}
+  \UnaryInfC{$(\Gamma, e \texttt{ ;}, \Gamma, \Sigma)$}
+\end{prooftree}
+
+% block
+\subsection{Block}
+\begin{prooftree}
+  \AxiomC{$\Gamma = \Gamma_0$}
+  \AxiomC{$(\Gamma_{i-1}, S_i, \Gamma_i, \Sigma)$}
+  \BinaryInfC{$(\Gamma, \stt:\{ S_1 \cdots S_n \stt:\}, \Gamma_n|_{\domain(\Gamma)}, \Sigma)$}
+\end{prooftree}
+
+%% % seq
+%% \subsection{Sequence}
+%% \begin{prooftree}
+%%   \AxiomC{$(\Gamma, S_1, \Gamma_1, \Sigma)$}
+%%   \AxiomC{$(\Gamma_1, S_2, \Gamma_2, \Sigma)$}
+%%   \BinaryInfC{$(\Gamma, S_1 S_2, \Gamma_2, \Sigma)$}
+%% \end{prooftree}
+
+% if
+\subsection{If Statement}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \cint$}
+  \AxiomC{$(\Gamma, S_1, \Gamma_1, \Sigma)$}
+  \AxiomC{$(\Gamma, S_2, \Gamma_2, \Sigma)$}
+  \TrinaryInfC{$(\Gamma, \ifstmt, \Gamma_1 \sqcup \Gamma_2, \Sigma)$}
+\end{prooftree}
+
+% ret
+\subsection{Return Statement}
+\begin{prooftree}
+  \AxiomC{$\Gamma \vdash e: \tau$}
+  \AxiomC{$\Gamma^{\prime} = \{v \to \bot\ |\ v \in \domain(\Gamma)\}$}
+  \BinaryInfC{$(\Gamma, \texttt{return }e\texttt{;}, \Gamma^{\prime}, \Sigma)$}
+\end{prooftree}
+The type $\tau$ should match the return type of the current function.
+
+% match
+\subsection{Match Statement}
+\begin{prooftree}
+  \alwaysNoLine
+  \AxiomC{$\Gamma \sqsubseteq \Gamma^{in}$}
+  \UnaryInfC{$(\Gamma_i, S_i, \Gamma^{out}_i,  [l \to \tuple{\Gamma^{in}, \vec{v}\rangle]\Sigma})$}
+  \AxiomC{$\Gamma_i = \limit(\vec{v}, \tuple{P_1, \ldots, P_{i-1}}, P_i, \Gamma^{in})$}
+  \UnaryInfC{$\Gamma^{\prime} = \displaystyle\bigsqcup_i \Gamma^{out}_i $}
+  \alwaysSingleLine
+  \BinaryInfC{$(\Gamma, \match, \Gamma^{\prime}, \Sigma)$}
+\end{prooftree}
+
+% rematch
+\subsection{Rematch Statement}
+\begin{prooftree}
+  \alwaysNoLine
+  \AxiomC{$\Sigma(l) = \tuple{\Gamma^{in},\vec{v}}$}
+  \AxiomC{$\Gamma(\vec{a}) = \vec{\tau}$}
+  \BinaryInfC{$\update(\Gamma, \vec{v}, \vec{\tau}) \sqsubseteq \Gamma^{in}$}
+  \AxiomC{$\Gamma^{\prime} = \{v \to \bot\ |\ v \in \domain(\Gamma)\}$}
+  \alwaysSingleLine
+  \BinaryInfC{$(\Gamma, \rematch, \Gamma^{\prime}, \Sigma)$}
+\end{prooftree}
+
+%% \begin{prooftree}
+%%   \AxiomC{$\Gamma^{\prime} = \limit((P_1, \ldots, P_{i-1}), P_i, \Gamma)$}
+%%   \AxiomC{$\Sigma^{\prime} = [l \to \tuple{\Gamma, \vec{v}}]\Sigma$} 
+%%   \AxiomC{$\Gamma^{\prime}, \Sigma^{\prime} \vdash S_i$}
+%%   \TrinaryInfC{$\Gamma, \Sigma \vdash \match$}
+%% \end{prooftree}
+
+%% \begin{prooftree}
+%%   \AxiomC{$\Sigma(l) = \tuple{\Gamma_{match}, \vec{v}}$}
+%%   \AxiomC{$\Gamma \vdash \vec{a}: \vec{\tau}$}
+%%   \AxiomC{$\update(\Gamma, \vec{v}, \vec{\tau}) \sqsubseteq \Gamma_{match}$}
+%%   \TrinaryInfC{$\Gamma, \Sigma \vdash \rematch$}
+%% \end{prooftree}
+
+\section{Syntactic Sugar}
+\[
+\begin{array}{l}
+\dostmt =\\
+\qquad \tau\ v \texttt{ = } e_1\texttt{;}\\
+\qquad l\texttt{:match()}\{\\
+\qquad\ \texttt{case(true)\{ }\\
+\qquad\ \ S\texttt{; }\\
+\qquad\ \ v \texttt{ = } e_3 \texttt{;}\\
+\qquad\ \ \texttt{if (}v <= e_2\texttt{) rematch }l\texttt{();}\\
+\qquad\ \texttt{\}}\\
+\qquad \texttt{\}}
+\end{array}
+\]
+
+\section{Algorithm}
+
+\begin{tabbing}
+==\===\===\=\kill
+$\limit$ ($\vec{v}, \tuple{P_0,\ldots,P_{i-1}}, P_i, \Gamma$) \{\\
+\>$T = \typevecs(P_i) - \displaystyle\bigcup_{j = 0}^{i-1} \typevecs(P_j)$;\\
+\>for ($i$ = 0; $i < |\vec{v}|$; $i$++)\\
+\>\>$t_i = \displaystyle\bigsqcup\{\vec{u}|i\ |\ \vec{u} \in T\}$\\
+\>$\update(\Gamma, \vec{v}, \tuple{t_0,\ldots,t_{|\vec{v}|}})$\\
+\}\\
+\\
+$\update$ ($\Gamma, \vec{v}, \vec{t}$) \{\\
+\>for ($(v, t) \in \textrm{zip}(\vec{v}, \vec{t})$)\\
+\>\>$\Gamma$ = $[v \to t]\Gamma$\\
+\}
+\end{tabbing}
+
+\end{document}

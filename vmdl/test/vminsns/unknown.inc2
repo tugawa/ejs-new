@@ -1,0 +1,5 @@
+(vmInstruction)
+unknown : void -> cint
+unknown () {
+  return Fixnum_Minusone;
+}

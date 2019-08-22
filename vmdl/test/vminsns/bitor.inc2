@@ -1,0 +1,21 @@
+(vmInstruction, needContext, triggerGC, tailCall)
+bitor : (JSValue, JSValue) -> JSValue
+
+bitor (v1, v2) {
+  match (v1, v2) {
+    case (Number v1 && Number v2) {
+      // + のように | などの cxxx に対する演算が必要
+      cint u1 = numberToCint(v1);
+      cint u2 = numberToCint(v2);
+      return CintToNumber(u1 | u2);
+    }
+    case (Number v1 && JSValue v2) {
+      Number u2 = toNumber(v2);
+      return bitor(v1, u2);
+    }
+    case (JSValue v1 && JSValue v2) {
+      Number u1 = toNumber(v1);
+      return bitor(u1, v2);
+    }
+  }
+}
