@@ -1,0 +1,37 @@
+\inst call (Value fn, Immediate nargs)
+
+\prologue \{
+  Opcode op = get_opcode(insn);
+  int sendp = (op != CALL)? TRUE: FALSE;
+  int newp = (op == NEWSEND) ? TRUE: FALSE;
+\}
+
+\when fn:function \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  try_gc(context);
+  call_function(context, fn, nargs, sendp);
+  update_context();
+  NEXT_INSN_NOINCPC();
+\}
+
+\when fn:builtin \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  try_gc(context);
+  call_builtin(context, fn, nargs, sendp, newp);
+  update_context();
+  NEXT_INSN_INCPC();
+\}
+
+\otherwise \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+#ifdef DEBUG
+  print_value_simple(context, fn);
+  printf(" is called in CALL instruction\n");
+#endif /* DEBUG */
+  LOG_EXIT("CALL\n");
+\}
+
+

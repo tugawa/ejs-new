@@ -1,0 +1,19 @@
+funcLength 1
+callentry 0
+sendentry 0
+numberOfLocals 0
+numberOfInstruction 14
+getglobalobj 1
+setfl 14
+number 2 3.140000
+string 5 "a"
+setglobal 5 2
+string 8 "print"
+getglobal 6 8
+string 7 "hello world"
+move 14 7
+call 6 1
+setfl 14
+geta 2
+seta 2
+ret

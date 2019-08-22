@@ -1,0 +1,7 @@
+\inst typeof (Register dst, Register src)
+
+\otherwise \{
+  dst;
+  src;
+  NOT_IMPLEMENTED();
+\}

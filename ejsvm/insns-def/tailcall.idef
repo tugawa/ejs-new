@@ -1,0 +1,29 @@
+\inst tailcall (Value fn, Immediate nargs)
+
+\prologue \{
+  int sendp = (get_opcode(insn) == TAILSEND)? TRUE: FALSE;
+\}
+
+\when fn:function \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  try_gc(context);
+  tailcall_function(context, fn, nargs, sendp);
+  update_context();
+  NEXT_INSN_NOINCPC();
+\}
+
+\when fn:builtin \{
+  set_fp(context, fp);
+  set_pc(context, pc);
+  try_gc(context);
+  tailcall_builtin(context, fn, nargs, sendp, FALSE);
+  update_context();
+  NEXT_INSN_INCPC();
+\}
+
+\otherwise \{
+  LOG_EXIT("TAILCALL: not a function\n");
+\}
+
+

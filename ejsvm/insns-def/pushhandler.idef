@@ -1,0 +1,5 @@
+\inst pushhandler (Displacement disp)
+
+\otherwise \{
+  exhandler_stack_push(context, pc + disp, fp);
+\}

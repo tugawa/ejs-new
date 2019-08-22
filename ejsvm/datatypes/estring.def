@@ -1,0 +1,69 @@
+simple_object: +normal_simple_object
+string:   +normal_string +embedded_string
+flonum:   +normal_flonum
+special:  +normal_special
+fixnum:   +normal_fixnum
+array:    +normal_array
+function: +normal_function
+builtin:  +normal_builtin
+iterator: +normal_iterator
+regexp: +normal_regexp
+string_object: +normal_string_object
+number_object: +normal_number_object
+boolean_object: +normal_boolean_object
+
+normal_string:   T_STRING(100)/HTAG_STRING(4)         StringCell
+embedded_string: T_ESTRING(010)
+normal_flonum:  T_FLONUM(101)/HTAG_FLONUM(5)                 FlonumCell
+normal_special: T_SPECIAL(110)
+normal_fixnum:  T_FIXNUM(111)
+normal_simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
+normal_array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
+normal_function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
+normal_builtin:       T_GENERIC(000)/HTAG_BUILTIN(9)         BuiltinCell
+normal_iterator:      T_GENERIC(000)/HTAG_ITERATOR(10)       Iterator
+normal_regexp:        T_GENERIC(000)/HTAG_REGEXP(11)         RegexpCell
+normal_string_object: T_GENERIC(000)/HTAG_BOXED_STRING(12)   BoxedCell
+normal_number_object: T_GENERIC(000)/HTAG_BOXED_NUMBER(13)   BoxedCell
+normal_boolean_object:T_GENERIC(000)/HTAG_BOXED_BOOLEAN(14)  BoxedCell
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+
+/*
+ * Embedded string
+ */
+
+/* accessor dispatcher */
+#define string_value(p)  (is_embedded_string(p) ? embedded_string_value(p) : normal_string_value(p))
+#define string_to_cstr(p) (string_value(p))
+#define string_hash(p)    (is_embedded_string(p) ? embedded_string_hash(p) : normal_string_hash(p))
+#define string_length(p) (is_embedded_string(p) ? embedded_string_length(p) : normal_string_length(p))
+#define cstr_to_string(ctx,str) \
+  (cstr_to_string_embedded_string_suitable(str) ? \
+   (cstr_to_embedded_string((ctx),(str))) :	  \
+   (cstr_to_normal_string((ctx),(str))))
+#define ejs_string_concat(ctx,str1,str2) \
+  (ejs_string_concat_embedded_string_suitable((str1),(str2)) ?	\
+   (ejs_embedded_string_concat((ctx),(str1),(str2))) :		\
+   (ejs_normal_string_concat((ctx),(str1),(str2))))
+
+/* accessor */
+#define ESTRING_LENGTH_MASK    (0x7 << TAGOFFSET)
+#define ESTRING_LENGTH_OFFSET  TAGOFFSET
+#define ESTRING_MAX_LENGTH     6
+
+#define embedded_string_value(p)  (((char *) &(p)) + 1)
+#define embedded_string_hash(p)   (p)
+#define embedded_string_length(p) \
+  (((p) & ESTRING_LENGTH_MASK) >> ESTRING_LENGTH_OFFSET)
+
+#define cstr_to_string_embedded_string_suitable(str) \
+  (strnlen((str), ESTRING_MAX_LENGTH + 1) <= ESTRING_MAX_LENGTH)
+#define ejs_string_concat_embedded_string_suitable(str1,str2) \
+  (string_length(str1)+string_length(str2) <= ESTRING_MAX_LENGTH)
+
+extern JSValue cstr_to_embedded_string(Context *ctx, char *str);
+extern JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2);

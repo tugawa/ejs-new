@@ -1,0 +1,15 @@
+\inst number (Register dst, Displacement disp)
+
+\otherwise \{
+/*
+   number dst disp
+   string dst disp
+   regexp dst disp
+     dst : destination register
+     disp : displacement of the constant position from the pc
+   $dst = ((JSValur *)insns)[disp]
+ */
+
+  // dst = insns[disp].code;
+  dst = get_literal(insns, disp);
+\}

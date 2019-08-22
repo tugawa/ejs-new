@@ -1,0 +1,5 @@
+\inst end ()
+
+\otherwise \{
+  return 1;
+\}

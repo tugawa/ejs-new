@@ -1,0 +1,17 @@
+\inst new (Register dst, Value con)
+
+\when con:function \{
+  JSValue o, p;
+  save_context();
+  o = new_normal_object(context);
+  update_context();
+  get_prop(con, gconsts.g_string_prototype, &p);
+  if (!is_object(p)) p = gconsts.g_object_proto;
+  set___proto___all(context, o, p);
+  dst = o;
+\}
+
+\otherwise \{
+dst = JS_UNDEFINED;
+\}
+

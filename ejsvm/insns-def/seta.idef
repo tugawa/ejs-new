@@ -1,0 +1,5 @@
+\inst seta (Value src)
+
+\otherwise \{
+  set_a(context, src);
+\}

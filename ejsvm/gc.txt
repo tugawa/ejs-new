@@ -1,0 +1,101 @@
+
+GC がデータを割り当てる単位 => Cell と呼ぶ
+Cell にはヘッダを含める．
+
+
+     +-------------------+
+A -> |オブジェクトヘッダ |
+     +-------------------+
+B -> |      payload      |
+
+
+空間を2つ作る
+- JS-space:     A のポインタ
+- malloc-space: B のポインタ
+
+オブジェクトヘッダ
+
+bit 63-32 : size (including the header, in words)
+bit 31,30 : parallel?
+bit 11- 9 : extra jsvalues (size of trailing unused area)
+bit 8:      markbit
+bit 7-0   : type (HTAG)
+  4 - 14 : JS データ型
+  15     : HTAG_MALLOC
+  16     : HTAG_FREE
+
+JS-space に置くデータ型
+
+[types.h]
+- struct object_cell / Object
+  HashTable *map     -- malloc-space
+  JSValue   *prop    -- malloc-space
+- struct array_cell / ArrayCell
+  JSValue   *body    -- malloc-space
+- struct function_cell / FunctionCell
+  FunctionTable *func_table_entry  -- malloc_space
+  FunctionFrame *environment       -- malloc_space
+- struct builtin_cell / BuiltinCell
+- struct iterator_cell / IteratorCell
+- struct simple_iterator / SimpleIterator
+- struct regexp_cell / RegexpCell
+  char     *pattern  -- malloc-space
+  regext_t *reg      -- finaliser
+- struct boxed_cell / BoxedCell
+- struct flonum_cell / FlonumCell
+- struct string_cell / StringCell
+
+malloc-space に置くデータ型
+
+[codeloder.c]
+- insn_cons / InsnCons
+  struct insn_cons *next  -- malloc-space
+
+[context.h]
+- struct function_frame / FunctionFrame
+  struct functionframe *prev_frame -- malloc-space
+- struct context / Context
+  FunctionTable *function_table
+
+[hash.h]
+- struct hash_cell / HashCell
+  struct hash_cell *next -- malloc-space
+- struct hash_table / HashTable
+  HashCell **body -- malloc-space
+- struct str_cons / StrCons
+  struct str_cons *next -- malloc-space
+- struct str_table / StrTable
+  StrCons **obvector -- malloc-space
+
+[instruction.h]
+- struct insn_info / InsnInfo
+  char * insn_name    -- malloc-space
+- struct instruction / Instruction
+  constant pool -- JSValue
+- struct constant_cell / ConstantCell
+  JSValue *constant_value  -- malloc-space
+
+embedded struct
+
+[context.h]
+- struct function_tabe / FunctionTable : global variable function_table[]
+  Instruction *insns    -- malloc-space
+  InsnLabel   *insn_ptr -- malloc-space
+- struct special_registers / SpecialRegisters : Context
+  FunctionTable *cf -- malloc-space
+  FunctionFrame *lp -- malloc-space
+
+[hash.h] 
+- struct hash_entry / HashEntry : HashCell
+- struct hash_iterator / HashIterator
+  HashCell *p -- malloc-space
+
+
+
+- Inner pointer は uninterraptible な関数でしか扱えないようにしたい
+- FunctionTable へのポインタは inner pointer なので注意 => TODO: objectにばらす
+- trace_TYPE -> mark (手動inline) -> scan_TYPE (手動inline)
+- とりあえず C stack を使って再帰的にマークする
+- trace_TYPE のインタフェースは moving collector に対応させる (slotのアドレスを渡す)
+- HTAG_FUNCTION の func_table_entry は inner ポインタ => moving GC では注意
+

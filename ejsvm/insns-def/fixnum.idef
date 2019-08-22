@@ -1,0 +1,12 @@
+\inst fixnum (Register dst, Immediate num)
+
+\otherwise \{
+/*
+  fixnum dst imm
+  dst : destination register
+  imm : immediate value of the fixnum
+  $dst = imm
+ */
+
+  dst = cint_to_fixnum((cint) num);
+\}

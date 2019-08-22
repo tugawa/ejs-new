@@ -1,0 +1,190 @@
+fixnum                SMALLPRIMITIVE Register   int
+specconst             SMALLPRIMITIVE Register   int
+string                BIGPRIMITIVE   LABELONLY
+regexp                BIGPRIMITIVE   LABELONLY
+number                BIGPRIMITIVE   Register   Displacement
+add                   THREEOP        Register   JSValue   JSValue
+sub                   THREEOP        Register   JSValue   JSValue
+mul                   THREEOP        Register   JSValue   JSValue
+div                   THREEOP        Register   JSValue   JSValue
+mod                   THREEOP        Register   JSValue   JSValue
+bitand                THREEOP        Register   JSValue   JSValue
+bitor                 THREEOP        Register   JSValue   JSValue
+leftshift             THREEOP        Register   JSValue   JSValue
+rightshift            THREEOP        Register   JSValue   JSValue
+unsignedrightshift    THREEOP        Register   JSValue   JSValue
+lessthan              THREEOP        Register   JSValue   JSValue
+lessthanequal         THREEOP        Register   JSValue   JSValue
+eq                    THREEOP        Register   JSValue   JSValue
+equal                 THREEOP        Register   JSValue   JSValue
+getarg                THREEOP        Register   int       Subscript
+setarg                THREEOP        int        Subscript JSValue
+getprop               THREEOP        Register   JSValue   JSValue
+setprop               THREEOP        JSValue    JSValue   JSValue
+setarray              THREEOP        JSValue    Subscript JSValue
+getglobal             TWOOP          Register   JSValue
+setglobal             TWOOP          JSValue    JSValue
+instanceof            THREEOP        Register   JSValue   JSValue
+move                  TWOOP          Register   JSValue
+typeof                TWOOP          Register   Register
+not                   TWOOP          Register   JSValue
+new                   TWOOP          Register   JSValue
+isundef               TWOOP          Register   JSValue
+isobject              TWOOP          Register   JSValue
+setfl                 ONEOP          int
+seta                  ONEOP          JSValue
+geta                  ONEOP          Register
+geterr                ONEOP          Register
+getglobalobj          ONEOP          Register
+newframe              TWOOP          int        int
+ret                   ZEROOP
+nop                   ZEROOP
+jump                  UNCONDJUMP     Displacement
+jumptrue              CONDJUMP       JSValue    Displacement
+jumpfalse             CONDJUMP       JSValue    Displacement
+getlocal              GETVAR         Register   int          Subscript
+setlocal              SETVAR         int        Subscript    JSValue
+makeclosure           MAKECLOSUREOP  Register   Subscript
+makeiterator          TWOOP          Register   JSValue
+nextpropnameidx       TWOOP          Register   JSValue
+send                  CALLOP         LABELONLY
+newsend               CALLOP         LABELONLY
+call                  CALLOP         JSValue    int
+tailsend              CALLOP         LABELONLY
+tailcall              CALLOP         JSValue    int
+pushhandler           UNCONDJUMP     Displacement
+pophandler            ZEROOP
+throw                 ZEROOP
+localcall             UNCONDJUMP     Displacement
+localret              ZEROOP
+poplocal              ZEROOP
+error                 BIGPRIMITIVE   Register   Displacement
+unknown               UNKNOWNOP
+end                   ZEROOP
+// lightcall             CALLOP
+// lightsend             CALLOP
+// lighttailcall         CALLOP
+// lighttailsend         CALLOP
+// addfixfix             THREEOP
+// addfixflo             THREEOP
+// addflofix             THREEOP
+// addfloflo             THREEOP
+// addstrstr             THREEOP
+// addstrfix             THREEOP
+// addfixstr             THREEOP
+// addstrflo             THREEOP
+// addflostr             THREEOP
+// addfixspe             THREEOP
+// addspefix             THREEOP
+// addstrspe             THREEOP
+// addspestr             THREEOP
+// addflospe             THREEOP
+// addspeflo             THREEOP
+// addspespe             THREEOP
+// subfixfix             THREEOP
+// subfixflo             THREEOP
+// subflofix             THREEOP
+// subfloflo             THREEOP
+// substrstr             THREEOP
+// substrfix             THREEOP
+// subfixstr             THREEOP
+// substrflo             THREEOP
+// subflostr             THREEOP
+// subfixspe             THREEOP
+// subspefix             THREEOP
+// substrspe             THREEOP
+// subspestr             THREEOP
+// subflospe             THREEOP
+// subspeflo             THREEOP
+// subspespe             THREEOP
+// mulfixfixsmall        THREEOP
+// mulfixfix             THREEOP
+// mulfixflo             THREEOP
+// mulflofix             THREEOP
+// mulfloflo             THREEOP
+// mulstrstr             THREEOP
+// mulstrfix             THREEOP
+// mulfixstr             THREEOP
+// mulstrflo             THREEOP
+// mulflostr             THREEOP
+// mulfixspe             THREEOP
+// mulspefix             THREEOP
+// mulstrspe             THREEOP
+// mulspestr             THREEOP
+// mulflospe             THREEOP
+// mulspeflo             THREEOP
+// mulspespe             THREEOP
+// divfixfix             THREEOP
+// divfixflo             THREEOP
+// divflofix             THREEOP
+// divfloflo             THREEOP
+// divstrstr             THREEOP
+// divstrfix             THREEOP
+// divfixstr             THREEOP
+// divstrflo             THREEOP
+// divflostr             THREEOP
+// divfixspe             THREEOP
+// divspefix             THREEOP
+// divstrspe             THREEOP
+// divspestr             THREEOP
+// divflospe             THREEOP
+// divspeflo             THREEOP
+// divspespe             THREEOP
+// modfixfix             THREEOP
+// modfixflo             THREEOP
+// modflofix             THREEOP
+// modfloflo             THREEOP
+// modstrstr             THREEOP
+// modstrfix             THREEOP
+// modfixstr             THREEOP
+// modstrflo             THREEOP
+// modflostr             THREEOP
+// modfixspe             THREEOP
+// modspefix             THREEOP
+// modstrspe             THREEOP
+// modspestr             THREEOP
+// modflospe             THREEOP
+// modspeflo             THREEOP
+// modspespe             THREEOP
+// lessthanfixfix        THREEOP
+// lessthanfixflo        THREEOP
+// lessthanflofix        THREEOP
+// lessthanfloflo        THREEOP
+// lessthanstrstr        THREEOP
+// lessthanequalfixfix   THREEOP
+// lessthanequalfixflo   THREEOP
+// lessthanequalflofix   THREEOP
+// lessthanequalfloflo   THREEOP
+// lessthanequalstrstr   THREEOP
+// eqfixflo              THREEOP
+// eqflofix              THREEOP
+// eqfloflo              THREEOP
+// eqstrstr              THREEOP
+// equalfixfix           THREEOP
+// equalfixflo           THREEOP
+// equalflofix           THREEOP
+// equalfloflo           THREEOP
+// equalstrstr           THREEOP
+// equalstrfix           THREEOP
+// equalfixstr           THREEOP
+// equalstrflo           THREEOP
+// equalflostr           THREEOP
+// equalfixspe           THREEOP
+// equalspefix           THREEOP
+// equalstrspe           THREEOP
+// equalspestr           THREEOP
+// equalflospe           THREEOP
+// equalspeflo           THREEOP
+// equalspespe           THREEOP
+// equalobjobj           THREEOP
+// fastgetglobal         TWOOP
+// slowgetglobal         TWOOP
+// fastsetglobal         TWOOP
+// slowsetglobal         TWOOP
+// fastgetlocal          GETVAR
+// slowgetlocal          GETVAR
+// #ifdef J5MODE
+// arg                   TWOOP
+// print                 ONEOP
+// newline               ZEROOP
+// #endif // J5MODE

@@ -1,0 +1,10 @@
+\inst geta (Register dst)
+
+\otherwise \{
+/*
+   geta dst
+     dst : destination register
+   $dst = a
+ */
+  dst = get_a(context);
+\}
