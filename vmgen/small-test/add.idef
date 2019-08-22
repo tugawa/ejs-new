@@ -1,0 +1,9 @@
+\inst example_insn (v1, v2)
+\when v1:fixnum && v2:fixnum \{A\}
+\when v1:fixnum && (v2:string || v2:array) \{B\}
+\when (v1:string || v1:array) && v2:fixnum \{C\}
+\when v1:string && v2:string \{D\}
+\otherwise \{E\}
+
+
+

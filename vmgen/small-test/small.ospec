@@ -1,0 +1,5 @@
+example_insn (-, string, string) error
+example_insn (-, string, array)  unspecified
+example_insn (-, array,  string) unspecified
+example_insn (-, fixnum, object) error
+example_insn (-, _, _) accept

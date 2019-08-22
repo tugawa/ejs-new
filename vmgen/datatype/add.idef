@@ -1,0 +1,90 @@
+\inst I_ADD [$v1, $v2]  ( $dst )
+\when $v1:fixnum && $v2:fixnum
+cint s = fixnum_to_cint(v1) + fixnum_to_cint(v2);
+regbase[dst] = cint_to_number(s);
+
+\when $v1:string && ($v2:fixnum || $v2:flonum || $v2:special)
+v2 = to_string(context, v2);
+goto I_ADD_STRSTR;
+
+\when ($v1:fixnum || $v1:flonum || $v1:special) && $v2:string
+v1 = to_string(context, v1);
+goto I_ADD_STRSTR;
+
+\when $v1:string && $v2:string
+I_ADD_STRSTR:
+regbase[dst] = cstr_to_string2(context, string_to_cstr(v1), string_to_cstr(v2));
+
+\when ($v1:regexp || $v1:number_object || $v1:boolean_object || $v1:builtin || $v1:string_object || $v1:simple_object || $v1:array || $v1:iterator || $v1:function) && ($v2:fixnum || $v2:flonum || $v2:special || $v2:string)
+v1 = object_to_string(context, v1);
+goto I_ADD_HEAD;
+
+\when ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function) && ($v1:fixnum || $v1:flonum || $v1:special || $v1:string)
+v2 = object_to_string(context, v2);
+goto I_ADD_HEAD;
+
+\when ($v1:regexp || $v1:number_object || $v1:boolean_object || $v1:builtin || $v1:string_object || $v1:simple_object || $v1:array || $v1:iterator || $v1:function) && ($v2:regexp || $v2:number_object || $v2:boolean_object || $v2:builtin || $v2:string_object || $v2:simple_object || $v2:array || $v2:iterator || $v2:function)
+v1 = object_to_string(context, v1);
+v2 = object_to_string(context, v2);
+goto I_ADD_HEAD;
+
+\otherwise
+double x1 = to_double(context, v1);
+double x2 = to_double(context, v2);
+regbase[dst] = double_to_number(x1 + x2);
+
+
+
+\inst I_SUB [$v1, $v2] ( $vdst )
+\when $v1:fixnum && $v2:fixnum
+cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
+vdst = cint_to_number(s);
+
+\when ($v1:fixnum && $v2:flonum) || ($v1:flonum && $v2:fixnum) || ($v1:flonum && $v2:flonum)
+vdst = double_to_number(to_double(context, v1) - to_double(context, v2));
+
+\when $v1:fixnum || $v1:flonum
+v2 = to_number(context, v1);
+goto I_SUB_HEAD;
+
+\when $v2:fixnum || $v2:flonum
+v1 = to_number(context, v1);
+goto I_SUB_HEAD;
+
+\otherwise
+v1 = to_number(context, v1);
+v2 = to_number(context, v2);
+goto I_SUB_HEAD;
+
+
+
+\inst I_MUL [$v1, $v2] ($vdst)
+\when $v1:fixnum && $v2:fixnum
+cint n1, n2, p;
+n1 = fixnum_to_cint(v1);
+n2 = fixnum_to_cint(v2);
+if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
+  p = n1 * n2;
+  vdst = cint_to_fixnum(p);
+} else {
+  p = (double) n1 * (double) n2;
+  vdst = double_to_number(p);
+}
+
+\when ($v1:fixnum && $v2:flonum) || ($v1:flonum && $v2:fixnum) || ($v1:flonum && $v2:flonum)
+double x1 = to_double(context, v1);
+double x2 = to_double(context, v2);
+vdst = double_to_number(x1 * x2);
+
+\when $v1:fixnum || $v1:flonum
+v2 = to_number(context, v2);
+goto I_MUL_HEAD;
+
+\when $v2:fixnum || $v2:flonum
+v1 = to_number(context, v1);
+goto I_MUL_HEAD;
+
+\otherwise
+v1 = to_number(context, v1);
+v2 = to_number(context, v2);
+goto I_MUL_HEAD;

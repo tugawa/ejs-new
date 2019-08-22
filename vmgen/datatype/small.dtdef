@@ -1,0 +1,12 @@
+string:  +normal_string
+normal_string:   T_STRING(100)/HTAG_STRING(4)         StringCell
+fixnum:  T_FIXNUM(111)
+simple_object: T_GENERIC(000)/HTAG_SIMPLE_OBJECT(6)   Object
+array:         T_GENERIC(000)/HTAG_ARRAY(7)           ArrayCell
+function:      T_GENERIC(000)/HTAG_FUNCTION(8)        FunctionCell
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+

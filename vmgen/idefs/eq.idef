@@ -1,0 +1,21 @@
+\inst eq (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when v1:flonum && v2:flonum \{
+  double x1 = flonum_to_double(v1);
+  double x2 = flonum_to_double(v2);
+  dst = true_false(x1 == x2);
+\}
+
+\otherwise \{
+  if (v1 == v2) dst = false_true(is_nan(v1));
+  else dst = JS_FALSE;
+\}
+

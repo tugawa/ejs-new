@@ -1,0 +1,9 @@
+\inst I_ADD [$v1, $v2]  ( $dst )
+\when $v1:fixnum && $v2:fixnum
+fixfix
+\when $v1:fixnum && $v2:string
+fixstr
+\when $v1:simple_object && $v2:simple_object
+simple object pair
+\otherwise
+otherwise

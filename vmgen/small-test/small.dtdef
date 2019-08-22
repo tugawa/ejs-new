@@ -1,0 +1,13 @@
+string:  +PS +NS
+fixnum:  +NF
+array:   +NA
+NS:   Tgg(000)/STRING(4)         StringCell
+PS:   Tps(010)
+NF:   Tnf(111)
+NA:   Tgg(000)/ARRAY(7)           ArrayCell
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+

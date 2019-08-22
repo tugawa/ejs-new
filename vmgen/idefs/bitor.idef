@@ -1,0 +1,50 @@
+\inst bitor (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when v1:fixnum && v2:fixnum \{
+  dst = v1 | v2;
+\}
+
+\when v1:fixnum && v2:flonum \{
+  cint x1 = fixnum_to_cint(v1);
+  cint x2 = flonum_to_cint(v2);
+  dst = cint_to_fixnum(x1 | x2);
+\}
+
+\when v1:flonum && v2:fixnum \{
+  cint x1 = flonum_to_cint(v1);
+  cint x2 = fixnum_to_cint(v2);
+  dst = cint_to_fixnum(x1 | x2);
+\}
+
+\when v1:flonum && v2:flonum \{
+  cint x1 = flonum_to_cint(v1);
+  cint x2 = flonum_to_cint(v2);
+  dst = cint_to_fixnum(x1 | x2);
+\}
+
+\when v1:fixnum || v1:flonum \{
+  v2 = to_number(context, v2);
+  goto bitor_HEAD;
+\}
+
+\when v2:fixnum || v2:flonum \{
+  v1 = to_number(context, v1);
+  goto bitor_HEAD;
+\}
+
+\otherwise \{
+  v1 = to_number(context, v1);
+  v2 = to_number(context, v2);
+  goto bitor_HEAD;
+\}
+
+
+

@@ -1,0 +1,49 @@
+\inst div (v1, v2)
+
+\prologue \{
+#define dst regbase[r0]
+\}
+
+\epilogue \{
+#undef dst
+\}
+
+\when v1:fixnum && v2:fixnum \{
+  int n1, n2, s;
+  n1 = fixnum_to_cint(v1);
+  if (v2 == FIXNUM_ZERO) {
+    if (n1 > 0) dst = gconsts.g_flonum_infinity;
+    else if (n1 == 0) dst = gconsts.g_flonum_nan;
+    else dst = gconsts.g_flonum_negative_infinity;
+  } else {
+    n2 = fixnum_to_cint(v2);
+    s = n1/ n2;
+    dst = (n1 == n2 * s) ? cint_to_fixnum(s) : double_to_flonum((double) n1 / (double) n2);
+  }
+\}
+
+\when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{
+  double x1 = to_double(context, v1);
+  double x2 = to_double(context, v2);
+  double d = x1 / x2;
+  if (isinf(d)) dst = d > 0 ? gconsts.g_flonum_infinity : gconsts.g_flonum_negative_infinity;
+  else if (isnan(d)) dst = gconsts.g_flonum_nan;
+  else dst = double_to_number(d);
+\}
+
+\when v1:fixnum || v1:flonum \{
+  v2 = to_number(context, v2);
+  goto div_HEAD;
+\}
+
+\when v2:fixnum || v2:flonum \{
+  v1 = to_number(context, v1);
+  goto div_HEAD;
+\}
+
+\otherwise \{
+  v1 = to_number(context, v1);
+  v2 = to_number(context, v2);
+  goto div_HEAD;
+\}
+
