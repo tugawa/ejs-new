@@ -1,14 +1,16 @@
+EJSVM_DIR = ../ejsvm
+
 .PRECIOUS: %.c %.h %.o
 
 ##
 ## configuration files
 ##
 
-DATATYPES = ../datatypes/default.def
-OPERANDSPEC = ../operand-spec/any.spec
-# OPERANDSPEC = ../operand-spec/fixnum-unspec.spec
-SUPERINSNSPEC = ../superinsn-spec/all.si
-SUPERINSNTYPE = 3
+DATATYPES = $(EJSVM_DIR)/datatypes/default.def
+OPERANDSPEC = $(EJSVM_DIR)/operand-spec/any.spec
+# OPERANDSPEC = $(EJSVM_DIR)/operand-spec/fixnum-unspec.spec
+SUPERINSNSPEC = $(EJSVM_DIR)/superinsn-spec/all.si
+SUPERINSNTYPE = 4
 
 ##
 ## compile flags
@@ -56,4 +58,4 @@ CFLAGS       += -DUSE_SBC
 
 # CFLAGS       += -DPROFILE
 
-include ../common.mk
+include $(EJSVM_DIR)/common.mk

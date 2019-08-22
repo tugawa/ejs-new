@@ -16,9 +16,9 @@
 #include <sys/types.h>
 
 #define DEFAULT_PROMPT          "eJSi> "
-#define DEFAULT_EJSVM           "../ejsvm/build/ejsvm"
-#define DEFAULT_EJSVM_SPEC      "../ejsvm/build/ejsvm.spec"
-#define DEFAULT_EJSC_JAR        "../ejsc/newejsc.jar"
+#define DEFAULT_EJSVM           "./ejsvm"
+#define DEFAULT_EJSVM_SPEC      "./ejsvm.spec"
+#define DEFAULT_EJSC_JAR        "./ejsc.jar"
 #define DEFAULT_TMPDIR          "/tmp"
 
 char *prompt, *ejsvm, *ejsc_jar, *ejsvm_spec, *tmpdir;

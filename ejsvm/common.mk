@@ -57,9 +57,18 @@ endif
 #SILIST=$(GOTTA) --silist --sispec
 SILIST=$(SED) -e 's/^.*: *//'
 
-INSNGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.InsnGen
-TYPESGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.TypesGen
-SPECGEN=java -cp $(EJSVM_DIR)/vmgen/vmgen.jar vmgen.SpecFileGen
+EJSC_DIR=$(EJSVM_DIR)/../ejsc
+EJSC=$(EJSC_DIR)/newejsc.jar
+
+VMGEN_DIR=$(EJSVM_DIR)/../vmgen
+VMGEN=$(VMGEN_DIR)/vmgen.jar
+
+EJSI_DIR=$(EJSVM_DIR)/../ejsi
+EJSI=$(EJSI_DIR)/ejsi
+
+INSNGEN=java -cp $(VMGEN) vmgen.InsnGen
+TYPESGEN=java -cp $(VMGEN) vmgen.TypesGen
+SPECGEN=java -cp $(VMGEN) vmgen.SpecFileGen
 CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
@@ -239,6 +248,14 @@ GCCHECK_PATTERN = ../gccheck.cocci
 
 ######################################################
 
+all: ejsvm ejsc.jar ejsi
+
+ejsc.jar: $(EJSC)
+	cp $< $@
+
+ejsi: $(EJSI)
+	cp $< $@
+
 ejsvm :: $(OFILES) ejsvm.spec
 	$(CC) $(LDFLAGS) -o $@ $(OFILES) $(LIBS)
 
@@ -256,11 +273,11 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(VMGEN)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
 else
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMGEN)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
 		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
@@ -275,7 +292,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
-$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
 	$(INSNGEN) $(INSNGEN_FLAGS) \
 		-Xgen:type_label true \
@@ -284,7 +301,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
 		-Xgen:type_label true \
 		$(DATATYPES) $< $(OPERANDSPEC) insns
 else
-$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef
+$(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
 	$(INSNGEN) $(INSNGEN_FLAGS) \
 		-Xgen:type_label true \
@@ -320,7 +337,7 @@ orig_insn = \
 tmp_idef = $(SI_IDEF_DIR)/$(patsubst insns/%.inc,%,$1).idef
 
 ifeq ($(SUPERINSN_PSEUDO_IDEF),true)
-$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMGEN)
 	mkdir -p $(SI_IDEF_DIR)
 	$(GOTTA) \
 	    --gen-pseudo-idef $(call orig_insn,$@) \
@@ -332,7 +349,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 	    $(call tmp_idef,$@) \
 	    $(patsubst insns/%.inc,$(SI_OTSPEC_DIR)/%.ot,$@) > $@ || (rm $@; exit 1)
 else
-$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMGEN)
 	mkdir -p insns
 	$(INSNGEN) $(INSNGEN_FLAGS) \
 	    -Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
@@ -347,10 +364,10 @@ cell-header.h: $(EJSVM_DIR)/cell-header.def
 
 instructions.h: instructions-opcode.h instructions-table.h
 
-%.c: $(EJSVM_DIR)/%.c
+%.c:: $(EJSVM_DIR)/%.c
 	cp $< $@
 
-%.h: $(EJSVM_DIR)/%.h
+%.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
 
 codeloader.o: specfile-fingerprint.h
@@ -361,13 +378,25 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
+#### vmgen
+$(VMGEN):
+	(cd $(VMGEN_DIR); ant)
+
+#### ejsc
+$(EJSC): $(VMGEN) ejsvm.spec
+	(cd $(EJSC_DIR); ant -Dspecfile=$(PWD)/ejsvm.spec)
+
+#### ejsi
+$(EJSI):
+	make -C $(EJSI_DIR)
+
 #### check
 
 CHECKFILES   = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 CHECKRESULTS = $(patsubst %.c,$(CHECKFILES_DIR)/%.c.checkresult,$(CFILES))
 CHECKTARGETS = $(patsubst %.c,%.c.check,$(CFILES))
 
-types-generated.h: $(DATATYPES)
+types-generated.h: $(DATATYPES) $(VMGEN)
 	$(TYPESGEN) $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
@@ -395,4 +424,14 @@ clean:
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 
-
+cleanest:
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -rf insns
+	rm -f *.checkresult
+	rm -rf $(CHECKFILES_DIR)
+	rm -rf si
+	(cd $(VMGEN_DIR); ant clean)
+	rm -f $(VMGEN)
+	(cd $(EJSC_DIR); ant clean)
+	rm -f $(EJSC)
+	make -C $(EJSI_DIR) clean
