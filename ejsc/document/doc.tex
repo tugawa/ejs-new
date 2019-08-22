@@ -1,0 +1,262 @@
+\documentclass[a4j,12pt]{jarticle}
+\usepackage{listings}
+
+\title{eJS compiler コンパイル規則}
+\author{片岡 崇史}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\section{定義}
+\footnotesize{
+\begin{tabbing}
+xx\=xx\=xx\=\kill \\
+  $C_{stmt}[[s]]\ :\ S \rightarrow Env \rightarrow Cont \rightarrow instructions$ \\
+  $C_{exp}[[e]]\ :\ E \rightarrow Env \rightarrow Reg \rightarrow instructions$ \\
+  $Cont\ :\ FlowType \rightarrow Reg \cup \{\} \rightarrow instructions $ \\
+  $FlowType = \{ \texttt{BREAK},\texttt{CONTINUE}\}$ \\
+\end{tabbing}
+}
+
+
+\section{規則}
+$C[[e]]\ \rho\ d $ は，環境$\rho$における，JavaScriptのコード
+$e$のコンパイル規則である．
+コンパイルしたコードの実行結果を$d$に格納する．
+\footnotesize{
+\begin{tabbing}
+xx\=xx\=xx\=\kill \\
+\textbf{数値} \\
+ただし，\textit{value\_of}($n$)は，$n$のバイトコードにおける
+数値表現である．\\
+\>$ C_{exp}[[n]]\ \rho\ d\ = $ \\
+\>\>\texttt{number}\  $d$\  \textit{value\_of}($n$) \\
+\\
+\textbf{文字列} \\
+ただし，\textit{name\_of}($str$)は，$str$のバイトコードにおける
+文字列表現である．\\
+\>$ C_{exp}[[str]]\ \rho\ d\ = $ \\
+\>\>\texttt{string}\ $d$\ \textit{name\_of}($str$) \\
+\\
+\textbf{真偽値，undefined，null} \\
+ただし，\textit{const\_of}($val$)は，$val$のバイトコードにおける
+文字列表現である．\\
+\>$ C_{exp}[[val]]\ \rho\ d\ =$ \\
+\>\>\texttt{specconst}\ $d$\ \textit{const\_of}($val$) \\
+\\
+
+\textbf{変数} \\
+\>$C_{exp}[[x]]\ \rho\ d\ =$ \\
+\>\>\textit{if}($\rho$($x$)\ $==$\ \textit{local}($l$, $o$))\ \{ \\
+\>\>\>\texttt{getlocal}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else\ if}($\rho$($x$)\ $==$\ \textit{arg}($l$, $o$))\ \{ \\
+\>\>\>\texttt{getarg}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{string}\ $r$\ \textit{name\_of}($x$) \\
+\>\>\>\texttt{getglobal}\ $d$\ $r$ \\
+\>\>\} \\
+\\
+
+\textbf{代入} \\
+  ただし，$A[[x]]\ \rho\ s$は環境$\rho$における$x$に対して$s$の値を代入する． \\
+\>$A[[x]]\ \rho\ s\ =$\\
+\>\>\textit{if}($\rho$($x$)\ $==$\ \textit{local}($l$, $o$))\ \{ \\
+\>\>\>\texttt{setlocal}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else\ if}($\rho$($x$)\ $==$\ \textit{arg}($l$, $o$))\ \{ \\
+\>\>\>\texttt{setarg}\ $d$\ $l$\ $o$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{string}\ $r$\ \textit{name\_of}($x$) \\
+\>\>\>\texttt{setglobal}\ $d$\ $r$ \\
+\>\>\} \\
+\\
+
+\textbf{変数への代入} \\
+\>$C_{exp}[[x\ \texttt{=}\ e]]\ \rho\ d =$ \\
+\>\>$C_{exp}[[e]]\ \rho\ d$ \\
+\>\>$A[[x]]\ \rho\ d$ \\
+\\
+
+\textbf{\texttt{.}を用いたプロパティへのアクセス} \\
+\>$C_{exp}[[e\texttt{.}x]]\ \rho\ d =$ \\
+\>\>$C_{exp}[[e]] \rho\ t_1$ \\
+\>\>\texttt{string}\ $t_2$\ \textit{name\_of}($x$) \\
+\>\>\texttt{getprop}\ $d$\ $t_1$\ $t_2$ \\
+\\
+
+\textbf{\texttt{.}を用いたプロパティへの代入} \\
+\>$C_{exp}[[e_1\texttt{.}x\ \texttt{=}\ e_2]]\ \rho\ d=$ \\
+\>\>$C_{exp}[[e_1]] \rho\ t_1$ \\
+\>\>\texttt{string}\ $t_2$\ \textit{name\_of}($x$) \\
+\>\>$C_{exp}[[e_2]] \rho\ t_3$ \\
+\>\>\texttt{setprop}\ $t_1$\ $t_2$\ $t_3$ \\
+\\
+
+\textbf{\texttt{[]}を用いたプロパティへのアクセス} \\
+\>$C_{exp}[[e_1\texttt{[}e_2\texttt{]}]]\ \rho\ d=$ \\
+\>\>$C_{exp}[[e_1]] \rho\ t_1$ \\
+\>\>$C_{exp}[[e_2]] \rho\ t_2$ \\
+\>\>\texttt{getprop}\ $d$\ $t_1$\ $t_2$ \\
+\\
+
+\textbf{\texttt{[]}を用いたプロパティへの代入} \\
+\>$C_{exp}[[e_1\texttt{[}e_2\texttt{]}\ \texttt{=}\ e_3]]\ \rho\ d=$ \\
+\>\>$C_{exp}[[e_1]] \rho\ t_1$ \\
+\>\>$C_{exp}[[e_2]] \rho\ t_2$ \\
+\>\>$C_{exp}[[e_3]] \rho\ t_3$ \\
+\>\>\texttt{setprop}\ $t_1$\ $t_2$\ $t_3$ \\
+\\
+
+\textbf{if文} \\
+\>$C_{stmt}[[\texttt{if(}e\texttt{)}\ s1\ \texttt{else}\ s2]]\ \rho\ \kappa$ \\
+\>\>$C_{exp}[[e]]\ \rho\ t_1$ \\
+\>\>\texttt{jumpfalse}\ $t_1$\ \textgt{L1} \\
+\>\>$C_{stmt}[[s1]]\ \rho\ \kappa$ \\
+\>\>\texttt{jump}\ \textgt{L2} \\
+\>\>\textgt{L1}: \\
+\>\>$C_{stmt}[[s2]]\ \rho\ \kappa$ \\
+\>\>\textgt{L2}: \\
+\\
+
+\textbf{for文} \\
+\>$C_{stmt}[[\texttt{for(}e_1\texttt{;}e_2\texttt{;}e_3\texttt{)}\ s_1]]\ \rho\ \kappa =$\\
+\>\>$C_{exp}[[e_1]]\ \rho\ d$ \\
+\>\>\texttt{jump}\ \textgt{L1} \\
+\>\>\textgt{L2:} \\
+\>\>$C_{stmt}[[s_1]]\ \rho\ \kappa$ \\
+\>\>$C_{stmt}[[s]]\ \rho\ (\lambda t . \textrm{if}\ t == \texttt{BREAK}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L4})\ \textrm{else}\ 
+\textrm{if}\ t == \texttt{CONTINUE}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L3})\ \textrm{else}\ 
+\kappa t)$ \\
+\>\>\textgt{L3:} \\
+\>\>$C_{exp}[[e_3]]\ \rho\ d$ \\
+\>\>\textgt{L1:}  \\
+\>\>\textit{if}($e_2\ ==\ null$)\{ \\
+\>\>\>\texttt{jump}\ \textgt{L2} \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>$C_{exp}[[e_2]]\ \rho\ d$ \\
+\>\>\>\texttt{jumpfalse}\ $d$\ \textgt{L2} \\
+\>\>\} \\
+\>\>\textgt{L4:} \\
+\\
+
+\textbf{while文} \\
+\>$C_{stmt}[[\texttt{while(}e\texttt{)}\ s]]\ \rho\ \kappa =$\\
+\>\>\texttt{jump}\ \textgt{L1} \\
+\>\>\textgt{L2:} \\
+\>\>$C_{stmt}[[s]]\ \rho\ (\lambda t . \textrm{if}\ t == \texttt{BREAK}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L3})\ \textrm{else}\ 
+\textrm{if}\ t == \texttt{CONTINUE}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L1})\ \textrm{else}\ 
+\kappa t)$ \\
+\>\>\textgt{L1:} \\
+\>\>$C_{exp}[[e]]\ \rho\ d$ \\
+\>\>\texttt{jumpfalse}\ $d$\ \textgt{L2} \\
+\>\>\textgt{L3:} \\
+\\
+
+\textbf{do-while文} \\
+\>$C_{stmt}[[\texttt{do}\ s\ while{e}]]\ \rho\ \kappa =$\\
+\>\>\textgt{L1:} \\
+\>\>$C_{stmt}[[s]]\ \rho\ (\lambda t . \textrm{if}\ t == \texttt{BREAK}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L2})\ \textrm{else}\ 
+\textrm{if}\ t == \texttt{CONTINUE}\ 
+\textrm{then}\ (\lambda v . \texttt{jump}\ \textgt{L1})\ \textrm{else}\ 
+\kappa t)$ \\
+\>\>$C_{exp}[[e]]\ \rho\ d$ \\
+\>\>\texttt{jumpfalse}\ $d$\ \textgt{L1} \\
+\>\>\textgt{L2:} \\
+\\
+
+\textbf{break文} \\
+\>$C_{stmt}[[\texttt{break}\ e\ \texttt{;}]]\ \rho\ \kappa =$\\
+\>\>\textit{if}($e\ ==$\ \texttt{null})\{ \\
+\>\>\>$\kappa$\ \texttt{BREAK}\ \texttt{null} \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>$\kappa$\ \texttt{BREAK}\ $e$ \\
+\>\>\} \\
+\\
+
+\textbf{continue文} \\
+\>$C_{stmt}[[\texttt{continue}\ e\ \texttt{;}]]\ \rho\ \kappa =$\\
+\>\>\textit{if}($e\ ==$\ \texttt{null})\{ \\
+\>\>\>$\kappa$\ \texttt{CONTINUE}\ \texttt{null} \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>$\kappa$\ \texttt{CONTINUE}\ $e$ \\
+\>\>\} \\
+\\
+
+\textbf{レシーバの無い関数呼び出し} \\
+FLは現在の環境でのレジスタウィンドウの大きさを表している． \\
+\>$C_{exp}[[func\texttt{(}x_1, ... , x_n\texttt{)}]]\ \rho\ d=$ \\
+\>\>$C_{exp}[[func]]\ \rho\ t_f\ False$ \\
+\>\>$C_{exp}[[x_1]]\ \rho\ t_1\ False$ \\
+\>\>$C_{exp}[[x_2]]\ \rho\ t_2\ False$ \\
+\>\>$...$ \\
+\>\>$C_{exp}[[x_n]]\ \rho\ t_n\ False$ \\
+\>\>\textit{if}(末尾呼び出しである)\{ \\
+\>\>\>\texttt{move}\ \texttt{\$2}\ $t_1$ \\
+\>\>\>\texttt{move}\ \texttt{\$3}\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \texttt{\$n+1}\ $t_1$ \\
+\>\>\>\texttt{tailcall}\ $t_f$\ $n$ \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{move}\ \$($FL-n+1$)\ $t_1$ \\
+\>\>\>\texttt{move}\ \$($FL-n+2$)\ $t_2$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \$($FL$)\ $t_n$ \\
+\>\>\>\texttt{call}\ $t_f$\ $n$ \\
+\>\>\>\texttt{setfl}\ FL \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\} \\
+\\
+
+\textbf{レシーバのある関数呼び出し} \\
+\>$C_{exp}[[e.m\texttt{(}x_1, ... , x_n\texttt{)}]]\ \rho\ d=$ \\
+\>\>$C_{exp}[[e]]\ \rho\ t_e\ False$ \\
+\>\>\texttt{string}\ $t_ms$\ \textit{name\_of}($m$) \\
+\>\>\texttt{getprop}\ $t_m$\ $t_e$\ $t_ms$ \\
+\>\>$C_{exp}[[x_1]]\ \rho\ t_e\ False$ \\
+\>\>$C_{exp}[[x_2]]\ \rho\ t_1\ False$ \\
+\>\>$...$ \\
+\>\>$C_{exp}[[x_n]]\ \rho\ t_{n+1}\ False$ \\
+\>\>\textit{if}(末尾呼び出しである)\{ \\
+\>\>\>\texttt{move}\ \texttt{\$1}\ $t_e$ \\
+\>\>\>\texttt{move}\ \texttt{\$2}\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \texttt{\$n+1}\ $t_n$ \\
+\>\>\>\texttt{tailsend}\ $t_f$\ $n$ \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\}\ \textit{else}\ \{ \\
+\>\>\>\texttt{move}\ \$($\textrm{FL}-n$)\ $t_e$ \\
+\>\>\>\texttt{move}\ \$($\textrm{FL}-n+1$)\ $t_1$ \\
+\>\>\>$...$ \\
+\>\>\>\texttt{move}\ \$(FL)\ $t_n$ \\
+\>\>\>\texttt{send}\ $t_m$\ $n$ \\
+\>\>\>\texttt{setfl}\ FL \\
+\>\>\>\texttt{geta}\ $d$ \\
+\>\>\} \\
+\\
+
+\textbf{関数式} \\
+\>$C_{exp}[[\texttt{function(}arg\texttt{)\{}\ s\ \texttt{\}}\ 
+  locals\ :=\ \{x\ \mid\ sの中で宣言された変数名x\}]]\ \rho\ d\ =$ \\
+\>\>\texttt{makeclosure}\ $d$\ $F[[s]]\ arg\cup locals$\ $d$ \\
+\\
+
+\textbf{関数からのリターン} \\
+ただし，\textit{const\_of}($val$)は，$val$のバイトコードにおける
+文字列表現である．\\
+\>$ C_{stmt}[[\texttt{return}\ e]]\ \rho\ \kappa =$ \\
+\>\>$C_{exp}[[e]]\ \rho\ d $ \\
+\>\>\texttt{seta}\ $d$ \\
+\>\>\texttt{ret} \\
+
+\end{tabbing}
+}
+
+
+\end{document}
