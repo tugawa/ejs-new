@@ -83,6 +83,40 @@ typedef uint16_t Tag;
  * Member n_entries has the number of entries registered in the map, i.e.,
  * the sum of the number of index entries and that of the transition entries.
  */
+
+typedef struct property_map {
+  HashTable *map;               /* [const] property map and transitions */
+  struct hidden_map   *prev;    /* [weak] pointer to the previous map */
+  struct object_shape *shapes;  /* [weak] Weak list of existing shapes
+                                 * arranged from more specialised to
+                                 * less.
+                                 */
+  JSValue   __proto__;          /* [const] __proto__ of the object. */
+  uint32_t n_props;             /* [const] Number of properties in map.
+                                 * This number includes special props.
+                                 */
+  uint32_t n_special_props;     /* [const] Number of special props. */
+} PropertyMap;
+
+typedef struct object_shape {
+  propertyMap *pm;            /* [const] Pointer to the map. */
+  ObjectShape *next;          /* [weak] Weak list of exisnting shapes
+                               * shareing the same map.
+                               */
+  uint32_t n_embedded_props;  /* [const] Number of slots for properties
+                               * in the object. This number includes 
+                               * special props.
+                               */
+  uint32_t n_extension_props; /* [const] Size of extension array. */
+#ifdef HC_PROF
+  uint32_t n_enter;
+  uint32_t n_exit;
+  uint32_t is_dead;
+  uint32_t is_printed;
+#endif /* HC_PROF */
+} ObjectShape;
+
+#if 0
 typedef struct hidden_class {
   uint32_t n_entries;
   uint32_t htype;            /* HTYPE_TRANSIT or HTYPE_GROW */
@@ -109,6 +143,7 @@ typedef struct hidden_class {
   uint32_t n_enter;         /* number of times this class is used */
   uint32_t n_exit;          /* number of times this class is left */
 } HiddenClass;
+#endif /* 0 */
 
 #define hidden_n_entries(h)        ((h)->n_entries)
 #define hidden_htype(h)            ((h)->htype)
