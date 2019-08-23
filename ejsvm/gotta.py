@@ -497,9 +497,7 @@ def is_possible_si(si, otspec):
         return True
   return False
 
-def read_sinsns(args, otspec):
-  if not args.sitype:
-    return []
+def read_sinsns(args):
   sinsns = []
   stream = check_open_file(args.sispec, "r", "sispec")
   for line in stream.readlines():
@@ -511,10 +509,14 @@ def read_sinsns(args, otspec):
       op3 = m.group('op3')
       sinsnname = m.group('sinsnname')
       a = { "sinsnname": sinsnname, "insnname": insnname, "ops": [op1, op2, op3] }
-      if otspec == None or is_possible_si(a, otspec):
-        sinsns.append(a)
+      sinsns.append(a)
   stream.close()
   return sinsns
+
+def get_possible_sinsns(args, otspec):
+  if not args.sitype:
+    return []
+  return [si for si in read_sinsns(args) if is_possible_si(si, otspec)]
 
 def read_otspec(args):
   otspec = []
@@ -537,7 +539,7 @@ def read_otspec(args):
 def gen_insn_opcode(args):
   insndefs = read_insndef(args)
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
+  sinsns = get_possible_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write(insn.upper() + ",\n")
@@ -549,7 +551,7 @@ def gen_insn_opcode(args):
 def gen_insn_table(args):
   insndefs = read_insndef(args)
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
+  sinsns = get_possible_sinsns(args, otspec)
   str_none = "NONE"
   str_lit = "LIT"
 
@@ -610,7 +612,7 @@ def gen_insn_table(args):
 def gen_insn_label(args):
   insndefs = read_insndef(args)
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
+  sinsns = get_possible_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write("&&I_" + insn.upper() + ",\n")
@@ -622,7 +624,7 @@ def gen_insn_label(args):
 def gen_vmloop_cases(args):
   insndefs = read_insndef(args)
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
+  sinsns = get_possible_sinsns(args, otspec)
   sitype = args.sitype
   if not sitype and len(sinsns) > 0:
     raise Exception("sitype is not specified")
@@ -737,7 +739,7 @@ def gen_pseudo_idef(args):
 def gen_sinsn_operandspec(args):
   sinsn_name = args.gen_ot_spec
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
+  sinsns = get_possible_sinsns(args, otspec)
 
   sinsninfo = [x for x in sinsns if x["sinsnname"] == sinsn_name][0]
   insn_name = sinsninfo["insnname"]
@@ -752,8 +754,10 @@ def gen_sinsn_operandspec(args):
     if rec["insnname"] == insn_name:
       ofile.write(otspec_line(insn_name, rec["ops"], rec["action"]))
 
-def print_dispatch_order(args, sinsns):
+def print_dispatch_order(args):
   insn_name = args.print_dispatch_order
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   jsv_count = 0
   dispatch_order = []
   sinsninfos = [x for x in sinsns if x["insnname"] == insn_name]
@@ -774,18 +778,22 @@ def print_dispatch_order(args, sinsns):
       dispatch_order = dispatch_order + [dispatch]
     ofile.write(":".join(dispatch_order))
 
-def print_original_insn_name(args, sinsns):
+def print_original_insn_name(args):
   sinsn_name = args.print_original_insn_name
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   sinsninfo = [x for x in sinsns if x["sinsnname"] == sinsn_name][0]
   ofile.write(sinsninfo["insnname"] + "\n")
 
-def list_si(args, sinsns):
+def list_si(args):
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   for sinsninfo in sinsns:
     ofile.write(sinsninfo["sinsnname"] + "\n")
 
 def check_sispec(args):
   otspec = read_otspec(args)
-  sinsns = read_sinsns(args, None)
+  sinsns = read_sinsns(args)
   for si in sinsns:
     if not is_possible_si(si, otspec):
       ofile.write("impossible superinstruction: "+si["sinsnname"]+"\n")
@@ -795,8 +803,6 @@ def main():
 
   args = process_argv()
 
-  otspec = read_otspec(args)
-  sinsns = read_sinsns(args, otspec)
   if args.output_filename:
     ofile = check_open_file(args.output_filename, "w", "output file")
 
@@ -814,11 +820,11 @@ def main():
   if args.gen_ot_spec:
     gen_sinsn_operandspec(args)
   if args.print_dispatch_order:
-    print_dispatch_order(args, sinsns)
+    print_dispatch_order(args)
   if args.print_original_insn_name:
-    print_original_insn_name(args, sinsns)
+    print_original_insn_name(args)
   if args.list_si:
-    list_si(args, sinsns)
+    list_si(args)
   if args.check_sispec:
     check_sispec(args)
 
