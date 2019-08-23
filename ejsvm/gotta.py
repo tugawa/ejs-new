@@ -19,6 +19,7 @@ import subprocess
 # --gen-sinsn-operandspec (6)
 # --gen-vmgen-params (7)
 # --list-si (8)
+# --check-sispec (9)
 # -o filename
 
 ofile = sys.stdout
@@ -277,6 +278,7 @@ def process_argv():
   argparser.add_argument("--gen-ot-spec", action = "store", type = str)
   argparser.add_argument("--print-dispatch-order", action = "store", type = str)
   argparser.add_argument("--list-si", action = "store_true")
+  argparser.add_argument("--check-sispec", action = "store_true")
   argparser.add_argument("--print-original-insn-name", action = "store", type = str)
   argparser.add_argument("-o", action = "store", dest = "output_filename", type = str)
   args = argparser.parse_args()
@@ -439,7 +441,63 @@ def read_insndef(args):
   stream.close()
   return insns    
 
-def read_sinsns(args):
+def is_possible_si(si, otspec):
+  """ Returns if a superinstruction is possible in accordance with
+  the given operand-type spec.
+
+  returns: true if si is possible.
+
+  Some generaic parameters ("reg"-type) remain in a superinstruction.
+  Thus, a superinstruction corresponds to a set of operand datatype
+  combinations.  Accordingly, some combinations in the set are specified
+  "accept" while others are specified "error" or "unspecified".
+
+  In the generated dispatch diagram, paths to "error" targets should be
+  created.  Hence, there should be corresponding type labels.
+
+  Let S be the set of combinations of operand datatypes for a
+  superinstruction, I, and Accept, Error and Unspec be the sets of combinations
+  specified as "accept", "error", and "unspecified", respectively.
+
+  1. If S \subseteq Unspec, then do not create I.
+  2. Otherwise (i.e., S \cap ~Unspec \ne \emptyset),
+     create I in a normal way. Its type label should exist.
+
+  Note if S \subseteq Error, type labels for any ts \in S are attached
+  to the leaf node for error. Thus, the strategy above works. Though,
+  it is suboptimal. If S \subseteq Error, we do not need to decode its
+  operands.
+
+  TODO: avoid decoding operands if S \subseteq Error.
+  """
+
+  def has_intersection(ss, ts, insn_name):
+    for (s, t) in itertools.zip_longest(ss, ts):
+      if s == "-" and t == "-":
+        pass
+      elif s == "-" or t == "-":
+        raise Exception("Error: either superinsn or otspec has - for an operand for which the other does not:" + insn_name + ": " + s + " vs " + t)
+      elif s == None or t == None:
+        raise Exception("Error: number of operands in superinsn and otspec does not match:" + insn_name)
+      elif s == "_" or t == "_":
+        pass
+      elif s == t:
+        pass
+      elif s[0] == "!" and s[1:] != t:
+        pass
+      elif t[0] == "!" and s != t[1:]:
+        pass
+      else:
+        return False
+    return True
+
+  for rec in otspec:
+    if rec["insnname"] == si["insnname"] and rec["action"] != "unspecified":
+      if has_intersection(si["ops"], rec["ops"], si["sinsnname"]):
+        return True
+  return False
+
+def read_sinsns(args, otspec):
   if not args.sitype:
     return []
   sinsns = []
@@ -453,7 +511,8 @@ def read_sinsns(args):
       op3 = m.group('op3')
       sinsnname = m.group('sinsnname')
       a = { "sinsnname": sinsnname, "insnname": insnname, "ops": [op1, op2, op3] }
-      sinsns.append(a)
+      if otspec == None or is_possible_si(a, otspec):
+        sinsns.append(a)
   stream.close()
   return sinsns
 
@@ -477,7 +536,8 @@ def read_otspec(args):
 
 def gen_insn_opcode(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write(insn.upper() + ",\n")
@@ -488,7 +548,8 @@ def gen_insn_opcode(args):
 
 def gen_insn_table(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
   str_none = "NONE"
   str_lit = "LIT"
 
@@ -548,7 +609,8 @@ def gen_insn_table(args):
 
 def gen_insn_label(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write("&&I_" + insn.upper() + ",\n")
@@ -559,7 +621,8 @@ def gen_insn_label(args):
 
 def gen_vmloop_cases(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
   sitype = args.sitype
   if not sitype and len(sinsns) > 0:
     raise Exception("sitype is not specified")
@@ -673,8 +736,8 @@ def gen_pseudo_idef(args):
 
 def gen_sinsn_operandspec(args):
   sinsn_name = args.gen_ot_spec
-  sinsns = read_sinsns(args)
   otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
 
   sinsninfo = [x for x in sinsns if x["sinsnname"] == sinsn_name][0]
   insn_name = sinsninfo["insnname"]
@@ -720,13 +783,20 @@ def list_si(args, sinsns):
   for sinsninfo in sinsns:
     ofile.write(sinsninfo["sinsnname"] + "\n")
 
+def check_sispec(args):
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, None)
+  for si in sinsns:
+    if not is_possible_si(si, otspec):
+      ofile.write("impossible superinstruction: "+si["sinsnname"]+"\n")
 
 def main():
   global ofile
 
   args = process_argv()
 
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args, otspec)
   if args.output_filename:
     ofile = check_open_file(args.output_filename, "w", "output file")
 
@@ -749,6 +819,8 @@ def main():
     print_original_insn_name(args, sinsns)
   if args.list_si:
     list_si(args, sinsns)
+  if args.check_sispec:
+    check_sispec(args)
 
   if args.output_filename:
     ofile.close()

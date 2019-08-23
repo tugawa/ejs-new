@@ -1,37 +1,38 @@
 add (-,fixnum,fixnum) accept
 add (-,string,string) accept
-add (-,_,_) error
+add (-,_,_) unspecified
 bitand (-,fixnum,fixnum) accept
-bitand (-,_,_) error
+bitand (-,_,_) unspecified
 bitor (-,fixnum,fixnum) accept
-bitor (-,_,_) error
+bitor (-,_,_) unspecified
 call (_,-) accept
 div (-,fixnum,fixnum) accept
-div (-,_,_) error
-eq (-,_,_) error
+div (-,_,_) unspecified
+eq (-,_,_) unspecified
 equal (-,fixnum,fixnum) accept
-equal (-,_,_) error
+equal (-,_,_) unspecified
 getprop (-,_,_) accept
 leftshift (-,fixnum,fixnum) accept
-leftshift (-,_,_) error
+leftshift (-,_,_) unspecified
 lessthan (-,fixnum,fixnum) accept
-lessthan (-,_,_) error
+lessthan (-,_,_) unspecified
 lessthanequal (-,fixnum,fixnum) accept
-lessthanequal (-,_,_) error
+lessthanequal (-,_,_) unspecified
 mod (-,fixnum,fixnum) accept
-mod (-,_,_) error
+mod (-,_,_) unspecified
 mul (-,fixnum,fixnum) accept
-mul (-,_,_) error
+mul (-,_,_) unspecified
 new (-,_) accept
 rightshift (-,fixnum,fixnum) accept
-rightshift (-,_,_) error
+rightshift (-,_,_) unspecified
 setprop (_,_,_) accept
 sub (-,fixnum,fixnum) accept
-sub (-,_,_) error
+sub (-,_,_) unspecified
 tailcall (_,-) accept
 unsignedrightshift (-,fixnum,fixnum) accept
-unsignedrightshift (-,_,_) error
-error(-,-,-) unspecified
+unsignedrightshift (-,_,_) unspecified
+error (-,-) accept
+unspecified(-,-,-) unspecified
 fixnum(-,-) accept
 geta(-) accept
 getarg(-,-,-) accept
@@ -45,9 +46,9 @@ isobject(-,_) accept
 isundef(-,_) accept
 jump(-) accept
 jumpfalse(special) accept
-jumpfalse(_) error
+jumpfalse(_) unspecified
 jumptrue(special) accept
-jumptrue(_) error
+jumptrue(_) unspecified
 localcall(-) unspecified
 makeclosure(-,-) accept
 makeiterator(-,_) accept
