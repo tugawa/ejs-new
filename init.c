@@ -43,393 +43,218 @@ void init_global_constants(void) {
   gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);
   gconsts.g_flonum_negative_infinity = double_to_flonum(-INFINITY);
   gconsts.g_flonum_nan       = double_to_flonum(NAN);
+
+  /* boolean */
+  gconsts.g_boolean_true  = JS_TRUE;
+  gconsts.g_boolean_false = JS_FALSE;
+
+  /* special */
+  gcosnts.g_null      = JS_NULL;
+  gconsts.g_undefined = JS_UNDEFINED;
 }
 
-typedef struct builtin_prop {
-  JSValue* name;
-  int nargs;
-  Attr attr;
-} BuiltinProp;
-
-#define BUILTIN_DEF_BEGIN(type) BuiltinProp builtin_prop_table_ ## type = {
-#define BUILTIN_DEF_END(type) };
-#define BUILTIN(type, method, cfunc, nargs, attr)        \
-    {&gconsts.g_string_ ## method, nargs, attr},
-#include "builtin-table.h"
-#undef BUILTIN_DEF_BEGIN
-#undef BUILTIN_DEF_END
-#undef BUILTIN
-
-void make_hidden_class_internal(PropertyMap **pmp, ObjectShape *osp,
-#ifdef HC_DEBUG
-                                char *name,
-#endif /* HC_DEBUG */
-                                uint32_t n_special_props, uint32_t n_normal_props,
-                                JSValue proto)
+static Shape *create_map_and_shape(char *name,
+                                   uint32_t num_special,
+                                   JSValue proto,
+                                   ObjBuiltinProp builtin_props[],
+                                   uint32_t num_builtin_props,
+                                   ObjDoubleProp double_props[],
+                                   uint32_t num_double_props,
+                                   ObjGconstsProp gconsts_props[],
+                                   uint32_t num_gconsts_props)
 {
-  PropertyMap *pm;
-  ObjectShape *os;
-  uint32_t n_embedded_props;
-  
-  n_embedded_props = n_special_props + n_normal_props;
-  if (n_normal_props == 0)
-    n_embedded_props += 1;
-  
-  *pmp = new_property_map(NULL,
-                          name,
-                          n_normal_props,
-                          n_special_props,
-                          proto);
-  *osp = new_object_shape(NULL,
-                          name,
-                          *pmp,
-                          n_embedded_props,
-                          0);
+  PropertyMap *m;
+  Shape *s;
+  int i;
+  uint32_t num_props = num_normal_props + num_special_props;
+  uint32_t num_embedded = num_special + (num_props == 0 ? 1 : num_props);
+  uint32_t index = num_special;
 
+  m = new_property_map(NULL, name, num_special, num_props, proto);
+  for (i = 0; i < num_builtin_props; i++) {
+    ObjBuiltinProp *p = &builtin_props[i];
+    pm_put_with_attribute(m, cstr_to_string(NULL, p->name), index++, p->attr);
+  }
+  for (i = 0; i < num_double_props; i++) {
+    ObjDoubleProp *p = &double_props[i];
+    pm_put_with_attribute(m, cstr_to_string(NULL, p->name), index++, p->attr);
+  }
+  for (i = 0; i < num_gconsts_props; i++) {
+    ObjGconstsProp *p = &gconsts_props[i];
+    pm_put_with_attribute(m, cstr_to_string(NULL, p->name), index++, p->attr);
+  }
+  s = new_object_shape(NULL, name, m, n_embedded, 0);
+  return s;
 }
-#define make_hidden_class(type, pmp, osp, name, n_special, proto)       \
-  make_hidden_class_internal(pmp, osp, name, n_special,                 \
-                             sizeof(builtin_prop_table_ ## type) /      \
-                             sizeof(BuiltinProp),                       \
-                             proto)
+#define CREATE_MAP_AND_SHAPE(name, num_special, proto, KEY)     \
+  create_map_and_shape(name, num_special, proto,                \
+                       KEY ## _builtin_props,                   \
+                       KEY ## _num_builtin_props,               \
+                       KEY ## _double_props,                    \
+                       KEY ## _num_double_props,                \
+                       KEY ## _gconsts_props                    \
+                       KEY ## _num_gconsts_props)
+
+static JSValue fill_builtin_properties(JSValue object,
+                                       ObjBuiltinProp builtin_props[],
+                                       uint32_t num_builtin_props,
+                                       ObjDoubleProp double_props[],
+                                       uint32_t num_double_props,
+                                       ObjGconstsProp gconsts_props[],
+                                       uint32_t num_gconsts_props)
+{
+  int i;
+  for (i = 0; i < num_builtin_props; i++) {
+    ObjBuiltinProp *p = &builtin_props[i];
+    set_obj_cstr_prop(NULL, object, p->name,
+                      new_builtin_with_constr(NULL, p->name,
+                                              p->fn, not_a_constructorp->na),
+                      p->attr);
+  }
+  for (i = 0; i < num_double_props; i++) {
+    ObjDoubleProp *p = &double_props[i];
+    set_obj_cstr_prop(NULL, object, p->name, double_to_flonum(p->value),
+                      p->attr);
+  }
+  for (i = 0; i < num_gconsts_props; i++) {
+    ObjGconstsProp *p = &gconsts_props[i];
+    set_obj_cstr_prop(NULL, object, p->name, *(p->addr), p->attr);
+  }
+}
+#define FILL_BUILTIN_PROPERTIES(object, KEY)           \
+  fill_builtin_properties(object,                       \
+                          KEY ## _builtin_props,       \
+                          KEY ## _num_builtin_props,   \
+                          KEY ## _double_props,        \
+                          KEY ## _num_double_props,    \
+                          KEY ## _gconsts_props        \
+                          KEY ## _num_gconsts_props)
 
 /*
- * initialisation of hidden class related structures
+ * initialisation of prototypes objects, constructor objects, and their
+ * property maps and shapes.
  */
-void init_object_model(void)
+void init_meta_objects(void)
 {
-  /*
-   * Object prototype
-   *   - an ordinary object
-   *   - "__proto__" is null
-   */
-  
-  pm_Object_prototype =
-    new_property_map(NULL,               /* context */
-                     "Object.prototype", /* name */
-                     1,                  /* # of entries to be added */
-                     0,                  /* # of special props */
-                     JS_NULL);           /* __proto__ */
-  pm_add_property(NULL, pm_Object_prototype,
-                  gconsts.g_string_tostring, ATTR_DE);
-  
-  os_Object_prototype =
-    new_object_shape(NULL,                /* context */
-                     "Object.prototype",  /* name */
-                     pm_Object_prototype, /* PropertyMap */
-                     1,                   /* # of embedded props */
-                     0);                  /* size of extension array */
-
-
-  make_hidden_class(Object,               /* type */
-                    &pm_Object_prototype, /* [out] property map */
-                    &os_Object_prototype, /* [out] object shape */
-                    "Object.prototype",   /* name */
-                    0,                    /* # of special props */
-                    JS_NULL);             /* __proto__ */
-    
-  Object_prototype =
-    new_simple_object(NULL,                 /* context */
-                      "Object.prototype",   /* name */
-                      os_Object_prototype); /* ObjectShape */
-
-  pm_Object_0 =
-    extend_property_map(NULL,                 /* context */
-                        "Object_0",           /* name */
-                        0,                    /* # of entries to be added */
-                        pm_Object_prototype); /* base */
-  pm_Object_0.proto = os_Object_prototype;
-  
-  /*
-   * Function prototype
-   *   - a function object
-   *   - "prototype" is not defined
-   *   - __proto__ is Object.prototype
-   */
-  pm_Function_00 =
-    new_property_map(NULL,              /* context */
-                     "Function00",      /* name */
-                     0,                 /* # of entries to be added */
-                     3,                 /* # of special props */
-                     Object_prototype); /* __proto__  (to be updated) */
-
-
-  pm_Function_prototype =
-    extend_property_map(NULL,                 /* constext */
-                        "Function.prototype", /* name */
-                        2,                    /* # of entries to be added */
-                        pm_Function_00);      /* base */
-  pm_add_property(NULL, pm_Function_prototype,
-                  gconsts.g_string_tostring, ATTR_DE);
-  pm_add_property(NULL, pm_Function_prototype,
-                  gconsts.g_string_apply, ATTR_DE);
-
-  os_Function_prototype =
-    new_object_shape(NULL,                  /* context */
-                     "Function.prototype",  /* name */
-                     pm_Function_prototype, /* PropertyMap */
-                     5,                     /* # of embedded props */
-                     0);                    /* size of extension array */
-
-  Function_prototype =
-    new_builtin_with_ctor(NULL,                   /* context */
-                          "Function.prototype",   /* name */
-                          os_Function_prototype,  /* ObjectShape */
-                          function_prototype_fun, /* fun */
-                          not_a_constructor,      /* ctor */
-                          0);                     /* # of args */
-  pm_Function_00.prototype = Function_prototype;
+#ifdef HC_DEBUG
+#define DEBUG_NAME(name) name
+#else /* HC_DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* HC_DEBUG */
 
   /*
-   * Property map for normal functions
+   * Step 1
+   *  - Create property maps and object shapes for prototype objects.
+   *  - Create prototype objects.
+   *  - Create property maps and object shapes for instances.
    */
-  pm_Function_0 =
-    extend_property_map(NULL,            /* context */
-                        "Function0",     /* name */
-                        1,               /* # of entries to be added */
-                        pm_Function_00); /* base */
-  pm_add_property(NULL, pm_builtin,
-                  gconsts.g_string_prototype, ATTR_DDDE);
+
+  /* STEP1
+   *   T        Type name.
+   *   pproto   __proto__ of prototype object.
+   *   psp      # of special fields of prototype object.
+   *   isp      # of special fields of instances
+   *   ctor     C-constructor function to create prototype object.
+   *   ctorargs [VA] Custom arguments to be passed to the constructor.
+   */
+#define STEP1(T, pproto, psp, isp, ctor, ctorargs...)                   \
+  do {                                                                  \
+    Shape *os =                                                         \
+      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "prototype"), psp, pproto,     \
+                           T ## Prototype);                             \
+    JSValue iproto = ctor(NULL, DEBUG_NAME(#T "prototype"), os, ##ctorargs); \
+    gconsts.g_shape_ ## T =                                             \
+      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "0"), isp, iproto, T);         \
+    gconsts.g_prototype_ ## T = iproto;                                 \
+  } while(0)
+
+#define OBJPROTO gconsts.g_prototype_Object
+
+  STEP1(Object,   JS_NULL,  OBJECT_NUM_SPECIAL,  OBJECT_NUM_SPECIAL,
+        new_simple_object);
+  STEP1(Function, OBJPROTO, BUILTIN_NUM_SPECIAL, FUNCTINO_NUM_SPECIAL,
+        new_builtin_with_ctor, function_prototype_fun, not_a_constructor, 0);
+  STEP1(Array,    OBJPROTO, ARRAY_NUM_SPECIAL,   ARRAY_NUM_SPECIAL,
+        new_array_object, 0);
+  STEP1(String,   OBJPROTO, STRING_NUM_SPECIAL,  STRING_NUM_SPECIAL,
+        new_string_object, gconsts.g_string_empty);
+  STEP1(Boolean,  OBJPROTO, BOOLEAN_NUM_SPECIAL, BOOLEAN_NUM_SPECIAL,
+        new_boolean_object, JS_FALSE);
+  STEP1(Number,   OBJPROTO, NUMBER_NUM_SPECIAL,  NUMBER_NUM_SPECIAL,
+        new_number_object, FIXNUM_ZERO);
+
+#undef OBJPROTO
+#undef STEP1
   
-  os_Function_0 =
-    new_object_shape(NULL,         /* context */
-                     "Function0",  /* name */
-                     pm_Function0, /* PropertyMap */
-                     4,            /* # of embedded props */
-                     0);           /* size of extension array */
-    
   /*
-   * Array prototype
+   * Step 2
+   *   - Fill built-in properties of prototype objects.
+   *   - Create constructors.
+   *   - Fill built-in properties of constructors.
+   *   TODO: create dedicated object shapes for the constructors.
    */
-  pm_Array_0 =
-    new_property_map(NULL,              /* context */
-                     "Array0",          /* name */
-                     1,                 /* # of entries to be added */
-                     3,                 /* # of special fields */
-                     Object_prototype); /* __proto__ (to be updated) */
-  pm_add_property(NULL, pm_Array_0,
-                  gconsts.g_string_length, ATTR_DE);
 
-  os_Array_0 =
-    new_object_shape(NULL,       /* context */
-                     "Array0",   /* name */
-                     pm_Array_0, /* PropertyMap */
-                     4,          /* # of embedded props */
-                     0);         /* size of extension array */
-  
-  pm_Array_prototype =
-    extend_property_map(NULL,              /* context */
-                        "Array.prototype", /* name */
-                        pm_Array_0,        /* base */
-                        11);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_tostring, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_toLocaleString, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_join, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_concat, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_pop, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_push, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_reverse, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_shift, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_slice, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_sort, ATTR_DE);
-  pm_add_property(NULL, pm_Array_prototype,
-                  gconsts.g_string_debugarray, ATTR_DE);
-  
-  os_Array_prototype =
-    new_object_shape(NULL,               /* context */
-                     "Array.prototype",  /* name */
-                     pm_Array_prototype, /* PropertyMap */
-                     15,                 /* # of embedded props */
-                     0);                 /* size of extension array */
+  gconsts.g_shape_Builtin =
+    CREATE_MAP_AND_SHAPE(DEBUG_NAME("Builtin0"), BUILTIN_NUM_SPECIAL,
+                         gconsts.g_prototype_Function, Builtin);
 
-  Array_prototype =
-    new_array_object(NULL,               /* context */
-                     "Array.prototype",  /* name */
-                     os_Array_prototype, /* ObjectShape */
-                     0);                 /* size of c-array */
-  pm_Array_0.proto = Array_prototype;
+#define STEP2(T, cfun, cctor, na)                               \
+  do {                                                          \
+    JSValue ctor;                                               \
+    FILL_BUILTIN_PROPERTIES(gconsts.g_prototype_ ## T,          \
+                            T ## Prototype);                    \
+    ctor = new_builtin_with_constr(NULL, DEBUG_NAME(#T),        \
+                                   gconsts.g_shape_Builtin,     \
+                                   cfun, cctor, na);            \
+    FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);            \
+    gconsts.g_ctor_ ## T = ctor;                                \
+  } while (0)
+
+  STEP2(Object,   object_constr,        object_constr,   0);
+  STEP2(Function, function_constr,      function_constr, 0);
+  STEP2(Array,    array_constr,         array_constr,    0);
+  STEP2(String,   string_constr_nonew,  string_constr,   1);
+  STEP2(Number,   number_constr_nonew,  number_constr,   1);
+  STEP2(Boolean,  boolean_constr_nonew, boolean_constr,  1);
+#undef STEP2
 
   /*
-   * Builtin Constructors
+   * Step 3
+   *   - Create builtin constructors whose prototypes are normal objects.
+   *   TODO: create dedicated object shapes for the constructors.
    */
+#define STEP3(T, cfun, cctor, na)                                       \
+  do {                                                                  \
+    JSValue prototype, ctor;                                            \
+    prototype = new_simple_object(NULL, DEBUG_NAME(#T "Prototype"),     \
+                                  gconsts.g_shape_Object);              \
+    ctor = new_builtin_with_constr(NULL, DEBUG_NAME(#T),                \
+                                   gconsts.g_shape_Builtin,             \
+                                   cfun, ccotr, na);                    \
+    FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);                    \
+    gconsts.g_ctor_ ## T = ctor;                                        \
+  } while (0)
 
-  Object_ctor =
-    new_builtin_with_ctor(NULL,          /* context */
-                          "Object",      /* name */
-                          os_Function0,  /* ObjectShape */
-                          object_constr, /* fun */
-                          object_constr, /* ctor */
-                          0);            /* # of args */
+  STEP3(RegExp,   regexp_constr_nonew, regexp_constr,   2);
 
-  Array_ctor =
-    new_builtin_with_ctor(NULL,         /* context */
-                          "Array",      /* name */
-                          os_Function0, /* ObjectShape */
-                          array_constr, /* fun */
-                          array_constr, /* ctor */
-                          0);           /* # of args */
-
-  Function_ctor =
-    new_builtin_with_ctor(NULL,            /* context */
-                          "Function",      /* name */
-                          os_Function0,    /* ObjectShape */
-                          function_constr, /* fun */
-                          function_constr, /* ctor */
-                          0);              /* # of args */
-}  
-              
-
-  
-void init_global_malloc_objects(void) {
-  gobjects.g_hidden_class_top =
-    new_empty_hidden_class(NULL,             /* context */
-                           HSIZE_BIG,        /* map size */
-                           PSIZE_BIG,        /* embedded props */
-                           0,                /* # of normal props */
-                           0,                /* # of special props */
-                           HTYPE_TRANSIT);   /* type */
-
-  gobjects.g_hidden_class_0 =
-    new_empty_hidden_class(NULL,              /* context */
-                           HSIZE_NORMAL,      /* map size */
-                           PSIZE_NORMAL,      /* embedded props */
-                           0,                 /* # of normal props */
-                           0,                 /* # of special props */
-                           HTYPE_TRANSIT);    /* type */
-
-  gobjects.g_hidden_class_array =
-    new_empty_hidden_class(NULL,                 /* context */
-                           ARRAY_NORMAL_PROPS,   /* map size */
-                           ARRAY_EMBEDDED_PROPS, /* embedded props */
-                           ARRAY_NORMAL_PROPS,   /* # of normal props */
-                           ARRAY_SPECIAL_PROPS,  /* # of special props */
-                           HTYPE_TRANSIT);       /* type */
-  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_array),
-                          gconsts.g_string_length,
-                          ARRAY_PROP_INDEX_LENGTH,
-                          ATTR_DDDE);
-
-  gobjects.g_hidden_class_function =
-    new_empty_hidden_class(NULL,                 /* context */
-                           FUNC_NORMAL_PROPS,    /* map size */
-                           FUNC_EMBEDDED_PROPS,  /* embedded props */
-                           FUNC_NORMAL_PROPS,    /* # of normal props */
-                           FUNC_SPECIAL_PROPS,   /* # of special props */
-                           HTYPE_TRANSIT);       /* type */
-  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_function),
-                          gconsts.g_string_prototype,
-                          FUNC_PROP_INDEX_PROTOTYPE,
-                          ATTR_DDDE);
-
-  gobjects.g_hidden_class_builtin =
-    new_empty_hidden_class(NULL,                   /* context */
-                           BUILTIN_NORMAL_PROPS,   /* map size */
-                           BUILTIN_EMBEDDED_PROPS, /* embedded props */
-                           BUILTIN_NORMAL_PROPS,   /* # of normal props */
-                           BUILTIN_SPECIAL_PROPS,  /* # of special props */
-                           HTYPE_TRANSIT);         /* type */
-  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_builtin),
-                          gconsts.g_string_prototype,
-                          BUILTIN_PROP_INDEX_PROTOTYPE,
-                          ATTR_DDDE);
-
-  gobjects.g_hidden_class_boxed_number =
-    new_empty_hidden_class(NULL,                    /* context */
-                           BOXED_NORMAL_PROPS,      /* map size */
-                           BOXED_EMBEDDED_PROPS,    /* embedded props */
-                           BOXED_NORMAL_PROPS,      /* # of normal props */
-                           BOXED_SPECIAL_PROPS,     /* # of special props */
-                           HTYPE_TRANSIT);          /* type */
-  gobjects.g_hidden_class_boxed_boolean =
-    new_empty_hidden_class(NULL,                    /* context */
-                           BOXED_NORMAL_PROPS,      /* map size */
-                           BOXED_EMBEDDED_PROPS,    /* embedded props */
-                           BOXED_NORMAL_PROPS,      /* # of normal props */
-                           BOXED_SPECIAL_PROPS,     /* # of special props */
-                           HTYPE_TRANSIT);          /* type */
-
-  gobjects.g_hidden_class_boxed_string =
-    new_empty_hidden_class(NULL,                    /* context */
-                           BOXEDSTR_NORMAL_PROPS,   /* map size */
-                           BOXEDSTR_EMBEDDED_PROPS, /* embedded props */
-                           BOXEDSTR_NORMAL_PROPS,   /* # of normal props */
-                           BOXED_SPECIAL_PROPS,     /* # of special props */
-                           HTYPE_TRANSIT);
-  hash_put_with_attribute(hidden_map(gobjects.g_hidden_class_boxed_string),
-                          gconsts.g_string_length,
-                          BOXEDSTR_PROP_INDEX_LENGTH,
-                          ATTR_ALL);
-
-#ifdef USE_REGEXP
-  gobjects.g_hidden_class_regexp =
-    new_empty_hidden_class(NULL,                /* context */
-                           REX_NORMAL_PROPS,    /* map size */
-                           REX_EMBEDDED_PROPS,  /* embedded props */
-                           REX_NORMAL_PROPS,    /* # of normal props */
-                           REX_SPECIAL_PROPS,   /* # of special props */
-                           HTYPE_TRANSIT);      /* type */
-#endif /* USE_REGEXP */
+#undef STEP3
 }
 
 /*
  * initializes global objects
  */
 void init_global_objects(void) {
-  /*
-   * g_object_proto: Object.prototype, which is set to __proto__ property
-   *                 when an object is created.
-   *   Object.prototype === {}.__proto__
-   *   Object.prototype.__proto__ === null
-   *   Object.prototype.prototype is not defined.
-   *                   (Object.prototype is not used as a constructor)
+  /* Step 1
+   *   - fill gconsts
    */
-  gconsts.g_object_proto =
-    new_object_with_class(NULL, gobjects.g_hidden_class_top);
-  hidden_proto(gobjects.g_hidden_class_0) = gconsts.g_object_proto;
-  /*
-   * g_blobal: The global object, which contains global variables.
-   * g_math:   The "Math" object.
+  gconsts.g_global = new_simple_object(NULL, "global", gconsts.g_shape_Object);
+  gconsts.g_math = new_simpel_object(NULL, "math", gconsts.g_shape_Object);
+
+  /* Step 2
+   *   - fill propertyes
    */
-  /* TODO: give a special hidden class with large embedded properties */
-  gconsts.g_global = new_normal_object(NULL);
-  gconsts.g_math = new_normal_object(NULL);
-
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object_proto",
-                     obj_hidden_class(gconsts.g_object_proto));
-  print_hidden_class("g_global", obj_hidden_class(gconsts.g_global));
-  print_hidden_class("g_math", obj_hidden_class(gconsts.g_math));
-#endif /* HIDDEN_DEBUG */
-
-}
-
-/*
- * initializes builtin
- */
-void init_builtin(Context *ctx) {
-  init_builtin_function(ctx);  /* must be called first */
-  init_builtin_object(ctx);
-  init_builtin_array(ctx);
-  init_builtin_number(ctx);
-  init_builtin_string(ctx);
-  init_builtin_boolean(ctx);
-  init_builtin_math(ctx);
-#ifdef USE_REGEXP
-  init_builtin_regexp(ctx);
-#endif /* USE_REGEXP */
-
-  /* calls init_buitin_global after gconsts is properly set up */
-  init_builtin_global(ctx);
+  FILL_BUILTIN_PROPERTIES(gconsts.g_global_objects, Global);
+  FILL_BUILTIN_PROPERTIES(gconsts.g_math_objects, Math);
 }
 
 /* Local Variables:      */

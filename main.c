@@ -411,10 +411,9 @@ int main(int argc, char *argv[]) {
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();
-  init_global_malloc_objects();
+  init_meta_objects();
   init_global_objects();
   init_context(function_table, gconsts.g_global, &context);
-  init_builtin(context);
   srand((unsigned)time(NULL));
 
   for (; k < iter; k++) {

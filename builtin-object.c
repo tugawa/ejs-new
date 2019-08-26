@@ -56,38 +56,26 @@ BUILTIN_FUNCTION(object_toString)
   set_a(context, gconsts.g_string_objtostr);
 }
 
-ObjBuiltinProp object_funcs[] = {
-  { "toString",       object_toString,       0, ATTR_DE },
-  { NULL,             NULL,                  0, ATTR_DE }
+/*
+ * property table
+ */
+/* prototype */
+ObjBuiltinProp ObjectPrototype_builtin_props[] = {
+  { "toString", object_toString,  0, ATTR_DE }
 };
-
-void init_builtin_object(Context *ctx)
-{
-  JSValue obj, proto;
-
-  proto = gconsts.g_object_proto;
-  GC_PUSH(proto);
-
-  gconsts.g_object = obj =
-    new_builtin_with_constr(ctx, object_constr, object_constr, 0);
-  GC_PUSH(obj);
-  set_prototype_all(ctx, obj, proto);
-
-  /*
-   * not implemented yet
-   * set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
-   *            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
-   */
-  {
-    ObjBuiltinProp *p = object_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name, 
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(obj, proto);
-}
+ObjDoubleProp  ObjectPrototype_doulbe_props[] = {};
+ObjGconstsProp ObjectPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp ObjectConstructor_builtin_props[] = {};
+ObjDoubleProp  ObjectConstructor_doulbe_props[] = {};
+ObjGconstsProp ObjectConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Object,  0, ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Object_builtin_props[] = {};
+ObjDoubleProp  Object_doulbe_props[] = {};
+ObjGconstsProp Object_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(Object);
 
 /* Local Variables:      */
 /* mode: c               */

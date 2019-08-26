@@ -132,52 +132,35 @@ BUILTIN_FUNCTION(number_valueOf)
     LOG_EXIT("Receiver of valueOf is not a Number instance\n");
 }
 
-ObjBuiltinProp number_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp NumberPrototype_builtin_props[] = {
   { "valueOf",        number_valueOf,       0, ATTR_DE },
   { "toString",       number_toString,      0, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
 };
-
-ObjDoubleProp number_values[] = {
+ObjDoubleProp  NumberPrototype_doulbe_props[] = {
+};
+ObjGconstsProp NumberPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp NumberConstructor_builtin_props[] = {};
+ObjDoubleProp  NumberConstructor_doulbe_props[] = {
   { "MAX_VALUE", DBL_MAX,               ATTR_ALL },
   { "MIN_VALUE", DBL_MIN,               ATTR_ALL },
-  { NULL,        0.0,                   ATTR_ALL }
 };
-
-void init_builtin_number(Context *ctx)
-{
-  JSValue n, proto;
-  
-  gconsts.g_number_proto = proto = new_number_object(ctx, FIXNUM_ZERO);
-  GC_PUSH(proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  hidden_proto(gobjects.g_hidden_class_boxed_number) = proto;
-
-  gconsts.g_number = n =
-    new_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
-  GC_PUSH(n);
-  set_prototype_all(ctx, n, proto);
-  set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
-  set_obj_cstr_prop(ctx, n, "NEGATIVE_INFINITY",
-                    gconsts.g_flonum_negative_infinity, ATTR_ALL);
-  set_obj_cstr_prop(ctx, n, "NaN", gconsts.g_flonum_nan, ATTR_ALL);
-  {
-    ObjBuiltinProp *p = number_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  {
-    ObjDoubleProp *p = number_values;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, n, p->name, double_to_flonum(p->value), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(n, proto);
-}
+ObjGconstsProp NumberConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Number,  ATTR_ALL },
+  { "INFINITY",  &gconsts.g_flonum_infinity,   ATTR_ALL },
+  { "NEGATIVE_INFINITY", &gconsts.g_flonum_negative_infinity, ATTR_ALL },
+  { "NaN",       &gconsts.g_flonum_nan,        ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Number_builtin_props[] = {};
+ObjDoubleProp  Number_doulbe_props[] = {};
+ObjGconstsProp Number_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(Number);
 
 /* Local Variables:      */
 /* mode: c               */

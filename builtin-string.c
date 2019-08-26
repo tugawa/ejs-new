@@ -642,7 +642,12 @@ BUILTIN_FUNCTION(stringProtoMatch)
 }
 #endif
 
-ObjBuiltinProp string_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "valueOf",        string_valueOf,       0, ATTR_DE },
   { "toString",       string_valueOf,       0, ATTR_DE },
   { "concat",         string_concat,        0, ATTR_DE },
@@ -654,39 +659,23 @@ ObjBuiltinProp string_funcs[] = {
   { "charCodeAt",     string_charCodeAt,    0, ATTR_DE },
   { "indexOf",        string_indexOf,       1, ATTR_DE },
   { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
-  /*
-   * { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
-   */
   { "localeCompare",  string_localeCompare, 0, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
 };
-
-void init_builtin_string(Context *ctx)
-{
-  JSValue str, proto;
-
-  gconsts.g_string_proto = proto =
-    new_string_object(ctx, gconsts.g_string_empty);
-  GC_PUSH(proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  hidden_proto(gobjects.g_hidden_class_boxed_string) = proto;
-
-  gconsts.g_string = str =
-    new_builtin_with_constr(ctx, string_constr_nonew, string_constr, 1);
-  GC_PUSH(str);
-  set_prototype_all(ctx, str, proto);
-  set_prop_de(ctx, str, cstr_to_string(NULL, "fromCharCode"),
-              new_builtin(ctx, string_fromCharCode, 0));
-  {
-    ObjBuiltinProp *p = string_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(str, proto);
-}
+ObjDoubleProp  StringPrototype_doulbe_props[] = {};
+ObjGconstsProp StringPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp StringConstructor_builtin_props[] = {
+ { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
+};
+ObjDoubleProp  StringConstructor_doulbe_props[] = {};
+ObjGconstsProp StringConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_String,  0, ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp String_builtin_props[] = {};
+ObjDoubleProp  String_doulbe_props[] = {};
+ObjGconstsProp String_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(String);
 
 /* Local Variables:      */
 /* mode: c               */

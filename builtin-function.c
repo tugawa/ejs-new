@@ -67,39 +67,36 @@ BUILTIN_FUNCTION(function_toString)
   return;
 }
 
-ObjBuiltinProp function_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp FunctionPrototype_builtin_props[] = {
   { "toString", function_toString, 0, ATTR_DE },
   { "apply",    function_apply,    2, ATTR_DE },
-  { NULL, NULL, 0, ATTR_DE }
 };
+ObjDoubleProp  FunctionPrototype_doulbe_props[] = {};
+ObjGconstsProp FunctionPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp FunctionConstructor_builtin_props[] = {};
+ObjDoubleProp  FunctionConstructor_doulbe_props[] = {};
+ObjGconstsProp FunctionConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Function, ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Function_builtin_props[] = {};
+ObjDoubleProp  Function_doulbe_props[] = {};
+ObjGconstsProp Function_gconsts_props[] = {
+  { "prototype", &gconsts.g_null,   ATTR_NONE }, /* placeholder */
+};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(Function);
 
-void init_builtin_function(Context *ctx)
-{
-  JSValue proto;
-
-  /* TODO: implement an empty builtin function for prototype of Function
-   *   Function.prototype is not an ordinary object but an empty
-   *   function.
-   */
-  gconsts.g_function_proto = proto = new_normal_object(ctx);
-  GC_PUSH(proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  hidden_proto(gobjects.g_hidden_class_function) = proto;
-  hidden_proto(gobjects.g_hidden_class_builtin) = proto;
-
-  gconsts.g_function =
-    new_builtin_with_constr(ctx, function_constr, function_constr, 0);
-  set_prototype_all(ctx, gconsts.g_function, proto);
-  {
-    ObjBuiltinProp *p = function_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP(proto);
-}
+/* instance */
+ObjBuiltinProp Builtin_builtin_props[] = {};
+ObjDoubleProp  Builtin_doulbe_props[] = {};
+ObjGconstsProp Builtin_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_I(Builtin);
 
 /* Local Variables:      */
 /* mode: c               */

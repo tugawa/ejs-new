@@ -571,7 +571,12 @@ BUILTIN_FUNCTION(array_debugarray)
   return;
 }
 
-ObjBuiltinProp array_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "toString",       array_toString,       0, ATTR_DE },
   { "toLocaleString", array_toLocaleString, 0, ATTR_DE },
   { "join",           array_join,           1, ATTR_DE },
@@ -583,30 +588,20 @@ ObjBuiltinProp array_funcs[] = {
   { "slice",          array_slice,          2, ATTR_DE },
   { "sort",           array_sort,           1, ATTR_DE },
   { "debugarray",     array_debugarray,     0, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
 };
-
-void init_builtin_array(Context *ctx)
-{
-  JSValue proto;
-
-  gconsts.g_array_proto = proto = new_array(ctx, 0);
-  GC_PUSH(proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  hidden_proto(gobjects.g_hidden_class_array) = proto;
-
-  gconsts.g_array = new_builtin_with_constr(ctx, array_constr, array_constr, 0);
-  set_prototype_all(ctx, gconsts.g_array, proto);
-  {
-    ObjBuiltinProp *p = array_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP(proto);
-}
+ObjDoubleProp  ArrayPrototype_doulbe_props[] = {};
+ObjGconstsProp ArrayPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp ArrayConstructor_builtin_props[] = {};
+ObjDoubleProp  ArrayConstructor_doulbe_props[] = {};
+ObjGconstsProp ArrayConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Array,  0, ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Array_builtin_props[] = {};
+ObjDoubleProp  Array_doulbe_props[] = {};
+ObjGconstsProp Array_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(Array);
 
 /* Local Variables:      */
 /* mode: c               */

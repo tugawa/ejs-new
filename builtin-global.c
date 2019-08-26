@@ -207,7 +207,11 @@ BUILTIN_FUNCTION(builtin_papi_get_real)
 }
 #endif /* USE_PAPI */
 
-ObjBuiltinProp global_funcs[] = {
+/*
+ * property table
+ */
+/* instance */
+ObjBuiltinProp Global_builtin_props[] = {};
   { "isNaN",          builtin_isNaN,              1, ATTR_DDDE },
   { "isFinite",       builtin_isFinite,           1, ATTR_DE   },
   /*
@@ -224,51 +228,25 @@ ObjBuiltinProp global_funcs[] = {
 #ifdef USE_PAPI
   { "papi_get_real",  builtin_papi_get_real,      0, ATTR_ALL  },
 #endif
-  { NULL,             NULL,                       0, ATTR_DE   }
-};
-
-ObjGconstsProp global_gconsts_props[] = {
-  { "Object",    &gconsts.g_object,          ATTR_DE   },
-  { "Array",     &gconsts.g_array,           ATTR_DE   },
-  { "Number",    &gconsts.g_number,          ATTR_DE   },
-  { "String",    &gconsts.g_string,          ATTR_DE   },
-  { "Boolean",   &gconsts.g_boolean,         ATTR_DE   },
+ObjDoubleProp  Global_doulbe_props[] = {};
+ObjGconstsProp Global_gconsts_props[] = {
+  { "Object",    &gconsts.g_ctor_Object,     ATTR_DE   },
+  { "Array",     &gconsts.g_ctor_Array,      ATTR_DE   },
+  { "Number",    &gconsts.g_ctor_Number,     ATTR_DE   },
+  { "String",    &gconsts.g_ctor_String,     ATTR_DE   },
+  { "Boolean",   &gconsts.g_ctor_Boolean,    ATTR_DE   },
+#ifdef USE_REGEXP
+  { "RegExp",    &gconsts.g_ctor_RegExp,     ATTR_DE   },
+#endif /* USE_REGEXP */
   { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
   { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
   { "Math",      &gconsts.g_math,            ATTR_DE   },
-  { NULL,        NULL,                       ATTR_DE   }
+  { "true",      &gconsts.g_bool_true,       ATTR_DE   },
+  { "false",     &gconsts.g_bool_true,       ATTR_DE   },
+  { "null",      &gconsts.g_bool_true,       ATTR_DE   },
+  { "undefined", &gconsts.g_bool_true,       ATTR_DE   },
 };
-
-/*
- * sets the global object's properties
- */
-void init_builtin_global(Context *ctx)
-{
-  JSValue g;
-
-  g = gconsts.g_global;
-  GC_PUSH(g);
-  set_obj_cstr_prop(ctx, g, "true", JS_TRUE, ATTR_DE);
-  set_obj_cstr_prop(ctx, g, "false", JS_FALSE, ATTR_DE);
-  set_obj_cstr_prop(ctx, g, "null", JS_NULL, ATTR_DE);
-  set_obj_cstr_prop(ctx, g, "undefined", JS_UNDEFINED, ATTR_DE);
-  {
-    ObjBuiltinProp *p = global_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, g, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  {
-    ObjGconstsProp *p = global_gconsts_props;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, g, p->name, *(p->addr), p->attr);
-      p++;
-    }
-  }
-  GC_POP(g);
-}
+DEFINE_BUILTIN_TABLE_SIZES_I(Global);
 
 /* Local Variables:      */
 /* mode: c               */

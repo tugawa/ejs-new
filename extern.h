@@ -86,39 +86,47 @@ extern BUILTIN_FUNCTION(builtin_flonum_to_string);
  * builtin-array.c
  */
 extern BUILTIN_FUNCTION(array_constr);
+EXTERN_PROPERTY_TABLES_PCI(Array);
 
 /*
  * builtin-boolean.c
  */
 extern BUILTIN_FUNCTION(boolean_constr);
+EXTERN_PROPERTY_TABLES_PCI(Boolean);
 
 /*
  * builtin-global.c
  */
 extern BUILTIN_FUNCTION(builtin_not_a_constructor);
+EXTERN_PROPERTY_TABLES_I(Global);
 
 /*
  * builtin-number.c
  */
 extern BUILTIN_FUNCTION(number_constr);
 extern BUILTIN_FUNCTION(number_constr_nonew);
+EXTERN_PROPERTY_TABLES_PCI(Number);
 
 /*
  * builtin-string.c
  */
 extern BUILTIN_FUNCTION(string_constr);
 extern BUILTIN_FUNCTION(string_constr_nonew);
+EXTERN_PROPERTY_TABLES_PCI(String);
 
 /*
  * builtin-object.c
  */
 extern BUILTIN_FUNCTION(object_constr);
 extern BUILTIN_FUNCTION(object_toString);
+EXTERN_PROPERTY_TABLES_PCI(Object);
 
 /*
  * builtin-function.c
  */
 extern BUILTIN_FUNCTION(function_apply);
+EXTERN_PROPERTY_TABLES_PCI(Function);
+EXTERN_PROPERTY_TABLES_I(Builtin);
 
 /*
  * call.c

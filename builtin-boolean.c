@@ -36,34 +36,27 @@ BUILTIN_FUNCTION(boolean_valueOf)
   set_a(context, arg);
 }
 
-ObjBuiltinProp boolean_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp BooleanPrototype_builtin_props[] = {
   { "valueOf",        boolean_valueOf,    0, ATTR_DE },
-  { NULL,             NULL,               0, ATTR_DE }
 };
-
-void init_builtin_boolean(Context *ctx)
-{
-  JSValue b, proto;
-
-  gconsts.g_boolean_proto = proto = new_boolean_object(ctx, JS_FALSE);
-  GC_PUSH(proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  hidden_proto(gobjects.g_hidden_class_boxed_boolean) = proto;
-
-  gconsts.g_boolean = b =
-    new_builtin_with_constr(ctx, boolean_constr, boolean_constr, 1);
-  GC_PUSH(b);
-  set_prototype_de(ctx, b, proto);
-  {
-    ObjBuiltinProp *p = boolean_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(b, proto);
-}
+ObjDoubleProp  BooleanPrototype_doulbe_props[] = {};
+ObjGconstsProp BooleanPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp BooleanConstructor_builtin_props[] = {};
+ObjDoubleProp  BooleanConstructor_doulbe_props[] = {};
+ObjGconstsProp BooleanConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Boolean,  0, ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Boolean_builtin_props[] = {};
+ObjDoubleProp  Boolean_doulbe_props[] = {};
+ObjGconstsProp Boolean_gconsts_props[] = {};
+DEFINE_BUILTIN_TABLE_SIZES_PCI(Boolean);
 
 /* Local Variables:      */
 /* mode: c               */

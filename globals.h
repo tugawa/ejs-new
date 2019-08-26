@@ -16,23 +16,30 @@ EXTERN StrTable string_table;
  * global constant objects
  */
 EXTERN struct global_constant_objects {
-  JSValue g_identity;
-  JSValue g_object;
-  JSValue g_object_proto;
-  JSValue g_array;
-  JSValue g_array_proto;
-  JSValue g_number;
-  JSValue g_number_proto;
-  JSValue g_string;
-  JSValue g_string_proto;
-  JSValue g_function;
-  JSValue g_function_proto;
-  JSValue g_boolean;
-  JSValue g_boolean_proto;
-  JSValue g_date;
-  JSValue g_date_proto;
-  JSValue g_regexp;
-  JSValue g_regexp_proto;
+  Shape *g_shape_Object;
+  Shape *g_shape_Function;
+  Shape *g_shape_Array;
+  Shape *g_shape_Number;
+  Shape *g_shape_String;
+  Shape *g_shape_Boolean;
+
+  JSValue g_prototype_Object;
+  JSValue g_prototype_Function;
+  JSValue g_prototype_Array;
+  JSValue g_prototype_Number;
+  JSValue g_prototype_String;
+  JSValue g_prototype_Boolean;
+
+  JSValue g_ctor_Object;
+  JSValue g_ctor_Function;
+  JSValue g_ctor_Array;
+  JSValue g_ctor_Number;
+  JSValue g_ctor_String;
+  JSValue g_ctor_Boolean;
+#ifdef USE_REGEXP
+  JSValue g_ctor_RegExp;
+#endif /* USE_REGEXP */
+
   JSValue g_fixnum_to_string;
   JSValue g_flonum_to_string;
 
@@ -59,23 +66,16 @@ EXTERN struct global_constant_objects {
   JSValue g_flonum_negative_infinity;
   JSValue g_flonum_nan;
 
+  JSValue g_boolean_true;
+  JSValue g_boolean_false;
+
+  JSValue g_null;
+  JSValue g_undefined;
+
   JSValue g_global;
   JSValue g_math;
+  JSValue g_regexp;
 } gconsts;
-
-EXTERN struct global_malloced_objects {
-  HiddenClass *g_hidden_class_top;
-  HiddenClass *g_hidden_class_0;
-  HiddenClass *g_hidden_class_array;
-  HiddenClass *g_hidden_class_function;
-  HiddenClass *g_hidden_class_builtin;
-  HiddenClass *g_hidden_class_boxed_number;
-  HiddenClass *g_hidden_class_boxed_boolean;
-  HiddenClass *g_hidden_class_boxed_string;
-#ifdef USE_REGEXP
-  HiddenClass *g_hidden_class_regexp;
-#endif /* USE_REGEXP */
-} gobjects;
 
 /* Local Variables:      */
 /* mode: c               */
