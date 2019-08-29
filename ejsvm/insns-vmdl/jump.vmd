@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, tailCall)
+jump : cint -> void
+
+jump (d0) {
+    Jump(d0);
+}

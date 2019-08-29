@@ -267,6 +267,7 @@ extern int regexp_flag(JSValue);
 #endif
 extern JSValue new_simple_object_without___proto__(Context *, int, int);
 extern JSValue new_simple_object(Context *, int, int);
+extern JSValue initialize_new_object(Context *ctx, JSValue, JSValue);
 extern JSValue new_array(Context *, int, int);
 extern JSValue new_array_with_size(Context *, int, int, int);
 extern JSValue new_function(Context *, Subscript, int, int);
@@ -323,6 +324,20 @@ extern void init_builtin_math(Context *);
 extern void init_builtin_regexp(Context *);
 #endif /* need_regexp */
 #endif
+
+/*
+ * vmdl-helper.c
+ */
+extern JSValue get_global_helper(Context* context, JSValue str);
+extern JSValue instanceof_helper(JSValue v1, JSValue v2);
+extern JSValue getarguments_helper(Context* context, int link, Subscript index);
+extern JSValue getlocal_helper(Context* context, int link, Subscript index);
+extern Displacement localret_helper(Context* context, int pc);
+extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
+extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
+extern void setglobal_helper(Context* context, JSValue str, JSValue src);
+extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
+extern JSValue nextpropnameidx_helper(JSValue itr);
 
 #ifdef __cplusplus
 }

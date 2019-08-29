@@ -32,7 +32,8 @@ def var_prefix(kind)
   elsif (kind == "Displacement")
     "d"
   elsif (kind == "int")
-    "i"
+    # "i"
+    "v"
   else
     "???"
   end

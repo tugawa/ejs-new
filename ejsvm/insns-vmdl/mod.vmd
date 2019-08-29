@@ -1,0 +1,44 @@
+#include "patterns.vmdh"
+
+#include "externc.vmdh"
+
+(vmInstruction, needContext, triggerGC, tailCall)
+mod : (JSValue, JSValue) -> JSValue
+
+mod (v1, v2) {
+  top: match (v1, v2) {
+    case (Fixnum v1 && Fixnum v2) {
+      if (IsFixnumZero(v2)) {
+        return Flonum_Nan();
+      } else {
+        cint x1 = FixnumToCint(v1);
+        cint x2 = FixnumToCint(v2);
+        cint s = x1 % x2;
+        return CintToFixnum(s);
+      }
+    }
+    case (number v1 && number v2) {
+      cdouble x1 = toCdouble(v1);
+      cdouble x2 = toCdouble(v2);
+      if (IsFlonumInfinity(CdoubleToFlonum(x1)) || x2 == 0.0f) {
+        return Flonum_Nan();
+      } else {
+        cdouble d = x1 / x2;
+        cdouble d2 = d >= 0 ? Floor(d) : Ceil(d);
+        cdouble d3 = x1 - (d2 * x2);
+        return CdoubleToNumber(d3);
+      }
+    }
+    case (number v2) {
+      Number u1 = toNumber(v1);
+      rematch top(u1, v2);
+    }
+    case (number v1) {
+      Number u2 = toNumber(v2);
+      rematch top(v1, u2);
+    }
+    case (true) {
+      return Flonum_Nan();
+    }
+  }
+}

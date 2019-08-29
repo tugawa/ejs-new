@@ -1,0 +1,106 @@
+externC FixnumToCint : Fixnum -> cint
+externC (needContext, triggerGC) CintToNumber : cint -> Number
+externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
+externC (needContext, triggerGC) CdoubleToFlonum: cdouble -> Flonum
+externC (needContext, triggerGC) concat : (String, String) -> String
+externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
+externC (needContext, triggerGC) FixnumToString : Fixnum -> String
+externC (needContext, triggerGC) FlonumToString : Flonum -> String
+externC (needContext, triggerGC) FixnumToCdouble : Fixnum -> cdouble
+externC (needContext, triggerGC) SpecialToString : Special -> String
+externC (needContext, triggerGC) ObjectToString : JSValue -> String
+externC (needContext, triggerGC) toString : JSValue -> String
+externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
+externC (needContext, triggerGC) toNumber: JSValue -> Number
+externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
+externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
+externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
+externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
+externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
+
+externC FixnumToCint: Fixnum -> cint
+externC FlonumToCint: Flonum -> cint
+
+externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
+externC FIXNUM_LESSTHANEQ: (Fixnum, Fixnum) -> cint
+externC FIXNUM_EQ: (Fixnum, Fixnum) -> cint
+externC FIXNUM_AND: (Fixnum, Fixnum) -> Fixnum
+externC FIXNUM_OR: (Fixnum, Fixnum) -> Fixnum
+
+externC String_to_cstr: String -> Top
+externC Strcmp: (Top, Top) -> cint
+externC Half_fixnum_range: cint -> cint
+
+externC Get_opcode : void -> cint
+externC IsSend : cint -> cint
+externC IsTailSend : cint -> cint
+externC IsNewSend : cint -> cint
+externC (needContext) Set_fp : void -> void
+externC (needContext) Set_pc : void -> void
+externC (needContext) Try_gc : void -> void
+externC (needContext, triggerGC) Call_function : (JSValue, cint, cint) -> void
+externC (needContext, triggerGC) Call_builtin : (JSValue, cint, cint, cint) -> void
+externC (needContext, triggerGC) Tailcall_function : (JSValue, cint, cint) -> void
+externC (needContext, triggerGC) Tailcall_builtin : (JSValue, cint, cint) -> void
+externC Update_context : void -> void
+externC Next_insn_noincpc : void -> void
+externC Next_insn_incpc : void -> void
+
+externC Fixnum_Zero : void -> Fixnum
+externC Flonum_Infinity : void -> Flonum
+externC Flonum_NegInfinity : void -> Flonum
+externC Flonum_Nan : void -> Flonum
+externC IsFlonumInfinity: JSValue -> cint
+externC IsFlonumNegInfinity : JSValue -> cint
+externC IsFlonumNan : JSValue -> cint
+externC IsFixnumZero : JSValue -> cint
+externC Isobject : JSValue -> JSValue
+externC LogicalRightShift : cint -> cint
+
+externC Floor : cdouble -> cdouble
+externC Ceil : cdouble -> cdouble
+
+externC Next_insn_noincpc : void -> void
+externC toBoolean : JSValue -> JSValue
+
+externC (needContext, triggerGC) Get_a : void -> JSValue
+externC (needContext, triggerGC) Getarguments: (cint, Subscript) -> JSValue
+externC (needContext, triggerGC) Get_err : void -> JSValue
+externC (needContext, triggerGC) Get_global : JSValue -> JSValue
+externC (needContext) Get_globalobj : void -> JSValue
+externC (needContext, triggerGC) Getlocal: (cint, Subscript) -> JSValue
+externC (needContext) Instanceof : (JSValue, JSValue) -> JSValue
+externC Isundefined : JSValue -> JSValue
+externC Jump : Displacement -> void
+externC Lcall_stack_push : void -> void
+externC Localret : void -> Displacement
+externC Save_context : void -> void
+externC Update_context : void -> void
+externC New_normal_function : Subscript -> JSValue
+externC (needContext, triggerGC) New_normal_iterator : JSValue -> JSValue
+externC Logexit : cstring -> void
+externC Nextpropnameidx : JSValue -> JSValue
+
+externC (needContext) New_normal_object : void -> JSObject
+externC (needContext) Initialize_new_object : (JSValue, JSValue) -> JSValue
+externC JS_undefined : void -> JSObject
+externC Newframe : cint -> void
+externC Makearguments : void -> void
+
+externC Nop : void -> void
+externC Not : JSValue -> JSValue
+externC Get_literal : cint -> JSValue
+externC Pophandler : void -> void
+externC Poplocal : void -> void
+externC Pushhandler : Displacement -> void
+externC Ret : void -> void
+externC Set_sp : cint -> void
+externC Seta : JSValue -> void
+externC Setarg : (cint, Subscript, JSValue) -> void
+externC Setarray : (JSValue, Subscript, JSValue) -> void
+externC Setfl : cint -> void
+externC Setglobal : (JSValue, JSValue) -> void
+externC Setlocal : (cint, Subscript, JSValue) -> void
+externC (needContext, triggerGC) Throw : void -> void
+externC NotImplemented : void -> void

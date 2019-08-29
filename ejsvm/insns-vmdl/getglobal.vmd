@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+getglobal : JSValue -> JSValue
+
+getglobal (v1) {
+    return Get_global(v1);
+}

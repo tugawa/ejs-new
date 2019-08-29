@@ -16,9 +16,11 @@ import subprocess
 # --gen-insn-label (3)
 # --gen-vmloop-cases (4)
 # --gen-psuedo-idef (5)
-# --gen-sinsn-operandspec (6)
-# --gen-vmgen-params (7)
-# --list-si (8)
+# --gen-psuedo-vmdl (6)
+# --gen-sinsn-operandspec (7)
+# --gen-vmgen-params (8)
+# --list-si (9)
+# --check-sispec (10)
 # -o filename
 
 ofile = sys.stdout
@@ -274,9 +276,11 @@ def process_argv():
   argparser.add_argument("--gen-insn-label", action = "store_true")
   argparser.add_argument("--gen-vmloop-cases", action = "store_true")
   argparser.add_argument("--gen-pseudo-idef", action = "store", type = str)
+  argparser.add_argument("--gen-pseudo-vmdl", action = "store", type = str, nargs=2)
   argparser.add_argument("--gen-ot-spec", action = "store", type = str)
   argparser.add_argument("--print-dispatch-order", action = "store", type = str)
   argparser.add_argument("--list-si", action = "store_true")
+  argparser.add_argument("--check-sispec", action = "store_true")
   argparser.add_argument("--print-original-insn-name", action = "store", type = str)
   argparser.add_argument("-o", action = "store", dest = "output_filename", type = str)
   args = argparser.parse_args()
@@ -439,9 +443,63 @@ def read_insndef(args):
   stream.close()
   return insns    
 
+def is_possible_si(si, otspec):
+  """ Returns if a superinstruction is possible in accordance with
+  the given operand-type spec.
+
+  returns: true if si is possible.
+
+  Some generaic parameters ("reg"-type) remain in a superinstruction.
+  Thus, a superinstruction corresponds to a set of operand datatype
+  combinations.  Accordingly, some combinations in the set are specified
+  "accept" while others are specified "error" or "unspecified".
+
+  In the generated dispatch diagram, paths to "error" targets should be
+  created.  Hence, there should be corresponding type labels.
+
+  Let S be the set of combinations of operand datatypes for a
+  superinstruction, I, and Accept, Error and Unspec be the sets of combinations
+  specified as "accept", "error", and "unspecified", respectively.
+
+  1. If S \subseteq Unspec, then do not create I.
+  2. Otherwise (i.e., S \cap ~Unspec \ne \emptyset),
+     create I in a normal way. Its type label should exist.
+
+  Note if S \subseteq Error, type labels for any ts \in S are attached
+  to the leaf node for error. Thus, the strategy above works. Though,
+  it is suboptimal. If S \subseteq Error, we do not need to decode its
+  operands.
+
+  TODO: avoid decoding operands if S \subseteq Error.
+  """
+
+  def has_intersection(ss, ts, insn_name):
+    for (s, t) in itertools.zip_longest(ss, ts):
+      if s == "-" and t == "-":
+        pass
+      elif s == "-" or t == "-":
+        raise Exception("Error: either superinsn or otspec has - for an operand for which the other does not:" + insn_name + ": " + s + " vs " + t)
+      elif s == None or t == None:
+        raise Exception("Error: number of operands in superinsn and otspec does not match:" + insn_name)
+      elif s == "_" or t == "_":
+        pass
+      elif s == t:
+        pass
+      elif s[0] == "!" and s[1:] != t:
+        pass
+      elif t[0] == "!" and s != t[1:]:
+        pass
+      else:
+        return False
+    return True
+
+  for rec in otspec:
+    if rec["insnname"] == si["insnname"] and rec["action"] != "unspecified":
+      if has_intersection(si["ops"], rec["ops"], si["sinsnname"]):
+        return True
+  return False
+
 def read_sinsns(args):
-  if not args.sitype:
-    return []
   sinsns = []
   stream = check_open_file(args.sispec, "r", "sispec")
   for line in stream.readlines():
@@ -456,6 +514,11 @@ def read_sinsns(args):
       sinsns.append(a)
   stream.close()
   return sinsns
+
+def get_possible_sinsns(args, otspec):
+  if not args.sitype:
+    return []
+  return [si for si in read_sinsns(args) if is_possible_si(si, otspec)]
 
 def read_otspec(args):
   otspec = []
@@ -477,7 +540,8 @@ def read_otspec(args):
 
 def gen_insn_opcode(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write(insn.upper() + ",\n")
@@ -488,7 +552,8 @@ def gen_insn_opcode(args):
 
 def gen_insn_table(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   str_none = "NONE"
   str_lit = "LIT"
 
@@ -548,7 +613,8 @@ def gen_insn_table(args):
 
 def gen_insn_label(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   for insninfo in insndefs:
     insn = insninfo["insn"]
     ofile.write("&&I_" + insn.upper() + ",\n")
@@ -559,7 +625,8 @@ def gen_insn_label(args):
 
 def gen_vmloop_cases(args):
   insndefs = read_insndef(args)
-  sinsns = read_sinsns(args)
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   sitype = args.sitype
   if not sitype and len(sinsns) > 0:
     raise Exception("sitype is not specified")
@@ -671,10 +738,85 @@ def gen_pseudo_idef(args):
     ofile.write("  goto %s;\n" % goto_label)
     ofile.write("\\}\n")
 
+def gen_pseudo_vmdl(args):
+  insn_name = args.gen_pseudo_vmdl[0]
+  si_name = args.gen_pseudo_vmdl[1]
+  insndefs = read_insndef(args)
+  vmdatatypes = [
+    "Fixnum",
+    "Flonum",
+    "String",
+    "Special",
+    "SimpleObject",
+    "Builtin",
+    "Function",
+    "Array",
+    "Iterator",
+    "Regexp",
+    "NumberObject",
+    "StringObject",
+    "BooleanObject"
+  ]
+  tagtype = [
+    "fixnum",
+    "flonum",
+    "string",
+    "special",
+    "simple_object",
+    "builtin",
+    "function",
+    "array",
+    "iterator",
+    "regexp",
+    "number_object",
+    "string_object",
+    "boolean_object"
+  ]
+  totag = lambda x: tagtype[vmdatatypes.index(x)]
+
+  # find insninfo
+  insninfo = [x for x in insndefs if x["insn"] == insn_name][0]
+
+  # count the number of JSValue operands
+  jsvalue_count = 0
+  ts = []
+  vs = []
+  if (insninfo["ops"][0] == "Register"):
+    rettype = "JSValue"
+  else:
+    rettype = "void"
+  for (i, operand) in enumerate(insninfo["ops"]):
+    if operand == "Register" and i == 0:
+      pass
+    elif operand == "JSValue":
+      ts.append("JSValue")
+      vs.append("_vv_" + str(jsvalue_count))
+      jsvalue_count += 1
+    else:
+      ts.append("%s" % operand)
+      vs.append("x%d" % i)
+
+  # print
+  indent = ' ' * 4
+  ofile.write("externC GOTO : Top -> void\n")
+  ofile.write("(vmInstruction, needContext, triggerGC, tailCall)\n")
+  ofile.write("%s : (%s) -> %s\n" % (insn_name, ", ".join(ts), rettype))
+  ofile.write("%s (%s) {\n" % (insn_name, ", ".join(vs)))
+  ofile.write("%stop: match (%s) {\n" % (indent, ", ".join(vs)))
+  for oplist in itertools.product(vmdatatypes, repeat=jsvalue_count):
+    cond_list = [t + " _vv_"+str(v) for (v, t) in enumerate(oplist)]
+    cond = " && ".join(cond_list)
+    goto_label = "TL" + insn_name + "_" + "_".join(map(totag, oplist))
+    ofile.write("%scase (%s) {\n" % (indent * 2, cond))
+    ofile.write("%sGOTO(%s);\n" % (indent * 3, goto_label))
+    ofile.write("%s}\n" % (indent * 2))
+  ofile.write("%s}\n" % (indent))
+  ofile.write("}\n")
+
 def gen_sinsn_operandspec(args):
   sinsn_name = args.gen_ot_spec
-  sinsns = read_sinsns(args)
   otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
 
   sinsninfo = [x for x in sinsns if x["sinsnname"] == sinsn_name][0]
   insn_name = sinsninfo["insnname"]
@@ -689,8 +831,10 @@ def gen_sinsn_operandspec(args):
     if rec["insnname"] == insn_name:
       ofile.write(otspec_line(insn_name, rec["ops"], rec["action"]))
 
-def print_dispatch_order(args, sinsns):
+def print_dispatch_order(args):
   insn_name = args.print_dispatch_order
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   jsv_count = 0
   dispatch_order = []
   sinsninfos = [x for x in sinsns if x["insnname"] == insn_name]
@@ -711,22 +855,31 @@ def print_dispatch_order(args, sinsns):
       dispatch_order = dispatch_order + [dispatch]
     ofile.write(":".join(dispatch_order))
 
-def print_original_insn_name(args, sinsns):
+def print_original_insn_name(args):
   sinsn_name = args.print_original_insn_name
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   sinsninfo = [x for x in sinsns if x["sinsnname"] == sinsn_name][0]
   ofile.write(sinsninfo["insnname"] + "\n")
 
-def list_si(args, sinsns):
+def list_si(args):
+  otspec = read_otspec(args)
+  sinsns = get_possible_sinsns(args, otspec)
   for sinsninfo in sinsns:
     ofile.write(sinsninfo["sinsnname"] + "\n")
 
+def check_sispec(args):
+  otspec = read_otspec(args)
+  sinsns = read_sinsns(args)
+  for si in sinsns:
+    if not is_possible_si(si, otspec):
+      ofile.write("impossible superinstruction: "+si["sinsnname"]+"\n")
 
 def main():
   global ofile
 
   args = process_argv()
 
-  sinsns = read_sinsns(args)
   if args.output_filename:
     ofile = check_open_file(args.output_filename, "w", "output file")
 
@@ -741,14 +894,18 @@ def main():
     gen_vmloop_cases(args)
   if args.gen_pseudo_idef:
     gen_pseudo_idef(args)
+  if args.gen_pseudo_vmdl:
+    gen_pseudo_vmdl(args)
   if args.gen_ot_spec:
     gen_sinsn_operandspec(args)
   if args.print_dispatch_order:
-    print_dispatch_order(args, sinsns)
+    print_dispatch_order(args)
   if args.print_original_insn_name:
-    print_original_insn_name(args, sinsns)
+    print_original_insn_name(args)
   if args.list_si:
-    list_si(args, sinsns)
+    list_si(args)
+  if args.check_sispec:
+    check_sispec(args)
 
   if args.output_filename:
     ofile.close()

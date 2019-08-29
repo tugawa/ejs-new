@@ -1,0 +1,26 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, triggerGC, tailCall)
+tailcall : (JSValue, cint) -> void
+
+tailcall (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = IsTailSend(op);
+  Set_fp();
+  Set_pc();
+  Try_gc();
+  top: match (fn) {
+    case (Function fn) {
+      Tailcall_function(fn, nargs, sendp);
+      Update_context();
+      Next_insn_noincpc();
+    }
+    case (Builtin fn) {
+      Tailcall_builtin(fn, nargs, sendp);
+      Update_context();
+      Next_insn_incpc();
+    }
+    case (true) {
+    }
+  }
+}

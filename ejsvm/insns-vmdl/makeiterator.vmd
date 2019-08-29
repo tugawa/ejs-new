@@ -1,0 +1,12 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+makeiterator : JSValue -> JSValue
+
+makeiterator (obj) {
+    if (Isobject(obj)) {
+        return New_normal_iterator(obj);
+    } else {
+        Logexit("makeiterator: not an object\n");
+    }
+}

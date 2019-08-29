@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, triggerGC, tailCall)
+getlocal : (cint, Subscript) -> JSValue
+
+getlocal (link, index) {
+    return Getlocal(link, index);
+}
