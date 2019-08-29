@@ -264,6 +264,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
+            println("goto " + matchStack.peek().getTailLabel() + ";");
 
             for (String tl : errorTL) {
                 print("TL" + labelPrefix);
