@@ -138,7 +138,7 @@ public class Main {
         new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec);
 
-        String program = new AstToCVisitor().start(ast);
+        String program = new AstToCVisitor().start(ast, opSpec);
         
         System.out.println(program);
     }
