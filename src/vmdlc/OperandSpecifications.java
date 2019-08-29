@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -181,11 +182,11 @@ public class OperandSpecifications {
         return getOperands(insnName, OperandSpecificationRecord.Behaviour.ACCEPT);
     }
 
-    private Set<VMDataType[]> getUnspecifiedOperands(String insnName) {
+    public Set<VMDataType[]> getUnspecifiedOperands(String insnName) {
         return getOperands(insnName, OperandSpecificationRecord.Behaviour.UNSPECIFIED);
     }
 
-    private Set<VMDataType[]> getErrorOperands(String insnName) {
+    public Set<VMDataType[]> getErrorOperands(String insnName) {
         return getOperands(insnName, OperandSpecificationRecord.Behaviour.ERROR);
     }
     
@@ -212,5 +213,98 @@ public class OperandSpecifications {
     
     public VMDataTypeVecSet getAccept(String insnName, String[] paramNames) {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
+    }
+
+    private Set<String[]> getErrorOperandsString(String insnName) {
+        Set<String[]> result = new HashSet<String[]>();
+        for (OperandSpecificationRecord rec : spec) {
+            if (insnName.equals(rec.insnName) &&
+                rec.behaviour == OperandSpecificationRecord.Behaviour.ERROR) {
+                result.add(rec.operandTypes);
+            }
+        }
+        return result;
+    }
+
+    public Set<String> expandError(String insnName) {
+        Set<String> typeLabels = new HashSet<String>();
+        List<VMDataType> types = VMDataType.all();
+        LinkedList<String[]> queue = new LinkedList<String[]>();
+        for (String[] dts : getErrorOperandsString(insnName)) {
+            queue.add(dts);
+        }
+        while (queue.size() != 0) {
+            String[] dts = queue.remove();
+            StringBuffer sb = new StringBuffer("");
+            for (int i = 0; i < dts.length; i++) {
+                sb.append("_");
+                if (dts[i].equals("_")) {
+                    sb.append("any");
+                    for (VMDataType ty : types) {
+                        String[] next = dts.clone();
+                        next[i] = ty.getName();
+                        queue.add(next);
+                    }
+                } else if (dts[i].equals("-")) {
+                } else if (dts[i].startsWith("!")) {
+                    String notType = dts[i].substring(1);
+                    for (VMDataType ty : types) {
+                        if (!ty.getName().equals(notType)) {
+                            String[] next = dts.clone();
+                            next[i] = ty.getName();
+                            queue.add(next);
+                        }
+                    }
+                } else {
+                    sb.append(dts[i]);
+                }
+            }
+            typeLabels.add(sb.toString());
+        }
+        return typeLabels;
+    }
+
+    public Set<String> genTypeLabel(VMDataType[] vmtVec) {
+        Set<String> result = new HashSet<String>();
+        LinkedList<String[]> queue = new LinkedList<String[]>();
+        List<VMDataType> types = VMDataType.all();
+        String[] tmp = new String[vmtVec.length];
+        int i = 0;
+        for (VMDataType vmt : vmtVec) {
+            if (vmt.getName().equals("_")) {
+                tmp[i++] = "any";
+            } else if (vmt.getName().equals("-")) {
+            } else {
+                tmp[i++] = vmt.getName();
+            }
+        }
+        queue.add(tmp);
+        while (queue.size() != 0) {
+            String[] dts = queue.remove();
+            StringBuffer sb = new StringBuffer("");
+            for (int j = 0; j < dts.length; j++) {
+                sb.append("_");
+                if (dts[j].equals("any")) {
+                    sb.append(dts[j]);
+                } else if (dts[j].equals("-")) {
+                } else if (dts[j].startsWith("!")) {
+                    String notType = dts[j].substring(1);
+                    for (VMDataType ty : types) {
+                        if (!ty.getName().equals(notType)) {
+                            String[] next = dts.clone();
+                            next[i] = ty.getName();
+                            queue.add(next);
+                        }
+                    }
+                } else {
+                    sb.append(dts[j]);
+                    String[] next = dts.clone();
+                    next[j] = "any";
+                    queue.add(next);
+                }
+            }
+            result.add(sb.toString());
+        }
+        return result;
     }
 }

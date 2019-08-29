@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.lang.Exception;
+import java.util.Arrays;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
@@ -23,6 +24,8 @@ import dispatch.RuleSet;
 import type.AstType.JSValueVMType;
 import type.TypeMap;
 import type.VMDataType;
+
+import dispatch.RuleSet.OperandDataTypes;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;
@@ -57,6 +60,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
+    OperandSpecifications opSpec;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -64,7 +68,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         matchStack = new Stack<MatchRecord>();
     }
 
-    public String start(Tree<?> node) {
+    public String start(Tree<?> node, OperandSpecifications opSpec) {
+        this.opSpec = opSpec;
         try {
             outStack.push(new StringBuffer());
             for (Tree<?> chunk : node) {
@@ -193,8 +198,26 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print(matchStack.peek().getHeadLabel()+":"+"\n");
             
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
-            for (int i = 0; i < mp.size(); i++) {
+
+            Set<VMDataType[]> dontCareInput = opSpec.getUnspecifiedOperands(currentFunctionName);
+            Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
+            Set<String> errorTL = opSpec.expandError(currentFunctionName);
+
+            NEXT_MP: for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
+                for (VMDataType[] vmt : vmtVecs) {
+                    for (VMDataType[] dts : dontCareInput) {
+                        if (Arrays.equals(dts, vmt)) {
+                            continue NEXT_MP;
+                        }
+                    }
+                    for (VMDataType[] dts : errorInput) {
+                        if (Arrays.equals(dts, vmt)) {
+                            continue NEXT_MP;
+                        }
+                    }
+                }
+
                 if (!Main.option.disableMatchOptimisation())
                     vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
@@ -209,6 +232,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 /* OperandDataTypes set */
                 Set<RuleSet.OperandDataTypes> odts = new HashSet<RuleSet.OperandDataTypes>();
                 for (VMDataType[] vmtVec: vmtVecs) {
+                    Set<String> tl = opSpec.genTypeLabel(vmtVec);
+                    for (String s: tl) {
+                        errorTL.remove(s);
+                    }
+
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
@@ -227,6 +255,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 RuleSet.Rule r = new RuleSet.Rule(action, odts);
                 rules.add(r);
             }
+
             RuleSet rs = new RuleSet(formalParams, rules);
             
             DispatchPlan dp = new DispatchPlan(Main.option);
@@ -235,6 +264,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
+
+            for (String tl : errorTL) {
+                print("TL" + labelPrefix);
+                print(tl);
+                println(":");
+            }
+
+            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
+            println(errorAction);
+            
             println(matchStack.pop().getTailLabel()+": ;");
         }
     }
