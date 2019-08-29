@@ -286,7 +286,7 @@ ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
 else
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMGEN)
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
 		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
@@ -445,6 +445,10 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 $(VMGEN):
 	(cd $(VMGEN_DIR); ant)
 
+#### vmdl
+$(VMDL):
+	(cd $(VMDL_DIR); ant)
+
 #### ejsc
 $(EJSC): $(VMGEN) ejsvm.spec
 	(cd $(EJSC_DIR); ant -Dspecfile=$(PWD)/ejsvm.spec)
@@ -501,6 +505,8 @@ cleanest:
 	rm -rf si
 	(cd $(VMGEN_DIR); ant clean)
 	rm -f $(VMGEN)
+	(cd $(VMDL_DIR); ant clean)
+	rm -f $(VMDL)
 	(cd $(EJSC_DIR); ant clean)
 	rm -f $(EJSC)
 	make -C $(EJSI_DIR) clean
