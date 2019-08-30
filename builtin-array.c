@@ -580,7 +580,9 @@ ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "sort",           array_sort,           1, ATTR_DE },
   { "debugarray",     array_debugarray,     0, ATTR_DE },
 };
-ObjDoubleProp  ArrayPrototype_double_props[] = {};
+ObjDoubleProp  ArrayPrototype_double_props[] = {
+  { "length",   0, ATTR_DDDE },
+};
 ObjGconstsProp ArrayPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp ArrayConstructor_builtin_props[] = {};

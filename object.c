@@ -230,7 +230,7 @@ JSValue new_simple_object(Context *ctx, char *name, Shape *os)
 {
   JSObject *p;
 
-  assert(os->pm->n_special_props = OBJECT_SPECIAL_PROPS);
+  assert(os->pm->n_special_props == OBJECT_SPECIAL_PROPS);
 
   p = allocate_jsobject(ctx, name, os, HTAG_SIMPLE_OBJECT);
 

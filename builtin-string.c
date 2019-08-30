@@ -663,7 +663,9 @@ ObjBuiltinProp StringPrototype_builtin_props[] = {
   { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
   { "localeCompare",  string_localeCompare, 0, ATTR_DE },
 };
-ObjDoubleProp  StringPrototype_double_props[] = {};
+ObjDoubleProp  StringPrototype_double_props[] = {
+  { "length", 0, ATTR_ALL },
+};
 ObjGconstsProp StringPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp StringConstructor_builtin_props[] = {
@@ -675,7 +677,9 @@ ObjGconstsProp StringConstructor_gconsts_props[] = {
 };
 /* instance */
 ObjBuiltinProp String_builtin_props[] = {};
-ObjDoubleProp  String_double_props[] = {};
+ObjDoubleProp  String_double_props[] = {
+  { "length", 0, ATTR_ALL },  /* placeholder */
+};
 ObjGconstsProp String_gconsts_props[] = {};
 DEFINE_PROPERTY_TABLE_SIZES_PCI(String);
 

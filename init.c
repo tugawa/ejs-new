@@ -169,9 +169,9 @@ void init_meta_objects(void)
 #define STEP1(T, pproto, psp, isp, ctor, ctorargs...)                   \
   do {                                                                  \
     Shape *os =                                                         \
-      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "prototype"), psp, pproto,     \
+      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "Prototype"), psp, pproto,     \
                            T ## Prototype);                             \
-    JSValue iproto = ctor(NULL, DEBUG_NAME(#T "prototype"), os, ##ctorargs); \
+    JSValue iproto = ctor(NULL, DEBUG_NAME(#T "Prototype"), os, ##ctorargs); \
     gconsts.g_shape_ ## T =                                             \
       CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "0"), isp, iproto, T);         \
     gconsts.g_prototype_ ## T = iproto;                                 \

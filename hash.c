@@ -33,6 +33,8 @@ HashTable *malloc_hashtable(Context *ctx)
 int hash_create(Context *ctx, HashTable *table, unsigned int size) {
   int i;
 
+  if (size == 0)
+    size = 1;
   table->body = __hashMalloc(size);
   if (table->body == NULL) {
     LOG_EXIT("hash body malloc failed\n");

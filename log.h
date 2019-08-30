@@ -27,10 +27,15 @@
   do { LOG_FUNC; fprintf(log_stream, __VA_ARGS__);      \
     putc('\n', log_stream); }                           \
   while (0)
+
+#ifdef DEBUG
+#define LOG_EXIT(...) abort()
+#else /* DEBUG */
 #define LOG_EXIT(...)                                   \
   do { LOG_FUNC; fprintf(log_stream, __VA_ARGS__);      \
     putc('\n', log_stream);  exit(1); }                 \
   while (0)
+#endif /* DEBUG */
 
 #define ASSERT_OBJECT(o) do {                               \
     if (!is_object(o))                                      \

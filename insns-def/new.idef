@@ -7,6 +7,7 @@
 #ifdef ALLOC_SITE
   object_set_alloc_site(obj, &insns->alloc_site);
 #endif /* ALLOC_SITE */
+  dst = obj;
   update_context();
 \}
 
