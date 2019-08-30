@@ -46,8 +46,8 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
    */
   set_fp(context, sp - nargs);
   set_ac(context, nargs);
-  set_lp(context, func_environment(fn));
-  t = func_table_entry(fn);
+  set_lp(context, function_environment(fn));
+  t = function_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_send_entry(t));
@@ -65,8 +65,8 @@ void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
   fp = get_fp(context);
   set_sp(context, fp + nargs);
   set_ac(context, nargs);
-  set_lp(context, func_environment(fn));
-  t = func_table_entry(fn);
+  set_lp(context, function_environment(fn));
+  t = function_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_call_entry(t));
@@ -188,7 +188,7 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
   stack[sp] = receiver;   /* stores the receiver */
   newfp = sp;             /* place where the receiver is stored */
   for (i = 0; i < nargs; i++)   /* copies the actual arguments */
-    stack[++sp] = array_body_index(as, i);
+    stack[++sp] = array_body(as)[i];
   save_special_registers(context, stack, pos);
 
   /*
@@ -197,8 +197,8 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
   set_fp(context, newfp);
   set_sp(context, sp);
   set_ac(context, nargs);
-  set_lp(context, func_environment(fn));
-  t = func_table_entry(fn);
+  set_lp(context, function_environment(fn));
+  t = function_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_send_entry(t));
@@ -224,7 +224,7 @@ JSValue invoke_builtin(Context *context, JSValue receiver, JSValue fn,
   stack = &get_stack(context, 0);
   stack[++sp] = receiver;       /* set receiver */
   for (i = 0; i < nargs; i++)   /* copies the actual arguments */
-    stack[++sp] = array_body_index(as, i);
+    stack[++sp] = array_body(as)[i];
   set_sp(context, sp);
   call_builtin(context, fn, nargs, sendp, FALSE);
   set_sp(context, oldsp);

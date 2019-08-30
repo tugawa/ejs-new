@@ -36,16 +36,21 @@ BUILTIN_FUNCTION(object_constr)
     if (is_object(arg))
       ret = arg;
     else if (is_number(arg))
-      ret = new_number_object(context, arg);
+      ret = new_number_object(context, DEBUG_NAME("obect_constr"),
+                              gconsts.g_shape_Number, arg);
     else if (is_boolean(arg))
-      ret = new_boolean_object(context, arg);
+      ret = new_boolean_object(context, DEBUG_NAME("object_constr"),
+                               gconsts.g_shape_Boolean, arg);
     else if (is_string(arg))
-      ret = new_string_object(context, arg);
+      ret = new_string_object(context, DEBUG_NAME("object_constr"),
+                              gconsts.g_shape_String, arg);
     else
-      ret = new_normal_object(context);
+      ret = new_simple_object(context, DEBUG_NAME("object_constr"),
+                              gconsts.g_shape_Object);
     GC_POP(arg);
   } else
-    ret = new_normal_object(context);
+    ret = new_simple_object(context, DEBUG_NAME("object_constr"),
+                            gconsts.g_shape_Object);
   GC_PUSH(ret);
   set_a(context, ret);
   GC_POP(ret);
@@ -63,19 +68,19 @@ BUILTIN_FUNCTION(object_toString)
 ObjBuiltinProp ObjectPrototype_builtin_props[] = {
   { "toString", object_toString,  0, ATTR_DE }
 };
-ObjDoubleProp  ObjectPrototype_doulbe_props[] = {};
+ObjDoubleProp  ObjectPrototype_double_props[] = {};
 ObjGconstsProp ObjectPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp ObjectConstructor_builtin_props[] = {};
-ObjDoubleProp  ObjectConstructor_doulbe_props[] = {};
+ObjDoubleProp  ObjectConstructor_double_props[] = {};
 ObjGconstsProp ObjectConstructor_gconsts_props[] = {
-  { "prototype", &gconsts.g_prototype_Object,  0, ATTR_ALL },
+  { "prototype", &gconsts.g_prototype_Object,  ATTR_ALL },
 };
 /* instance */
 ObjBuiltinProp Object_builtin_props[] = {};
-ObjDoubleProp  Object_doulbe_props[] = {};
+ObjDoubleProp  Object_double_props[] = {};
 ObjGconstsProp Object_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_PCI(Object);
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Object);
 
 /* Local Variables:      */
 /* mode: c               */

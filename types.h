@@ -28,11 +28,12 @@
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  /* 111 */
 
-#define get_tag(p)      (((Tag)(p)) & TAGMASK)
-#define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
-#define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
-#define remove_tag(p,t) (clear_tag(p))
-#define equal_tag(p,t)  (get_tag((p)) == (t))
+#define get_tag(p)        (((Tag)(p)) & TAGMASK)
+#define put_tag(p,t)      ((JSValue)((uint64_t)(p) + (t)))
+#define clear_tag(p)      ((uint64_t)(p) & ~TAGMASK)
+#define remove_tag(p,t)   (clear_tag(p))
+#define equal_tag(p,t)    (get_tag((p)) == (t))
+#define obj_header_tag(x) (gc_obj_header_type((void *) clear_tag(x)))
 
 /*
  * Pair of two pointer tags
@@ -72,6 +73,31 @@ typedef uint16_t Subscript;
 typedef uint16_t Tag;
 
 /*
+ * header tags for non-JS objects
+ */
+/* HTAG_FREE is defined in gc.c */
+#define HTAG_PROP           (0x11) /* Array of JSValues */
+#define HTAG_ARRAY_DATA     (0x12) /* Array of JSValues */
+#define HTAG_FUNCTION_FRAME (0x13) /* FunctionFrame */
+#define HTAG_STR_CONS       (0x14) /* StrCons */
+#define HTAG_CONTEXT        (0x15) /* Context */
+#define HTAG_STACK          (0x16) /* Array of JSValues */
+#ifdef HIDDEN_CLASS
+#define HTAG_HIDDEN_CLASS   (0x17) /* HiddenClass */
+#endif
+#define HTAG_HASHTABLE      (0x18)
+#define HTAG_HASH_BODY      (0x19)
+#define HTAG_HASH_CELL      (0x1A)
+#define HTAG_PROPERTY_MAP   (0x1B)
+#define HTAG_SHAPE          (0x1C)
+
+#ifdef DEBUG
+#define DEBUG_NAME(name) name
+#else /* DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* DEBUG */
+
+/*
  * Hidden Class Transition
  *
  * A hidden class has a hash table, where each key is a property name
@@ -80,355 +106,204 @@ typedef uint16_t Tag;
  * (as a fixnum) or a pointer to the next hidden class.
  * The former is called `index entry' and the latter is called `transition
  * entry'.
- * Member n_entries has the number of entries registered in the map, i.e.,
- * the sum of the number of index entries and that of the transition entries.
  */
 
 typedef struct property_map {
-  HashTable *map;               /* [const] property map and transitions */
-  struct hidden_map   *prev;    /* [weak] pointer to the previous map */
-  struct object_shape *shapes;  /* [weak] Weak list of existing shapes
-                                 * arranged from more specialised to
-                                 * less.
-                                 */
-  JSValue   __proto__;          /* [const] __proto__ of the object. */
-  uint32_t n_props;             /* [const] Number of properties in map.
-                                 * This number includes special props.
-                                 */
-  uint32_t n_special_props;     /* [const] Number of special props. */
+  HashTable *map;            /* [const] property map and transitions */
+  struct property_map *prev; /* [weak] pointer to the previous map */
+  struct shape *shapes;      /* Weak list of existing shapes arranged from
+                              * more specialised to less.
+                              * (this pointer is strong) */
+  JSValue   __proto__;       /* [const] __proto__ of the object. */
+  uint32_t n_props;          /* [const] Number of properties in map.
+                              * This number includes special props. */
+  uint32_t n_special_props;  /* [const] Number of special props. */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
 } PropertyMap;
 
-typedef struct object_shape {
-  propertyMap *pm;            /* [const] Pointer to the map. */
-  ObjectShape *next;          /* [weak] Weak list of exisnting shapes
-                               * shareing the same map.
-                               */
-  uint32_t n_embedded_props;  /* [const] Number of slots for properties
+typedef struct shape {
+  PropertyMap *pm;            /* [const] Pointer to the map. */
+  struct shape *next;         /* [weak] Weak list of exisnting shapes
+                               * shareing the same map. */
+  uint32_t n_embedded_slots;  /* [const] Number of slots for properties
                                * in the object. This number includes 
-                               * special props.
-                               */
-  uint32_t n_extension_props; /* [const] Size of extension array. */
+                               * special props. */
+  uint32_t n_extension_slots; /* [const] Size of extension array. */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
 #ifdef HC_PROF
   uint32_t n_enter;
   uint32_t n_exit;
   uint32_t is_dead;
   uint32_t is_printed;
 #endif /* HC_PROF */
-} ObjectShape;
-
-#if 0
-typedef struct hidden_class {
-  uint32_t n_entries;
-  uint32_t htype;            /* HTYPE_TRANSIT or HTYPE_GROW */
-  HashTable *map;            /* map which is explained above */
-  uint32_t n_props;          /* number of properties */
-  uint32_t n_limit_props;    /* capacity of the array for properties */
-  uint32_t n_embedded_props; /* number of properites embedded in the object */
-  uint32_t n_special_props;  /* number of properties that are not registered
-                              * in the map, which may not be JSValues */
-  JSValue __proto__;         /* Hidden class or JS_EMPTY, which means
-                              * object instance has __proto__ property */
-  struct hidden_class *prev; /* previous hidden class */
-  struct hidden_class *base; /* base hidden class. NULL for base hidden classes */
-#ifdef HC_DEBUG
-  struct hidden_class *dbg_prev;
-#endif /* HC_DEBUG */
-#ifdef HC_PROF
-  uint32_t n_profile_enter; /* number of times this class is used for object
-                               marked for profilling */
-  uint32_t is_dead;         /* true if this is unreachable apart from pointer
-                               from "hcprof_entrypoints" */
-  uint32_t is_printed;      /* used to print HCG */
-#endif /* HC_PROF */
-  uint32_t n_enter;         /* number of times this class is used */
-  uint32_t n_exit;          /* number of times this class is left */
-} HiddenClass;
-#endif /* 0 */
-
-#define hidden_n_entries(h)        ((h)->n_entries)
-#define hidden_htype(h)            ((h)->htype)
-#define hidden_n_enter(h)          ((h)->n_enter)
-#define hidden_n_exit(h)           ((h)->n_exit)
-#define hidden_map(h)              ((h)->map)
-#define hidden_n_props(h)          ((h)->n_props)
-#define hidden_n_limit_props(h)    ((h)->n_limit_props)
-#define hidden_n_embedded_props(h) ((h)->n_embedded_props)
-#define hidden_n_special_props(h)  ((h)->n_special_props)
-#define hidden_proto(h)            ((h)->__proto__)
-#define hidden_prev(h)             ((h)->prev)
-#define hidden_base(h)             ((h)->base)
-#ifdef HC_DEBUG
-#define hidden_dbg_prev(h)         ((h)->dbg_prev)
-#endif /* HC_DEBUG */
-#ifdef HC_PROF
-#define hidden_n_profile_enter(h)  ((h)->n_profile_enter)
-#define hidden_is_dead(h)          ((h)->is_dead)
-#define hidden_is_printed(h)       ((h)->is_printed)
-#endif /* HC_PROF */
-
-#define HTYPE_TRANSIT   0
-#define HTYPE_GROW      1
-
-#define PSIZE_NORMAL   1  /* default initial size of the property array */
-#define PSIZE_BIG    100
-#define PSIZE_DELTA    1  /* delta when expanding the property array */
-#define PSIZE_LIMIT  500  /* limit size of the property array */
-#define HSIZE_NORMAL   1  /* default initial size of the map (hash table) */
-#define HSIZE_BIG    100
-
-#define CHECK_INCREASE_PROPERTY(n) do {         \
-    if ((n) + PSIZE_DELTA > PSIZE_LIMIT)        \
-      LOG_EXIT("too many properties");          \
-  } while(0)
+} Shape;
 
 /*
- * Object
- * tag == T_GENERIC
+ * JSObject is used for
+ *   - simple_object
+ *   - function_object
+ *   - builtin_object
+ *   - array_object
+ *   - string_object
+ *   - number_object
+ *   - boolean_object
  */
-typedef struct object_cell {
-#ifdef HC_PROF
-  int profile_id;
-#endif /* HC_PROF */
-  HiddenClass *klass;     /* Hidden class for this object */
+
+#define JSOBJECT_MIN_EMBEDDED 1
+typedef struct jsobject_cell {
+  Shape *shape;
+#ifdef ALLOC_SITE_CACHE
   AllocSite *alloc_site;
-  JSValue eprop[PSIZE_NORMAL];
-} Object;
+#endif /* ALLOC_SITE_CACHE */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
+  JSValue eprop[JSOBJECT_MIN_EMBEDDED];
+} JSObject;
 
-#define remove_simple_object_tag remove_normal_simple_object_tag
-#define put_simple_object_tag    put_normal_simple_object_tag
+#ifdef USE_REGEXP
+#define is_jsobject(p)                                                  \
+  (is_simple_object(p) || is_function(p) || is_builtin(p) || is_array(p) || \
+   is_string_object(p) || is_number_object(p) || is_boolean_object(p) || \
+   is_regexp(p))
+#else /* USE_REGEXP */
+#define is_jsobject(p)                                                  \
+  (is_simple_object(p) || is_function(p) || is_builtin(p) || is_array(p) || \
+   is_string_object(p) || is_number_object(p) || is_boolean_object(p))
+#endif /* USE_REGEXP */
 
-#define allocate_simple_object(ctx, nemb)               \
-  allocate_jsobject((ctx), (nemb), HTAG_SIMPLE_OBJECT)
-#define make_simple_object(ctx, n)                              \
-  (put_simple_object_tag(allocate_simple_object(ctx, (n))))
-#define remove_object_tag(p)    ((Object *)clear_tag(p))
-
-#define obj_alloc_site(p)      ((remove_object_tag(p))->alloc_site)
-#define obj_hidden_class(p)    ((remove_object_tag(p))->klass)
-#define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
-#define obj_eprop(p)           ((remove_object_tag(p))->eprop)
-#define obj_ovf_props(p,hc)    (obj_eprop(p)[hidden_n_embedded_props(hc) - 1])
-static inline JSValue get_obj_prop_index(JSValue p, int index)
+static inline JSObject *remove_jsobject_tag(JSValue obj)
 {
-  HiddenClass *hc = obj_hidden_class(p);
-  int n_embedded = hidden_n_embedded_props(hc);
-  if (hidden_n_limit_props(hc) == 0 || index < n_embedded - 1)
-    return obj_eprop(p)[index];
+  assert(is_jsobject(obj));
+  return (JSObject *) clear_tag(obj);
+}
+
+static inline JSValue *object_get_prop_address(JSValue obj, int index)
+{
+  JSObject *p;
+  int n_embedded;
+
+  p = remove_jsobject_tag(obj);
+  n_embedded = p->shape->n_embedded_slots;
+  if (index < n_embedded - 1 || p->shape->n_extension_slots == 0)
+    return &p->eprop[index];
   else {
-    JSValue *of = (JSValue *) obj_ovf_props(p, hc);
-    return of[index - (n_embedded - 1)];
+    JSValue *extension = (JSValue *) p->eprop[n_embedded - 1];
+    return &extension[index - (n_embedded - 1)];
   }
 }
-static inline void set_obj_prop_index(JSValue p, int index, JSValue v)
-{
-  HiddenClass *hc = obj_hidden_class(p);
-  int n_embedded = hidden_n_embedded_props(hc);
-  if (hidden_n_limit_props(hc) == 0 || index < n_embedded - 1)
-    obj_eprop(p)[index] = v;
-  else {
-    JSValue *of = (JSValue *) obj_ovf_props(p, hc);
-    of[index - (n_embedded - 1)] = v;
-  }
-}
-#ifdef HC_PROF
-#define obj_profile_id(p)      ((remove_object_tag(p))->profile_id)
-#endif /* HC_PROF */
 
-#define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
-#define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
+#define object_get_prop(obj, index) *object_get_prop_address(obj, index)
+#define object_set_prop(obj, index, v) \
+  *(object_get_prop_address(obj, index)) = v
 
-#define new_normal_object(ctx)      new_simple_object(ctx)
-#define new_normal_iterator(ctx, o) new_iterator(ctx, o)
+#define object_get_shape(obj) (remove_jsobject_tag(obj)->shape)
 
-/*
- * Array
- */
 
-#define ARRAY_SPECIAL_PROPS       3
-#define ARRAY_XPROP_INDEX_SIZE    0
-#define ARRAY_XPROP_INDEX_LENGTH  1
-#define ARRAY_XPROP_INDEX_BODY    2
-#define ARRAY_NORMAL_PROPS        1
-#define ARRAY_PROP_INDEX_LENGTH   3
-#define ARRAY_EMBEDDED_PROPS     (ARRAY_SPECIAL_PROPS + ARRAY_NORMAL_PROPS)
 
-#undef remove_normal_array_tag
-#define remove_normal_array_tag(p) ((Object *)remove_tag((p), T_GENERIC))
+/** SPECIAL FIELDS OF JSObjects **/
 
-#define make_array(ctx,n)                        \
-  (put_normal_array_tag(allocate_jsobject((ctx), n, HTAG_ARRAY)))
+#define jsobject_xprop(p,t,i) (*(t*)&(p)->eprop[i])
 
-#define array_object_p(a)        (remove_normal_array_tag(a))
-#define array_eprop(a,t,i)                              \
-  (*(t*)&(remove_normal_array_tag(a))->eprop[i])
-#define array_size(a)   array_eprop(a, uint64_t, ARRAY_XPROP_INDEX_SIZE)
-#define array_length(a) array_eprop(a, uint64_t, ARRAY_XPROP_INDEX_LENGTH)
-#define array_body(a)   array_eprop(a, JSValue *, ARRAY_XPROP_INDEX_BODY)
-#define array_body_index(a,i)                   \
-  ((JSValue *)array_body(a))[(i)]
+/* Simple */
+
+#define put_simple_object_tag(p) put_normal_simple_object_tag(p)
+#define OBJECT_SPECIAL_PROPS 0
+
+/* Array */
+
+#define put_array_tag(p) put_normal_array_tag(p)
+#define ARRAY_SPECIAL_PROPS 3
+#define array_ptr_size(p)          jsobject_xprop(p, uint64_t,  0)
+#define array_ptr_length(p)        jsobject_xprop(p, uint64_t,  1)
+#define array_ptr_body(p)          jsobject_xprop(p, JSValue *, 2)
+#define array_size(o)   array_ptr_size(remove_jsobject_tag(o))
+#define array_length(o) array_ptr_length(remove_jsobject_tag(o))
+#define array_body(o)   array_ptr_body(remove_jsobject_tag(o))
+
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
 #define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
-
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
-
 #define MINIMUM_ARRAY_SIZE  100
 
+/* Function */
 
-/*
- * Function
- */
+#define put_function_tag(p) put_normal_function_tag(p)
+#define FUNCTION_SPECIAL_PROPS 2
+#define function_ptr_table_entry(p) jsobject_xprop(p, FunctionTable *, 0)
+#define function_ptr_environment(p) jsobject_xprop(p, FunctionFrame *, 1)
+#define function_table_entry(o) function_ptr_table_entry(remove_jsobject_tag(o))
+#define function_environment(o) function_ptr_environment(remove_jsobject_tag(o))
 
-#define allocate_function(ctx)                                  \
-  allocate_jsobject((ctx), FUNC_EMBEDDED_PROPS, HTAG_FUNCTION)
-#define make_function(ctx)   (put_normal_function_tag(allocate_function(ctx)))
-
-#define FUNC_SPECIAL_PROPS        2
-#define FUNC_XPROP_INDEX_FTENTRY  0
-#define FUNC_XPROP_INDEX_ENV      1
-#define FUNC_NORMAL_PROPS         1
-#define FUNC_PROP_INDEX_PROTOTYPE 2
-#define FUNC_EMBEDDED_PROPS       (FUNC_SPECIAL_PROPS + FUNC_NORMAL_PROPS)
-
-#undef remove_normal_function_tag
-#define remove_normal_function_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
-
-#define func_object_p(o)    (remove_normal_function_tag(o))
-#define func_eprop(o,t,i)                               \
-  (*(t*)&(remove_normal_function_tag(o))->eprop[i])
-#define func_table_entry(o)                                     \
-  func_eprop(o, FunctionTable *, FUNC_XPROP_INDEX_FTENTRY)
-#define func_environment(o)                             \
-  func_eprop(o, FunctionFrame *, FUNC_XPROP_INDEX_ENV)
-
-
-/*
- * Builtin
- */
+/* Builtin */
 
 typedef void (*builtin_function_t)(Context*, int, int);
 
-#define BUILTIN_SPECIAL_PROPS        3
-#define BUILTIN_XPROP_INDEX_BODY     0
-#define BUILTIN_XPROP_INDEX_CONSTR   1
-#define BUILTIN_XPROP_INDEX_ARGC     2
-#define BUILTIN_NORMAL_PROPS         1
-#define BUILTIN_PROP_INDEX_PROTOTYPE 3
-#define BUILTIN_EMBEDDED_PROPS (BUILTIN_SPECIAL_PROPS + BUILTIN_NORMAL_PROPS)
-
-#undef remove_normal_builtin_tag
-#define remove_normal_builtin_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
-
-#define allocate_builtin(ctx)                                           \
-  allocate_jsobject((ctx), BUILTIN_EMBEDDED_PROPS, HTAG_BUILTIN)
-#define make_builtin(ctx)   (put_normal_builtin_tag(allocate_builtin(ctx)))
-
-#define builtin_object_p(o)          (remove_normal_builtin_tag(o))
-#define builtin_eprop(o,t,i)                            \
-  (*(t*)&(remove_normal_builtin_tag(o))->eprop[i])
-#define builtin_body(o)                                         \
-  builtin_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_BODY)
-#define builtin_constructor(o)                          \
-  builtin_eprop(o, builtin_function_t, BUILTIN_XPROP_INDEX_CONSTR)
-#define builtin_n_args(o)                               \
-  builtin_eprop(o, uint64_t, BUILTIN_XPROP_INDEX_ARGC)
-
+#define put_builtin_tag(p) put_normal_builtin_tag(p)
+#define BUILTIN_SPECIAL_PROPS 3
+#define builtin_ptr_body(p)        jsobject_xprop(p, builtin_function_t, 0)
+#define builtin_ptr_constructor(p) jsobject_xprop(p, builtin_function_t, 1)
+#define builtin_ptr_n_args(p)      jsobject_xprop(p, uint64_t,           2)
+#define builtin_body(o)        builtin_ptr_body(remove_jsobject_tag(o))
+#define builtin_constructor(o) builtin_ptr_constructor(remove_jsobject_tag(o))
+#define builtin_n_args(o)      builtin_ptr_n_args(remove_jsobject_tag(o))
 
 #ifdef USE_REGEXP
-/*
- * Regexp
- */
+/* Regexp */
 
 #include <oniguruma.h>
+
+#define put_regexp_tag(p) put_normal_regexp_tag(p)
+#define REX_SPECIAL_PROPS 6
+#define regexp_ptr_pattern(p)    jsobject_xprop(p, char*,    0)
+#define regexp_ptr_reg(p)        jsobject_xprop(p, regex_t*, 1)
+#define regexp_ptr_global(p)     jsobject_xprop(p, int,      2)
+#define regexp_ptr_ignorecase(p) jsobject_xprop(p, int,      3)
+#define regexp_ptr_multiline(p)  jsobject_xprop(p, int,      4)
+#define regexp_ptr_lastindex(p)  jsobject_xprop(p, int,      5)
+#define regexp_pattern(o)    regexp_ptr_pattern(remove_jsobject_tag(o))
+#define regexp_reg(o)        regexp_ptr_reg(remove_jsobject_tag(o))
+#define regexp_global(o)     regexp_ptr_global(remove_jsobject_tag(o))
+#define regexp_ignorecase(o) regexp_ptr_ignorecase(remove_jsobject_tag(o))
+#define regexp_multiline(o)  regexp_ptr_multiline(remove_jsobject_tag(o))
+#define regexp_lastindex(o)  regexp_ptr_lastindex(remove_jsobject_tag(o))
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
 #define F_REGEXP_IGNORE    (0x2)
 #define F_REGEXP_MULTILINE (0x4)
-
-#define REX_SPECIAL_PROPS       6
-#define REX_XPROP_INDEX_PATTERN 0
-#define REX_XPROP_INDEX_REX     1
-#define REX_XPROP_INDEX_GFLAG   2
-#define REX_XPROP_INDEX_IFLAG   3
-#define REX_XPROP_INDEX_MFLAG   4
-#define REX_XPROP_INDEX_LASTIDX 5
-#define REX_NORMAL_PROPS        1
-#define REX_EMBEDDED_PROPS      (REX_SPECIAL_PROPS + REX_NORMAL_PROPS)
-
-#undef remove_normal_regexp_tag
-#define remove_normal_regexp_tag(p)  ((Object *)remove_tag((p), T_GENERIC))
-
-#define allocate_regexp(ctx)                                    \
-  allocate_jsobject((ctx), REX_EMBEDDED_PROPS, HTAG_REGEXP)
-#define make_regexp(ctx)     (put_normal_regexp_tag(allocate_regexp(ctx)))
-
-#define regexp_object_p(o)   (remove_normal_regexp_tag(o))
-#define regexp_eprop(o,t,i)                             \
-  (*(t*)&(remove_normal_regexp_tag(o))->eprop[i])
-#define regexp_pattern(o)    regexp_eprop(o, char*,    REX_XPROP_INDEX_PATTERN)
-#define regexp_reg(o)        regexp_eprop(o, regex_t*, REX_XPROP_INDEX_REX)
-#define regexp_global(o)     regexp_eprop(o, int,      REX_XPROP_INDEX_GFLAG)
-#define regexp_ignorecase(o) regexp_eprop(o, int,      REX_XPROP_INDEX_IFLAG)
-#define regexp_multiline(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_MFLAG)
-#define regexp_lastindex(o)  regexp_eprop(o, int,      REX_XPROP_INDEX_LASTIDX)
-
 #endif /* USE_REGEXP */
 
-/*
- * Boxed values
- */
-#define BOXED_SPECIAL_PROPS     1
-#define BOXED_XPROP_INDEX_VALUE 0
-#define BOXED_NORMAL_PROPS      1
-#define BOXED_EMBEDDED_PROPS    (BOXED_SPECIAL_PROPS + BOXED_NORMAL_PROPS)
+/* String */
 
-#define BOXEDSTR_NORMAL_PROPS      1
-#define BOXEDSTR_PROP_INDEX_LENGTH 1
-#define BOXEDSTR_EMBEDDED_PROPS  (BOXED_SPECIAL_PROPS + BOXEDSTR_NORMAL_PROPS)
+#define put_string_object_tag(p) put_normal_string_object_tag(p)
+#define STRING_SPECIAL_PROPS 1
+#define string_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define string_object_value(o) string_object_ptr_value(remove_jsobject_tag(o))
 
-#undef remove_normal_number_object_tag
-#define remove_normal_number_object_tag(p)      \
-  ((Object *)remove_tag((p), T_GENERIC))
-#undef remove_normal_string_object_tag
-#define remove_normal_string_object_tag(p)      \
-  ((Object *)remove_tag((p), T_GENERIC))
-#undef remove_normal_boolean_object_tag
-#define remove_normal_boolean_object_tag(p)      \
-  ((Object *)remove_tag((p), T_GENERIC))
+/* Number */
 
-#define make_number_object(ctx)                                         \
-  put_normal_number_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
-                                                 HTAG_BOXED_NUMBER))
-#define make_string_object(ctx)                                         \
-  put_normal_string_object_tag(allocate_jsobject((ctx),                 \
-                                                 BOXEDSTR_EMBEDDED_PROPS, \
-                                                 HTAG_BOXED_STRING))
-#define make_boolean_object(ctx)                                         \
-  put_normal_boolean_object_tag(allocate_jsobject((ctx), BOXED_EMBEDDED_PROPS, \
-                                                 HTAG_BOXED_BOOLEAN))
+#define put_number_object_tag(p) put_normal_number_object_tag(p)
+#define NUMBER_SPECIAL_PROPS 1
+#define number_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define number_object_value(o) number_object_ptr_value(remove_jsobject_tag(o))
 
-#define number_object_object_p(o)  (remove_normal_number_object_tag(o))
-#define string_object_object_p(o)  (remove_normal_string_object_tag(o))
-#define boolean_object_object_p(o) (remove_normal_boolean_object_tag(o))
 
-#define number_eprop(o,t,i)                                     \
-  (*(t*)&(remove_normal_number_object_tag(o))->eprop[i])
-#define number_object_value(o)                          \
-  number_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
+/* Boolean */
 
-#define string_eprop(o,t,i)                                     \
-  (*(t*)&(remove_normal_string_object_tag(o))->eprop[i])
-#define string_object_value(o)                          \
-  string_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
+#define put_boolean_object_tag(p) put_normal_boolean_object_tag(p)
+#define BOOLEAN_SPECIAL_PROPS 1
+#define boolean_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define boolean_object_value(o) boolean_object_ptr_value(remove_jsobject_tag(o))
 
-#define boolean_eprop(o,t,i)                                     \
-  (*(t*)&(remove_normal_boolean_object_tag(o))->eprop[i])
-#define boolean_object_value(o)                         \
-  boolean_eprop(o, JSValue, BOXED_XPROP_INDEX_VALUE)
-
+/** Internal Object ******************************************/
 
 /*
  * Iterator
@@ -452,9 +327,9 @@ typedef struct iterator {
   ((remove_normal_iterator_tag(a))->body[i])
 
 
-  /*
-   * Flonum
-   */
+/*
+ * Flonum
+ */
 #define flonum_value(p)      (normal_flonum_value(p))
 #define double_to_flonum(n)  (double_to_normal_flonum(n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
@@ -492,10 +367,10 @@ typedef struct flonum_cell {
 #define ejs_string_concat(ctx,str1,str2)                \
   (ejs_normal_string_concat((ctx),(str1),(str2)))
 
-  /*
-   * StringCell
-   * tag == T_STRING
-   */
+/*
+ * StringCell
+ * tag == T_STRING
+ */
 typedef struct string_cell {
 #ifdef STROBJ_HAS_HASH
   uint32_t hash;           /* hash value before computing mod */
@@ -522,39 +397,7 @@ typedef struct string_cell {
 #define ejs_normal_string_concat(ctx, str1, str2)       \
   (string_concat_ool((ctx), (str1), (str2)))
 
-/*
- * Object header
- *
- *  ---------------------------------------------------
- *  |  object size in bytes  |    header tag          |
- *  ---------------------------------------------------
- *  63                     32 31                     0
- */
-
-/* change name: OBJECT_xxx -> HEADER_xxx (ugawa) */
-#define HEADER_SIZE_OFFSET   (32)
-#define HEADER_TYPE_MASK     ((uint64_t)0x000000ff)
-#define HEADER_SHARED_MASK   ((uint64_t)0x80000000)
-#define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000)
-
-#define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
-
-/*
- * header tags for non-JS objects
- */
-/* HTAG_FREE is defined in gc.c */
-#define HTAG_PROP           (0x11) /* Array of JSValues (partly uninitialised) */
-#define HTAG_ARRAY_DATA     (0x12) /* Array of JSValues */
-#define HTAG_FUNCTION_FRAME (0x13) /* FunctionFrame */
-#define HTAG_STR_CONS       (0x14) /* StrCons */
-#define HTAG_CONTEXT        (0x15) /* Context */
-#define HTAG_STACK          (0x16) /* Array of JSValues */
-#ifdef HIDDEN_CLASS
-#define HTAG_HIDDEN_CLASS   (0x17) /* HiddenClass */
-#endif
-#define HTAG_HASHTABLE      (0x18)
-#define HTAG_HASH_BODY      (0x19)
-#define HTAG_HASH_CELL      (0x1A)
+/** UNBOXED TYPE *****************************************************/
 
 /*
  * Fixnum
@@ -652,6 +495,7 @@ typedef uint64_t cuint;
 #define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
 #define JS_NULL           make_special(0, T_OTHER)
 #define JS_UNDEFINED      make_special(1, T_OTHER)
+#define JS_EMPTY          make_special(2, T_OTHER)
 
 #define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)               ((p) == JS_NULL)
@@ -667,36 +511,15 @@ typedef uint64_t cuint;
  * by a string object or a C string.
  */
 
-#define set_prop_none(c, o, s, v)                       \
-  set_prop_with_attribute(c, o, s, v, ATTR_NONE)
-#define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
-#define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
-#define set_prop_ddde(c, o, s, v)                       \
-  set_prop_with_attribute(c, o, s, v, ATTR_DDDE)
-
-#define set___proto___none(c, o, v)                     \
-  set_prop_none(c, o, gconsts.g_string___proto__, v)
-#define set___proto___all(c, o, v)                      \
-  set_prop_all(c, o, gconsts.g_string___proto__, v)
-#define set___proto___de(c, o, v)                       \
-  set_prop_de(c, o, gconsts.g_string___proto__, v)
-#define set_prototype_none(c, o, v)                     \
-  set_prop_none(c, o, gconsts.g_string_prototype, v)
-#define set_prototype_all(c, o, v)                      \
-  set_prop_all(c, o, gconsts.g_string_prototype, v)
-#define set_prototype_de(c, o, v)                       \
-  set_prop_de(c, o, gconsts.g_string_prototype, v)
-
 #define set_obj_cstr_prop(c, o, s, v, attr)                             \
   set_prop_with_attribute(c, o, cstr_to_string((c),(s)), v, attr)
 #define set_obj_cstr_prop_none(c, o, s, v)      \
   set_obj_cstr_prop(c, o, s, v, ATTR_NONE)
-
-#define get___proto__(o, r) get_prop(o, gconsts.g_string___proto__, r)
-#endif
 
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* TYPES_H_ */

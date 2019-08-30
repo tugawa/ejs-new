@@ -19,6 +19,11 @@ BUILTIN_FUNCTION(function_constr)
   not_implemented("function_constr");
 }
 
+BUILTIN_FUNCTION(function_prototype_fun)
+{
+  not_implemented("function_prototype_fun");
+}
+
 BUILTIN_FUNCTION(function_apply)
 {
   builtin_prologue();
@@ -30,13 +35,14 @@ BUILTIN_FUNCTION(function_apply)
   int alen = 0;
 
   if (as == JS_UNDEFINED || as == JS_NULL)
-    as = new_array(context, 0);
+    as = new_array_object(context, DEBUG_NAME("function_apply"),
+                          gconsts.g_shape_Array, 0);
   else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 
   GC_PUSH(as);
 
-  if (get_prop(as, gconsts.g_string_length, &alen_jsv) == SUCCESS)
+  if ((alen_jsv = get_prop(as, gconsts.g_string_length)) != JS_EMPTY)
     /* gccheck reports an error about alen_jsv falsely here */
     alen = number_to_cint(to_number(context, alen_jsv));
   else
@@ -76,27 +82,27 @@ ObjBuiltinProp FunctionPrototype_builtin_props[] = {
   { "toString", function_toString, 0, ATTR_DE },
   { "apply",    function_apply,    2, ATTR_DE },
 };
-ObjDoubleProp  FunctionPrototype_doulbe_props[] = {};
+ObjDoubleProp  FunctionPrototype_double_props[] = {};
 ObjGconstsProp FunctionPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp FunctionConstructor_builtin_props[] = {};
-ObjDoubleProp  FunctionConstructor_doulbe_props[] = {};
+ObjDoubleProp  FunctionConstructor_double_props[] = {};
 ObjGconstsProp FunctionConstructor_gconsts_props[] = {
   { "prototype", &gconsts.g_prototype_Function, ATTR_ALL },
 };
 /* instance */
 ObjBuiltinProp Function_builtin_props[] = {};
-ObjDoubleProp  Function_doulbe_props[] = {};
+ObjDoubleProp  Function_double_props[] = {};
 ObjGconstsProp Function_gconsts_props[] = {
   { "prototype", &gconsts.g_null,   ATTR_NONE }, /* placeholder */
 };
-DEFINE_BUILTIN_TABLE_SIZES_PCI(Function);
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Function);
 
 /* instance */
 ObjBuiltinProp Builtin_builtin_props[] = {};
-ObjDoubleProp  Builtin_doulbe_props[] = {};
+ObjDoubleProp  Builtin_double_props[] = {};
 ObjGconstsProp Builtin_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_I(Builtin);
+DEFINE_PROPERTY_TABLE_SIZES_I(Builtin);
 
 /* Local Variables:      */
 /* mode: c               */

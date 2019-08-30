@@ -244,15 +244,15 @@ ObjBuiltinProp RegExpConstructor_builtin_props[] = {
   { "exec",           builtin_regexp_exec,          1, ATTR_DE },
   { "test",           builtin_regexp_test,          1, ATTR_DE },
 };
-ObjDoubleProp  RegExpConstructor_doulbe_props[] = {};
+ObjDoubleProp  RegExpConstructor_double_props[] = {};
 ObjGconstsProp RegExpConstructor_gconsts_props[] = {
   { "prototype", &gconsts.g_prototype_RegExp,  ATTR_ALL },
 };
 /* instance */
 ObjBuiltinProp RegExp_builtin_props[] = {};
-ObjDoubleProp  RegExp_doulbe_props[] = {};
+ObjDoubleProp  RegExp_double_props[] = {};
 ObjGconstsProp RegExp_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_PCI(RegExp);
+DEFINE_PROPERTY_TABLE_SIZES_PCI(RegExp);
 
 #endif /* need_regexp */
 #endif /* USE_REGEXP */

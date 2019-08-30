@@ -30,6 +30,11 @@ typedef uint16_t Attribute;
 #define is_transition(p)  ((p) & ATTR_TRANSITION)
 #endif
 
+#define ATTR_SYS (0x10)
+#define is_system_prop(p) ((p) & ATTR_SYS)
+
+#define ATTR_SYSTEM (0x17) /* ReadOnly, DontDelete, DontEnum, SystemUse */
+
 typedef struct hash_entry {
   HashKey key;       /* key */
   HashData data;     /* value */

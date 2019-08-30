@@ -19,7 +19,8 @@ BUILTIN_FUNCTION(number_constr)
   JSValue rsv;
 
   builtin_prologue();
-  rsv = new_number_object(context, FIXNUM_ZERO);
+  rsv = new_number_object(context, DEBUG_NAME("number_constr"),
+                          gconsts.g_shape_Number, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
@@ -141,12 +142,12 @@ ObjBuiltinProp NumberPrototype_builtin_props[] = {
   { "valueOf",        number_valueOf,       0, ATTR_DE },
   { "toString",       number_toString,      0, ATTR_DE },
 };
-ObjDoubleProp  NumberPrototype_doulbe_props[] = {
+ObjDoubleProp  NumberPrototype_double_props[] = {
 };
 ObjGconstsProp NumberPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp NumberConstructor_builtin_props[] = {};
-ObjDoubleProp  NumberConstructor_doulbe_props[] = {
+ObjDoubleProp  NumberConstructor_double_props[] = {
   { "MAX_VALUE", DBL_MAX,               ATTR_ALL },
   { "MIN_VALUE", DBL_MIN,               ATTR_ALL },
 };
@@ -158,9 +159,9 @@ ObjGconstsProp NumberConstructor_gconsts_props[] = {
 };
 /* instance */
 ObjBuiltinProp Number_builtin_props[] = {};
-ObjDoubleProp  Number_doulbe_props[] = {};
+ObjDoubleProp  Number_double_props[] = {};
 ObjGconstsProp Number_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_PCI(Number);
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Number);
 
 /* Local Variables:      */
 /* mode: c               */

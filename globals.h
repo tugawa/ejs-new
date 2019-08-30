@@ -16,8 +16,11 @@ EXTERN StrTable string_table;
  * global constant objects
  */
 EXTERN struct global_constant_objects {
+  PropertyMap *g_property_map_root;
+
   Shape *g_shape_Object;
   Shape *g_shape_Function;
+  Shape *g_shape_Builtin;
   Shape *g_shape_Array;
   Shape *g_shape_Number;
   Shape *g_shape_String;
@@ -43,7 +46,7 @@ EXTERN struct global_constant_objects {
   JSValue g_fixnum_to_string;
   JSValue g_flonum_to_string;
 
-  JSValue g_string___hidden_class__;
+  JSValue g_string___property_map__;
   JSValue g_string_prototype;
   JSValue g_string___proto__;
   JSValue g_string_tostring;

@@ -206,7 +206,7 @@ ObjBuiltinProp Math_builtin_props[] = {
   { "pow",    math_pow,    2, ATTR_DE },
   { "random", math_random, 0, ATTR_DE },
 };
-ObjDoubleProp  Math_doulbe_props[] = {
+ObjDoubleProp  Math_double_props[] = {
   { "E",         2.7182818284590452354, ATTR_ALL },
   { "LN10",      2.302585092994046,     ATTR_ALL },
   { "LN2",       0.6931471805599453,    ATTR_ALL },
@@ -217,7 +217,7 @@ ObjDoubleProp  Math_doulbe_props[] = {
   { "SQRT2",     1.4142135623730951,    ATTR_ALL },
 };
 ObjGconstsProp Math_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_I(Math);
+DEFINE_PROPERTY_TABLE_SIZES_I(Math);
 
 /* Local Variables:      */
 /* mode: c               */

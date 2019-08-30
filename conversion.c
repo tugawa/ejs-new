@@ -152,7 +152,8 @@ JSValue special_to_object(Context *ctx, JSValue v) {
     return JS_UNDEFINED;
   case JS_TRUE:
   case JS_FALSE:
-    return new_boolean_object(ctx, v);
+    return new_boolean_object(ctx, DEBUG_NAME("special_to_object"),
+                              gconsts.g_shape_Boolean, v);
   default:
     type_error("special expected in special_to_object");
     return JS_UNDEFINED;
@@ -216,7 +217,8 @@ JSValue string_to_object(Context *ctx, JSValue v) {
     type_error("string expected in string_to_object");
     return JS_UNDEFINED;
   }
-  return new_string_object(ctx, v);
+  return new_string_object(ctx, DEBUG_NAME("string_to_object"),
+                           gconsts.g_shape_String, v);
 }
 
 #define BUFSIZE 1000
@@ -300,7 +302,8 @@ JSValue fixnum_to_object(Context *ctx, JSValue v) {
     type_error("fixnum expected in fixnum_to_object");
     return JS_UNDEFINED;
   }
-  return new_number_object(ctx, v);
+  return new_number_object(ctx, DEBUG_NAME("fixnum_to_object"),
+                           gconsts.g_shape_Number, v);
 }
 
 /*
@@ -311,7 +314,8 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
     type_error("flonum expected in flonum_to_object");
     return JS_UNDEFINED;
   }
-  return new_number_object(ctx, v);
+  return new_number_object(ctx, DEBUG_NAME("flonum_to_object"),
+                           gconsts.g_shape_Number, v);
 }
 
 /*
@@ -365,7 +369,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     type_error("object expected in object_to_number");
     return FIXNUM_ZERO;
   }
-  if (get_prop(v, gconsts.g_string_valueof, &f) == SUCCESS) {
+  if ((f = get_prop(v, gconsts.g_string_valueof)) != JS_EMPTY) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
@@ -379,7 +383,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT0:
-  if (get_prop(v, gconsts.g_string_tostring, &f) == SUCCESS) {
+  if ((f = get_prop(v, gconsts.g_string_tostring)) != JS_EMPTY) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);

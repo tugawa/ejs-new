@@ -19,8 +19,9 @@
 /*
  * allocates a hash table
  */
-HashTable *malloc_hashtable(void) {
-  HashTable *ht = (HashTable*)gc_malloc(NULL,
+HashTable *malloc_hashtable(Context *ctx)
+{
+  HashTable *ht = (HashTable*)gc_malloc(ctx,
                                         sizeof(HashTable), HTAG_HASHTABLE);
   ht->body = NULL;
   return ht;
@@ -29,7 +30,7 @@ HashTable *malloc_hashtable(void) {
 /*
  * initializes a hash table with the specified size
  */
-int hash_create(HashTable *table, unsigned int size) {
+int hash_create(Context *ctx, HashTable *table, unsigned int size) {
   int i;
 
   table->body = __hashMalloc(size);
@@ -85,8 +86,9 @@ int hash_get(HashTable *table, HashKey key, HashData *data) {
 /*
  * registers a value to a hash table under a given key with an attribute
  */
-int hash_put_with_attribute(HashTable* table, HashKey key, HashData data,
-                            Attribute attr) {
+int hash_put_with_attribute(Context *ctx, HashTable* table,
+                            HashKey key, HashData data, Attribute attr)
+{
   HashCell* cell;
   uint32_t index;
 

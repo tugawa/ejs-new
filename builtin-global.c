@@ -148,14 +148,14 @@ BUILTIN_FUNCTION(builtin_printStatus)
   /* fp = get_fp(context); */
   regBase = (JSValue*)(&(get_stack(context, fp-1)));
   LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
-          (Object *)regBase[-CF_POS],
+          (FunctionTable *)regBase[-CF_POS],
           (int)regBase[-FP_POS],
           (int)regBase[-PC_POS],
           (void *)regBase[-LP_POS]);
 
   regBase = (JSValue*)(&(get_stack(context, regBase[-FP_POS] - 1)));
   LOG_ERR("\n-----prev spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
-          (Object *)regBase[-CF_POS],
+          (FunctionTable *)regBase[-CF_POS],
           (int)regBase[-FP_POS],
           (int)regBase[-PC_POS],
           (void *)regBase[-LP_POS]);
@@ -211,7 +211,7 @@ BUILTIN_FUNCTION(builtin_papi_get_real)
  * property table
  */
 /* instance */
-ObjBuiltinProp Global_builtin_props[] = {};
+ObjBuiltinProp Global_builtin_props[] = {
   { "isNaN",          builtin_isNaN,              1, ATTR_DDDE },
   { "isFinite",       builtin_isFinite,           1, ATTR_DE   },
   /*
@@ -228,7 +228,8 @@ ObjBuiltinProp Global_builtin_props[] = {};
 #ifdef USE_PAPI
   { "papi_get_real",  builtin_papi_get_real,      0, ATTR_ALL  },
 #endif
-ObjDoubleProp  Global_doulbe_props[] = {};
+};
+ObjDoubleProp  Global_double_props[] = {};
 ObjGconstsProp Global_gconsts_props[] = {
   { "Object",    &gconsts.g_ctor_Object,     ATTR_DE   },
   { "Array",     &gconsts.g_ctor_Array,      ATTR_DE   },
@@ -241,12 +242,12 @@ ObjGconstsProp Global_gconsts_props[] = {
   { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
   { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
   { "Math",      &gconsts.g_math,            ATTR_DE   },
-  { "true",      &gconsts.g_bool_true,       ATTR_DE   },
-  { "false",     &gconsts.g_bool_true,       ATTR_DE   },
-  { "null",      &gconsts.g_bool_true,       ATTR_DE   },
-  { "undefined", &gconsts.g_bool_true,       ATTR_DE   },
+  { "true",      &gconsts.g_boolean_true,    ATTR_DE   },
+  { "false",     &gconsts.g_boolean_false,   ATTR_DE   },
+  { "null",      &gconsts.g_null,            ATTR_DE   },
+  { "undefined", &gconsts.g_undefined,       ATTR_DE   },
 };
-DEFINE_BUILTIN_TABLE_SIZES_I(Global);
+DEFINE_PROPERTY_TABLE_SIZES_I(Global);
 
 /* Local Variables:      */
 /* mode: c               */

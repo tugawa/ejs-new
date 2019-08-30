@@ -14,6 +14,9 @@
 
 #define builtin_prologue() JSValue *args = get_args()
 
+#define not_implemented(s)                                              \
+  LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
+
 /*
  * #define builtin_prologue() \
  * int fp; JSValue *args; fp = get_fp(context); args = get_args()
@@ -69,7 +72,7 @@ int T ## _num_gconsts_props =                           \
 
 #define EXTERN_PROPERTY_TABLES_PCI(T)                          \
 extern ObjBuiltinProp T ## Prototype_builtin_props[];          \
-extern ObjDoubleProp  T ## Prototype_doulbe_props[];           \
+extern ObjDoubleProp  T ## Prototype_double_props[];           \
 extern ObjGconstsProp T ## Prototype_gconsts_props[];          \
 extern int            T ## Prototype_num_builtin_props;        \
 extern int            T ## Prototype_num_double_props;         \
@@ -78,7 +81,7 @@ EXTERN_PROPERTY_TABLES_CI(T)
 
 #define EXTERN_PROPERTY_TABLES_CI(T)                           \
 extern ObjBuiltinProp T ## Constructor_builtin_props[];        \
-extern ObjDoubleProp  T ## Constructor_doulbe_props[];         \
+extern ObjDoubleProp  T ## Constructor_double_props[];         \
 extern ObjGconstsProp T ## Constructor_gconsts_props[];        \
 extern int            T ## Constructor_num_builtin_props;      \
 extern int            T ## Constructor_num_double_props;       \
@@ -87,7 +90,7 @@ EXTERN_PROPERTY_TABLES_I(T)
 
 #define EXTERN_PROPERTY_TABLES_I(T)                            \
 extern ObjBuiltinProp T ## _builtin_props[];                   \
-extern ObjDoubleProp  T ## _doulbe_props[];                    \
+extern ObjDoubleProp  T ## _double_props[];                    \
 extern ObjGconstsProp T ## _gconsts_props[];                   \
 extern int            T ## _num_builtin_props;                 \
 extern int            T ## _num_double_props;                  \

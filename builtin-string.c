@@ -26,7 +26,9 @@ BUILTIN_FUNCTION(string_constr)
   builtin_prologue();
   /* printf("In string_constr\n"); */
   rsv =
-    new_string_object(context, na > 0? args[1]: gconsts.g_string_empty);
+    new_string_object(context, DEBUG_NAME("string_constr"),
+                      gconsts.g_shape_String,
+                      na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
 
@@ -647,7 +649,7 @@ BUILTIN_FUNCTION(stringProtoMatch)
  */
 
 /* prototype */
-ObjBuiltinProp ArrayPrototype_builtin_props[] = {
+ObjBuiltinProp StringPrototype_builtin_props[] = {
   { "valueOf",        string_valueOf,       0, ATTR_DE },
   { "toString",       string_valueOf,       0, ATTR_DE },
   { "concat",         string_concat,        0, ATTR_DE },
@@ -661,21 +663,21 @@ ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "lastIndexOf",    string_lastIndexOf,   1, ATTR_DE },
   { "localeCompare",  string_localeCompare, 0, ATTR_DE },
 };
-ObjDoubleProp  StringPrototype_doulbe_props[] = {};
+ObjDoubleProp  StringPrototype_double_props[] = {};
 ObjGconstsProp StringPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp StringConstructor_builtin_props[] = {
  { "fromCharCode",   string_fromCharCode,  0, ATTR_DE },
 };
-ObjDoubleProp  StringConstructor_doulbe_props[] = {};
+ObjDoubleProp  StringConstructor_double_props[] = {};
 ObjGconstsProp StringConstructor_gconsts_props[] = {
-  { "prototype", &gconsts.g_prototype_String,  0, ATTR_ALL },
+  { "prototype", &gconsts.g_prototype_String, ATTR_ALL },
 };
 /* instance */
 ObjBuiltinProp String_builtin_props[] = {};
-ObjDoubleProp  String_doulbe_props[] = {};
+ObjDoubleProp  String_double_props[] = {};
 ObjGconstsProp String_gconsts_props[] = {};
-DEFINE_BUILTIN_TABLE_SIZES_PCI(String);
+DEFINE_PROPERTY_TABLE_SIZES_PCI(String);
 
 /* Local Variables:      */
 /* mode: c               */

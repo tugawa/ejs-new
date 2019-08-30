@@ -21,7 +21,6 @@ getarg                THREEOP        Register   int       Subscript
 setarg                THREEOP        int        Subscript JSValue
 getprop               THREEOP        Register   JSValue   JSValue
 setprop               THREEOP        JSValue    JSValue   JSValue
-setarray              THREEOP        JSValue    Subscript JSValue
 getglobal             TWOOP          Register   JSValue
 setglobal             TWOOP          JSValue    JSValue
 instanceof            THREEOP        Register   JSValue   JSValue

@@ -50,30 +50,6 @@ StringCell *allocate_string(uint32_t length)
 }
 
 /*
- * allocates a simple object
- * Note that the return value does not have a pointer tag.
- */
-Object *allocate_jsobject(Context *ctx, size_t n_embedded, cell_type_t htag)
-{
-  size_t size = sizeof(Object) + sizeof(JSValue) * (n_embedded - PSIZE_NORMAL);
-  Object *object = (Object *) gc_jsalloc(ctx, size, htag);
-  return object;
-}
-
-/*
- * allocates an initialised array of JSValue
- */
-JSValue *allocate_jsvalue_array(Context *ctx, int size)
-{
-  int i;
-  JSValue* array = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-                                         HTAG_ARRAY_DATA);
-  for (i = 0; i < size; i++)
-    array[i] = JS_UNDEFINED;
-  return array;
-}
-
-/*
  * re-allocates an array body
  *   newsize : new size of the array body
  */
@@ -91,29 +67,6 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
   array_body(a) = body;
   array_size(a) = newsize;
-}
-
-JSValue *allocate_prop_table(int size) {
-  JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
-                                                 HTAG_PROP);
-  size_t i;
-  for (i = 0; i < size; i++)  /* initialise for GC */
-    table[i] = JS_UNDEFINED;
-  return table;
-}
-
-JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int newsize) {
-  JSValue *table;
-
-  gc_push_tmp_root(oldtab);
-  table  = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize, HTAG_PROP);
-  gc_pop_tmp_root(1);
-  size_t i;
-  for (i = 0; i < oldsize; i++)
-    table[i] = oldtab[i];
-  for (; i < newsize; i++)
-    table[i] = JS_UNDEFINED;
-  return table;
 }
 
 /*
