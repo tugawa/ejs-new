@@ -87,7 +87,18 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
   int index;
   Attribute attr;
 
+#ifdef VERBOSE_SET_PROP
+#define PRINT(x...) printf(x)
+#else /* VERBOSE_SET_PROP */
+#define PRINT(x...)
+#endif /* VERBOSE_SET_PROP */
+
   assert(is_jsobject(obj));
+  assert(is_string(name));
+
+  PRINT("set_prop shape %p PM %p prop %s %s\n",
+        object_get_shape(obj), object_get_shape(obj)->pm,
+        string_to_cstr(name), skip_setter ? "(skip setter)" : "");
 
   if (!skip_setter) {
     /* __proto__ is stored in the dedicated field of property map */
@@ -108,26 +119,41 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
      *       conflict of attribute. */
     Shape *current_os = object_get_shape(obj);
     Shape *next_os;
+    size_t need_slots, n_embedded, n_extension;
+
     GC_PUSH4(obj, name, v, current_os);
     /* 1. If there is not next property map, create it. */
-    if (next_pm == NULL)
+    if (next_pm == NULL) {
       next_pm = extend_property_map(ctx, current_os->pm, name, att);
+      PRINT("  new property (new PM %p is created)\n", next_pm);
+    } else
+      PRINT("  new property (cached PM %p is used)\n", next_pm);
     GC_PUSH(next_pm);
+
     /* 2. Find the shape that is compatible to the current shape. */
+    need_slots = next_pm->n_props;
+    n_embedded = current_os->n_embedded_slots;
+    n_extension = current_os->n_extension_slots;
+    /* compute new size of extension array */
+    if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
+      n_extension = need_slots - (n_embedded - 1);
+    PRINT("  finding shape for PM %p EM/EX %lu %lu\n",
+           next_pm, n_embedded, n_extension);
     for (next_os = next_pm->shapes; next_os != NULL; next_os = next_os->next)
-      if (next_os->n_embedded_slots == current_os->n_embedded_slots &&
-          next_os->n_extension_slots == current_os->n_extension_slots)
+      if (next_os->n_embedded_slots == n_embedded &&
+          next_os->n_extension_slots == n_extension) {
+        PRINT("    found: %p\n", next_os);
         break;
+      } else
+        PRINT("    not the one %p: EM/EX %lu %lu\n",
+              next_os, n_embedded, n_extension);
+
     /* 3. If there is not compatible shape, create it. */
     if (next_os == NULL) {
-      size_t need_slots = next_pm->n_props;
-      size_t n_embedded = current_os->n_embedded_slots;
-      size_t n_extension = current_os->n_extension_slots;
-      /* compute new size of extension array */
-      if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
-        n_extension = need_slots - (n_embedded - 1);
       next_os = new_object_shape(ctx, DEBUG_NAME("(extend)"), next_pm,
                                  n_embedded, n_extension);
+      PRINT("  create new shape %p EM/EX %lu %lu\n",
+            next_os, n_embedded, n_extension);
     }
     GC_PUSH(next_os);
     /* 4. Change the shape of object if necessary and installs the new shape.
@@ -142,6 +168,8 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
   }
 
   object_set_prop(obj, index, v);
+
+#undef PRINT  /* VERBOSE_SET_PROP */
 }
 
 /**
