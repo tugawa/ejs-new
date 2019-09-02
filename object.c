@@ -14,10 +14,30 @@
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
+#ifdef HC_PROF
+static void hcprof_add_root_property_map(PropertyMap *pm);
+#endif /* HC_PROF */
 
 /* Profiling */
+#ifdef HC_PROF
+static void hcprof_enter_shape(Shape *os)
+{
+  PropertyMap *pm = os->pm;
+  pm->n_enter++;
+}
+
+static void hcprof_leave_shape(Shape *os)
+{
+  PropertyMap *pm = os->pm;
+  pm->n_leave++;
+}
+
+#define HC_PROF_ENTER_SHAPE(os) hcprof_enter_shape(os)
+#define HC_PROF_LEAVE_SHAPE(os) hcprof_leave_shape(os)
+#else /* HC_PROF */
 #define HC_PROF_ENTER_SHAPE(os)
 #define HC_PROF_LEAVE_SHAPE(os)
+#endif /* HC_PROF */
 
 /* PROPERTY OPERATION **************************************************/
 
@@ -448,7 +468,12 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 #ifdef DEBUG
   m->name = name;
 #endif /* DEBUG */
-
+#ifdef HC_PROF
+  m->n_enter = 0;
+  m->n_leave = 0;
+  if (prev == gconsts.g_property_map_root)
+    hcprof_add_root_property_map(m);
+#endif /* HC_PROF */
   return m;
 }
 
@@ -591,11 +616,11 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
       int n_props = 0;
       int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
       GC_PUSH(prototype);
-      pm = new_property_map(ctx, DEBUG_NAME("(new_prototype)"),
+      pm = new_property_map(ctx, DEBUG_NAME("(new)"),
                             OBJECT_SPECIAL_PROPS, n_props, prototype,
                             gconsts.g_property_map_root);
       GC_PUSH(pm);
-      pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new_prototype)"),
+      pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
                                     pm, n_embedded, 0);
       assert(Object_num_builtin_props +
              Object_num_double_props + Object_num_gconsts_props == 0);
@@ -628,6 +653,83 @@ void init_alloc_site(AllocSite *alloc_site)
 #endif /* ALLOC_SITE_CACHE */
 
 #include "object-compat.c"
+
+#ifdef HC_PROF
+struct root_property_map {
+  /* malloc structure */
+  PropertyMap *pm;
+  struct root_property_map *next;
+};
+/* exprot to GC */
+struct root_property_map *root_property_map;
+
+static void hcprof_add_root_property_map(PropertyMap *pm)
+{
+  struct root_property_map *e =
+    (struct root_property_map *) malloc(sizeof(struct root_property_map));
+  e->pm = pm;
+  e->next = root_property_map;
+  root_property_map = e;
+}
+
+static void print_property_map(char *key, PropertyMap *pm)
+{
+  Shape *os;
+  if (key == NULL)
+    key = "(root)";
+  printf("======== %s start ========\n", key);
+  printf("HC: %p %p %p %d %d %d %s %s\n",
+         pm,
+         pm->prev,
+         pm->shapes,
+         pm->n_props,
+         pm->n_enter,
+         pm->n_leave,
+         key,
+#ifdef DEBUG
+         pm->name
+#else /* DEBUG */
+         ""
+#endif /* DEBUG */
+         );
+  for (os = pm->shapes; os != NULL; os = os->next) {
+    printf("SHAPE: %p %p %d %d %s\n",
+           os,
+           os->next,
+           os->n_embedded_slots,
+           os->n_extension_slots,
+#ifdef DEBUG
+           os->name
+#else /* DEBUG */
+           ""
+#endif /* DEBUG */
+           );
+  }
+  print_hash_table(pm->map);
+  printf("======== %s end ========\n", key);
+}
+
+static void print_property_map_recursive(char *key, PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  print_property_map(key, pm);
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr))
+      print_property_map_recursive(string_to_cstr(p->entry.key),
+                                   (PropertyMap *) p->entry.data);
+}
+
+void hcprof_print_all_hidden_class(void)
+{
+  struct root_property_map *e;
+  print_property_map_recursive(NULL, gconsts.g_property_map_root);
+  for (e = root_property_map; e != NULL; e = e->next)
+    print_property_map_recursive(NULL, e->pm);
+}
+#endif /* HC_PROF */
 
 /* Local Variables:      */
 /* mode: c               */

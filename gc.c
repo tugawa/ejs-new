@@ -137,6 +137,15 @@ struct property_map_weak_list {
   struct property_map_weak_list *next;
 };
 
+enum gc_phase {
+  PHASE_INACTIVE,
+  PHASE_INITIALISE,
+  PHASE_MARK,
+  PHASE_WEAK,
+  PHASE_SWEEP,
+  PHASE_FINALISE,
+};
+
 /*
  * variables
  */
@@ -144,6 +153,8 @@ STATIC struct space js_space;
 #ifdef GC_DEBUG
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
+
+enum gc_phase gc_phase = PHASE_INACTIVE;
 
 /* gc root stack */
 #define MAX_ROOTS 1000
@@ -199,10 +210,6 @@ const char *htag_name[NUM_DEFINED_HTAG + 1] = {
 #ifdef GC_DEBUG
 STATIC void sanity_check();
 #endif /* GC_DEBUG */
-
-#ifdef HC_PROF
-int traversing_weaks;
-#endif /* HC_PROF */
 
 struct property_map_weak_list *property_map_weak_list;
 
@@ -451,29 +458,28 @@ STATIC void garbage_collection(Context *ctx)
 {
   struct rusage ru0, ru1;
 
-  /* printf("Enter gc, generation = %d\n", generation); */
+  /* initialise */
+  gc_phase = PHASE_INITIALISE;
   GCLOG("Before Garbage Collection\n");
-  /* print_memory_status(); */
-  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
-
-#ifdef HC_PROF
-  traversing_weaks = FALSE;
-#endif /* HC_PROF */
+  if (cputime_flag == TRUE)
+    getrusage(RUSAGE_SELF, &ru0);
   property_map_weak_list = NULL;
+
+  /* mark */
+  gc_phase = PHASE_MARK;
   scan_roots(ctx);
-#ifdef HC_PROF
-  traversing_weaks = TRUE;
-#endif /* HC_PROF */
+
+  /* weak */
+  gc_phase = PHASE_WEAK;
   weak_clear();
-#ifdef HC_PROF
-  traversing_weaks = FALSE;
-#endif /* HC_PROF */
+
+  /* sweep */
+  gc_phase = PHASE_SWEEP;
   sweep();
 
+  /* finalise */
+  gc_phase = PHASE_FINALISE;
   GCLOG("After Garbage Collection\n");
-  /* print_memory_status(); */
-  /* print_heap_stat(); */
-
   if (cputime_flag == TRUE) {
     time_t sec;
     suseconds_t usec;
@@ -491,6 +497,8 @@ STATIC void garbage_collection(Context *ctx)
 
   generation++;
   /* printf("Exit gc, generation = %d\n", generation); */
+
+  gc_phase = PHASE_INACTIVE;
 }
 
 /*
@@ -1040,17 +1048,7 @@ void weak_clear_shapes()
 }
 
 #ifdef HC_PROF
-extern HiddenClass *hcprof_entrypoints[];
-extern int hcprof_n_entrypoints;
-STATIC void weak_clear_hcprof_entrypoints()
-{
-  int i;
-  for (i = 0; i < hcprof_n_entrypoints; i++) {
-    HiddenClass *hc = hcprof_entrypoints[i];
-    if (!is_marked_cell(hc))
-      trace_HiddenClass(&hcprof_entrypoints[i]);
-  }
-}
+
 #endif /* HC_PROF */
 
 STATIC void weak_clear(void)
@@ -1058,7 +1056,7 @@ STATIC void weak_clear(void)
   weak_clear_StrTable(&string_table);
   weak_clear_shapes();
 #ifdef HC_PROF
-  weak_clear_hcprof_entrypoints();
+  /*  weak_clear_hcprof_entrypoints(); */
 #endif /* HC_PROF */
 }
 

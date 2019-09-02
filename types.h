@@ -129,6 +129,10 @@ typedef struct property_map {
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
+#ifdef HC_PROF
+  int n_enter;
+  int n_leave;
+#endif /* HC_PROF */
 } PropertyMap;
 
 typedef struct shape {

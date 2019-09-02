@@ -501,7 +501,7 @@ int main(int argc, char *argv[]) {
   }
 #ifdef HC_PROF
   if (hcprint_flag == TRUE)
-    print_all_hidden_class();
+    hcprof_print_all_hidden_class();
 #endif /* HC_PROF */
 #ifdef PROFILE
   if (coverage_flag == TRUE)
