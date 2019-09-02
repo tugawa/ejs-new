@@ -637,12 +637,21 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
     prototype = gconsts.g_prototype_Object;
 
 #ifdef ALLOC_SITE_CACHE
+  /* 1. check if cache is available and compatible */
   if (as != NULL && as->pm &&
       (as->pm->__proto__ == prototype || as->pm->__proto__ == JS_EMPTY)) {
     assert(as->pm->n_special_props == OBJECT_SPECIAL_PROPS);
-    if (as->shape == NULL)
-      as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
-                                   as->pm->n_props, 0);
+    if (as->shape == NULL) {
+      /* 2. if cached Shape is not available, find shape created for
+       *    other alloction site. */
+      if (as->pm->shapes != NULL &&
+          as->pm->shapes->n_embedded_slots == as->pm->n_props)
+        as->shape = as->pm->shapes;
+      else
+        /* 3. if there is not, create it */
+        as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
+                                     as->pm->n_props, 0);
+    }
     os = as->shape;
   } else
 #endif /* ALLOC_SITE_CACHE */
