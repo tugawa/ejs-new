@@ -17,7 +17,8 @@
   else {
     JSValue __proto__ = v1;
     JSValue ret = JS_FALSE;
-    while ((__proto__ = get_prop(v2, gconsts.g_string___proto__)) != JS_EMPTY)
+    while ((__proto__ = get_prop(__proto__,
+                                 gconsts.g_string___proto__)) != JS_EMPTY)
       if (__proto__ == ctor_prototype) {
         ret = JS_TRUE;
         break;

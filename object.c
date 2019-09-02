@@ -376,7 +376,7 @@ JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
 
   assert(String_num_builtin_props +
          String_num_double_props + String_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, string_length(v));
+  init_prop(p, gconsts.g_string_length, int_to_fixnum(string_length(v)));
 
   return put_string_object_tag(p);
 }

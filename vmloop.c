@@ -94,7 +94,8 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
       if (get_opcode(insn) == STRING) {                 \
         Displacement disp = get_big_disp(insn);         \
         JSValue s = get_literal(insns, disp);           \
-        printf("   %s\n", string_to_cstr(s));           \
+        int r0 = get_first_operand_reg(insn);            \
+        printf(" %d %s\n", r0, string_to_cstr(s));       \
       } else if (get_opcode(insn) == SETGLOBAL) {       \
         int r0 = get_first_operand_reg(insn);           \
         int r1 = get_second_operand_reg(insn);          \

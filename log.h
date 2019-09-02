@@ -29,7 +29,11 @@
   while (0)
 
 #ifdef DEBUG
-#define LOG_EXIT(...) abort()
+#define LOG_EXIT(...)                           \
+  do {                                          \
+    fprintf(log_stream, __VA_ARGS__);           \
+    abort();                                    \
+  } while (0)
 #else /* DEBUG */
 #define LOG_EXIT(...)                                   \
   do { LOG_FUNC; fprintf(log_stream, __VA_ARGS__);      \
