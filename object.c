@@ -273,6 +273,8 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
   p->name = name;
 #endif /* DEBUG */
 
+  HC_PROF_ENTER_SHAPE(os);
+
   return p;
 }
 

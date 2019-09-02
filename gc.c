@@ -1019,14 +1019,18 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
        * then, the node is an internal node.
        */
       while (!is_marked_cell(next) && next->n_transitions == 1) {
+#ifdef VERBOSE_WEAK
         printf("skip PropertyMap %p\n", next);
+#endif /* VERBOSE_WEAK */
         next = (PropertyMap *) get_transition_dest(next);
       }
+#ifdef VERBOSE_WEAK
       if (is_marked_cell(next))
         printf("preserve PropertyMap %p because it has been marked\n", next);
       else
         printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
                next, next->n_props, next->n_transitions);
+#endif /* VERBOSE_WEAK */
       /* Resurrect if it is branching node or terminal node */
       if (!is_marked_cell(next))
         process_edge((uintptr_t) next);
