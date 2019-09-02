@@ -69,7 +69,9 @@ ObjBuiltinProp ObjectPrototype_builtin_props[] = {
   { "toString", object_toString,  0, ATTR_DE }
 };
 ObjDoubleProp  ObjectPrototype_double_props[] = {};
-ObjGconstsProp ObjectPrototype_gconsts_props[] = {};
+ObjGconstsProp ObjectPrototype_gconsts_props[] = {
+  { "__property_map__", (JSValue *)&gconsts.g_property_map_Object, ATTR_ALL },
+};
 /* constructor */
 ObjBuiltinProp ObjectConstructor_builtin_props[] = {};
 ObjDoubleProp  ObjectConstructor_double_props[] = {};

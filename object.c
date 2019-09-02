@@ -298,7 +298,6 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
 
   assert(os->pm->n_special_props == ARRAY_SPECIAL_PROPS);
 
-
   p = allocate_jsobject(ctx, name, os, HTAG_ARRAY);
   array_ptr_body(p) = NULL;  /* tell GC not to follow this pointer */
 
@@ -621,7 +620,12 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
  * The most normal way to create an object.
  * Called from ``new'' instruction.
  */
+#ifdef ALLOC_SITE_CACHE
+JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
+                                              AllocSite *as)
+#else /* ALLOC_SITE_CACHE */
 JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
+#endif /* ALLOC_SITE_CACHE */
 {
   JSValue prototype, obj;
   Shape *os;
@@ -629,50 +633,63 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
   assert(is_function(ctor));
 
   prototype = get_prop(ctor, gconsts.g_string_prototype);
-  if (is_jsobject(prototype)) {
-    JSValue retv;
-    PropertyMap *pm;
-    /* 1. If `prototype' is valid, find the property map */
-    retv = get_system_prop(prototype, gconsts.g_string___property_map__);
-    if (retv != JS_EMPTY)
-      pm = (PropertyMap *) retv;
-    else {
-      /* 2. If there is not, create it. */
-      int n_props = 0;
-      int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
-      GC_PUSH(prototype);
-      pm = new_property_map(ctx, DEBUG_NAME("(new)"),
-                            OBJECT_SPECIAL_PROPS, n_props, prototype,
-                            gconsts.g_property_map_root);
-      GC_PUSH(pm);
-      pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                    pm, n_embedded, 0);
-      assert(Object_num_builtin_props +
-             Object_num_double_props + Object_num_gconsts_props == 0);
+  if (!is_jsobject(prototype))
+    prototype = gconsts.g_prototype_Object;
 
-      /* 3. Create a link from the prototype object to the PM so that
-       *    this function can find it in the following calls. */
-      set_prop(ctx, prototype, gconsts.g_string___property_map__,
-               (JSValue) pm, ATTR_SYSTEM);
-      GC_POP2(pm, prototype);
-    }
-    /* 4. Obtain the shape of the PM. There should be a single shape, if any,
-     *    because the PM is an entrypoint. */
-    os = pm->shapes;
+#ifdef ALLOC_SITE_CACHE
+  if (as != NULL && as->pm &&
+      (as->pm->__proto__ == prototype || as->pm->__proto__ == JS_EMPTY)) {
+    assert(as->pm->n_special_props == OBJECT_SPECIAL_PROPS);
+    if (as->shape == NULL)
+      as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
+                                   as->pm->n_props, 0);
+    os = as->shape;
   } else
-    os = gconsts.g_shape_Object;
+#endif /* ALLOC_SITE_CACHE */
+    {
+      JSValue retv;
+      PropertyMap *pm;
+      /* 1. If `prototype' is valid, find the property map */
+      retv = get_system_prop(prototype, gconsts.g_string___property_map__);
+      if (retv != JS_EMPTY)
+        pm = (PropertyMap *) retv;
+      else {
+        /* 2. If there is not, create it. */
+        int n_props = 0;
+        int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
+        GC_PUSH(prototype);
+        pm = new_property_map(ctx, DEBUG_NAME("(new)"),
+                              OBJECT_SPECIAL_PROPS, n_props, prototype,
+                              gconsts.g_property_map_root);
+        GC_PUSH(pm);
+        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
+                                      pm, n_embedded, 0);
+        assert(Object_num_builtin_props +
+               Object_num_double_props + Object_num_gconsts_props == 0);
+
+        /* 3. Create a link from the prototype object to the PM so that
+         *    this function can find it in the following calls. */
+        set_prop(ctx, prototype, gconsts.g_string___property_map__,
+                 (JSValue) pm, ATTR_SYSTEM);
+        GC_POP2(pm, prototype);
+      }
+      /* 4. Obtain the shape of the PM. There should be a single shape, if any,
+       *    because the PM is an entrypoint. */
+      os = pm->shapes;
+    }
 
   obj = new_simple_object(ctx, DEBUG_NAME("inst:new"), os);
-
+#ifdef ALLOC_SITE_CACHE
+  object_set_alloc_site(obj, as);
+#endif /* ALLOC_SITE_CACHE */
   return obj;
 }
 
 #ifdef ALLOC_SITE_CACHE
 void init_alloc_site(AllocSite *alloc_site)
 {
-  alloc_site->hc = NULL;
-  alloc_site->preformed_hc = NULL;
-  alloc_site->next_affected = NULL;
+  alloc_site->shape = NULL;
+  alloc_site->pm = NULL;
   alloc_site->polymorphic = 0;
 }
 #endif /* ALLOC_SITE_CACHE */

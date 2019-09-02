@@ -17,6 +17,7 @@ EXTERN StrTable string_table;
  */
 EXTERN struct global_constant_objects {
   PropertyMap *g_property_map_root;
+  PropertyMap *g_property_map_Object;
 
   Shape *g_shape_Object;
   Shape *g_shape_Function;

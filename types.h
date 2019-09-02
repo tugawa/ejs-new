@@ -220,8 +220,10 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   *(object_get_prop_address(obj, index)) = v
 
 #define object_get_shape(obj) (remove_jsobject_tag(obj)->shape)
-
-
+#ifdef ALLOC_SITE_CACHE
+#define object_set_alloc_site(obj, as)          \
+  (remove_jsobject_tag(obj)->alloc_site = (as))
+#endif /* ALLOC_SITE_CACHE */
 
 /** SPECIAL FIELDS OF JSObjects **/
 

@@ -229,6 +229,7 @@ STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+STATIC void alloc_site_update_info(JSObject *p);
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
@@ -750,6 +751,11 @@ STATIC void process_edge(uintptr_t ptr)
       process_edge_JSValue_array((JSValue *) p->eprop[actual_embedded], 0,
                                  os->pm->n_props - actual_embedded);
     }
+#ifdef ALLOC_SITE_CACHE
+    /* 4. allocation site cache */
+    if (p->alloc_site != NULL)
+      alloc_site_update_info(p);
+#endif /* ALLOC_SITE_CACHE */
   }
 }
 
@@ -834,13 +840,14 @@ STATIC void scan_function_table_entry(FunctionTable *p)
   /* scan Allocation Sites */
   {
     size_t i;
-    for (i = 0; i < ptr->n_insns; i++) {
-      Instruction *insn = &ptr->insns[i];
+    for (i = 0; i < p->n_insns; i++) {
+      Instruction *insn = &p->insns[i];
       AllocSite *alloc_site = &insn->alloc_site;
-      if (alloc_site->hc != NULL)
-        trace_HiddenClass(&alloc_site->hc);
-      if (alloc_site->preformed_hc != NULL)
-        trace_HiddenClass(&alloc_site->preformed_hc);
+      if (alloc_site->shape != NULL)
+        process_edge((uintptr_t) alloc_site->shape);
+      /* TODO: too eary PM sacnning. scan after updating alloc site info */
+      if (alloc_site->pm != NULL)
+        process_edge((uintptr_t) alloc_site->pm);
     }
   }
 #endif /* ALLOC_SITE_CACHE */
@@ -907,79 +914,6 @@ STATIC void scan_roots(Context *ctx)
   for (i = 0; i < gc_root_stack_ptr; i++)
     process_edge(*(uintptr_t*) gc_root_stack[i]);
 }
-
-
-#ifdef ALLOC_SITE_CACHE
-STATIC HiddenClass *find_lub(HiddenClass *a, HiddenClass *b)
-{
-  HiddenClass *p;
-  int alen = 0;
-  int blen = 0;
-
-  for (p = a; p != NULL; p = p->prev, alen++)
-    if (p == b)
-      return p;
-  for (p = b; p != NULL; p = p->prev, blen++)
-    if (p == a)
-      return p;
-  while (alen > blen) {
-    a = a->prev;
-    alen--;
-  }
-  while (alen < blen) {
-    b = b->prev;
-    blen--;
-  }
-  while (a != b) {
-    a = a->prev;
-    b = b->prev;
-  }
-  return a;
-}
-
-STATIC void alloc_site_update_hc(AllocSite *alloc_site, HiddenClass *hc)
-{
-  alloc_site->hc = hc;
-  alloc_site->preformed_hc = NULL;
-}
-
-STATIC void alloc_site_cache(Object *obj)
-{
-  /* feedback hidden class statistics to allocation sites. */
-  if (obj->alloc_site != NULL) {
-    HiddenClass *obj_hc = obj->klass;
-    if (hidden_base(obj_hc) != NULL)
-      obj_hc = hidden_base(obj_hc);
-    if (obj->alloc_site->polymorphic) {
-      if (obj->alloc_site->hc != NULL)
-        alloc_site_update_hc(obj->alloc_site,
-                             find_lub(obj_hc, obj->alloc_site->hc));
-    } else {
-      if (obj->alloc_site->hc == NULL)
-        alloc_site_update_hc(obj->alloc_site, obj_hc);
-      else {
-        HiddenClass *p;
-        /* check monomorphism */
-        for (p = obj->alloc_site->hc; p != NULL; p = p->prev)
-          if (p == obj_hc)
-            break;
-        if (p == NULL) {
-          for (p = obj_hc; p != NULL; p = p->prev)
-            if (p == obj->alloc_site->hc) {
-              alloc_site_update_hc(obj->alloc_site, obj_hc);
-              break;
-            }
-        }
-        if (p == NULL) {
-          obj->alloc_site->polymorphic = 1;
-          alloc_site_update_hc(obj->alloc_site,
-                               find_lub(obj_hc, obj->alloc_site->hc));
-        }
-      }
-    }
-  }
-}
-#endif /* ALLOC_SITE_CACHE */
 
 /*
  * Clear pointer field to StringCell whose mark bit is not set.
@@ -1222,6 +1156,60 @@ STATIC void sweep(void)
 #endif /* GC_DEBUG */
   sweep_space(&js_space);
 }
+
+#ifdef ALLOC_SITE_CACHE
+STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
+{
+  while(a != b) {
+    if (a->n_props < b->n_props)
+      b = b->prev;
+    else
+      a = a->prev;
+  }
+  return a;
+}
+
+STATIC void alloc_site_update_info(JSObject *p)
+{
+  AllocSite *as = p->alloc_site;
+  PropertyMap *pm = p->shape->pm;
+
+  assert(as != NULL);
+
+  /* likely case */
+  if (as->pm == pm)
+    return;
+
+  if (as->pm == NULL) {
+    /* 1. If the site is empty, cache this. */
+    as->pm = pm;
+    assert(as->shape == NULL);
+  } else {
+    /* 2. Otherwise, compute LUB.
+     *
+     *   LUB       monomorphic   polymorphic
+     *   pm        mono:as->pm   poly:as->pm
+     *   as->pm    mono:pm       poly:as->pm
+     *   less      poly:LUB      poly:LUB
+     */
+    PropertyMap *lub = find_lub(pm, as->pm);
+    if (lub == as->pm) {
+      if (as->polymorphic)
+        /* keep current as->pm */ ;
+      else {
+        as->pm = pm;
+        as->shape = NULL;
+      }
+    } else if (lub == pm)
+      /* keep current as->pm */  ;
+    else {
+      as->polymorphic = 1;
+      as->pm = lub;
+      as->shape = NULL;
+    }
+  }
+}
+#endif /* ALLOC_SITE_CACHE */
 
 #ifdef GC_DEBUG
 #define OFFSET_OF(T, F) (((uintptr_t) &((T *) 0)->F) >> LOG_BYTES_IN_JSVALUES)

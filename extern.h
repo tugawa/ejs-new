@@ -274,9 +274,17 @@ extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
 
 extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                                int num_embedded, int num_extension);
-
+#ifdef ALLOC_SITE_CACHE
+extern JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
+                                                     AllocSite *as);
+#else /* ALLOC_SITE_CACHE */
 extern JSValue create_simple_object_with_constructor(Context *ctx,
                                                      JSValue ctor);
+#endif /* ALLOC_SITE_CACHE */
+
+#ifdef ALLOC_SITE_CACHE
+extern void init_alloc_site(AllocSite *alloc_site);
+#endif /* ALLOC_SITE_CACEH */
 
 #ifdef HC_PROF
 extern void hcprof_print_all_hidden_class(void);
