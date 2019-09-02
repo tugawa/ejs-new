@@ -66,6 +66,8 @@ end
 compose = []
 compose_params = []
 
+print "#ifndef CELL_HEADER_H_\n"
+print "#define CELL_HEADER_H_\n"
 section_start("general definition")
 print "typedef #{header_type} header_t;\n"
 define("HEADER_JSVALUES", header_words)
@@ -117,3 +119,5 @@ section_start("initialisation")
 params = compose_params.join(",")
 define("HEADER0_COMPOSE(#{params}) \\\n",
        compose.join(" | \\\n  "))
+
+print "#endif /* CELL_HEADER_H_ */\n"

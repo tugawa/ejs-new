@@ -7,6 +7,8 @@
  * Electro-communications.
  */
 
+#include "cell-header.h"
+
 typedef uint32_t cell_type_t;
 
 #ifdef USE_NATIVEGC
@@ -21,7 +23,7 @@ extern void try_gc(Context *ctx);
 #ifdef DEBUG
 extern cell_type_t gc_obj_header_type(void *p);
 #else /* DEBUG */
-#define gc_obj_header_tag(p) HEADER0_GET_TYPE(((header_t *) (p))[-1])
+#define gc_obj_header_type(p) HEADER0_GET_TYPE(((header_t *) (p))[-1])
 #endif /* DEBUG */
 
 /* #define GC_ROOT(_type, _var) _type _var = ((_type) 0) */

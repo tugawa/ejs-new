@@ -59,7 +59,7 @@
 #else
 #undef GC_DEBUG
 #define STATIC static
-#define STAITC_INLINE static inline
+#define STATIC_INLINE static inline
 #endif
 
 #if 0
@@ -372,11 +372,13 @@ void gc_pop_checked(void *addr)
   gc_root_stack[--gc_root_stack_ptr] = NULL;
 }
 
+#ifdef DEBUG
 cell_type_t gc_obj_header_type(void *p)
 {
   header_t *hdrp = ((header_t *) p) - 1;
   return HEADER0_GET_TYPE(*hdrp);
 }
+#endif /* DEBUG */
 
 STATIC int check_gc_request(Context *ctx)
 {
