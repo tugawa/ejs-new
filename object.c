@@ -481,6 +481,7 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   for (pp = &pm->shapes; ; pp = &(*pp)->next) {
     Shape *p = *pp;
     if (p == NULL || p->n_embedded_slots < num_embedded) {
+      s->next = *pp;
       *pp = s;
       break;
     }

@@ -132,6 +132,11 @@ struct space {
   char *name;
 };
 
+struct property_map_weak_list {
+  PropertyMap *pm;
+  struct property_map_weak_list *next;
+};
+
 /*
  * variables
  */
@@ -166,6 +171,8 @@ STATIC void sanity_check();
 #ifdef HC_PROF
 int traversing_weaks;
 #endif /* HC_PROF */
+
+struct property_map_weak_list *property_map_weak_list;
 
 /*
  * prototype
@@ -418,6 +425,7 @@ STATIC void garbage_collection(Context *ctx)
 #ifdef HC_PROF
   traversing_weaks = FALSE;
 #endif /* HC_PROF */
+  property_map_weak_list = NULL;
   scan_roots(ctx);
 #ifdef HC_PROF
   traversing_weaks = TRUE;
@@ -427,6 +435,7 @@ STATIC void garbage_collection(Context *ctx)
   traversing_weaks = FALSE;
 #endif /* HC_PROF */
   sweep();
+
   GCLOG("After Garbage Collection\n");
   /* print_memory_status(); */
   /* print_heap_stat(); */
@@ -656,8 +665,19 @@ STATIC void process_edge(uintptr_t ptr)
         /* weak if HC_SKIP_INTERNAL */
         process_edge((uintptr_t) p->prev); /* PropertyMap */
 #endif /* HC_SKIP_INTERNAL */
-      process_edge((uintptr_t) p->shapes); /* Shape */
+      if (p->shapes != NULL)
+        process_edge((uintptr_t) p->shapes); /* Shape */
       process_edge((uintptr_t) p->__proto__);
+      /* collect children of roots for entriy points of weak lists */
+      if (p->prev == gconsts.g_property_map_root) {
+        struct property_map_weak_list *e =
+          (struct property_map_weak_list *)
+          space_alloc(&js_space, sizeof(struct property_map_weak_list),
+                      HTAG_FREE);
+        e->pm = p;
+        e->next = property_map_weak_list;
+        property_map_weak_list = e;
+      }
       return;
     }
   case HTAG_SHAPE:
@@ -942,13 +962,25 @@ STATIC void weak_clear_StrTable(StrTable *table)
 
 void weak_clear_shape_recursive(PropertyMap *pm)
 {
-  Shape *os;
+  Shape **p;
   HashIterator iter;
   HashCell *cell;
 
-  for (os = pm->shapes; os->next != NULL; os = os->next)
-    while (os->next != NULL && !is_marked_cell(os->next))
-      os->next = os->next->next;
+  printf("weak_clear_shape %p\n", pm);
+
+  for (p = &pm->shapes; *p != NULL; ) {
+    Shape *os = *p;
+    if (is_marked_cell(os))
+      p = &(*p)->next;
+    else {
+      Shape *skip = *p;
+      *p = skip->next;
+#ifdef DEBUG
+      printf("skip %p emp: %d ext: %d\n", skip, skip->n_embedded_slots, skip->n_extension_slots);
+      skip->next = NULL;  /* avoid Black->While check failer */
+#endif /* DEBUG */
+    }
+  }
 
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
@@ -959,7 +991,11 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 void weak_clear_shapes()
 {
   PropertyMap *pm = gconsts.g_property_map_root;
+  struct property_map_weak_list *e;
   weak_clear_shape_recursive(pm);
+  for (e = property_map_weak_list; e != NULL; e = e->next)
+    weak_clear_shape_recursive(e->pm);
+  property_map_weak_list = NULL;
 }
 
 #ifdef HC_PROF
@@ -1082,6 +1118,8 @@ STATIC void sweep(void)
 }
 
 #ifdef GC_DEBUG
+#define OFFSET_OF(T, F) (((uintptr_t) &((T *) 0)->F) >> LOG_BYTES_IN_JSVALUES)
+
 STATIC void check_invariant_nobw_space(struct space *space)
 {
   uintptr_t scan = space->addr;
@@ -1089,6 +1127,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
   while (scan < space->addr + space->bytes) {
     header_t *hdrp = (header_t *) scan;
     header_t header = *hdrp;
+    JSValue *payload = (JSValue *)(((header_t *) scan) + 1);
     switch (HEADER0_GET_TYPE(header)) {
     case HTAG_STRING:
     case HTAG_FLONUM:
@@ -1099,20 +1138,32 @@ STATIC void check_invariant_nobw_space(struct space *space)
     case HTAG_HASHTABLE:
     case HTAG_HASH_CELL:
       break;
+    case HTAG_PROPERTY_MAP:
+      {
+        PropertyMap *pm = (PropertyMap *) payload;
+        Shape *os;
+        for (os = pm->shapes; os != NULL; os = os->next)
+          assert(HEADER0_GET_TYPE(((JSValue *) os)[-1]) == HTAG_SHAPE);
+        goto DEFAULT;
+      }
     default:
+    DEFAULT:
       if (is_marked_cell_header(hdrp)) {
         /* this object is black; should not contain a pointer to white */
-        size_t payload_jsvalues = HEADER0_GET_SIZE(header);
+        size_t payload_jsvalues =
+          HEADER0_GET_SIZE(header)
+          - HEADER_JSVALUES
+          - HEADER0_GET_EXTRA(header);
         size_t i;
-        payload_jsvalues -= HEADER_JSVALUES;
-        payload_jsvalues -= HEADER0_GET_EXTRA(header);
         for (i = 0; i < payload_jsvalues; i++) {
-          uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
+          JSValue x = payload[i];
+          /* weak pointers */
+          /*
           if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
-            if (i ==
-                (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
+            if (i == OFFSET_OF(StrCons, str))
               continue;
           }
+          */
           if (in_js_space((void *)(x & ~7))) {
             assert(is_marked_cell((void *) (x & ~7)));
           }
