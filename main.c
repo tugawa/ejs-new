@@ -208,38 +208,9 @@ void print_cputime(time_t sec, suseconds_t usec) {
 void print_gc_prof()
 {
   int i;
-  char *htag_name[] = {
-    /* 00 */ "free",
-    /* 01 */ "",
-    /* 02 */ "",
-    /* 03 */ "",
-    /* 04 */ "STRING",
-    /* 05 */ "FLONUM",
-    /* 06 */ "SIMPLE_OBJECT",
-    /* 07 */ "ARRAY",
-    /* 08 */ "FUNCTION",
-    /* 09 */ "BUILTIN",
-    /* 0A */ "ITERATOR",
-    /* 0B */ "REGEXP",
-    /* 0C */ "BOXED_STRING",
-    /* 0D */ "BOXED_NUMBER",
-    /* 0E */ "BOXED_BOOLEAN",
-    /* 0F */ "",
-    /* 10 */ "",
-    /* 11 */ "PROP",
-    /* 12 */ "ARRAY_DATA",
-    /* 13 */ "FUNCTION_FRAME",
-    /* 14 */ "STR_CONS",
-    /* 15 */ "CONTEXT",
-    /* 16 */ "STACK",
-    /* 17 */ "HIDDEN_CLASS",
-    /* 18 */ "HASHTABLE",
-    /* 19 */ "HASH_BODY",
-    /* 1a */ "HASH_CELL",
-  };
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
-  for (i = 0; i <= 0x20; i++) {
+  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);
     printf(" %"PRId64" ",
@@ -260,7 +231,7 @@ void print_gc_prof()
              generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
       printf("l.count = %4"PRId64" ",
              generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
-      printf("%s\n", i <= 0x1a ? htag_name[i]: "");
+      printf("%s\n", HTAG_NAME(i));
     }
 }
 #endif /* GC_PROF */

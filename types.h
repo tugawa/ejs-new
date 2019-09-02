@@ -91,6 +91,14 @@ typedef uint16_t Tag;
 #define HTAG_PROPERTY_MAP   (0x1B)
 #define HTAG_SHAPE          (0x1C)
 
+#ifdef GC_PROF
+#define NUM_DEFINED_HTAG 0x1C
+extern const char *htag_name[NUM_DEFINED_HTAG + 1];
+#define HTAG_NAME(t) ((t) <= NUM_DEFINED_HTAG ? htag_name[t] : "")
+#else /* GC_PROF */
+#define HTAG_NAME(t) abort();  /* HTAG_NAME is only for GC profiling */
+#endif /* GC_PROF */
+
 #ifdef DEBUG
 #define DEBUG_NAME(name) name
 #else /* DEBUG */

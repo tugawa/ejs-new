@@ -162,6 +162,38 @@ uint64_t pertype_alloc_bytes[256];
 uint64_t pertype_alloc_count[256];
 uint64_t pertype_live_bytes[256];
 uint64_t pertype_live_count[256];
+
+const char *htag_name[NUM_DEFINED_HTAG + 1] = {
+    /* 00 */ "free",
+    /* 01 */ "",
+    /* 02 */ "",
+    /* 03 */ "",
+    /* 04 */ "STRING",
+    /* 05 */ "FLONUM",
+    /* 06 */ "SIMPLE_OBJECT",
+    /* 07 */ "ARRAY",
+    /* 08 */ "FUNCTION",
+    /* 09 */ "BUILTIN",
+    /* 0A */ "ITERATOR",
+    /* 0B */ "REGEXP",
+    /* 0C */ "BOXED_STRING",
+    /* 0D */ "BOXED_NUMBER",
+    /* 0E */ "BOXED_BOOLEAN",
+    /* 0F */ "",
+    /* 10 */ "",
+    /* 11 */ "PROP",
+    /* 12 */ "ARRAY_DATA",
+    /* 13 */ "FUNCTION_FRAME",
+    /* 14 */ "STR_CONS",
+    /* 15 */ "CONTEXT",
+    /* 16 */ "STACK",
+    /* 17 */ "HIDDEN_CLASS",
+    /* 18 */ "HASHTABLE",
+    /* 19 */ "HASH_BODY",
+    /* 1a */ "HASH_CELL",
+    /* 1b */ "HTAG_PROPERTY_MAP",
+    /* 1c */ "HTAG_SHAPE",
+};
 #endif /* GC_PROF */
 
 #ifdef GC_DEBUG
