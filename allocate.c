@@ -22,10 +22,10 @@ int count = 0;
  * allocates a flonum
  * Note that the return value does not have a pointer tag.
  */
-FlonumCell *allocate_flonum(double d)
+FlonumCell *allocate_flonum(Context *ctx, double d)
 {
   FlonumCell *n =
-    (FlonumCell *) gc_jsalloc_critical(sizeof(FlonumCell), HTAG_FLONUM);
+    (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM);
   n->value = d;
   return n;
 }
@@ -35,14 +35,13 @@ FlonumCell *allocate_flonum(double d)
  * It takes only the string length (excluding the last null character).
  * Note that the return value does not have a pointer tag.
  */
-StringCell *allocate_string(uint32_t length)
+StringCell *allocate_string(Context *ctx, uint32_t length)
 {
   /* plus 1 for the null terminater,
    * minus BYTES_IN_JSVALUE becasue StringCell has payload of
    * BYTES_IN_JSVALUE for placeholder */
   uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
-  StringCell *v =
-    (StringCell *) gc_jsalloc_critical(size, HTAG_STRING);
+  StringCell *v = (StringCell *) gc_malloc(ctx, size, HTAG_STRING);
 #ifdef STROBJ_HAS_HASH
   v->length = length;
 #endif
@@ -72,9 +71,9 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 /*
  * allocates an iterator
  */
-Iterator *allocate_iterator(void) {
+Iterator *allocate_iterator(Context *ctx) {
   Iterator *iter =
-    (Iterator *) gc_jsalloc_critical(sizeof(Iterator), HTAG_ITERATOR);
+    (Iterator *) gc_malloc(ctx, sizeof(Iterator), HTAG_ITERATOR);
   iterator_body(iter) = NULL;
   iterator_size(iter) = 0;
   iterator_index(iter) = 0;

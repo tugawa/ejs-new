@@ -966,8 +966,12 @@ void weak_clear_shape_recursive(PropertyMap *pm)
   HashIterator iter;
   HashCell *cell;
 
-  printf("weak_clear_shape %p\n", pm);
-
+#ifdef VERBOSE_GC_SHAPE
+#defien PRINT(x...) printf(x)
+#else /* VERBOSE_GC_SHAPE */
+#define PRINT(x...)
+#endif /* VERBOSE_GC_SHAPE */
+  
   for (p = &pm->shapes; *p != NULL; ) {
     Shape *os = *p;
     if (is_marked_cell(os))
@@ -976,7 +980,8 @@ void weak_clear_shape_recursive(PropertyMap *pm)
       Shape *skip = *p;
       *p = skip->next;
 #ifdef DEBUG
-      printf("skip %p emp: %d ext: %d\n", skip, skip->n_embedded_slots, skip->n_extension_slots);
+      PRINT("skip %p emp: %d ext: %d\n",
+            skip, skip->n_embedded_slots, skip->n_extension_slots);
       skip->next = NULL;  /* avoid Black->While check failer */
 #endif /* DEBUG */
     }
@@ -986,6 +991,8 @@ void weak_clear_shape_recursive(PropertyMap *pm)
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
     if (is_transition(cell->entry.attr))
       weak_clear_shape_recursive((PropertyMap *) cell->entry.data);
+
+#undef PRINT /* VERBOSE_GC_SHAPE */
 }
 
 void weak_clear_shapes()

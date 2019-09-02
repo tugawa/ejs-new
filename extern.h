@@ -56,10 +56,10 @@ extern "C" {
 /*
  * allocate.c
  */
-extern FlonumCell *allocate_flonum(double);
-extern StringCell *allocate_string(uint32_t);
+extern FlonumCell *allocate_flonum(Context *, double);
+extern StringCell *allocate_string(Context *, uint32_t);
 extern void reallocate_array_data(Context *, JSValue, int);
-extern Iterator *allocate_iterator(void);
+extern Iterator *allocate_iterator(Context *);
 extern void allocate_iterator_data(Context *, JSValue, int);
 
 /*

@@ -315,8 +315,8 @@ typedef struct iterator {
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
-#define make_iterator()                                 \
-  (put_normal_iterator_tag(allocate_iterator()))
+#define make_iterator(ctx)                              \
+  (put_normal_iterator_tag(allocate_iterator(ctx)))
 #define iterator_size(i)                        \
   ((remove_normal_iterator_tag(i))->size)
 #define iterator_index(i)                       \
@@ -331,9 +331,9 @@ typedef struct iterator {
  * Flonum
  */
 #define flonum_value(p)      (normal_flonum_value(p))
-#define double_to_flonum(n)  (double_to_normal_flonum(n))
+#define double_to_flonum(ctx, n)  (double_to_normal_flonum(ctx, n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
-#define cint_to_flonum(i)    (cint_to_normal_flonum(i))
+#define cint_to_flonum(ctx, i)    (cint_to_normal_flonum(ctx, i))
 #define flonum_to_double(p)  (normal_flonum_to_double(p))
 #define flonum_to_cint(p)    (normal_flonum_to_cint(p))
 #define flonum_to_int(p)     (normal_flonum_to_int(p))
@@ -348,9 +348,10 @@ typedef struct flonum_cell {
 } FlonumCell;
 
 #define normal_flonum_value(p)      ((remove_normal_flonum_tag(p))->value)
-#define double_to_normal_flonum(n)  (put_normal_flonum_tag(allocate_flonum(n)))
-#define int_to_normal_flonum(i)     cint_to_flonum(i)
-#define cint_to_normal_flonum(i)    double_to_flonum((double)(i))
+#define double_to_normal_flonum(ctx, n)                 \
+  (put_normal_flonum_tag(allocate_flonum(ctx, n)))
+#define int_to_normal_flonum(ctx, i)     cint_to_flonum(ctx, i)
+#define cint_to_normal_flonum(ctx, i)    double_to_flonum(ctx, (double)(i))
 #define normal_flonum_to_double(p)  flonum_value(p)
 #define normal_flonum_to_cint(p)    ((cint)(flonum_value(p)))
 #define normal_flonum_to_int(p)     ((int)(flonum_value(p)))
@@ -455,13 +456,13 @@ typedef uint64_t cuint;
 #define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
 
-#define cint_to_number(n)                                               \
-  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
+#define cint_to_number(ctx, n)                                           \
+  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
 
 #define number_to_double(p)                                     \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
-#define double_to_number(d)                                             \
-  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(d))
+#define double_to_number(ctx, d)                                        \
+  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(ctx, d))
 
 /*
  * Special

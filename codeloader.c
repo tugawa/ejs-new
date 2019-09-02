@@ -327,7 +327,7 @@ JSValue double_load(Context *ctx) {
   }
 #endif
   /* printf("double loaded, value = %lf\n", u.d); */
-  return double_to_number(u.d);
+  return double_to_number(ctx, u.d);
 }
 
 void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
@@ -541,7 +541,7 @@ int load_number_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
   if (index < 0) return -1;
   v0 = ctop[index];
   if (v0 == JS_UNDEFINED)
-    ctop[index] = double_to_number(d);
+    ctop[index] = double_to_number(NULL, d);  /* TODO: context */
   else {
     if (!is_number(v0)) {
       LOG_ERR("inconsistent constants at index %d", index);

@@ -184,13 +184,13 @@ JSValue string_to_number(JSValue v) {
       if (is_fixnum_range_cint(n))
         return cint_to_fixnum(n);
       else
-        return double_to_flonum((double)n);
+        return double_to_flonum(NULL, (double)n); /* TODO: context */
     }
   }
   d = strtod(p, &q);
   if (p != q) {
     if (*q == '\0')
-      return double_to_flonum(d);
+      return double_to_flonum(NULL, d); /* TODO: context */
   }
   return gconsts.g_flonum_nan;
 }

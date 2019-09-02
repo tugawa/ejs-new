@@ -15,7 +15,7 @@
   (set_a(context,                                               \
          (isnan((x))? gconsts.g_flonum_nan:                     \
           (is_fixnum_range_double((x))? double_to_fixnum((x)):  \
-           double_to_flonum((x))))))
+           double_to_flonum(context, (x))))))
 
 void math_func(Context *context, int fp, double (*fn)(double)) {
   JSValue v;

@@ -40,9 +40,9 @@ void init_global_constants(void) {
   gconsts.g_string_blank     = cstr_to_string(NULL, " ");
 
   /* numbers */
-  gconsts.g_flonum_infinity  = double_to_flonum(INFINITY);
-  gconsts.g_flonum_negative_infinity = double_to_flonum(-INFINITY);
-  gconsts.g_flonum_nan       = double_to_flonum(NAN);
+  gconsts.g_flonum_infinity  = double_to_flonum(NULL, INFINITY);
+  gconsts.g_flonum_negative_infinity = double_to_flonum(NULL, -INFINITY);
+  gconsts.g_flonum_nan       = double_to_flonum(NULL, NAN);
 
   /* boolean */
   gconsts.g_boolean_true  = JS_TRUE;
@@ -121,7 +121,7 @@ static void fill_builtin_properties(JSValue object,
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
     set_prop_direct(NULL, object, cstr_to_string(NULL, p->name),
-                    double_to_flonum(p->value), p->attr);
+                    double_to_flonum(NULL, p->value), p->attr);
   }
   for (i = 0; i < num_gconsts_props; i++) {
     ObjGconstsProp *p = &gconsts_props[i];
