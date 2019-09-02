@@ -268,6 +268,10 @@ extern JSValue new_regexp_object(Context *ctx, char *name, Shape *os,
 extern PropertyMap *new_property_map(Context *ctx, char *name,
                                      int n_special_props, int n_props,
                                      JSValue __proto__, PropertyMap *prev);
+extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
+                                            JSValue name, int data,
+                                            Attribute attr);
+
 extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                                int num_embedded, int num_extension);
 

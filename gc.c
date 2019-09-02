@@ -132,9 +132,9 @@ struct space {
   char *name;
 };
 
-struct property_map_weak_list {
+struct property_map_roots {
   PropertyMap *pm;
-  struct property_map_weak_list *next;
+  struct property_map_roots *next;
 };
 
 enum gc_phase {
@@ -211,7 +211,7 @@ const char *htag_name[NUM_DEFINED_HTAG + 1] = {
 STATIC void sanity_check();
 #endif /* GC_DEBUG */
 
-struct property_map_weak_list *property_map_weak_list;
+struct property_map_roots *property_map_roots;
 
 /*
  * prototype
@@ -463,7 +463,7 @@ STATIC void garbage_collection(Context *ctx)
   GCLOG("Before Garbage Collection\n");
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
-  property_map_weak_list = NULL;
+  property_map_roots = NULL;
 
   /* mark */
   gc_phase = PHASE_MARK;
@@ -712,13 +712,13 @@ STATIC void process_edge(uintptr_t ptr)
       process_edge((uintptr_t) p->__proto__);
       /* collect children of roots for entriy points of weak lists */
       if (p->prev == gconsts.g_property_map_root) {
-        struct property_map_weak_list *e =
-          (struct property_map_weak_list *)
-          space_alloc(&js_space, sizeof(struct property_map_weak_list),
+        struct property_map_roots *e =
+          (struct property_map_roots *)
+          space_alloc(&js_space, sizeof(struct property_map_roots),
                       HTAG_FREE);
         e->pm = p;
-        e->next = property_map_weak_list;
-        property_map_weak_list = e;
+        e->next = property_map_roots;
+        property_map_roots = e;
       }
       return;
     }
@@ -1037,15 +1037,78 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
 
-void weak_clear_shapes()
+STATIC void weak_clear_shapes()
 {
-  PropertyMap *pm = gconsts.g_property_map_root;
-  struct property_map_weak_list *e;
-  weak_clear_shape_recursive(pm);
-  for (e = property_map_weak_list; e != NULL; e = e->next)
+  struct property_map_roots *e;
+  for (e = property_map_roots; e != NULL; e = e->next)
     weak_clear_shape_recursive(e->pm);
-  property_map_weak_list = NULL;
 }
+
+#ifdef HC_SKIP_INTERNAL
+/*
+ * Get the only transision from internal node.
+ */
+static PropertyMap* get_transition_dest(PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr)) {
+      PropertyMap *ret = (PropertyMap *) p->entry.data;
+#ifdef GC_DEBUG
+      while(nextHashCell(pm->map, &iter, &p) != FAIL)
+        assert(!is_transition(p->entry.attr));
+#endif /* GC_DEBUG */
+      return ret;
+    }
+  abort();
+  return NULL;
+}
+
+static void weak_clear_property_map_recursive(PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  assert(is_marked_cell(pm));
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr)) {
+      PropertyMap *next = (PropertyMap *) p->entry.data;
+      /*
+       * If the next node is both
+       *   1. not pointed to through strong pointers and
+       *   2. outgoing edge is exactly 1,
+       * then, the node is an internal node.
+       */
+      while (!is_marked_cell(next) && next->n_transitions == 1) {
+        printf("skip PropertyMap %p\n", next);
+        next = (PropertyMap *) get_transition_dest(next);
+      }
+      if (is_marked_cell(next))
+        printf("preserve PropertyMap %p because it has been marked\n", next);
+      else
+        printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
+               next, next->n_props, next->n_transitions);
+      /* Resurrect if it is branching node or terminal node */
+      if (!is_marked_cell(next))
+        process_edge((uintptr_t) next);
+      p->entry.data = (HashData) next;
+      next->prev = pm;
+      weak_clear_property_map_recursive(next);
+    }
+}
+
+STATIC void weak_clear_property_maps()
+{
+  struct property_map_roots *e;
+  for (e = property_map_roots; e != NULL; e = e->next)
+    weak_clear_property_map_recursive(e->pm);
+}
+#endif /* HC_SKIP_INTERNAL */
 
 #ifdef HC_PROF
 
@@ -1054,7 +1117,11 @@ void weak_clear_shapes()
 STATIC void weak_clear(void)
 {
   weak_clear_StrTable(&string_table);
+#ifdef HC_SKIP_INTERNAL
+  weak_clear_property_maps();
+#endif /* HC_SKIP_INTERNAL */
   weak_clear_shapes();
+  property_map_roots = NULL;
 #ifdef HC_PROF
   /*  weak_clear_hcprof_entrypoints(); */
 #endif /* HC_PROF */

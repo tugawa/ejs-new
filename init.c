@@ -76,18 +76,18 @@ static Shape *create_map_and_shape(char *name,
                        gconsts.g_property_map_root);
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
-    hash_put_with_attribute(NULL, m->map, cstr_to_string(NULL, p->name),
-                            index++, p->attr);
+    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+                                    index++, p->attr);
   }
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
-    hash_put_with_attribute(NULL, m->map, cstr_to_string(NULL, p->name),
-                            index++, p->attr);
+    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+                                    index++, p->attr);
   }
   for (i = 0; i < num_gconsts_props; i++) {
     ObjGconstsProp *p = &gconsts_props[i];
-    hash_put_with_attribute(NULL, m->map, cstr_to_string(NULL, p->name),
-                            index++, p->attr);
+    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+                                    index++, p->attr);
   }
   s = new_object_shape(NULL, name, m, num_embedded, 0);
   return s;

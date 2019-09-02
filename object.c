@@ -13,6 +13,8 @@
 
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
+static void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                        JSValue name, PropertyMap *dest);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
 #ifdef HC_PROF
 static void hcprof_add_root_property_map(PropertyMap *pm);
@@ -464,6 +466,9 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->__proto__ = __proto__;
   m->n_props   = n_props;
   m->n_special_props = n_special_props;
+#ifdef HC_SKIP_INTERNAL
+  m->n_transitions = 0;
+#endif /* HC_SKIP_INTERNAL */
 
 #ifdef DEBUG
   m->name = name;
@@ -506,15 +511,35 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
   hash_copy(ctx, prev->map, m->map);
 
   /* 3. Add property */
-  hash_put_with_attribute(ctx, m->map, prop_name, index, attr);
-
+  property_map_add_property_entry(ctx, m, prop_name, index, attr);
+ 
   /* 4. Create an edge from prev to new property map. */
-  hash_put_with_attribute(ctx, prev->map, prop_name, (HashData) m,
-                          ATTR_NONE | ATTR_TRANSITION);
+  property_map_add_transition(ctx, prev, prop_name, m);
 
   GC_POP3(m, prop_name, prev);
 
   return m;
+}
+
+void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
+                                     JSValue name, int index, Attribute attr)
+{
+  hash_put_with_attribute(ctx, pm->map, name, (HashData) index, attr);
+}
+
+static void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                        JSValue name, PropertyMap *dest)
+{
+#ifdef HC_SKIP_INTERNAL
+  uint16_t current_n_trans = pm->n_transitions;
+  pm->n_transitions = PM_N_TRANS_UNSURE;
+  hash_put_with_attribute(ctx, pm->map, name, (HashData) dest,
+                          ATTR_NONE | ATTR_TRANSITION);
+  pm->n_transitions = current_n_trans + 1;
+#else /* HC_SKIP_INTERNAL */
+  hash_put_with_attribute(ctx, pm->map, name, (HashData) dest,
+                          ATTR_NONE | ATTR_TRANSITION);
+#endif /* HC_SKIP_INTERNAL */
 }
 
 Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,

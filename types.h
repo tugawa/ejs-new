@@ -125,7 +125,13 @@ typedef struct property_map {
   JSValue   __proto__;       /* [const] __proto__ of the object. */
   uint32_t n_props;          /* [const] Number of properties in map.
                               * This number includes special props. */
-  uint32_t n_special_props;  /* [const] Number of special props. */
+  uint16_t n_special_props;  /* [const] Number of special props. */
+#ifdef HC_SKIP_INTERNAL
+  uint16_t n_transitions;    /* [const] Number of transitions. Used by GC.
+                              * 2 bits (0, 1, more, and UNSURE) would
+                              * suffice. */
+#define PM_N_TRANS_UNSURE (1 << 15)
+#endif /* HC_SKIP_INTERNAL */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
