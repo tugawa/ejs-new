@@ -277,6 +277,7 @@ extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
 #ifdef ALLOC_SITE_CACHE
 extern JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
                                                      AllocSite *as);
+extern JSValue create_array_object(Context *ctx, char *name, size_t size);
 #else /* ALLOC_SITE_CACHE */
 extern JSValue create_simple_object_with_constructor(Context *ctx,
                                                      JSValue ctor);

@@ -1054,11 +1054,12 @@ STATIC void weak_clear_property_maps()
 
 STATIC void weak_clear(void)
 {
-  weak_clear_StrTable(&string_table);
 #ifdef HC_SKIP_INTERNAL
+  /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
   weak_clear_property_maps();
 #endif /* HC_SKIP_INTERNAL */
   weak_clear_shapes();
+  weak_clear_StrTable(&string_table);
   property_map_roots = NULL;
 #ifdef HC_PROF
   /*  weak_clear_hcprof_entrypoints(); */

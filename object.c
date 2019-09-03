@@ -118,9 +118,9 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
   assert(is_jsobject(obj));
   assert(is_string(name));
 
-  PRINT("set_prop shape %p PM %p prop %s %s\n",
+  PRINT("set_prop shape %p PM %p prop %s (%llx) %s\n",
         object_get_shape(obj), object_get_shape(obj)->pm,
-        string_to_cstr(name), skip_setter ? "(skip setter)" : "");
+        string_to_cstr(name), name, skip_setter ? "(skip setter)" : "");
 
   if (!skip_setter) {
     /* __proto__ is stored in the dedicated field of property map */
@@ -159,16 +159,16 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     /* compute new size of extension array */
     if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
       n_extension = need_slots - (n_embedded - 1);
-    PRINT("  finding shape for PM %p EM/EX %lu %lu\n",
-           next_pm, n_embedded, n_extension);
+    PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
+          next_pm, next_pm->n_props, n_embedded, n_extension);
     for (next_os = next_pm->shapes; next_os != NULL; next_os = next_os->next)
       if (next_os->n_embedded_slots == n_embedded &&
           next_os->n_extension_slots == n_extension) {
         PRINT("    found: %p\n", next_os);
         break;
       } else
-        PRINT("    not the one %p: EM/EX %lu %lu\n",
-              next_os, n_embedded, n_extension);
+        PRINT("    not the one %p: EM/EX %d %d\n",
+              next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
 
     /* 3. If there is not compatible shape, create it. */
     if (next_os == NULL) {
@@ -509,7 +509,14 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
   GC_PUSH(m);
 
   /* 2. Copy existing entries */
+#ifdef DEBUG
+  {
+    int n = hash_copy(ctx, prev->map, m->map);
+    assert(n == prev->n_props - prev->n_special_props);
+  }
+#else /* DEBUG */
   hash_copy(ctx, prev->map, m->map);
+#endif /* DEBUG */
 
   /* 3. Add property */
   property_map_add_property_entry(ctx, m, prop_name, index, attr);
@@ -618,6 +625,32 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
   GC_POP2(os, p);
 }
 
+
+#ifdef ALLOC_SITE_CACHE
+static Shape *get_cached_shape(Context *ctx, AllocSite *as,
+                               JSValue __proto__, int n_special)
+{
+  /* 1. check if cache is available and compatible */
+  if (as != NULL && as->pm &&
+      (as->pm->__proto__ == __proto__ || as->pm->__proto__ == JS_EMPTY)) {
+    assert(as->pm->n_special_props == n_special);
+    if (as->shape == NULL) {
+      /* 2. if cached Shape is not available, find shape created for
+       *    other alloction site. */
+      if (as->pm->shapes != NULL &&
+          as->pm->shapes->n_embedded_slots == as->pm->n_props)
+        as->shape = as->pm->shapes;
+      else
+        /* 3. if there is not, create it */
+        as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
+                                     as->pm->n_props, 0);
+    }
+    return as->shape;
+  }
+  return NULL;
+}
+#endif /* ALLOC_SITE_CACHE */
+
 /**
  * The most normal way to create an object.
  * Called from ``new'' instruction.
@@ -639,23 +672,8 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
     prototype = gconsts.g_prototype_Object;
 
 #ifdef ALLOC_SITE_CACHE
-  /* 1. check if cache is available and compatible */
-  if (as != NULL && as->pm &&
-      (as->pm->__proto__ == prototype || as->pm->__proto__ == JS_EMPTY)) {
-    assert(as->pm->n_special_props == OBJECT_SPECIAL_PROPS);
-    if (as->shape == NULL) {
-      /* 2. if cached Shape is not available, find shape created for
-       *    other alloction site. */
-      if (as->pm->shapes != NULL &&
-          as->pm->shapes->n_embedded_slots == as->pm->n_props)
-        as->shape = as->pm->shapes;
-      else
-        /* 3. if there is not, create it */
-        as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
-                                     as->pm->n_props, 0);
-    }
-    os = as->shape;
-  } else
+  os = get_cached_shape(ctx, as, prototype, OBJECT_SPECIAL_PROPS);
+  if (os == NULL)
 #endif /* ALLOC_SITE_CACHE */
     {
       JSValue retv;
@@ -691,10 +709,27 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
 
   obj = new_simple_object(ctx, DEBUG_NAME("inst:new"), os);
 #ifdef ALLOC_SITE_CACHE
+  if (os->pm->__proto__ == JS_EMPTY)
+    set_prop(ctx, obj, gconsts.g_string___proto__, prototype, ATTR_NONE);
   object_set_alloc_site(obj, as);
 #endif /* ALLOC_SITE_CACHE */
   return obj;
 }
+
+#ifdef ALLOC_SITE_CACHE
+JSValue create_array_object(Context *ctx, char *name, size_t size)
+{
+  JSValue obj;
+  AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
+  Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
+                               ARRAY_SPECIAL_PROPS);
+  if (os == NULL)
+    os = gconsts.g_shape_Array;
+  obj = new_array_object(ctx, name, os, size);
+  object_set_alloc_site(obj, as);
+  return obj;
+}
+#endif /* ALLOC_SITE_CACHE */
 
 #ifdef ALLOC_SITE_CACHE
 void init_alloc_site(AllocSite *alloc_site)

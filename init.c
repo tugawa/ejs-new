@@ -69,7 +69,7 @@ static Shape *create_map_and_shape(char *name,
   uint32_t num_normal_props =
     num_builtin_props + num_double_props + num_gconsts_props;
   uint32_t num_props = num_normal_props + num_special;
-  uint32_t num_embedded = num_special + (num_props == 0 ? 1 : num_props);
+  uint32_t num_embedded = num_props + (num_normal_props == 0 ? 1 : 0);
   uint32_t index = num_special;
 
   m = new_property_map(NULL, name, num_special, num_props, proto,
@@ -192,6 +192,8 @@ void init_meta_objects(void)
         new_boolean_object, JS_FALSE);
   STEP1(Number,   OBJPROTO, NUMBER_SPECIAL_PROPS,  NUMBER_SPECIAL_PROPS,
         new_number_object, FIXNUM_ZERO);
+
+  gconsts.g_property_map_Object = gconsts.g_shape_Object->pm;
 
 #undef OBJPROTO
 #undef STEP1
