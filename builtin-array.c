@@ -60,11 +60,11 @@ BUILTIN_FUNCTION(array_constr)
   size = compute_asize(length);
 
   /* allocate the array */
-#ifdef ALLOC_SIET_CACHE
+#ifdef ALLOC_SITE_CACHE
+  rsv = create_array_object(context, DEBUG_NAME("array_ctor"), size);
+#else /* ALLOC_SITE_CACHE */
   rsv = new_array_object(context, DEBUG_NAME("array_ctor"),
                          gconsts.g_shape_Array, size);
-#else /* ALLOC_SITE_CACHE */
-  rsv = create_array_object(context, DEBUG_NAME("array_ctor"), size);
 #endif /* ALLOC_SITE_CACHE */
   array_length(rsv) = length;  /* TODO: implement property */
 

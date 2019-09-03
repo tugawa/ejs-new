@@ -198,7 +198,11 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
  * Get property of the object. This does not follow the property chain.
  * If the object does not have the property, it returns JS_EMPTY.
  */
+#ifdef INLINE_CACHE
+JSValue get_prop_with_ic(JSValue obj, JSValue name, InlineCache *ic)
+#else /* INLINE_CACHE */
 JSValue get_prop(JSValue obj, JSValue name)
+#endif /* INLINE_CACHE */
 {
   int index;
   Attribute attr;
@@ -213,6 +217,14 @@ JSValue get_prop(JSValue obj, JSValue name)
   index = prop_index(remove_jsobject_tag(obj), name, &attr, NULL);
   if (index == -1 || is_system_prop(attr))
     return JS_EMPTY;
+#ifdef INLINE_CACHE
+  if (ic != NULL && ic->shape == NULL &&
+      object_get_shape(obj)->n_extension_slots == 0) {
+    ic->shape = object_get_shape(obj);
+    ic->prop_name = name;
+    ic->index = index;
+  }
+#endif /* INLINE_CACHE */
   return object_get_prop(obj, index);
 }
 
@@ -235,11 +247,25 @@ static JSValue get_system_prop(JSValue obj, JSValue name)
  * If the property is not defined in any object on the chain, it returns
  * JS_UNDEFINED.
  */
+#ifdef INLINE_CACHE
+JSValue get_prop_prototype_chain_with_ic(JSValue obj, JSValue name,
+                                         InlineCache *ic)
+#else /* INLINE_CACHE */
 JSValue get_prop_prototype_chain(JSValue obj, JSValue name)
+#endif /* INLINE_CACHE */
 {
+
+#ifdef INLINE_CACHE
+  if (is_object(obj)) {
+    JSValue ret = get_prop_with_ic(obj, name, ic);
+    if (ret != JS_EMPTY)
+      return ret;
+    obj = get_prop(obj, gconsts.g_string___proto__);
+  }
+#endif /* INLINE_CACHE */
+
   while (is_jsobject(obj)) {
-    JSValue ret;
-    ret = get_prop(obj, name);
+    JSValue ret = get_prop(obj, name);
     if (ret != JS_EMPTY)
       return ret;
     obj = get_prop(obj, gconsts.g_string___proto__);
@@ -739,6 +765,15 @@ void init_alloc_site(AllocSite *alloc_site)
   alloc_site->polymorphic = 0;
 }
 #endif /* ALLOC_SITE_CACHE */
+
+#ifdef INLINE_CACHE
+void init_inline_cache(InlineCache *ic)
+{
+  ic->shape = NULL;
+  ic->prop_name = JS_EMPTY;
+  ic->index = 0;
+}
+#endif /* INLINE_CACHE */
 
 #include "object-compat.c"
 

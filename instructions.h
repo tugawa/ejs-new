@@ -172,6 +172,15 @@ typedef struct alloc_site {
 } AllocSite;
 #endif /* ALLOC_SITE_CACHE */
 
+#ifdef INLINE_CACHE
+struct shape;
+typedef struct inline_cache {
+  struct shape *shape;
+  JSValue prop_name;
+  int index;
+} InlineCache;
+#endif /* INLINE_CACHE */
+
 /*
  * instruction
  */
@@ -181,6 +190,9 @@ typedef struct instruction {
 #ifdef ALLOC_SITE_CACHE
   AllocSite alloc_site;
 #endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  InlineCache inl_cache;
+#endif /* INLINE_CACHE */
 #ifdef PROFILE
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */

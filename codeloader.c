@@ -608,6 +608,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 #ifdef ALLOC_SITE_CACHE
   init_alloc_site(&insns[pc].alloc_site);
 #endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  init_inline_cache(&insns[pc].inl_cache);
+#endif /* INLINE_CACHE */
 
 #ifdef PROFILE
   {
@@ -824,6 +827,9 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
 #ifdef ALLOC_SITE_CACHE
   init_alloc_site(&insns[pc].alloc_site);
 #endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  init_inline_cache(&insns[pc].inl_cache);
+#endif /* INLINE_CACHE */
 
   switch (insn_info_table[oc].otype) {
   case BIGPRIMITIVE:

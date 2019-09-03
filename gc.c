@@ -229,7 +229,9 @@ STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+#ifdef ALLOC_SITE_CACHE
 STATIC void alloc_site_update_info(JSObject *p);
+#endif /* ALLOC_SITE_CACHE */
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
@@ -727,7 +729,12 @@ STATIC void process_edge(uintptr_t ptr)
     {
       Shape *p = (Shape *) ptr;
       process_edge((uintptr_t) p->pm);
+#ifdef WEAK_SHAPE_LIST
       /* p->next is weak */
+#else /* WEAK_SHAPE_LIST */
+      if (p->next != NULL)
+        process_edge((uintptr_t) p->next);
+#endif /* WEAK_SHAPE_LIST */
       return;
     }
   default:
@@ -851,6 +858,21 @@ STATIC void scan_function_table_entry(FunctionTable *p)
     }
   }
 #endif /* ALLOC_SITE_CACHE */
+
+#ifdef INLINE_CACHE
+  /* scan Inline Cache */
+  {
+    size_t i;
+    for (i = 0; i < p->n_insns; i++) {
+      Instruction *insn = &p->insns[i];
+      InlineCache *ic = &insn->inl_cache;
+      if (ic->shape != NULL) {
+        process_edge((uintptr_t) ic->shape);
+        process_edge((uintptr_t) ic->prop_name);
+      }
+    }
+  }
+#endif /* INLINE_CACHE */
 }
 
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
@@ -936,6 +958,7 @@ STATIC void weak_clear_StrTable(StrTable *table)
   }
 }
 
+#ifdef WEAK_SHAPE_LIST
 void weak_clear_shape_recursive(PropertyMap *pm)
 {
   Shape **p;
@@ -977,6 +1000,7 @@ STATIC void weak_clear_shapes()
   for (e = property_map_roots; e != NULL; e = e->next)
     weak_clear_shape_recursive(e->pm);
 }
+#endif /* WEAK_SHAPE_LIST */
 
 #ifdef HC_SKIP_INTERNAL
 /*
@@ -1058,7 +1082,9 @@ STATIC void weak_clear(void)
   /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
   weak_clear_property_maps();
 #endif /* HC_SKIP_INTERNAL */
+#ifdef WEAK_SHAPE_LIST
   weak_clear_shapes();
+#endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable(&string_table);
   property_map_roots = NULL;
 #ifdef HC_PROF

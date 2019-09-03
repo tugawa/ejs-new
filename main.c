@@ -208,8 +208,18 @@ void print_cputime(time_t sec, suseconds_t usec) {
 void print_gc_prof()
 {
   int i;
+  uint64_t total_live_bytes = 0;
+  uint64_t total_live_count = 0;
+
+  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
+    total_live_bytes += pertype_live_bytes[i];
+    total_live_count += pertype_live_count[i];
+  }
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
+  printf(" %"PRId64" %"PRId64" ",
+         generation > 1 ? total_live_bytes / (generation - 1) : 0,
+         generation > 1 ? total_live_count / (generation - 1) : 0);
   for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);

@@ -243,8 +243,19 @@ extern void set_prop_(Context *ctx, JSValue obj, JSValue name,
                       JSValue v, Attribute att, int skip_setter);
 #define set_prop(c,o,n,v,a) set_prop_(c,o,n,v,a,0)
 #define set_prop_direct(c,o,n,v,a) set_prop_(c,o,n,v,a,1)
+#ifdef INLINE_CACHE
+extern JSValue get_prop_with_ic(JSValue obj, JSValue name,
+                                InlineCache *ic);
+#define get_prop(obj, name)                     \
+  get_prop_with_ic(obj, name, NULL)
+extern JSValue get_prop_prototype_chain_with_ic(JSValue obj, JSValue name,
+                                                InlineCache *ic);
+#define get_prop_prototype_chain(obj, name)             \
+  get_prop_prototype_chain_with_ic(obj, name, NULL)
+#else /* INLINE_CACHE */
 extern JSValue get_prop(JSValue obj, JSValue name);
 extern JSValue get_prop_prototype_chain(JSValue obj, JSValue name);
+#endif /* INLINE_CACHE */
 
 extern JSValue new_simple_object(Context *ctx, char *name, Shape *os);
 extern JSValue new_array_object(Context *ctx, char *name, Shape *os,
@@ -287,6 +298,10 @@ extern JSValue create_simple_object_with_constructor(Context *ctx,
 extern void init_alloc_site(AllocSite *alloc_site);
 #endif /* ALLOC_SITE_CACEH */
 
+#ifdef INLINE_CACHE
+extern void init_inline_cache(InlineCache *ic);
+#endif /* INLINE_CACHE */
+
 #ifdef HC_PROF
 extern void hcprof_print_all_hidden_class(void);
 #endif /* HC_PROF */
@@ -294,7 +309,12 @@ extern void hcprof_print_all_hidden_class(void);
 /*
  * object-compat.c
  */
+#ifdef INLINE_CACHE
+extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name,
+                               InlineCache *ic);
+#else /* INLINE_CACHE */
 extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name);
+#endif /* INLINE_CACHE */
 extern JSValue get_array_prop(Context *ctx, JSValue obj, JSValue name);
 extern int has_array_element(JSValue a, cint n);
 extern int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v);
