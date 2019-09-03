@@ -98,7 +98,7 @@ class PatternDict {
 
         public void replace(SyntaxTree node) {
             String v2 = node.get(Symbol.unique("var")).toText();
-            
+
             SyntaxTree result = (SyntaxTree)pattern.dup();
             new ReplaceNameVisitor().start(result, varName, v2);
             node.setTag(result.getTag());

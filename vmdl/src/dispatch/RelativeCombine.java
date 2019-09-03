@@ -123,7 +123,7 @@ public class RelativeCombine {
             root.accept(gv);
             ArrayList<Node> nodes = gv.get();
 
-            
+
             /* sort */
             /*
             nodes.sort(new Comparator<Node>() {
@@ -144,11 +144,11 @@ public class RelativeCombine {
                     };
                     int a = ax.accept(v);
                     int b = bx.accept(v);
-                    
+
                     return a - b;
                 }
             });
-            */
+             */
             nodes.sort(new Comparator<Node>() {
                 @Override
                 public int compare(Node o1, Node o2) {

@@ -38,7 +38,7 @@ public class OperandSpecifications {
     }
     List<OperandSpecificationRecord> spec;
     Map<String, Integer> arities;
-    
+
     void load(Scanner sc) {
         final String P_SYMBOL = "[a-zA-Z_]+";
         final String P_OPERANDS = "\\(\\s*([^)]*)\\s*\\)";
@@ -189,7 +189,7 @@ public class OperandSpecifications {
     public Set<VMDataType[]> getErrorOperands(String insnName) {
         return getOperands(insnName, OperandSpecificationRecord.Behaviour.ERROR);
     }
-    
+
     static class OperandVMDataTypeVecSet extends VMDataTypeVecSet {
         OperandSpecifications opSpec;
         String insnName;
@@ -198,7 +198,7 @@ public class OperandSpecifications {
             this.opSpec = opSpec;
             this.insnName = insnName;
         }
-        
+
         @Override
         public AstType getMostSpecificType(String vn) {
             Set<VMDataType[]> dtss = opSpec.getAcceptOperands(insnName);
@@ -210,7 +210,7 @@ public class OperandSpecifications {
             return opSpec.getAcceptOperands(insnName);
         }
     }
-    
+
     public VMDataTypeVecSet getAccept(String insnName, String[] paramNames) {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
     }
@@ -219,7 +219,7 @@ public class OperandSpecifications {
         Set<String[]> result = new HashSet<String[]>();
         for (OperandSpecificationRecord rec : spec) {
             if (insnName.equals(rec.insnName) &&
-                rec.behaviour == OperandSpecificationRecord.Behaviour.ERROR) {
+                    rec.behaviour == OperandSpecificationRecord.Behaviour.ERROR) {
                 result.add(rec.operandTypes);
             }
         }

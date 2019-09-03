@@ -17,27 +17,27 @@ import type.VMDataTypeVecSet;
 
 public class MatchProcessor {
     static final boolean DEBUG = false;
-    
+
     String[] formalParams;
     String label;
     // following two lists share index
     List<Set<VMDataType[]>> vmtVecCondList;
     List<SyntaxTree> caseBodyAsts;
-    
+
     MatchProcessor(SyntaxTree node) {
         caseBodyAsts = new ArrayList<SyntaxTree>();
-        
+
         /* retrieve formal parameters */
         SyntaxTree params = node.get(Symbol.unique("params"));
         formalParams = new String[params.size()];
         for (int i = 0; i < params.size(); i++)
             formalParams[i] = params.get(i).toText();
-        
+
         /* retrieve label */
         Tree<?> labelNode = node.get(Symbol.unique("label"), null);
         if (labelNode != null)
             label = labelNode.toText();
-        
+
         /* compute conditions */
         SyntaxTree cases = node.get(Symbol.unique("cases"));
         RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
@@ -79,7 +79,7 @@ public class MatchProcessor {
             System.out.println("======== Computed Condition End ========");
         }
     }   
-    
+
     private RuleSetBuilder.Node toRsbAst(Tree<?> n, RuleSetBuilder rsb) {
         if (n.is(Symbol.unique("AndPattern"))) {
             RuleSetBuilder.Node left = toRsbAst(n.get(0), rsb);
@@ -111,21 +111,21 @@ public class MatchProcessor {
     String getLabel() {
         return label;
     }
-    
+
     /* old interface */
     Set<VMDataType[]> getVmtVecCond(int index) {
         return vmtVecCondList.get(index);
     }
-    
+
     /* new interface */
     VMDataTypeVecSet getVMDataTypeVecSet(int index) {
         return new VMDataTypeVecSet.BySet(formalParams, vmtVecCondList.get(index));
     }
-    
+
     SyntaxTree getBodyAst(int index) {
         return caseBodyAsts.get(index);
     }
-    
+
     int size() {
         return vmtVecCondList.size();
     }

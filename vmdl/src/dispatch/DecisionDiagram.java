@@ -64,7 +64,7 @@ public class DecisionDiagram {
         }
 
         abstract <R> R accept(NodeVisitor<R> visitor);
-        
+
         int depth() {
             int max = 0;
             for (Node child: getChildren()) {
@@ -341,7 +341,7 @@ public class DecisionDiagram {
             root = digger.dig(root);
         }
     }
-    
+
     public boolean isEmpty() {
         return root == null;
     }
@@ -396,5 +396,5 @@ public class DecisionDiagram {
     static String debugGenerateCodeForNode(Node node) {
         return generateCodeForNode(node, new String[] {"a", "b", "c", "d", "e"}, new CodeGenerateVisitor.Macro());
     }
-    */
+     */
 }

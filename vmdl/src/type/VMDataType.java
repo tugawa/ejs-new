@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class VMDataType implements Comparable<VMDataType> {
     static final boolean DEBUG_WITH_SMALL = false;
-    
+
     static Map<String, VMDataType> definedVMDataTypes = new HashMap<String, VMDataType>();
 
     static void defineVMDataType(String name, boolean isObject) {
@@ -35,7 +35,7 @@ public class VMDataType implements Comparable<VMDataType> {
         this.id = definedVMDataTypes.size();
         reptypes = new ArrayList<VMRepType>();
     }
-    
+
     static {
         if (DEBUG_WITH_SMALL) {
             defineVMDataType("string", false);
@@ -93,7 +93,7 @@ public class VMDataType implements Comparable<VMDataType> {
     public boolean isObject() {
         return mIsObject;
     }
-    
+
     public int getID() {
         return id;
     }
@@ -107,7 +107,7 @@ public class VMDataType implements Comparable<VMDataType> {
             s += " " + r;
         }
         return s;
-        */
+         */
     }
 
     @Override

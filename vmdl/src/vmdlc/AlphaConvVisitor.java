@@ -50,7 +50,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     boolean isVoidFunction;
-    
+
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -66,7 +66,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(defNode, dict);
         }
     }
-    
+
     public class FunctionDefinition extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -93,7 +93,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> seq : body) {
                 visit(seq, dict);
             }
-            */
+             */
 
             dict.popFrame();
         }
@@ -140,7 +140,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.internF(name);
         }
     }
-    */
+     */
 
     public  class DoInit extends DefaultVisitor {
         @Override

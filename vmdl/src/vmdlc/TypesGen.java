@@ -48,7 +48,7 @@ public class TypesGen {
 
         if (dts.containsAll(among))
             return "1";
-        
+
         ClassifiedVMRepTypes targetMap = new ClassifiedVMRepTypes(dts);
         ClassifiedVMRepTypes amongMap = new ClassifiedVMRepTypes(among);
 
@@ -66,7 +66,7 @@ public class TypesGen {
                     hts.add(rt.getHT());
             }
         }
-        
+
         StringBuilder sb = new StringBuilder();
         sb.append("(((0");
         for (VMRepType.PT pt : common)
@@ -81,7 +81,7 @@ public class TypesGen {
             sb.append(" || ")
             .append(String.format("(((x) & %s_MASK) == %s)", pt.getName(), pt.getName()));
         sb.append(")");
-        
+
         return sb.toString();
     }
 
@@ -155,7 +155,7 @@ public class TypesGen {
         }
         return sb.toString();
     }
-    
+
     String defineTagOperations() {
         StringBuilder sb = new StringBuilder();
 

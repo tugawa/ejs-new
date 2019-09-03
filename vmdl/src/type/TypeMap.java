@@ -43,7 +43,7 @@ public class TypeMap {
     }
     public TypeMap select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        
+
         for (String v : domain) {
             newGamma.put(v, dict.get(v));
         }
@@ -113,7 +113,7 @@ public class TypeMap {
             AstType t = vtvs.getMostSpecificType(varNames[i]);
             newGamma.put(varNames[i], t);
         }
-        
+
         /* add other variables */
         for (String v : dict.keySet()) {
             AstType t = dict.get(v);
@@ -121,7 +121,7 @@ public class TypeMap {
             if (index == -1)
                 newGamma.put(v, t);
         }
-        
+
         return new TypeMap(newGamma);
     }
 
@@ -166,26 +166,26 @@ public class TypeMap {
         }
         return filtered;
     }
-    
+
     public boolean hasBottom() {
         for (AstType t: dict.values())
             if (t == AstType.BOT)
                 return true;
         return false;
     }
-    
+
     @Override
     public String toString() {
         return dict.toString();
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj ||
-            obj != null && obj instanceof TypeMap) {
-                TypeMap tm = (TypeMap)obj;
+                obj != null && obj instanceof TypeMap) {
+            TypeMap tm = (TypeMap)obj;
             return (dict != null && tm.dict !=null && dict.equals(tm.dict)) ||
-                (exprType != null && tm.exprType != null && exprType.equals(tm.exprType));
+                    (exprType != null && tm.exprType != null && exprType.equals(tm.exprType));
         } else {
             return false;
         }

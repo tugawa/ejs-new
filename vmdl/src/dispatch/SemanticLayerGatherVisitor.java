@@ -38,11 +38,11 @@ class SemanticLayerGatherVisitor extends NodeVisitor<Void> {
     @Override
     <T> Void visitTagNode(TagNode<T> node) {
         if ((node instanceof DecisionDiagram.PTNode &&
-             ref instanceof DecisionDiagram.PTDispatch &&
-             node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
-            (node instanceof DecisionDiagram.HTNode &&
-             ref instanceof DecisionDiagram.HTDispatch &&
-             node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
+                ref instanceof DecisionDiagram.PTDispatch &&
+                node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
+                (node instanceof DecisionDiagram.HTNode &&
+                        ref instanceof DecisionDiagram.HTDispatch &&
+                        node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
             if (!nodes.contains(node))
                 nodes.add(node);
             return null;
