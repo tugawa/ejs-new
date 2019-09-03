@@ -8,6 +8,14 @@ import java.util.Set;
 import dispatch.RuleSet.OperandDataTypes;
 import type.VMDataType;
 
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 public class RuleSetBuilder {
     public static class Node {
     }
