@@ -47,7 +47,7 @@ setfl (-) accept
 setglobal (_,_) accept
 setlocal (-,-,_) accept
 specconst (-,-) accept
-typeof (_,_) accept
+typeof (-,-) accept
 end () accept
 localret () accept
 nop () accept

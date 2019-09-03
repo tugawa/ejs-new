@@ -1,8 +1,8 @@
 #include "externc.vmdh"
 
 (vmInstruction, tailCall)
-typeof : (JSValue, JSValue) -> void
+typeof : () -> void
 
-typeof (dst, src) {
+typeof () {
     NotImplemented();
 }

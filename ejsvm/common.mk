@@ -496,6 +496,7 @@ clean:
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
+	rm -f ejsvm ejsvm.spec
 
 cleanest:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
@@ -503,6 +504,8 @@ cleanest:
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
+	rm -rf insns-vmdl
+	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 	(cd $(VMGEN_DIR); ant clean)
 	rm -f $(VMGEN)
 	(cd $(VMDL_DIR); ant clean)

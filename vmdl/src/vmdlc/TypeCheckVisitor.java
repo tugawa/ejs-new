@@ -91,19 +91,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, OperandSpecifications opSpec) {
+    public void start(Tree<?> node, OperandSpecifications opSpec) throws Exception {
         this.opSpec = opSpec;
-        try {
-            TypeMap dict = new TypeMap();
-            matchStack = new MatchStack();
-            for (Tree<?> chunk : node) {
-                dict = visit((SyntaxTree)chunk, dict);
-            }
-            if (!matchStack.isEmpty())
-                throw new Error("match stack is not empty after typing process");
-        } catch (Exception e) {
-            e.printStackTrace();
+        TypeMap dict = new TypeMap();
+        matchStack = new MatchStack();
+        for (Tree<?> chunk : node) {
+            dict = visit((SyntaxTree)chunk, dict);
         }
+        if (!matchStack.isEmpty())
+            throw new Error("match stack is not empty after typing process");
     }
 
     private final TypeMap visit(SyntaxTree node, TypeMap dict) throws Exception {

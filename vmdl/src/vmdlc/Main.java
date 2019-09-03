@@ -3,7 +3,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.File;
 
 import dispatch.DispatchProcessor;
 import nez.ParserGenerator;
@@ -108,7 +107,7 @@ public class Main {
         return ast;
     }
     
-    public final static void main(String[] args) throws IOException {
+    public final static void main(String[] args) throws Exception {
         parseOption(args);
         
         if (dataTypeDefFile == null)
@@ -116,15 +115,12 @@ public class Main {
         TypeDefinition.load(dataTypeDefFile);
         
         OperandSpecifications opSpec = new OperandSpecifications();
-        if (operandSpecFile != null) {
-            System.err.println("operand specification file :"+operandSpecFile);
+        if (operandSpecFile != null)
             opSpec.load(operandSpecFile);
-        }
 
         InstructionDefinitions insnDef = new InstructionDefinitions();
-        if (insnDefFile != null) {
+        if (insnDefFile != null)
             insnDef.load(insnDefFile);
-        }
         
         if (sourceFile == null)
             throw new Error("no source file is specified");
