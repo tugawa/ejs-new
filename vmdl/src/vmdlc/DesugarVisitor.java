@@ -31,6 +31,8 @@ public class DesugarVisitor extends TreeVisitorMap<DefaultVisitor> {
                 visit(chunk, dict);
             }
         } catch (Exception e) {
+            e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 

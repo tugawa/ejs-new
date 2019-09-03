@@ -38,6 +38,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 

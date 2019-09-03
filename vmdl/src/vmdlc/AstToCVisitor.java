@@ -80,8 +80,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String program = sb.toString();
             return program;
         } catch (Exception e) {
-            e.printStackTrace(System.out);
-            return null;
+            e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 
