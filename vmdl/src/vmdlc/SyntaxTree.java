@@ -16,8 +16,6 @@ import type.AstType;
 import type.TypeMap;
 import vmdlc.SyntaxTree;
 
-import java.util.HashSet;
-
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMap dict;
     AstType type;

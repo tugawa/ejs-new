@@ -11,7 +11,6 @@ package vmdlc;
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import nez.util.ConsoleUtils;
-import nez.ast.Symbol;
 
 import vmdlc.ReplaceNameVisitor.DefaultVisitor;
 

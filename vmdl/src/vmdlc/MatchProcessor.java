@@ -9,9 +9,7 @@
 package vmdlc;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import dispatch.RuleSetBuilder;
@@ -19,7 +17,6 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 import type.AstType;
 import type.AstType.JSValueVMType;
-import vmdlc.AstToCVisitor.MatchRecord;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
 

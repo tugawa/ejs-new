@@ -9,12 +9,8 @@
 package vmdlc;
 
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Scanner;
-import java.util.Map;
 import java.util.HashMap;
-
-import vmdlc.InstructionDefinitions.InsnType;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

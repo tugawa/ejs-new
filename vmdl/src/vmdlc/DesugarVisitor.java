@@ -14,7 +14,6 @@ import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
-import java.util.regex.Pattern;
 import java.lang.Exception;
 
 import vmdlc.DesugarVisitor.DefaultVisitor;

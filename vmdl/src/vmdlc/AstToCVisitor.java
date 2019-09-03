@@ -10,30 +10,22 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
 import java.util.Stack;
-import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.lang.Exception;
 import java.util.Arrays;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 
 import dispatch.DispatchProcessor;
-import dispatch.RuleSetBuilder;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
-import type.AstType.JSValueVMType;
 import type.TypeMap;
 import type.VMDataType;
-
-import dispatch.RuleSet.OperandDataTypes;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;

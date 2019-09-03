@@ -10,7 +10,6 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMap;
-import type.VMDataType;
 import type.VMDataTypeVecSet;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
