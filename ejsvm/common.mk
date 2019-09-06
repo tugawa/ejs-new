@@ -347,11 +347,7 @@ SI_OTSPECS = $(patsubst %,$(SI_OTSPEC_DIR)/%.ot,$(SUPERINSNS))
 ifeq ($(SUPERINSN_CUSTOMIZE_OT),true)
 $(SI_OTSPECS): $(OPERANDSPEC) $(SUPERINSNSPEC)
 	mkdir -p $(SI_OTSPEC_DIR)
-ifeq ($(USE_VMDL), true)
 	$(GOTTA) --gen-ot-spec $(patsubst $(SI_OTSPEC_DIR)/%.ot,%,$@) -o $@
-else
-	$(GOTTA) --gen-ot-spec $(patsubst $(SI_OTSPEC_DIR)/%.ot,%,$@) -o $@
-endif
 else
 $(SI_OTSPECS): $(OPERANDSPEC)
 	mkdir -p $(SI_OTSPEC_DIR)
@@ -401,7 +397,9 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMDL)
+	mkdir -p insns-vmdl
+	$(CPP_VMDL) $(EJSVM_DIR)/insns-vmdl/$(call orig_insn,$@).vmd > insns-vmdl/$(call orig_insn,$@).vmd || (rm $@; exit 1)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
