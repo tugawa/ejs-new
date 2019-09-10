@@ -521,7 +521,7 @@ def print_table(f):
   { "getlocal", GETVAR },
   { "setlocal", SETVAR },
   { "makeclosure", MAKECLOSUREOP },
-  { "makesimpleiterator", TWOOP },
+  { "makeiterator", TWOOP },
   { "nextpropnameidx", TWOOP },
   { "send", CALLOP },
   { "newsend", CALLOP },

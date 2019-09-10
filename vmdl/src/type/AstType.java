@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package type;
 
 
@@ -29,7 +37,7 @@ JSValue <- Subtyping
     JSObject
         Array
 HeapObject
-*/
+ */
 
 public class AstType {
     static Map<String, AstBaseType> definedTypes = new HashMap<String, AstBaseType>();
@@ -97,7 +105,7 @@ public class AstType {
             }
             return new AstPairType(al);
         } else if (node.is(Symbol.unique("JSValueTypeName")) ||
-                    node.is(Symbol.unique("Ctype"))) {
+                node.is(Symbol.unique("Ctype"))) {
             return AstType.get(node.toText());
         } else if (node.is(Symbol.unique("TopTypeName")))
             return AstType.get("Top");
@@ -142,7 +150,7 @@ public class AstType {
             b2 = b2.parent;
         }
         return a2;
-            /*
+        /*
             if (this.name.equals("Fixnum") || this.name.equals("Flonum") || this.name.equals("Number")) {
                 if (that.name.equals("Flonum") || that.name.equals("Fixnum")) {
                     return new AstBaseType("Number");
@@ -154,7 +162,7 @@ public class AstType {
             } else {
                 return JSValue;
             }
-            */
+         */
     }
 
     // Use the fact that JSValueType forms a tree rather than a lattice
@@ -214,7 +222,7 @@ public class AstType {
         } else {
             return Bot;
         }
-        */
+         */
     }
 
     public static final AstBaseType BOT = new AstBaseType("$bot");
@@ -222,7 +230,7 @@ public class AstType {
         public static JSValueType get(String name) {
             return (JSValueType) AstType.get(name);
         }
-        
+
         JSValueType parent;
         int depth;
         private JSValueType(String name, JSValueType parent) {
@@ -237,7 +245,7 @@ public class AstType {
             JSValueType jsvt = JSValueType.get(dt);
             return isSuperOrEqual(jsvt);
         }
-        
+
         public boolean isSuperOrEqual(JSValueType jsvt) {
             while (jsvt != null) {
                 if (jsvt == this)
@@ -259,8 +267,8 @@ public class AstType {
         }
     }
 
-    
-        /*
+
+    /*
 JSValue
     Primitive
         Number
@@ -274,7 +282,7 @@ JSValue
     JSObject
         Array
 HeapObject
-*/
+     */
 
     public static class AstPairType extends AstType {
         ArrayList<AstType> types;

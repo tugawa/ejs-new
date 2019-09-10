@@ -1,0 +1,15 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+newframe : (cint, cint) -> void
+
+newframe (frame_len, make_arguments) {
+    Save_context();
+    Newframe(frame_len);
+    Update_context();
+
+    if (make_arguments) {
+        Makearguments();
+    } else {
+    }
+}

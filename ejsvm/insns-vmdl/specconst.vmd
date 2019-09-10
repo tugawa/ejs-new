@@ -1,0 +1,6 @@
+(vmInstruction, needContext, tailCall)
+specconst : cint -> cint
+
+specconst (i0) {
+    return i0;
+}

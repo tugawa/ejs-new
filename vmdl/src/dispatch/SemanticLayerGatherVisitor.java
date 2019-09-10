@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package dispatch;
 
 import java.util.ArrayList;
@@ -38,11 +46,11 @@ class SemanticLayerGatherVisitor extends NodeVisitor<Void> {
     @Override
     <T> Void visitTagNode(TagNode<T> node) {
         if ((node instanceof DecisionDiagram.PTNode &&
-             ref instanceof DecisionDiagram.PTDispatch &&
-             node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
-            (node instanceof DecisionDiagram.HTNode &&
-             ref instanceof DecisionDiagram.HTDispatch &&
-             node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
+                ref instanceof DecisionDiagram.PTDispatch &&
+                node.opIndex == ((DecisionDiagram.PTDispatch) ref).opIndex) ||
+                (node instanceof DecisionDiagram.HTNode &&
+                        ref instanceof DecisionDiagram.HTDispatch &&
+                        node.opIndex == ((DecisionDiagram.HTDispatch) ref).opIndex)) {
             if (!nodes.contains(node))
                 nodes.add(node);
             return null;

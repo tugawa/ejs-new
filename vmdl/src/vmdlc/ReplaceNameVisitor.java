@@ -1,9 +1,16 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import nez.util.ConsoleUtils;
-import nez.ast.Symbol;
 
 import vmdlc.ReplaceNameVisitor.DefaultVisitor;
 

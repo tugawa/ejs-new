@@ -59,6 +59,7 @@ typedef uint64_t JSValue;
 #define FILE_OBC   1
 #define FILE_SBC   2
 
+#include "prefix.h"
 #include "log.h"
 #include "instructions.h"
 #include "context.h"
@@ -68,6 +69,7 @@ typedef uint64_t JSValue;
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
+#include "vmdl-helper.h"
 
 #endif /* HEADER_H_ */
 

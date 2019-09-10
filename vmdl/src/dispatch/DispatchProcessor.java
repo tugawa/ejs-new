@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package dispatch;
 
 import java.util.Map;
@@ -25,7 +33,7 @@ public class DispatchProcessor {
     }
 
     static final boolean UNSIGNED = true;
-    
+
     class TagMacro extends CodeGenerateVisitor.Macro {        
         @Override
         String getPTCode(String var) {
@@ -52,15 +60,15 @@ public class DispatchProcessor {
             return String.format("L%s%d", labelPrefix, nextLabel++);
         }
     }
-    
+
     String labelPrefix = "";
-    
+
     public DispatchProcessor() {}
-    
+
     public void setLabelPrefix(String prefix) {
         labelPrefix = prefix;
     }
-    
+
     //
     // Translate half-normalised rule set into datatype dispatching code
     //
@@ -71,12 +79,12 @@ public class DispatchProcessor {
         LLRuleSet llrs = new LLRuleSet(hlrs);
         if (llrs.getRules().size() == 0)
             return "";
-        
+
         //
         // Step 2. Construct a decision tree
         //
         DecisionDiagram dd = new DecisionDiagram(llrs, dispatchPlan);
-        
+
 
         //
         // Step 3. Optimisation
@@ -93,14 +101,14 @@ public class DispatchProcessor {
                 dd.skipBranchless();  break;
             }
         }
-        
+
         //
         // Step 4. Verify diagram
         //
         if (option.getOption(Option.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
             verifyODDInvariants(dd, hlrs, llrs, dispatchPlan);
         }
-        
+
 
         //
         // Step 5.
@@ -110,19 +118,19 @@ public class DispatchProcessor {
             typeLabels = addTypeLabels(dd, hlrs);
         else
             typeLabels = null;
-        
+
         //
         // Step 6. Code Generation
         //
         String labelPrefix = option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro(), option, typeLabels, labelPrefix);
     }
-    
-    
+
+
     //////
     //////  verification
     //////
-    
+
     public void verifyODDInvariants(DecisionDiagram dd, RuleSet hlrs, LLRuleSet llrs, DispatchPlan dispatchPlan) {
         //
         // Check consistent node pairs are not remaining.

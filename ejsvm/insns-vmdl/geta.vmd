@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+geta : void -> JSValue
+
+geta () {
+    return Get_a();
+}

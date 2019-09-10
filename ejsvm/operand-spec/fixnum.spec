@@ -31,7 +31,7 @@ sub (-,_,_) error
 tailcall (_,-) accept
 unsignedrightshift (-,fixnum,fixnum) accept
 unsignedrightshift (-,_,_) error
-error(-,-,-) unspecified
+error(-,-) unspecified
 fixnum(-,-) accept
 geta(-) accept
 getarg(-,-,-) accept
@@ -44,10 +44,10 @@ instanceof(-,_,_) accept
 isobject(-,_) accept
 isundef(-,_) accept
 jump(-) accept
-jumpfalse(special) accept
-jumpfalse(_) error
-jumptrue(special) accept
-jumptrue(_) error
+jumpfalse(special, -) accept
+jumpfalse(_,-) error
+jumptrue(special, -) accept
+jumptrue(_,-) error
 localcall(-) unspecified
 makeclosure(-,-) accept
 makeiterator(-,_) accept
@@ -55,7 +55,7 @@ move(-,_) accept
 newframe(-,-) accept
 nextpropnameidx(-,_) accept
 not(-,_) accept
-number(-) accept
+number(-,-) accept
 pushhandler(-) unspecified
 seta(_) accept
 setarg(-,-,_) accept
@@ -66,3 +66,11 @@ setglobal(_,_) unspecified
 setlocal(-,-,_) accept
 specconst(-) accept
 typeof(-,-) accept
+end () accept
+localret () accept
+nop () accept
+pophandler () accept
+poplocal () accept
+ret () accept
+throw () accept
+unknown () accept

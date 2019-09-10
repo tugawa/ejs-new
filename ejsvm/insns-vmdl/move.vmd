@@ -1,0 +1,6 @@
+(vmInstruction, tailCall)
+move : JSValue -> JSValue
+
+move (v1) {
+    return v1;
+}

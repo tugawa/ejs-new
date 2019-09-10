@@ -1,12 +1,16 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import java.util.Map;
-import java.util.Arrays;
 import java.util.Scanner;
-import java.util.Map;
 import java.util.HashMap;
-
-import vmdlc.InstructionDefinitions.InsnType;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -52,8 +56,8 @@ public class InstructionDefinitions {
 
     static class InstructionDefinitionRecord {
         String insnName;
-        
-        
+
+
         InsnType insnType;
 
         OperandKinds[] operandKinds;
@@ -75,10 +79,10 @@ public class InstructionDefinitions {
             if (record[0].equals("//")) {
                 continue;
             }
-            
+
             String insnName = record[0];
             InsnType insnType = InsnType.valueOf(record[1]);
-            
+
             OperandKinds[] operandKinds = new OperandKinds[record.length];
             for (int i = 2; i < record.length; i++) {
                 operandKinds[i-2] = OperandKinds.getValue(record[i]);

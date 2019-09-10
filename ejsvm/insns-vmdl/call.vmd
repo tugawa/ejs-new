@@ -1,0 +1,27 @@
+#include "patterns.vmdh"
+
+#include "externc.vmdh"
+
+(vmInstruction, needContext, triggerGC, tailCall)
+call : (JSValue, cint) -> void
+
+call (fn, nargs) {
+  cint op = Get_opcode();
+  cint sendp = IsSend(op);
+  cint newp = IsNewSend(op);
+  Set_fp();
+  Set_pc();
+  Try_gc();
+  top: match (fn) {
+    case (Function fn) {
+      Call_function(fn, nargs, sendp);
+      Update_context();
+      Next_insn_noincpc();
+    }
+    case (Builtin fn) {
+      Call_builtin(fn, nargs, sendp, newp);
+      Update_context();
+      Next_insn_incpc();
+    }
+  }
+}

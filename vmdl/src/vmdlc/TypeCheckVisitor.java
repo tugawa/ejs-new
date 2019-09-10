@@ -1,8 +1,15 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.ArrayList;
@@ -15,7 +22,6 @@ import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
 import type.TypeMap;
-import type.VMDataType;
 import type.VMDataTypeVecSet;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
@@ -36,7 +42,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return name;
             }
         }
-        
+
         Stack<MatchRecord> stack;
         public MatchStack() {
             stack = new Stack<MatchRecord>();
@@ -49,7 +55,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return null;
         }
-        
+
         public void enter(String name, String[] formalParams, TypeMap dict) {
             MatchRecord mr = new MatchRecord(name, formalParams, dict);
             stack.push(mr);
@@ -84,26 +90,27 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     MatchStack matchStack;
-    
+
     OperandSpecifications opSpec;
-    
+
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
     public void start(Tree<?> node, OperandSpecifications opSpec) {
         this.opSpec = opSpec;
+        TypeMap dict = new TypeMap();
+        matchStack = new MatchStack();
         try {
-            TypeMap dict = new TypeMap();
-            matchStack = new MatchStack();
             for (Tree<?> chunk : node) {
                 dict = visit((SyntaxTree)chunk, dict);
             }
-            if (!matchStack.isEmpty())
-                throw new Error("match stack is not empty after typing process");
         } catch (Exception e) {
             e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
+        if (!matchStack.isEmpty())
+            throw new Error("match stack is not empty after typing process");
     }
 
     private final TypeMap visit(SyntaxTree node, TypeMap dict) throws Exception {
@@ -130,14 +137,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree type = node.get(Symbol.unique("type"));
             AstProductType funtype = (AstProductType)AstType.nodeToType((SyntaxTree)type);
-            
+
             SyntaxTree definition = node.get(Symbol.unique("definition"));
-            
+
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
             dict.add(name, funtype);
-            
+
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
             TypeMap newDict = dict.clone();
@@ -256,7 +263,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
-            */
+             */
 
             do {
                 entryDict = newEntryDict;
@@ -271,7 +278,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
-            
+
             node.setTypeMap(entryDict);
 
             SyntaxTree paramsNode= node.get(Symbol.unique("params"));
@@ -290,20 +297,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 throw new Error("match label not found: "+label);
             Set<String> domain = matchDict.getKeys();
             String[] matchParams = matchStack.getParams(label);
-            
+
             String[] rematchArgs = new String[matchParams.length];
             for (int i = 1; i < node.size(); i++) {
                 rematchArgs[i-1] = node.get(i).toText();
             }
-            
+
             TypeMap matchDict2 = dict.rematch(matchParams, rematchArgs, domain);
             TypeMap result = matchDict2.lub(matchDict);
             matchStack.updateDict(label, result);
-            
+
             return dict.getBottomDict();
         }
     }
-    
+
     public class Return extends DefaultVisitor {
         @Override
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
@@ -377,7 +384,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             TypeMap copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
-            
+
             TypeMap thenDict = visit(thenNode, dict);
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
 
@@ -425,7 +432,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             AstType type = AstType.get(typeNode.toText());
             dict.add(varNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -439,7 +446,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
             dict.add(nameNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -451,7 +458,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             AstType type = AstType.get(typeNode.toText());
             dict.add(varNode.toText(), type);
-            
+
             return dict;
         }
     }
@@ -462,7 +469,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             //TypeMap copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             AstType thenType = visit(thenNode, dict).getExprType();
-            
+
             SyntaxTree elseNode = node.get(Symbol.unique("else"));
             //AstBaseType elseType = visit(elseNode, copyDict).getExprType();
             AstType elseType = visit(elseNode, dict).getExprType();
@@ -561,11 +568,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return new TypeMap(leftType);
         }
     }
-    
+
     AstType tCint = AstType.get("cint");
     AstType tCdouble = AstType.get("cdouble");
     AstType tCstring = AstType.get("cstring");
-    
+
     private AstType numberOperator(SyntaxTree node, TypeMap dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         AstType lType = visit(leftNode, dict).getExprType();
@@ -662,18 +669,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMap accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree recv = node.get(Symbol.unique("recv"));
             String funName = recv.toText();
-            
+
             if (!dict.containsKey(funName)) {
                 throw new Error("FunctionCall: no such name: "+funName+" :"+node.getSource().getResourceName()+" :"+node.getLineNum());
             }
             AstProductType funType = (AstProductType)dict.get(funName);
             AstBaseType rangeType = (AstBaseType)funType.getRange();
-           
+
             // TODO: type check
             for (SyntaxTree arg : node.get(1)) {
                 AstType argType = visit(arg, dict).getExprType();
             }
-            
+
             return new TypeMap(rangeType);
         }
     }

@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, tailCall)
+not : JSValue -> JSValue
+
+not (obj) {
+    return Not(obj);
+}

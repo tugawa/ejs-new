@@ -1,0 +1,6 @@
+(vmInstruction, tailCall)
+error : Displacement -> cint
+
+error (d1) {
+    return -1;
+}

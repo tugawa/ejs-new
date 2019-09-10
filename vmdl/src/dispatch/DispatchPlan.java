@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package dispatch;
 
 import java.util.ArrayList;
@@ -35,7 +43,7 @@ public class DispatchPlan {
             }
         }
     }
-    
+
     // create standard DispatchPlan
     /*
     public DispatchPlan(int nrands, boolean useTagPair) {
@@ -46,20 +54,20 @@ public class DispatchPlan {
         for (int i = 0; i < nrands; i++)
             addHT(i);
     }
-    */
-    
+     */
+
     void addTagPair() {
         plan.add(new DispatchPlan.TagPairDispatch());
     }
-    
+
     void addPT(int n) {
         plan.add(new DecisionDiagram.PTDispatch(n));
     }
-    
+
     void addHT(int n) {
         plan.add(new DecisionDiagram.HTDispatch(n));
     }
-    
+
     List<DispatchPlan.DispatchCriterion> getPlan() {
         return plan;
     }

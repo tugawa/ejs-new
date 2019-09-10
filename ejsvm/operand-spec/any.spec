@@ -24,13 +24,13 @@ getarg (-,-,-) accept
 geterr (-) accept
 getglobal (-,_) accept
 getglobalobj (-) accept
-getlocal (-,-) accept
+getlocal (-,-,-) accept
 instanceof (-,_,_) accept
 isobject (-,_) accept
 isundef (-,_) accept
 jump (-) accept
-jumpfalse (-,_) accept
-jumptrue (-,_) accept
+jumpfalse (_,-) accept
+jumptrue (_,-) accept
 localcall (-) accept
 makeclosure (-,-) accept
 makeiterator (-,_) accept

@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, tailCall)
+isundef : JSValue -> JSValue
+
+isundef (v1) {
+    return Isundefined(v1);
+}

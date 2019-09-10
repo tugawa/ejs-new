@@ -1,0 +1,12 @@
+#include "externc.vmdh"
+
+(vmInstruction, tailCall)
+jumpfalse : (JSValue, Displacement) -> void
+
+jumpfalse (v0, d1) {
+    if (v0 == false || toBoolean(v0) == false) {
+        Jump(d1);
+        Next_insn_noincpc();
+    } else {
+    }
+}

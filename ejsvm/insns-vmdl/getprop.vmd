@@ -1,0 +1,20 @@
+#include "patterns.vmdh"
+
+#include "externc.vmdh"
+
+(vmInstruction, needContext)
+getprop : (JSValue, JSValue) -> JSValue
+getprop (obj, index) {
+  top: match (obj, index) {
+    case (Array obj) {
+      return getArrayProp(obj, index);
+    }
+    case (object obj) {
+      return getObjectProp(obj, index);
+    }
+    case (true) {
+      JSValue obj2 = toObject(obj);
+      rematch top (obj2, index);
+    }
+  }
+}

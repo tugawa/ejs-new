@@ -1,0 +1,10 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+ret : void -> void
+
+ret () {
+    Ret();
+    Set_sp(5);
+    Update_context();
+}

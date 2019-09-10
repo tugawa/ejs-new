@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+setarg : (cint, Subscript, JSValue) -> void
+
+setarg (link, index, v) {
+    Setarg(link, index, v);
+}

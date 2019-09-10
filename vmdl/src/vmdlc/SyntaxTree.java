@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Source;
@@ -7,8 +15,6 @@ import nez.ast.Tree;
 import type.AstType;
 import type.TypeMap;
 import vmdlc.SyntaxTree;
-
-import java.util.HashSet;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMap dict;
@@ -44,7 +50,7 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue());
         return t;
     }
-    
+
     public Tree<SyntaxTree>[] getSubTree() {
         return this.subTree;
     }
@@ -71,15 +77,15 @@ public class SyntaxTree extends Tree<SyntaxTree> {
             sb.append(" " + this.type);
         }
     }
-    
+
     public void setType(AstType _type) {
         type = _type;
     }
-    
+
     public void setTypeMap(TypeMap dict) {
         this.dict = dict;
     }
-    
+
     public TypeMap getTypeMap() {
         return dict;
     }

@@ -1,0 +1,9 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+localcall : Displacement -> void
+
+localcall (d0) {
+    Lcall_stack_push();
+    Jump(d0);
+}

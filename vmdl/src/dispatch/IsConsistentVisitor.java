@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package dispatch;
 
 import dispatch.DecisionDiagram.Leaf;
@@ -30,7 +38,7 @@ class IsConsistentVisitor extends NodeVisitor<Boolean> {
         TagNode<T> currentNode = (TagNode<T>) currentNodex;
         if (currentNode.getOpIndex() != other.getOpIndex())
             throw new Error("opIndex mismatch");
-            
+
         if (currentNode.getChildren().size() == 1 && other.getChildren().size() == 1)
             return currentNode.getChildren().get(0) == other.getChildren().get(0);
         else if (currentNode.getChildren().size() > 1 && other.getChildren().size() > 1){

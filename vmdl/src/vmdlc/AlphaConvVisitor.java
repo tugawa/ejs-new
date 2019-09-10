@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
@@ -30,6 +38,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 
@@ -50,7 +59,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     boolean isVoidFunction;
-    
+
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -66,7 +75,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(defNode, dict);
         }
     }
-    
+
     public class FunctionDefinition extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -93,7 +102,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (Tree<?> seq : body) {
                 visit(seq, dict);
             }
-            */
+             */
 
             dict.popFrame();
         }
@@ -140,7 +149,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.internF(name);
         }
     }
-    */
+     */
 
     public  class DoInit extends DefaultVisitor {
         @Override

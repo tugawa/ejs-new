@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, tailCall)
+fixnum : cint -> Fixnum
+
+fixnum (i1) {
+    return CintToFixnum(i1);
+}

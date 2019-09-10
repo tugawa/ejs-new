@@ -1,3 +1,11 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 
 import nez.ast.Tree;
@@ -6,7 +14,6 @@ import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
-import java.util.regex.Pattern;
 import java.lang.Exception;
 
 import vmdlc.DesugarVisitor.DefaultVisitor;
@@ -24,6 +31,8 @@ public class DesugarVisitor extends TreeVisitorMap<DefaultVisitor> {
                 visit(chunk, dict);
             }
         } catch (Exception e) {
+            e.printStackTrace();
+            throw new Error("visitor thrown an exception");
         }
     }
 
@@ -98,7 +107,7 @@ class PatternDict {
 
         public void replace(SyntaxTree node) {
             String v2 = node.get(Symbol.unique("var")).toText();
-            
+
             SyntaxTree result = (SyntaxTree)pattern.dup();
             new ReplaceNameVisitor().start(result, varName, v2);
             node.setTag(result.getTag());

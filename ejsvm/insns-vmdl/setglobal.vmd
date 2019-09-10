@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+setglobal : (JSValue, JSValue) -> void
+
+setglobal (str, src) {
+    Setglobal(str, src);
+}

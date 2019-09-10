@@ -1,0 +1,19 @@
+#include "patterns.vmdh"
+
+#include "externc.vmdh"
+
+(vmInstruction, needContext)
+setprop : (JSValue, JSValue, JSValue) -> void
+setprop (obj, prop, val) {
+  match (obj, prop, val) {
+    case (Array obj) {
+      SetArrayProp(obj, prop, val);
+    }
+    case (object obj) {
+      SetObjectProp(obj, prop, val);
+    }
+    case (true) {
+      // error
+    }
+  }
+}

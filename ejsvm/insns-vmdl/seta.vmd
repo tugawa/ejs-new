@@ -1,0 +1,8 @@
+#include "externc.vmdh"
+
+(vmInstruction, needContext, tailCall)
+seta : JSValue -> void
+
+seta (v0) {
+    Seta(v0);
+}

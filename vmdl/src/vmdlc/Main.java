@@ -1,9 +1,17 @@
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 package vmdlc;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.File;
 
 import dispatch.DispatchProcessor;
 import nez.ParserGenerator;
@@ -31,7 +39,7 @@ public class Main {
     static String vmdlGrammarFile;
     static String operandSpecFile;
     static String insnDefFile;
-    
+
     static Option option = new Option();
 
     static void parseOption(String[] args) {
@@ -57,7 +65,7 @@ public class Main {
                 break;
             }
         }
-        
+
         if (dataTypeDefFile == null || sourceFile == null) {
             System.out.println("vmdlc [option] source");
             System.out.println("   -d file   [mandatory] datatype specification file");
@@ -79,11 +87,11 @@ public class Main {
             System.exit(1);
         }
     }
-    
+
     static SyntaxTree parse(String sourceFile) throws IOException {
         ParserGenerator pg = new ParserGenerator();
         Grammar grammar = null;
-        
+
         if (vmdlGrammarFile != null)
             grammar = pg.loadGrammar(vmdlGrammarFile);
         else {
@@ -107,25 +115,22 @@ public class Main {
 
         return ast;
     }
-    
+
     public final static void main(String[] args) throws IOException {
         parseOption(args);
-        
+
         if (dataTypeDefFile == null)
             throw new Error("no datatype definition file is specified (-d option)");
         TypeDefinition.load(dataTypeDefFile);
-        
+
         OperandSpecifications opSpec = new OperandSpecifications();
-        if (operandSpecFile != null) {
-            System.err.println("operand specification file :"+operandSpecFile);
+        if (operandSpecFile != null)
             opSpec.load(operandSpecFile);
-        }
 
         InstructionDefinitions insnDef = new InstructionDefinitions();
-        if (insnDefFile != null) {
+        if (insnDefFile != null)
             insnDef.load(insnDefFile);
-        }
-        
+
         if (sourceFile == null)
             throw new Error("no source file is specified");
 
@@ -133,21 +138,21 @@ public class Main {
         DispatchProcessor.srand(seed);
 
         SyntaxTree ast = parse(sourceFile);
-        
+
         new DesugarVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec);
 
-        String program = new AstToCVisitor().start(ast);
-        
+        String program = new AstToCVisitor().start(ast, opSpec);
+
         System.out.println(program);
     }
-    
+
     public static BufferedReader openFileInJar(String path){
         InputStream is = Main.class.getClassLoader().getResourceAsStream(path);
         return new BufferedReader(new InputStreamReader(is));
     }
-    
+
     static StringSource readDefaultGrammar() throws IOException {
         InputStream is = ClassLoader.getSystemResourceAsStream(VMDL_GRAMMAR);
         InputStreamReader isr = new InputStreamReader(is);
