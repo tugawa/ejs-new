@@ -143,7 +143,9 @@ struct commandline_option {
 
 struct commandline_option  options_table[] = {
   { "-l",         0, &lastprint_flag, NULL          },
+#ifdef DEBUG
   { "-f",         0, &ftable_flag,    NULL          },
+#endif /* DEBUG */
   { "-t",         0, &trace_flag,     NULL          },
   { "-a",         0, &all_flag,       NULL          },
   { "-u",         0, &cputime_flag,   NULL          },
@@ -318,7 +320,7 @@ int main(int argc, char *argv[]) {
   FILE *fp = NULL;
   struct rusage ru0, ru1;
   int base_function = 0;
-  int k, iter;
+  int k, iter, nf;
   int n = 0;
   Context *context;
 
@@ -410,8 +412,15 @@ int main(int argc, char *argv[]) {
     }
     init_code_loader(fp);
     base_function = n;
-    n += code_loader(context, function_table, n);
+    nf = code_loader(context, function_table, n);
     end_code_loader();
+    if (nf > 0) n += nf;
+    else if (fp != stdin) {
+        LOG_ERR("code_loader returns %d\n", nf);
+        continue;
+    } else
+      /* stdin is closed possibly by pressing ctrl-D */
+      break;
 
     /* obtains the time before execution */
 #ifdef USE_PAPI
@@ -449,17 +458,8 @@ int main(int argc, char *argv[]) {
 #ifndef CALC_TIME
 #ifndef CALC_CALL
 
-    if (lastprint_flag == TRUE) {
-#ifdef USE_FFI
-      if (isErr(context)) {
-        printf("Exception!\n");
-        printJSValue(getErr(context));
-      } else
-        debug_print(context, n);
-#else
+    if (lastprint_flag == TRUE)
       debug_print(context, n);
-#endif  /* USE_FFI */
-    }
 
 #endif /* CALC_CALL */
 #endif /* CALC_TIME */
@@ -506,8 +506,10 @@ int main(int argc, char *argv[]) {
       print_gc_prof();
 #endif /* GC_PROF */
     
-    if (repl_flag == TRUE)
+    if (repl_flag == TRUE) {
+      printf("\xff");
       fflush(stdout);
+    }
   }
 #ifdef HC_PROF
   if (hcprint_flag == TRUE)

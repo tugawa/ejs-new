@@ -16,15 +16,9 @@ static int exhandler_stack_pop(Context* context, int *pc, int *fp);
 static void lcall_stack_push(Context* context, int pc);
 static int lcall_stack_pop(Context* context, int *pc);
 
-#ifdef PROFILE
-int logflag_stack[100];
-int logflag_sp = -1;
-#define push_logflag(f) logflag_stack[++logflag_sp] = (f|forcelog_flag)
-#define pop_logflag()   logflag_sp--
-#else
-#define push_logflag(f)
-#define pop_logflag()
-#endif /* PROFILE */
+#ifdef DEBUG
+extern void print_bytecode(Instruction *, int);
+#endif /* DEBUG */
 
 #define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
@@ -89,38 +83,8 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   do {                                                  \
     insn = insns->code;                                 \
     if (trace_flag == TRUE) {                           \
-      printf("pc = %d, fp = %d insn = %s",              \
-             pc, fp, insn_nemonic(get_opcode(insn)));   \
-      if (get_opcode(insn) == STRING) {                 \
-        Displacement disp = get_big_disp(insn);         \
-        JSValue s = get_literal(insns, disp);           \
-        int r0 = get_first_operand_reg(insn);            \
-        printf(" %d %s\n", r0, string_to_cstr(s));       \
-      } else if (get_opcode(insn) == SETGLOBAL) {       \
-        int r0 = get_first_operand_reg(insn);           \
-        int r1 = get_second_operand_reg(insn);          \
-        JSValue v0 = regbase[r0];                       \
-        JSValue v1 = regbase[r1];                       \
-        printf(" %d [%llx ", r0, v0);                   \
-        simple_print(v0);                               \
-        printf("] ");                                   \
-        printf(" %d [%llx ", r1, v1);                   \
-        simple_print(v1);                               \
-        printf("]\n");                                  \
-      } else if (get_opcode(insn) == GETGLOBAL) {       \
-        int r0 = get_first_operand_reg(insn);           \
-        int r1 = get_second_operand_reg(insn);          \
-        JSValue v1 = regbase[r1];                       \
-        printf(" %d ", r0);                             \
-        printf(" %d [%llx ", r1, v1);                   \
-        simple_print(v1);                               \
-        printf("]\n");                                  \
-      }else {                                           \
-        printf(" %d %d %d\n",                           \
-          get_first_operand_reg(insn),                  \
-               get_second_operand_reg(insn),            \
-               get_third_operand_reg(insn));            \
-      }                                                 \
+      printf("pc = %d, fp = %d: ", pc, fp);             \
+      print_bytecode(insns, 0);                         \
     }                                                   \
   } while (0)
 #else /* DEBUG */
@@ -130,13 +94,12 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #ifdef PROFILE
 #define ENTER_INSN(x)                                                   \
   do {                                                                  \
-    push_logflag(insns->logflag);                                       \
     if (insns->logflag == TRUE) headcount = 0, insns->count++;          \
-    asm volatile("#enter insn, loc = " #x "\n\t");                    \
+    asm volatile("#enter insn, loc = " #x "\n\t");                      \
   } while (0)
 #else
-#define ENTER_INSN(x)                                   \
-  asm volatile("#enter insn, loc = " #x "\n\t")
+#define ENTER_INSN(x)                           \
+      asm volatile("#enter insn, loc = " #x "\n\t")
 #endif
 
 #ifdef USE_ASM2
@@ -160,14 +123,12 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #ifdef USE_ASM
 
 #define NEXT_INSN_INCPC() do {                  \
-    pop_logflag();                              \
     INCPC();                                    \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
   } while (0)
 
 #define NEXT_INSN_NOINCPC() do {                \
-    pop_logflag();                              \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
   } while (0)
@@ -175,13 +136,11 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #else /* USE_ASM */
 
 #define NEXT_INSN_INCPC()   do {                                \
-    pop_logflag();                                              \
     INCPC();                                                    \
     INSNLOAD();                                                 \
     NEXT_INSN();                                                \
   } while(0)
 #define NEXT_INSN_NOINCPC() do {                \
-    pop_logflag();                              \
     INSNLOAD();                                 \
     NEXT_INSN();                                \
   } while(0)

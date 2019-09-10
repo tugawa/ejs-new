@@ -52,7 +52,8 @@ void init_special_registers(SpecialRegisters *spreg){
 
 void reset_context(Context *ctx, FunctionTable *ftab) {
   init_special_registers(&(ctx->spreg));
-  ctx->function_table = ftab;
+  // ctx->function_table = ftab;
+  ctx->function_table = function_table;
   set_cf(ctx, ftab);
   /*
    * It seems that existing frame in the lp register can be reused,
