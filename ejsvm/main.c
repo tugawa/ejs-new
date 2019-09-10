@@ -25,9 +25,9 @@ int lastprint_flag;    /* prints the result of the last expression */
 int all_flag;          /* all flag values are true */
 int cputime_flag;      /* prints the cpu time */
 int repl_flag;         /* for REPL */
-#ifdef HIDDEN_CLASS
+#ifdef HC_PROF
 int hcprint_flag;      /* prints all transitive hidden classes */
-#endif
+#endif /* HC_PROF */
 #ifdef PROFILE
 int profile_flag;      /* print the profile information */
 char *poutput_name;    /* name of logging file */
@@ -35,6 +35,9 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef GC_PROF
+int gcprof_flag;       /* print GC profile information */
+#endif /* GC_PROF */
 
 /*
 #define DEBUG_TESTTEST
@@ -140,21 +143,26 @@ struct commandline_option {
 
 struct commandline_option  options_table[] = {
   { "-l",         0, &lastprint_flag, NULL          },
+#ifdef DEBUG
   { "-f",         0, &ftable_flag,    NULL          },
+#endif /* DEBUG */
   { "-t",         0, &trace_flag,     NULL          },
   { "-a",         0, &all_flag,       NULL          },
   { "-u",         0, &cputime_flag,   NULL          },
   { "-R",         0, &repl_flag,      NULL          },
-#ifdef HIDDEN_CLASS
-  { "-h",         0, &hcprint_flag,   NULL          },
-#endif
+#ifdef HC_PROF
+  { "--hc-prof",  0, &hcprint_flag,   NULL          },
+#endif /* HC_PROF */
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
-#endif
+#endif /* PROFILE */
+#ifdef GC_PROF
+  { "--gc-prof",  0, &gcprof_flag,    NULL          },
+#endif /* GC_PROF */
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
 };
@@ -196,11 +204,49 @@ void print_cputime(time_t sec, suseconds_t usec) {
   printf("total CPU time = %ld.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
          sec * 1000 + usec / 1000, (int)(usec % 1000),
          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
-#ifdef HIDDEN_CLASS
-  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
-         n_hc, n_enter_hc, n_exit_hc);
-#endif
 }
+
+#ifdef GC_PROF
+void print_gc_prof()
+{
+  int i;
+  uint64_t total_live_bytes = 0;
+  uint64_t total_live_count = 0;
+
+  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
+    total_live_bytes += pertype_live_bytes[i];
+    total_live_count += pertype_live_count[i];
+  }
+
+  printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
+  printf(" %"PRId64" %"PRId64" ",
+         generation > 1 ? total_live_bytes / (generation - 1) : 0,
+         generation > 1 ? total_live_count / (generation - 1) : 0);
+  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
+    printf(" %"PRId64" ", pertype_alloc_bytes[i]);
+    printf(" %"PRId64" ", pertype_alloc_count[i]);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+  }
+  printf("\n");
+
+  printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
+  printf("total alloc count = %"PRId64"\n", total_alloc_count);
+  for (i = 0; i < 255; i++)
+    if (pertype_alloc_count[i] > 0) {
+      printf("  type %02x ", i);
+      printf("a.bytes = %7"PRId64" ", pertype_alloc_bytes[i]);
+      printf("a.count = %5"PRId64" ", pertype_alloc_count[i]);
+      printf("l.bytes = %7"PRId64" ",
+             generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+      printf("l.count = %4"PRId64" ",
+             generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+      printf("%s\n", HTAG_NAME(i));
+    }
+}
+#endif /* GC_PROF */
 
 #ifdef PROFILE
 void print_coverage(FunctionTable *ft, int n) {
@@ -346,10 +392,9 @@ int main(int argc, char *argv[]) {
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();
-  init_global_malloc_objects();
+  init_meta_objects();
   init_global_objects();
   init_context(function_table, gconsts.g_global, &context);
-  init_builtin(context);
   srand((unsigned)time(NULL));
 
   for (; k < iter; k++) {
@@ -455,24 +500,29 @@ int main(int argc, char *argv[]) {
       }
       print_cputime(sec, usec);
     }
+
+#ifdef GC_PROF
+    if (gcprof_flag == TRUE)
+      print_gc_prof();
+#endif /* GC_PROF */
     
     if (repl_flag == TRUE) {
       printf("\xff");
       fflush(stdout);
     }
   }
-#ifdef PROFILE
-#ifdef HIDDEN_CLASS
+#ifdef HC_PROF
   if (hcprint_flag == TRUE)
-    print_all_hidden_class();
-#endif
+    hcprof_print_all_hidden_class();
+#endif /* HC_PROF */
+#ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-#endif
+#endif /* PROFILE */
 
   return 0;
 }
@@ -509,12 +559,10 @@ void print_value(Context *context, JSValue v, int verbose) {
   else if (is_iterator(v))
     v = cstr_to_string(NULL, "iterator");
 #ifdef USE_REGEXP
-#ifdef need_regexp
   else if (is_regexp(v)) {
     printf("/%s/", regexp_pattern(v));
     return;
   }
-#endif /* need_regexp */
 #endif
   else if (is_string_object(v))
     v = cstr_to_string(NULL, "boxed-string");

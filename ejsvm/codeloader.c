@@ -288,8 +288,10 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
 #endif
 #endif
   }
+#ifdef DEBUG
   if (ftable_flag == TRUE)
     print_function_table(ftable, i + ftbase);
+#endif /* DEBUG */
   return nfuncs;
 
 #undef next_buf
@@ -328,7 +330,7 @@ JSValue double_load(Context *ctx) {
   }
 #endif
   /* printf("double loaded, value = %lf\n", u.d); */
-  return double_to_number(u.d);
+  return double_to_number(ctx, u.d);
 }
 
 void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
@@ -542,7 +544,7 @@ int load_number_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
   if (index < 0) return -1;
   v0 = ctop[index];
   if (v0 == JS_UNDEFINED)
-    ctop[index] = double_to_number(d);
+    ctop[index] = double_to_number(NULL, d);  /* TODO: context */
   else {
     if (!is_number(v0)) {
       LOG_ERR("inconsistent constants at index %d", index);
@@ -576,7 +578,6 @@ int load_string_sbc(char *src, JSValue *ctop, int ninsns, int nconsts) {
 }
 
 #ifdef USE_REGEXP
-#ifdef need_regexp
 int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
                     int ninsns, int nconsts, int flag) {
   char *str;
@@ -588,14 +589,13 @@ int load_regexp_sbc(Context *ctx, char *src, JSValue *ctop,
   decode_escape_char(str);
   v0 = ctop[index];
   if (v0 == JS_UNDEFINED)
-    ctop[index] = new_normal_regexp(ctx, str, flag);
+    ctop[index] = new_regexp(ctx, str, flag);
   /*
    * else, it is necessary to check the consistency of v0 and str
    * but this check in not implemented yet.
    */
   return index;
 }
-#endif /* need_regexp */
 #endif /* USE_REGEXP */
 
 int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
@@ -608,6 +608,12 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   ctop = (JSValue *)(&insns[ninsns]);
   step_load_code(buf, LOADBUFLEN);
   tokp = first_token(buf);
+#ifdef ALLOC_SITE_CACHE
+  init_alloc_site(&insns[pc].alloc_site);
+#endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  init_inline_cache(&insns[pc].inl_cache);
+#endif /* INLINE_CACHE */
 
 #ifdef PROFILE
   {
@@ -821,6 +827,12 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     LOG_ERR("Error: cannot read %dth bytecode", pc);
   oc = buf[0] * 256 + buf[1];
   bc = convertToBc(buf);
+#ifdef ALLOC_SITE_CACHE
+  init_alloc_site(&insns[pc].alloc_site);
+#endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  init_inline_cache(&insns[pc].inl_cache);
+#endif /* INLINE_CACHE */
 
   switch (insn_info_table[oc].otype) {
   case BIGPRIMITIVE:
@@ -934,6 +946,7 @@ void set_function_table(FunctionTable *ftable, int index, Instruction *insns,
   ftable[index].n_constants = nconsts;
 }
 
+#ifdef DEBUG
 int print_function_table(FunctionTable *ftable, int nfuncs) {
   int i, j;
   JSValue *lit;
@@ -1139,6 +1152,7 @@ void print_bytecode(Instruction *insns, int pc) {
   }
   putchar('\n');
 }
+#endif /* DEBUG */
 
 uint32_t decode_escape_char(char *str) {
   char *src, *dst;

@@ -1,16 +1,23 @@
 \inst getglobal (Register dst, Value s)
 
-\otherwise \{
+\when s:string \{
 /*
    getglobal dst reg
      dst : destination register
      reg : register that has a pointer to a string object
    $dst = property value for the string in the global object
  */
-
-  JSValue ret;
-  if (get_prop(context->global, s, &ret) == FAIL) {
+  JSValue ret = get_prop(context->global, s);
+  if (ret == JS_EMPTY)
     LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(s));
-  }
   dst = ret;
+\}
+
+\otherwise \{
+  LOG_EXIT("GETGLOBAL with non-stirng variable name\n");
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}

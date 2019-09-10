@@ -28,11 +28,12 @@
 #define TAGOFFSET (3)
 #define TAGMASK   (0x7)  /* 111 */
 
-#define get_tag(p)      (((Tag)(p)) & TAGMASK)
-#define put_tag(p,t)    ((JSValue)((uint64_t)(p) + (t)))
-#define clear_tag(p)    ((uint64_t)(p) & ~TAGMASK)
-#define remove_tag(p,t) (clear_tag(p))
-#define equal_tag(p,t)  (get_tag((p)) == (t))
+#define get_tag(p)        (((Tag)(p)) & TAGMASK)
+#define put_tag(p,t)      ((JSValue)((uint64_t)(p) + (t)))
+#define clear_tag(p)      ((uint64_t)(p) & ~TAGMASK)
+#define remove_tag(p,t)   (clear_tag(p))
+#define equal_tag(p,t)    (get_tag((p)) == (t))
+#define obj_header_tag(x) (gc_obj_header_type((void *) clear_tag(x)))
 
 /*
  * Pair of two pointer tags
@@ -72,10 +73,38 @@ typedef uint16_t Subscript;
 typedef uint16_t Tag;
 
 /*
- * Object
- * tag == T_GENERIC
+ * header tags for non-JS objects
  */
+/* HTAG_FREE is defined in gc.c */
+#define HTAG_PROP           (0x11) /* Array of JSValues */
+#define HTAG_ARRAY_DATA     (0x12) /* Array of JSValues */
+#define HTAG_FUNCTION_FRAME (0x13) /* FunctionFrame */
+#define HTAG_STR_CONS       (0x14) /* StrCons */
+#define HTAG_CONTEXT        (0x15) /* Context */
+#define HTAG_STACK          (0x16) /* Array of JSValues */
 #ifdef HIDDEN_CLASS
+#define HTAG_HIDDEN_CLASS   (0x17) /* HiddenClass */
+#endif
+#define HTAG_HASHTABLE      (0x18)
+#define HTAG_HASH_BODY      (0x19)
+#define HTAG_HASH_CELL      (0x1A)
+#define HTAG_PROPERTY_MAP   (0x1B)
+#define HTAG_SHAPE          (0x1C)
+
+#ifdef GC_PROF
+#define NUM_DEFINED_HTAG 0x1C
+extern const char *htag_name[NUM_DEFINED_HTAG + 1];
+#define HTAG_NAME(t) ((t) <= NUM_DEFINED_HTAG ? htag_name[t] : "")
+#else /* GC_PROF */
+#define HTAG_NAME(t) abort();  /* HTAG_NAME is only for GC profiling */
+#endif /* GC_PROF */
+
+#ifdef DEBUG
+#define DEBUG_NAME(name) name
+#else /* DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* DEBUG */
+
 /*
  * Hidden Class Transition
  *
@@ -85,188 +114,216 @@ typedef uint16_t Tag;
  * (as a fixnum) or a pointer to the next hidden class.
  * The former is called `index entry' and the latter is called `transition
  * entry'.
- * Member n_entries has the number of entries registered in the map, i.e.,
- * the sum of the number of index entries and that of the transition entries.
  */
-typedef struct hidden_class {
-  uint32_t n_entries;
-  int htype;              /* HTYPE_TRANSIT or HTYPE_GROW */
-  uint32_t n_enter;       /* number of times this class is used */
-  uint32_t n_exit;        /* number of times this class is left */
-  HashTable *map;         /* map which is explained above */
-} HiddenClass;
 
-#define hidden_n_entries(h)    ((h)->n_entries)
-#define hidden_htype(h)        ((h)->htype)
-#define hidden_n_enter(h)      ((h)->n_enter)
-#define hidden_n_exit(h)       ((h)->n_exit)
-#define hidden_map(h)          ((h)->map)
+typedef struct property_map {
+  HashTable *map;            /* [const] property map and transitions */
+  struct property_map *prev; /* [weak] pointer to the previous map */
+  struct shape *shapes;      /* Weak list of existing shapes arranged from
+                              * more specialised to less.
+                              * (this pointer is strong) */
+  JSValue   __proto__;       /* [const] __proto__ of the object. */
+  uint32_t n_props;          /* [const] Number of properties in map.
+                              * This number includes special props. */
+  uint16_t n_special_props;  /* [const] Number of special props. */
+#ifdef HC_SKIP_INTERNAL
+  uint16_t n_transitions;    /* [const] Number of transitions. Used by GC.
+                              * 2 bits (0, 1, more, and UNSURE) would
+                              * suffice. */
+#define PM_N_TRANS_UNSURE (1 << 15)
+#endif /* HC_SKIP_INTERNAL */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
+#ifdef HC_PROF
+  int n_enter;
+  int n_leave;
+#endif /* HC_PROF */
+} PropertyMap;
 
-#define HTYPE_TRANSIT   0
-#define HTYPE_GROW      1
+typedef struct shape {
+  PropertyMap *pm;            /* [const] Pointer to the map. */
+  struct shape *next;         /* [weak] Weak list of exisnting shapes
+                               * shareing the same map. */
+  uint32_t n_embedded_slots;  /* [const] Number of slots for properties
+                               * in the object. This number includes 
+                               * special props. */
+  uint32_t n_extension_slots; /* [const] Size of extension array. */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
+#ifdef HC_PROF
+  uint32_t n_enter;
+  uint32_t n_exit;
+  uint32_t is_dead;
+  uint32_t is_printed;
+#endif /* HC_PROF */
+} Shape;
 
 /*
- * #define new_empty_hidden_class(cxt, name, hsize)      \
- *   new_hidden_class(cxt, NULL, name, 0, hsize)
+ * JSObject is used for
+ *   - simple_object
+ *   - function_object
+ *   - builtin_object
+ *   - array_object
+ *   - string_object
+ *   - number_object
+ *   - boolean_object
  */
-#endif
 
-typedef struct object_cell {
-  uint64_t n_props;       /* number of properties */
-  uint64_t limit_props;
-#ifdef HIDDEN_CLASS
-  HiddenClass *class;     /* Hidden class for this object */
-#else
-  HashTable *map;         /* map from property name to the index within prop */
-#endif
-  JSValue *prop;          /* array of property values */
-} Object;
-
-#define remove_simple_object_tag remove_normal_simple_object_tag
-#define put_simple_object_tag    put_normal_simple_object_tag
-
-#define make_simple_object(ctx)                         \
-  (put_simple_object_tag(allocate_simple_object(ctx)))
-
-#define remove_object_tag(p)    ((Object *)clear_tag(p))
-
-#define obj_n_props(p)         ((remove_object_tag(p))->n_props)
-#define obj_limit_props(p)     ((remove_object_tag(p))->limit_props)
-#ifdef HIDDEN_CLASS
-#define obj_hidden_class(p)    ((remove_object_tag(p))->class)
-#define obj_hidden_class_map(p) (hidden_map(obj_hidden_class(p)))
-#else
-#define obj_map(p)             ((remove_object_tag(p))->map)
-#endif
-#define obj_prop(p)            ((remove_object_tag(p))->prop)
-#define obj_prop_index(p,i)    ((remove_object_tag(p))->prop[i])
-
-#define obj_header_tag(x)      gc_obj_header_type(remove_object_tag(x))
-#define is_obj_header_tag(o,t) (is_object((o)) && (obj_header_tag((o)) == (t)))
-
-#define PSIZE_NORMAL  20  /* default initial size of the property array */
-#define PSIZE_BIG    100
-#define PSIZE_DELTA   20  /* delta when expanding the property array */
-#define PSIZE_LIMIT  500  /* limit size of the property array */
-#define HSIZE_NORMAL  30  /* default initial size of the map (hash table) */
-#define HSIZE_BIG    100
-
-#define increase_psize(n)     (((n) >= PSIZE_LIMIT)? (n): ((n) + PSIZE_DELTA))
-
-#ifdef HIDDEN_CLASS
-#define HHH 0
-#else
-#define HHH HSIZE_NORMAL
-#endif
-
-#define new_normal_object(ctx)  new_simple_object(ctx, HHH, PSIZE_NORMAL)
-#define new_normal_predef_object(ctx)                   \
-  new_simple_object(ctx, HSIZE_NORMAL, PSIZE_NORMAL)
-#define new_big_predef_object(ctx) new_simple_object(ctx, HSIZE_BIG, PSIZE_BIG)
-#define new_big_predef_object_without___proto__(ctx)                    \
-  new_simple_object_without___proto__(ctx, HSIZE_BIG, PSIZE_BIG)
-
-#define new_normal_function(ctx, s) new_function(ctx, s, HHH, PSIZE_NORMAL)
-
-#define new_normal_builtin(ctx, f, na)          \
-  new_builtin(ctx, f, na, HHH, PSIZE_NORMAL)
-#define new_normal_builtin_with_constr(ctx, f, cons, na)        \
-  new_builtin_with_constr(ctx, f, cons, na, HHH, PSIZE_NORMAL)
-
-#define new_big_builtin(ctx, f, cons, na)       \
-  new_builtin(ctx, f, na, HSIZE_BIG, PSIZE_BIG)
-#define new_big_builtin_with_constr(ctx, f, cons, na)                   \
-  new_builtin_with_constr(ctx, f, cons, na, HSIZE_BIG, PSIZE_BIG)
-
-#define new_normal_array(ctx) new_array(ctx, HHH, PSIZE_NORMAL)
-#define new_normal_array_with_size(ctx, n)              \
-  new_array_with_size(ctx, n, HHH, PSIZE_NORMAL)
-#define new_normal_number_object(ctx, v)        \
-  new_number_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_boolean_object(ctx, v)       \
-  new_boolean_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_string_object(ctx, v)        \
-  new_string_object(ctx, v, HHH, PSIZE_NORMAL)
-#define new_normal_iterator(ctx, o) new_iterator(ctx, o)
+#define JSOBJECT_MIN_EMBEDDED 1
+typedef struct jsobject_cell {
+  Shape *shape;
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *alloc_site;
+#endif /* ALLOC_SITE_CACHE */
+#ifdef DEBUG
+  char *name;
+#endif /* DEBUG */
+  JSValue eprop[JSOBJECT_MIN_EMBEDDED];
+} JSObject;
 
 #ifdef USE_REGEXP
-#define new_normal_regexp(ctx, p, f) new_regexp(ctx, p, f, HHH, PSIZE_NORMAL)
-#endif
+#define is_jsobject(p)                                                  \
+  (is_simple_object(p) || is_function(p) || is_builtin(p) || is_array(p) || \
+   is_string_object(p) || is_number_object(p) || is_boolean_object(p) || \
+   is_regexp(p))
+#else /* USE_REGEXP */
+#define is_jsobject(p)                                                  \
+  (is_simple_object(p) || is_function(p) || is_builtin(p) || is_array(p) || \
+   is_string_object(p) || is_number_object(p) || is_boolean_object(p))
+#endif /* USE_REGEXP */
 
-/*
- * Array
- * tag == T_GENERIC
- */
-typedef struct array_cell {
-  Object o;
-  uint64_t size;        /* size of the C array pointed from `body' field */
-  uint64_t length;      /* length of the array, i.e., max subscript - 1 */
-  JSValue *body;        /* pointer to a C array */
-} ArrayCell;
+static inline JSObject *remove_jsobject_tag(JSValue obj)
+{
+  assert(is_jsobject(obj));
+  return (JSObject *) clear_tag(obj);
+}
 
-#define make_array(ctx)       (put_normal_array_tag(allocate_array(ctx)))
+static inline JSValue *object_get_prop_address(JSValue obj, int index)
+{
+  JSObject *p;
+  int n_embedded;
 
-#define array_object_p(a)     (&((remove_normal_array_tag(a))->o))
-#define array_size(a)         ((remove_normal_array_tag(a))->size)
-#define array_length(a)       ((remove_normal_array_tag(a))->length)
-#define array_body(a)         ((remove_normal_array_tag(a))->body)
-#define array_body_index(a,i) ((remove_normal_array_tag(a))->body[i])
+  p = remove_jsobject_tag(obj);
+  n_embedded = p->shape->n_embedded_slots;
+  if (index < n_embedded - 1 || p->shape->n_extension_slots == 0)
+    return &p->eprop[index];
+  else {
+    JSValue *extension = (JSValue *) p->eprop[n_embedded - 1];
+    return &extension[index - (n_embedded - 1)];
+  }
+}
+
+#define object_get_prop(obj, index) *object_get_prop_address(obj, index)
+#define object_set_prop(obj, index, v) \
+  *(object_get_prop_address(obj, index)) = v
+
+#define object_get_shape(obj) (remove_jsobject_tag(obj)->shape)
+#ifdef ALLOC_SITE_CACHE
+#define object_set_alloc_site(obj, as)          \
+  (remove_jsobject_tag(obj)->alloc_site = (as))
+#endif /* ALLOC_SITE_CACHE */
+
+/** SPECIAL FIELDS OF JSObjects **/
+
+#define jsobject_xprop(p,t,i) (*(t*)&(p)->eprop[i])
+
+/* Simple */
+
+#define put_simple_object_tag(p) put_normal_simple_object_tag(p)
+#define OBJECT_SPECIAL_PROPS 0
+
+/* Array */
+
+#define put_array_tag(p) put_normal_array_tag(p)
+#define ARRAY_SPECIAL_PROPS 3
+#define array_ptr_size(p)          jsobject_xprop(p, uint64_t,  0)
+#define array_ptr_length(p)        jsobject_xprop(p, uint64_t,  1)
+#define array_ptr_body(p)          jsobject_xprop(p, JSValue *, 2)
+#define array_size(o)   array_ptr_size(remove_jsobject_tag(o))
+#define array_length(o) array_ptr_length(remove_jsobject_tag(o))
+#define array_body(o)   array_ptr_body(remove_jsobject_tag(o))
+
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
 #define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
-
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
-
 #define MINIMUM_ARRAY_SIZE  100
 
-/*
- * Function
- * tag == T_GENERIC
- */
+/* Function */
 
-typedef struct function_cell {
-  Object o;
-  FunctionTable *func_table_entry;
-  FunctionFrame *environment;
-} FunctionCell;
+#define put_function_tag(p) put_normal_function_tag(p)
+#define FUNCTION_SPECIAL_PROPS 2
+#define function_ptr_table_entry(p) jsobject_xprop(p, FunctionTable *, 0)
+#define function_ptr_environment(p) jsobject_xprop(p, FunctionFrame *, 1)
+#define function_table_entry(o) function_ptr_table_entry(remove_jsobject_tag(o))
+#define function_environment(o) function_ptr_environment(remove_jsobject_tag(o))
 
-#define make_function()     (put_normal_function_tag(allocate_function()))
-
-#define func_object_p(f)    (&((remove_normal_function_tag(f))->o))
-#define func_table_entry(f) ((remove_normal_function_tag(f))->func_table_entry)
-#define func_environment(f) ((remove_normal_function_tag(f))->environment)
-
-/*
- * Builtin
- * tag == T_GENERIC
- */
-
-/*
- * [FIXIT]
- * If variable number of arguments is allowed, the following information
- * is necessary.
- *   o number of required arguments
- *   o number of optional arguments
- *   etc.
- */
+/* Builtin */
 
 typedef void (*builtin_function_t)(Context*, int, int);
 
-typedef struct builtin_cell {
-  Object o;
-  builtin_function_t body;
-  builtin_function_t constructor;
-  int n_args;
-} BuiltinCell;
+#define put_builtin_tag(p) put_normal_builtin_tag(p)
+#define BUILTIN_SPECIAL_PROPS 3
+#define builtin_ptr_body(p)        jsobject_xprop(p, builtin_function_t, 0)
+#define builtin_ptr_constructor(p) jsobject_xprop(p, builtin_function_t, 1)
+#define builtin_ptr_n_args(p)      jsobject_xprop(p, uint64_t,           2)
+#define builtin_body(o)        builtin_ptr_body(remove_jsobject_tag(o))
+#define builtin_constructor(o) builtin_ptr_constructor(remove_jsobject_tag(o))
+#define builtin_n_args(o)      builtin_ptr_n_args(remove_jsobject_tag(o))
 
-#define make_builtin()          (put_normal_builtin_tag(allocate_builtin()))
+#ifdef USE_REGEXP
+/* Regexp */
 
-#define builtin_object_p(f)     (&((remove_normal_builtin_tag(f))->o))
-#define builtin_body(f)         ((remove_normal_builtin_tag(f))->body)
-#define builtin_constructor(f)  ((remove_normal_builtin_tag(f))->constructor)
-#define builtin_n_args(f)       ((remove_normal_builtin_tag(f))->n_args)
+#include <oniguruma.h>
+
+#define put_regexp_tag(p) put_normal_regexp_tag(p)
+#define REX_SPECIAL_PROPS 6
+#define regexp_ptr_pattern(p)    jsobject_xprop(p, char*,    0)
+#define regexp_ptr_reg(p)        jsobject_xprop(p, regex_t*, 1)
+#define regexp_ptr_global(p)     jsobject_xprop(p, int,      2)
+#define regexp_ptr_ignorecase(p) jsobject_xprop(p, int,      3)
+#define regexp_ptr_multiline(p)  jsobject_xprop(p, int,      4)
+#define regexp_ptr_lastindex(p)  jsobject_xprop(p, int,      5)
+#define regexp_pattern(o)    regexp_ptr_pattern(remove_jsobject_tag(o))
+#define regexp_reg(o)        regexp_ptr_reg(remove_jsobject_tag(o))
+#define regexp_global(o)     regexp_ptr_global(remove_jsobject_tag(o))
+#define regexp_ignorecase(o) regexp_ptr_ignorecase(remove_jsobject_tag(o))
+#define regexp_multiline(o)  regexp_ptr_multiline(remove_jsobject_tag(o))
+#define regexp_lastindex(o)  regexp_ptr_lastindex(remove_jsobject_tag(o))
+
+#define F_REGEXP_NONE      (0x0)
+#define F_REGEXP_GLOBAL    (0x1)
+#define F_REGEXP_IGNORE    (0x2)
+#define F_REGEXP_MULTILINE (0x4)
+#endif /* USE_REGEXP */
+
+/* String */
+
+#define put_string_object_tag(p) put_normal_string_object_tag(p)
+#define STRING_SPECIAL_PROPS 1
+#define string_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define string_object_value(o) string_object_ptr_value(remove_jsobject_tag(o))
+
+/* Number */
+
+#define put_number_object_tag(p) put_normal_number_object_tag(p)
+#define NUMBER_SPECIAL_PROPS 1
+#define number_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define number_object_value(o) number_object_ptr_value(remove_jsobject_tag(o))
+
+
+/* Boolean */
+
+#define put_boolean_object_tag(p) put_normal_boolean_object_tag(p)
+#define BOOLEAN_SPECIAL_PROPS 1
+#define boolean_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
+#define boolean_object_value(o) boolean_object_ptr_value(remove_jsobject_tag(o))
+
+/** Internal Object ******************************************/
 
 /*
  * Iterator
@@ -278,108 +335,29 @@ typedef struct iterator {
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
-#define make_iterator()                                        \
-  (put_normal_iterator_tag(allocate_iterator()))
+#define make_iterator(ctx)                              \
+  (put_normal_iterator_tag(allocate_iterator(ctx)))
 #define iterator_size(i)                        \
   ((remove_normal_iterator_tag(i))->size)
-#define iterator_index(i)                        \
+#define iterator_index(i)                       \
   ((remove_normal_iterator_tag(i))->index)
 #define iterator_body(i)                        \
   ((remove_normal_iterator_tag(i))->body)
 #define iterator_body_index(a,i)                \
   ((remove_normal_iterator_tag(a))->body[i])
 
-#ifdef USE_REGEXP
-#ifdef need_normal_regexp
-
-#include <oniguruma.h>
-
-/*
- * Regexp
- * tag == T_GENERIC
- */
-typedef struct regexp_cell {
-  Object o;
-  char *pattern;
-  regex_t *reg;
-  bool global;
-  bool ignorecase;
-  bool multiline;
-  int lastindex;
-} RegexpCell;
-
-#define F_REGEXP_NONE      (0x0)
-#define F_REGEXP_GLOBAL    (0x1)
-#define F_REGEXP_IGNORE    (0x2)
-#define F_REGEXP_MULTILINE (0x4)
-
-#define make_regexp()          (put_normal_regexp_tag(allocate_regexp()))
-
-#define regexp_object_p(r)     (&((remove_normal_regexp_tag(r))->o))
-#define regexp_pattern(r)      ((remove_normal_regexp_tag(r))->pattern)
-#define regexp_reg(r)          ((remove_normal_regexp_tag(r))->reg)
-#define regexp_global(r)       ((remove_normal_regexp_tag(r))->global)
-#define regexp_ignorecase(r)   ((remove_normal_regexp_tag(r))->ignorecase)
-#define regexp_multiline(r)    ((remove_normal_regexp_tag(r))->multiline)
-#define regexp_lastindex(r)    ((remove_normal_regexp_tag(r))->lastindex)
-#endif /* need_normal_regexp */
-#endif /* USE_REGEXP */
-
-/*
- * Boxed Object
- * tag == T_GENERIC
- */
-typedef struct boxed_cell {
-  Object o;
-  JSValue value;   /* boxed value; it is number, boolean, or string */
-} BoxedCell;
-
-#define make_number_object(ctx)                                         \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_NUMBER)))
-#define number_object_value(n)     (remove_normal_number_object_tag(n)->value)
-#define number_object_object_ptr(n)             \
-  (&((remove_normal_number_object_tag(n))->o))
-
-#define make_boolean_object(ctx)                                        \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_BOOLEAN)))
-#define boolean_object_value(b)    (remove_normal_boolean_object_tag(b)->value)
-#define boolean_object_object_ptr(b)            \
-  (&((remove_normal_boolean_object_tag(b))->o))
-
-#define make_string_object(ctx)                                         \
-  (put_normal_number_object_tag(allocate_boxed((ctx), HTAG_BOXED_STRING)))
-#define string_object_value(s)      (remove_normal_string_object_tag(s)->value)
-#define string_object_object_ptr(s)             \
-  (&((remove_normal_string_object_tag(s))->o))
 
 /*
  * Flonum
  */
-#if !defined(need_flonum)
-
-#define flonum_value(p)      JS_UNDEFINED
-#define double_to_flonum(n)  JS_UNDEFINED
-#define int_to_flonum(i)     JS_UNDEFINED
-#define cint_to_flonum(i)    JS_UNDEFINED
-#define flonum_to_double(p)  0
-#define flonum_to_cint(p)    0
-#define flonum_to_int(p)     0
-#define is_nan(p) JS_FALSE
-
-#elif !defined(customised_flonum)
-
 #define flonum_value(p)      (normal_flonum_value(p))
-#define double_to_flonum(n)  (double_to_normal_flonum(n))
+#define double_to_flonum(ctx, n)  (double_to_normal_flonum(ctx, n))
 #define int_to_flonum(i)     (int_to_normal_flonum(i))
-#define cint_to_flonum(i)    (cint_to_normal_flonum(i))
+#define cint_to_flonum(ctx, i)    (cint_to_normal_flonum(ctx, i))
 #define flonum_to_double(p)  (normal_flonum_to_double(p))
 #define flonum_to_cint(p)    (normal_flonum_to_cint(p))
 #define flonum_to_int(p)     (normal_flonum_to_int(p))
 #define is_nan(p)            (normal_flonum_is_nan(p))
-
-#endif
-
-#ifdef need_normal_flonum
 
 /*
  * FlonumCell
@@ -390,31 +368,25 @@ typedef struct flonum_cell {
 } FlonumCell;
 
 #define normal_flonum_value(p)      ((remove_normal_flonum_tag(p))->value)
-#define double_to_normal_flonum(n)  (put_normal_flonum_tag(allocate_flonum(n)))
-#define int_to_normal_flonum(i)     cint_to_flonum(i)
-#define cint_to_normal_flonum(i)    double_to_flonum((double)(i))
+#define double_to_normal_flonum(ctx, n)                 \
+  (put_normal_flonum_tag(allocate_flonum(ctx, n)))
+#define int_to_normal_flonum(ctx, i)     cint_to_flonum(ctx, i)
+#define cint_to_normal_flonum(ctx, i)    double_to_flonum(ctx, (double)(i))
 #define normal_flonum_to_double(p)  flonum_value(p)
 #define normal_flonum_to_cint(p)    ((cint)(flonum_value(p)))
 #define normal_flonum_to_int(p)     ((int)(flonum_value(p)))
 #define normal_flonum_is_nan(p)                         \
   (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
-#endif /* need_flonum */
-
-
 /*
  * String
  */
-#ifndef customised_string
 #define string_value(p)   (normal_string_value(p))
 #define string_hash(p)    (normal_string_hash(p))
 #define string_length(p)  (normal_string_length(p))
 #define cstr_to_string(ctx,str) (cstr_to_normal_string((ctx),(str)))
 #define ejs_string_concat(ctx,str1,str2)                \
   (ejs_normal_string_concat((ctx),(str1),(str2)))
-#endif /* customised_string */
-
-#ifdef need_normal_string
 
 /*
  * StringCell
@@ -446,39 +418,7 @@ typedef struct string_cell {
 #define ejs_normal_string_concat(ctx, str1, str2)       \
   (string_concat_ool((ctx), (str1), (str2)))
 
-#endif /* need_normal_string */
-
-/*
- * Object header
- *
- *  ---------------------------------------------------
- *  |  object size in bytes  |    header tag          |
- *  ---------------------------------------------------
- *  63                     32 31                     0
- */
-
-/* change name: OBJECT_xxx -> HEADER_xxx (ugawa) */
-#define HEADER_SIZE_OFFSET   (32)
-#define HEADER_TYPE_MASK     ((uint64_t)0x000000ff)
-#define HEADER_SHARED_MASK   ((uint64_t)0x80000000)
-#define FUNCTION_ATOMIC_MASK ((uint64_t)0x40000000)
-
-#define make_header(s, t) (((uint64_t)(s) << HEADER_SIZE_OFFSET) | (t))
-
-/*
- * header tags for non-JS objects
- */
-/* HTAG_FREE is defined in gc.c */
-#define HTAG_PROP           (0x11)
-#define HTAG_ARRAY_DATA     (0x12)
-#define HTAG_FUNCTION_FRAME (0x13)
-#define HTAG_HASH_BODY      (0x14)
-#define HTAG_STR_CONS       (0x15)
-#define HTAG_CONTEXT        (0x16)
-#define HTAG_STACK          (0x17)
-#ifdef HIDDEN_CLASS
-#define HTAG_HIDDEN_CLASS   (0x18)
-#endif
+/** UNBOXED TYPE *****************************************************/
 
 /*
  * Fixnum
@@ -536,13 +476,13 @@ typedef uint64_t cuint;
 #define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
 
-#define cint_to_number(n)                                               \
-  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum((n)))
+#define cint_to_number(ctx, n)                                           \
+  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
 
 #define number_to_double(p)                                     \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
-#define double_to_number(d)                                             \
-  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(d))
+#define double_to_number(ctx, d)                                        \
+  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(ctx, d))
 
 /*
  * Special
@@ -576,6 +516,7 @@ typedef uint64_t cuint;
 #define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
 #define JS_NULL           make_special(0, T_OTHER)
 #define JS_UNDEFINED      make_special(1, T_OTHER)
+#define JS_EMPTY          make_special(2, T_OTHER)
 
 #define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)               ((p) == JS_NULL)
@@ -591,36 +532,15 @@ typedef uint64_t cuint;
  * by a string object or a C string.
  */
 
-#define set_prop_none(c, o, s, v)                       \
-  set_prop_with_attribute(c, o, s, v, ATTR_NONE)
-#define set_prop_all(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_ALL)
-#define set_prop_de(c, o, s, v) set_prop_with_attribute(c, o, s, v, ATTR_DE)
-#define set_prop_ddde(c, o, s, v)                       \
-  set_prop_with_attribute(c, o, s, v, ATTR_DDDE)
-
-#define set___proto___none(c, o, v)                     \
-  set_prop_none(c, o, gconsts.g_string___proto__, v)
-#define set___proto___all(c, o, v)                      \
-  set_prop_all(c, o, gconsts.g_string___proto__, v)
-#define set___proto___de(c, o, v)                       \
-  set_prop_de(c, o, gconsts.g_string___proto__, v)
-#define set_prototype_none(c, o, v)                     \
-  set_prop_none(c, o, gconsts.g_string_prototype, v)
-#define set_prototype_all(c, o, v)                      \
-  set_prop_all(c, o, gconsts.g_string_prototype, v)
-#define set_prototype_de(c, o, v)                       \
-  set_prop_de(c, o, gconsts.g_string_prototype, v)
-
 #define set_obj_cstr_prop(c, o, s, v, attr)                             \
   set_prop_with_attribute(c, o, cstr_to_string((c),(s)), v, attr)
 #define set_obj_cstr_prop_none(c, o, s, v)      \
   set_obj_cstr_prop(c, o, s, v, ATTR_NONE)
-
-#define get___proto__(o, r) get_prop(o, gconsts.g_string___proto__, r)
-#endif
 
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* TYPES_H_ */

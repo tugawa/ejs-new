@@ -50,12 +50,32 @@ LIBS =
 OPT_REGEXP    = none
 # OPT_REGEXP    = oniguruma
 OPT_GC        = native
-# OPT_GC        = boehmgc
 # OPT_GC        = none
+
+## heap size in bytes
 HEAPSIZE      = -DJS_SPACE_BYTES=10485760
 
-CFLAGS       += -DUSE_SBC
-
+## enable profiling to create customised VM
 # CFLAGS       += -DPROFILE
+
+##
+## developer options
+##
+
+## accept SBC files
+CFLAGS       += -DUSE_SBC
+## GC collects internal nodes in hidden class graph
+CFLAGS       += -DHC_SKIP_INTERNAL
+## cache shapes at allocation site
+CFLAGS       += -DALLOC_SITE_CACHE
+## GC collects unused shapes (effective if ALLOC_SITE_CACHE is specified)
+CFLAGS       += -DWEAK_SHAPE_LIST
+## use inlne cache
+CFLAGS       += -DINLINE_CACHE
+
+## show GC profiling information (--gc-prof becomes available)
+CFLAGS       += -DGC_PROF
+## show hidden class related profiling information (--hc-prof becoms available)
+CFLAGS       += -DHC_PROF
 
 include $(EJSVM_DIR)/common.mk

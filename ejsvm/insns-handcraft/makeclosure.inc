@@ -12,7 +12,7 @@
    */
   Subscript ss = s1 + 1;
   save_context();    // GC
-  regbase[r0] = new_normal_function(context, ss);
+  regbase[r0] = new_function(context, ss);
   update_context();  // GC
 }
 

@@ -1,13 +1,20 @@
 \inst setglobal (Value s, Value src)
 
-\otherwise \{
+\when s:string \{
 /*
-   setglobal reg src
-     reg : register that has a pointer to a string object
+   setglobal s src
+     s : register that has a pointer to a string object
      src : property value to be set
    property value for the string in the global object = $src
  */
+  set_prop(context, context->global, s, src, ATTR_NONE);
+\}
 
-  if (set_prop_none(context, context->global, s, src) == FAIL)
-    LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(s));
+\otherwise \{
+  LOG_EXIT("SETGLOBAL with non-string variable name\n");
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}

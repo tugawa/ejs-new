@@ -14,26 +14,65 @@
 #include "header.h"
 #include "log.h"
 
+/* Objects allocated in the heap
+ *                       has   stored as  visible   know
+ *                      (ptag) (JSValue) (to user) (size) (type)
+ *   HTAG_STRING         yes    yes       yes       fixed StringCell
+ *   HTAG_FLONUM         yes    yes       yes       fixed FlonumCell
+ *   HTAG_SIMPLE_OBJECT  yes    yes       yes       yes   JSObject
+ *   HTAG_ARRAY          yes    yes       yes       yes   JSObject
+ *   HTAG_FUNCTION       yes    yes       yes       yes   JSObject
+ *   HTAG_BUILTIN        yes    yes       yes       yes   JSObject
+ *   HTAG_BOXED_NUMBER   yes    yes       yes       yes   JSObject
+ *   HTAG_BOXED_BOOLEAN  yes    yes       yes       yes   JSObject
+ *   HTAB_BOXED_STRING   yes    yes       yes       yes   JSObject
+ *   HTAG_REGEXP         yes    yes       yes       yes   JSObject
+ *   HTAG_ITERATOR       yes    yes       no        yes   Iterator
+ *   HTAG_PROP           no     yes       no        no    JSValue*
+ *   HTAG_ARRAY_DATA     no     no        no        no    JSValue*
+ *   HTAG_FUNCTION_FRAME no     no        no        yes   FunctionFrame
+ *   HTAG_STR_CONS       no     no        no        fixed StrCons
+ *   HTAG_CONTEXT        no     no        no        fixed Context
+ *   HTAG_STACK          no     no        no        no    JSValue*
+ *   HTAG_HASHTABLE      no     no        no        fixed HashTable
+ *   HTAG_HASH_BODY      no     no        no        no    HashCell**
+ *   HTAG_HASH_CELL      no     no        no        fixed HashCell
+ *   HTAG_PROPERTY_MAP   no     yes       no        fixed PropertyMap
+ *   HTAG_SHAPE          no     no        no        fixed Shape
+ *
+ * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
+ * are stored in a dedicated slot and scand together with their owners.
+ *
+ * HTAG_PROP is stored in the last embedded slot.
+ * HTAG_PROPERTY_MAP is stored as the value of property __property_map__
+ * of a prototype object.
+ *
+ * Static data structures
+ *   FunctionTable[] function_table (global.h)
+ *   StrTable string_table (global.h)
+ */
+
 #ifndef NDEBUG
 #define GC_DEBUG 1
-#define STATIC
+#define STATIC        /* make symbols global for debugger */
+#define STATIC_INLINE /* make symbols global for debugger */
 #else
 #undef GC_DEBUG
 #define STATIC static
+#define STATIC_INLINE static inline
 #endif
 
-/*
- * #define GCLOG(...) LOG(__VA_ARGS__)
- * #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
- * #define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
- * #define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
- */
-
+#if 0
+#define GCLOG(...) LOG(__VA_ARGS__)
+#define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
+#define GCLOG_ALLOC(...) LOG(__VA_ARGS__)
+#define GCLOG_SWEEP(...) LOG(__VA_ARGS__)
+#else /* 0 */
 #define GCLOG(...)
 #define GCLOG_TRIGGER(...)
 #define GCLOG_ALLOC(...)
 #define GCLOG_SWEEP(...)
-
+#endif /* 0 */
 
 /*
  * defined in header.h
@@ -52,8 +91,11 @@
 #ifndef JS_SPACE_BYTES
 #define JS_SPACE_BYTES     (10 * 1024 * 1024)
 #endif
+#ifdef EXCESSIVE_GC
+#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+#else  /* EXCESSIVE_GC */
 #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
-/* #define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4) */
+#endif /* EXCESSIVE_GC */
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -90,6 +132,20 @@ struct space {
   char *name;
 };
 
+struct property_map_roots {
+  PropertyMap *pm;
+  struct property_map_roots *next;
+};
+
+enum gc_phase {
+  PHASE_INACTIVE,
+  PHASE_INITIALISE,
+  PHASE_MARK,
+  PHASE_WEAK,
+  PHASE_SWEEP,
+  PHASE_FINALISE,
+};
+
 /*
  * variables
  */
@@ -98,12 +154,9 @@ STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
 
-/* old gc root stack (to be obsolete) */
-#define MAX_TMP_ROOTS 1000
-STATIC JSValue *tmp_roots[MAX_TMP_ROOTS];
-STATIC int tmp_roots_sp;
+enum gc_phase gc_phase = PHASE_INACTIVE;
 
-/* new gc root stack */
+/* gc root stack */
 #define MAX_ROOTS 1000
 STATIC JSValue *gc_root_stack[MAX_ROOTS];
 STATIC int gc_root_stack_ptr = 0;
@@ -112,12 +165,53 @@ STATIC int gc_disabled = 1;
 
 int generation = 0;
 int gc_sec;
-int gc_usec; 
+int gc_usec;
+#ifdef GC_PROF
+uint64_t total_alloc_bytes;
+uint64_t total_alloc_count;
+uint64_t pertype_alloc_bytes[256];
+uint64_t pertype_alloc_count[256];
+uint64_t pertype_live_bytes[256];
+uint64_t pertype_live_count[256];
+
+const char *htag_name[NUM_DEFINED_HTAG + 1] = {
+    /* 00 */ "free",
+    /* 01 */ "",
+    /* 02 */ "",
+    /* 03 */ "",
+    /* 04 */ "STRING",
+    /* 05 */ "FLONUM",
+    /* 06 */ "SIMPLE_OBJECT",
+    /* 07 */ "ARRAY",
+    /* 08 */ "FUNCTION",
+    /* 09 */ "BUILTIN",
+    /* 0A */ "ITERATOR",
+    /* 0B */ "REGEXP",
+    /* 0C */ "BOXED_STRING",
+    /* 0D */ "BOXED_NUMBER",
+    /* 0E */ "BOXED_BOOLEAN",
+    /* 0F */ "",
+    /* 10 */ "",
+    /* 11 */ "PROP",
+    /* 12 */ "ARRAY_DATA",
+    /* 13 */ "FUNCTION_FRAME",
+    /* 14 */ "STR_CONS",
+    /* 15 */ "CONTEXT",
+    /* 16 */ "STACK",
+    /* 17 */ "HIDDEN_CLASS",
+    /* 18 */ "HASHTABLE",
+    /* 19 */ "HASH_BODY",
+    /* 1a */ "HASH_CELL",
+    /* 1b */ "HTAG_PROPERTY_MAP",
+    /* 1c */ "HTAG_SHAPE",
+};
+#endif /* GC_PROF */
 
 #ifdef GC_DEBUG
-STATIC void **top;
 STATIC void sanity_check();
 #endif /* GC_DEBUG */
+
+struct property_map_roots *property_map_roots;
 
 /*
  * prototype
@@ -130,24 +224,20 @@ STATIC header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
 /* GC */
 STATIC int check_gc_request(Context *);
-STATIC void garbage_collect(Context *ctx);
-STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length);
-STATIC void trace_HashCell(HashCell **ptrp);
-#ifdef HIDDEN_CLASS
-STATIC void trace_HiddenClass(HiddenClass **ptrp);
-#endif
-STATIC void trace_JSValue_array(JSValue **ptrp, size_t length);
-STATIC void trace_slot(JSValue* ptr);
+STATIC void garbage_collection(Context *ctx);
 STATIC void scan_roots(Context *ctx);
-STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+#ifdef ALLOC_SITE_CACHE
+STATIC void alloc_site_update_info(JSObject *p);
+#endif /* ALLOC_SITE_CACHE */
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
 STATIC void print_heap_stat(void);
 #endif /* GC_DEBUG */
+
 
 /*
  *  Space
@@ -238,7 +328,23 @@ STATIC void* space_alloc(struct space *space,
     }
   }
 
-  printf("memory exhausted\n");
+#ifdef DEBUG
+  {
+    struct free_chunk *chunk;
+    for (chunk = space->freelist; chunk != NULL; chunk = chunk->next) {
+      size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
+      LOG(" %lu", chunk_jsvalues * BYTES_IN_JSVALUE);
+    }
+  }
+  LOG("\n");
+  LOG("js_space.bytes = %lu\n", js_space.bytes);
+  LOG("js_space.free_bytes = %lu\n", js_space.free_bytes);
+  LOG("gc_disabled = %d\n", gc_disabled);
+  LOG("request = %lu\n", request_bytes);
+  LOG("type = 0x%x\n", type);
+  LOG("memory exhausted\n");
+#endif /* DEBUG */
+  abort();
   return NULL;
 }
 
@@ -253,35 +359,11 @@ void init_memory()
 #ifdef GC_DEBUG
   create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
 #endif /* GC_DEBUG */
-  tmp_roots_sp = -1;
   gc_root_stack_ptr = 0;
   gc_disabled = 0;
   generation = 1;
   gc_sec = 0;
   gc_usec = 0;
-}
-
-void gc_push_tmp_root(JSValue *loc)
-{
-  tmp_roots[++tmp_roots_sp] = loc;
-}
-
-void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2)
-{
-  tmp_roots[++tmp_roots_sp] = loc1;
-  tmp_roots[++tmp_roots_sp] = loc2;
-}
-
-void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3)
-{
-  tmp_roots[++tmp_roots_sp] = loc1;
-  tmp_roots[++tmp_roots_sp] = loc2;
-  tmp_roots[++tmp_roots_sp] = loc3;
-}
-
-void gc_pop_tmp_root(int n)
-{
-  tmp_roots_sp -= n;
 }
 
 void gc_push_checked(void *addr)
@@ -300,11 +382,13 @@ void gc_pop_checked(void *addr)
   gc_root_stack[--gc_root_stack_ptr] = NULL;
 }
 
+#ifdef DEBUG
 cell_type_t gc_obj_header_type(void *p)
 {
   header_t *hdrp = ((header_t *) p) - 1;
   return HEADER0_GET_TYPE(*hdrp);
 }
+#endif /* DEBUG */
 
 STATIC int check_gc_request(Context *ctx)
 {
@@ -326,18 +410,10 @@ STATIC int check_gc_request(Context *ctx)
 
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
-  return gc_jsalloc(ctx, request_bytes, type);
-}
-
-JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
-{
   JSValue *addr;
-#ifdef GC_DEBUG
-  top = (void**) &ctx;
-#endif /* GC_DEBUG */
 
   if (check_gc_request(ctx))
-    garbage_collect(ctx);
+    garbage_collection(ctx);
   addr = space_alloc(&js_space, request_bytes, type);
   GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
@@ -348,6 +424,17 @@ JSValue* gc_jsalloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
+#ifdef GC_PROF
+  {
+    size_t alloc_bytes =
+      (request_bytes + BYTES_IN_JSVALUE * (HEADER_JSVALUES + 1) - 1) &
+      ~((1 << LOG_BYTES_IN_JSVALUE) - 1);
+    total_alloc_bytes += alloc_bytes;
+    total_alloc_count++;
+    pertype_alloc_bytes[type] += alloc_bytes;
+    pertype_alloc_count[type]++;
+  }
+#endif /* GC_PROF */
   return addr;
 }
 
@@ -358,38 +445,44 @@ void disable_gc(void)
 
 void enable_gc(Context *ctx)
 {
-#ifdef GC_DEBUG
-  top = (void**) &ctx;
-#endif /* GC_DEBUG */
-
   if (--gc_disabled == 0) {
     if (check_gc_request(ctx))
-      garbage_collect(ctx);
+      garbage_collection(ctx);
   }
 }
 
 void try_gc(Context *ctx)
 {
   if (check_gc_request(ctx))
-    garbage_collect(ctx);
+    garbage_collection(ctx);
 }
 
-STATIC void garbage_collect(Context *ctx)
+STATIC void garbage_collection(Context *ctx)
 {
   struct rusage ru0, ru1;
 
-  /* printf("Enter gc, generation = %d\n", generation); */
+  /* initialise */
+  gc_phase = PHASE_INITIALISE;
   GCLOG("Before Garbage Collection\n");
-  /* print_memory_status(); */
-  if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
+  if (cputime_flag == TRUE)
+    getrusage(RUSAGE_SELF, &ru0);
+  property_map_roots = NULL;
 
+  /* mark */
+  gc_phase = PHASE_MARK;
   scan_roots(ctx);
-  weak_clear();
-  sweep();
-  GCLOG("After Garbage Collection\n");
-  /* print_memory_status(); */
-  /* print_heap_stat(); */
 
+  /* weak */
+  gc_phase = PHASE_WEAK;
+  weak_clear();
+
+  /* sweep */
+  gc_phase = PHASE_SWEEP;
+  sweep();
+
+  /* finalise */
+  gc_phase = PHASE_FINALISE;
+  GCLOG("After Garbage Collection\n");
   if (cputime_flag == TRUE) {
     time_t sec;
     suseconds_t usec;
@@ -407,12 +500,14 @@ STATIC void garbage_collect(Context *ctx)
 
   generation++;
   /* printf("Exit gc, generation = %d\n", generation); */
+
+  gc_phase = PHASE_INACTIVE;
 }
 
 /*
  * Mark the header
  */
-STATIC void mark_cell_header(header_t *hdrp)
+STATIC_INLINE void mark_cell_header(header_t *hdrp)
 {
 #ifdef GC_DEBUG
   {
@@ -429,18 +524,18 @@ STATIC void mark_cell_header(header_t *hdrp)
   *hdrp |= GC_MARK_BIT;
 }
 
-STATIC void mark_cell(void *ref)
+STATIC_INLINE void mark_cell(void *ref)
 {
   header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
   mark_cell_header(hdrp);
 }
 
-STATIC void unmark_cell_header(header_t *hdrp)
+STATIC_INLINE void unmark_cell_header(header_t *hdrp)
 {
   *hdrp &= ~GC_MARK_BIT;
 }
 
-STATIC int is_marked_cell_header(header_t *hdrp)
+STATIC_INLINE int is_marked_cell_header(header_t *hdrp)
 {
 #if HEADER0_GC_OFFSET <= 4 * 8  /* BITS_IN_INT */
   return *hdrp & GC_MARK_BIT;
@@ -449,13 +544,13 @@ STATIC int is_marked_cell_header(header_t *hdrp)
 #endif
 }
 
-STATIC int is_marked_cell(void *ref)
+STATIC_INLINE int is_marked_cell(void *ref)
 {
   header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
   return is_marked_cell_header(hdrp);
 }
 
-STATIC int test_and_mark_cell(void *ref)
+STATIC_INLINE int test_and_mark_cell(void *ref)
 {
   if (in_js_space(ref)) {
     header_t *hdrp = (header_t *)(((uintptr_t) ref) - HEADER_BYTES);
@@ -468,161 +563,268 @@ STATIC int test_and_mark_cell(void *ref)
 
 /*
  * Tracer
+ *
+ *  process_edge, process_edge_XXX
+ *    If the destination node is not marked, mark it and process the
+ *    destination node. XXX is specialised version for type XXX.
+ *  scan_XXX
+ *    Scan static structure XXX.
+ *  process_node_XXX
+ *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
 
-STATIC void trace_leaf_object(uintptr_t *ptrp)
-{
-  uintptr_t ptr = *ptrp;
-  if (in_js_space((void *) ptr))
-    mark_cell((void *) ptr);
-}
+STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
+STATIC void process_edge_HashBody(HashCell **p, size_t length);
+STATIC void process_node_FunctionFrame(FunctionFrame *p);
+STATIC void process_node_Context(Context *p);
+STATIC void scan_function_table_entry(FunctionTable *p);
+STATIC void scan_stack(JSValue* stack, int sp, int fp);
 
-STATIC void trace_HashTable(HashTable **ptrp)
+STATIC void process_edge(uintptr_t ptr)
 {
-  HashTable *ptr = *ptrp;
+  cell_type_t type;
 
-  if (test_and_mark_cell(ptr))
+  if (is_fixnum(ptr) || is_special(ptr))
     return;
 
-  trace_HashCell_array(&ptr->body, ptr->size);
-}
+  ptr = ptr & ~TAGMASK;
 
-STATIC void trace_HashCell_array(HashCell ***ptrp, uint32_t length)
-{
-  HashCell **ptr = *ptrp;
-  int i;
-  if (test_and_mark_cell(ptr))
+  if (test_and_mark_cell((void *)ptr))
     return;
 
-  for (i = 0; i < length; i++) {
-    if (ptr[i] != NULL)
-      trace_HashCell(ptr + i);
+  type = HEADER0_GET_TYPE(((header_t *) ptr)[-1]);
+
+  /* part of code for processing the node is inlined */
+  switch (type) {
+  case HTAG_STRING:
+  case HTAG_FLONUM:
+    return;
+  case HTAG_SIMPLE_OBJECT:
+    break;
+  case HTAG_ARRAY:
+    {
+      JSObject *p = (JSObject *) ptr;
+      JSValue *a_body = array_ptr_body(p);
+      uint64_t a_length = array_ptr_length(p);
+      uint64_t a_size = array_ptr_size(p);
+      size_t len = a_length < a_size ? a_length : a_size;
+      if (a_body != NULL)
+        /* a_body may be NULL during initialization */
+        process_edge_JSValue_array(a_body, 0, len);
+      break;
+    }
+  case HTAG_FUNCTION:
+    {
+      JSObject *p = (JSObject *) ptr;
+      FunctionFrame *frame = function_ptr_environment(p);
+      /* FunctionTable *ftentry = function_ptr_table_entry(p);
+       * scan_function_table_entry(ftentry);
+       *    All function table entries are scanned through Context
+       */
+      process_edge((uintptr_t) frame);
+      break;
+    }
+  case HTAG_BUILTIN:
+    break;
+  case HTAG_BOXED_NUMBER:
+    {
+      JSObject *p = (JSObject *) ptr;
+      JSValue value = number_object_ptr_value(p);
+      process_edge((uintptr_t) value);
+      break;
+    }
+  case HTAG_BOXED_STRING:
+    {
+      JSObject *p = (JSObject *) ptr;
+      JSValue value = string_object_ptr_value(p);
+      process_edge((uintptr_t) value);
+      break;
+    }
+  case HTAG_BOXED_BOOLEAN:
+    {
+#ifdef DEBUG
+      JSObject *p = (JSObject *) ptr;
+      JSValue value = number_object_ptr_value(p);
+      assert(is_boolean(value));
+#endif /* DEBUG */
+      break;
+    }
+#ifdef USE_REGEXP
+  case HTAG_REGEXP:
+    break;
+#endif /* USE_REGEXP */
+  case HTAG_ITERATOR:
+    {
+      Iterator *p = (Iterator *) ptr;
+      if (p->size > 0)
+        process_edge_JSValue_array(p->body, 0, p->size);
+      return;
+    }
+  case HTAG_PROP:
+  case HTAG_ARRAY_DATA:
+    abort();
+  case HTAG_FUNCTION_FRAME:
+    process_node_FunctionFrame((FunctionFrame *) ptr);
+    return;
+  case HTAG_STR_CONS:
+    {
+      StrCons *p = (StrCons *) ptr;
+      /* WEAK: p->str */
+      if (p->next != NULL)
+        process_edge((uintptr_t) p->next); /* StrCons */
+      return;
+    }
+  case HTAG_CONTEXT:
+    process_node_Context((Context *) ptr);
+    return;
+  case HTAG_STACK:
+    abort();
+  case HTAG_HASHTABLE:
+    {
+      HashTable *p = (HashTable *) ptr;
+      if (p->body != NULL)
+        process_edge_HashBody(p->body, p->size);
+      return;
+    }
+  case HTAG_HASH_BODY:
+    abort();
+  case HTAG_HASH_CELL:
+    {
+      HashCell *p = (HashCell *) ptr;
+      process_edge(p->entry.key);
+#ifndef HC_SKIP_INTERNAL
+      /* transition link is weak if HC_SKIP_INTERNAL */
+      if (is_transition(p->entry.attr))
+        process_edge((uintptr_t) p->entry.data);  /* PropertyMap */
+#endif /* HC_SKIP_INTERNAL */
+      if (p->next != NULL)
+        process_edge((uintptr_t) p->next);  /* HashCell */
+      return;
+    }
+  case HTAG_PROPERTY_MAP:
+    {
+      PropertyMap *p = (PropertyMap *) ptr;
+      process_edge((uintptr_t) p->map); /* HashTable */
+#ifndef HC_SKIP_INTERNAL
+      if (p->prev != NULL)
+        /* weak if HC_SKIP_INTERNAL */
+        process_edge((uintptr_t) p->prev); /* PropertyMap */
+#endif /* HC_SKIP_INTERNAL */
+      if (p->shapes != NULL)
+        process_edge((uintptr_t) p->shapes); /* Shape */
+      process_edge((uintptr_t) p->__proto__);
+      /* collect children of roots for entriy points of weak lists */
+      if (p->prev == gconsts.g_property_map_root) {
+        struct property_map_roots *e =
+          (struct property_map_roots *)
+          space_alloc(&js_space, sizeof(struct property_map_roots),
+                      HTAG_FREE);
+        e->pm = p;
+        e->next = property_map_roots;
+        property_map_roots = e;
+      }
+      return;
+    }
+  case HTAG_SHAPE:
+    {
+      Shape *p = (Shape *) ptr;
+      process_edge((uintptr_t) p->pm);
+#ifdef WEAK_SHAPE_LIST
+      /* p->next is weak */
+#else /* WEAK_SHAPE_LIST */
+      if (p->next != NULL)
+        process_edge((uintptr_t) p->next);
+#endif /* WEAK_SHAPE_LIST */
+      return;
+    }
+  default:
+    abort();
+  }
+
+  /* common fields and payload of JSObject */
+  {
+    JSObject *p = (JSObject *) ptr;
+    Shape *os = p->shape;
+    int n_extension = os->n_extension_slots;
+    size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
+    int i;
+    /* 1. shape */
+    process_edge((uintptr_t) os);
+    /* 2. embedded propertyes */
+    for (i = os->pm->n_special_props; i < actual_embedded; i++)
+      process_edge(p->eprop[i]);
+    if (n_extension != 0) {
+      /* 3. extension */
+      process_edge_JSValue_array((JSValue *) p->eprop[actual_embedded], 0,
+                                 os->pm->n_props - actual_embedded);
+    }
+#ifdef ALLOC_SITE_CACHE
+    /* 4. allocation site cache */
+    if (p->alloc_site != NULL)
+      alloc_site_update_info(p);
+#endif /* ALLOC_SITE_CACHE */
   }
 }
 
-STATIC void trace_HashCell(HashCell **ptrp)
+STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
 {
-  HashCell *ptr = *ptrp;
-  if (test_and_mark_cell(ptr))
-    return;
-
-  trace_slot(&ptr->entry.key);
-#ifdef HIDDEN_CLASS
-  if (is_transition(ptr->entry.attr))
-    trace_HiddenClass((HiddenClass **)&ptr->entry.data);
-#endif
-  if (ptr->next != NULL)
-    trace_HashCell(&ptr->next);
-}
-
-STATIC void trace_Instruction_array_part(Instruction **ptrp,
-                                         size_t n_insns, size_t n_constants)
-{
-  Instruction *ptr = (Instruction *) *ptrp;
-  JSValue *litstart;
   size_t i;
-  if (test_and_mark_cell(ptr))
+  assert(in_js_space(p));
+  if (test_and_mark_cell(p))
     return;
-  litstart = (JSValue *)(&ptr[n_insns]);
-  for (i = 0; i < n_constants; i++)
-    trace_slot((JSValue *)(&litstart[i]));
+  for (i = start; i < length; i++)
+    process_edge((uintptr_t) p[i]);
 }
 
-STATIC void scan_FunctionTable(FunctionTable *ptr)
+STATIC void process_edge_HashBody(HashCell **p, size_t length)
 {
-  /* trace constant pool */
-  trace_Instruction_array_part(&ptr->insns, ptr->n_insns, ptr->n_constants);
-}
-
-STATIC void trace_FunctionTable_array(FunctionTable **ptrp, size_t length)
-{
-  FunctionTable *ptr = *ptrp;
   size_t i;
-  if (test_and_mark_cell(ptr))
+  assert(in_js_space(p));
+  if (test_and_mark_cell(p))
     return;
   for (i = 0; i < length; i++)
-    scan_FunctionTable(ptr + i);
+    if (p[i] != NULL)
+      process_edge((uintptr_t) p[i]);  /* HashCell */
 }
 
-STATIC void trace_FunctionFrame(FunctionFrame **ptrp)
+STATIC void process_node_FunctionFrame(FunctionFrame *p)
 {
-  FunctionFrame *ptr = *ptrp;
   header_t header;
   size_t length;
-  size_t   i;
-  if (test_and_mark_cell(ptr))
-    return;
+  size_t i;
 
-  if (ptr->prev_frame != NULL)
-    trace_FunctionFrame(&ptr->prev_frame);
-  trace_slot(&ptr->arguments);
-  /* locals */
-  header = *(((uint64_t *) ptr) - HEADER_JSVALUES);
+  if (p->prev_frame != NULL)
+    process_edge((uintptr_t) p->prev_frame); /* FunctionFrame */
+  process_edge(p->arguments);
+  /* local variables
+   *   TODO: no idea about the number of local variables.
+   */
+  header = ((header_t *) p)[-1];
   length = HEADER0_GET_SIZE(header);
   length -= HEADER_JSVALUES;
   length -= sizeof(FunctionFrame) >> LOG_BYTES_IN_JSVALUE;
   length -= HEADER0_GET_EXTRA(header);
   for (i = 0; i < length; i++)
-    trace_slot(ptr->locals + i);
+    process_edge(p->locals[i]);
 
-  assert(ptr->locals[length - 1] == JS_UNDEFINED);  /* GC_DEBUG (cacary) */
+  assert(p->locals[length - 1] == JS_UNDEFINED);  /* GC_DEBUG (cacary) */
 }
 
-STATIC void trace_StrCons(StrCons **ptrp)
+STATIC void process_node_Context(Context *context)
 {
-  StrCons *ptr = *ptrp;
+  int i;
 
-  if (test_and_mark_cell(ptr))
-    return;
-
-  /* trace_slot(&ptr->str); */ /* weak pointer */
-  if (ptr->next != NULL)
-    trace_StrCons(&ptr->next);
-}
-
-STATIC void trace_StrCons_ptr_array(StrCons ***ptrp, size_t length)
-{
-  StrCons **ptr = *ptrp;
-  size_t i;
-  if (test_and_mark_cell(ptr))
-    return;
-
-  for (i = 0; i < length; i++)
-    if (ptr[i] != NULL)
-      trace_StrCons(ptr + i);
-}
-
-#ifdef HIDDEN_CLASS
-STATIC void trace_HiddenClass(HiddenClass **ptrp)
-{
-  HiddenClass *ptr = *ptrp;
-  /* printf("Enter trace_HiddenClass\n"); */
-  if (test_and_mark_cell(ptr))
-    return;
-  trace_HashTable(&hidden_map(ptr));
-  /* printf("Exit trace_HiddenClass\n"); */
-}
-#endif
-
-/*
- * we do not move context
- */
-STATIC void trace_Context(Context **contextp)
-{
-  Context *context = *contextp;
-
-  if (test_and_mark_cell(context))
-    return;
-
-  trace_slot(&context->global);
-  trace_FunctionTable_array(&context->function_table, FUNCTION_TABLE_LIMIT);
-  /* TODO: update spregs.cf which is an inner pointer to function_table */
-  trace_FunctionFrame(&context->spreg.lp);
-  trace_slot(&context->spreg.a);
-  trace_slot(&context->spreg.err);
-
-  trace_slot(&context->exhandler_stack);
-  trace_slot(&context->lcall_stack);
+  process_edge((uintptr_t) context->global);
+  /* function table is a static data structure
+   *   Note: spreg.cf points to internal address of the function table.
+   */
+  for (i = 0; i < FUNCTION_TABLE_LIMIT; i++)
+    scan_function_table_entry(&context->function_table[i]);
+  process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
+  process_edge((uintptr_t) context->spreg.a);
+  process_edge((uintptr_t) context->spreg.err);
+  process_edge((uintptr_t) context->exhandler_stack);
+  process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
   assert(!is_marked_cell(context->stack));
@@ -630,148 +832,78 @@ STATIC void trace_Context(Context **contextp)
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
-STATIC void trace_js_object(uintptr_t *ptrp)
+STATIC void scan_function_table_entry(FunctionTable *p)
 {
-  uintptr_t ptr = *ptrp;
-  Object *obj = (Object *) ptr;
+  /* trace constant pool */
+  {
+    JSValue *constant_pool = (JSValue *) &p->insns[p->n_insns];
+    size_t n_constants = p->n_constants;
+    size_t i;
+    for (i = 0; i < n_constants; i++)
+      process_edge(constant_pool[i]);
+  }
 
-  assert(in_js_space((void *) ptr));
-  if (is_marked_cell((void *) ptr))
-    return;
-  mark_cell((void *) ptr);
-
-  /* common header */
-#ifdef HIDDEN_CLASS
-  trace_HiddenClass(&obj->class);
-#else
-  trace_HashTable(&obj->map);
-#endif
-  trace_JSValue_array(&obj->prop, obj->n_props);
-
-  switch (HEADER0_GET_TYPE(((header_t *) ptr)[-1])) {
-  case HTAG_SIMPLE_OBJECT:
-    break;
-  case HTAG_ARRAY:
-    {
-      ArrayCell *a = (ArrayCell *) obj;
-      size_t len = 0;
-      if (a->length < a->size) {
-        len = a->length;
-      } else {
-        len = a->size;
-      }
-      trace_JSValue_array(&a->body, len);
+#ifdef ALLOC_SITE_CACHE
+  /* scan Allocation Sites */
+  {
+    size_t i;
+    for (i = 0; i < p->n_insns; i++) {
+      Instruction *insn = &p->insns[i];
+      AllocSite *alloc_site = &insn->alloc_site;
+      if (alloc_site->shape != NULL)
+        process_edge((uintptr_t) alloc_site->shape);
+      /* TODO: too eary PM sacnning. scan after updating alloc site info */
+      if (alloc_site->pm != NULL)
+        process_edge((uintptr_t) alloc_site->pm);
     }
-    break;
-  case HTAG_FUNCTION:
-    /* TODO: func_table_entry holds an inner pointer */
-    scan_FunctionTable(((FunctionCell *) obj)->func_table_entry);
-    trace_FunctionFrame(&((FunctionCell *) obj)->environment);
-    break;
-  case HTAG_BUILTIN:
-    break;
-  case HTAG_ITERATOR:
-    /* iterator does not have a common header */
-    assert(0);
-    break;
-#ifdef USE_REGEXP
-#ifdef need_normal_regexp
-  case HTAG_REGEXP:
-    trace_leaf_object((uintptr_t *)&((RegexpCell *)obj)->pattern);
-    break;
-#endif /* need_normal_regexp */
-#endif /* USE_REGEXP */
-  case HTAG_BOXED_STRING:
-  case HTAG_BOXED_NUMBER:
-  case HTAG_BOXED_BOOLEAN:
-    trace_slot(&((BoxedCell *) obj)->value);
-    break;
-  default:
-    assert(0);
+  }
+#endif /* ALLOC_SITE_CACHE */
+
+#ifdef INLINE_CACHE
+  /* scan Inline Cache */
+  {
+    size_t i;
+    for (i = 0; i < p->n_insns; i++) {
+      Instruction *insn = &p->insns[i];
+      InlineCache *ic = &insn->inl_cache;
+      if (ic->shape != NULL) {
+        process_edge((uintptr_t) ic->shape);
+        process_edge((uintptr_t) ic->prop_name);
+      }
+    }
+  }
+#endif /* INLINE_CACHE */
+}
+
+STATIC void scan_stack(JSValue* stack, int sp, int fp)
+{
+  while (1) {
+    while (sp >= fp) {
+      process_edge((uintptr_t) stack[sp]);
+      sp--;
+    }
+    if (sp < 0)
+      return;
+    fp = stack[sp--];                                     /* FP */
+    process_edge((uintptr_t) stack[sp]);/*FunctionFrame*/ /* LP */
+    sp--;
+    sp--;                                                 /* PC */
+    /* scan_function_table_entry((FunctionTable *) stack[sp--]); <== CF
+     * All function table entries are scanned through Context
+     */
+    sp--;                                                 /* CF */
   }
 }
 
-STATIC void trace_iterator(Iterator **ptrp)
+STATIC void scan_string_table(StrTable *p)
 {
-  Iterator *obj = *ptrp;
-
-  assert(in_js_space((void *) obj));
-  if (is_marked_cell((void *) obj))
-    return;
-  mark_cell((void *) obj);
-  if (obj->size > 0)
-    trace_JSValue_array(&obj->body, obj->size);
-}
-
-STATIC void trace_JSValue_array(JSValue **ptrp, size_t length)
-{
-  JSValue *ptr = *ptrp;
+  StrCons **vec = p->obvector;
+  size_t length = p->size;
   size_t i;
 
-  if (in_js_space(ptr)) {
-    if (test_and_mark_cell(ptr))
-      return;
-  }
-
-  /* SCAN */
-  for (i = 0; i < length; i++, ptr++)
-    trace_slot(ptr);
-}
-
-STATIC void trace_slot(JSValue* ptr)
-{
-  JSValue jsv = *ptr;
-  if (is_leaf_object(jsv)) {
-    uint8_t tag = jsv & TAGMASK;
-    jsv &= ~TAGMASK;
-    trace_leaf_object((uintptr_t *) &jsv);
-    *ptr = jsv | tag;
-  } else if (is_iterator(jsv)) {
-    /* iterator does not have common headers but does have pointers */
-    uint8_t tag = jsv & TAGMASK;
-    jsv &= ~TAGMASK;
-    trace_iterator((Iterator **) &jsv);
-    *ptr = jsv | tag;
-  } else if (is_pointer(jsv)) {
-    uint8_t tag = jsv & TAGMASK;
-    jsv &= ~TAGMASK;
-    trace_js_object((uintptr_t *) &jsv);
-    *ptr = jsv | tag;
-  }
-}
-
-STATIC void trace_root_pointer(void **ptrp)
-{
-  void *ptr = *ptrp;
-
-  if ((((uintptr_t) ptr) & TAGMASK) != 0) {
-    trace_slot((JSValue *) ptrp);
-    return;
-  }
-
-  switch (obj_header_tag(ptr)) {
-  case HTAG_PROP:
-    printf("HTAG_PROP in trace_root_pointer\n"); break;
-  case HTAG_ARRAY_DATA:
-    printf("HTAG_ARRAY_DATA in trace_root_pointer\n"); break;
-  case HTAG_FUNCTION_FRAME:
-    trace_FunctionFrame((FunctionFrame **)ptrp); break;
-  case HTAG_HASH_BODY:
-    trace_HashTable((HashTable **)ptrp); break;
-  case HTAG_STR_CONS:
-    trace_StrCons((StrCons **)ptrp); break;
-  case HTAG_CONTEXT:
-    trace_Context((Context **)ptrp); break;
-  case HTAG_STACK:
-    printf("HTAG_STACK in trace_root_pointer\n"); break;
-#ifdef HIDDEN_CLASS
-  case HTAG_HIDDEN_CLASS:
-    trace_HiddenClass((HiddenClass **)ptrp); break;
-#endif
-  default:
-    trace_slot((JSValue *) ptrp);
-    return;
-  }
+  for (i = 0; i < length; i++)
+    if (vec[i] != NULL)
+      process_edge((uintptr_t) vec[i]); /* StrCons */
 }
 
 STATIC void scan_roots(Context *ctx)
@@ -783,60 +915,27 @@ STATIC void scan_roots(Context *ctx)
   /*
    * global variables
    */
-
-  for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++) {
-    trace_slot(p);
-  }
-
-  /*
-   * global malloced objects
-   * For simplicity, we do not use a `for' loop to visit every object
-   * registered in the gobjects.
-   */
-#ifdef HIDDEN_CLASS
-  trace_HiddenClass(&gobjects.g_hidden_class_0);
-#endif
+  for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++)
+    process_edge((uintptr_t) *p);
 
   /* function table: do not trace.
    *                 Used slots should be traced through Function objects
    */
+
   /* string table */
-  trace_StrCons_ptr_array(&string_table.obvector, string_table.size);
+  scan_string_table(&string_table);
 
   /*
    * Context
    */
-  trace_Context(&ctx);
+  process_edge((uintptr_t) ctx); /* Context */
 
   /*
-   * tmp root
+   * GC_PUSH'ed
    */
-  /* old gc root stack */
-  for (i = 0; i <= tmp_roots_sp; i++)
-    trace_root_pointer((void **) tmp_roots[i]);
-  /* new gc root stack */
   for (i = 0; i < gc_root_stack_ptr; i++)
-    trace_root_pointer((void **) gc_root_stack[i]);
+    process_edge(*(uintptr_t*) gc_root_stack[i]);
 }
-
-STATIC void scan_stack(JSValue* stack, int sp, int fp)
-{
-  while (1) {
-    while (sp >= fp) {
-      trace_slot(stack + sp);
-      sp--;
-    }
-    if (sp < 0)
-      return;
-    fp = stack[sp--];                                     /* FP */
-    trace_FunctionFrame((FunctionFrame **)(stack + sp));  /* LP */
-    sp--;
-    sp--;                                                 /* PC */
-    scan_FunctionTable((FunctionTable *) stack[sp--]);    /* CF */
-    /* TODO: fixup inner pointer (CF) */
-  }
-}
-
 
 /*
  * Clear pointer field to StringCell whose mark bit is not set.
@@ -859,9 +958,138 @@ STATIC void weak_clear_StrTable(StrTable *table)
   }
 }
 
+#ifdef WEAK_SHAPE_LIST
+void weak_clear_shape_recursive(PropertyMap *pm)
+{
+  Shape **p;
+  HashIterator iter;
+  HashCell *cell;
+
+#ifdef VERBOSE_GC_SHAPE
+#defien PRINT(x...) printf(x)
+#else /* VERBOSE_GC_SHAPE */
+#define PRINT(x...)
+#endif /* VERBOSE_GC_SHAPE */
+  
+  for (p = &pm->shapes; *p != NULL; ) {
+    Shape *os = *p;
+    if (is_marked_cell(os))
+      p = &(*p)->next;
+    else {
+      Shape *skip = *p;
+      *p = skip->next;
+#ifdef DEBUG
+      PRINT("skip %p emp: %d ext: %d\n",
+            skip, skip->n_embedded_slots, skip->n_extension_slots);
+      skip->next = NULL;  /* avoid Black->While check failer */
+#endif /* DEBUG */
+    }
+  }
+
+  iter = createHashIterator(pm->map);
+  while (nextHashCell(pm->map, &iter, &cell) != FAIL)
+    if (is_transition(cell->entry.attr))
+      weak_clear_shape_recursive((PropertyMap *) cell->entry.data);
+
+#undef PRINT /* VERBOSE_GC_SHAPE */
+}
+
+STATIC void weak_clear_shapes()
+{
+  struct property_map_roots *e;
+  for (e = property_map_roots; e != NULL; e = e->next)
+    weak_clear_shape_recursive(e->pm);
+}
+#endif /* WEAK_SHAPE_LIST */
+
+#ifdef HC_SKIP_INTERNAL
+/*
+ * Get the only transision from internal node.
+ */
+static PropertyMap* get_transition_dest(PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr)) {
+      PropertyMap *ret = (PropertyMap *) p->entry.data;
+#ifdef GC_DEBUG
+      while(nextHashCell(pm->map, &iter, &p) != FAIL)
+        assert(!is_transition(p->entry.attr));
+#endif /* GC_DEBUG */
+      return ret;
+    }
+  abort();
+  return NULL;
+}
+
+static void weak_clear_property_map_recursive(PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  assert(is_marked_cell(pm));
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr)) {
+      PropertyMap *next = (PropertyMap *) p->entry.data;
+      /*
+       * If the next node is both
+       *   1. not pointed to through strong pointers and
+       *   2. outgoing edge is exactly 1,
+       * then, the node is an internal node.
+       */
+      while (!is_marked_cell(next) && next->n_transitions == 1) {
+#ifdef VERBOSE_WEAK
+        printf("skip PropertyMap %p\n", next);
+#endif /* VERBOSE_WEAK */
+        next = (PropertyMap *) get_transition_dest(next);
+      }
+#ifdef VERBOSE_WEAK
+      if (is_marked_cell(next))
+        printf("preserve PropertyMap %p because it has been marked\n", next);
+      else
+        printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
+               next, next->n_props, next->n_transitions);
+#endif /* VERBOSE_WEAK */
+      /* Resurrect if it is branching node or terminal node */
+      if (!is_marked_cell(next))
+        process_edge((uintptr_t) next);
+      p->entry.data = (HashData) next;
+      next->prev = pm;
+      weak_clear_property_map_recursive(next);
+    }
+}
+
+STATIC void weak_clear_property_maps()
+{
+  struct property_map_roots *e;
+  for (e = property_map_roots; e != NULL; e = e->next)
+    weak_clear_property_map_recursive(e->pm);
+}
+#endif /* HC_SKIP_INTERNAL */
+
+#ifdef HC_PROF
+
+#endif /* HC_PROF */
+
 STATIC void weak_clear(void)
 {
+#ifdef HC_SKIP_INTERNAL
+  /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
+  weak_clear_property_maps();
+#endif /* HC_SKIP_INTERNAL */
+#ifdef WEAK_SHAPE_LIST
+  weak_clear_shapes();
+#endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable(&string_table);
+  property_map_roots = NULL;
+#ifdef HC_PROF
+  /*  weak_clear_hcprof_entrypoints(); */
+#endif /* HC_PROF */
 }
 
 STATIC void sweep_space(struct space *space)
@@ -885,6 +1113,15 @@ STATIC void sweep_space(struct space *space)
 #ifdef GC_DEBUG
       assert(HEADER0_GET_MAGIC(header) == HEADER0_MAGIC);
 #endif /* GC_DEBUG */
+#ifdef GC_PROF
+      {
+        cell_type_t type = HEADER0_GET_TYPE(header);
+        size_t net_size =
+          (size - HEADER0_GET_EXTRA(header)) << LOG_BYTES_IN_JSVALUE;
+        pertype_live_bytes[type]+= net_size;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
       unmark_cell_header((void *) scan);
       last_used = scan;
       scan += size << LOG_BYTES_IN_JSVALUE;
@@ -951,7 +1188,63 @@ STATIC void sweep(void)
   sweep_space(&js_space);
 }
 
+#ifdef ALLOC_SITE_CACHE
+STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
+{
+  while(a != b) {
+    if (a->n_props < b->n_props)
+      b = b->prev;
+    else
+      a = a->prev;
+  }
+  return a;
+}
+
+STATIC void alloc_site_update_info(JSObject *p)
+{
+  AllocSite *as = p->alloc_site;
+  PropertyMap *pm = p->shape->pm;
+
+  assert(as != NULL);
+
+  /* likely case */
+  if (as->pm == pm)
+    return;
+
+  if (as->pm == NULL) {
+    /* 1. If the site is empty, cache this. */
+    as->pm = pm;
+    assert(as->shape == NULL);
+  } else {
+    /* 2. Otherwise, compute LUB.
+     *
+     *   LUB       monomorphic   polymorphic
+     *   pm        mono:as->pm   poly:as->pm
+     *   as->pm    mono:pm       poly:as->pm
+     *   less      poly:LUB      poly:LUB
+     */
+    PropertyMap *lub = find_lub(pm, as->pm);
+    if (lub == as->pm) {
+      if (as->polymorphic)
+        /* keep current as->pm */ ;
+      else {
+        as->pm = pm;
+        as->shape = NULL;
+      }
+    } else if (lub == pm)
+      /* keep current as->pm */  ;
+    else {
+      as->polymorphic = 1;
+      as->pm = lub;
+      as->shape = NULL;
+    }
+  }
+}
+#endif /* ALLOC_SITE_CACHE */
+
 #ifdef GC_DEBUG
+#define OFFSET_OF(T, F) (((uintptr_t) &((T *) 0)->F) >> LOG_BYTES_IN_JSVALUES)
+
 STATIC void check_invariant_nobw_space(struct space *space)
 {
   uintptr_t scan = space->addr;
@@ -959,33 +1252,49 @@ STATIC void check_invariant_nobw_space(struct space *space)
   while (scan < space->addr + space->bytes) {
     header_t *hdrp = (header_t *) scan;
     header_t header = *hdrp;
-    if (HEADER0_GET_TYPE(header) == HTAG_STRING)
-      ;
-#ifdef need_flonum
-    else if (HEADER0_GET_TYPE(header) == HTAG_FLONUM)
-      ;
-#endif
-    else if (HEADER0_GET_TYPE(header) == HTAG_CONTEXT)
-      ;
-    else if (HEADER0_GET_TYPE(header) == HTAG_STACK)
-      ;
-    else if (is_marked_cell_header(hdrp)) {
-      /* this object is black; should not contain a pointer to white */
-      size_t payload_jsvalues = HEADER0_GET_SIZE(header);
-      size_t i;
-      payload_jsvalues -= HEADER_JSVALUES;
-      payload_jsvalues -= HEADER0_GET_EXTRA(header);
-      for (i = 0; i < payload_jsvalues; i++) {
-        uintptr_t x = ((uintptr_t *) (scan + BYTES_IN_JSVALUE))[i];
-        if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
-          if (i ==
-              (((uintptr_t) &((StrCons *) 0)->str) >> LOG_BYTES_IN_JSVALUE))
-            continue;
-        }
-        if (in_js_space((void *)(x & ~7))) {
-          assert(is_marked_cell((void *) (x & ~7)));
+    JSValue *payload = (JSValue *)(((header_t *) scan) + 1);
+    switch (HEADER0_GET_TYPE(header)) {
+    case HTAG_STRING:
+    case HTAG_FLONUM:
+    case HTAG_ARRAY_DATA:
+    case HTAG_CONTEXT:
+    case HTAG_STACK:
+    case HTAG_HIDDEN_CLASS:
+    case HTAG_HASHTABLE:
+    case HTAG_HASH_CELL:
+      break;
+    case HTAG_PROPERTY_MAP:
+      {
+        PropertyMap *pm = (PropertyMap *) payload;
+        Shape *os;
+        for (os = pm->shapes; os != NULL; os = os->next)
+          assert(HEADER0_GET_TYPE(((JSValue *) os)[-1]) == HTAG_SHAPE);
+        goto DEFAULT;
+      }
+    default:
+    DEFAULT:
+      if (is_marked_cell_header(hdrp)) {
+        /* this object is black; should not contain a pointer to white */
+        size_t payload_jsvalues =
+          HEADER0_GET_SIZE(header)
+          - HEADER_JSVALUES
+          - HEADER0_GET_EXTRA(header);
+        size_t i;
+        for (i = 0; i < payload_jsvalues; i++) {
+          JSValue x = payload[i];
+          /* weak pointers */
+          /*
+          if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
+            if (i == OFFSET_OF(StrCons, str))
+              continue;
+          }
+          */
+          if (in_js_space((void *)(x & ~7))) {
+            assert(is_marked_cell((void *) (x & ~7)));
+          }
         }
       }
+      break;
     }
     scan += HEADER0_GET_SIZE(header) << LOG_BYTES_IN_JSVALUE;
   }

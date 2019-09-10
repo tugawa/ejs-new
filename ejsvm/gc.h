@@ -7,23 +7,24 @@
  * Electro-communications.
  */
 
+#include "cell-header.h"
+
 typedef uint32_t cell_type_t;
 
 #ifdef USE_NATIVEGC
 
 extern void init_memory(void);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
-extern JSValue *gc_jsalloc(Context *, uintptr_t, uint32_t);
-extern void gc_push_tmp_root(JSValue *loc);
-extern void gc_push_tmp_root2(JSValue *loc1, JSValue *loc2);
-extern void gc_push_tmp_root3(JSValue *loc1, JSValue *loc2, JSValue *loc3);
-extern void gc_pop_tmp_root(int n);
 
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
 extern void try_gc(Context *ctx);
 
+#ifdef DEBUG
 extern cell_type_t gc_obj_header_type(void *p);
+#else /* DEBUG */
+#define gc_obj_header_type(p) HEADER0_GET_TYPE(((header_t *) (p))[-1])
+#endif /* DEBUG */
 
 /* #define GC_ROOT(_type, _var) _type _var = ((_type) 0) */
 #define GC_ROOT(_type, _var) _type _var
@@ -57,8 +58,7 @@ extern void gc_pop_checked(void* addr);
 #error Boehm GC is no longer supported
 
 #define init_memory()
-#define gc_malloc(c,s,t)  (malloc(s))
-static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
+static JSValue *gc_malloc(Context *c, uintptr_t request_bytes, uint32_t type)
 {
   size_t alloc_bytes;
   JSValue *mem;
@@ -69,10 +69,6 @@ static JSValue *gc_jsalloc(Context *c, uintptr_t request_bytes, uint32_t type)
   *mem = make_header(alloc_bytes / BYTES_IN_JSVALUE, type);
   return mem + 1;
 }
-#define gc_push_tmp_root(x)
-#define gc_push_tmp_root2(x, y)
-#define gc_push_tmp_root3(x, y, z)
-#define gc_pop_tmp_root(x)
 #define enable_gc(ctx)
 #define disable_gc(ctx)
 
@@ -81,10 +77,26 @@ static cell_type_t gc_obj_header_type(void *p)
   uint64_t *ptr = (uint64_t *) p;
   return ptr[-1] & HEADER_TYPE_MASK;
 }
-#endif
 
-#define gc_malloc_critical(s,t) (gc_malloc(NULL,(s),(t)))
-#define gc_jsalloc_critical(s,t) (gc_jsalloc(NULL,(s),(t)))
+#define GC_PUSH(a)
+#define GC_PUSH2(a,b)
+#define GC_PUSH3(a,b,c)
+#define GC_PUSH4(a,b,c,d)
+#define GC_PUSH5(a,b,c,d,e)
+#define GC_PUSH6(a,b,c,d,e,f)
+#define GC_PUSH7(a,b,c,d,e,f,g)
+#define GC_PUSH8(a,b,c,d,e,f,g,h)
+
+#define GC_POP(a)
+#define GC_POP2(a,b)
+#define GC_POP3(a,b,c)
+#define GC_POP4(a,b,c,d)
+#define GC_POP5(a,b,c,d,e)
+#define GC_POP6(a,b,c,d,e,f)
+#define GC_POP7(a,b,c,d,e,f,g)
+#define GC_POP8(a,b,c,d,e,f,g,h)
+
+#endif  /* USE_NATIVEGC */
 
 /* Local Variables:      */
 /* mode: c               */

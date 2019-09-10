@@ -159,12 +159,40 @@ typedef uint32_t Counter;
  */
 typedef void *InsnLabel;
 
+#ifdef ALLOC_SITE_CACHE
+/*
+ * allocation site information
+ */
+struct shape;
+struct property_map;
+typedef struct alloc_site {
+  struct shape *shape;
+  struct property_map *pm;
+  int polymorphic;
+} AllocSite;
+#endif /* ALLOC_SITE_CACHE */
+
+#ifdef INLINE_CACHE
+struct shape;
+typedef struct inline_cache {
+  struct shape *shape;
+  JSValue prop_name;
+  int index;
+} InlineCache;
+#endif /* INLINE_CACHE */
+
 /*
  * instruction
  */
 typedef struct instruction {
   InsnLabel ilabel;  /* It is important that ilabel is the first member */
   Bytecode code;
+#ifdef ALLOC_SITE_CACHE
+  AllocSite alloc_site;
+#endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+  InlineCache inl_cache;
+#endif /* INLINE_CACHE */
 #ifdef PROFILE
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */

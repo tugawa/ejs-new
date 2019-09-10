@@ -9,5 +9,5 @@
 
   if (!is_object(obj))
     LOG_EXIT("makeiterator: not an object\n");
-  dst = new_normal_iterator(context, obj);
+  dst = new_iterator(context, obj);
 \}

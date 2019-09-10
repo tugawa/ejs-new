@@ -120,7 +120,7 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
 
   /* gc_push_tmp_root(&v1); */
   /* gc_push_tmp_root(&v2); */
-  p = allocate_string(len1 + len2);
+  p = allocate_string(context, len1 + len2);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */
@@ -149,7 +149,7 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   if (string_table_lookup(s, len, hash, &v))
     return v;
 
-  p = allocate_string(len);
+  p = allocate_string(context, len);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */

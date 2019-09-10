@@ -19,16 +19,22 @@
 /*
  * allocates a hash table
  */
-HashTable *malloc_hashtable(void) {
-  return (HashTable*)malloc(sizeof(HashTable));
+HashTable *malloc_hashtable(Context *ctx)
+{
+  HashTable *ht = (HashTable*)gc_malloc(ctx,
+                                        sizeof(HashTable), HTAG_HASHTABLE);
+  ht->body = NULL;
+  return ht;
 }
 
 /*
  * initializes a hash table with the specified size
  */
-int hash_create(HashTable *table, unsigned int size) {
+int hash_create(Context *ctx, HashTable *table, unsigned int size) {
   int i;
 
+  if (size == 0)
+    size = 1;
   table->body = __hashMalloc(size);
   if (table->body == NULL) {
     LOG_EXIT("hash body malloc failed\n");
@@ -82,8 +88,9 @@ int hash_get(HashTable *table, HashKey key, HashData *data) {
 /*
  * registers a value to a hash table under a given key with an attribute
  */
-int hash_put_with_attribute(HashTable* table, HashKey key, HashData data,
-                            Attribute attr) {
+int hash_put_with_attribute(Context *ctx, HashTable* table,
+                            HashKey key, HashData data, Attribute attr)
+{
   HashCell* cell;
   uint32_t index;
 
@@ -141,7 +148,6 @@ int hash_delete(HashTable *table, HashKey key) {
   return HASH_GET_FAILED;
 }
 
-#ifdef HIDDEN_CLASS
 /*
  * copies a hash table
  * This function is used only for copying a hash table in a hidden class.
@@ -175,17 +181,16 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   to->filled = from->filled;
   return n;
 }
-#endif
 
 HashCell** __hashMalloc(int size) {
-  HashCell** ret = (HashCell**)gc_malloc_critical(sizeof(HashCell*) * size,
-                                                  HTAG_HASH_BODY);
+  HashCell** ret = (HashCell**)gc_malloc(NULL, sizeof(HashCell*) * size,
+                                         HTAG_HASH_BODY);
   memset(ret, 0, sizeof(HashCell*) * size);
   return ret;
 }
 
 HashCell* __hashCellMalloc() {
-  HashCell* cell = (HashCell*)malloc(sizeof(HashCell));
+  HashCell* cell = (HashCell*)gc_malloc(NULL, sizeof(HashCell), HTAG_HASH_CELL);
   cell->next = NULL;
   return cell;
 }
@@ -296,42 +301,6 @@ void print_hash_table(HashTable *tab) {
   }
   printf("end HashTable\n");
 
-}
-
-/*
- * FIXME: This function is not completed yet for the adaptation of
- * HIDDEN_CLASS.
- */
-void print_object_properties(JSValue o) {
-  HashCell *p;
-  HashTable *tab;
-  JSValue v;
-  unsigned int i, ec;
-
-#ifdef HIDDEN_CLASS
-  tab = obj_hidden_class_map(o);
-#else
-  tab = obj_map(o);
-#endif
-  printf("Object %016"PRIx64": (type = %x, n_props = %"PRIu64", map = %p)\n",
-         o, obj_header_tag(o), obj_n_props(o), tab);
-  ec = 0;
-  for (i = 0; i < tab->size; i++) {
-    if ((p = tab->body[i]) == NULL) continue;
-    do {
-      ec++;
-      printf(" (%d: (", i);
-      printf("%016"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
-      printf(", ");
-      printf("%016"PRIx64" = ", p->entry.data); simple_print(p->entry.data);
-      printf(", ");
-      v = obj_prop_index(o, (int)p->entry.data);
-      printf("%016"PRIx64" = ", v); simple_print(v);
-      printf("))");
-    } while ((p = p->next) != NULL);
-    if (ec >= tab->entry_count) break;
-  }
-  printf("\n");
 }
 
 char* ststrdup(const char* str) {

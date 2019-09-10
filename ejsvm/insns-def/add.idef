@@ -2,7 +2,7 @@
 
 \when v1:fixnum && v2:fixnum \{
   cint s = fixnum_to_cint(v1) + fixnum_to_cint(v2);
-  dst = cint_to_number(s);
+  dst = cint_to_number(context, s);
 \}
 
 \when v1:string && (v2:fixnum || v2:flonum || v2:special) \{
@@ -39,7 +39,7 @@ DEFLABEL(STRSTR):
 \otherwise \{
   double x1 = to_double(context, v1);
   double x2 = to_double(context, v2);
-  dst = double_to_number(x1 + x2);
+  dst = double_to_number(context, x1 + x2);
 \}
 
 

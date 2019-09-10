@@ -5,7 +5,18 @@
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
+#ifdef INLINE_CACHE
+  {
+    InlineCache *ic = &insns->inl_cache;
+    assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
+    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+      dst = remove_jsobject_tag(obj)->eprop[ic->index];
+    else
+      dst = get_object_prop(context, obj, prop, ic);
+  }
+#else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);
+#endif /* INLINE_CACHE */
 \}
 
 \otherwise \{
@@ -13,5 +24,10 @@
      LOG_EXIT("GETPROP: !!!!\n");
   obj = to_object(context, obj);
   goto USELABEL(HEAD);
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}
 

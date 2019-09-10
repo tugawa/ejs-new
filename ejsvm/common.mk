@@ -201,7 +201,6 @@ INSN_GENERATED = \
     insns/pushhandler.inc \
     insns/seta.inc \
     insns/setarg.inc \
-    insns/setarray.inc \
     insns/setfl.inc \
     insns/setglobal.inc \
     insns/setlocal.inc \
@@ -244,7 +243,7 @@ else
 endif
 
 CHECKFILES_DIR = checkfiles
-GCCHECK_PATTERN = ../gccheck.cocci
+GCCHECK_PATTERN = $(EJSVM_DIR)/gccheck.cocci
 
 ######################################################
 
@@ -371,6 +370,8 @@ instructions.h: instructions-opcode.h instructions-table.h
 	cp $< $@
 
 codeloader.o: specfile-fingerprint.h
+
+object.o: object-compat.c
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<

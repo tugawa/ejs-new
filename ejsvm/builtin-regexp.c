@@ -54,7 +54,7 @@ int regexp_constructor_sub(Context *ctx, char *pat, char *flagstr,
   
   if ((err = cstr_to_regexp_flag(flagstr, &flag)) == FAIL)
     return FAIL;
-  if ((re = new_normal_regexp(ctx, pat, flag)) == JS_UNDEFINED)
+  if ((re = new_regexp(ctx, pat, flag)) == JS_UNDEFINED)
     return FAIL;
   set_obj_cstr_prop(ctx, re, "source", cstr_to_string(NULL, pat), ATTR_ALL);
   regexp_lastindex(re) = 0;
@@ -235,31 +235,24 @@ inline JSValue regExpExec(Context* context, JSValue rsv, char *cstr)
 }
 #endif
 
-ObjBuiltinProp regexp_funcs[] = {
+/*
+ * property table
+ */
+
+/* constructor */
+ObjBuiltinProp RegExpConstructor_builtin_props[] = {
   { "exec",           builtin_regexp_exec,          1, ATTR_DE },
   { "test",           builtin_regexp_test,          1, ATTR_DE },
-  { NULL,             NULL,                         0, ATTR_DE }
 };
-
-void init_builtin_regexp(Context *ctx)
-{
-  JSValue r, proto;
-
-  gconsts.g_regexp = r =
-    new_normal_builtin_with_constr(ctx, regexp_constr_nonew, regexp_constr, 2);
-  gconsts.g_regexp_proto = proto =
-    new_normal_predef_object(ctx);
-  set_prototype_all(ctx, r, proto);
-  set_obj_cstr_prop(ctx, proto, "constructor", r, ATTR_DE);
-  {
-    ObjBuiltinProp *p = regexp_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-}
+ObjDoubleProp  RegExpConstructor_double_props[] = {};
+ObjGconstsProp RegExpConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_RegExp,  ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp RegExp_builtin_props[] = {};
+ObjDoubleProp  RegExp_double_props[] = {};
+ObjGconstsProp RegExp_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_PCI(RegExp);
 
 #endif /* need_regexp */
 #endif /* USE_REGEXP */

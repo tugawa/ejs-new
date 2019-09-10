@@ -19,13 +19,20 @@ BUILTIN_FUNCTION(boolean_constr)
   JSValue rsv;
 
   builtin_prologue();  
-  rsv = new_normal_boolean_object(context, JS_TRUE);
-  GC_PUSH(rsv);
-  set___proto___all(context, rsv, gconsts.g_boolean_proto);
+  rsv = new_boolean_object(context, DEBUG_NAME("boolean_ctor"),
+                           gconsts.g_shape_Boolean, JS_FALSE);
   if (na > 0)
     boolean_object_value(rsv) = to_boolean(args[1]);
   set_a(context, rsv);
-  GC_POP(rsv);
+}
+
+BUILTIN_FUNCTION(boolean_constr_nonew)
+{
+  JSValue ret;
+
+  builtin_prologue();
+  ret = (na > 0) ? to_boolean(args[1]) : JS_FALSE;
+  set_a(context, ret);
 }
 
 BUILTIN_FUNCTION(boolean_valueOf)
@@ -39,33 +46,27 @@ BUILTIN_FUNCTION(boolean_valueOf)
   set_a(context, arg);
 }
 
-ObjBuiltinProp boolean_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp BooleanPrototype_builtin_props[] = {
   { "valueOf",        boolean_valueOf,    0, ATTR_DE },
-  { NULL,             NULL,               0, ATTR_DE }
 };
-
-void init_builtin_boolean(Context *ctx)
-{
-  JSValue b, proto;
-
-  b = new_normal_builtin(ctx, boolean_constr, 1);
-  GC_PUSH(b);
-  gconsts.g_boolean = b;
-  proto = new_boolean_object(ctx, JS_FALSE, HSIZE_NORMAL, PSIZE_NORMAL);
-  gconsts.g_boolean_proto = proto;
-  GC_PUSH(proto);
-  set_prototype_de(ctx, b, proto);
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-  {
-    ObjBuiltinProp *p = boolean_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(proto, b);
-}
+ObjDoubleProp  BooleanPrototype_double_props[] = {};
+ObjGconstsProp BooleanPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp BooleanConstructor_builtin_props[] = {};
+ObjDoubleProp  BooleanConstructor_double_props[] = {};
+ObjGconstsProp BooleanConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Boolean,  ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Boolean_builtin_props[] = {};
+ObjDoubleProp  Boolean_double_props[] = {};
+ObjGconstsProp Boolean_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Boolean);
 
 /* Local Variables:      */
 /* mode: c               */
