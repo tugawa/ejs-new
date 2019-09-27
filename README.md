@@ -85,4 +85,54 @@ $ java -jar ejsc.jar -O a.js -o a.sbc
 $ ./ejsvm a.sbc
 ```
 
+## eJS Compiler
 
+### Build option
+
+When building the eJS compiler separately, i.e., building with `ant`
+in the `ejsc` directory, the following properties for ant are available.
+These properties are specified appropriately when building all components
+altogether in the build directory.
+
+* `specfile`: Path to the default spec file. (default: ''src/ejsc/default.spec'')
+* `vmgen`: Path to `vmgen.jar` or `vmdlc.jar`. (default: ''../ejsvm/vmgen/vmgen.jar'')
+
+### Usage
+
+```
+java -jar ejsc.jar [options] source1.js source2.js ...
+```
+
+eJSC compiles JavaScript programs `source1.js`, `source2.js`, ...
+into a single bytecode file. The produced bytecode file executes
+`source1.js`, `source2.js`, ... in this order. If `-log` option is
+specified before some source files, the immediate following source file
+is compiled so that executions of instructions produced from the source
+file are logged.
+
+#### Options
+
+* output 
+  * `-o <filename>`: Output to `filename`.  (defailt: `source1.sbc`)
+  * `--out-obc` (prefix is double minus): Output OBC (binary) format instead of SBC.
+
+* optimization
+  * `-O`: Recommended set of optimizations.  (same as `--bc-opt const:cce:copy:rie:dce:reg:rie:dce:reg -opt-g3`)
+  * `--bc-opt <optimizers>` (prefix is double minus): BC based optimizations. `<optimizers>` is a series of the following optimizers.
+    * `const`: Constant propagation and using superinstructions
+    * `cce`: Common constant loading elimination
+    * `copy`: Copy propagation
+    * `rie`: Redundant instruction elimination
+    * `dce`: Dead code elimination
+    * `reg`: Register (re-)assignment
+  * `-opt-g3`: Allocate registers for local variables and arguments if possible.
+* misc
+  * `--spec <specfile>`: Specify the specfile created as `ejsvm.spec` in the process of building VM.  (default: normal instruction set with no superinstructions)
+  * `-fn n`: (For REPL) Assume the function number starts from `n`.
+  * `-log source.js`: Compile `source.js` using logging instructions.
+* debug
+  * `--estree`: print ESTree
+  * `--iast`: print iAST
+  * `--analyzer`: print result of some AST-based analysis (???)
+  * `--show-llcode`: print low-level internal code
+  * `--show-opt`: print details of optimizations
