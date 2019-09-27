@@ -27,6 +27,7 @@ Following build tools are required.
 Following tools are optional.
 
 * Coccinelle
+* Oniguruma Regexp library
 
 ### Prepare external libraries
 
