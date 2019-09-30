@@ -9,6 +9,5 @@
   
   if (!is_object(obj))
     LOG_EXIT("makeiterator: not an object\n");
-  regbase[dst] = new_normal_iterator(context, obj);
-   //printf("makeiterator: iter = %016lx ", regbase[dst]); simple_print(regbase[dst]); printf("\n");
+  regbase[dst] = new_iterator(context, obj);
 }

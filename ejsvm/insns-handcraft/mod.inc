@@ -44,7 +44,7 @@
         d = x1 / x2;
         d = d >= 0 ? floor(d) : ceil(d);
         d = x1 - (d * x2);
-        regbase[dst] = double_to_number(d);
+        regbase[dst] = double_to_number(context, d);
       }
     }
     break;

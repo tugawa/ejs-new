@@ -22,11 +22,12 @@
   if (make_arguments) {
     num_of_args = get_ac(context);
     save_context();
-    args = new_normal_array(context, num_of_args);
+    args = new_array_object(context, DEBUG_NAME("arguments"),
+                            gconsts.g_shape_Array, num_of_args);
     update_context();
 
     for (i = 0; i < num_of_args; i++) {
-      array_body_index(args, i) = regbase[i + 2];
+      array_body(args)[i] = regbase[i + 2];
     }
     fframe_arguments(fr) = args;
     fframe_locals_idx(fr, 0) = args;

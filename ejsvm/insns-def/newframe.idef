@@ -31,7 +31,6 @@
     fframe_arguments(fr) = args;
     fframe_locals_idx(fr, 0) = args;
   }
-  update_context();
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */

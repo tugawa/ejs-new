@@ -32,6 +32,8 @@
 #define is_object(p)             (equal_tag((p), T_GENERIC))
 #define is_number(p)             (is_fixnum((p)) || is_flonum((p)))
 
+#define is_obj_header_tag(o,t)  (is_object((o)) && (obj_header_tag((o)) == (t)))
+
 #define is_simple_object(p)      is_obj_header_tag((p), HTAG_SIMPLE_OBJECT)
 #define is_array(p)              is_obj_header_tag((p), HTAG_ARRAY)
 #define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)

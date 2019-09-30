@@ -24,7 +24,7 @@
         s = n1 / n2;
         regbase[dst] =
           (n1 == n2 * s)? cint_to_fixnum(s):
-                          double_to_flonum((double)n1 / (double)n2);
+                          double_to_flonum(context, (double)n1 / (double)n2);
       }
     }
     break;
@@ -49,7 +49,7 @@
       if (isinf(d)) regbase[dst] = d > 0? gconsts.g_flonum_infinity:
                                           gconsts.g_flonum_negative_infinity;
       else if (isnan(d)) regbase[dst] = gconsts.g_flonum_nan;
-      else regbase[dst] = double_to_number(d);
+      else regbase[dst] = double_to_number(context, d);
     }
     break;
   default:

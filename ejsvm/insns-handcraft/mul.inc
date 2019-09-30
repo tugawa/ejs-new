@@ -44,7 +44,7 @@
       x2 = flonum_to_double(v2);
   MUL_FLOFLO:
       d = x1 * x2;
-      regbase[dst] = double_to_number(d);
+      regbase[dst] = double_to_number(context, d);
     }
     break;
   default:

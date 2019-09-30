@@ -9,7 +9,6 @@
 \}
 
 \otherwise \{
-  JSValue __attribute__((unused)) x = obj;
   LOG_EXIT("setprop: first operand is not an object\n");
 \}
 

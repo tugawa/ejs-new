@@ -48,7 +48,7 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     {
       cint sum = fixnum_to_cint(v1) + fixnum_to_cint(v2);
-      return cint_to_number(sum);
+      return cint_to_number(context, sum);
     }
   default:
     {
@@ -56,7 +56,7 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
       x1 = to_double(context, v1);
       x2 = to_double(context, v2);
       sum = x1 + x2;
-      return double_to_number(sum);
+      return double_to_number(context, sum);
     }
   }
 }
@@ -75,7 +75,7 @@ JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     {
       cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
-      return cint_to_number(s);
+      return cint_to_number(context, s);
     }
   case TP_FIXFLO:
     {
@@ -95,7 +95,7 @@ JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
       x2 = flonum_to_double(v2);
     SUB_FLOFLO:
       d = x1 - x2;
-      return double_to_number(d);
+      return double_to_number(context, d);
     }
     break;
   default:
@@ -144,7 +144,7 @@ JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
       x2 = flonum_to_double(v2);
     MUL_FLOFLO:
       d = x1 * x2;
-      return double_to_number(d);
+      return double_to_number(context, d);
     }
     break;
   default:
@@ -172,7 +172,7 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
         n2 = fixnum_to_cint(v2);
         s = n1 / n2;
         return (n1 == n2 * s)? cint_to_fixnum(s):
-          double_to_flonum((double)n1 / (double)n2);
+          double_to_flonum(context, (double)n1 / (double)n2);
       }
     }
     break;
@@ -197,7 +197,7 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
       if (isinf(d)) return d > 0? gconsts.g_flonum_infinity:
                       gconsts.g_flonum_negative_infinity;
       else if (isnan(d)) return gconsts.g_flonum_nan;
-      else return double_to_number(d);
+      else return double_to_number(context, d);
     }
     break;
   default:
@@ -215,7 +215,7 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
   switch (tag) {
   case TP_FIXFIX:
     return (v2 == FIXNUM_ZERO)? gconsts.g_flonum_nan:
-    cint_to_number(fixnum_to_cint(v1) % fixnum_to_cint(v2));
+    cint_to_number(context, fixnum_to_cint(v1) % fixnum_to_cint(v2));
   case TP_FIXFLO:
     {
       x1 = fixnum_to_double(v1);
@@ -238,7 +238,7 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
         d = x1 / x2;
         d = d >= 0 ? floor(d) : ceil(d);
         d = x1 - d * x2;
-        return double_to_number(d);
+        return double_to_number(context, d);
       }
     }
     break;
