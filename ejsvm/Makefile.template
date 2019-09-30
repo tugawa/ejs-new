@@ -80,9 +80,9 @@ CFLAGS       += -DWEAK_SHAPE_LIST
 ## use inlne cache
 CFLAGS       += -DINLINE_CACHE
 
-## show GC profiling information (--gc-prof becomes available)
+## show GC profiling information (make --gc-prof available)
 CFLAGS       += -DGC_PROF
-## show hidden class related profiling information (--hc-prof becoms available)
+## show hidden class related profiling information (make --hc-prof available)
 CFLAGS       += -DHC_PROF
 
 include $(EJSVM_DIR)/common.mk

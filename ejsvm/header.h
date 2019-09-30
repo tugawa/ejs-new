@@ -69,7 +69,9 @@ typedef uint64_t JSValue;
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
+#ifdef USE_VMDL
 #include "vmdl-helper.h"
+#endif /* USE_VMDL */
 
 #endif /* HEADER_H_ */
 

@@ -22,7 +22,7 @@ ifeq ($(PYTHON),)
     PYTHON = python
 endif
 ifeq ($(CPP_VMDL),)
-    CPP_VMDL=$(CC) -E -x c -P
+    CPP_VMDL=$(CC) $(CFLAGS) -E -x c -P
 endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
@@ -80,8 +80,12 @@ SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
 
 CPP=$(CC) -E
 
-CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
+CFLAGS += -std=gnu89 -Wall -Wno-unused-label $(INCLUDES)
 LIBS   += -lm
+
+ifeq ($(USE_VMDL),true)
+CFLAGS += -DUSE_VMDL
+endif
 
 ######################################################
 # superinstructions
@@ -131,8 +135,10 @@ HFILES = $(GENERATED_HFILES) \
     globals.h \
     extern.h \
     log.h \
-    gc.h \
-    vmdl-helper.h
+    gc.h
+ifeq ($(USE_VMDL),true)
+    HFILES += vmdl-helper.h
+endif
 
 SUPERINSNS = $(shell $(GOTTA) --list-si)
 
@@ -158,8 +164,10 @@ OFILES = \
     operations.o \
     vmloop.o \
     gc.o \
-    vmdl-helper.o \
     main.o
+ifeq ($(USE_VMDL),true)
+OFILES += vmdl-helper.o
+endif
 
 ifeq ($(SUPERINSN_MAKEINSN),true)
     INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
