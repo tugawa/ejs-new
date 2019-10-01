@@ -85,6 +85,7 @@ LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
 CFLAGS += -DUSE_VMDL
+CFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
 endif
 
 ######################################################
@@ -303,7 +304,7 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 
-insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd
+insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/insns-vmdl/externc.vmdh
 	mkdir -p insns-vmdl
 	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
 
@@ -443,7 +444,7 @@ codeloader.o: specfile-fingerprint.h
 object.o: object-compat.c
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) $(CFLAGS_VMDL) -o $@ $<
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<

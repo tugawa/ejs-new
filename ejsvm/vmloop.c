@@ -127,7 +127,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
   } while (0)
-
 #define NEXT_INSN_NOINCPC() do {                \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \

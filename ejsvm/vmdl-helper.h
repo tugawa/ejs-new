@@ -11,11 +11,11 @@
 #define toString(v)        to_string(context, (v))
 /* #define FlonumToCdouble(f) to_double(context, (f)) */
 #define FlonumToCdouble(v) flonum_to_double((v))
-#define CdoubleToNumber(x) double_to_number((x))
-#define CdoubleToFlonum(x) double_to_flonum((x))
+#define CdoubleToNumber(x) double_to_number(context, (x))
+#define CdoubleToFlonum(x) double_to_flonum(context, (x))
 #define FixnumToCint(v)    fixnum_to_cint((v))
 #define FixnumToCdouble(v) fixnum_to_double((v))
-#define CintToNumber(x)    cint_to_number((x))
+#define CintToNumber(x)    cint_to_number(context, (x))
 #define CintToFixnum(x)    cint_to_fixnum((x))
 #define FlonumToCint(v)    flonum_to_cint((v))
 #define toCdouble(v)       to_double(context, (v))
@@ -73,14 +73,26 @@
 #define Save_context()            save_context()
 #define New_normal_object()       new_normal_object(context)
 #define New_normal_function(ss)   new_normal_function(context, ss)
-#define Initialize_new_object(con, o)   initialize_new_object(context, con, o)
+#ifdef ALLOC_SITE_CACHE
+#define Create_simple_object_with_constructor(con)                      \
+  create_simple_object_with_constructor(context, con, &insns->alloc_site)
+#else /* ALLOC_SITE_CACHE */
+#define Create_simple_object_with_constructor(con)                      \
+  create_simple_object_with_constructor(context, con)
+#endif /* ALLOC_SITE_CACHE */
 #define Next_insn_noincpc()       NEXT_INSN_NOINCPC()
 #define Next_insn_incpc()         NEXT_INSN_INCPC()
 #define JS_undefined()            JS_UNDEFINED
 
 #define Get_a()                     get_a(context)
 #define Get_err()                   get_err(context)
+extern JSValue get_global_helper(Context* context, JSValue str);
 #define Get_global(v1)              get_global_helper(context, v1)
+#ifdef INLINE_CACHE
+extern JSValue get_prop_object_inl_helper(Context *, InlineCache *, JSValue, JSValue);
+#define Get_prop_object_inl(obj, prop)                           \
+  get_prop_object_inl_helper(context, &insns->inl_cache, obj, prop)
+#endif /* INLINE_CACHE */
 #define Get_globalobj()             (context->global)
 #define Instanceof(v1, v2)          instanceof_helper(v1, v2)
 #define Isundefined(v1)             true_false(is_undefined((v1)))
@@ -93,7 +105,7 @@
 #define Not(obj)                    true_false(obj == JS_FALSE || obj == FIXNUM_ZERO || obj == gconsts.g_flonum_nan || obj == gconsts.g_string_empty)
 #define Get_literal(d1)             get_literal(insns, d1)
 
-#define New_normal_iterator(obj)  new_normal_iterator(context, obj)
+#define New_iterator(obj)           new_iterator(context, obj)
 #define Logexit(str)                LOG_EXIT(str)
 
 #define Getarguments(link, index)  getarguments_helper(context, link, index)
@@ -105,6 +117,7 @@
 #define Setarg(i0, s1, v2)         setarg_helper(context, i0, s1, v2)
 #define Setarray(dst, index, src)  (array_body_index(v0, s1) = v2)
 #define Setfl(i0)                  setfl_helper(context, regbase, fp, i0)
+extern void setglobal_helper(Context* context, JSValue str, JSValue src);
 #define Setglobal(str, src)        setglobal_helper(context, str, src)
 #define Setlocal(link, index, v)   setlocal_helper(context, link, index, v)
 
@@ -120,6 +133,10 @@
   JSValue* stack = &get_stack(context, 0);			\
   restore_special_registers(context, stack, fp - 4);
 
+#define Makeclosure(s)                                          \
+  new_function_object(context, DEBUG_NAME("insn:makeclosure"),  \
+                      gconsts.g_shape_Function, s)
+
 #define Newframe(frame_len)						\
   FunctionFrame* fr = new_frame(context, get_cf(context),		\
 				get_lp(context), frame_len);		\
@@ -128,11 +145,12 @@
 #define Makearguments(make_arguments)					\
   int num_of_args = get_ac(context);					\
   save_context();							\
-  JSValue args = new_normal_array_with_size(context, num_of_args);	\
+  JSValue args = new_array_object(context, DEBUG_NAME("arguments"),     \
+                                  gconsts.g_shape_Array, num_of_args);  \
   update_context();							\
   int i;								\
   for (i = 0; i < num_of_args; i++)					\
-    array_body_index(args, i) = regbase[i + 2];				\
+    array_body(args)[i] = regbase[i + 2];				\
   fframe_arguments(fr) = args;						\
   fframe_locals_idx(fr, 0) = args;
 

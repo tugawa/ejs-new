@@ -7,9 +7,9 @@ new (con) {
   top: match (con) {
     case (Function con) {
       Save_context();
-      JSValue o = New_normal_object();
+      JSObject o = Create_simple_object_with_constructor(con);
       Update_context();
-      return Initialize_new_object(con, o);
+      return o;
     }
     case (true) {
       return JS_undefined();
