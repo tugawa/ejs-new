@@ -105,8 +105,8 @@ executed as OBC files.
 #### Options
 
 * General options
-  * `-s size`: stack size (not implemented).
-  * `-m size`: heap size in bytes.
+  * `-s size`: stack size in words. (default: 50K)
+  * `-m size`: heap size in bytes. (default: 1M)
 
 * Profiling options for eJS users (available when built with `PROFILE` flag)
   * `-profile`: Print profiling information.
