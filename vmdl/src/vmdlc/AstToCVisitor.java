@@ -201,23 +201,23 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             Set<VMDataType[]> dontCareInput = opSpec.getUnspecifiedOperands(currentFunctionName);
             Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
-            Set<String> errorTL = opSpec.expandError(currentFunctionName);
+            Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
 
-            NEXT_MP: for (int i = 0; i < mp.size(); i++) {
+            Set<VMDataType[]> removeSet = new HashSet<VMDataType[]>();
+            for (VMDataType[] dts: dontCareInput) {
+                removeSet.add(dts);
+            }
+            for (VMDataType[] dts: errorInput) {
+                removeSet.add(dts);
+                errorConditions.add(new RuleSet.OperandDataTypes(dts));
+            }
+            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
+            if (errorConditions.size() > 0) {
+                rules.add(new RuleSet.Rule(errorAction, errorConditions));
+            }
+
+            for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
-                for (VMDataType[] vmt : vmtVecs) {
-                    for (VMDataType[] dts : dontCareInput) {
-                        if (Arrays.equals(dts, vmt)) {
-                            continue NEXT_MP;
-                        }
-                    }
-                    for (VMDataType[] dts : errorInput) {
-                        if (Arrays.equals(dts, vmt)) {
-                            continue NEXT_MP;
-                        }
-                    }
-                }
-
                 if (!Main.option.disableMatchOptimisation())
                     vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
@@ -231,12 +231,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
                 /* OperandDataTypes set */
                 Set<RuleSet.OperandDataTypes> odts = new HashSet<RuleSet.OperandDataTypes>();
-                for (VMDataType[] vmtVec: vmtVecs) {
-                    Set<String> tl = opSpec.genTypeLabel(vmtVec);
-                    for (String s: tl) {
-                        errorTL.remove(s);
+                NEXT_VMDT: for (VMDataType[] vmtVec: vmtVecs) {
+                    for (VMDataType[] remove : removeSet) {
+                        if (Arrays.equals(vmtVec, remove)) {
+                            continue NEXT_VMDT;
+                        }
                     }
-
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
@@ -252,6 +252,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     action = sb.toString() + action;
                 }
+
                 RuleSet.Rule r = new RuleSet.Rule(action, odts);
                 rules.add(r);
             }
@@ -264,16 +265,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName);
             println(s);
-            println("goto " + matchStack.peek().getTailLabel() + ";");
-
-            for (String tl : errorTL) {
-                print("TL" + labelPrefix);
-                print(tl);
-                println(":");
-            }
-
-            String errorAction = new String("LOG_EXIT(\"unexpected operand type\\n\");\n");
-            println(errorAction);
 
             println(matchStack.pop().getTailLabel()+": ;");
         }
