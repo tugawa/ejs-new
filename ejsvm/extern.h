@@ -153,7 +153,7 @@ extern JSValue specstr_to_jsvalue(const char *);
 void reset_context(Context *, FunctionTable *);
 extern FunctionFrame *new_frame(Context *, FunctionTable *, FunctionFrame *, int);
 extern void pop_special_registers(Context *, int, JSValue *);
-extern void init_context(FunctionTable *, JSValue, Context **);
+extern void init_context(FunctionTable *, JSValue, size_t, Context **);
 
 /*
  * conversion.c

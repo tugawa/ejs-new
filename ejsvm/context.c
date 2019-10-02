@@ -67,10 +67,12 @@ void reset_context(Context *ctx, FunctionTable *ftab) {
  * This function is call only once from the main function before entering
  * the loop.
  */
-void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
+void init_context(FunctionTable *ftab, JSValue glob, size_t stack_limit,
+                  Context **context)
+{
   Context *c;
 
-  c = allocate_context(STACK_LIMIT);
+  c = allocate_context(stack_limit);
   *context = c;
   c->global = glob;
   reset_context(c, ftab);

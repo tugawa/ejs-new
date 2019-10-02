@@ -55,10 +55,10 @@ FILE *prof_stream;
 /*
  * parameter
  */
-int regstack_limit = STACK_LIMIT; /* size of register stack (not used yet) */
+int regstack_limit = STACK_LIMIT; /* size of register stack in # of JSValues */
 #ifdef JS_SPACE_BYTES
-int heap_limit = JS_SPACE_BYTES;
-#else
+int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
+#else /* JS_SPACE_BYTES */
 int heap_limit = 1 * 1024 * 1024;
 #endif /* JS_SPACE_BYTES */
 
@@ -169,7 +169,7 @@ struct commandline_option  options_table[] = {
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
   { "-m",         1, &heap_limit,     NULL          },
-  { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
+  { "-s",         1, &regstack_limit, NULL          },
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -299,10 +299,6 @@ void print_icount(FunctionTable *ft, int n) {
 }
 #endif
 
-#ifndef NDEBUG
-void **stack_start;
-#endif /* NDEBUG */
-
 #if defined(USE_OBC) && defined(USE_SBC)
 /*
  * If the name ends with ".sbc", file_type returns FILE_SBC;
@@ -351,10 +347,6 @@ int main(int argc, char *argv[]) {
 #endif /* USE_PAPI */
 
 
-#ifndef NDEBUG
-  stack_start = (void **) &fp;
-#endif /* NDEBUG */
-
   repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
 #ifdef PROFILE
   poutput_name = NULL;
@@ -400,7 +392,7 @@ int main(int argc, char *argv[]) {
   init_global_constants();
   init_meta_objects();
   init_global_objects();
-  init_context(function_table, gconsts.g_global, &context);
+  init_context(function_table, gconsts.g_global, regstack_limit, &context);
   srand((unsigned)time(NULL));
 
   for (; k < iter; k++) {
