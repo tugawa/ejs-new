@@ -81,20 +81,10 @@
 #define LOG_BYTES_IN_JSVALUE   3
 /* #define BYTES_IN_JSVALUE       (1 << LOG_BYTES_IN_JSVALUE) */
 
-/*
- * naming convention
- *   name for size: add a surfix representing the unit
- *                    bytes: in bytes
- *                    jsvalues: in the numberof JSValue's
- */
-
-#ifndef JS_SPACE_BYTES
-#define JS_SPACE_BYTES     (10 * 1024 * 1024)
-#endif
 #ifdef EXCESSIVE_GC
-#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 4)
+#define GC_THREASHOLD_SHIFT 4
 #else  /* EXCESSIVE_GC */
-#define JS_SPACE_GC_THREASHOLD     (JS_SPACE_BYTES >> 1)
+#define GC_THREASHOLD_SHIFT 1
 #endif /* EXCESSIVE_GC */
 
 /*
@@ -353,11 +343,11 @@ STATIC void* space_alloc(struct space *space,
  * GC
  */
 
-void init_memory()
+void init_memory(size_t js_space_bytes)
 {
-  create_space(&js_space, JS_SPACE_BYTES, "js_space");
+  create_space(&js_space, js_space_bytes, "js_space");
 #ifdef GC_DEBUG
-  create_space(&debug_js_shadow, JS_SPACE_BYTES, "debug_js_shadow");
+  create_space(&debug_js_shadow, js_space_bytes, "debug_js_shadow");
 #endif /* GC_DEBUG */
   gc_root_stack_ptr = 0;
   gc_disabled = 0;
@@ -393,16 +383,19 @@ cell_type_t gc_obj_header_type(void *p)
 STATIC int check_gc_request(Context *ctx)
 {
   if (ctx == NULL) {
-    if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
+    if (js_space.free_bytes <
+        js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
     return 0;
   }
   if (gc_disabled) {
-    if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
+    if (js_space.free_bytes <
+        js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: GC disabled\n");
     return 0;
   }
-  if (js_space.free_bytes < JS_SPACE_GC_THREASHOLD)
+  if (js_space.free_bytes <
+      js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
     return 1;
   GCLOG_TRIGGER("no GC needed (%d bytes free)\n", js_space.free_bytes);
   return 0;

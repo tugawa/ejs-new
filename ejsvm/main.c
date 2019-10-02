@@ -56,6 +56,11 @@ FILE *prof_stream;
  * parameter
  */
 int regstack_limit = STACK_LIMIT; /* size of register stack (not used yet) */
+#ifdef JS_SPACE_BYTES
+int heap_limit = JS_SPACE_BYTES;
+#else
+int heap_limit = 1 * 1024 * 1024;
+#endif /* JS_SPACE_BYTES */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -163,6 +168,7 @@ struct commandline_option  options_table[] = {
 #ifdef GC_PROF
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
+  { "-m",         1, &heap_limit,     NULL          },
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
 };
@@ -388,7 +394,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory();
+  init_memory(heap_limit);
 
   init_string_table(STRING_TABLE_SIZE);
   init_global_constants();

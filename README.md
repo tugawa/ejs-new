@@ -85,6 +85,51 @@ $ java -jar ejsc.jar -O a.js -o a.sbc
 $ ./ejsvm a.sbc
 ```
 
+## eJS VM
+
+### Build option
+
+See comments in `Makefile.template`.
+
+### Usage
+
+```
+ejsvm [options] file1 file2 ...
+```
+
+Files are executed in the order of parameter. Files with `sbc`
+extensions are executed as SBC files if ejsvm supprots SBC format.
+Other files (and all files for ejsvm without SBC support) are
+executed as OBC files.
+
+#### Options
+
+* General options
+  * `-s size`: stack size (not implemented).
+  * `-m size`: heap size in bytes.
+
+* Profiling options for eJS users (available when built with `PROFILE` flag)
+  * `-profile`: Print profiling information.
+  * `--poutput filename`: Change output file of `-profile` to `filename`. (default: standard output)
+  * `--coverage`: Print coverage inforamtion of instructions with log flags.
+  * `---icount`: Print execution count of each instruction (count only instructions with log flags).
+  * `--forcelog`: Do profiling as if all instructions have log flags.
+
+* Debug options (available when built with `DEBUG` flag)
+  * `-l`: Print the result of the evaluation of the last expression.
+  * `-f`: Print function table.
+  * `-t`: Print execution trace.
+  * `-a`: Same as the combination of the above (`-l -f -t`).
+
+* Profiling options for VM developers
+  * `-u`: Print execution times and summary of GC information.
+  * `--hc-prof`: Print hidden class graph information. (available when built with `HC_PROF` flag)
+  * `--gc-prof`: Print GC information (available when built with `GC_PROF` flag)
+
+* Other flags
+  * `-R`: REPL mode. (not for users)
+
+
 ## eJS Compiler
 
 ### Build option
