@@ -191,10 +191,8 @@ extern JSValue cint_to_string(cint);
 /*
  * hash.c
  */
-extern HashTable *malloc_hashtable(Context *);
-extern int hash_create(Context *, HashTable *, unsigned int);
+extern HashTable *hash_create(Context *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
-extern int hash_get(HashTable *, HashKey, HashData *);
 extern int hash_put_with_attribute(Context *, HashTable *,
                                    HashKey, HashData, Attribute);
 extern int hash_copy(Context *, HashTable *, HashTable *);
@@ -206,11 +204,6 @@ extern HashIterator createHashIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
 extern int nextHashEntry(HashTable *table, HashIterator *Iter, HashEntry *ep);
 extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
-extern int rehash(HashTable *table);
-extern HashCell **__hashMalloc(int size);
-extern HashCell *__hashCellMalloc();
-extern void hashBodyFree(HashCell **body);
-extern void hashCellFree(HashCell *cell);
 
 /*
  * string.c

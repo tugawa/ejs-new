@@ -16,36 +16,51 @@
 /* #define REHASH_THRESHOLD (0.5) */
 #define REHASH_THRESHOLD (0.9)
 
-/*
- * allocates a hash table
- */
-HashTable *malloc_hashtable(Context *ctx)
+static int rehash(HashTable *table);
+
+static HashCell** alloc_hash_body(Context *ctx, int size)
 {
-  HashTable *ht = (HashTable*)gc_malloc(ctx,
-                                        sizeof(HashTable), HTAG_HASHTABLE);
-  ht->body = NULL;
-  return ht;
+  HashCell **body = (HashCell **) gc_malloc(ctx, sizeof(HashCell*) * size,
+                                            HTAG_HASH_BODY);
+  int i;
+  for (i = 0; i < size; i++)
+    body[i] = NULL;
+  return body;
+}
+
+static HashCell* alloc_hash_cell(Context *ctx)
+{
+  HashCell *cell = (HashCell *) gc_malloc(ctx,
+                                          sizeof(HashCell), HTAG_HASH_CELL);
+  cell->next = NULL;
+  return cell;
 }
 
 /*
  * initializes a hash table with the specified size
  */
-int hash_create(Context *ctx, HashTable *table, unsigned int size) {
+HashTable *hash_create(Context *ctx, unsigned int size) {
+  HashCell **body;
+  HashTable *table;
   int i;
 
   if (size == 0)
     size = 1;
-  table->body = __hashMalloc(size);
-  if (table->body == NULL) {
-    LOG_EXIT("hash body malloc failed\n");
-  }
-  for (i = 0; i < size; i++) {
-    table->body[i] = NULL;
-  }
+
+  body = (HashCell **) gc_malloc(ctx, sizeof(HashCell*) * size,
+                                 HTAG_HASH_BODY);
+  for (i = 0; i < size; i++)
+    body[i] = NULL;
+
+  GC_PUSH(body);
+  table = (HashTable *)gc_malloc(ctx,
+                                 sizeof(HashTable), HTAG_HASHTABLE);
+  table->body = body;
   table->size = size;
   table->filled = 0;
   table->entry_count = 0;
-  return 0;
+  GC_POP(body);
+  return table;
 }
 
 /*
@@ -71,21 +86,6 @@ int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
 }
 
 /*
- * obtains the value associated with a given key
- */
-int hash_get(HashTable *table, HashKey key, HashData *data) {
-  int r;
-  r = hash_get_with_attribute(table, key, data, NULL);
-  /*
-   * if (r == HASH_GET_SUCCESS) {
-   *   printf("hash_get: success, "); simple_print(*data); putchar('\n');
-   * } else
-   *  printf("hash_get: fail\n");
-   */
-  return r;
-}
-
-/*
  * registers a value to a hash table under a given key with an attribute
  */
 int hash_put_with_attribute(Context *ctx, HashTable* table,
@@ -108,7 +108,10 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
     }
   }
   /* not found */
-  cell = __hashCellMalloc();
+  GC_PUSH(table);
+  if (is_transition(attr))
+    GC_PUSH((PropertyMap *)data);
+  cell = alloc_hash_cell(ctx);
   cell->next = table->body[index];
   table->body[index] = cell;
   cell->deleted = false;
@@ -120,6 +123,9 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
     if (table->entry_count > REHASH_THRESHOLD * table->size)
       rehash(table);
   }
+  if (is_transition(attr))
+    GC_POP((PropertyMap *)data);
+  GC_POP(table);
   return HASH_PUT_SUCCESS;
 }
 
@@ -141,7 +147,6 @@ int hash_delete(HashTable *table, HashKey key) {
       } else {
         prev->next = cell->next;
       }
-      hashCellFree(cell);
       return HASH_GET_SUCCESS;
     }
   }
@@ -163,12 +168,14 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   tosize = to->size;
   n = 0;
   ec = 0;
+  cell = NULL;
+  GC_PUSH3(from, to, cell);
   for (i = 0; i < fromsize; i++) {
     for (cell = from->body[i]; cell != NULL; cell = cell->next) {
       /* we do not copy the transition entry. */
       if (is_transition(cell->entry.attr)) continue;
       index = string_hash(cell->entry.key) % tosize;
-      new = __hashCellMalloc();
+      new = alloc_hash_cell(ctx);
       new->deleted = false;
       new->entry = cell->entry;
       if (to->body[index] == NULL) ec++;   /* increments entry count */
@@ -179,29 +186,20 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   }
   to->entry_count = ec;
   to->filled = from->filled;
+  GC_POP3(cell, to, from);
   return n;
 }
 
-HashCell** __hashMalloc(int size) {
-  HashCell** ret = (HashCell**)gc_malloc(NULL, sizeof(HashCell*) * size,
-                                         HTAG_HASH_BODY);
-  memset(ret, 0, sizeof(HashCell*) * size);
-  return ret;
-}
-
-HashCell* __hashCellMalloc() {
-  HashCell* cell = (HashCell*)gc_malloc(NULL, sizeof(HashCell), HTAG_HASH_CELL);
-  cell->next = NULL;
-  return cell;
-}
-
-int rehash(HashTable *table) {
+static int rehash(HashTable *table) {
   int size = table->size;
   int newsize = size * 2;
   HashIterator iter;
   HashCell *p;
-  HashCell** newhash = __hashMalloc(newsize);
-  HashCell** oldhash = table->body;
+  HashCell** newhash;
+
+  GC_PUSH(table);
+  newhash = alloc_hash_body(NULL, newsize);
+  GC_PUSH(newhash);
 
   iter = createHashIterator(table);
   while (nextHashCell(table, &iter, &p) != FAIL) {
@@ -211,7 +209,8 @@ int rehash(HashTable *table) {
   }
   table->body = newhash;
   table->size = newsize;
-  hashBodyFree(oldhash);
+
+  GC_POP2(newhash, table);
   return 0;
 }
 
@@ -265,18 +264,6 @@ int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
   return SUCCESS;
 }
 
-void hashBodyFree(HashCell** body) {
-#if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
-  free(body);
-#endif
-}
-
-void hashCellFree(HashCell* cell) {
-#if !defined(USE_BOEHMGC) && !defined(USE_NATIVEGC)
-  free(cell);
-#endif
-}
-
 /*
  * prints a hash table (for debugging)
  */
@@ -301,14 +288,6 @@ void print_hash_table(HashTable *tab) {
   }
   printf("end HashTable\n");
 
-}
-
-char* ststrdup(const char* str) {
-  uint64_t len = strlen(str)+1;
-  char *dst = (char*)malloc(sizeof(char) * len);
-
-  strcpy(dst, str);
-  return dst;
 }
 
 /* Local Variables:      */

@@ -481,9 +481,8 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   PropertyMap *m;
 
   GC_PUSH2(__proto__, prev);
-  hash = malloc_hashtable(ctx);
+  hash = hash_create(ctx, n_props - n_special_props);
   GC_PUSH(hash);
-  hash_create(ctx, hash, n_props - n_special_props);
   m = (PropertyMap *) gc_malloc(ctx, sizeof(PropertyMap), HTAG_PROPERTY_MAP);
   GC_POP3(hash, prev, __proto__);
 

@@ -357,13 +357,6 @@ int set_regexp_members(Context *ctx, JSValue re, char *pat, int flag)
   OnigErrorInfo err;
   char *e;
 
-  /*
-   * The original code in SSJSVM_codeloader.c used ststrdup function,
-   * which is defined in hash.c.  But I don't know the reason why
-   * ststrdup is used instead of the standard strdup function.
-   *
-   * regexp_pattern(re) = ststrdup(str);
-   */
   regexp_pattern(re) = strdup(pat);
 
   opt = ONIG_OPTION_NONE;
