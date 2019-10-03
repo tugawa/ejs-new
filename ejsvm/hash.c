@@ -110,7 +110,7 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
   /* not found */
   GC_PUSH(table);
   if (is_transition(attr))
-    GC_PUSH((PropertyMap *)data);
+    GC_PUSH(data);
   cell = alloc_hash_cell(ctx);
   cell->next = table->body[index];
   table->body[index] = cell;
@@ -124,7 +124,7 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
       rehash(table);
   }
   if (is_transition(attr))
-    GC_POP((PropertyMap *)data);
+    GC_POP(data);
   GC_POP(table);
   return HASH_PUT_SUCCESS;
 }
