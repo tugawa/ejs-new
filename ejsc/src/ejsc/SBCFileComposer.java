@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+
+import ejsc.OBCFileComposer.OBCInstruction;
 import specfile.SpecFile;
 
 
@@ -96,7 +98,7 @@ public class SBCFileComposer extends OutputFileComposer {
                 String s = ((StringOperand) src).get();
                 return stringConst(s);
             } else if (src instanceof SpecialOperand) {
-                SpecialOperand.V v = ((SpecialOperand) src).get();
+                CodeBuffer.SpecialValue v = ((SpecialOperand) src).get();
                 switch (v) {
                 case TRUE:
                     return "true";
@@ -115,11 +117,15 @@ public class SBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            insnName = decorateInsnName(insnName, log);
-            String a = Integer.toString(dst.getRegisterNumber());
-            String b = Integer.toString(n);
-            SBCInstruction insn = new SBCInstruction(insnName, a, b);
-            instructions.add(insn);
+            if (fixnumMax < n || n < fixnumMin)
+                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
+            else {
+                insnName = decorateInsnName(insnName, log);
+                String a = Integer.toString(dst.getRegisterNumber());
+                String b = Integer.toString(n);
+                SBCInstruction insn = new SBCInstruction(insnName, a, b);
+                instructions.add(insn);
+            }
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -128,7 +134,6 @@ public class SBCFileComposer extends OutputFileComposer {
             String b = flonumConst(n);
             SBCInstruction insn = new SBCInstruction(insnName, a, b);
             instructions.add(insn);
-
         }
         @Override
         public void addStringBigPrimitive(String insnName, boolean log, Register dst, String s) {
@@ -306,9 +311,18 @@ public class SBCFileComposer extends OutputFileComposer {
     }
 
     List<SBCFunction> obcFunctions;
+    long fixnumMax;
+    long fixnumMin;
 
-    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
+    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean bit32) {
         super(spec);
+        if (bit32) {
+            fixnumMax = (1L << 15) - 1;
+            fixnumMin = -(1L << 15);
+        } else {
+            fixnumMax = (1L << 31) - 1;
+            fixnumMin = -(1L << 31);
+        }
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<SBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {

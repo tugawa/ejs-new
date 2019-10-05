@@ -33,9 +33,9 @@
 #endif /* __USE_GNU */
 
 typedef uint64_t JSValue;
-
 #define BYTES_IN_JSVALUE (sizeof(JSValue))
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#define PRIJSValue PRIx64
 
 #ifdef USE_BOEHMGC
 /* #define malloc(n) GC_malloc(n) */

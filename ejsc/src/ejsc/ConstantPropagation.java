@@ -86,13 +86,13 @@ public class ConstantPropagation {
                     SpecialValue s = (SpecialValue) v;
                     switch (s.getSpecialValue()) {
                     case TRUE:
-                        return new SpecialOperand(SpecialOperand.V.TRUE);
+                        return new SpecialOperand(CodeBuffer.SpecialValue.TRUE);
                     case FALSE:
-                        return new SpecialOperand(SpecialOperand.V.FALSE);
+                        return new SpecialOperand(CodeBuffer.SpecialValue.FALSE);
                     case NULL:
-                        return new SpecialOperand(SpecialOperand.V.NULL);
+                        return new SpecialOperand(CodeBuffer.SpecialValue.NULL);
                     case UNDEFINED:
-                        return new SpecialOperand(SpecialOperand.V.UNDEFINED);
+                        return new SpecialOperand(CodeBuffer.SpecialValue.UNDEFINED);
                     default:
                         throw new Error("Unknown special value");
                     }

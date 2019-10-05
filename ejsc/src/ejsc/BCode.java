@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import ejsc.CodeBuffer.SpecialValue;
+
 interface CodeBuffer {
     enum SpecialValue {
         TRUE,
@@ -289,17 +291,11 @@ class StringOperand extends SrcOperand {
 }
 
 class SpecialOperand extends SrcOperand {
-    enum V {
-        TRUE,
-        FALSE,
-        NULL,
-        UNDEFINED
-    }
-    V x;
-    SpecialOperand(V x) {
+    SpecialValue x;
+    SpecialOperand(SpecialValue x) {
         this.x = x;
     }
-    V get() {
+    SpecialValue get() {
         return x;
     }
     @Override

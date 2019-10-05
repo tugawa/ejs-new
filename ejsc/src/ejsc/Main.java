@@ -50,6 +50,7 @@ public class Main {
         boolean optHelp = false;
         String  optBc = "";
         boolean optOutOBC = false;
+        boolean optOutBit32 = false;
         OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) throws IOException {
@@ -113,7 +114,9 @@ public class Main {
                     case "--out-obc":
                         info.optOutOBC = true;
                         break;
-
+                    case "--out-bit32":
+                        info.optOutBit32 = true;
+                        break;
                     case "--spec":
                         info.spec = SpecFile.loadFromFile(args[++i]);
                         break;
@@ -245,10 +248,10 @@ public class Main {
         bcBuilder.assignFunctionIndex(true);
 
         if (info.optOutOBC) {
-            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec);
+            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutBit32);
             obc.output(info.outputFileName);
         } else {
-            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec);
+            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutBit32);
             sbc.output(info.outputFileName);
         }
     }

@@ -10,6 +10,9 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
+/*
+ * JSValue
+ */
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
@@ -67,10 +70,7 @@
 #define TP_FIXSPE TAG_PAIR(T_FIXNUM, T_SPECIAL)
 #define TP_FIXFIX TAG_PAIR(T_FIXNUM, T_FIXNUM)
 
-typedef uint16_t Register;
-typedef int16_t  Displacement;
-typedef uint16_t Subscript;
-typedef uint16_t Tag;
+typedef uint16_t  Tag;
 
 /*
  * header tags for non-JS objects

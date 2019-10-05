@@ -373,7 +373,7 @@ extern uint64_t pertype_live_count[];
 extern JSValue instanceof_helper(JSValue v1, JSValue v2);
 extern JSValue getarguments_helper(Context* context, int link, Subscript index);
 extern JSValue getlocal_helper(Context* context, int link, Subscript index);
-extern Displacement localret_helper(Context* context, int pc);
+extern InstructionDisplacement localret_helper(Context* context, int pc);
 extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
 extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
 extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);

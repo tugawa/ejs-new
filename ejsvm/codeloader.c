@@ -24,6 +24,54 @@
 #endif
 
 /*
+ * Assign `var = val' with range check.
+ */
+#define load_value(var, val, min, max, type, msg)       \
+  do {                                                  \
+    int _val_tmp;                                       \
+    _val_tmp = (val);                                   \
+    if (_val_tmp < (min))                               \
+      LOG_EXIT("%s : %d IS LESS THAN MIN VALUE %d.",    \
+               msg, _val_tmp, (min));                   \
+    if ((max) < _val_tmp)                               \
+      LOG_EXIT("%s : %d IS GREATER THAN MAX VALUE %d.", \
+               msg, _val_tmp, (max));                   \
+    var = (type) _val_tmp;                              \
+  } while(0)
+
+#define load_small_primitive(var, val, msg)     \
+  load_value(var, val,                          \
+             minval_small_primitive(),          \
+             maxval_small_primitive(),          \
+             SmallPrimitive, msg)
+
+#define load_register(var, val, msg)            \
+  load_value(var, val,                          \
+             minval_register(),                 \
+             maxval_register(),                 \
+             Register, msg)
+
+#define load_instruction_displacement(var, val, msg)    \
+  load_value(var, val,                                  \
+             minval_instruction_displacement(),         \
+             maxval_instruction_displacement(),         \
+             InstructionDisplacement, msg)
+
+#define load_constant_displacement(var, val, msg)       \
+  load_value(var, val,                                  \
+             minval_constant_displacement(),            \
+             maxval_constant_displacement(),            \
+             ConstantDisplacement, msg)
+
+#define load_subscript(var, val, msg)           \
+  load_value(var, val,                          \
+             minval_subscript(),                \
+             maxval_subscript(),                \
+             Subscript, msg)
+
+
+
+/*
  * OBC file header (magic + fingerprint).
  * The second byte is shared with SBC file.
  */
@@ -59,7 +107,9 @@ typedef struct {
 } ConstInfo;
 
 typedef struct {
-  int n_const_info;
+#ifdef DEBUG
+  size_t n_consts;
+#endif /* DEBUG */
   ConstInfo *const_info;
 } CItable;
 
@@ -75,7 +125,7 @@ extern int insn_load_sbc(Context *, Instruction *, int, int, int, int);
 
 #ifdef USE_OBC
 extern void init_constant_info(CItable *citable, int nconsts, int i);
-extern void add_constant_info(CItable *ci, Opcode oc, int index,
+extern void add_constant_info(CItable *ci, Opcode oc, unsigned int index,
                               InsnOperandType type);
 extern void const_load(Context *, int, JSValue *, CItable *);
 extern int insn_load_obc(Context *, Instruction *, int, int, CItable *, int);
@@ -359,12 +409,10 @@ void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
           v = double_load(ctx);
           break;
 #ifdef USE_REGEXP
-#ifdef need_regexp
         case REGEXP:
           LOG_ERR("sorry, loading regexp is not implemented yet.");
           break;
-#endif
-#endif
+#endif /* USE_REGEXP */
         default:
           LOG_ERR("Error: unexpected instruction in loading constants");
           v = JS_UNDEFINED;
@@ -394,6 +442,8 @@ void const_load(Context *ctx, int nconsts, JSValue *ctop, CItable *citable) {
       ctop[i] = v;
     }
   }
+#undef next_buf
+#undef buf_to_int
 }
 #endif
 
@@ -428,15 +478,15 @@ Opcode find_insn(char* s) {
 #endif /* USE_SBC */
 
 #ifdef USE_OBC
-Bytecode convertToBc(unsigned char buf[8]) {
+Bytecode convertToBc(unsigned char buf[sizeof(Bytecode)]) {
   int i;
   Bytecode ret;
 
   ret = 0;
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < sizeof(Bytecode); i++)
     ret = ret * 256 + buf[i];
   return ret;
-}
+} /* USE_OBC */
 
 #define OPTYPE_ERROR ((InsnOperandType)(-1))
 
@@ -505,7 +555,7 @@ InsnOperandType si_optype(Opcode oc, int i) {
  */
 int load_const_sbc(char *start, int nconsts, double *d, char **str) {
   char *s, *p;
-  Subscript index;
+  int index;
 
   s = start;
   if (s == NULL || *s++ != '#') {
@@ -644,10 +694,14 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case SMALLPRIMITIVE:
     {
       Register dst;
-      dst = atoi(next_token());
+      load_register(dst, atoi(next_token()), "SMALLPRIMITIVE DST");
       switch (oc) {
       case FIXNUM:
-        insns[pc].code = makecode_fixnum(dst, atoi(next_token()));
+        {
+          SmallPrimitive imm;
+          load_small_primitive(imm, atoi(next_token()), "FIXNUM IMM");
+          insns[pc].code = makecode_fixnum(dst, imm);
+        }
         break;
       case SPECCONST:
         insns[pc].code =
@@ -664,7 +718,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
       Register dst;
       char *src;
       int index;
-      Displacement disp;
+      ConstantDisplacement disp;
 
       dst = atoi(next_token());   /* destination register */
       switch (oc) {
@@ -673,7 +727,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           src = next_token();
           index = load_number_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
+          load_constant_displacement(disp,
+                                     calc_displacement(ninsns, pc, index),
+                                     "NUMBER DISP");
           insns[pc].code = makecode_number(dst, disp);
         }
         break;
@@ -683,25 +739,28 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
           src = next_token();
           index = load_string_sbc(src, ctop, ninsns, nconsts);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
-          insns[pc].code = (oc == STRING? makecode_string(dst, disp):
+          load_constant_displacement(disp,
+                                     calc_displacement(ninsns, pc, index),
+                                     "STRING/ERROR DISP");
+          insns[pc].code = (oc == STRING ?
+                            makecode_string(dst, disp):
                             makecode_error(dst, disp));
         }
         break;
 #ifdef USE_REGEXP
-#ifdef need_regexp
       case REGEXP:
         {
           int flag = atoi(next_token());
           src = next_token();
           index = load_regexp_sbc(ctx, src, ctop, ninsns, nconsts, flag);
           if (index < 0) return LOAD_FAIL;
-          disp = calc_displacement(ninsns, pc, index);
+          load_constant_displacement(disp,
+                                     calc_displacement(ninsns, pc, index),
+                                     "REGEXP DISP");
           insns[pc].code = makecode_regexp(dst, disp);
         }
         break;
-#endif /* need_regexp */
-#endif
+#endif /* USE_REGEXP */
       default:
         return LOAD_FAIL;
       }
@@ -721,8 +780,8 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case TWOOP:
     {
       Register op0, op1;
-      op0 = atoi(next_token());
-      op1 = atoi(next_token());
+      load_constant_displacement(op0, atoi(next_token()), "TWO OP0");
+      load_constant_displacement(op1, atoi(next_token()), "TWO OP1");
       insns[pc].code = makecode_two_operands(oc, op0, op1);
       return LOAD_OK;
     }
@@ -730,7 +789,7 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case ONEOP:
     {
       Register op;
-      op = atoi(next_token());
+      load_constant_displacement(op, atoi(next_token()), "ONE OP");
       insns[pc].code = makecode_one_operand(oc, op);
       return LOAD_OK;
     }
@@ -743,19 +802,20 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 
   case UNCONDJUMP:
     {
-      Displacement disp;
-      disp = (Displacement)atoi(next_token());
+      InstructionDisplacement disp;
+      load_instruction_displacement(disp, atoi(next_token()),
+                                    "UNCONDJUMP DISP");
       insns[pc].code = makecode_jump(oc, disp);
       return LOAD_OK;
     }
 
   case CONDJUMP:
     {
-      Displacement disp;
+      InstructionDisplacement disp;
       Register src;
-      src = atoi(next_token());
-      disp = (Displacement)atoi(next_token());
-      insns[pc].code = makecode_cond_jump(oc, src, disp);
+      load_register(src, atoi(next_token()), "CONDJUMP SRC");
+      load_instruction_displacement(disp, atoi(next_token()), "CONDJUMP DISP");
+      insns[pc].code = makecode_condjump(oc, src, disp);
       return LOAD_OK;
     }
 
@@ -763,9 +823,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(next_token());
-      offset = atoi(next_token());
-      reg = atoi(next_token());
+      load_subscript(link, atoi(next_token()), "GETVAR LINK");
+      load_subscript(offset, atoi(next_token()), "GETVAR OFFSET");
+      load_register(reg, atoi(next_token()), "GETVAR REG");
       insns[pc].code = makecode_getvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -774,9 +834,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
     {
       Subscript link, offset;
       Register reg;
-      link = atoi(next_token());
-      offset = atoi(next_token());
-      reg = atoi(next_token());
+      load_subscript(link, atoi(next_token()), "SETVAR LINK");
+      load_subscript(offset, atoi(next_token()), "SETVAR OFFSET");
+      load_register(reg, atoi(next_token()), "SETVAR REG");
       insns[pc].code = makecode_setvar(oc, link, offset, reg);
       return LOAD_OK;
     }
@@ -784,19 +844,19 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
   case MAKECLOSUREOP:
     {
       Register dst;
-      uint16_t index;
-      dst = atoi(next_token());
-      index = (uint16_t)atoi(next_token());
+      Subscript index;
+      load_register(dst, atoi(next_token()), "MAKECLOSUREOP DST");
+      load_subscript(index, atoi(next_token()), "MAKECLOSUREOP INDEX");
       insns[pc].code = makecode_makeclosure(oc, dst, index + ftbase);
       return LOAD_OK;
     }
 
   case CALLOP:
     {
-      Register closure;
-      uint16_t argc;
-      closure = atoi(next_token());
-      argc = atoi(next_token());
+      /* TODO: argc is not a Register */
+      Register closure, argc;
+      load_register(closure, atoi(next_token()), "CALLOP CLOSURE");
+      load_register(argc, atoi(next_token()), "CALLOP ARGC");
       insns[pc].code = makecode_call(oc, closure, argc);
       return LOAD_OK;
     }
@@ -815,8 +875,6 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
                   CItable *citable, int ftbase) {
   unsigned char buf[sizeof(Bytecode)];
   Opcode oc;
-  Subscript index;
-  Displacement disp;
   Bytecode bc;
   int i;
   JSValue *ctop;
@@ -825,8 +883,8 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
   if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer)
       != sizeof(Bytecode))
     LOG_ERR("Error: cannot read %dth bytecode", pc);
-  oc = buf[0] * 256 + buf[1];
   bc = convertToBc(buf);
+  oc = get_opcode(bc);
 #ifdef ALLOC_SITE_CACHE
   init_alloc_site(&insns[pc].alloc_site);
 #endif /* ALLOC_SITE_CACHE */
@@ -841,14 +899,14 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
     case STRING:
     case NUMBER:
 #ifdef USE_REGEXP
-#ifdef need_regexp
     case REGEXP:
-#endif
-#endif
-      index = buf[4] * 256 + buf[5];
-      add_constant_info(citable, oc, index, NONE);
-      disp = calc_displacement(ninsns, pc, index);
-      insns[pc].code = update_displacement(bc, disp);
+#endif /* USE_REGEXP */
+      {
+        BigPrimitiveIndex id = get_big_subscr(bc);
+        ConstantDisplacement disp = calc_displacement(ninsns, pc, id);
+        add_constant_info(citable, oc, id, NONE);
+        insns[pc].code = update_displacement(bc, disp);
+      }
       return LOAD_OK;
     default:
       return LOAD_FAIL;
@@ -857,10 +915,8 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
 
   case MAKECLOSUREOP:
     if (ftbase > 0) {
-      index = buf[4] * 256 + buf[5] + ftbase;
-      buf[4] = index >> 8;
-      buf[5] = index & 0xff;
-      bc = convertToBc(buf);
+      Subscript index = get_second_operand_subscr(bc) + ftbase;
+      bc = makecode_makeclosure(oc, get_first_operand_reg(bc), index);
     }
     insns[pc].code = bc;
     return LOAD_OK;
@@ -870,9 +926,12 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
       InsnOperandType type = si_optype(oc, i);
       if (type == OPTYPE_ERROR) return LOAD_FAIL;
       if (type == STR || type == NUM ) {
-        index = buf[i * 2 + 2] * 256 + buf[i * 2 + 3];
+        BigPrimitiveIndex index =
+          ((i == 0) ? get_first_operand_subscr(bc) :
+           (i == 1) ? get_second_operand_subscr(bc) :
+           get_third_operand_subscr(bc));
+        ConstantDisplacement disp = calc_displacement(ninsns, pc, index);
         add_constant_info(citable, oc, index, type);
-        disp = calc_displacement(ninsns, pc, index);
         bc = ((i == 0)? update_first_operand_disp(bc, disp):
               (i == 1)? update_second_operand_disp(bc, disp):
               update_third_operand_disp(bc, disp));
@@ -916,19 +975,23 @@ char *jsvalue_to_specstr(JSValue v) {
 #ifdef USE_OBC
 void init_constant_info(CItable *citable, int nconsts, int i) {
   ConstInfo* p;
-  citable->n_const_info = 0;
+#ifdef DEBUG
+  citable->n_consts = nconsts;
+#endif /* DEBUG */
   p = (ConstInfo*)malloc(sizeof(ConstInfo) * nconsts);
   if (p == NULL)
     LOG_EXIT("%dth func: cannot malloc constant_info", i);
   citable->const_info = p;
 }
 
-void add_constant_info(CItable *ci, Opcode c, int index, InsnOperandType t) {
-  if (index >= CONSTANT_LIMIT)
+void add_constant_info(CItable *ci, Opcode c, unsigned int index,
+                       InsnOperandType t) {
+#ifdef DEBUG
+  if (index >= ci->n_consts)
     LOG_ERR("Error: index %d is out of range of constant info table", index);
-  (ci->const_info)[index].oc = c;
-  (ci->const_info)[index].type = t;
-  if (index + 1 > ci->n_const_info) ci->n_const_info = index + 1;
+#endif /* DEBUG */
+  ci->const_info[index].oc = c;
+  ci->const_info[index].type = t;
 }
 #endif
 
@@ -961,24 +1024,22 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
     printf("n_constants: %d\n", ftable[i].n_constants);
     printf("body_size: %d\n", ftable[i].body_size);
     for (j = 0; j < ftable[i].n_insns; j++) {
-      printf("%03d: %016"PRIx64" --- ", j, ftable[i].insns[j].code);
+      printf("%03d: %"PRIByteCode" --- ", j, ftable[i].insns[j].code);
       print_bytecode(ftable[i].insns, j);
     }
     lit = (JSValue *)&(ftable[i].insns[ftable[i].n_insns]);
     for (j = 0; j < ftable[i].n_constants; j++) {
       JSValue o;
       o = lit[j];
-      printf("%03d: %016"PRIx64" --- ", j, o);
+      printf("%03d: %016"PRIJSValue" --- ", j, o);
       if (is_flonum(o))
         printf("FLONUM %lf\n", flonum_value(o));
       else if (is_string(o))
         printf("STRING \"%s\"\n", string_value(o));
 #ifdef USE_REGEXP
-#ifdef need_regexp
       else if (is_regexp(o))
         printf("REGEXP \"%s\"\n", regexp_pattern(o));
-#endif /* need_regexp */
-#endif
+#endif /* USE_REGEXP */
       else
         printf("Unexpected JSValue\n");
     }
@@ -989,7 +1050,7 @@ int print_function_table(FunctionTable *ftable, int nfuncs) {
 /*
  * prints a bytecode instruction
  */
-void print_constant(Instruction *insns, int pc, Displacement disp) {
+void print_constant(Instruction *insns, int pc, ConstantDisplacement disp) {
   JSValue o;
   o = get_literal((&insns[pc]), disp);
   if (is_flonum(o))
@@ -997,10 +1058,8 @@ void print_constant(Instruction *insns, int pc, Displacement disp) {
   else if (is_string(o))
     printf(" \"%s\"", string_value(o));
 #ifdef USE_REGEXP
-#ifdef need_regexp
   else if (is_regexp(o))
     printf(" %d:\"%s\"", regexp_flag(o), regexp_pattern(o));
-#endif /* need_regexp */
 #endif /* USE_REGEXP */
   else
     printf(" ???");
@@ -1014,6 +1073,7 @@ void print_bytecode(Instruction *insns, int pc) {
   code = insns[pc].code;
   oc = get_opcode(code);
   t = insn_info_table[oc].otype;
+  printf("%" PRIByteCode " ", code);
 #ifdef PROFILE
   printf("%s%s", insn_info_table[oc].insn_name,
          insns[pc].logflag == TRUE? "_log": "");
@@ -1023,7 +1083,7 @@ void print_bytecode(Instruction *insns, int pc) {
   switch (t) {
   case SMALLPRIMITIVE:
     {
-      int imm;
+      SmallPrimitive imm;
       printf(" %d", get_first_operand_reg(code));
       switch (oc) {
       case FIXNUM:
@@ -1043,7 +1103,7 @@ void print_bytecode(Instruction *insns, int pc) {
   case BIGPRIMITIVE:
     {
       printf(" %d", get_first_operand_reg(code));
-      print_constant(insns, pc, get_big_disp(code));
+      print_constant(insns, pc, get_big_constant_disp(code));
     }
     break;
   case THREEOP:
@@ -1053,17 +1113,16 @@ void print_bytecode(Instruction *insns, int pc) {
       for (i = 0; i < 3; i++) {
         type = si_optype(oc, i);
         if (type == STR || type == NUM) {
-          Displacement disp;
-          disp = ((i == 0)? get_first_operand_disp(code):
-                  (i == 1)? get_second_operand_disp(code):
-                  get_third_operand_disp(code));
+          ConstantDisplacement disp =
+            ((i == 0)? get_first_operand_constant_disp(code):
+             (i == 1)? get_second_operand_constant_disp(code):
+             get_third_operand_constant_disp(code));
           print_constant(insns, pc, disp);
         } else if (type == SPEC) {
-          int k, imm;
-          k = ((i == 0)? get_first_operand_int(code):
-               (i == 1)? get_second_operand_int(code):
-               get_third_operand_int(code));
-          imm = get_small_immediate(k);
+          int k = ((i == 0)? get_first_operand_int(code):
+                   (i == 1)? get_second_operand_int(code):
+                   get_third_operand_int(code));
+          SmallPrimitive imm = get_small_immediate(k);
           printf(" %s", jsvalue_to_specstr(imm));
         } else {   /* LIT NONE */
           Register r;
@@ -1095,17 +1154,14 @@ void print_bytecode(Instruction *insns, int pc) {
   case UNCONDJUMP:
   case TRYOP:
     {
-      Displacement disp;
-      disp = get_first_operand_disp(code);
+      InstructionDisplacement disp = get_operand_instruction_disp(code);
       printf(" %d", pc + disp);
     }
     break;
   case CONDJUMP:          
     {
-      Register r;
-      Displacement disp;
-      r = get_first_operand_reg(code);
-      disp = get_second_operand_disp(code);
+      Register r = get_first_operand_reg(code);
+      InstructionDisplacement disp = get_operand_instruction_disp(code);
       printf(" %d %d", r, pc + disp);
     }
     break;

@@ -1,4 +1,4 @@
-\inst localcall (Displacement d)
+\inst localcall (InstructionDisplacement d)
 
 \otherwise \{
 /*

@@ -1,4 +1,4 @@
-\inst jump (Displacement d)
+\inst jump (InstructionDisplacement d)
 
 \otherwise \{
 /*

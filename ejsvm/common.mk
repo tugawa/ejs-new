@@ -76,7 +76,12 @@ INSNGEN_VMGEN=java -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
+
+ifeq ($(USE_VMDL),true)
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
+else
+SPECGEN=java -cp $(VMGEN) vmgen.SpecFileGen
+endif
 
 CPP=$(CC) -E
 
