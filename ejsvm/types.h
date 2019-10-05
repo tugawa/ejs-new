@@ -405,11 +405,11 @@ typedef struct string_cell {
 #define normal_string_value(p)   ((remove_normal_string_tag(p))->value)
 
 #ifdef STROBJ_HAS_HASH
-#define normal_string_hash(p)       ((remove_normal_string_tag(p))->hash)
-#define normal_string_length(p)     ((remove_normal_string_tag(p))->length)
+#define normal_string_hash(p)     ((remove_normal_string_tag(p))->hash)
+#define normal_string_length(p)   ((cint) (remove_normal_string_tag(p))->length)
 #else
-#define normal_string_hash(p)       (calc_hash(string_value(p)))
-#define normal_string_length(p)     (strlen(string_value(p)))
+#define normal_string_hash(p)     (calc_hash(string_value(p)))
+#define normal_string_length(p)   (strlen(string_value(p)))
 #endif /* STROBJ_HAS_HASH */
 
 #define cstr_to_normal_string(ctx, str)  (cstr_to_string_ool((ctx), (str)))
@@ -438,15 +438,12 @@ typedef uint64_t cuint;
 #define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
 #define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
 
-/*
- * #define int_to_fixnum(f) \
- * ((JSValue)(put_tag((((uint64_t)(f)) << TAGOFFSET), T_FIXNUM)))
+/* In general, cint may contain an intenger that is out of range of
+ * fixnum. cint_to_fixnum_nocheck should be used in limited caess
+ * where the value is guaranteed to be small.
  */
-#define int_to_fixnum(f)    cint_to_fixnum(((cint)(f)))
-#define cint_to_fixnum(f)   put_tag(((uint64_t)(f) << TAGOFFSET), T_FIXNUM)
-
-/* #define double_to_fixnum(f) int_to_fixnum((int64_t)(f)) */
-#define double_to_fixnum(f) cint_to_fixnum((cint)(f))
+#define cint_to_fixnum_nocheck(n)                       \
+  put_tag(((uint64_t)(n) << TAGOFFSET), T_FIXNUM)
 
 #define is_fixnum_range_cint(n)                                 \
   ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
@@ -468,21 +465,24 @@ typedef uint64_t cuint;
 #define half_fixnum_range(ival)                                         \
   (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
 
-#define FIXNUM_ZERO (cint_to_fixnum((cint)0))
-#define FIXNUM_ONE  (cint_to_fixnum((cint)1))
-#define FIXNUM_TEN  (cint_to_fixnum((cint)10))
+#define FIXNUM_MINUS_ONE (cint_to_fixnum_nocheck((cint)-1))
+#define FIXNUM_ZERO      (cint_to_fixnum_nocheck((cint)0))
+#define FIXNUM_ONE       (cint_to_fixnum_nocheck((cint)1))
+#define FIXNUM_TEN       (cint_to_fixnum_nocheck((cint)10))
 
 #define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
 #define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
-
-#define cint_to_number(ctx, n)                                           \
-  (is_fixnum_range_cint((n))? cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
+#define cint_to_number(ctx, n)                                  \
+  (is_fixnum_range_cint((n))?                                   \
+   cint_to_fixnum_nocheck((n)): cint_to_flonum(ctx, (n)))
 
 #define number_to_double(p)                                     \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
 #define double_to_number(ctx, d)                                        \
-  ((is_fixnum_range_double(d))? double_to_fixnum(d): double_to_flonum(ctx, d))
+  (isnan((d)) ?  gconsts.g_flonum_nan :                                 \
+   is_fixnum_range_double((d)) ? cint_to_fixnum_nocheck((cint) (d)) :   \
+   double_to_flonum(ctx, (d)))
 
 /*
  * Special

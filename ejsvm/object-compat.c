@@ -25,6 +25,19 @@ JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name)
 }
 
 /*
+ * obtain array element. `index' is an integer.
+ * returns JS_EMPTY if `index` is out of range.
+ */
+JSValue get_array_element(JSValue array, cint index)
+{
+  assert(is_array(array));
+  if (0 <= index && index < array_size(array))
+    return (index < array_length(array) ?
+	    array_body(array)[index] : JS_UNDEFINED);
+  return JS_EMPTY;
+}
+
+/*
  *  obtains array's property
  *    a: array
  *    p: property (number / string / other type)
@@ -66,10 +79,11 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p)
 
   if (is_fixnum(p)) {
     cint n;
+    JSValue ret;
     n = fixnum_to_cint(p);
-    if (0 <= n && n < array_size(a)) {
-      return (n < array_length(a))? array_body(a)[n]: JS_UNDEFINED;
-    }
+    ret = get_array_element(a, n);
+    if (ret != JS_EMPTY)
+      return ret;
     p = fixnum_to_string(p);
     return get_prop_prototype_chain(a, p);
   }
@@ -81,14 +95,12 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p)
   }
   assert(is_string(p));
   {
-    JSValue num;
-    cint n;
-    num = string_to_number(p);
+    JSValue num = string_to_number(p);
     if (is_fixnum(num)) {
-      n = fixnum_to_cint(num);
-      if (0 <= n && n < array_size(a)) {
-        return (n < array_length(a))? array_body(a)[n]: JS_UNDEFINED;
-      }
+      cint n = fixnum_to_cint(num);
+      JSValue ret = get_array_element(a, n);
+      if (ret != JS_EMPTY)
+	return ret;
     }
     return get_prop_prototype_chain(a, p);
   }
@@ -193,7 +205,8 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
   if (len <= n || setlength == TRUE) {
     array_length(a) = n + 1;
     GC_PUSH2(a, v);
-    set_prop(ctx, a, gconsts.g_string_length, cint_to_fixnum(n + 1), ATTR_NONE);
+    set_prop(ctx, a, gconsts.g_string_length,
+	     cint_to_number(ctx, n + 1), ATTR_NONE);
     GC_POP2(v, a);
   }
   if (setlength == TRUE && n < len && adatamax <= len) {

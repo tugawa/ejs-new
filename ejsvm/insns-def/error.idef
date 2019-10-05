@@ -2,5 +2,6 @@
 
 \otherwise \{
   dst = 0;
+  d = 0;
   return -1;
 \}

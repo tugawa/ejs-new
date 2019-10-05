@@ -5,7 +5,7 @@
     dst = gconsts.g_flonum_nan;
   else {
     cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
-    dst = cint_to_fixnum(s);
+    dst = cint_to_number(context, s);
   }
 \}
 

@@ -345,7 +345,8 @@ BUILTIN_FUNCTION(string_charCodeAt)
 
   builtin_prologue();
   r = char_code_at(context, args[0], args[1]);
-  set_a(context, r >= 0? cint_to_fixnum((cint)r): gconsts.g_flonum_nan);
+  set_a(context,
+        r >= 0 ? cint_to_number(context, (cint) r): gconsts.g_flonum_nan);
 }
 
 /*
@@ -390,18 +391,18 @@ JSValue string_indexOf_(Context *context, JSValue *args, int na,
   else pos = 0;
   start = min(max(pos, 0), len);
   if (searchLen == 0)
-    return cint_to_fixnum(start); /* When searchStr is an empty string */
+    return cint_to_number(context, start);
 
   if (isLastIndexOf) delta = -1;
   else delta = 1;
   k = min(start, len - searchLen);
   while (0 <= k && k <= len - searchLen) {
     for (j = 0; s[k+j] == searchStr[j]; j++)
-      if (j == (searchLen - 1)) return cint_to_fixnum(k);
+      if (j == (searchLen - 1)) return cint_to_number(context, k);
     k += delta;
   }
 
-  return cint_to_fixnum(-1);
+  return FIXNUM_MINUS_ONE;
 }
 
 BUILTIN_FUNCTION(string_indexOf)
@@ -577,13 +578,11 @@ BUILTIN_FUNCTION(string_localeCompare)
   GC_POP(s0);
   cs1 = string_to_cstr(s1);
 
-  /* implemantation-defined */
-  r = strcmp(cs0, cs1);
-  if (r > 0) r = TRUE;
-  else if (r < 0) r = FALSE;
-  else r = 0;
+  r = strcmp(cs0, cs1); /* implemantation-defined */
+  if (r > 0) ret = FIXNUM_ONE;
+  else if (r < 0) ret = FIXNUM_MINUS_ONE;
+  else ret = FIXNUM_ZERO;
 
-  ret = cint_to_fixnum(r);
   set_a(context, ret);
   return;
 

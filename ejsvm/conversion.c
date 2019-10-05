@@ -179,13 +179,8 @@ JSValue string_to_number(JSValue v) {
   /* try to read an integer from the string */
   n = strtol(p, &q, 10);
   if (p != q) {
-    if (*q == '\0') {
-      /* succeeded to convert to a long integer */
-      if (is_fixnum_range_cint(n))
-        return cint_to_fixnum(n);
-      else
-        return double_to_flonum(NULL, (double)n); /* TODO: context */
-    }
+    if (*q == '\0')
+      return cint_to_number(NULL, n);
   }
   d = strtod(p, &q);
   if (p != q) {
@@ -503,7 +498,8 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 
   for (i = 0; i < length; i++) {
     GC_PUSH(array);
-    item = get_array_prop(context, array, cint_to_fixnum(i));
+    item = get_array_element(array, i);
+    assert(item != JS_EMPTY);
     GC_POP(array);
     strs[i] = to_string(NULL, item);
     sumlen += string_length(strs[i]);

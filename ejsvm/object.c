@@ -342,7 +342,7 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
 
   assert(Array_num_builtin_props +
          Array_num_double_props + Array_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, int_to_fixnum(size));
+  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, (cint) size));
 
   return put_array_tag(p);
 }
@@ -425,7 +425,7 @@ JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
 
   assert(String_num_builtin_props +
          String_num_double_props + String_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, int_to_fixnum(string_length(v)));
+  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, string_length(v)));
 
   return put_string_object_tag(p);
 }

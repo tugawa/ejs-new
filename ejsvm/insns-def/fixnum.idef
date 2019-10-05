@@ -8,5 +8,5 @@
   $dst = imm
  */
 
-  dst = cint_to_fixnum((cint) num);
+  dst = cint_to_fixnum_nocheck((cint) num);
 \}

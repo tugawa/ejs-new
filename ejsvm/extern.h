@@ -308,6 +308,7 @@ extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name,
 #else /* INLINE_CACHE */
 extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name);
 #endif /* INLINE_CACHE */
+extern JSValue get_array_element(JSValue obj, cint index);
 extern JSValue get_array_prop(Context *ctx, JSValue obj, JSValue name);
 extern int has_array_element(JSValue a, cint n);
 extern int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v);

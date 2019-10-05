@@ -114,7 +114,7 @@ def gen_var_assignment(n, kind, jsv_kind = None):
   vname = var_name(kind, n)
   if kind == "JSValue" and jsv_kind != "_":
     if jsv_kind in ["fixnum"]:
-      right = "cint_to_fixnum(get_" + ord + "_operand_int(insn))"
+      right = "cint_to_fixnum_nocheck(get_" + ord + "_operand_int(insn))"
     elif jsv_kind in ["special"]:
       right = "get_" + ord + "_operand_int(insn)"
     elif jsv_kind in ["string", "flonum"]:

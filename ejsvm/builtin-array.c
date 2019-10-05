@@ -75,12 +75,13 @@ BUILTIN_FUNCTION(array_constr)
       array_body(rsv)[i] = args[i + 1];
   }
 
+  GC_PUSH(rsv);
+  set_prop_direct(context, rsv, gconsts.g_string_length,
+                  cint_to_number(context, length), ATTR_NONE);
+  GC_POP(rsv);
+
   /* set as the return value */
   set_a(context, rsv);
-
-  /* adjust length (put at the end to omit GC_PUSH) */
-  set_prop_direct(context, rsv, gconsts.g_string_length,
-                  cint_to_fixnum(length), ATTR_NONE);
 }
 
 BUILTIN_FUNCTION(array_toString)
@@ -139,8 +140,9 @@ BUILTIN_FUNCTION(array_concat)
       while (k < len) {
         if (has_array_element(e, k)) {
           GC_PUSH(e);
-          subElement = get_array_prop(context, e, cint_to_fixnum(k));
-          set_array_prop(context, a, cint_to_fixnum(n), subElement);
+          subElement = get_array_element(a, k);
+          assert(subElement != JS_EMPTY);
+          set_array_prop(context, a, cint_to_number(context, n), subElement);
           GC_POP(e);
         }
         n++;
@@ -150,14 +152,14 @@ BUILTIN_FUNCTION(array_concat)
       if (n > MAX_ARRAY_LENGTH)
         /* This should be improved */
         LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
-      set_array_prop(context, a, cint_to_fixnum(n), e);
+      set_array_prop(context, a, cint_to_number(context, n), e);
       n++;
     }
   }
   /* is the two lines below necessary? */
   array_length(a) = n;
-  set_prop_direct(context, a, gconsts.g_string_length, cint_to_fixnum(n),
-                  ATTR_NONE);
+  set_prop_direct(context, a, gconsts.g_string_length,
+                  cint_to_number(context, n), ATTR_NONE);
   GC_POP(a);
   set_a(context, a);
   return;
@@ -176,7 +178,7 @@ BUILTIN_FUNCTION(array_pop)
     return;
   }
 
-  flen = cint_to_fixnum(len);
+  flen = cint_to_number(context, len);
   if (len < array_size(a))
     ret = array_body(a)[len];
   else
@@ -205,10 +207,10 @@ BUILTIN_FUNCTION(array_push)
    */
   GC_PUSH(a);
   for (i = 1; i <= na; i++)
-    set_array_prop(context, a, cint_to_fixnum(len++), args[i]);
+    set_array_prop(context, a, cint_to_number(context, len++), args[i]);
   GC_POP(a);
   ret = (len <= MAX_ARRAY_LENGTH)?
-    cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
+    cint_to_number(context, len): cint_to_number(context, MAX_ARRAY_LENGTH);
   set_a(context, ret);
   return;
 }
@@ -230,19 +232,27 @@ BUILTIN_FUNCTION(array_reverse)
     lowerExists = has_array_element(args[0], lower);
     upperExists = has_array_element(args[0], upper);
 
-    if (lowerExists)
-      lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
-    if (upperExists)
-      upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+    if (lowerExists) {
+      lowerValue = get_array_element(args[0], lower);
+      assert(lowerValue != JS_EMPTY);
+    }
+    if (upperExists) {
+      upperValue = get_array_element(args[0], upper);
+      assert(lowerValue != JS_EMPTY);
+    }
 
     if (lowerExists && upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+      set_array_prop(context, args[0], cint_to_number(context, lower),
+                     upperValue);
+      set_array_prop(context, args[0], cint_to_number(context, upper),
+                     lowerValue);
     } else if (!lowerExists && upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
+      set_array_prop(context, args[0], cint_to_number(context, lower),
+                     upperValue);
       delete_array_element(args[0], upper);
     } else if (lowerExists && !upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+      set_array_prop(context, args[0], cint_to_number(context, upper),
+                     lowerValue);
       delete_array_element(args[0], lower);
     } else {
       /* No action is required */
@@ -265,13 +275,15 @@ BUILTIN_FUNCTION(array_shift)
     return;
   }
 
-  first = get_array_prop(context, args[0], cint_to_fixnum(0));
+  first = get_array_element(args[0], 0);
+  assert(first != JS_EMPTY);
   GC_PUSH(first);
   for (from = 1; from < len; from++) {
     to = from - 1;
     if (has_array_element(args[0], from)) {
-      fromVal = get_array_prop(context, args[0], cint_to_fixnum(from));
-      set_array_prop(context, args[0], cint_to_fixnum(to), fromVal);
+      fromVal = get_array_element(args[0], from);
+      assert(fromVal != JS_EMPTY);
+      set_array_prop(context, args[0], cint_to_number(context, to), fromVal);
     } else {
       delete_array_element(args[0], to);
     }
@@ -280,7 +292,7 @@ BUILTIN_FUNCTION(array_shift)
   /* should reallocate (shorten) body array here? */
   array_length(args[0]) = --len;
   set_prop_direct(context, args[0], gconsts.g_string_length,
-                  cint_to_fixnum(len), ATTR_NONE);
+                  cint_to_number(context, len), ATTR_NONE);
   GC_POP(first);
   set_a(context, first);
   return;
@@ -318,8 +330,8 @@ BUILTIN_FUNCTION(array_slice)
   n = 0;
   while (k < final) {
     if (has_array_element(o,k)) {
-      kValue = get_array_prop(context, o, cint_to_fixnum(k));
-      set_array_prop(context, a, cint_to_fixnum(n), kValue);
+      kValue = get_array_element(o, k);
+      set_array_prop(context, a, cint_to_number(context, n), kValue);
     }
     k++;
     n++;
@@ -431,13 +443,15 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
   cint i, j;
   GC_PUSH2(array, comparefn);
   for (i = l; i <= r; i++) {
-    tmp = get_array_prop(context, array, cint_to_fixnum(i)); /* tmp = a[i] */
+    tmp = get_array_element(array, i); /* tmp = a[i] */
+    assert(tmp != JS_EMPTY);
     GC_PUSH(tmp);
     for (j = i - 1; l <= j; j--) {
-      aj = get_array_prop(context, array, cint_to_fixnum(j));
+      aj = get_array_element(array, j);
+      assert(tmp != JS_EMPTY);
       GC_PUSH(aj);
       if (sortCompare(context, aj, tmp, comparefn) > 0)
-        set_array_prop(context, array, cint_to_fixnum(j + 1), aj);
+        set_array_prop(context, array, cint_to_number(context, j + 1), aj);
       /* a[j+1] = a[j] */
       else {
         GC_POP(aj);
@@ -446,7 +460,7 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
       GC_POP(aj);
     }
     GC_POP(tmp);
-    set_array_prop(context, array, cint_to_fixnum(j + 1), tmp);
+    set_array_prop(context, array, cint_to_number(context, j + 1), tmp);
     /* a[j+1] = tmp; */
   }
   GC_POP2(comparefn, array);
@@ -459,12 +473,13 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   JSValue v0, v1, v2;
   cint m = l + ((r - l) / 2);
   GC_PUSH2(array, comparefn);
-  v0 = get_array_prop(context, array, cint_to_fixnum(l));
-  GC_PUSH(v0);
-  v1 = get_array_prop(context, array, cint_to_fixnum(m));
-  GC_PUSH(v1);
-  v2 = get_array_prop(context, array, cint_to_fixnum(r));
-  GC_PUSH(v2);
+  v0 = get_array_element(array, l);
+  assert(v0 != JS_EMPTY);
+  v1 = get_array_element(array, m);
+  assert(v1 != JS_EMPTY);
+  v2 = get_array_element(array, r);
+  assert(v2 != JS_EMPTY);
+  GC_PUSH3(v0, v1, v2);
   /* Sort v0 v1 v2 */
   if (sortCompare(context, v0, v1, comparefn) > 0)  /* v0 < v1 */
     swap(&v0, &v1);
@@ -480,26 +495,35 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
    */
   p = v1;
   GC_PUSH(p);
-  set_array_prop(context, array, cint_to_fixnum(l), v0); /* a[l] = v0 */
-  set_array_prop(context, array, cint_to_fixnum(r), v2); /* a[r] = v2 */
-  set_array_prop(context, array, cint_to_fixnum(m),
-                 get_array_prop(context, array, cint_to_fixnum(l+1)));
+  /* a[l] = v0 */
+  set_array_prop(context, array, cint_to_number(context, l), v0);
+ /* a[r] = v2 */
+  set_array_prop(context, array, cint_to_number(context, r), v2);
   /* a[m] = a[l+1] */
-  set_array_prop(context, array, cint_to_fixnum(l+1), v1); /* a[l+1] = v1(=p) */
+  set_array_prop(context, array, cint_to_number(context, m),
+                 get_array_element(array, l+1));
+ /* a[l+1] = v1(=p) */
+  set_array_prop(context, array, cint_to_number(context, l+1), v1);
   i = l+2;
   j = r-1;
   /* Sorting (from i to j) */
   while (1) {
-    while (i < r && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
-    while (l < j && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
-    if (i >= j) break;
+    while (i < r && sortCompare(context, p, get_array_element(array, i),
+                                comparefn) > 0)
+      i++;
+    while (l < j && sortCompare(context, p, get_array_element(array, j),
+                                comparefn) < 0)
+      j--;
+    if (i >= j)
+      break;
     /* Exchange a[i] and a[j] */
-    tmp = get_array_prop(context, array, cint_to_fixnum(i));
+    tmp = get_array_element(array, i);
+    assert(tmp != JS_EMPTY);
     GC_PUSH(tmp);
-    set_array_prop(context, array, cint_to_fixnum(i),
-                   get_array_prop(context, array, cint_to_fixnum(j)));
+    set_array_prop(context, array, cint_to_number(context, i),
+                   get_array_element(array, j));
     GC_POP(tmp);
-    set_array_prop(context, array, cint_to_fixnum(j), tmp);
+    set_array_prop(context, array, cint_to_number(context, j), tmp);
     i++;
     j--;
   }

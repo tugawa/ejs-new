@@ -45,7 +45,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
   char *cstr;
   char *endPtr;
   int32_t irad;
-  long ret;
+  cint ret;
 
   builtin_prologue();
   str = to_string(context, args[1]);
@@ -70,7 +70,7 @@ BUILTIN_FUNCTION(builtin_parse_int)
   if (cstr == endPtr)
     set_a(context, gconsts.g_flonum_nan);
   else
-    set_a(context, int_to_fixnum(ret));
+    set_a(context, cint_to_number(context, ret));
 }
 
 #ifdef need_float
