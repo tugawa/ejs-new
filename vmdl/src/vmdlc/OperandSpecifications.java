@@ -214,7 +214,7 @@ public class OperandSpecifications {
         }
 
         @Override
-        protected Set<VMDataType[]> getTuples() {
+        public Set<VMDataType[]> getTuples() {
             return opSpec.getAcceptOperands(insnName);
         }
     }

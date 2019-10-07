@@ -24,7 +24,7 @@ import vmdlc.AstToCVisitor.DefaultVisitor;
 import dispatch.DispatchProcessor;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
-import type.TypeMap;
+import type.TypeMapBase;
 import type.VMDataType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
@@ -190,7 +190,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             MatchProcessor mp = new MatchProcessor((SyntaxTree) node);
             String[] formalParams = mp.getFormalParams();
             String label = mp.getLabel();
-            TypeMap dict = ((SyntaxTree) node).getTypeMap();
+            TypeMapBase dict = ((SyntaxTree) node).getTypeMap();
 
             println("/* "+dict.toString()+" */");
 

@@ -39,8 +39,15 @@ public class Main {
     static String vmdlGrammarFile;
     static String operandSpecFile;
     static String insnDefFile;
+    static int typeMapIndex = 1;
 
     static Option option = new Option();
+
+    static final TypeMapBase[] TYPE_MAPS = {
+        new TypeMapLub(),
+        new TypeMapHalf(),
+        new TypeMapFull()
+    };
 
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
@@ -53,6 +60,9 @@ public class Main {
                 operandSpecFile = args[i++];
             } else if (opt.equals("-no-match-opt")) {
                 option.mDisableMatchOptimisation = true;
+            } else if(opt.matches("-T.")){
+                Integer num = Integer.parseInt(opt.substring(2));
+                typeMapIndex = num;
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -73,6 +83,10 @@ public class Main {
             System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
             System.out.println("   -no-match-opt  disable optimisation for match statement");
             System.out.println("   -i file   instruction defs");
+            System.out.println("   -TX       type analysis processing");
+            System.out.println("              -T1: use Lub");
+            System.out.println("              -T2: partly detail");
+            System.out.println("              -T3: perfectly detail");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
             System.out.println("   -Xcmp:opt_pass [MR:S]");
             System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
@@ -140,8 +154,9 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
 
         new DesugarVisitor().start(ast);
+        new DispatchVarCheckVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec);
+        new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
 
         String program = new AstToCVisitor().start(ast, opSpec);
 

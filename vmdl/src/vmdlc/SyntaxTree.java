@@ -13,21 +13,27 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 
 import type.AstType;
-import type.TypeMap;
+import type.TypeMapBase;
 import vmdlc.SyntaxTree;
 
+import java.util.Set;
+import java.util.Map;
+
 public class SyntaxTree extends Tree<SyntaxTree> {
-    TypeMap dict;
-    AstType type;
+    TypeMapBase dict;
+    Map<Map<String, AstType>, AstType> exprTypeMap;
+    Set<String> rematchVarSet;
 
     public SyntaxTree() {
         super();
-        type = null;
+        exprTypeMap = null;
+        rematchVarSet = null;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
-        type = null;
+        exprTypeMap = null;
+        rematchVarSet = null;
     }
 
     @Override
@@ -71,22 +77,39 @@ public class SyntaxTree extends Tree<SyntaxTree> {
 
     @Override
     protected void appendExtraStringfied(StringBuilder sb) {
-        if (type == null) {
+        if (exprTypeMap == null) {
+            sb.append(" []");
+        } else if (exprTypeMap.isEmpty()){
             sb.append(" []");
         } else {
+            sb.append(" (");
+            for(Map<String,AstType> m : exprTypeMap.keySet()){
+                sb.append(m.toString()+"->"+exprTypeMap.get(m)+",");
+            }
+            sb.append(")");
+            /*
             sb.append(" " + this.type);
+            */
         }
     }
-
-    public void setType(AstType _type) {
-        type = _type;
+    
+    public void setExprTypeMap(Map<Map<String, AstType>, AstType> _exprTypeMap) {
+        exprTypeMap = _exprTypeMap;
     }
-
-    public void setTypeMap(TypeMap dict) {
+    
+    public void setTypeMap(TypeMapBase dict) {
         this.dict = dict;
     }
-
-    public TypeMap getTypeMap() {
+    
+    public TypeMapBase getTypeMap() {
         return dict;
+    }
+
+    public void setRematchVarSet(Set<String> set){
+        rematchVarSet = set;
+    }
+
+    public Set<String> getRematchVarSet(){
+        return rematchVarSet;
     }
 }
