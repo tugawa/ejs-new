@@ -1,7 +1,13 @@
-# eJS -- JavaScript for embedded systems.
+# eJS -- JavaScript for embedded systems
 
 eJS is a framework to generate JavaScript VMs that are specialised
 for applications.
+
+Most of the contents are created by eJS project.
+* Tomoharu Ugawa (Kochi University of Technology)
+* Hideya Iwasaki (The University of Electro-communications)
+* Yasunao Takano (
+and students.
 
 ## Contents
 
