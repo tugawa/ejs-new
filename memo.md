@@ -123,6 +123,7 @@ cint_to_fixnumが使われていた箇所は主に以下の通り．
   * conversion macro
 * JSObjectSize n_props...
 * JSIteratorSize -> # of properties
+* HashData
 
 ## cint の64bit化
 
