@@ -11,7 +11,7 @@ OPERANDSPEC = $(EJSVM_DIR)/operand-spec/any.spec
 # OPERANDSPEC = $(EJSVM_DIR)/operand-spec/fixnum-unspec.spec
 SUPERINSNSPEC = $(EJSVM_DIR)/superinsn-spec/all.si
 SUPERINSNTYPE = 4
-VMDLC_FLAGS=-no-match-opt
+#VMDLC_FLAGS=-no-match-opt
 
 ##
 ## compile flags
@@ -25,7 +25,7 @@ INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 ##
 ## VMDL
 ##
-USE_VMDL=true
+USE_VMDL=false
 
 ##
 ## commands
