@@ -163,7 +163,7 @@ JSValue special_to_object(Context *ctx, JSValue v) {
 /*
  * convers a string to a number
  */
-JSValue string_to_number(JSValue v) {
+JSValue string_to_number(Context *ctx, JSValue v) {
   char *p, *q;
   cint n;
   double d;
@@ -180,12 +180,12 @@ JSValue string_to_number(JSValue v) {
   n = strtol(p, &q, 10);
   if (p != q) {
     if (*q == '\0')
-      return cint_to_number(NULL, n);
+      return cint_to_number(ctx, n);
   }
   d = strtod(p, &q);
   if (p != q) {
     if (*q == '\0')
-      return double_to_flonum(NULL, d); /* TODO: context */
+      return double_to_flonum(ctx, d); /* TODO: context */
   }
   return gconsts.g_flonum_nan;
 }
@@ -374,7 +374,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     }
     GC_POP(v);
     if (is_number(f)) return f;
-    if (is_string(f)) return string_to_number(f);
+    if (is_string(f)) return string_to_number(context, f);
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT0:
@@ -388,7 +388,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     }
     GC_POP(v);
     if (is_number(f)) return f;
-    if (is_string(f)) return string_to_number(f);
+    if (is_string(f)) return string_to_number(context, f);
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT1:
@@ -555,7 +555,7 @@ JSValue to_boolean(JSValue v) {
  */
 JSValue to_number(Context *context, JSValue v) {
   if (is_number(v)) return v;
-  if (is_string(v)) return string_to_number(v);
+  if (is_string(v)) return string_to_number(context, v);
   if (is_special(v)) return special_to_number(v);
   if (is_object(v)) return object_to_number(context, v);
   LOG_ERR("This cannot happen in to_number");

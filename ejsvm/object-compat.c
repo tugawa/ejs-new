@@ -95,7 +95,10 @@ JSValue get_array_prop(Context *ctx, JSValue a, JSValue p)
   }
   assert(is_string(p));
   {
-    JSValue num = string_to_number(p);
+    JSValue num;
+    GC_PUSH2(a, p);
+    num = string_to_number(ctx, p);
+    GC_POP2(p, a);
     if (is_fixnum(num)) {
       cint n = fixnum_to_cint(num);
       JSValue ret = get_array_element(a, n);
@@ -254,19 +257,20 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
     JSValue num;
     cint n;
 
-    num = string_to_number(p);
+    GC_PUSH3(a, p, v);
+    num = string_to_number(ctx, p);
     if (is_fixnum(num)) {
       n = fixnum_to_cint(num);
       if (0 <= n && n < MAX_ARRAY_LENGTH) {
-        GC_PUSH3(a, p, v);
         if (set_array_index_value(ctx, a, n, v, FALSE) == SUCCESS) {
           GC_POP3(v, p, a);
           return SUCCESS;
         }
-        GC_POP3(v, p, a);
       }
+      GC_POP3(v, p, a);
       return set_object_prop(ctx, a, p, v);
     }
+    GC_POP3(v, p, a);
     if (p == gconsts.g_string_length && is_fixnum(v)) {
       cint n;
       n = fixnum_to_cint(v);

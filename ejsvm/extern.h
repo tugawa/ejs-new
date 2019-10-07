@@ -162,7 +162,7 @@ extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
 /* JSValue special_to_object(JSValue v); */
-extern JSValue string_to_number(JSValue);
+extern JSValue string_to_number(Context *, JSValue);
 /* JSValue string_to_boolean(JSValue v); */
 /* JSValue string_to_object(JSValue v); */
 extern JSValue fixnum_to_string(JSValue);
