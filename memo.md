@@ -90,6 +90,7 @@ InstructionBinaryFormatクラスを用意した．
 
 変更箇所は
 * OBCFileComposer.javaの`addFixnumSmallPrimitive`
+* SBCFileComposer.javaの`addFixnumSmallPrimitive`
 
 ### miscな修正
 
