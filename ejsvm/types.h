@@ -225,26 +225,48 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   (remove_jsobject_tag(obj)->alloc_site = (as))
 #endif /* ALLOC_SITE_CACHE */
 
-/** SPECIAL FIELDS OF JSObjects **/
+/** SPECIAL FIELDS OF JSObjects
+ *  get/set_jsxxx_yyy:
+ *     Accessors that take JSValue of datatype xxx. Normally, these
+ *     accessors should be used.
+ *  get/set_xxx_ptr_yyy:
+ *     Accessors that take JSObject. These accessors are intended
+ *     to be used to pointers that have not gotten equipped with PTags,
+ *     typically during object initialisation.
+ */
 
-#define jsobject_xprop(p,t,i) (*(t*)&(p)->eprop[i])
+#define DEFINE_ACCESSORS(OT, index, FT, field)                  \
+static inline FT get_##OT##_ptr_##field(JSObject *p)            \
+{                                                               \
+  return (FT) p->eprop[index];                                  \
+}                                                               \
+static inline void set_##OT##_ptr_##field(JSObject *p, FT v)    \
+{                                                               \
+  p->eprop[index] = (JSValue) v;                                \
+}                                                               \
+static inline FT get_js##OT##_##field(JSValue x)                \
+{                                                               \
+  assert(is_##OT(x));                                           \
+  JSObject *p = remove_jsobject_tag(x);                         \
+  return get_##OT##_ptr_##field(p);                             \
+}                                                               \
+static inline void set_js##OT##_##field(JSValue x, FT v)        \
+{                                                               \
+  assert(is_##OT(x));                                           \
+  JSObject *p = remove_jsobject_tag(x);                         \
+  set_##OT##_ptr_##field(p, v);                                 \
+}
 
 /* Simple */
-
 #define put_simple_object_tag(p) put_normal_simple_object_tag(p)
 #define OBJECT_SPECIAL_PROPS 0
 
 /* Array */
-
 #define put_array_tag(p) put_normal_array_tag(p)
 #define ARRAY_SPECIAL_PROPS 3
-#define array_ptr_size(p)          jsobject_xprop(p, uint64_t,  0)
-#define array_ptr_length(p)        jsobject_xprop(p, uint64_t,  1)
-#define array_ptr_body(p)          jsobject_xprop(p, JSValue *, 2)
-#define array_size(o)   array_ptr_size(remove_jsobject_tag(o))
-#define array_length(o) array_ptr_length(remove_jsobject_tag(o))
-#define array_body(o)   array_ptr_body(remove_jsobject_tag(o))
-
+DEFINE_ACCESSORS(array, 0, uint64_t, size)
+DEFINE_ACCESSORS(array, 1, uint64_t, length)
+DEFINE_ACCESSORS(array, 2, JSValue *, body)
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
@@ -254,26 +276,18 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
 #define MINIMUM_ARRAY_SIZE  100
 
 /* Function */
-
 #define put_function_tag(p) put_normal_function_tag(p)
 #define FUNCTION_SPECIAL_PROPS 2
-#define function_ptr_table_entry(p) jsobject_xprop(p, FunctionTable *, 0)
-#define function_ptr_environment(p) jsobject_xprop(p, FunctionFrame *, 1)
-#define function_table_entry(o) function_ptr_table_entry(remove_jsobject_tag(o))
-#define function_environment(o) function_ptr_environment(remove_jsobject_tag(o))
+DEFINE_ACCESSORS(function, 0, FunctionTable*, table_entry)
+DEFINE_ACCESSORS(function, 1, FunctionFrame*, environment)
 
 /* Builtin */
-
 typedef void (*builtin_function_t)(Context*, int, int);
-
 #define put_builtin_tag(p) put_normal_builtin_tag(p)
 #define BUILTIN_SPECIAL_PROPS 3
-#define builtin_ptr_body(p)        jsobject_xprop(p, builtin_function_t, 0)
-#define builtin_ptr_constructor(p) jsobject_xprop(p, builtin_function_t, 1)
-#define builtin_ptr_n_args(p)      jsobject_xprop(p, uint64_t,           2)
-#define builtin_body(o)        builtin_ptr_body(remove_jsobject_tag(o))
-#define builtin_constructor(o) builtin_ptr_constructor(remove_jsobject_tag(o))
-#define builtin_n_args(o)      builtin_ptr_n_args(remove_jsobject_tag(o))
+DEFINE_ACCESSORS(builtin, 0, builtin_function_t, body)
+DEFINE_ACCESSORS(builtin, 1, builtin_function_t, constructor)
+DEFINE_ACCESSORS(builtin, 2, int, nargs)
 
 #ifdef USE_REGEXP
 /* Regexp */
@@ -282,18 +296,12 @@ typedef void (*builtin_function_t)(Context*, int, int);
 
 #define put_regexp_tag(p) put_normal_regexp_tag(p)
 #define REX_SPECIAL_PROPS 6
-#define regexp_ptr_pattern(p)    jsobject_xprop(p, char*,    0)
-#define regexp_ptr_reg(p)        jsobject_xprop(p, regex_t*, 1)
-#define regexp_ptr_global(p)     jsobject_xprop(p, int,      2)
-#define regexp_ptr_ignorecase(p) jsobject_xprop(p, int,      3)
-#define regexp_ptr_multiline(p)  jsobject_xprop(p, int,      4)
-#define regexp_ptr_lastindex(p)  jsobject_xprop(p, int,      5)
-#define regexp_pattern(o)    regexp_ptr_pattern(remove_jsobject_tag(o))
-#define regexp_reg(o)        regexp_ptr_reg(remove_jsobject_tag(o))
-#define regexp_global(o)     regexp_ptr_global(remove_jsobject_tag(o))
-#define regexp_ignorecase(o) regexp_ptr_ignorecase(remove_jsobject_tag(o))
-#define regexp_multiline(o)  regexp_ptr_multiline(remove_jsobject_tag(o))
-#define regexp_lastindex(o)  regexp_ptr_lastindex(remove_jsobject_tag(o))
+DEFINE_ACCESSORS(regexp, 0, char*, pattern)
+DEFINE_ACCESSORS(regexp, 1, int, reg)
+DEFINE_ACCESSORS(regexp, 2, int, global)
+DEFINE_ACCESSORS(regexp, 3, int, ignorecase)
+DEFINE_ACCESSORS(regexp, 4, int, multiline)
+DEFINE_ACCESSORS(regexp, 5, int, lastindex)
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
@@ -302,26 +310,20 @@ typedef void (*builtin_function_t)(Context*, int, int);
 #endif /* USE_REGEXP */
 
 /* String */
-
 #define put_string_object_tag(p) put_normal_string_object_tag(p)
 #define STRING_SPECIAL_PROPS 1
-#define string_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
-#define string_object_value(o) string_object_ptr_value(remove_jsobject_tag(o))
+DEFINE_ACCESSORS(string_object, 0, JSValue, value)
 
 /* Number */
-
 #define put_number_object_tag(p) put_normal_number_object_tag(p)
 #define NUMBER_SPECIAL_PROPS 1
-#define number_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
-#define number_object_value(o) number_object_ptr_value(remove_jsobject_tag(o))
-
+DEFINE_ACCESSORS(number_object, 0, JSValue, value)
 
 /* Boolean */
-
 #define put_boolean_object_tag(p) put_normal_boolean_object_tag(p)
 #define BOOLEAN_SPECIAL_PROPS 1
-#define boolean_object_ptr_value(p) jsobject_xprop(p, JSValue, 0)
-#define boolean_object_value(o) boolean_object_ptr_value(remove_jsobject_tag(o))
+DEFINE_ACCESSORS(boolean_object, 0, JSValue, value)
+
 
 /** Internal Object ******************************************/
 

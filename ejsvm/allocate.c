@@ -55,17 +55,18 @@ StringCell *allocate_string(Context *ctx, uint32_t length)
 void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 {
   JSValue *body, *oldbody;
-
+  int length = get_jsarray_length(a);
   int i;
 
   GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
                                HTAG_ARRAY_DATA);
   GC_POP(a);
-  oldbody = array_body(a);
-  for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
-  array_body(a) = body;
-  array_size(a) = newsize;
+  oldbody = get_jsarray_body(a);
+  for (i = 0; i < length; i++)
+    body[i] = oldbody[i];
+  set_jsarray_body(a, body);
+  set_jsarray_size(a, newsize);
 }
 
 /*

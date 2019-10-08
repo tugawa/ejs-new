@@ -327,7 +327,7 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
   assert(os->pm->n_special_props == ARRAY_SPECIAL_PROPS);
 
   p = allocate_jsobject(ctx, name, os, HTAG_ARRAY);
-  array_ptr_body(p) = NULL;  /* tell GC not to follow this pointer */
+  set_array_ptr_body(p, NULL);  /* tell GC not to follow this pointer */
 
   GC_PUSH(p);
   array_data =
@@ -336,9 +336,9 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
   for (i = 0; i < size; i++)
     array_data[i] = JS_UNDEFINED;
 
-  array_ptr_body(p)   = array_data;
-  array_ptr_size(p)   = size;
-  array_ptr_length(p) = size;
+  set_array_ptr_body(p, array_data);
+  set_array_ptr_size(p, size);
+  set_array_ptr_length(p, size);
 
   assert(Array_num_builtin_props +
          Array_num_double_props + Array_num_gconsts_props == 1);
@@ -361,8 +361,8 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
   GC_POP(prototype);
 
-  function_ptr_table_entry(p) = &(ctx->function_table[ft_index]);
-  function_ptr_environment(p) = get_lp(ctx);
+  set_function_ptr_table_entry(p, &(ctx->function_table[ft_index]));
+  set_function_ptr_environment(p, get_lp(ctx));
 
   assert(Function_num_builtin_props +
          Function_num_double_props + Function_num_gconsts_props == 1);
@@ -381,9 +381,9 @@ JSValue new_builtin_object(Context *ctx, char *name, Shape *os,
 
   p = allocate_jsobject(ctx, name, os, HTAG_BUILTIN);
 
-  builtin_ptr_body(p)        = cfun;
-  builtin_ptr_constructor(p) = cctor;
-  builtin_ptr_n_args(p)      = na;
+  set_builtin_ptr_body(p, cfun);
+  set_builtin_ptr_constructor(p, cctor);
+  set_builtin_ptr_nargs(p, na);
 
   assert(Builtin_num_builtin_props +
          Builtin_num_double_props + Builtin_num_gconsts_props == 0);
@@ -402,7 +402,7 @@ JSValue new_number_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_NUMBER);
   GC_POP(v);
 
-  number_object_ptr_value(p) = v;
+  set_number_object_ptr_value(p, v);
 
   assert(Number_num_builtin_props +
          Number_num_double_props + Number_num_gconsts_props == 0);
@@ -421,7 +421,7 @@ JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_STRING);
   GC_POP(v);
 
-  string_object_ptr_value(p) = v;
+  set_string_object_ptr_value(p, v);
 
   assert(String_num_builtin_props +
          String_num_double_props + String_num_gconsts_props == 1);
@@ -442,7 +442,7 @@ JSValue new_boolean_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_BOOLEAN);
   GC_POP(v);
 
-  boolean_object_ptr_value(p) = v;
+  set_boolean_object_ptr_value(p, v);
 
   return put_boolean_object_tag(p);
 }

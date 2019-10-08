@@ -31,9 +31,9 @@ JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name)
 JSValue get_array_element(JSValue array, cint index)
 {
   assert(is_array(array));
-  if (0 <= index && index < array_size(array))
-    return (index < array_length(array) ?
-	    array_body(array)[index] : JS_UNDEFINED);
+  if (0 <= index && index < get_jsarray_size(array))
+    return (index < get_jsarray_length(array) ?
+	    get_jsarray_body(array)[index] : JS_UNDEFINED);
   return JS_EMPTY;
 }
 
@@ -119,10 +119,10 @@ int has_array_element(JSValue a, cint n)
 {
   if (!is_array(a))
     return FALSE;
-  if (n < 0 || array_length(a) <= n)
+  if (n < 0 || get_jsarray_length(a) <= n)
     return FALSE;
   /* in body of 'a' */
-  if (n < array_size(a))
+  if (n < get_jsarray_size(a))
     return TRUE;
   /* in property of 'a' */
   return get_prop_prototype_chain(a, cint_to_string(n)) != JS_EMPTY;
@@ -168,11 +168,12 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
   cint len, size, adatamax;
   int i;
 
-  len = array_length(a);
-  size = array_size(a);
+  len = get_jsarray_length(a);
+  size = get_jsarray_size(a);
   adatamax = (size <= ASIZE_LIMIT)? ASIZE_LIMIT: size;
   /* printf("set_array_index_value: n = %d\n", n); */
   if (n < adatamax) {
+    JSValue *body;
     if (size <= n) {
       /*
        * It is necessary to expand the array, but since n is less than
@@ -188,25 +189,28 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
      * If len <= n, expands the array.  It should be noted that
      * if len >= n, this for loop does nothing
      */
+    body = get_jsarray_body(a);
     for (i = len; i <= n; i++) /* i < n? */
-      array_body(a)[i] = JS_UNDEFINED;
+      body[i] = JS_UNDEFINED;
   } else {
     /*
      * Since n is outside of the range of array data, stores the
      * value into the hash table of the array.
      */
     if (size < ASIZE_LIMIT) {
+      JSValue *body;
       /* The array data is not fully expanded, so we expand it */
       GC_PUSH2(a, v);
       reallocate_array_data(ctx, a, ASIZE_LIMIT);
       GC_POP2(v, a);
+      body = get_jsarray_body(a);
       for (i = len; i < ASIZE_LIMIT; i++)
-        array_body(a)[i] = JS_UNDEFINED;
+        body[i] = JS_UNDEFINED;
       adatamax = ASIZE_LIMIT;
     }
   }
   if (len <= n || setlength == TRUE) {
-    array_length(a) = n + 1;
+    set_jsarray_length(a, n + 1);
     GC_PUSH2(a, v);
     set_prop(ctx, a, gconsts.g_string_length,
 	     cint_to_number(ctx, n + 1), ATTR_NONE);
@@ -216,7 +220,8 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
     remove_array_props(a, adatamax, len);
   }
   if (n < adatamax && setlength == FALSE) {
-    array_body(a)[n] = v;
+    JSValue *body = get_jsarray_body(a);
+    body[n] = v;
     return SUCCESS;
   }
   return FAIL;
@@ -339,8 +344,9 @@ int delete_object_prop(JSValue obj, HashKey key)
  */
 int delete_array_element(JSValue a, cint n)
 {
-  if (n < array_size(a)) {
-    array_body(a)[n] = JS_UNDEFINED;
+  if (n < get_jsarray_size(a)) {
+    JSValue *body = get_jsarray_body(a);
+    body[n] = JS_UNDEFINED;
     return SUCCESS;
   }
   return delete_object_prop(a, cint_to_string(n));

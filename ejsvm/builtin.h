@@ -12,7 +12,7 @@
 
 #define get_args()  ((JSValue *)(&(get_stack(context, fp))))
 
-#define builtin_prologue() JSValue *args = get_args()
+#define builtin_prologue() JSValue *args __attribute__((unused)) = get_args()
 
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)

@@ -597,9 +597,9 @@ STATIC void process_edge(uintptr_t ptr)
   case HTAG_ARRAY:
     {
       JSObject *p = (JSObject *) ptr;
-      JSValue *a_body = array_ptr_body(p);
-      uint64_t a_length = array_ptr_length(p);
-      uint64_t a_size = array_ptr_size(p);
+      JSValue *a_body = get_array_ptr_body(p);
+      uint64_t a_length = get_array_ptr_length(p);
+      uint64_t a_size = get_array_ptr_size(p);
       size_t len = a_length < a_size ? a_length : a_size;
       if (a_body != NULL)
         /* a_body may be NULL during initialization */
@@ -609,7 +609,7 @@ STATIC void process_edge(uintptr_t ptr)
   case HTAG_FUNCTION:
     {
       JSObject *p = (JSObject *) ptr;
-      FunctionFrame *frame = function_ptr_environment(p);
+      FunctionFrame *frame = get_function_ptr_environment(p);
       /* FunctionTable *ftentry = function_ptr_table_entry(p);
        * scan_function_table_entry(ftentry);
        *    All function table entries are scanned through Context
@@ -622,14 +622,14 @@ STATIC void process_edge(uintptr_t ptr)
   case HTAG_BOXED_NUMBER:
     {
       JSObject *p = (JSObject *) ptr;
-      JSValue value = number_object_ptr_value(p);
+      JSValue value = get_number_object_ptr_value(p);
       process_edge((uintptr_t) value);
       break;
     }
   case HTAG_BOXED_STRING:
     {
       JSObject *p = (JSObject *) ptr;
-      JSValue value = string_object_ptr_value(p);
+      JSValue value = get_string_object_ptr_value(p);
       process_edge((uintptr_t) value);
       break;
     }
@@ -637,7 +637,7 @@ STATIC void process_edge(uintptr_t ptr)
     {
 #ifdef DEBUG
       JSObject *p = (JSObject *) ptr;
-      JSValue value = number_object_ptr_value(p);
+      JSValue value = get_number_object_ptr_value(p);
       assert(is_boolean(value));
 #endif /* DEBUG */
       break;

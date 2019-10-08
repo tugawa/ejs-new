@@ -877,9 +877,7 @@ int insn_load_obc(Context *ctx, Instruction *insns, int ninsns, int pc,
   Opcode oc;
   Bytecode bc;
   int i;
-  JSValue *ctop;
 
-  ctop = (JSValue *)(&insns[ninsns]);
   if (fread(buf, sizeof(unsigned char), sizeof(Bytecode), file_pointer)
       != sizeof(Bytecode))
     LOG_ERR("Error: cannot read %dth bytecode", pc);

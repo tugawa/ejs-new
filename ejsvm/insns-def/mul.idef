@@ -9,14 +9,14 @@
 \}
 
 \when v1:fixnum && v2:fixnum \{
-  cint n1, n2, p;
+  cint n1, n2;
   n1 = fixnum_to_cint(v1);
   n2 = fixnum_to_cint(v2);
   if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
-    p = n1 * n2;
+    cint p = n1 * n2;
     dst = cint_to_fixnum_nocheck(p);
   } else {
-    p = (double) n1 * (double) n2;
+    double p = (double) n1 * (double) n2;
     dst = double_to_number(context, p);
   }
 \}

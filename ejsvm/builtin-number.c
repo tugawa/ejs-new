@@ -24,7 +24,7 @@ BUILTIN_FUNCTION(number_constr)
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
-    number_object_value(rsv) = to_number(context, args[1]);
+    set_jsnumber_object_value(rsv, to_number(context, args[1]));
   set_a(context, rsv);
   GC_POP(rsv);
 }
@@ -51,7 +51,7 @@ BUILTIN_FUNCTION(number_toString)
   rsv = args[0];
   if (is_number_object(rsv)) {
     if (na == 0 || args[1] == FIXNUM_TEN || args[1] == JS_UNDEFINED)
-      set_a(context, number_to_string(number_object_value(rsv)));
+      set_a(context, number_to_string(get_jsnumber_object_value(rsv)));
     else {
 
       if(!is_fixnum(args[1])){
@@ -59,7 +59,7 @@ BUILTIN_FUNCTION(number_toString)
         set_a(context, JS_UNDEFINED); }
 
       int n = (int)fixnum_to_int(args[1]);
-      JSValue v = number_object_value(rsv);
+      JSValue v = get_jsnumber_object_value(rsv);
       char map[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
       int i, ff, acc;
@@ -128,7 +128,7 @@ BUILTIN_FUNCTION(number_valueOf)
   builtin_prologue();
   rsv = args[0];
   if (is_number_object(rsv))
-    set_a(context, number_object_value(rsv));
+    set_a(context, get_jsnumber_object_value(rsv));
   else
     LOG_EXIT("Receiver of valueOf is not a Number instance\n");
 }

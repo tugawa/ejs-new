@@ -19,14 +19,16 @@
   update_context();
 
   if (make_arguments) {
+    JSValue *body;
     num_of_args = get_ac(context);
     save_context();
     args = new_array_object(context, DEBUG_NAME("arguments"),
                             gconsts.g_shape_Array, num_of_args);
     update_context();
 
+    body = get_jsarray_body(args);
     for (i = 0; i < num_of_args; i++) {
-      array_body(args)[i] = regbase[i + 2];
+      body[i] = regbase[i + 2];
     }
     fframe_arguments(fr) = args;
     fframe_locals_idx(fr, 0) = args;

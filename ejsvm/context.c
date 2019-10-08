@@ -113,9 +113,9 @@ void check_stack_invariant(Context *ctx)
 {
   int sp = get_sp(ctx);
   int fp = get_fp(ctx);
-  int pc = get_pc(ctx);
-  FunctionTable *cf = get_cf(ctx);
-  FunctionFrame *lp = get_lp(ctx);
+  int pc __attribute__((unused)) = get_pc(ctx);
+  FunctionTable *cf __attribute__((unused)) = get_cf(ctx);
+  FunctionFrame *lp __attribute__((unused)) = get_lp(ctx);
   int i;
 
   assert(is_valid_JSValue(get_global(ctx)));

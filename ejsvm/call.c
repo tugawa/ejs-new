@@ -46,8 +46,8 @@ void call_function(Context *context, JSValue fn, int nargs, int sendp) {
    */
   set_fp(context, sp - nargs);
   set_ac(context, nargs);
-  set_lp(context, function_environment(fn));
-  t = function_table_entry(fn);
+  set_lp(context, get_jsfunction_environment(fn));
+  t = get_jsfunction_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_send_entry(t));
@@ -65,8 +65,8 @@ void tailcall_function(Context *context, JSValue fn, int nargs, int sendp) {
   fp = get_fp(context);
   set_sp(context, fp + nargs);
   set_ac(context, nargs);
-  set_lp(context, function_environment(fn));
-  t = function_table_entry(fn);
+  set_lp(context, get_jsfunction_environment(fn));
+  t = get_jsfunction_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_call_entry(t));
@@ -95,13 +95,14 @@ void call_builtin(Context *context, JSValue fn, int nargs, int sendp,
   builtin_function_t body;
   JSValue *stack;
   int na;
-  int sp, fp;
+  int sp;
 
-  body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
-  na = builtin_n_args(fn);
+  body = ((constrp == TRUE) ?
+          get_jsbuiltin_constructor(fn) :
+          get_jsbuiltin_body(fn));
+  na = get_jsbuiltin_nargs(fn);
 
   sp = get_sp(context);
-  fp = get_fp(context);
   stack = &get_stack(context, 0);
 
   /*
@@ -148,8 +149,10 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp,
   int na;
   int fp;
 
-  body = (constrp == TRUE)? builtin_constructor(fn): builtin_body(fn);
-  na = builtin_n_args(fn);
+  body = ((constrp == TRUE) ?
+          get_jsbuiltin_constructor(fn) :
+          get_jsbuiltin_body(fn));
+  na = get_jsbuiltin_nargs(fn);
 
   fp = get_fp(context);
   stack = &get_stack(context, 0);
@@ -171,12 +174,13 @@ void tailcall_builtin(Context *context, JSValue fn, int nargs, int sendp,
 
 /*
  * Invokes a function fn with arguments args in a new vmloop.
- * `as' is guaranteed to be an array.
+ *   `as' is the array of arguments if `nargs' > 0.
+ *   Otherwise, `as' is JS_UNDEFINED.
  */
 JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
                         int sendp, JSValue as, int nargs) {
   FunctionTable *t;
-  JSValue *stack, ret;
+  JSValue *stack, *array_body, ret;
   int sp, newfp, pos, oldfp, oldsp, i;
 
   /* printf("invoke_function: nargs = %d\n", nargs); */
@@ -187,8 +191,11 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
   sp += 5;                /* makes room for cf, pc, lp, fp, and receiver */
   stack[sp] = receiver;   /* stores the receiver */
   newfp = sp;             /* place where the receiver is stored */
-  for (i = 0; i < nargs; i++)   /* copies the actual arguments */
-    stack[++sp] = array_body(as)[i];
+  if (nargs > 0) { 
+    array_body = get_jsarray_body(as);
+    for (i = 0; i < nargs; i++)   /* copies the actual arguments */
+      stack[++sp] = array_body[i];
+  }
   save_special_registers(context, stack, pos);
 
   /*
@@ -197,8 +204,8 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
   set_fp(context, newfp);
   set_sp(context, sp);
   set_ac(context, nargs);
-  set_lp(context, function_environment(fn));
-  t = function_table_entry(fn);
+  set_lp(context, get_jsfunction_environment(fn));
+  t = get_jsfunction_table_entry(fn);
   set_cf(context, t);
   if (sendp == TRUE)
     set_pc(context, ftab_send_entry(t));
@@ -214,17 +221,23 @@ JSValue invoke_function(Context *context, JSValue receiver, JSValue fn,
 
 /*
  * invokes a builtin function
+ *   `as' is the array of arguments if `nargs' > 0.
+ *   Otherwise, `as' is JS_UNDEFINED.
  */
 JSValue invoke_builtin(Context *context, JSValue receiver, JSValue fn,
                        int sendp, JSValue as, int nargs) {
   int oldsp, sp, i;
   JSValue *stack;
+  JSValue *array_body;
 
   oldsp = sp = get_sp(context);
   stack = &get_stack(context, 0);
   stack[++sp] = receiver;       /* set receiver */
-  for (i = 0; i < nargs; i++)   /* copies the actual arguments */
-    stack[++sp] = array_body(as)[i];
+  if (nargs > 0) {
+    array_body = get_jsarray_body(as);
+    for (i = 0; i < nargs; i++)   /* copies the actual arguments */
+      stack[++sp] = array_body[i];
+  }
   set_sp(context, sp);
   call_builtin(context, fn, nargs, sendp, FALSE);
   set_sp(context, oldsp);

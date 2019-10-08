@@ -10,6 +10,7 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include <limits.h>
 
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
@@ -54,7 +55,7 @@ BUILTIN_FUNCTION(string_valueOf)
   builtin_prologue();  
   arg = args[0];
   if (is_string_object(arg))
-    arg = string_object_value(arg);
+    arg = get_jsstring_object_value(arg);
   else if (!is_string(arg))
     arg = JS_UNDEFINED;
   set_a(context, arg);
@@ -387,7 +388,7 @@ JSValue string_indexOf_(Context *context, JSValue *args, int na,
   searchLen = string_length(s1);
 
   if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
-  else if (isLastIndexOf) pos = INFINITY;
+  else if (isLastIndexOf) pos = INT_MAX;
   else pos = 0;
   start = min(max(pos, 0), len);
   if (searchLen == 0)

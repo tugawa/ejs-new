@@ -140,11 +140,13 @@ def gen_assignment(kind, n):
 
 def gen_assignment_smallprimitive(kind):
   gen_indent(2)
-  ofile.write("SmallPrimitive i1 = get_small_immediate(insn);\n")
+  ofile.write("SmallPrimitive i1 __attribute__((unused)) =" +
+              "get_small_immediate(insn);\n")
 
 def gen_assignment_bigprimitive(kind):
   gen_indent(2)
-  ofile.write("ConstantDisplacement d1 = get_big_constant_disp(insn);\n")
+  ofile.write("ConstantDisplacement d1 __attribute__((unused)) =" +
+              "get_big_constant_disp(insn);\n")
 
 def gen_assignment_instruction_displacement(kind, n):
   vname = var_name(kind, n)
