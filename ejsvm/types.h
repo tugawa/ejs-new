@@ -171,7 +171,6 @@ typedef struct shape {
  *   - boolean_object
  */
 
-#define JSOBJECT_MIN_EMBEDDED 1
 typedef struct jsobject_cell {
   Shape *shape;
 #ifdef ALLOC_SITE_CACHE
@@ -180,7 +179,7 @@ typedef struct jsobject_cell {
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
-  JSValue eprop[JSOBJECT_MIN_EMBEDDED];
+  JSValue eprop[];
 } JSObject;
 
 #ifdef USE_REGEXP

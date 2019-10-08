@@ -283,8 +283,7 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
                                    cell_type_t htag)
 {
   size_t n_embedded = os->n_embedded_slots;
-  size_t size =
-    sizeof(JSObject) + sizeof(JSValue) * (n_embedded - JSOBJECT_MIN_EMBEDDED);
+  size_t size = sizeof(JSObject) + sizeof(JSValue) * n_embedded;
   JSObject *p = (JSObject *) gc_malloc(ctx, size, htag);
   int i;
 
