@@ -125,9 +125,11 @@ cint_to_fixnumが使われていた箇所は主に以下の通り．
 * JSIteratorSize -> # of properties
 * HashData
 
-仮定: `sizeof(void *) <= sizeof(JSValue)`  ポインタ幅の方が小さいこともあり得ることに注意
+仮定: `sizeof(void *) <= sizeof(JSValue)`  ポインタ幅の方が小さいこともあり得る
 * `uintptr_t` ポインタと同じビット数の整数
 * `uintjsv_t` JSValue 型と同じビット数の整数 (JSValue と同時に定義する)
+
+仮定: `sizeof(JSValue) <= sizeof(cint)`
 
 ## cint の64bit化
 
