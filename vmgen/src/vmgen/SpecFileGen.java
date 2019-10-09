@@ -33,12 +33,14 @@ public class SpecFileGen {
         else {
             try (FileOutputStream out = new FileOutputStream(outFileName)) {
                 out.write(spec.unparse().getBytes());
+                out.flush();
             }
         }
         if (fingerprintFileName != null) {
             try (FileOutputStream out = new FileOutputStream(fingerprintFileName)) {
-                String f = String.format("0x%02x", spec.getFingerprint());
+                String f = String.format("0x%02x\n", spec.getFingerprint());
                 out.write(f.getBytes());
+                out.flush();
             }
         }
     }
