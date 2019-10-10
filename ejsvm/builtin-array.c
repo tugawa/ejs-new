@@ -64,7 +64,7 @@ BUILTIN_FUNCTION(array_constr)
   rsv = create_array_object(context, DEBUG_NAME("array_ctor"), size);
 #else /* ALLOC_SITE_CACHE */
   rsv = new_array_object(context, DEBUG_NAME("array_ctor"),
-                         gconsts.g_shape_Array, size);
+                         gshapes.g_shape_Array, size);
 #endif /* ALLOC_SITE_CACHE */
   set_jsarray_length(rsv, length);  /* TODO: implement property */
 
@@ -127,7 +127,7 @@ BUILTIN_FUNCTION(array_concat)
 
   builtin_prologue();
   a = new_array_object(context, DEBUG_NAME("array_concat"),
-                       gconsts.g_shape_Array, 0);
+                       gshapes.g_shape_Array, 0);
   n = 0;
   GC_PUSH(a);
   for (i = 0; i <= na; i++) {
@@ -327,7 +327,7 @@ BUILTIN_FUNCTION(array_slice)
 
   count = max(final - k, 0);
   a = new_array_object(context, DEBUG_NAME("array_slice"),
-                       gconsts.g_shape_Array, count);
+                       gshapes.g_shape_Array, count);
   GC_PUSH(a);
   n = 0;
   while (k < final) {

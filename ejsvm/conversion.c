@@ -153,7 +153,7 @@ JSValue special_to_object(Context *ctx, JSValue v) {
   case JS_TRUE:
   case JS_FALSE:
     return new_boolean_object(ctx, DEBUG_NAME("special_to_object"),
-                              gconsts.g_shape_Boolean, v);
+                              gshapes.g_shape_Boolean, v);
   default:
     type_error("special expected in special_to_object");
     return JS_UNDEFINED;
@@ -213,7 +213,7 @@ JSValue string_to_object(Context *ctx, JSValue v) {
     return JS_UNDEFINED;
   }
   return new_string_object(ctx, DEBUG_NAME("string_to_object"),
-                           gconsts.g_shape_String, v);
+                           gshapes.g_shape_String, v);
 }
 
 #define BUFSIZE 1000
@@ -298,7 +298,7 @@ JSValue fixnum_to_object(Context *ctx, JSValue v) {
     return JS_UNDEFINED;
   }
   return new_number_object(ctx, DEBUG_NAME("fixnum_to_object"),
-                           gconsts.g_shape_Number, v);
+                           gshapes.g_shape_Number, v);
 }
 
 /*
@@ -310,7 +310,7 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
     return JS_UNDEFINED;
   }
   return new_number_object(ctx, DEBUG_NAME("flonum_to_object"),
-                           gconsts.g_shape_Number, v);
+                           gshapes.g_shape_Number, v);
 }
 
 /*

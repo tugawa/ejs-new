@@ -20,7 +20,7 @@ BUILTIN_FUNCTION(boolean_constr)
 
   builtin_prologue();  
   rsv = new_boolean_object(context, DEBUG_NAME("boolean_ctor"),
-                           gconsts.g_shape_Boolean, JS_FALSE);
+                           gshapes.g_shape_Boolean, JS_FALSE);
   if (na > 0)
     set_jsboolean_object_value(rsv, to_boolean(args[1]));
   set_a(context, rsv);

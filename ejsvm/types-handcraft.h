@@ -71,52 +71,25 @@
 #define is_normal_fixnum(v)         is_fixnum(v)
 #define is_normal_special(v)        is_special(v)
 
-#if 0
-#define remove_normal_flonum_tag(v)             \
-  ((FlonumCell *)remove_tag((v), T_FLONUM))
-#define remove_normal_simple_object_tag(v)      \
-  ((Object *)  remove_tag((v), T_GENERIC))
-#define remove_normal_array_tag(v)              \
-  ((ArrayCell *)   remove_tag((v), T_GENERIC))
-#define remove_normal_function_tag(v)           \
-  ((FunctionCell *)remove_tag((v), T_GENERIC))
-#define remove_normal_builtin_tag(v)            \
-  ((BuiltinCell *) remove_tag((v), T_GENERIC))
-#define remove_normal_iterator_tag(v)           \
-  ((Iterator *)remove_tag((v), T_GENERIC))
-#define remove_normal_string_tag(v)             \
-  ((StringCell *)remove_tag((v), T_STRING))
-#define remove_normal_regexp_tag(v)             \
-  ((RegexpCell *)  remove_tag((v), T_GENERIC))
-#define remove_normal_boolean_object_tag(v)     \
-  ((BoxedCell *)remove_tag((v), T_GENERIC))
-#define remove_normal_number_object_tag(v)      \
-  ((BoxedCell *)remove_tag((v), T_GENERIC))
-#define remove_normal_string_object_tag(v)      \
-  ((BoxedCell *)remove_tag((v), T_GENERIC))
-#endif
+#define VMRepType_LIST                                                  \
+VMRepType(normal_simple_object,  T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_array,          T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_function,       T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_builtin,        T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_boolean_object, T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_number_object,  T_GENERIC, struct jsobject_cell)       \
+VMRepType(normal_string_object,  T_GENERIC, struct jsobject_cell)       \
+VMRepType(iterator,              T_GENERIC, struct iterator)            \
+VMRepType(normal_string,         T_STRING,  struct string_cell)         \
+VMRepType(normal_flonum,         T_FLONUM,  struct flonum_cell)         \
+VMRepTypeREGEXP
 
-#define DEFINE_PTR_TO_JSValue(RT, ptag, S)             \
-static inline JSValue ptr_to_##RT(S *p)                \
-{                                                      \
-  return put_ptag((uintjsv_t) (uintptr_t) p, ptag);    \
-}
-
-DEFINE_PTR_TO_JSValue(normal_simple_object,  T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(normal_array,          T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(normal_function,       T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(normal_builtin,        T_GENERIC, struct jsobject_cell)
 #ifdef USE_REGEXP
-DEFINE_PTR_TO_JSValue(normal_regexp,         T_GENERIC, struct jsobject_cell)
+#define VMRepTypeREGEXP                                                  \
+VMRepType(normal_regexp,         T_GENERIC, struct jsobject_cell)
+#else /* USE_REGEXP */
+#define VMRepTypeREGEXP
 #endif /* USE_REGEXP */
-DEFINE_PTR_TO_JSValue(normal_boolean_object, T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(normal_number_object,  T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(normal_string_object,  T_GENERIC, struct jsobject_cell)
-DEFINE_PTR_TO_JSValue(iterator,              T_GENERIC, struct iterator)
-DEFINE_PTR_TO_JSValue(normal_string,         T_STRING,  struct string_cell)
-DEFINE_PTR_TO_JSValue(normal_flonum,         T_FLONUM,  struct flonum_cell)
-
-#undef DEFINE_PTR_TO_JSValue
 
 #define HTAGV_STRING        (0x4)
 #define HTAGV_FLONUM        (0x5)

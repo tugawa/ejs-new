@@ -148,17 +148,17 @@ BUILTIN_FUNCTION(builtin_printStatus)
   /* fp = get_fp(context); */
   regBase = (JSValue*)(&(get_stack(context, fp-1)));
   LOG_ERR("\n-----current spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
-          (FunctionTable *) jsv_to_uintptr(regBase[-CF_POS]),
+          (FunctionTable *) jsv_to_noheap_ptr(regBase[-CF_POS]),
           (int) (intjsv_t) regBase[-FP_POS],
           (int) (intjsv_t) regBase[-PC_POS],
-          (FunctionFrame *) jsv_to_uintptr(regBase[-LP_POS]));
+          jsv_to_function_frame(regBase[-LP_POS]));
 
   regBase = (JSValue*)(&(get_stack(context, regBase[-FP_POS] - 1)));
   LOG_ERR("\n-----prev spreg-----\ncf = %p\nfp = %d\npc = %d\nlp = %p\n",
-          (FunctionTable *) jsv_to_uintptr(regBase[-CF_POS]),
+          (FunctionTable *) jsv_to_noheap_ptr(regBase[-CF_POS]),
           (int) (intjsv_t) regBase[-FP_POS],
           (int) (intjsv_t) regBase[-PC_POS],
-          (FunctionFrame *) jsv_to_uintptr(regBase[-LP_POS]));
+          jsv_to_function_frame(regBase[-LP_POS]));
 }
 
 /*

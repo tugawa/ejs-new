@@ -36,7 +36,7 @@ BUILTIN_FUNCTION(function_apply)
 
   if (as == JS_UNDEFINED || as == JS_NULL)
     as = new_array_object(context, DEBUG_NAME("function_apply"),
-                          gconsts.g_shape_Array, 0);
+                          gshapes.g_shape_Array, 0);
   else if (!is_array(as))
     LOG_EXIT("apply: the second argument is expected to be an array");
 

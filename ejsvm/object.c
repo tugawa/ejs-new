@@ -354,7 +354,7 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   assert(os->pm->n_special_props == FUNCTION_SPECIAL_PROPS);
 
   prototype = new_simple_object(ctx, DEBUG_NAME("(prototype)"),
-                                gconsts.g_shape_Object);
+                                gshapes.g_shape_Object);
 
   GC_PUSH(prototype);
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
@@ -501,7 +501,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 #ifdef HC_PROF
   m->n_enter = 0;
   m->n_leave = 0;
-  if (prev == gconsts.g_property_map_root)
+  if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
 #endif /* HC_PROF */
   return m;
@@ -565,7 +565,7 @@ static void property_map_add_transition(Context *ctx, PropertyMap *pm,
                                         JSValue name, PropertyMap *dest)
 {
   HashData data;
-  data.u.pm = pm;
+  data.u.pm = dest;
 #ifdef HC_SKIP_INTERNAL
   {
     uint16_t current_n_trans = pm->n_transitions;
@@ -640,13 +640,13 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
       i = 1;
     } else {
       JSValue *current_extension =
-        (JSValue *) jsv_to_uintptr(p->eprop[extension_index]);
+        jsv_to_extension_prop(p->eprop[extension_index]);
       for (i = 0; i < current_size; i++)
         extension[i] = current_extension[i];
     }
     for (; i < new_size; i++)
       extension[i] = JS_UNDEFINED;
-    p->eprop[extension_index] = (JSValue) extension_prop_to_jsv(extension);
+    p->eprop[extension_index] = (JSValue) (uintjsv_t) (uintptr_t) extension;
   }
 
   /* 2. Assign new shape */
@@ -712,7 +712,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
       /* 1. If `prototype' is valid, find the property map */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY)
-        pm = (PropertyMap *) jsv_to_uintptr(retv);
+        pm = jsv_to_property_map(retv);
       else {
         /* 2. If there is not, create it. */
         int n_props = 0;
@@ -720,7 +720,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
         GC_PUSH(prototype);
         pm = new_property_map(ctx, DEBUG_NAME("(new)"),
                               OBJECT_SPECIAL_PROPS, n_props, prototype,
-                              gconsts.g_property_map_root);
+                              gpms.g_property_map_root);
         GC_PUSH(pm);
         pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
                                       pm, n_embedded, 0);
@@ -730,7 +730,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
         set_prop(ctx, prototype, gconsts.g_string___property_map__,
-                 property_map_to_jsv(pm), ATTR_SYSTEM);
+                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
         GC_POP2(pm, prototype);
       }
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
@@ -755,7 +755,7 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL)
-    os = gconsts.g_shape_Array;
+    os = gshapes.g_shape_Array;
   obj = new_array_object(ctx, name, os, size);
   object_set_alloc_site(obj, as);
   return obj;
@@ -853,7 +853,7 @@ static void print_property_map_recursive(char *key, PropertyMap *pm)
 void hcprof_print_all_hidden_class(void)
 {
   struct root_property_map *e;
-  print_property_map_recursive(NULL, gconsts.g_property_map_root);
+  print_property_map_recursive(NULL, gpms.g_property_map_root);
   for (e = root_property_map; e != NULL; e = e->next)
     print_property_map_recursive(NULL, e->pm);
 }

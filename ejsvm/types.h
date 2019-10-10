@@ -17,6 +17,17 @@ struct iterator;
 struct flonum_cell;
 struct string_cell;
 
+/*
+ * Heap Data
+ *   Compound data allocated in the heap.  Listed only those that
+ *   can be stored in a JSValue slot.
+ */
+#define VMHeapData_LIST                                                 \
+VMHeapData(extension_prop, CELLT_PROP,           JSValue)               \
+VMHeapData(array_data,     CELLT_ARRAY_DATA,     JSValue)               \
+VMHeapData(function_frame, CELLT_FUNCTION_FRAME, struct function_frame) \
+VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
+
 /* JSValue
  *
  * First-class data in JavaScript is represented as a JSValue.
@@ -46,15 +57,15 @@ struct string_cell;
  *   - sizeof(JSValue) >= sizeof(void*)
  *   - sizeof(cint) >= sizeof(JSValue)
  *   - sizeof(cint) >= 32
- */
-
-
-/* Enable compile-time and runtime type check.
  *
- * Tag operations and conversion between JSValue and otehr types
- * are implemented in the way that strict type check works.
- * We use inline functions to enable compile time type check, and
- * `assert' statements to check the datatypes of JSValues.
+ *
+ *
+ * Enable compile-time and runtime type check.
+ *
+ *   Tag operations and conversion between JSValue and otehr types
+ *   are implemented in the way that strict type check works.
+ *   We use inline functions to enable compile time type check, and
+ *   `assert' statements to check the datatypes of JSValues.
  */
 
 #define TAGOFFSET 3
@@ -63,43 +74,79 @@ struct string_cell;
 typedef int64_t cint;
 typedef uint64_t cuint;
 
+/*
+ * Tag operations
+ */
+
 typedef struct {
   uintjsv_t v: TAGOFFSET;
 } PTag;
+
+static inline PTag get_ptag(JSValue v);
+static inline int  is_ptag(JSValue v, PTag t);
+static inline JSValue put_ptag(uintjsv_t x, PTag t);
+/* This macro is used to create a constant.  `x' should be a constant. */
+#define PUT_PTAG_CONSTANT(x, tv)  ((JSValue) ((x) | (tv)))
+static inline uintjsv_t clear_ptag(JSValue v);
 
 typedef struct {
   cell_type_t v;
 } HTag;
 
-static inline PTag get_ptag(JSValue v);
-static inline int is_ptag(JSValue v, PTag t);
-static inline uintjsv_t clear_ptag(JSValue v);
-static inline uintjsv_t clear_ptag(JSValue v);
-static inline JSValue put_ptag(uintjsv_t x, PTag t);
-/* This macro is used to create a constant.  `x' should be a constant. */
-#define PUT_PTAG_CONSTANT(x, tv)  ((JSValue) ((x) | (tv)))
 static inline HTag get_htag(JSValue v);
-static inline int is_htag(JSValue v, HTag t);
-static inline uintptr_t jsv_to_uintptr(JSValue v);
-static inline JSValue noheap_ptr_to_jsv(void *p);
-
-struct function_frame;
-struct property_map;
-#define DEFINE_CONVERSION_LIST                                          \
-DEFINE_CONVERSION(function_frame, struct function_frame*, CELLT_FUNCTION_FRAME)\
-DEFINE_CONVERSION(extension_prop, JSValue*,               CELLT_PROP)   \
-DEFINE_CONVERSION(property_map,   struct property_map*,   CELLT_PROPERTY_MAP)
-
-#define DEFINE_CONVERSION(name, T, CELLT)       \
-static inline JSValue name##_to_jsv(T p);
-DEFINE_CONVERSION_LIST
-#undef DEFINE_CONVERSION
+static inline int  is_htag(JSValue v, HTag t);
 
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
 #include "types-handcraft.h"
 #endif /* USE_TYPES_GENERATED */
+
+/* Type conversion from/to JSValue
+ *   JSValue -> JSObject             jsv_to_jsobject -- check and clear tag
+ *   JSValue -> JavaScript object    jsv_to_RT       -- check and clear tag
+ *   JSValue -> no-JS heap ptr       jsv_to_T        -- check HTag
+ *   JSValue -> no-heap ptr          (T) jsv_to_noheap_ptr
+ *   JSValue -> uintjsv_t/intjsv_t   explicit cast
+ *   JSValue -> other no-JS value    explicit cast through uintjsv_t/intjsv_t
+ *   Fixnum  -> cint/cuint           defined separately
+ *
+ *   JSValue <- JSObject             ptr_to_RT -- put PTag
+ *   JSValue <- JavaScript object    ptr_to_RT -- put PTag
+ *   JSValue <- no-JS heap ptr       explicit cast
+ *   JSValue <- no-heap ptr          explicit cast
+ *   JSValue <- uintjsv_t/intjsv_t   explicit cast
+ *   JSValue <- other no-JS value    explicit cast
+ *   Fixnum  <- cint/cuint           defined separately
+ */
+
+struct jsobject_cell;
+static inline struct jsobject_cell *jsv_to_jsobject(JSValue v);
+
+/* jsv_to_RT for JavaScript objects */
+#define VMRepType(RT, ptag, S)                  \
+S;                                              \
+static inline S *jsv_to_##RT(JSValue v);
+VMRepType_LIST /* defined in types-generated/handcraft.h */
+#undef VMRepType
+
+/* jsv_to_T for no-JS heap data */
+#define VMHeapData(name, CELLT, T)              \
+static inline T *jsv_to_##name(JSValue v);
+VMHeapData_LIST
+#undef VMHeapData
+
+static inline void *jsv_to_noheap_ptr(JSValue v);
+
+/* ptr_to_RT for JavaScript objects */
+#define VMRepType(RT, ptag, S)                  \
+static inline JSValue ptr_to_##RT(S *p);
+VMRepType_LIST
+#undef VMRepType
+
+/*********
+ * JavaScript Object Definition
+ */
 
 /*
  * Hidden Class Transition
@@ -178,12 +225,6 @@ typedef struct jsobject_cell {
    is_string_object(p) || is_number_object(p) || is_boolean_object(p))
 #endif /* USE_REGEXP */
 
-static inline JSObject *jsv_to_jsobject(JSValue v)
-{
-  assert(is_jsobject(v));
-  return (JSObject *) jsv_to_uintptr(v);
-}
-
 static inline JSValue *object_get_prop_address(JSValue obj, int index)
 {
   JSObject *p;
@@ -194,7 +235,7 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   if (index < n_embedded - 1 || p->shape->n_extension_slots == 0)
     return &p->eprop[index];
   else {
-    JSValue *extension = (JSValue *) jsv_to_uintptr(p->eprop[n_embedded - 1]);
+    JSValue *extension = jsv_to_extension_prop(p->eprop[n_embedded - 1]);
     return &extension[index - (n_embedded - 1)];
   }
 }
@@ -219,38 +260,70 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
  *     typically during object initialisation.
  */
 
-#define DEFINE_ACCESSORS(OT, index, FT, field)                  \
-static inline FT get_##OT##_ptr_##field(JSObject *p)            \
-{                                                               \
-  return (FT) jsv_to_uintptr(p->eprop[index]);                  \
-}                                                               \
-static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
-{                                                               \
-  p->eprop[index] = (JSValue) (uintptr_t) val;                  \
-}                                                               \
+#define DEFINE_COMMON_ACCESSORS(OT, index, FT, field)           \
 static inline FT get_js##OT##_##field(JSValue v)                \
 {                                                               \
+  JSObject *p;                                                  \
   assert(is_##OT(v));                                           \
-  {                                                             \
-    JSObject *p = jsv_to_jsobject(v);                           \
-    return get_##OT##_ptr_##field(p);                           \
-  }                                                             \
+  p = jsv_to_jsobject(v);                                       \
+  return get_##OT##_ptr_##field(p);                             \
 }                                                               \
 static inline void set_js##OT##_##field(JSValue v, FT val)      \
 {                                                               \
-  JSObject *p = jsv_to_jsobject(v);                             \
+  JSObject *p;                                                  \
   assert(is_##OT(v));                                           \
+  p = jsv_to_jsobject(v);                                       \
   set_##OT##_ptr_##field(p, val);                               \
 }
+
+/* for JSValues */
+#define DEFINE_ACCESSORS_J(OT, index, field)    \
+  DEFINE_ACCESSORS_I(OT, index, JSValue, field)
+
+/* for pointers (references) to (no-JS) heap object  */
+#define DEFINE_ACCESSORS_R(OT, index, FT, field, Tname)         \
+static inline FT get_##OT##_ptr_##field(JSObject *p)            \
+{                                                               \
+  return (FT) jsv_to_##Tname(p->eprop[index]);                  \
+}                                                               \
+static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
+{                                                               \
+  p->eprop[index] = (JSValue) (uintjsv_t) (uintptr_t) val;      \
+}                                                               \
+DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
+
+/* for no-heap pointers */
+#define DEFINE_ACCESSORS_P(OT, index, FT, field)                \
+static inline FT get_##OT##_ptr_##field(JSObject *p)            \
+{                                                               \
+ return (FT) jsv_to_noheap_ptr(p->eprop[index]);                \
+}                                                               \
+static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
+{                                                               \
+  p->eprop[index] = (JSValue) (uintjsv_t) (uintptr_t) val;      \
+}                                                               \
+DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
+
+/* for integers */
+#define DEFINE_ACCESSORS_I(OT, index, FT, field)                \
+static inline FT get_##OT##_ptr_##field(JSObject *p)            \
+{                                                               \
+  return (FT) (uintjsv_t) p->eprop[index];                      \
+}                                                               \
+static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
+{                                                               \
+  p->eprop[index] = (JSValue) (uintjsv_t) val;                  \
+}                                                               \
+DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
 
 /* Simple */
 #define OBJECT_SPECIAL_PROPS 0
 
 /* Array */
 #define ARRAY_SPECIAL_PROPS 3
-DEFINE_ACCESSORS(array, 0, uint64_t, size)
-DEFINE_ACCESSORS(array, 1, uint64_t, length)
-DEFINE_ACCESSORS(array, 2, JSValue *, body)
+DEFINE_ACCESSORS_I(array, 0, uint64_t, size)
+DEFINE_ACCESSORS_I(array, 1, uint64_t, length)
+DEFINE_ACCESSORS_R(array, 2, JSValue *, body, array_data)
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
@@ -261,15 +334,15 @@ DEFINE_ACCESSORS(array, 2, JSValue *, body)
 
 /* Function */
 #define FUNCTION_SPECIAL_PROPS 2
-DEFINE_ACCESSORS(function, 0, FunctionTable*, table_entry)
-DEFINE_ACCESSORS(function, 1, FunctionFrame*, environment)
+DEFINE_ACCESSORS_P(function, 0, FunctionTable*, table_entry)
+DEFINE_ACCESSORS_R(function, 1, FunctionFrame*, environment, function_frame)
 
 /* Builtin */
 typedef void (*builtin_function_t)(Context*, int, int);
 #define BUILTIN_SPECIAL_PROPS 3
-DEFINE_ACCESSORS(builtin, 0, builtin_function_t, body)
-DEFINE_ACCESSORS(builtin, 1, builtin_function_t, constructor)
-DEFINE_ACCESSORS(builtin, 2, int, nargs)
+DEFINE_ACCESSORS_P(builtin, 0, builtin_function_t, body)
+DEFINE_ACCESSORS_P(builtin, 1, builtin_function_t, constructor)
+DEFINE_ACCESSORS_I(builtin, 2, int, nargs)
 
 #ifdef USE_REGEXP
 /* Regexp */
@@ -277,12 +350,12 @@ DEFINE_ACCESSORS(builtin, 2, int, nargs)
 #include <oniguruma.h>
 
 #define REX_SPECIAL_PROPS 6
-DEFINE_ACCESSORS(regexp, 0, char*, pattern)
-DEFINE_ACCESSORS(regexp, 1, int, reg)
-DEFINE_ACCESSORS(regexp, 2, int, global)
-DEFINE_ACCESSORS(regexp, 3, int, ignorecase)
-DEFINE_ACCESSORS(regexp, 4, int, multiline)
-DEFINE_ACCESSORS(regexp, 5, int, lastindex)
+DEFINE_ACCESSORS_P(regexp, 0, char*, pattern)
+DEFINE_ACCESSORS_I(regexp, 1, int, reg)
+DEFINE_ACCESSORS_I(regexp, 2, int, global)
+DEFINE_ACCESSORS_I(regexp, 3, int, ignorecase)
+DEFINE_ACCESSORS_I(regexp, 4, int, multiline)
+DEFINE_ACCESSORS_I(regexp, 5, int, lastindex)
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
@@ -292,20 +365,19 @@ DEFINE_ACCESSORS(regexp, 5, int, lastindex)
 
 /* String */
 #define STRING_SPECIAL_PROPS 1
-DEFINE_ACCESSORS(string_object, 0, JSValue, value)
+DEFINE_ACCESSORS_J(string_object, 0, value)
 
 /* Number */
 #define NUMBER_SPECIAL_PROPS 1
-DEFINE_ACCESSORS(number_object, 0, JSValue, value)
+DEFINE_ACCESSORS_J(number_object, 0, value)
 
 /* Boolean */
 #define BOOLEAN_SPECIAL_PROPS 1
-DEFINE_ACCESSORS(boolean_object, 0, JSValue, value)
+DEFINE_ACCESSORS_J(boolean_object, 0, value)
 
 #undef DEFINE_ACCESSORS
 
 /** Primitive Heap-allocated Object ************************************/
-
 
 #define DEFINE_GETTER(RT, S, FT, field)                         \
 static inline FT get_##RT##_ptr_##field(S *p)                   \
@@ -314,11 +386,8 @@ static inline FT get_##RT##_ptr_##field(S *p)                   \
 }                                                               \
 static inline FT get_js##RT##_##field(JSValue v)                \
 {                                                               \
-  assert(is_##RT(v));                                           \
-  {                                                             \
-    S *p = (S *) jsv_to_uintptr(v);                             \
-    return get_##RT##_ptr_##field(p);                           \
-  }                                                             \
+  S *p = (S *) jsv_to_##RT(v);                                  \
+  return get_##RT##_ptr_##field(p);                             \
 }                                                               \
 
 #define DEFINE_SETTER(RT, S, FT, field)                         \
@@ -328,11 +397,8 @@ static inline void set_##RT##_ptr_##field(S *p, FT val)         \
 }                                                               \
 static inline void set_js##RT##_##field(JSValue v, FT val)      \
 {                                                               \
-  assert(is_##RT(v));                                           \
-  {                                                             \
-    S *p = (S *) jsv_to_uintptr(v);                             \
-    set_##RT##_ptr_##field(p, val);                             \
-  }                                                             \
+  S *p = (S *) jsv_to_##RT(v);                                  \
+  set_##RT##_ptr_##field(p, val);                               \
 }
 
 #define DEFINE_ACCESSORS(RT, S, FT, field)                      \
@@ -451,7 +517,7 @@ DEFINE_GETTER(normal_string, StringCell, char*, value)
 static inline cint fixnum_to_cint(JSValue v)
 {
   assert(is_fixnum(v));
-  return (cint) (((uintjsv_t) v) >> TAGOFFSET);
+  return (cint) (((intjsv_t) v) >> TAGOFFSET);
 }
 
 #define fixnum_to_double(v) ((double) fixnum_to_cint((v)))

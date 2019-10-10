@@ -85,10 +85,10 @@ static Context *allocate_context(size_t stack_size)
   ctx->stack = (JSValue *) gc_malloc(NULL, sizeof(JSValue) * stack_size,
                                      CELLT_STACK);
   ctx->exhandler_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                          gconsts.g_shape_Array, 0);
+                                          gshapes.g_shape_Array, 0);
   ctx->exhandler_stack_ptr = 0;
   ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                      gconsts.g_shape_Array, 0);
+                                      gshapes.g_shape_Array, 0);
   ctx->lcall_stack_ptr = 0;
   return ctx;
 }
@@ -128,9 +128,9 @@ void check_stack_invariant(Context *ctx)
       break;
     sp = fp - 1;
     fp = (int) (intjsv_t) get_stack(ctx, sp); sp--;
-    lp = (FunctionFrame *) jsv_to_uintptr(get_stack(ctx, sp)); sp--;
+    lp = jsv_to_function_frame(get_stack(ctx, sp)); sp--;
     pc = (int) (intjsv_t) get_stack(ctx, sp); sp--;
-    cf = (FunctionTable *) jsv_to_uintptr(get_stack(ctx, sp)); sp--;
+    cf = (FunctionTable *) jsv_to_noheap_ptr(get_stack(ctx, sp)); sp--;
   }
 }
 

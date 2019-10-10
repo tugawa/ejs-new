@@ -20,7 +20,7 @@ BUILTIN_FUNCTION(number_constr)
 
   builtin_prologue();
   rsv = new_number_object(context, DEBUG_NAME("number_constr"),
-                          gconsts.g_shape_Number, FIXNUM_ZERO);
+                          gshapes.g_shape_Number, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)

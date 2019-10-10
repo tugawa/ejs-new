@@ -33,7 +33,7 @@ typedef struct function_table {
 typedef struct function_frame {
   struct function_frame *prev_frame;
   JSValue arguments;
-  JSValue locals[];
+  JSValue locals[] __attribute__((aligned(sizeof(JSValue))));
 } FunctionFrame;
 
 #define fframe_prev(fr)           ((fr)->prev_frame)

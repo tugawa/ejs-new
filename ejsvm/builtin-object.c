@@ -37,20 +37,20 @@ BUILTIN_FUNCTION(object_constr)
       ret = arg;
     else if (is_number(arg))
       ret = new_number_object(context, DEBUG_NAME("obect_constr"),
-                              gconsts.g_shape_Number, arg);
+                              gshapes.g_shape_Number, arg);
     else if (is_boolean(arg))
       ret = new_boolean_object(context, DEBUG_NAME("object_constr"),
-                               gconsts.g_shape_Boolean, arg);
+                               gshapes.g_shape_Boolean, arg);
     else if (is_string(arg))
       ret = new_string_object(context, DEBUG_NAME("object_constr"),
-                              gconsts.g_shape_String, arg);
+                              gshapes.g_shape_String, arg);
     else
       ret = new_simple_object(context, DEBUG_NAME("object_constr"),
-                              gconsts.g_shape_Object);
+                              gshapes.g_shape_Object);
     GC_POP(arg);
   } else
     ret = new_simple_object(context, DEBUG_NAME("object_constr"),
-                            gconsts.g_shape_Object);
+                            gshapes.g_shape_Object);
   GC_PUSH(ret);
   set_a(context, ret);
   GC_POP(ret);
@@ -70,7 +70,7 @@ ObjBuiltinProp ObjectPrototype_builtin_props[] = {
 };
 ObjDoubleProp  ObjectPrototype_double_props[] = {};
 ObjGconstsProp ObjectPrototype_gconsts_props[] = {
-  { "__property_map__", (JSValue *)&gconsts.g_property_map_Object, ATTR_ALL },
+  { "__property_map__", (JSValue *)&gpms.g_property_map_Object, ATTR_ALL },
 };
 /* constructor */
 ObjBuiltinProp ObjectConstructor_builtin_props[] = {};

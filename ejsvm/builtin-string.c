@@ -28,7 +28,7 @@ BUILTIN_FUNCTION(string_constr)
   /* printf("In string_constr\n"); */
   rsv =
     new_string_object(context, DEBUG_NAME("string_constr"),
-                      gconsts.g_shape_String,
+                      gshapes.g_shape_String,
                       na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }

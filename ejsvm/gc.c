@@ -707,7 +707,7 @@ STATIC void process_edge(uintptr_t ptr)
         process_edge((uintptr_t) p->shapes); /* Shape */
       process_edge((uintptr_t) p->__proto__);
       /* collect children of roots for entriy points of weak lists */
-      if (p->prev == gconsts.g_property_map_root) {
+      if (p->prev == gpms.g_property_map_root) {
         struct property_map_roots *e =
           (struct property_map_roots *)
           space_alloc(&js_space, sizeof(struct property_map_roots),
@@ -748,8 +748,7 @@ STATIC void process_edge(uintptr_t ptr)
       process_edge(p->eprop[i]);
     if (n_extension != 0) {
       /* 3. extension */
-      JSValue *extension =
-        (JSValue *) jsv_to_uintptr(p->eprop[actual_embedded]);
+      JSValue *extension = jsv_to_extension_prop(p->eprop[actual_embedded]);
       process_edge_JSValue_array(extension, 0,
                                  os->pm->n_props - actual_embedded);
     }
@@ -903,15 +902,29 @@ STATIC void scan_string_table(StrTable *p)
 
 STATIC void scan_roots(Context *ctx)
 {
-  struct global_constant_objects *gconstsp = &gconsts;
-  JSValue* p;
   int i;
 
   /*
    * global variables
    */
-  for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++)
-    process_edge((uintptr_t) *p);
+  {
+    struct global_constant_objects *gconstsp = &gconsts;
+    JSValue *p;
+    for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++)
+      process_edge((uintptr_t) *p);
+  }
+  {
+    struct global_property_maps *gpmsp = &gpms;
+    PropertyMap **p;
+    for (p = (PropertyMap **) gpmsp; p < (PropertyMap **) (gpmsp + 1); p++)
+      process_edge((uintptr_t) *p);
+  }
+  {
+    struct global_object_shapes *gshapesp = &gshapes;
+    Shape** p;
+    for (p = (Shape **) gshapesp; p < (Shape **) (gshapesp + 1); p++)
+      process_edge((uintptr_t) *p);
+  }
 
   /* function table: do not trace.
    *                 Used slots should be traced through Function objects
@@ -943,7 +956,7 @@ STATIC void weak_clear_StrTable(StrTable *table)
   for (i = 0; i < table->size; i++) {
     StrCons ** p = table->obvector + i;
     while (*p != NULL) {
-      StringCell *cell = (StringCell *) jsv_to_uintptr((*p)->str);
+      StringCell *cell = jsv_to_normal_string((*p)->str);
       if (!is_marked_cell(cell)) {
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
@@ -1276,9 +1289,9 @@ STATIC void check_invariant_nobw_space(struct space *space)
           - HEADER0_GET_EXTRA(header);
         size_t i;
         for (i = 0; i < payload_jsvalues; i++) {
-          const uintjsv_t JSV_POINTER_BITS_MASK = ((uintjsv_t) (uintptr_t) -1);
           JSValue v = (JSValue) payload[i];
           uintjsv_t x = (uintjsv_t) v;
+          void * p = (void *) (uintptr_t) clear_ptag(v);
           /* weak pointers */
           /*
           if (HEADER0_GET_TYPE(header) == CELLT_STR_CONS) {
@@ -1286,10 +1299,10 @@ STATIC void check_invariant_nobw_space(struct space *space)
               continue;
           }
           */
-          if ((x & ~JSV_POINTER_BITS_MASK) == 0 &&
+          if (IS_POINTER_LIKE_UINTJSV(x) &&
               (is_object(x) || get_ptag(x).v == 0) &&
-              in_js_space((void *)jsv_to_uintptr(v)))
-            assert(is_marked_cell((void *)jsv_to_uintptr(v)));
+              in_js_space(p))
+            assert(is_marked_cell(p));
         }
       }
       break;

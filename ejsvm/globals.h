@@ -12,13 +12,13 @@
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;
 
-/*
- * global constant objects
- */
-EXTERN struct global_constant_objects {
+
+EXTERN struct global_property_maps {
   PropertyMap *g_property_map_root;
   PropertyMap *g_property_map_Object;
+} gpms;
 
+EXTERN struct global_object_shapes {
   Shape *g_shape_Object;
   Shape *g_shape_Function;
   Shape *g_shape_Builtin;
@@ -26,7 +26,12 @@ EXTERN struct global_constant_objects {
   Shape *g_shape_Number;
   Shape *g_shape_String;
   Shape *g_shape_Boolean;
+} gshapes;
 
+/*
+ * global constant objects
+ */
+EXTERN struct global_constant_objects {
   JSValue g_prototype_Object;
   JSValue g_prototype_Function;
   JSValue g_prototype_Array;

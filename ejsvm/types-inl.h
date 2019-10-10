@@ -15,23 +15,27 @@ static inline int is_ptag(JSValue v, PTag t)
   return (((uintjsv_t) v) & TAGMASK) == t.v;
 }
 
+static inline JSValue put_ptag(uintjsv_t x, PTag t)
+{
+  assert((x & TAGMASK) == 0);
+  /* REMARK: When you modify this function, you need to modify
+   *         PUT_PTAG_CONSTNAT in types.h accordingly.
+   *         As a remainder, we use PUT_PTAG_CONSTANT although
+   *         `x' is not a constant here. */
+  return PUT_PTAG_CONSTANT(x, t.v);
+}
+
 static inline uintjsv_t clear_ptag(JSValue v)
 {
   return ((uintjsv_t) v) & ~TAGMASK;
 }
 
-static inline JSValue put_ptag(uintjsv_t x, PTag t)
-{
-  /* REMARK: When you modify this function, you need to modify
-   *         PUT_PTAG_CONSTNAT in types.h accordingly. */
-  assert((x & TAGMASK) == 0);
-  return (JSValue) (x | t.v);
-}
-
 static inline HTag get_htag(JSValue v)
 {
-  assert(is_object(v));
-  return (HTag) {gc_obj_header_type((void *)jsv_to_uintptr(v))};
+  void *p;
+  assert(is_object(v) || is_string(v) || is_flonum(v));
+  p = (void *) (uintptr_t) (uintjsv_t) v;
+  return (HTag) {gc_obj_header_type(p)};
 }
 
 static inline int is_htag(JSValue v, HTag t)
@@ -39,52 +43,83 @@ static inline int is_htag(JSValue v, HTag t)
   return get_htag(v).v == t.v;
 }
 
-/* Type convertion from/to JSValue
- *   JSValue -> JSObject             jsv_to_jsobject
- *   JSValue -> JavaScript object    (T) jsv_to_uintptr
- *   JSValue -> no-JS heap object    (T) jsv_to_uintptr
- *   JSValue -> no-heap object       (T) jsv_to_uintptr
- *   JSValue -> uintjsv_t            explicit cast
- *   JSValue -> intjsv_t             explicit cast
- *   JSValue -> other primitive      explicit cast through uintjsv_t/intjsv_t
- *   JSObject -> JSValue             ptr_to_T
- *   JavaScript object -> JSValue    ptr_to_T
- *   no-JS heap object -> JSValue    T_to_jsv
- *   no-heap object -> JSValue       noheap_ptr_to_jsv
- *   uintjsv_t -> JSValue            explicit cast
- *   intjsv_t -> JSValue             explicit cast
+/*
+ * Type conversion from/to JSValue
  */
 
-static inline uintptr_t jsv_to_uintptr(JSValue v)
+#define IS_POINTER_LIKE_UINTJSV(x)		\
+  (((x) & ~((uintjsv_t) (uintptr_t) -1)) == 0)
+
+/*
+ * jsv_to_jsobject converts JSValue to JSObject pointer.
+ *  - Check PTag and HTag (using is_jsobject)
+ *  - Clear PTag
+ *  - Check if higher bits are zero if sizeof(void*) < sizeof(JSValue)
+ */
+static inline JSObject *jsv_to_jsobject(JSValue v)
 {
-  const uintjsv_t JSV_POINTER_BITS_MASK = ((uintjsv_t) (uintptr_t) -1);
-  uintjsv_t x = clear_ptag(v);
-  assert((x & ~JSV_POINTER_BITS_MASK) == 0);
-  return (uintptr_t) x;
+  assert(IS_POINTER_LIKE_UINTJSV((uintjsv_t) v));
+  assert(is_jsobject(v));
+  return (JSObject *) (uintptr_t) clear_ptag(v);
 }
 
 /*
- * noheap_ptr_to_jsv converts a pointer to outside heap to JSValue.
+ * jsv_to_RT (RT: VMRepType including those that are implemeted with JSObject)
+ *  - Check PTag and HTag (using is_xxx)
+ *  - Clear PTag
+ *  - Check if higher bits are zero if sizeof(void*) < sizeof(JSValue)
  */
-static inline JSValue noheap_ptr_to_jsv(void *p)
+#define VMRepType(RT, ptag, S)				\
+static inline S *jsv_to_##RT(JSValue v)			\
+{							\
+  assert(IS_POINTER_LIKE_UINTJSV((uintjsv_t) v));	\
+  assert(is_##RT(v));					\
+  return (S *) (uintptr_t) clear_ptag(v);		\
+}
+VMRepType_LIST
+#undef VMRepType
+
+/*
+ * jsv_to_T (T: type name)
+ *  - Check if PTag field is zeor, and has a proper HTag
+ *  - Check if higher bits are zero if sizeof(void*) < sizeof(JSValue)
+ */
+#define VMHeapData(name, CELLT, T)			\
+static inline T *jsv_to_##name(JSValue v)		\
+{							\
+  T *p;							\
+  assert(IS_POINTER_LIKE_UINTJSV((uintjsv_t) v));	\
+  assert(get_ptag(v).v == 0);				\
+  p = (T *) (uintptr_t) (uintjsv_t) v;			\
+  assert(gc_obj_header_type(p) == CELLT);		\
+  return p;						\
+}
+VMHeapData_LIST
+#undef VMHeapData
+
+/*
+ * jsv_to_noheap_ptr
+ *  - Check if higher bits are zore if sizeof(void*) < sizeof(JSValue)
+ */
+static inline void *jsv_to_noheap_ptr(JSValue v)
 {
-  return (JSValue) (uintptr_t) p;
+  assert(IS_POINTER_LIKE_UINTJSV((uintjsv_t) v));
+  return (void *) (uintptr_t) (uintjsv_t) v;
 }
 
-#define DEFINE_CONVERSION(name, T, CELLT)               \
-static inline JSValue name##_to_jsv(T p) {              \
-  assert(gc_obj_header_type(p) == CELLT);               \
-  return (JSValue) (uintptr_t) p;                       \
+/*
+ * ptr_to_RT (RT: VMRepType)
+ *  - Check HTag
+ *  - Put PTag
+ */
+#define VMRepType(RT, ptag, S)					\
+static inline JSValue ptr_to_##RT(S *p)				\
+{								\
+  JSValue v = put_ptag((uintjsv_t) (uintptr_t) p, ptag);	\
+  assert(is_##RT(v));  /* check HTag */				\
+  return v;							\
 }
-
-struct function_frame;
-struct property_map;
-DEFINE_CONVERSION(function_frame, struct function_frame*, CELLT_FUNCTION_FRAME)
-DEFINE_CONVERSION(extension_prop, JSValue*,               CELLT_PROP)
-DEFINE_CONVERSION(property_map,   struct property_map*,   CELLT_PROPERTY_MAP)
-
-#undef DEFINE_CONVERSION
-
-
+VMRepType_LIST
+#undef VMRepType_LIST
 
 #endif /* TYPES_INL_H */

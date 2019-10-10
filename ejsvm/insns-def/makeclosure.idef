@@ -15,7 +15,7 @@
   Subscript ss = subscr + 1;
   save_context();
   dst = new_function_object(context, DEBUG_NAME("insn:makeclosure"),
-                            gconsts.g_shape_Function, ss);
+                            gshapes.g_shape_Function, ss);
   update_context();
 /* Local Variables:      */
 /* mode: c               */
