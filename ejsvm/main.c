@@ -219,7 +219,7 @@ void print_gc_prof()
   uint64_t total_live_bytes = 0;
   uint64_t total_live_count = 0;
 
-  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
+  for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     total_live_bytes += pertype_live_bytes[i];
     total_live_count += pertype_live_count[i];
   }
@@ -228,7 +228,7 @@ void print_gc_prof()
   printf(" %"PRId64" %"PRId64" ",
          generation > 1 ? total_live_bytes / (generation - 1) : 0,
          generation > 1 ? total_live_count / (generation - 1) : 0);
-  for (i = 0; i <= NUM_DEFINED_HTAG; i++) {
+  for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);
     printf(" %"PRId64" ",
@@ -249,7 +249,7 @@ void print_gc_prof()
              generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
       printf("l.count = %4"PRId64" ",
              generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
-      printf("%s\n", HTAG_NAME(i));
+      printf("%s\n", CELLT_NAME(i));
     }
 }
 #endif /* GC_PROF */
@@ -538,7 +538,7 @@ void print_value_verbose(Context *context, JSValue v) {
 
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
-    printf("%016"PRIx64" (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
+    printf("%016"PRIx64" (tag = %d, type = %s): ", v, get_ptag(v).v, type_name(v));
 
   if (is_string(v))
     /* do nothing */;

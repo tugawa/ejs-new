@@ -9,9 +9,55 @@
 
 #include "cell-header.h"
 
+
+#ifndef USE_NATIVEGC
+#error Boehm GC is no longer supported
+#endif  /* USE_NATIVEGC */
+
+#ifdef GC_PROF
+#define NUM_DEFINED_CELL_TYPES 0x1C
+extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
+#define CELLT_NAME(t) ((t) <= NUM_DEFINED_CELL_TYPES ? cell_type_name[t] : "")
+#else /* GC_PROF */
+#define CELLT_NAME(t) abort();  /* HTAG_NAME is only for GC profiling */
+#endif /* GC_PROF */
+
+/* Cell types
+ *   0        : CELLT_FEEE
+ *   1 - 0x10 : HTAG (JSValue)
+ *   0x11 -   : others
+ */
+
 typedef uint32_t cell_type_t;
 
-#ifdef USE_NATIVEGC
+#define CELLT_STRING        HTAGV_STRING
+#define CELLT_FLONUM        HTAGV_FLONUM
+#define CELLT_SIMPLE_OBJECT HTAGV_SIMPLE_OBJECT
+#define CELLT_ARRAY         HTAGV_ARRAY
+#define CELLT_FUNCTION      HTAGV_FUNCTION
+#define CELLT_BUILTIN       HTAGV_BUILTIN
+#define CELLT_ITERATOR      HTAGV_ITERATOR
+#ifdef USE_REGEXP
+#define CELLT_REGEXP        HTAGV_REGEXP
+#endif
+#define CELLT_BOXED_STRING  HTAGV_BOXED_STRING
+#define CELLT_BOXED_NUMBER  HTAGV_BOXED_NUMBER
+#define CELLT_BOXED_BOOLEAN HTAGV_BOXED_BOOLEAN
+
+#define CELLT_PROP           (0x11) /* Array of JSValues */
+#define CELLT_ARRAY_DATA     (0x12) /* Array of JSValues */
+#define CELLT_FUNCTION_FRAME (0x13) /* FunctionFrame */
+#define CELLT_STR_CONS       (0x14) /* StrCons */
+#define CELLT_CONTEXT        (0x15) /* Context */
+#define CELLT_STACK          (0x16) /* Array of JSValues */
+#ifdef HIDDEN_CLASS
+#define CELLT_HIDDEN_CLASS   (0x17) /* HiddenClass */
+#endif
+#define CELLT_HASHTABLE      (0x18)
+#define CELLT_HASH_BODY      (0x19)
+#define CELLT_HASH_CELL      (0x1A)
+#define CELLT_PROPERTY_MAP   (0x1B)
+#define CELLT_SHAPE          (0x1C)
 
 extern void init_memory(size_t);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
@@ -52,51 +98,6 @@ extern void gc_pop_checked(void* addr);
 #define GC_POP7(a,b,c,d,e,f,g)   do {GC_POP(a); GC_POP6(b,c,d,e,f,g);} while(0)
 #define GC_POP8(a,b,c,d,e,f,g,h)                        \
   do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
-
-#else
-
-#error Boehm GC is no longer supported
-
-#define init_memory()
-static JSValue *gc_malloc(Context *c, uintptr_t request_bytes, uint32_t type)
-{
-  size_t alloc_bytes;
-  JSValue *mem;
-
-  alloc_bytes =
-    (request_bytes + BYTES_IN_JSVALUE - 1) & ~(BYTES_IN_JSVALUE - 1);
-  mem = (JSValue *) malloc(alloc_bytes);
-  *mem = make_header(alloc_bytes / BYTES_IN_JSVALUE, type);
-  return mem + 1;
-}
-#define enable_gc(ctx)
-#define disable_gc(ctx)
-
-static cell_type_t gc_obj_header_type(void *p)
-{
-  uint64_t *ptr = (uint64_t *) p;
-  return ptr[-1] & HEADER_TYPE_MASK;
-}
-
-#define GC_PUSH(a)
-#define GC_PUSH2(a,b)
-#define GC_PUSH3(a,b,c)
-#define GC_PUSH4(a,b,c,d)
-#define GC_PUSH5(a,b,c,d,e)
-#define GC_PUSH6(a,b,c,d,e,f)
-#define GC_PUSH7(a,b,c,d,e,f,g)
-#define GC_PUSH8(a,b,c,d,e,f,g,h)
-
-#define GC_POP(a)
-#define GC_POP2(a,b)
-#define GC_POP3(a,b,c)
-#define GC_POP4(a,b,c,d)
-#define GC_POP5(a,b,c,d,e)
-#define GC_POP6(a,b,c,d,e,f)
-#define GC_POP7(a,b,c,d,e,f,g)
-#define GC_POP8(a,b,c,d,e,f,g,h)
-
-#endif  /* USE_NATIVEGC */
 
 /* Local Variables:      */
 /* mode: c               */

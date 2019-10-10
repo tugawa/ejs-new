@@ -141,7 +141,9 @@ HFILES = $(GENERATED_HFILES) \
     globals.h \
     extern.h \
     log.h \
-    gc.h
+    gc.h \
+    context-inl.h \
+    types-inl.h
 ifeq ($(USE_VMDL),true)
     HFILES += vmdl-helper.h
 endif
@@ -443,8 +445,6 @@ instructions.h: instructions-opcode.h instructions-table.h
 
 %.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
-
-codeloader.o: specfile-fingerprint.h
 
 object.o: object-compat.c
 

@@ -58,7 +58,7 @@ BUILTIN_FUNCTION(number_toString)
         LOG_ERR("args[1] is not a fixnum.");
         set_a(context, JS_UNDEFINED); }
 
-      int n = (int)fixnum_to_int(args[1]);
+      cint n = (int)fixnum_to_cint(args[1]);
       JSValue v = get_jsnumber_object_value(rsv);
       char map[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -74,10 +74,10 @@ BUILTIN_FUNCTION(number_toString)
        * divides the number into numeric and decimal parts
        */
       if(is_fixnum(v)) {
-        numeric = (int)fixnum_to_int(v);
+        numeric = (int) fixnum_to_cint(v);
         decimal = 0.0;
       }else{
-        numeric = (int)(flonum_to_double(v));
+        numeric = (int) flonum_to_double(v);
         decimal = flonum_to_double(v) - numeric; }
 
       /*

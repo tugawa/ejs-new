@@ -33,9 +33,17 @@
 #endif /* __USE_GNU */
 
 typedef uint64_t JSValue;
+typedef uint64_t uintjsv_t;
+typedef int64_t intjsv_t;
 #define BYTES_IN_JSVALUE (sizeof(JSValue))
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
 #define PRIJSValue PRIx64
+
+#ifdef DEBUG
+#define DEBUG_NAME(name) name
+#else /* DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* DEBUG */
 
 #ifdef USE_BOEHMGC
 /* #define malloc(n) GC_malloc(n) */
@@ -72,6 +80,9 @@ typedef uint64_t JSValue;
 #ifdef USE_VMDL
 #include "vmdl-helper.h"
 #endif /* USE_VMDL */
+
+#include "context-inl.h"
+#include "types-inl.h"
 
 #endif /* HEADER_H_ */
 

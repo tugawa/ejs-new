@@ -14,6 +14,6 @@
   for (i = 0; i < link; i++) fr = fframe_prev(fr);
   //regbase[dst] = array_body_index(fframe_arguments(fr), index);
   arguments = fframe_arguments(fr);
-  // TODO: optimize
-  regbase[dst] = get_array_prop(context, arguments, int_to_fixnum(index));
+  regbase[dst] = get_array_element(arguments, index);
+  assert(regbase[dst] != JS_EMPTY);
 }

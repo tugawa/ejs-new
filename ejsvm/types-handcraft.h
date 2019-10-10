@@ -10,96 +10,141 @@
 /*
  * Objects
  */
-#define T_GENERIC (0x0)  /* 000 */
-#define T_UNUSED0 (0x1)  /* 001 */
-#define T_UNUSED1 (0x2)  /* 010 */
-#define T_UNUSED2 (0x3)  /* 011 */
+#define TV_GENERIC (0x0)  /* 000 */
+#define TV_UNUSED0 (0x1)  /* 001 */
+#define TV_UNUSED1 (0x2)  /* 010 */
+#define TV_UNUSED2 (0x3)  /* 011 */
 
 /*
-  Constant
-*/
-#define T_STRING  (0x4)  /* 100 */
-#define T_FLONUM  (0x5)  /* 101 */
-#define T_SPECIAL (0x6)  /* 110 */
-#define T_FIXNUM  (0x7)  /* 111 */
+ *  Constant
+ */
+#define TV_STRING  (0x4)  /* 100 */
+#define TV_FLONUM  (0x5)  /* 101 */
+#define TV_SPECIAL (0x6)  /* 110 */
+#define TV_FIXNUM  (0x7)  /* 111 */
 
 /*
- * is_object checks whether `p' is one of the object families,
+ * pointer tag wrap
+ */
+#define T_GENERIC ((PTag) {TV_GENERIC})
+#define T_STRING  ((PTag) {TV_STRING})
+#define T_FLONUM  ((PTag) {TV_FLONUM})
+#define T_SPECIAL ((PTag) {TV_SPECIAL})
+#define T_FIXNUM  ((PTag) {TV_FIXNUM})
+
+/*
+ * is_object checks whether `v' is one of the object families,
  * i.e., simple object, array, function, builtin, iterator, regexp,
  * boxed string, boxed number, boxed boolean.
  * Note that is_object does not investigate the header tag.
  */
-#define is_object(p)             (equal_tag((p), T_GENERIC))
-#define is_number(p)             (is_fixnum((p)) || is_flonum((p)))
+#define is_object(v)             (is_ptag((v), T_GENERIC))
+#define is_number(v)             (is_fixnum((v)) || is_flonum((v)))
 
-#define is_obj_header_tag(o,t)  (is_object((o)) && (obj_header_tag((o)) == (t)))
+#define is_obj_header_tag(v,t)   (is_object((v)) && is_htag((v), (t)))
 
-#define is_simple_object(p)      is_obj_header_tag((p), HTAG_SIMPLE_OBJECT)
-#define is_array(p)              is_obj_header_tag((p), HTAG_ARRAY)
-#define is_function(p)           is_obj_header_tag((p), HTAG_FUNCTION)
-#define is_builtin(p)            is_obj_header_tag((p), HTAG_BUILTIN)
-#define is_iterator(p)           is_obj_header_tag((p), HTAG_ITERATOR)
-#define is_regexp(r)             is_obj_header_tag((r), HTAG_REGEXP)
-#define is_number_object(p)      is_obj_header_tag((p), HTAG_BOXED_NUMBER)
-#define is_boolean_object(p)     is_obj_header_tag((p), HTAG_BOXED_BOOLEAN)
-#define is_string_object(p)      is_obj_header_tag((p), HTAG_BOXED_STRING)
-#define is_flonum(p)             (equal_tag((p), T_FLONUM))
-#define is_string(p)             (equal_tag((p), T_STRING))
-#define is_fixnum(p)             (equal_tag((p), T_FIXNUM))
-#define is_special(p)            (equal_tag((p), T_SPECIAL))
+#define is_simple_object(v)      is_obj_header_tag((v), HTAG_SIMPLE_OBJECT)
+#define is_array(v)              is_obj_header_tag((v), HTAG_ARRAY)
+#define is_function(v)           is_obj_header_tag((v), HTAG_FUNCTION)
+#define is_builtin(v)            is_obj_header_tag((v), HTAG_BUILTIN)
+#define is_iterator(v)           is_obj_header_tag((v), HTAG_ITERATOR)
+#define is_regexp(v)             is_obj_header_tag((v), HTAG_REGEXP)
+#define is_number_object(v)      is_obj_header_tag((v), HTAG_BOXED_NUMBER)
+#define is_boolean_object(v)     is_obj_header_tag((v), HTAG_BOXED_BOOLEAN)
+#define is_string_object(v)      is_obj_header_tag((v), HTAG_BOXED_STRING)
+#define is_flonum(v)             (is_ptag((v), T_FLONUM))
+#define is_string(v)             (is_ptag((v), T_STRING))
+#define is_fixnum(v)             (is_ptag((v), T_FIXNUM))
+#define is_special(v)            (is_ptag((v), T_SPECIAL))
 
-#define remove_normal_flonum_tag(p)             \
-  ((FlonumCell *)remove_tag((p), T_FLONUM))
-#define remove_normal_simple_object_tag(p)      \
-  ((Object *)  remove_tag((p), T_GENERIC))
-#define remove_normal_array_tag(p)              \
-  ((ArrayCell *)   remove_tag((p), T_GENERIC))
-#define remove_normal_function_tag(p)           \
-  ((FunctionCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_builtin_tag(p)            \
-  ((BuiltinCell *) remove_tag((p), T_GENERIC))
-#define remove_normal_iterator_tag(p)           \
-  ((Iterator *)remove_tag((p), T_GENERIC))
-#define remove_normal_string_tag(p)             \
-  ((StringCell *)remove_tag((p), T_STRING))
-#define remove_normal_regexp_tag(p)             \
-  ((RegexpCell *)  remove_tag((p), T_GENERIC))
-#define remove_normal_boolean_object_tag(p)     \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_number_object_tag(p)      \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
-#define remove_normal_string_object_tag(p)      \
-  ((BoxedCell *)remove_tag((p), T_GENERIC))
+#define is_normal_simple_object(v)  is_simple_object(v)
+#define is_normal_array(v)          is_array(v)
+#define is_normal_function(v)       is_function(v)
+#define is_normal_builtin(v)        is_builtin(v)
+#define is_normal_iterator(v)       is_iterator(v)
+#define is_normal_regexp(v)         is_regexp(v)
+#define is_normal_number_object(v)  is_number_object(v)
+#define is_normal_boolean_object(v) is_boolean_object(v)
+#define is_normal_string_object(v)  is_string_object(v)
+#define is_normal_flonum(v)         is_flonum(v)
+#define is_normal_string(v)         is_string(v)
+#define is_normal_fixnum(v)         is_fixnum(v)
+#define is_normal_special(v)        is_special(v)
 
-#define put_normal_simple_object_tag(p)  (put_tag((p), T_GENERIC))
-#define put_normal_array_tag(p)          (put_tag((p), T_GENERIC))
-#define put_normal_function_tag(p)       (put_tag((p), T_GENERIC))
-#define put_normal_builtin_tag(p)        (put_tag((p), T_GENERIC))
-#define put_normal_iterator_tag(p)       (put_tag((p), T_GENERIC))
-#define put_normal_string_tag(p)         (put_tag((p), T_STRING))
-#define put_normal_regexp_tag(p)         (put_tag((p), T_GENERIC))
-#define put_normal_flonum_tag(p)         (put_tag((p), T_FLONUM))
-#define put_normal_normal_string_tag(p)  (put_tag((p), T_STRING))
-#define put_normal_boolean_object_tag(p) (put_tag((p), T_GENERIC))
-#define put_normal_number_object_tag(p)  (put_tag((p), T_GENERIC))
-#define put_normal_string_object_tag(p)  (put_tag((p), T_GENERIC))
-
-#define HTAG_STRING        (0x4)
-#define HTAG_FLONUM        (0x5)
-#define HTAG_SIMPLE_OBJECT (0x6)
-#define HTAG_ARRAY         (0x7)
-#define HTAG_FUNCTION      (0x8)
-#define HTAG_BUILTIN       (0x9)
-#define HTAG_ITERATOR      (0xa)
-#ifdef USE_REGEXP
-#define HTAG_REGEXP        (0xb)
+#if 0
+#define remove_normal_flonum_tag(v)             \
+  ((FlonumCell *)remove_tag((v), T_FLONUM))
+#define remove_normal_simple_object_tag(v)      \
+  ((Object *)  remove_tag((v), T_GENERIC))
+#define remove_normal_array_tag(v)              \
+  ((ArrayCell *)   remove_tag((v), T_GENERIC))
+#define remove_normal_function_tag(v)           \
+  ((FunctionCell *)remove_tag((v), T_GENERIC))
+#define remove_normal_builtin_tag(v)            \
+  ((BuiltinCell *) remove_tag((v), T_GENERIC))
+#define remove_normal_iterator_tag(v)           \
+  ((Iterator *)remove_tag((v), T_GENERIC))
+#define remove_normal_string_tag(v)             \
+  ((StringCell *)remove_tag((v), T_STRING))
+#define remove_normal_regexp_tag(v)             \
+  ((RegexpCell *)  remove_tag((v), T_GENERIC))
+#define remove_normal_boolean_object_tag(v)     \
+  ((BoxedCell *)remove_tag((v), T_GENERIC))
+#define remove_normal_number_object_tag(v)      \
+  ((BoxedCell *)remove_tag((v), T_GENERIC))
+#define remove_normal_string_object_tag(v)      \
+  ((BoxedCell *)remove_tag((v), T_GENERIC))
 #endif
-#define HTAG_BOXED_STRING  (0xc)
-#define HTAG_BOXED_NUMBER  (0xd)
-#define HTAG_BOXED_BOOLEAN (0xe)
 
-#define is_pointer(p)     (((p) & 2) == 0)
-#define is_leaf_object(p) (((p) & 6) == 4)
+#define DEFINE_PTR_TO_JSValue(RT, ptag, S)             \
+static inline JSValue ptr_to_##RT(S *p)                \
+{                                                      \
+  return put_ptag((uintjsv_t) (uintptr_t) p, ptag);    \
+}
+
+DEFINE_PTR_TO_JSValue(normal_simple_object,  T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(normal_array,          T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(normal_function,       T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(normal_builtin,        T_GENERIC, struct jsobject_cell)
+#ifdef USE_REGEXP
+DEFINE_PTR_TO_JSValue(normal_regexp,         T_GENERIC, struct jsobject_cell)
+#endif /* USE_REGEXP */
+DEFINE_PTR_TO_JSValue(normal_boolean_object, T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(normal_number_object,  T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(normal_string_object,  T_GENERIC, struct jsobject_cell)
+DEFINE_PTR_TO_JSValue(iterator,              T_GENERIC, struct iterator)
+DEFINE_PTR_TO_JSValue(normal_string,         T_STRING,  struct string_cell)
+DEFINE_PTR_TO_JSValue(normal_flonum,         T_FLONUM,  struct flonum_cell)
+
+#undef DEFINE_PTR_TO_JSValue
+
+#define HTAGV_STRING        (0x4)
+#define HTAGV_FLONUM        (0x5)
+#define HTAGV_SIMPLE_OBJECT (0x6)
+#define HTAGV_ARRAY         (0x7)
+#define HTAGV_FUNCTION      (0x8)
+#define HTAGV_BUILTIN       (0x9)
+#define HTAGV_ITERATOR      (0xa)
+#ifdef USE_REGEXP
+#define HTAGV_REGEXP        (0xb)
+#endif
+#define HTAGV_BOXED_STRING  (0xc)
+#define HTAGV_BOXED_NUMBER  (0xd)
+#define HTAGV_BOXED_BOOLEAN (0xe)
+
+#define HTAG_STRING        ((HTag) {HTAGV_STRING})
+#define HTAG_FLONUM        ((HTag) {HTAGV_FLONUM})
+#define HTAG_SIMPLE_OBJECT ((HTag) {HTAGV_SIMPLE_OBJECT})
+#define HTAG_ARRAY         ((HTag) {HTAGV_ARRAY})
+#define HTAG_FUNCTION      ((HTag) {HTAGV_FUNCTION})
+#define HTAG_BUILTIN       ((HTag) {HTAGV_BUILTIN})
+#define HTAG_ITERATOR      ((HTag) {HTAGV_ITERATOR})
+#ifdef USE_REGEXP
+#define HTAG_REGEXP        ((HTag) {HTAGV_REGEXP})
+#endif
+#define HTAG_BOXED_STRING  ((HTag) {HTAGV_BOXED_STRING})
+#define HTAG_BOXED_NUMBER  ((HTag) {HTAGV_BOXED_NUMBER})
+#define HTAG_BOXED_BOOLEAN ((HTag) {HTAGV_BOXED_BOOLEAN})
 
 #define need_simple_object 1
 #define need_string 1
@@ -125,6 +170,39 @@
 #define need_normal_flonum 1
 #define need_normal_special 1
 #define need_normal_string 1
+
+/*
+ * Pair of two pointer tags
+ * Note that the result of TAG_PAIR is of type Tag
+ */
+#define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
+#define TAG_PAIR_VARS(v1, v2) (TAG_PAIR(get_ptag(v1).v, get_ptag(v2).v))
+
+#define TP_OBJOBJ TAG_PAIR(TV_GENERIC, TV_GENERIC)
+#define TP_OBJSTR TAG_PAIR(TV_GENERIC, TV_STRING)
+#define TP_OBJFLO TAG_PAIR(TV_GENERIC, TV_FLONUM)
+#define TP_OBJSPE TAG_PAIR(TV_GENERIC, TV_SPECIAL)
+#define TP_OBJFIX TAG_PAIR(TV_GENERIC, TV_FIXNUM)
+#define TP_STROBJ TAG_PAIR(TV_STRING, TV_GENERIC)
+#define TP_STRSTR TAG_PAIR(TV_STRING, TV_STRING)
+#define TP_STRFLO TAG_PAIR(TV_STRING, TV_FLONUM)
+#define TP_STRSPE TAG_PAIR(TV_STRING, TV_SPECIAL)
+#define TP_STRFIX TAG_PAIR(TV_STRING, TV_FIXNUM)
+#define TP_FLOOBJ TAG_PAIR(TV_FLONUM, TV_GENERIC)
+#define TP_FLOSTR TAG_PAIR(TV_FLONUM, TV_STRING)
+#define TP_FLOFLO TAG_PAIR(TV_FLONUM, TV_FLONUM)
+#define TP_FLOSPE TAG_PAIR(TV_FLONUM, TV_SPECIAL)
+#define TP_FLOFIX TAG_PAIR(TV_FLONUM, TV_FIXNUM)
+#define TP_SPEOBJ TAG_PAIR(TV_SPECIAL, TV_GENERIC)
+#define TP_SPESTR TAG_PAIR(TV_SPECIAL, TV_STRING)
+#define TP_SPEFLO TAG_PAIR(TV_SPECIAL, TV_FLONUM)
+#define TP_SPESPE TAG_PAIR(TV_SPECIAL, TV_SPECIAL)
+#define TP_SPEFIX TAG_PAIR(TV_SPECIAL, TV_FIXNUM)
+#define TP_FIXOBJ TAG_PAIR(TV_FIXNUM, TV_GENERIC)
+#define TP_FIXSTR TAG_PAIR(TV_FIXNUM, TV_STRING)
+#define TP_FIXFLO TAG_PAIR(TV_FIXNUM, TV_FLONUM)
+#define TP_FIXSPE TAG_PAIR(TV_FIXNUM, TV_SPECIAL)
+#define TP_FIXFIX TAG_PAIR(TV_FIXNUM, TV_FIXNUM)
 
 /* Local Variables:      */
 /* mode: c               */

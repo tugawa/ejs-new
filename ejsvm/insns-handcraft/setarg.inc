@@ -14,5 +14,6 @@
   // array_body_index(fframe_arguments(fr), index) = v2;
   // TODO: optimize
   arguments = fframe_arguments(fr);
-  set_array_prop(context, arguments, int_to_fixnum(index), v2);
+  set_array_prop(context, arguments,
+                 cint_to_number(context, (cint) index), v2);
 }

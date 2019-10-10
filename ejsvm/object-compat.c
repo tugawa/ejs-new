@@ -328,7 +328,7 @@ int delete_object_prop(JSValue obj, HashKey key)
     return FAIL;
 
   /* Set corresponding property as JS_UNDEFINED */
-  index = prop_index(remove_jsobject_tag(obj), key, &attr, NULL);
+  index = prop_index(jsv_to_jsobject(obj), key, &attr, NULL);
   if (index == - 1)
     return FAIL;
   object_set_prop(obj, index, JS_UNDEFINED);
@@ -358,11 +358,12 @@ int delete_array_element(JSValue a, cint n)
  */
 int iterator_get_next_propname(JSValue iter, JSValue *name)
 {
-  int size = iterator_size(iter);
-  int index = iterator_index(iter);
+  int size = get_jsiterator_size(iter);
+  int index = get_jsiterator_index(iter);
   if(index < size) {
-    *name = iterator_body_index(iter,index++);
-    iterator_index(iter) = index;
+    JSValue *body = get_jsiterator_body(iter);
+    *name = body[index++];
+    set_jsiterator_index(iter, index);
     return SUCCESS;
   }else{
     *name = JS_UNDEFINED;
@@ -437,7 +438,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   JSValue tmpobj;
 
   GC_PUSH(obj);
-  iter = make_iterator(ctx);
+  iter = ptr_to_iterator(allocate_iterator(ctx));
 
   /* allocate an itearator */
   tmpobj = obj;
@@ -454,14 +455,16 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     HashTable *ht;
     HashIterator hi;
     HashCell *p;
+    JSValue *body;
 
     ht = object_get_shape(obj)->pm->map;
     init_hash_iterator(ht, &hi);
 
+    body = get_jsiterator_body(iter);
     while (nextHashCell(ht, &hi, &p) == SUCCESS) {
       if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION))
         continue;
-      iterator_body_index(iter, index++) = (JSValue)p->entry.key;
+      body[index++] = (JSValue)p->entry.key;
     }
     obj = get_prop(obj, gconsts.g_string___proto__);
   } while (obj != JS_NULL);

@@ -7,8 +7,15 @@
  * Electro-communications.
  */
 
+struct property_map;
+
 typedef JSValue HashKey;
-typedef uint64_t HashData;
+typedef struct {
+  union {
+    uint64_t index;
+    struct property_map *pm;
+  } u;
+} HashData;
 typedef uint16_t Attribute;
 
 /* Attributes */

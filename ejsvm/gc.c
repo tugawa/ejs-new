@@ -17,34 +17,34 @@
 /* Objects allocated in the heap
  *                       has   stored as  visible   know
  *                      (ptag) (JSValue) (to user) (size) (type)
- *   HTAG_STRING         yes    yes       yes       fixed StringCell
- *   HTAG_FLONUM         yes    yes       yes       fixed FlonumCell
- *   HTAG_SIMPLE_OBJECT  yes    yes       yes       yes   JSObject
- *   HTAG_ARRAY          yes    yes       yes       yes   JSObject
- *   HTAG_FUNCTION       yes    yes       yes       yes   JSObject
- *   HTAG_BUILTIN        yes    yes       yes       yes   JSObject
- *   HTAG_BOXED_NUMBER   yes    yes       yes       yes   JSObject
- *   HTAG_BOXED_BOOLEAN  yes    yes       yes       yes   JSObject
+ *   CELLT_STRING         yes    yes       yes       fixed StringCell
+ *   CELLT_FLONUM         yes    yes       yes       fixed FlonumCell
+ *   CELLT_SIMPLE_OBJECT  yes    yes       yes       yes   JSObject
+ *   CELLT_ARRAY          yes    yes       yes       yes   JSObject
+ *   CELLT_FUNCTION       yes    yes       yes       yes   JSObject
+ *   CELLT_BUILTIN        yes    yes       yes       yes   JSObject
+ *   CELLT_BOXED_NUMBER   yes    yes       yes       yes   JSObject
+ *   CELLT_BOXED_BOOLEAN  yes    yes       yes       yes   JSObject
  *   HTAB_BOXED_STRING   yes    yes       yes       yes   JSObject
- *   HTAG_REGEXP         yes    yes       yes       yes   JSObject
- *   HTAG_ITERATOR       yes    yes       no        yes   Iterator
- *   HTAG_PROP           no     yes       no        no    JSValue*
- *   HTAG_ARRAY_DATA     no     no        no        no    JSValue*
- *   HTAG_FUNCTION_FRAME no     no        no        yes   FunctionFrame
- *   HTAG_STR_CONS       no     no        no        fixed StrCons
- *   HTAG_CONTEXT        no     no        no        fixed Context
- *   HTAG_STACK          no     no        no        no    JSValue*
- *   HTAG_HASHTABLE      no     no        no        fixed HashTable
- *   HTAG_HASH_BODY      no     no        no        no    HashCell**
- *   HTAG_HASH_CELL      no     no        no        fixed HashCell
- *   HTAG_PROPERTY_MAP   no     yes       no        fixed PropertyMap
- *   HTAG_SHAPE          no     no        no        fixed Shape
+ *   CELLT_REGEXP         yes    yes       yes       yes   JSObject
+ *   CELLT_ITERATOR       yes    yes       no        yes   Iterator
+ *   CELLT_PROP           no     yes       no        no    JSValue*
+ *   CELLT_ARRAY_DATA     no     no        no        no    JSValue*
+ *   CELLT_FUNCTION_FRAME no     no        no        yes   FunctionFrame
+ *   CELLT_STR_CONS       no     no        no        fixed StrCons
+ *   CELLT_CONTEXT        no     no        no        fixed Context
+ *   CELLT_STACK          no     no        no        no    JSValue*
+ *   CELLT_HASHTABLE      no     no        no        fixed HashTable
+ *   CELLT_HASH_BODY      no     no        no        no    HashCell**
+ *   CELLT_HASH_CELL      no     no        no        fixed HashCell
+ *   CELLT_PROPERTY_MAP   no     yes       no        fixed PropertyMap
+ *   CELLT_SHAPE          no     no        no        fixed Shape
  *
  * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
  * are stored in a dedicated slot and scand together with their owners.
  *
- * HTAG_PROP is stored in the last embedded slot.
- * HTAG_PROPERTY_MAP is stored as the value of property __property_map__
+ * CELLT_PROP is stored in the last embedded slot.
+ * CELLT_PROPERTY_MAP is stored as the value of property __property_map__
  * of a prototype object.
  *
  * Static data structures
@@ -107,7 +107,7 @@
  *  Types
  */
 
-#define HTAG_FREE          (0xff)
+#define CELLT_FREE          (0xff)
 
 struct free_chunk {
   header_t header;
@@ -164,7 +164,7 @@ uint64_t pertype_alloc_count[256];
 uint64_t pertype_live_bytes[256];
 uint64_t pertype_live_count[256];
 
-const char *htag_name[NUM_DEFINED_HTAG + 1] = {
+const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 00 */ "free",
     /* 01 */ "",
     /* 02 */ "",
@@ -192,8 +192,8 @@ const char *htag_name[NUM_DEFINED_HTAG + 1] = {
     /* 18 */ "HASHTABLE",
     /* 19 */ "HASH_BODY",
     /* 1a */ "HASH_CELL",
-    /* 1b */ "HTAG_PROPERTY_MAP",
-    /* 1c */ "HTAG_SHAPE",
+    /* 1b */ "PROPERTY_MAP",
+    /* 1c */ "SHAPE",
 };
 #endif /* GC_PROF */
 
@@ -208,7 +208,7 @@ struct property_map_roots *property_map_roots;
  */
 /* space */
 STATIC void create_space(struct space *space, size_t bytes, char* name);
-STATIC int in_js_space(void *addr_);
+STATIC int in_js_space(void *addr);
 #ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
@@ -237,7 +237,7 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 {
   struct free_chunk *p;
   p = (struct free_chunk *) malloc(bytes);
-  p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, 0, HTAG_FREE);
+  p->header = HEADER0_COMPOSE(bytes >> LOG_BYTES_IN_JSVALUE, 0, CELLT_FREE);
 #ifdef GC_DEBUG
   HEADER0_SET_MAGIC(p->header, HEADER0_MAGIC);
 #endif /* GC_DEBUG */
@@ -323,14 +323,14 @@ STATIC void* space_alloc(struct space *space,
     struct free_chunk *chunk;
     for (chunk = space->freelist; chunk != NULL; chunk = chunk->next) {
       size_t chunk_jsvalues = HEADER0_GET_SIZE(chunk->header);
-      LOG(" %lu", chunk_jsvalues * BYTES_IN_JSVALUE);
+      LOG(" %zu", chunk_jsvalues * BYTES_IN_JSVALUE);
     }
   }
   LOG("\n");
-  LOG("js_space.bytes = %lu\n", js_space.bytes);
-  LOG("js_space.free_bytes = %lu\n", js_space.free_bytes);
+  LOG("js_space.bytes = %zu\n", js_space.bytes);
+  LOG("js_space.free_bytes = %zu\n", js_space.free_bytes);
   LOG("gc_disabled = %d\n", gc_disabled);
-  LOG("request = %lu\n", request_bytes);
+  LOG("request = %zu\n", request_bytes);
   LOG("type = 0x%x\n", type);
   LOG("memory exhausted\n");
 #endif /* DEBUG */
@@ -589,12 +589,12 @@ STATIC void process_edge(uintptr_t ptr)
 
   /* part of code for processing the node is inlined */
   switch (type) {
-  case HTAG_STRING:
-  case HTAG_FLONUM:
+  case CELLT_STRING:
+  case CELLT_FLONUM:
     return;
-  case HTAG_SIMPLE_OBJECT:
+  case CELLT_SIMPLE_OBJECT:
     break;
-  case HTAG_ARRAY:
+  case CELLT_ARRAY:
     {
       JSObject *p = (JSObject *) ptr;
       JSValue *a_body = get_array_ptr_body(p);
@@ -606,7 +606,7 @@ STATIC void process_edge(uintptr_t ptr)
         process_edge_JSValue_array(a_body, 0, len);
       break;
     }
-  case HTAG_FUNCTION:
+  case CELLT_FUNCTION:
     {
       JSObject *p = (JSObject *) ptr;
       FunctionFrame *frame = get_function_ptr_environment(p);
@@ -617,23 +617,23 @@ STATIC void process_edge(uintptr_t ptr)
       process_edge((uintptr_t) frame);
       break;
     }
-  case HTAG_BUILTIN:
+  case CELLT_BUILTIN:
     break;
-  case HTAG_BOXED_NUMBER:
+  case CELLT_BOXED_NUMBER:
     {
       JSObject *p = (JSObject *) ptr;
       JSValue value = get_number_object_ptr_value(p);
       process_edge((uintptr_t) value);
       break;
     }
-  case HTAG_BOXED_STRING:
+  case CELLT_BOXED_STRING:
     {
       JSObject *p = (JSObject *) ptr;
       JSValue value = get_string_object_ptr_value(p);
       process_edge((uintptr_t) value);
       break;
     }
-  case HTAG_BOXED_BOOLEAN:
+  case CELLT_BOXED_BOOLEAN:
     {
 #ifdef DEBUG
       JSObject *p = (JSObject *) ptr;
@@ -643,23 +643,23 @@ STATIC void process_edge(uintptr_t ptr)
       break;
     }
 #ifdef USE_REGEXP
-  case HTAG_REGEXP:
+  case CELLT_REGEXP:
     break;
 #endif /* USE_REGEXP */
-  case HTAG_ITERATOR:
+  case CELLT_ITERATOR:
     {
       Iterator *p = (Iterator *) ptr;
       if (p->size > 0)
         process_edge_JSValue_array(p->body, 0, p->size);
       return;
     }
-  case HTAG_PROP:
-  case HTAG_ARRAY_DATA:
+  case CELLT_PROP:
+  case CELLT_ARRAY_DATA:
     abort();
-  case HTAG_FUNCTION_FRAME:
+  case CELLT_FUNCTION_FRAME:
     process_node_FunctionFrame((FunctionFrame *) ptr);
     return;
-  case HTAG_STR_CONS:
+  case CELLT_STR_CONS:
     {
       StrCons *p = (StrCons *) ptr;
       /* WEAK: p->str */
@@ -667,21 +667,21 @@ STATIC void process_edge(uintptr_t ptr)
         process_edge((uintptr_t) p->next); /* StrCons */
       return;
     }
-  case HTAG_CONTEXT:
+  case CELLT_CONTEXT:
     process_node_Context((Context *) ptr);
     return;
-  case HTAG_STACK:
+  case CELLT_STACK:
     abort();
-  case HTAG_HASHTABLE:
+  case CELLT_HASHTABLE:
     {
       HashTable *p = (HashTable *) ptr;
       if (p->body != NULL)
         process_edge_HashBody(p->body, p->size);
       return;
     }
-  case HTAG_HASH_BODY:
+  case CELLT_HASH_BODY:
     abort();
-  case HTAG_HASH_CELL:
+  case CELLT_HASH_CELL:
     {
       HashCell *p = (HashCell *) ptr;
       process_edge(p->entry.key);
@@ -694,7 +694,7 @@ STATIC void process_edge(uintptr_t ptr)
         process_edge((uintptr_t) p->next);  /* HashCell */
       return;
     }
-  case HTAG_PROPERTY_MAP:
+  case CELLT_PROPERTY_MAP:
     {
       PropertyMap *p = (PropertyMap *) ptr;
       process_edge((uintptr_t) p->map); /* HashTable */
@@ -711,14 +711,14 @@ STATIC void process_edge(uintptr_t ptr)
         struct property_map_roots *e =
           (struct property_map_roots *)
           space_alloc(&js_space, sizeof(struct property_map_roots),
-                      HTAG_FREE);
+                      CELLT_FREE);
         e->pm = p;
         e->next = property_map_roots;
         property_map_roots = e;
       }
       return;
     }
-  case HTAG_SHAPE:
+  case CELLT_SHAPE:
     {
       Shape *p = (Shape *) ptr;
       process_edge((uintptr_t) p->pm);
@@ -748,7 +748,9 @@ STATIC void process_edge(uintptr_t ptr)
       process_edge(p->eprop[i]);
     if (n_extension != 0) {
       /* 3. extension */
-      process_edge_JSValue_array((JSValue *) p->eprop[actual_embedded], 0,
+      JSValue *extension =
+        (JSValue *) jsv_to_uintptr(p->eprop[actual_embedded]);
+      process_edge_JSValue_array(extension, 0,
                                  os->pm->n_props - actual_embedded);
     }
 #ifdef ALLOC_SITE_CACHE
@@ -941,7 +943,7 @@ STATIC void weak_clear_StrTable(StrTable *table)
   for (i = 0; i < table->size; i++) {
     StrCons ** p = table->obvector + i;
     while (*p != NULL) {
-      StringCell *cell = remove_normal_string_tag((*p)->str);
+      StringCell *cell = (StringCell *) jsv_to_uintptr((*p)->str);
       if (!is_marked_cell(cell)) {
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
@@ -982,7 +984,7 @@ void weak_clear_shape_recursive(PropertyMap *pm)
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
     if (is_transition(cell->entry.attr))
-      weak_clear_shape_recursive((PropertyMap *) cell->entry.data);
+      weak_clear_shape_recursive(cell->entry.data.u.pm);
 
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
@@ -1007,7 +1009,7 @@ static PropertyMap* get_transition_dest(PropertyMap *pm)
   iter = createHashIterator(pm->map);
   while(nextHashCell(pm->map, &iter, &p) != FAIL)
     if (is_transition(p->entry.attr)) {
-      PropertyMap *ret = (PropertyMap *) p->entry.data;
+      PropertyMap *ret = p->entry.data.u.pm;
 #ifdef GC_DEBUG
       while(nextHashCell(pm->map, &iter, &p) != FAIL)
         assert(!is_transition(p->entry.attr));
@@ -1028,7 +1030,7 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
   iter = createHashIterator(pm->map);
   while(nextHashCell(pm->map, &iter, &p) != FAIL)
     if (is_transition(p->entry.attr)) {
-      PropertyMap *next = (PropertyMap *) p->entry.data;
+      PropertyMap *next = p->entry.data.u.pm;
       /*
        * If the next node is both
        *   1. not pointed to through strong pointers and
@@ -1039,7 +1041,7 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 #ifdef VERBOSE_WEAK
         printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
-        next = (PropertyMap *) get_transition_dest(next);
+        next = get_transition_dest(next);
       }
 #ifdef VERBOSE_WEAK
       if (is_marked_cell(next))
@@ -1051,7 +1053,7 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
       /* Resurrect if it is branching node or terminal node */
       if (!is_marked_cell(next))
         process_edge((uintptr_t) next);
-      p->entry.data = (HashData) next;
+      p->entry.data.u.pm = next;
       next->prev = pm;
       weak_clear_property_map_recursive(next);
     }
@@ -1150,7 +1152,7 @@ STATIC void sweep_space(struct space *space)
 #endif /* GC_DEBUG */
         chunk->header =
           HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-                          0, HTAG_FREE);
+                          0, CELLT_FREE);
 #ifdef GC_DEBUG
         HEADER0_SET_MAGIC(chunk->header, HEADER0_MAGIC);
 #endif /* GC_DEBUG */
@@ -1160,7 +1162,7 @@ STATIC void sweep_space(struct space *space)
       } else  {
         *(header_t *) free_start =
           HEADER0_COMPOSE((scan - free_start) >> LOG_BYTES_IN_JSVALUE,
-                          0, HTAG_FREE);
+                          0, CELLT_FREE);
 #ifdef GC_DEBUG
         HEADER0_SET_MAGIC(*(header_t *) free_start, HEADER0_MAGIC);
 #endif /* GC_DEBUG */
@@ -1247,21 +1249,21 @@ STATIC void check_invariant_nobw_space(struct space *space)
     header_t header = *hdrp;
     JSValue *payload = (JSValue *)(((header_t *) scan) + 1);
     switch (HEADER0_GET_TYPE(header)) {
-    case HTAG_STRING:
-    case HTAG_FLONUM:
-    case HTAG_ARRAY_DATA:
-    case HTAG_CONTEXT:
-    case HTAG_STACK:
-    case HTAG_HIDDEN_CLASS:
-    case HTAG_HASHTABLE:
-    case HTAG_HASH_CELL:
+    case CELLT_STRING:
+    case CELLT_FLONUM:
+    case CELLT_ARRAY_DATA:
+    case CELLT_CONTEXT:
+    case CELLT_STACK:
+    case CELLT_HIDDEN_CLASS:
+    case CELLT_HASHTABLE:
+    case CELLT_HASH_CELL:
       break;
-    case HTAG_PROPERTY_MAP:
+    case CELLT_PROPERTY_MAP:
       {
         PropertyMap *pm = (PropertyMap *) payload;
         Shape *os;
         for (os = pm->shapes; os != NULL; os = os->next)
-          assert(HEADER0_GET_TYPE(((JSValue *) os)[-1]) == HTAG_SHAPE);
+          assert(HEADER0_GET_TYPE(((JSValue *) os)[-1]) == CELLT_SHAPE);
         goto DEFAULT;
       }
     default:
@@ -1274,17 +1276,20 @@ STATIC void check_invariant_nobw_space(struct space *space)
           - HEADER0_GET_EXTRA(header);
         size_t i;
         for (i = 0; i < payload_jsvalues; i++) {
-          JSValue x = payload[i];
+          const uintjsv_t JSV_POINTER_BITS_MASK = ((uintjsv_t) (uintptr_t) -1);
+          JSValue v = (JSValue) payload[i];
+          uintjsv_t x = (uintjsv_t) v;
           /* weak pointers */
           /*
-          if (HEADER0_GET_TYPE(header) == HTAG_STR_CONS) {
+          if (HEADER0_GET_TYPE(header) == CELLT_STR_CONS) {
             if (i == OFFSET_OF(StrCons, str))
               continue;
           }
           */
-          if (in_js_space((void *)(x & ~7))) {
-            assert(is_marked_cell((void *) (x & ~7)));
-          }
+          if ((x & ~JSV_POINTER_BITS_MASK) == 0 &&
+              (is_object(x) || get_ptag(x).v == 0) &&
+              in_js_space((void *)jsv_to_uintptr(v)))
+            assert(is_marked_cell((void *)jsv_to_uintptr(v)));
         }
       }
       break;
@@ -1316,7 +1321,7 @@ STATIC void print_heap_stat(void)
     header_t header = *(header_t *) scan;
     cell_type_t type = HEADER0_GET_TYPE(header);
     size_t size = HEADER0_GET_SIZE(header);
-    if (type != HTAG_FREE) {
+    if (type != CELLT_FREE) {
       jsvalues[type] += size;
       number[type] ++;
     }

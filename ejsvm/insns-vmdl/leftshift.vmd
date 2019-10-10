@@ -8,6 +8,7 @@ leftshift : (JSValue, JSValue) -> Fixnum
 leftshift (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
+    // TODO: We need 32bit int type
       cint x1 = ((FixnumToCint(v1) << 32) >> 32);
       cint x2 = FixnumToCint(v2);
       return CintToFixnum(x1 << x2);

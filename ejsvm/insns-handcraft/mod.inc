@@ -7,17 +7,16 @@
  */
 {
   Register dst = r0;
-  Tag tag;
   double x1, x2, d;
 
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
       if (v2 == FIXNUM_ZERO)
         regbase[dst] = gconsts.g_flonum_nan;
       else {
         cint s = fixnum_to_cint(v1) % fixnum_to_cint(v2);
-        regbase[dst] = cint_to_fixnum(s);
+        regbase[dst] = cint_to_number(context, s);
       }
     }
     break;

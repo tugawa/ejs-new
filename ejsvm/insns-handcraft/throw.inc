@@ -2,7 +2,7 @@
    throw
  */
 {
-  Displacement disp;
+  InstructionDisplacement disp;
   int newpc;
   int handler_fp;
   exhandler_stack_pop(context, &newpc, &handler_fp);
@@ -13,6 +13,6 @@
     set_sp(context, fp - 5);
     update_context();      /* TODO: optimise */
   }
-  disp = (Displacement) (newpc - pc);
+  disp = (InstructionDisplacement) (newpc - pc);
   set_pc_relative(disp);
 }

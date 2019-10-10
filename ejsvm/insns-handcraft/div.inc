@@ -7,10 +7,9 @@
  */
 {
   Register dst = r0;
-  Tag tag;
   double x1, x2, d;
 
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
       int n1, n2, s;
@@ -23,7 +22,7 @@
         n2 = fixnum_to_cint(v2);
         s = n1 / n2;
         regbase[dst] =
-          (n1 == n2 * s)? cint_to_fixnum(s):
+          (n1 == n2 * s)? cint_to_number(context, s):
                           double_to_flonum(context, (double)n1 / (double)n2);
       }
     }

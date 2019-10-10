@@ -17,7 +17,7 @@
     dst = cint_to_fixnum_nocheck(p);
   } else {
     double p = (double) n1 * (double) n2;
-    dst = double_to_number(context, p);
+o    dst = double_to_number(context, p);
   }
 \}
 

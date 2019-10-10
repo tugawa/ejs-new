@@ -10,100 +10,96 @@
 #ifndef TYPES_H_
 #define TYPES_H_
 
-/*
- * JSValue
+#include <limits.h>
+
+struct jsobject_cell;
+struct iterator;
+struct flonum_cell;
+struct string_cell;
+
+/* JSValue
+ *
+ * First-class data in JavaScript is represented as a JSValue.
+ *
+ * JSValue is either a pointer with a pointer tag (ptag) or an
+ * immediate value with a ptag.
+ *
+ *  ---------------------------------------------------
+ *  |  pointer / immediate value                 |ptag|
+ *  ---------------------------------------------------
+ *
+ * The size of JSValue and bits for ptag depend on the configuration.
+ * JSValue would be 64 or 32 bits depending on the architechture,
+ * and ptag is 2 or 3 bits depending on object alignment.
+ *
+ * We have some related types.
+ *   - uintjsv_t, intjsv_t:
+ *     Integer types that have the same size as JSValue.  Arithmetic
+ *     operations to deal with JSValue, such as tag operations, should
+ *     be done on this type.
+ *   - cuint, cint:
+ *     Integers compatible to fixnums.  Any arithmetic operations
+ *     are allowed on this type.  To support 32-bit bitwise operaions
+ *     of JavaScript, these types should have at least 32 bits.
+ *
+ * There are some invariants:
+ *   - sizeof(JSValue) >= sizeof(void*)
+ *   - sizeof(cint) >= sizeof(JSValue)
+ *   - sizeof(cint) >= 32
  */
+
+
+/* Enable compile-time and runtime type check.
+ *
+ * Tag operations and conversion between JSValue and otehr types
+ * are implemented in the way that strict type check works.
+ * We use inline functions to enable compile time type check, and
+ * `assert' statements to check the datatypes of JSValues.
+ */
+
+#define TAGOFFSET 3
+#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
+
+typedef int64_t cint;
+typedef uint64_t cuint;
+
+typedef struct {
+  uintjsv_t v: TAGOFFSET;
+} PTag;
+
+typedef struct {
+  cell_type_t v;
+} HTag;
+
+static inline PTag get_ptag(JSValue v);
+static inline int is_ptag(JSValue v, PTag t);
+static inline uintjsv_t clear_ptag(JSValue v);
+static inline uintjsv_t clear_ptag(JSValue v);
+static inline JSValue put_ptag(uintjsv_t x, PTag t);
+/* This macro is used to create a constant.  `x' should be a constant. */
+#define PUT_PTAG_CONSTANT(x, tv)  ((JSValue) ((x) | (tv)))
+static inline HTag get_htag(JSValue v);
+static inline int is_htag(JSValue v, HTag t);
+static inline uintptr_t jsv_to_uintptr(JSValue v);
+static inline JSValue noheap_ptr_to_jsv(void *p);
+
+struct function_frame;
+struct property_map;
+#define DEFINE_CONVERSION_LIST                                          \
+DEFINE_CONVERSION(function_frame, struct function_frame*, CELLT_FUNCTION_FRAME)\
+DEFINE_CONVERSION(extension_prop, JSValue*,               CELLT_PROP)   \
+DEFINE_CONVERSION(property_map,   struct property_map*,   CELLT_PROPERTY_MAP)
+
+#define DEFINE_CONVERSION(name, T, CELLT)       \
+static inline JSValue name##_to_jsv(T p);
+DEFINE_CONVERSION_LIST
+#undef DEFINE_CONVERSION
+
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
 #include "types-handcraft.h"
 #endif /* USE_TYPES_GENERATED */
-
-/*
- * First-class data in JavaScript is represented as a JSValue.
- * JSValue has 64 bits, where least sifnificat three bits is its tag.
- *
- *  ---------------------------------------------------
- *  |  pointer / immediate value                  |tag|
- *  ---------------------------------------------------
- *  63                                             210
- */
-#define TAGOFFSET (3)
-#define TAGMASK   (0x7)  /* 111 */
-
-#define get_tag(p)        (((Tag)(p)) & TAGMASK)
-#define put_tag(p,t)      ((JSValue)((uint64_t)(p) + (t)))
-#define clear_tag(p)      ((uint64_t)(p) & ~TAGMASK)
-#define remove_tag(p,t)   (clear_tag(p))
-#define equal_tag(p,t)    (get_tag((p)) == (t))
-#define obj_header_tag(x) (gc_obj_header_type((void *) clear_tag(x)))
-
-/*
- * Pair of two pointer tags
- * Note that the result of TAG_PAIR is of type Tag
- */
-#define TAG_PAIR(t1, t2) ((t1) | ((t2) << TAGOFFSET))
-
-#define TP_OBJOBJ TAG_PAIR(T_GENERIC, T_GENERIC)
-#define TP_OBJSTR TAG_PAIR(T_GENERIC, T_STRING)
-#define TP_OBJFLO TAG_PAIR(T_GENERIC, T_FLONUM)
-#define TP_OBJSPE TAG_PAIR(T_GENERIC, T_SPECIAL)
-#define TP_OBJFIX TAG_PAIR(T_GENERIC, T_FIXNUM)
-#define TP_STROBJ TAG_PAIR(T_STRING, T_GENERIC)
-#define TP_STRSTR TAG_PAIR(T_STRING, T_STRING)
-#define TP_STRFLO TAG_PAIR(T_STRING, T_FLONUM)
-#define TP_STRSPE TAG_PAIR(T_STRING, T_SPECIAL)
-#define TP_STRFIX TAG_PAIR(T_STRING, T_FIXNUM)
-#define TP_FLOOBJ TAG_PAIR(T_FLONUM, T_GENERIC)
-#define TP_FLOSTR TAG_PAIR(T_FLONUM, T_STRING)
-#define TP_FLOFLO TAG_PAIR(T_FLONUM, T_FLONUM)
-#define TP_FLOSPE TAG_PAIR(T_FLONUM, T_SPECIAL)
-#define TP_FLOFIX TAG_PAIR(T_FLONUM, T_FIXNUM)
-#define TP_SPEOBJ TAG_PAIR(T_SPECIAL, T_GENERIC)
-#define TP_SPESTR TAG_PAIR(T_SPECIAL, T_STRING)
-#define TP_SPEFLO TAG_PAIR(T_SPECIAL, T_FLONUM)
-#define TP_SPESPE TAG_PAIR(T_SPECIAL, T_SPECIAL)
-#define TP_SPEFIX TAG_PAIR(T_SPECIAL, T_FIXNUM)
-#define TP_FIXOBJ TAG_PAIR(T_FIXNUM, T_GENERIC)
-#define TP_FIXSTR TAG_PAIR(T_FIXNUM, T_STRING)
-#define TP_FIXFLO TAG_PAIR(T_FIXNUM, T_FLONUM)
-#define TP_FIXSPE TAG_PAIR(T_FIXNUM, T_SPECIAL)
-#define TP_FIXFIX TAG_PAIR(T_FIXNUM, T_FIXNUM)
-
-typedef uint16_t  Tag;
-
-/*
- * header tags for non-JS objects
- */
-/* HTAG_FREE is defined in gc.c */
-#define HTAG_PROP           (0x11) /* Array of JSValues */
-#define HTAG_ARRAY_DATA     (0x12) /* Array of JSValues */
-#define HTAG_FUNCTION_FRAME (0x13) /* FunctionFrame */
-#define HTAG_STR_CONS       (0x14) /* StrCons */
-#define HTAG_CONTEXT        (0x15) /* Context */
-#define HTAG_STACK          (0x16) /* Array of JSValues */
-#ifdef HIDDEN_CLASS
-#define HTAG_HIDDEN_CLASS   (0x17) /* HiddenClass */
-#endif
-#define HTAG_HASHTABLE      (0x18)
-#define HTAG_HASH_BODY      (0x19)
-#define HTAG_HASH_CELL      (0x1A)
-#define HTAG_PROPERTY_MAP   (0x1B)
-#define HTAG_SHAPE          (0x1C)
-
-#ifdef GC_PROF
-#define NUM_DEFINED_HTAG 0x1C
-extern const char *htag_name[NUM_DEFINED_HTAG + 1];
-#define HTAG_NAME(t) ((t) <= NUM_DEFINED_HTAG ? htag_name[t] : "")
-#else /* GC_PROF */
-#define HTAG_NAME(t) abort();  /* HTAG_NAME is only for GC profiling */
-#endif /* GC_PROF */
-
-#ifdef DEBUG
-#define DEBUG_NAME(name) name
-#else /* DEBUG */
-#define DEBUG_NAME(name) ""
-#endif /* DEBUG */
 
 /*
  * Hidden Class Transition
@@ -160,17 +156,6 @@ typedef struct shape {
 #endif /* HC_PROF */
 } Shape;
 
-/*
- * JSObject is used for
- *   - simple_object
- *   - function_object
- *   - builtin_object
- *   - array_object
- *   - string_object
- *   - number_object
- *   - boolean_object
- */
-
 typedef struct jsobject_cell {
   Shape *shape;
 #ifdef ALLOC_SITE_CACHE
@@ -193,10 +178,10 @@ typedef struct jsobject_cell {
    is_string_object(p) || is_number_object(p) || is_boolean_object(p))
 #endif /* USE_REGEXP */
 
-static inline JSObject *remove_jsobject_tag(JSValue obj)
+static inline JSObject *jsv_to_jsobject(JSValue v)
 {
-  assert(is_jsobject(obj));
-  return (JSObject *) clear_tag(obj);
+  assert(is_jsobject(v));
+  return (JSObject *) jsv_to_uintptr(v);
 }
 
 static inline JSValue *object_get_prop_address(JSValue obj, int index)
@@ -204,12 +189,12 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   JSObject *p;
   int n_embedded;
 
-  p = remove_jsobject_tag(obj);
+  p = jsv_to_jsobject(obj);
   n_embedded = p->shape->n_embedded_slots;
   if (index < n_embedded - 1 || p->shape->n_extension_slots == 0)
     return &p->eprop[index];
   else {
-    JSValue *extension = (JSValue *) p->eprop[n_embedded - 1];
+    JSValue *extension = (JSValue *) jsv_to_uintptr(p->eprop[n_embedded - 1]);
     return &extension[index - (n_embedded - 1)];
   }
 }
@@ -218,10 +203,10 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
 #define object_set_prop(obj, index, v) \
   *(object_get_prop_address(obj, index)) = v
 
-#define object_get_shape(obj) (remove_jsobject_tag(obj)->shape)
+#define object_get_shape(obj) (jsv_to_jsobject(obj)->shape)
 #ifdef ALLOC_SITE_CACHE
 #define object_set_alloc_site(obj, as)          \
-  (remove_jsobject_tag(obj)->alloc_site = (as))
+  (jsv_to_jsobject(obj)->alloc_site = (as))
 #endif /* ALLOC_SITE_CACHE */
 
 /** SPECIAL FIELDS OF JSObjects
@@ -237,31 +222,31 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
 #define DEFINE_ACCESSORS(OT, index, FT, field)                  \
 static inline FT get_##OT##_ptr_##field(JSObject *p)            \
 {                                                               \
-  return (FT) p->eprop[index];                                  \
+  return (FT) jsv_to_uintptr(p->eprop[index]);                  \
 }                                                               \
-static inline void set_##OT##_ptr_##field(JSObject *p, FT v)    \
+static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
 {                                                               \
-  p->eprop[index] = (JSValue) v;                                \
+  p->eprop[index] = (JSValue) (uintptr_t) val;                  \
 }                                                               \
-static inline FT get_js##OT##_##field(JSValue x)                \
+static inline FT get_js##OT##_##field(JSValue v)                \
 {                                                               \
-  assert(is_##OT(x));                                           \
-  JSObject *p = remove_jsobject_tag(x);                         \
-  return get_##OT##_ptr_##field(p);                             \
+  assert(is_##OT(v));                                           \
+  {                                                             \
+    JSObject *p = jsv_to_jsobject(v);                           \
+    return get_##OT##_ptr_##field(p);                           \
+  }                                                             \
 }                                                               \
-static inline void set_js##OT##_##field(JSValue x, FT v)        \
+static inline void set_js##OT##_##field(JSValue v, FT val)      \
 {                                                               \
-  assert(is_##OT(x));                                           \
-  JSObject *p = remove_jsobject_tag(x);                         \
-  set_##OT##_ptr_##field(p, v);                                 \
+  JSObject *p = jsv_to_jsobject(v);                             \
+  assert(is_##OT(v));                                           \
+  set_##OT##_ptr_##field(p, val);                               \
 }
 
 /* Simple */
-#define put_simple_object_tag(p) put_normal_simple_object_tag(p)
 #define OBJECT_SPECIAL_PROPS 0
 
 /* Array */
-#define put_array_tag(p) put_normal_array_tag(p)
 #define ARRAY_SPECIAL_PROPS 3
 DEFINE_ACCESSORS(array, 0, uint64_t, size)
 DEFINE_ACCESSORS(array, 1, uint64_t, length)
@@ -275,14 +260,12 @@ DEFINE_ACCESSORS(array, 2, JSValue *, body)
 #define MINIMUM_ARRAY_SIZE  100
 
 /* Function */
-#define put_function_tag(p) put_normal_function_tag(p)
 #define FUNCTION_SPECIAL_PROPS 2
 DEFINE_ACCESSORS(function, 0, FunctionTable*, table_entry)
 DEFINE_ACCESSORS(function, 1, FunctionFrame*, environment)
 
 /* Builtin */
 typedef void (*builtin_function_t)(Context*, int, int);
-#define put_builtin_tag(p) put_normal_builtin_tag(p)
 #define BUILTIN_SPECIAL_PROPS 3
 DEFINE_ACCESSORS(builtin, 0, builtin_function_t, body)
 DEFINE_ACCESSORS(builtin, 1, builtin_function_t, constructor)
@@ -293,7 +276,6 @@ DEFINE_ACCESSORS(builtin, 2, int, nargs)
 
 #include <oniguruma.h>
 
-#define put_regexp_tag(p) put_normal_regexp_tag(p)
 #define REX_SPECIAL_PROPS 6
 DEFINE_ACCESSORS(regexp, 0, char*, pattern)
 DEFINE_ACCESSORS(regexp, 1, int, reg)
@@ -309,68 +291,94 @@ DEFINE_ACCESSORS(regexp, 5, int, lastindex)
 #endif /* USE_REGEXP */
 
 /* String */
-#define put_string_object_tag(p) put_normal_string_object_tag(p)
 #define STRING_SPECIAL_PROPS 1
 DEFINE_ACCESSORS(string_object, 0, JSValue, value)
 
 /* Number */
-#define put_number_object_tag(p) put_normal_number_object_tag(p)
 #define NUMBER_SPECIAL_PROPS 1
 DEFINE_ACCESSORS(number_object, 0, JSValue, value)
 
 /* Boolean */
-#define put_boolean_object_tag(p) put_normal_boolean_object_tag(p)
 #define BOOLEAN_SPECIAL_PROPS 1
 DEFINE_ACCESSORS(boolean_object, 0, JSValue, value)
 
+#undef DEFINE_ACCESSORS
 
-/** Internal Object ******************************************/
+/** Primitive Heap-allocated Object ************************************/
 
-/*
- * Iterator
- * tag == T_GENERIC
+
+#define DEFINE_GETTER(RT, S, FT, field)                         \
+static inline FT get_##RT##_ptr_##field(S *p)                   \
+{                                                               \
+  return p->field;                                              \
+}                                                               \
+static inline FT get_js##RT##_##field(JSValue v)                \
+{                                                               \
+  assert(is_##RT(v));                                           \
+  {                                                             \
+    S *p = (S *) jsv_to_uintptr(v);                             \
+    return get_##RT##_ptr_##field(p);                           \
+  }                                                             \
+}                                                               \
+
+#define DEFINE_SETTER(RT, S, FT, field)                         \
+static inline void set_##RT##_ptr_##field(S *p, FT val)         \
+{                                                               \
+  p->field = val;                                               \
+}                                                               \
+static inline void set_js##RT##_##field(JSValue v, FT val)      \
+{                                                               \
+  assert(is_##RT(v));                                           \
+  {                                                             \
+    S *p = (S *) jsv_to_uintptr(v);                             \
+    set_##RT##_ptr_##field(p, val);                             \
+  }                                                             \
+}
+
+#define DEFINE_ACCESSORS(RT, S, FT, field)                      \
+  DEFINE_GETTER(RT, S, FT, field)                               \
+  DEFINE_SETTER(RT, S, FT, field)
+
+/* Iterator VMDataType interface
+ *   No inteface is defined as Iterator always has a single VMRepType.
  */
+
+/* Iterator */
+
 typedef struct iterator {
   uint64_t size;        /* array size */
   uint64_t index;       /* array index */
   JSValue *body;        /* pointer to a C array */
 } Iterator;
 
-#define make_iterator(ctx)                              \
-  (put_normal_iterator_tag(allocate_iterator(ctx)))
-#define iterator_size(i)                        \
-  ((remove_normal_iterator_tag(i))->size)
-#define iterator_index(i)                       \
-  ((remove_normal_iterator_tag(i))->index)
-#define iterator_body(i)                        \
-  ((remove_normal_iterator_tag(i))->body)
-#define iterator_body_index(a,i)                \
-  ((remove_normal_iterator_tag(a))->body[i])
+#define make_iterator(ctx) (put_iterator_tag(allocate_iterator(ctx)))
 
+DEFINE_ACCESSORS(iterator, Iterator, uint64_t, size)
+DEFINE_ACCESSORS(iterator, Iterator, uint64_t, index)
+DEFINE_ACCESSORS(iterator, Iterator, JSValue*, body)
 
-/*
- * Flonum
+/* 
+ * Flonum VMDataType interface
  */
-#define flonum_value(p)      (normal_flonum_value(p))
+
+#define flonum_value(p)           (get_jsnormal_flonum_value(p))
 #define double_to_flonum(ctx, n)  (double_to_normal_flonum(ctx, n))
-#define int_to_flonum(i)     (int_to_normal_flonum(i))
+#define int_to_flonum(i)          (int_to_normal_flonum(i))
 #define cint_to_flonum(ctx, i)    (cint_to_normal_flonum(ctx, i))
-#define flonum_to_double(p)  (normal_flonum_to_double(p))
-#define flonum_to_cint(p)    (normal_flonum_to_cint(p))
-#define flonum_to_int(p)     (normal_flonum_to_int(p))
-#define is_nan(p)            (normal_flonum_is_nan(p))
+#define flonum_to_double(p)       (normal_flonum_to_double(p))
+#define flonum_to_cint(p)         (normal_flonum_to_cint(p))
+#define flonum_to_int(p)          (normal_flonum_to_int(p))
+#define is_nan(p)                 (normal_flonum_is_nan(p))
 
-/*
- * FlonumCell
- * tag == T_FLONUM
- */
+/* Normal Flonum */
 typedef struct flonum_cell {
-  double value;
+  double value;        /* immutable */
 } FlonumCell;
 
-#define normal_flonum_value(p)      ((remove_normal_flonum_tag(p))->value)
+DEFINE_ACCESSORS(normal_flonum, FlonumCell, double, value)
+
 #define double_to_normal_flonum(ctx, n)                 \
-  (put_normal_flonum_tag(allocate_flonum(ctx, n)))
+  (ptr_to_normal_flonum(allocate_flonum(ctx, n)))
 #define int_to_normal_flonum(ctx, i)     cint_to_flonum(ctx, i)
 #define cint_to_normal_flonum(ctx, i)    double_to_flonum(ctx, (double)(i))
 #define normal_flonum_to_double(p)  flonum_value(p)
@@ -380,37 +388,37 @@ typedef struct flonum_cell {
   (is_flonum((p))? isnan(flonum_to_double((p))): 0)
 
 /*
- * String
+ * String VMDataType Interface
  */
-#define string_value(p)   (normal_string_value(p))
+#define string_value(p)   (get_jsnormal_string_value(p))
+#define string_to_cstr(p) (string_value(p))
 #define string_hash(p)    (normal_string_hash(p))
 #define string_length(p)  (normal_string_length(p))
 #define cstr_to_string(ctx,str) (cstr_to_normal_string((ctx),(str)))
 #define ejs_string_concat(ctx,str1,str2)                \
   (ejs_normal_string_concat((ctx),(str1),(str2)))
 
-/*
- * StringCell
- * tag == T_STRING
- */
+/* Normal String */
 typedef struct string_cell {
 #ifdef STROBJ_HAS_HASH
   uint32_t hash;           /* hash value before computing mod */
   uint32_t length;         /* length of the string */
-#endif
+#endif /* STROBJ_HAS_HASH */
   char value[BYTES_IN_JSVALUE];
 } StringCell;
 
-#define string_to_cstr(p) (string_value(p))
-
-#define normal_string_value(p)   ((remove_normal_string_tag(p))->value)
+#ifdef STROBJ_HAS_HASH
+DEFINE_ACCESSORS(normal_string, StringCell, uint32_t, hash)
+DEFINE_ACCESSORS(normal_string, StringCell, uint32_t, length)
+#endif /* STROBJ_HAS_HASH */
+DEFINE_GETTER(normal_string, StringCell, char*, value)
 
 #ifdef STROBJ_HAS_HASH
-#define normal_string_hash(p)     ((remove_normal_string_tag(p))->hash)
-#define normal_string_length(p)   ((cint) (remove_normal_string_tag(p))->length)
+#define normal_string_hash(p)     (get_jsnormal_string_hash(p))
+#define normal_string_length(p)   (get_jsnormal_string_length(p))
 #else
-#define normal_string_hash(p)     (calc_hash(string_value(p)))
-#define normal_string_length(p)   (strlen(string_value(p)))
+#define normal_string_hash(p)     (calc_hash(get_jsnormal_string_value(p)))
+#define normal_string_length(p)   ((uint32_t) strlen(string_value(p)))
 #endif /* STROBJ_HAS_HASH */
 
 #define cstr_to_normal_string(ctx, str)  (cstr_to_string_ool((ctx), (str)))
@@ -418,6 +426,11 @@ typedef struct string_cell {
  *       (string_concat is used for builtin function) */
 #define ejs_normal_string_concat(ctx, str1, str2)       \
   (string_concat_ool((ctx), (str1), (str2)))
+
+
+#undef DEFINE_GETTER
+#undef DEFINE_SETTER
+#undef DEFINE_ACCESSORS
 
 /** UNBOXED TYPE *****************************************************/
 
@@ -430,24 +443,32 @@ typedef struct string_cell {
  * So we use `cint' to represent a fixnum value.
  */
 
-typedef int64_t cint;
-typedef uint64_t cuint;
+#define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
+#define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
+#define is_fixnum_range_cint(n)                                 \
+  ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
+
+static inline cint fixnum_to_cint(JSValue v)
+{
+  assert(is_fixnum(v));
+  return (cint) (((uintjsv_t) v) >> TAGOFFSET);
+}
+
+#define fixnum_to_double(v) ((double) fixnum_to_cint((v)))
 
 
-/* #define fixnum_to_int(p) (((int64_t)(p)) >> TAGOFFSET) */
-#define fixnum_to_cint(p) (((cint)(p)) >> TAGOFFSET)
-#define fixnum_to_int(p)  ((int)fixnum_to_cint(p))
-#define fixnum_to_double(p) ((double)(fixnum_to_cint(p)))
-
-/* In general, cint may contain an intenger that is out of range of
+/* Convert a cint value to Fixnum.  The value sould be guaranteed
+ * that it is small enough to fit fixnum.
+ * 
+ * In general, cint may contain an intenger that is out of range of
  * fixnum. cint_to_fixnum_nocheck should be used in limited caess
  * where the value is guaranteed to be small.
  */
-#define cint_to_fixnum_nocheck(n)                       \
-  put_tag(((uint64_t)(n) << TAGOFFSET), T_FIXNUM)
-
-#define is_fixnum_range_cint(n)                                 \
-  ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
+static inline JSValue cint_to_fixnum_nocheck(cint n)
+{
+  assert(is_fixnum_range_cint(n));
+  return put_ptag(((uintjsv_t) n) << TAGOFFSET, T_FIXNUM);
+}
 
 #define is_integer_value_double(d) ((d) == (double)((cint)(d)))
 
@@ -471,14 +492,12 @@ typedef uint64_t cuint;
 #define FIXNUM_ONE       (cint_to_fixnum_nocheck((cint)1))
 #define FIXNUM_TEN       (cint_to_fixnum_nocheck((cint)10))
 
-#define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
-#define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 
 #define cint_to_number(ctx, n)                                  \
   (is_fixnum_range_cint((n))?                                   \
    cint_to_fixnum_nocheck((n)): cint_to_flonum(ctx, (n)))
 
-#define number_to_double(p)                                     \
+#define number_to_double(p)                                             \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
 #define double_to_number(ctx, d)                                        \
   (isnan((d)) ?  gconsts.g_flonum_nan :                                 \
@@ -487,46 +506,51 @@ typedef uint64_t cuint;
 
 /*
  * Special
- * tag == T_SPECIAL
  */
-#define SPECIALOFFSET           (TAGOFFSET + 1)
-#define SPECIALMASK             ((uint64_t)(1 << SPECIALOFFSET) - 1)
+#define SPECIAL_TAG_BITS  1
+/* We use TV_SPECIAL because T_SPECIAL.v is not regarded as a constant. */
+#define MAKE_SPECIAL(val, special_tag)                          \
+  PUT_PTAG_CONSTANT((val << (TAGOFFSET + SPECIAL_TAG_BITS)) |   \
+                    (special_tag << TAGOFFSET),                 \
+                    TV_SPECIAL)
 
-#define make_special(spe,t)     ((JSValue)((spe) << SPECIALOFFSET | (t)))
-#define special_tag(p)          ((uint64_t)(p) & SPECIALMASK)
-#define special_equal_tag(p,t)  (special_tag((p)) == (t))
+/* Boolean */
+#define SPECIAL_TAG_BOOLEAN  1
+#define JS_TRUE           MAKE_SPECIAL(1, SPECIAL_TAG_BOOLEAN)
+#define JS_FALSE          MAKE_SPECIAL(0, SPECIAL_TAG_BOOLEAN)
 
-/*
- * Special - Boolean
- */
-#define T_BOOLEAN         ((0x1 << TAGOFFSET) | T_SPECIAL)
-#define JS_TRUE           make_special(1, T_BOOLEAN)
-#define JS_FALSE          make_special(0, T_BOOLEAN)
-
-#define is_boolean(p)     (special_tag((p)) == T_BOOLEAN)
-#define is_true(p)        ((p) == JS_TRUE)
-#define is_false(p)       ((p) == JS_FALSE)
+static inline int is_boolean(JSValue v)
+{
+  const uintjsv_t TAGS_MASK =
+    (((uintjsv_t) 1) << (TAGOFFSET + SPECIAL_TAG_BITS)) - 1;
+  uintjsv_t vtag = ((uintjsv_t) v) & TAGS_MASK;
+  return vtag == ((SPECIAL_TAG_BOOLEAN << TAGOFFSET) | T_SPECIAL.v);
+}
+static inline int is_true(JSValue v)
+{
+  return v == JS_TRUE;
+}
+static inline int is_false(JSValue v)
+{
+  return v == JS_FALSE;
+}
 #define int_to_boolean(e) ((e) ? JS_TRUE : JS_FALSE)
-
 #define true_false(e)     ((e) ? JS_TRUE : JS_FALSE)
 #define false_true(e)     ((e) ? JS_FALSE : JS_TRUE)
 
-/*
- * Special - Others
- */
-#define T_OTHER           ((0x0 << TAGOFFSET) | T_SPECIAL)
-#define JS_NULL           make_special(0, T_OTHER)
-#define JS_UNDEFINED      make_special(1, T_OTHER)
-#define JS_EMPTY          make_special(2, T_OTHER)
+/* Other */
+#define SPECIAL_TAG_OTHER    0
+#define JS_NULL           MAKE_SPECIAL(0, SPECIAL_TAG_OTHER)
+#define JS_UNDEFINED      MAKE_SPECIAL(1, SPECIAL_TAG_OTHER)
+#define JS_EMPTY          MAKE_SPECIAL(2, SPECIAL_TAG_OTHER)
 
-#define is_null_or_undefined(p)  (special_tag((p)) == T_OTHER)
 #define is_null(p)               ((p) == JS_NULL)
 #define is_undefined(p)          ((p) == JS_UNDEFINED)
 
 /*
  * Primitive is either number, boolean, or string.
  */
-#define is_primitive(p) (!is_object(p) && !is_null_or_undefined(p))
+#define is_primitive(p) (!is_object(p) && !is_null(p) && !is_undefined(p))
 
 /*
  * Set a specified property to an object where property name is given

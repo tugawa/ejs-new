@@ -223,8 +223,8 @@ typedef struct alloc_site {
 struct shape;
 typedef struct inline_cache {
   struct shape *shape;
-  JSValue prop_name;
   int index;
+  JSValue prop_name;
 } InlineCache;
 #endif /* INLINE_CACHE */
 
@@ -244,6 +244,9 @@ typedef struct instruction {
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */
 #endif
+  /* next field is a dummy field to make sure the size of this structure
+   * is a multiple of the sizeof JSValue. */
+  int last_field[] __attribute__ ((aligned(sizeof(JSValue))));
 } Instruction;
 
 /*
@@ -463,10 +466,6 @@ typedef struct instruction {
   ((int)((int16_t)(get_second_operand(code))))
 
 #define get_third_operand_int(code) ((int)((int16_t)(get_third_operand(code))))
-
-#define calc_displacement(ninsns, code_subscr, const_subscr)            \
-  (((ninsns) - (code_subscr)) * (sizeof(Instruction) / sizeof(JSValue)) \
-   + (const_subscr))
 
 #define update_displacement(code, disp)                                 \
   makecode_bigprimitive(get_opcode(code), get_first_operand_reg(code), disp)

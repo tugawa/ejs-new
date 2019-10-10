@@ -74,7 +74,7 @@ void string_table_put(Context *context, JSValue v, uint32_t hash)
   
   /* gc_push_tmp_root(&v); */
   GC_PUSH(v);
-  c = (StrCons*) gc_malloc(context, sizeof(StrCons), HTAG_STR_CONS);
+  c = (StrCons*) gc_malloc(context, sizeof(StrCons), CELLT_STR_CONS);
   c->str = v;
   GC_POP(v);
   index = hash % string_table.size;
@@ -126,7 +126,7 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, string_value(v1), len1);
   memcpy(p->value + len1, string_value(v2), len2 + 1);
-  v = put_normal_string_tag(p);
+  v = ptr_to_normal_string(p);
   GC_PUSH(v);
   /* gc_push_tmp_root(&v); */
   string_table_put(context, v, hash);
@@ -154,7 +154,7 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, s, len + 1);
-  v = put_normal_string_tag(p);
+  v = ptr_to_normal_string(p);
   /* gc_push_tmp_root(&v); */
   GC_PUSH(v);
   string_table_put(context, v, hash);

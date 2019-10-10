@@ -596,7 +596,7 @@ double special_to_double(JSValue x) {
  */
 double to_double(Context *context, JSValue v) {
   if (is_fixnum(v))
-    return (double)(fixnum_to_cint(v));
+    return fixnum_to_double(v);
   else if (is_flonum(v))
     return flonum_to_double(v);
   else if (is_string(v)) {
@@ -636,12 +636,12 @@ JSValue number_to_cint(JSValue n)
 cint toInteger(Context *context, JSValue a) {
   cint n;
 
-  if (is_fixnum(a)) n = fixnum_to_int(a);
+  if (is_fixnum(a)) n = fixnum_to_cint(a);
   else if (is_nan(a)) n = 0;
   else if (is_flonum(a)) n = flonum_to_int(a);
   else {
     a = to_number(context, a);
-    if (is_fixnum(a)) n = fixnum_to_int(a);
+    if (is_fixnum(a)) n = fixnum_to_cint(a);
     else if (is_nan(a)) n = 0;
     else if (is_flonum(a)) n = flonum_to_int(a);
     else {

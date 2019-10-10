@@ -23,6 +23,12 @@
 #error PROFILE can be defined only when USE_SBC is defined.
 #endif
 
+static inline InstructionDisplacement
+calc_displacement(int ninsns, int pc, int index)
+{
+  return (ninsns - pc) * (sizeof(Instruction) / sizeof(JSValue)) + index;
+}
+
 /*
  * Assign `var = val' with range check.
  */
@@ -225,11 +231,13 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
     if (obcsbc == FILE_SBC) {
       if (header_value != obc_file_header[1] &&
           header_value != obc_file_header_wildcard[1])
-        LOG_EXIT("file header mismatch.");
+        LOG_EXIT("SBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
+                 obc_file_header[1], header_value);
     } else {
       if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
           *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
-        LOG_EXIT("file header mismatch.");
+        LOG_EXIT("OBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
+                 *(unsigned short *)obc_file_header, *(unsigned short *) b);
     }
   }
 #elif defined(USE_OBC)

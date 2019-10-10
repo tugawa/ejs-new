@@ -140,18 +140,6 @@ typedef struct context {
 #define set_err(c,v)    ((c)->spreg.iserr = true, (c)->spreg.err = (v))
 #define is_err(c)       ((c)->spreg.iserr)
 
-#define save_special_registers(c, st, pos)      \
-  (st[pos] = (JSValue)(get_cf(c)),              \
-   st[(pos) + 1] = (JSValue)(get_pc(c)),        \
-   st[(pos) + 2] = (JSValue)(get_lp(c)),        \
-   st[(pos) + 3] = (JSValue)(get_fp(c)))
-
-#define restore_special_registers(c, st, pos)   \
-  (set_cf(c, (FunctionTable *)(st[pos])),       \
-   set_pc(c, st[(pos) + 1]),                    \
-   set_lp(c, (FunctionFrame *)(st[(pos) + 2])), \
-   set_fp(c, st[(pos) + 3]))
-
 #define INVOKE_POS (4)
 #define CF_POS     (3)
 #define PC_POS     (2)
@@ -162,6 +150,11 @@ typedef struct context {
 /* #define INITIAL_ARRAY_SIZE  (1000) */
 
 void check_stack_invariant(Context *ctx);
+static inline void save_special_registers(Context *ctx, JSValue *stack,
+                                          int pos);
+static inline void restore_special_registers(Context *ctx, JSValue *stack,
+                                             int pos);
+
 
 /* Local Variables:      */
 /* mode: c               */
