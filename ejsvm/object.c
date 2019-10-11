@@ -424,7 +424,8 @@ JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
 
   assert(String_num_builtin_props +
          String_num_double_props + String_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, string_length(v)));
+  init_prop(p, gconsts.g_string_length,
+            uint32_to_number(ctx, string_length(v)));
 
   return ptr_to_normal_string_object(p);
 }

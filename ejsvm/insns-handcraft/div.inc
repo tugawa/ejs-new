@@ -12,7 +12,7 @@
   switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
-      int n1, n2, s;
+      cint n1, n2, s;
       n1 = fixnum_to_cint(v1);
       if (v2 == FIXNUM_ZERO) {
         if (n1 > 0) regbase[dst] = gconsts.g_flonum_infinity;

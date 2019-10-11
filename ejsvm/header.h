@@ -35,7 +35,10 @@
 typedef uint64_t JSValue;
 typedef uint64_t uintjsv_t;
 typedef int64_t intjsv_t;
-#define BYTES_IN_JSVALUE (sizeof(JSValue))
+/* BYTES_IN and BITS_IN macros should not use sizeof so that
+ * they can be used in preprocessor directive, e.g., #if
+ */
+#define BYTES_IN_JSVALUE 8
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
 #define PRIJSValue PRIx64
 

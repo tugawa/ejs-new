@@ -563,6 +563,12 @@ static inline JSValue cint_to_fixnum_nocheck(cint n)
   (is_fixnum_range_cint((n))?                                   \
    cint_to_fixnum_nocheck((n)): cint_to_flonum(ctx, (n)))
 
+#if BITS_IN_JSVALUE - TAGOFFSET >= 32
+#define uint32_to_number(ctx, n) (cint_to_fixnum_nocheck((cint) (n)))
+#else /* FIXNUM SIZE */
+#define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
+#endif /* FIXNUM SIZE */
+
 #define number_to_double(p)                                             \
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
 #define double_to_number(ctx, d)                                        \
