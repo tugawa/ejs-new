@@ -115,7 +115,7 @@ static inline void *jsv_to_noheap_ptr(JSValue v)
 #define VMRepType(RT, ptag, S)					\
 static inline JSValue ptr_to_##RT(S *p)				\
 {								\
-  JSValue v = put_ptag((uintjsv_t) (uintptr_t) p, ptag);	\
+  JSValue v = put_ptag((uintptr_t) p, ptag);			\
   assert(is_##RT(v));  /* check HTag */				\
   return v;							\
 }

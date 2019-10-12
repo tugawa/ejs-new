@@ -170,7 +170,7 @@ BUILTIN_FUNCTION(builtin_address)
 
   builtin_prologue();
   obj = args[1];
-  printf("0x%"PRIx64"\n", obj);
+  printf("0x%"PRIJSValue"\n", obj);
   set_a(context, JS_UNDEFINED);
 }
 

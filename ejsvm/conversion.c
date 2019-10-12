@@ -673,7 +673,7 @@ char *type_name(JSValue v) {
 }
 
 JSValue cint_to_string(cint n) {
-  snprintf(buf, BUFSIZE, "%"PRId64, n);
+  snprintf(buf, BUFSIZE, "%lld", (long long) n);
   return cstr_to_string(NULL, buf);
 }
 

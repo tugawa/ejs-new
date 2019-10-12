@@ -579,8 +579,8 @@ BUILTIN_FUNCTION(array_debugarray)
   size = get_jsarray_size(a);
   length = get_jsarray_length(a);
   to = length < size? length: size;
-  printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
-         size, length, to);
+  printf("debugarray: size = %lld length = %lld, to = %lld\n",
+         (long long) size, (long long) length, (long long) to);
   GC_PUSH(a);
   for (i = 0; i < to; i++) {
     JSValue *body = get_jsarray_body(a);

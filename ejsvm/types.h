@@ -117,6 +117,8 @@ VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
  *   `assert' statements to check the datatypes of JSValues.
  */
 
+#ifdef JSVALUE64
+
 #define TAGOFFSET 3
 #define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
 
@@ -131,8 +133,30 @@ typedef int64_t intjsv_t;
  */
 #define BYTES_IN_JSVALUE 8
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define PRIJSValue PRIx64
+#define PRIJSValue "016"PRIx64
 
+#else /* JSVALUE64 */
+#ifndef BIT_32
+#error 32-bit JSvalue depends on 32-bit bytecode (BIT_32)
+#endif /* BIT_32 */
+
+#define TAGOFFSET 3
+#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
+
+typedef int32_t cint;
+typedef uint32_t cuint;
+
+typedef uint32_t JSValue;
+typedef uint32_t uintjsv_t;
+typedef int32_t intjsv_t;
+/* BYTES_IN and BITS_IN macros should not use sizeof so that
+ * they can be used in preprocessor directive, e.g., #if
+ */
+#define BYTES_IN_JSVALUE 4
+#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#define PRIJSValue "08"PRIx32
+
+#endif /* JSVALUE64 */
 
 /*
  * Tag operations
