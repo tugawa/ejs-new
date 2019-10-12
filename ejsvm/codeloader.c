@@ -81,14 +81,25 @@ calc_displacement(int ninsns, int pc, int index)
  * OBC file header (magic + fingerprint).
  * The second byte is shared with SBC file.
  */
-unsigned char obc_file_header[] = {
-  OBC_FILE_MAGIC,
+union obc_file_header {
+  struct {
+    unsigned char magic;
+    unsigned char fingerprint;
+  } s;
+  unsigned short x;
+};
+union obc_file_header obc_file_header = {
+  .s = {
+    .magic = OBC_FILE_MAGIC,
+    .fingerprint =
 #include "specfile-fingerprint.h"
+  }
 };
-unsigned char obc_file_header_wildcard[] = {
-  OBC_FILE_MAGIC,
-  0xff
-};
+#define FINGERPRINT_WILDCARD 0xff
+#define OBC_FILE_HEADER_WILDCARD                        \
+((union obc_file_header)                                \
+ {.s = {.magic = OBC_FILE_MAGIC,                        \
+         .fingerprint = FINGERPRINT_WILDCARD}})
 
 /*
  * information of instructions
@@ -223,38 +234,29 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
   /*
    * check file header
    */
-#if defined(USE_SBC) && defined(USE_OBC)
   {
-    int header_value;
+    union obc_file_header hdr;
     next_buf();
-    header_value = buf_to_int("fingerprint");
+#ifdef USE_SBC
     if (obcsbc == FILE_SBC) {
-      if (header_value != obc_file_header[1] &&
-          header_value != obc_file_header_wildcard[1])
+      int fingerprint = buf_to_int("fingerprint");
+      if (fingerprint != obc_file_header.s.fingerprint &&
+          fingerprint != FINGERPRINT_WILDCARD)
         LOG_EXIT("SBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
-                 obc_file_header[1], header_value);
-    } else {
-      if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
-          *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
-        LOG_EXIT("OBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
-                 *(unsigned short *)obc_file_header, *(unsigned short *) b);
+                 obc_file_header.s.fingerprint, fingerprint);
     }
+#endif /* USE_SBC */
+#ifdef USE_OBC
+    if (obcsbc == FILE_OBC) {
+      hdr.s.magic = b[0];
+      hdr.s.fingerprint = b[1];
+      if (hdr.x != obc_file_header.x &&
+          hdr.x != OBC_FILE_HEADER_WILDCARD.x)
+        LOG_EXIT("OBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
+                 obc_file_header.s.fingerprint, hdr.s.fingerprint);
+    }
+#endif /* USE_OBC */
   }
-#elif defined(USE_OBC)
-  next_buf_obc();
-  if (*(unsigned short *)b != *(unsigned short *)obc_file_header &&
-      *(unsigned short *)b != *(unsigned short *)obc_file_header_wildcard)
-    LOG_EXIT("file header mismatch.");
-#else
-  {
-    int header_value;
-    next_buf();
-    header_value = buf_to_int("fingerprint");
-    if (header_value != obc_file_header[1] &&
-        header_value != obc_file_header_wildcard[1])
-      LOG_EXIT("file header mismatch.");
-  }
-#endif
 
   /*
    * checks the funclength and obtain the number of functions

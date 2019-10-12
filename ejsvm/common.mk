@@ -85,7 +85,7 @@ endif
 
 CPP=$(CC) -E
 
-CFLAGS += -std=gnu89 -Wall -Wno-unused-label $(INCLUDES)
+CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-unused-result $(INCLUDES)
 LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
