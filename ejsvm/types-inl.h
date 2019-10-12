@@ -91,7 +91,7 @@ static inline T *jsv_to_##name(JSValue v)		\
   assert(IS_POINTER_LIKE_UINTJSV((uintjsv_t) v));	\
   assert(get_ptag(v).v == 0);				\
   p = (T *) (uintptr_t) (uintjsv_t) v;			\
-  assert(gc_obj_header_type(p) == CELLT);		\
+  assert(p == NULL || gc_obj_header_type(p) == CELLT);	\
   return p;						\
 }
 VMHeapData_LIST

@@ -297,9 +297,11 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(VMDL)
+ejsvm.spec: $(EJSVM_DIR)/instructions.def $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
+specfile-fingerprint.h: ejsvm.spec
+	touch $@
 else
 ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\

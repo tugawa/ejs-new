@@ -31,7 +31,7 @@ StringCell *allocate_string(Context *ctx, uint32_t length)
   /* plus 1 for the null terminater,
    * minus BYTES_IN_JSVALUE becasue StringCell has payload of
    * BYTES_IN_JSVALUE for placeholder */
-  uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
+  uint32_t size = sizeof(StringCell) + length + 1 - BYTES_IN_JSVALUE;
   StringCell *p = (StringCell *) gc_malloc(ctx, size, HTAG_STRING.v);
 #ifdef STROBJ_HAS_HASH
   set_normal_string_ptr_length(p, length);
