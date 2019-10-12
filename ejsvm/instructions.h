@@ -231,7 +231,7 @@ typedef struct inline_cache {
 /*
  * instruction
  */
-typedef struct instruction {
+struct instruction {
   InsnLabel ilabel;  /* It is important that ilabel is the first member */
   Bytecode code;
 #ifdef ALLOC_SITE_CACHE
@@ -247,7 +247,7 @@ typedef struct instruction {
   /* next field is a dummy field to make sure the size of this structure
    * is a multiple of the sizeof JSValue. */
   int last_field[] __attribute__ ((aligned(sizeof(JSValue))));
-} Instruction;
+};
 
 /*
  * Each function has an array of Instructions, followed by its constant

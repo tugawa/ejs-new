@@ -12,10 +12,59 @@
 
 #include <limits.h>
 
-struct jsobject_cell;
-struct iterator;
-struct flonum_cell;
-struct string_cell;
+/*
+ * Struct type declaration
+ */
+/*
+ * no-JS type
+ */
+/* context.h */
+typedef struct function_frame FunctionFrame;
+typedef struct context Context;
+/*
+ * no-heap type
+ */
+/* context.h */
+typedef struct function_table FunctionTable;
+/* instruction.h */
+typedef struct instruction    Instruction;
+
+
+/* Cell types
+ *   0        : CELLT_FEEE
+ *   1 - 0x10 : HTAG (JSValue)
+ *   0x11 -   : others
+ */
+typedef uint32_t cell_type_t;
+
+#define CELLT_STRING        HTAGV_STRING
+#define CELLT_FLONUM        HTAGV_FLONUM
+#define CELLT_SIMPLE_OBJECT HTAGV_SIMPLE_OBJECT
+#define CELLT_ARRAY         HTAGV_ARRAY
+#define CELLT_FUNCTION      HTAGV_FUNCTION
+#define CELLT_BUILTIN       HTAGV_BUILTIN
+#define CELLT_ITERATOR      HTAGV_ITERATOR
+#ifdef USE_REGEXP
+#define CELLT_REGEXP        HTAGV_REGEXP
+#endif
+#define CELLT_BOXED_STRING  HTAGV_BOXED_STRING
+#define CELLT_BOXED_NUMBER  HTAGV_BOXED_NUMBER
+#define CELLT_BOXED_BOOLEAN HTAGV_BOXED_BOOLEAN
+
+#define CELLT_PROP           (0x11) /* Array of JSValues */
+#define CELLT_ARRAY_DATA     (0x12) /* Array of JSValues */
+#define CELLT_FUNCTION_FRAME (0x13) /* FunctionFrame */
+#define CELLT_STR_CONS       (0x14) /* StrCons */
+#define CELLT_CONTEXT        (0x15) /* Context */
+#define CELLT_STACK          (0x16) /* Array of JSValues */
+#ifdef HIDDEN_CLASS
+#define CELLT_HIDDEN_CLASS   (0x17) /* HiddenClass */
+#endif
+#define CELLT_HASHTABLE      (0x18)
+#define CELLT_HASH_BODY      (0x19)
+#define CELLT_HASH_CELL      (0x1A)
+#define CELLT_PROPERTY_MAP   (0x1B)
+#define CELLT_SHAPE          (0x1C)
 
 /*
  * Heap Data
@@ -25,7 +74,7 @@ struct string_cell;
 #define VMHeapData_LIST                                                 \
 VMHeapData(extension_prop, CELLT_PROP,           JSValue)               \
 VMHeapData(array_data,     CELLT_ARRAY_DATA,     JSValue)               \
-VMHeapData(function_frame, CELLT_FUNCTION_FRAME, struct function_frame) \
+VMHeapData(function_frame, CELLT_FUNCTION_FRAME, FunctionFrame)         \
 VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
 
 /* JSValue
@@ -73,6 +122,17 @@ VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
 
 typedef int64_t cint;
 typedef uint64_t cuint;
+
+typedef uint64_t JSValue;
+typedef uint64_t uintjsv_t;
+typedef int64_t intjsv_t;
+/* BYTES_IN and BITS_IN macros should not use sizeof so that
+ * they can be used in preprocessor directive, e.g., #if
+ */
+#define BYTES_IN_JSVALUE 8
+#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#define PRIJSValue PRIx64
+
 
 /*
  * Tag operations
@@ -159,8 +219,9 @@ VMRepType_LIST
  * entry'.
  */
 
+struct hash_table;
 typedef struct property_map {
-  HashTable *map;            /* [const] property map and transitions */
+  struct hash_table *map;    /* [const] property map and transitions */
   struct property_map *prev; /* [weak] pointer to the previous map */
   struct shape *shapes;      /* Weak list of existing shapes arranged from
                               * more specialised to less.
@@ -203,10 +264,11 @@ typedef struct shape {
 #endif /* HC_PROF */
 } Shape;
 
+struct alloc_site;
 typedef struct jsobject_cell {
   Shape *shape;
 #ifdef ALLOC_SITE_CACHE
-  AllocSite *alloc_site;
+  struct alloc_site *alloc_site;
 #endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
@@ -338,7 +400,7 @@ DEFINE_ACCESSORS_P(function, 0, FunctionTable*, table_entry)
 DEFINE_ACCESSORS_R(function, 1, FunctionFrame*, environment, function_frame)
 
 /* Builtin */
-typedef void (*builtin_function_t)(Context*, int, int);
+typedef void (*builtin_function_t)(struct context*, int, int);
 #define BUILTIN_SPECIAL_PROPS 3
 DEFINE_ACCESSORS_P(builtin, 0, builtin_function_t, body)
 DEFINE_ACCESSORS_P(builtin, 1, builtin_function_t, constructor)

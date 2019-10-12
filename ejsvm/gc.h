@@ -22,43 +22,6 @@ extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
 #define CELLT_NAME(t) abort();  /* HTAG_NAME is only for GC profiling */
 #endif /* GC_PROF */
 
-/* Cell types
- *   0        : CELLT_FEEE
- *   1 - 0x10 : HTAG (JSValue)
- *   0x11 -   : others
- */
-
-typedef uint32_t cell_type_t;
-
-#define CELLT_STRING        HTAGV_STRING
-#define CELLT_FLONUM        HTAGV_FLONUM
-#define CELLT_SIMPLE_OBJECT HTAGV_SIMPLE_OBJECT
-#define CELLT_ARRAY         HTAGV_ARRAY
-#define CELLT_FUNCTION      HTAGV_FUNCTION
-#define CELLT_BUILTIN       HTAGV_BUILTIN
-#define CELLT_ITERATOR      HTAGV_ITERATOR
-#ifdef USE_REGEXP
-#define CELLT_REGEXP        HTAGV_REGEXP
-#endif
-#define CELLT_BOXED_STRING  HTAGV_BOXED_STRING
-#define CELLT_BOXED_NUMBER  HTAGV_BOXED_NUMBER
-#define CELLT_BOXED_BOOLEAN HTAGV_BOXED_BOOLEAN
-
-#define CELLT_PROP           (0x11) /* Array of JSValues */
-#define CELLT_ARRAY_DATA     (0x12) /* Array of JSValues */
-#define CELLT_FUNCTION_FRAME (0x13) /* FunctionFrame */
-#define CELLT_STR_CONS       (0x14) /* StrCons */
-#define CELLT_CONTEXT        (0x15) /* Context */
-#define CELLT_STACK          (0x16) /* Array of JSValues */
-#ifdef HIDDEN_CLASS
-#define CELLT_HIDDEN_CLASS   (0x17) /* HiddenClass */
-#endif
-#define CELLT_HASHTABLE      (0x18)
-#define CELLT_HASH_BODY      (0x19)
-#define CELLT_HASH_CELL      (0x1A)
-#define CELLT_PROPERTY_MAP   (0x1B)
-#define CELLT_SHAPE          (0x1C)
-
 extern void init_memory(size_t);
 extern void *gc_malloc(Context *, uintptr_t, uint32_t);
 

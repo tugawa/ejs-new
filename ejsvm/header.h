@@ -31,17 +31,6 @@
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif /* __USE_GNU */
-
-typedef uint64_t JSValue;
-typedef uint64_t uintjsv_t;
-typedef int64_t intjsv_t;
-/* BYTES_IN and BITS_IN macros should not use sizeof so that
- * they can be used in preprocessor directive, e.g., #if
- */
-#define BYTES_IN_JSVALUE 8
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define PRIJSValue PRIx64
-
 #ifdef DEBUG
 #define DEBUG_NAME(name) name
 #else /* DEBUG */
@@ -71,12 +60,12 @@ typedef int64_t intjsv_t;
 #define FILE_SBC   2
 
 #include "prefix.h"
+#include "types.h"
+#include "context.h"
+#include "gc.h"
+#include "hash.h"
 #include "log.h"
 #include "instructions.h"
-#include "context.h"
-#include "hash.h"
-#include "gc.h"
-#include "types.h"
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
