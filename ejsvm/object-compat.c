@@ -358,12 +358,12 @@ int delete_array_element(JSValue a, cint n)
  */
 int iterator_get_next_propname(JSValue iter, JSValue *name)
 {
-  int size = get_jsiterator_size(iter);
-  int index = get_jsiterator_index(iter);
+  int size = get_jsnormal_iterator_size(iter);
+  int index = get_jsnormal_iterator_index(iter);
   if(index < size) {
-    JSValue *body = get_jsiterator_body(iter);
+    JSValue *body = get_jsnormal_iterator_body(iter);
     *name = body[index++];
-    set_jsiterator_index(iter, index);
+    set_jsnormal_iterator_index(iter, index);
     return SUCCESS;
   }else{
     *name = JS_UNDEFINED;
@@ -438,7 +438,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   JSValue tmpobj;
 
   GC_PUSH(obj);
-  iter = ptr_to_iterator(allocate_iterator(ctx));
+  iter = ptr_to_normal_iterator(allocate_iterator(ctx));
 
   /* allocate an itearator */
   tmpobj = obj;
@@ -460,7 +460,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     ht = object_get_shape(obj)->pm->map;
     init_hash_iterator(ht, &hi);
 
-    body = get_jsiterator_body(iter);
+    body = get_jsnormal_iterator_body(iter);
     while (nextHashCell(ht, &hi, &p) == SUCCESS) {
       if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION))
         continue;

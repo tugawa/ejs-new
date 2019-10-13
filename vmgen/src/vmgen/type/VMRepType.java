@@ -44,6 +44,10 @@ public class VMRepType implements Comparable<VMRepType> {
             return name;
         }
 
+        public String getValueName() {
+            return "HTAGV_" + name.substring(5);
+        }
+
         @Override
         public String toString() {
             return String.format("%s", getName());
@@ -106,6 +110,10 @@ public class VMRepType implements Comparable<VMRepType> {
             return name;
         }
 
+        public String getValueName() {
+            return "TV_"+name.substring(2);
+        }
+        
         public int getValue() {
             return value;
         }

@@ -22,16 +22,18 @@ public class TypesGen {
     String definePT() {
         StringBuilder sb = new StringBuilder();
         for (VMRepType.PT pt: VMRepType.allPT()) {
-            sb.append(String.format("#define %s %d\n", pt.getName(), pt.getValue()));
-            sb.append(String.format("#define %s_MASK 0x%x\n", pt.getName(), (1 << pt.getBits()) - 1));
+            sb.append(String.format("#define %s %d\n", pt.getValueName(), pt.getValue()));
+            sb.append(String.format("#define %s ((PTag) {%s})\n", pt.getName(), pt.getValueName()));
         }
         return sb.toString();
     }
 
     String defineHT() {
         StringBuilder sb = new StringBuilder();
-        for (VMRepType.HT ht: VMRepType.allHT())
-            sb.append(String.format("#define %s %d\n",  ht.getName(), ht.getValue()));
+        for (VMRepType.HT ht: VMRepType.allHT()) {
+            sb.append(String.format("#define %s %d\n", ht.getValueName(), ht.getValue()));
+            sb.append(String.format("#define %s ((HTag) {%s})\n", ht.getName(), ht.getValueName()));
+        }
         return sb.toString();
     }
 
@@ -79,15 +81,15 @@ public class TypesGen {
         sb.append("(((0");
         for (VMRepType.PT pt : common)
             sb.append(" || ")
-            .append(String.format("(((x) & %s_MASK) == %s)", pt.getName(), pt.getName()));
+            .append(String.format("is_ptag((x), %s)", pt.getName()));
         sb.append(") && (0");
         for (VMRepType.HT ht : hts)
             sb.append(" || ")
-            .append(String.format("(get_htag(x).v == %s)", ht.getName()));
+            .append(String.format("is_htag((x), %s)", ht.getName()));
         sb.append("))");
         for (VMRepType.PT pt : unique)
             sb.append(" || ")
-            .append(String.format("(((x) & %s_MASK) == %s)", pt.getName(), pt.getName()));
+            .append(String.format("is_ptag((x), %s)", pt.getName()));
         sb.append(")");
 
         return sb.toString();
@@ -112,7 +114,7 @@ public class TypesGen {
                 Set<VMRepType> rtSingleton = new HashSet<VMRepType>(1);
                 rtSingleton.add(rt);
                 sb.append("#define is_").append(rt.getName()).append("(x) ");
-                sb.append(minimumRepresentation(rtSingleton, dt.getVMRepTypes()));
+                sb.append(minimumRepresentation(rtSingleton, VMRepType.all()));
                 sb.append("\n");
             }
         }
@@ -148,6 +150,20 @@ public class TypesGen {
         return sb.toString();
     }
 
+    String defineVMRepType_LIST() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("#define VMRepType_LIST \\\n");
+        for (VMRepType rt: VMRepType.all()) {
+            if (rt.getStruct() == null)
+                continue;
+            sb.append(String.format("VMRepType(%s, %s, %s) \\\n",
+                      rt.getName(), rt.getPT().getName(), rt.getStruct()));
+        }
+        sb.append("\n");
+        return sb.toString();
+    }
+    
+    /* not used */
     String defineNeed() {
         StringBuilder sb = new StringBuilder();
         sb.append("/* VM-DataTypes */\n");
@@ -164,6 +180,7 @@ public class TypesGen {
         return sb.toString();
     }
 
+    /* not used */
     String defineTagOperations() {
         StringBuilder sb = new StringBuilder();
 
@@ -193,6 +210,7 @@ public class TypesGen {
         System.out.println(tg.defineDTFamilyPredicates());
  //       System.out.println(tg.defineTagOperations());
  //       System.out.println(tg.defineNeed());
+        System.out.println(tg.defineVMRepType_LIST());
         System.out.println(TypeDefinition.getQuoted());
     }
 }

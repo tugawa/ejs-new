@@ -66,9 +66,9 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 Iterator *allocate_iterator(Context *ctx) {
   Iterator *iter =
     (Iterator *) gc_malloc(ctx, sizeof(Iterator), HTAG_ITERATOR.v);
-  set_iterator_ptr_body(iter, NULL);
-  set_iterator_ptr_size(iter, 0);
-  set_iterator_ptr_index(iter, 0);
+  set_normal_iterator_ptr_body(iter, NULL);
+  set_normal_iterator_ptr_size(iter, 0);
+  set_normal_iterator_ptr_index(iter, 0);
   return iter;
 }
 
@@ -86,9 +86,9 @@ void allocate_iterator_data(Context *ctx, JSValue a, int size)
                                CELLT_ARRAY_DATA);
   GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
-  set_jsiterator_body(a, body);
-  set_jsiterator_size(a, size);
-  set_jsiterator_index(a, 0);
+  set_jsnormal_iterator_body(a, body);
+  set_jsnormal_iterator_size(a, size);
+  set_jsnormal_iterator_index(a, 0);
 }
 
 /* Local Variables:      */

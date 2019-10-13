@@ -16,6 +16,13 @@
  * Struct type declaration
  */
 /*
+ * JS Type
+ */
+typedef struct jsobject_cell JSObject;
+typedef struct iterator Iterator;
+typedef struct string_cell StringCell;
+typedef struct flonum_cell FlonumCell;
+/*
  * no-JS type
  */
 /* context.h */
@@ -124,13 +131,18 @@ VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
  *   `assert' statements to check the datatypes of JSValues.
  */
 
+#ifdef BIT_ALIGN32
+#define TAGOFFSET 2
+#else /* BIT_ALIGN32 */
+#define TAGOFFSET 3
+#endif /* BIT_ALIGN32 */
+
+#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
+
 #ifdef BIT_JSVALUE_32
 #ifndef BIT_32
 #error 32-bit JSvalue depends on 32-bit bytecode (BIT_32)
 #endif /* BIT_32 */
-
-#define TAGOFFSET 3
-#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
 
 typedef int32_t cint;
 typedef uint32_t cuint;
@@ -148,9 +160,6 @@ typedef int32_t intjsv_t;
 
 
 #else /* BIT_JSVALUE_32 */
-#define TAGOFFSET 3
-#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
-
 typedef int64_t cint;
 typedef uint64_t cuint;
 
@@ -212,7 +221,6 @@ static inline struct jsobject_cell *jsv_to_jsobject(JSValue v);
 
 /* jsv_to_RT for JavaScript objects */
 #define VMRepType(RT, ptag, S)                  \
-S;                                              \
 static inline S *jsv_to_##RT(JSValue v);
 VMRepType_LIST /* defined in types-generated/handcraft.h */
 #undef VMRepType
@@ -292,7 +300,7 @@ typedef struct shape {
 } Shape;
 
 struct alloc_site;
-typedef struct jsobject_cell {
+struct jsobject_cell {
   Shape *shape;
 #ifdef ALLOC_SITE_CACHE
   struct alloc_site *alloc_site;
@@ -301,7 +309,7 @@ typedef struct jsobject_cell {
   char *name;
 #endif /* DEBUG */
   JSValue eprop[];
-} JSObject;
+};
 
 #ifdef USE_REGEXP
 #define is_jsobject(p)                                                  \
@@ -500,17 +508,17 @@ static inline void set_js##RT##_##field(JSValue v, FT val)      \
 
 /* Iterator */
 
-typedef struct iterator {
+struct iterator {
   uint64_t size;        /* array size */
   uint64_t index;       /* array index */
   JSValue *body;        /* pointer to a C array */
-} Iterator;
+};
 
 #define make_iterator(ctx) (put_iterator_tag(allocate_iterator(ctx)))
 
-DEFINE_ACCESSORS(iterator, Iterator, uint64_t, size)
-DEFINE_ACCESSORS(iterator, Iterator, uint64_t, index)
-DEFINE_ACCESSORS(iterator, Iterator, JSValue*, body)
+DEFINE_ACCESSORS(normal_iterator, Iterator, uint64_t, size)
+DEFINE_ACCESSORS(normal_iterator, Iterator, uint64_t, index)
+DEFINE_ACCESSORS(normal_iterator, Iterator, JSValue*, body)
 
 /* 
  * Flonum VMDataType interface
@@ -526,9 +534,9 @@ DEFINE_ACCESSORS(iterator, Iterator, JSValue*, body)
 #define is_nan(p)                 (normal_flonum_is_nan(p))
 
 /* Normal Flonum */
-typedef struct flonum_cell {
+struct flonum_cell {
   double value;        /* immutable */
-} FlonumCell;
+};
 
 DEFINE_ACCESSORS(normal_flonum, FlonumCell, double, value)
 
@@ -554,13 +562,13 @@ DEFINE_ACCESSORS(normal_flonum, FlonumCell, double, value)
   (ejs_normal_string_concat((ctx),(str1),(str2)))
 
 /* Normal String */
-typedef struct string_cell {
+struct string_cell {
 #ifdef STROBJ_HAS_HASH
   uint32_t hash;           /* hash value before computing mod */
   uint32_t length;         /* length of the string */
 #endif /* STROBJ_HAS_HASH */
   char value[BYTES_IN_JSVALUE];
-} StringCell;
+};
 
 #ifdef STROBJ_HAS_HASH
 DEFINE_ACCESSORS(normal_string, StringCell, uint32_t, hash)
