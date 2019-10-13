@@ -133,6 +133,17 @@ cint_to_fixnumが使われていた箇所は主に以下の通り．
 
 ## cint の64bit化
 
+# 64/32bit
+
+* 命令 (BIT_32)
+* JSValue
+  * fixnumの範囲に影響
+* ヒープのalignment (BYTES_IN_GRANULE)
+  * PTagの幅に影響
+* ポインタ幅 (-m32)
+
+## 制約
+* JSValue >= ポインタ幅  (JSValue32 => m32)
 
 # メモ
 
