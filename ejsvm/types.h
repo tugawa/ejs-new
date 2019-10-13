@@ -30,41 +30,48 @@ typedef struct function_table FunctionTable;
 typedef struct instruction    Instruction;
 
 
+#ifdef USE_TYPES_GENERATED
+#include "types-generated.h"
+#else /* USE_TYPES_GENERATED */
+#include "types-handcraft.h"
+#endif /* USE_TYPES_GENERATED */
+
+
 /* Cell types
  *   0        : CELLT_FEEE
  *   1 - 0x10 : HTAG (JSValue)
  *   0x11 -   : others
  */
-typedef uint32_t cell_type_t;
-
-#define CELLT_STRING        HTAGV_STRING
-#define CELLT_FLONUM        HTAGV_FLONUM
-#define CELLT_SIMPLE_OBJECT HTAGV_SIMPLE_OBJECT
-#define CELLT_ARRAY         HTAGV_ARRAY
-#define CELLT_FUNCTION      HTAGV_FUNCTION
-#define CELLT_BUILTIN       HTAGV_BUILTIN
-#define CELLT_ITERATOR      HTAGV_ITERATOR
+typedef enum cell_type_t {
+  CELLT_STRING        = HTAGV_STRING,
+  CELLT_FLONUM        = HTAGV_FLONUM,
+  CELLT_SIMPLE_OBJECT = HTAGV_SIMPLE_OBJECT,
+  CELLT_ARRAY         = HTAGV_ARRAY,
+  CELLT_FUNCTION      = HTAGV_FUNCTION,
+  CELLT_BUILTIN       = HTAGV_BUILTIN,
+  CELLT_ITERATOR      = HTAGV_ITERATOR,
 #ifdef USE_REGEXP
-#define CELLT_REGEXP        HTAGV_REGEXP
+  CELLT_REGEXP        = HTAGV_REGEXP,
 #endif
-#define CELLT_BOXED_STRING  HTAGV_BOXED_STRING
-#define CELLT_BOXED_NUMBER  HTAGV_BOXED_NUMBER
-#define CELLT_BOXED_BOOLEAN HTAGV_BOXED_BOOLEAN
+  CELLT_BOXED_STRING  = HTAGV_BOXED_STRING,
+  CELLT_BOXED_NUMBER  = HTAGV_BOXED_NUMBER,
+  CELLT_BOXED_BOOLEAN = HTAGV_BOXED_BOOLEAN,
 
-#define CELLT_PROP           (0x11) /* Array of JSValues */
-#define CELLT_ARRAY_DATA     (0x12) /* Array of JSValues */
-#define CELLT_FUNCTION_FRAME (0x13) /* FunctionFrame */
-#define CELLT_STR_CONS       (0x14) /* StrCons */
-#define CELLT_CONTEXT        (0x15) /* Context */
-#define CELLT_STACK          (0x16) /* Array of JSValues */
+  CELLT_PROP          = (0x11), /* Array of JSValues */
+  CELLT_ARRAY_DATA    = (0x12), /* Array of JSValues */
+  CELLT_FUNCTION_FRAME= (0x13), /* FunctionFrame */
+  CELLT_STR_CONS      = (0x14), /* StrCons */
+  CELLT_CONTEXT       = (0x15), /* Context */
+  CELLT_STACK         = (0x16), /* Array of JSValues */
 #ifdef HIDDEN_CLASS
-#define CELLT_HIDDEN_CLASS   (0x17) /* HiddenClass */
+  CELLT_HIDDEN_CLASS  = (0x17), /* HiddenClass */
 #endif
-#define CELLT_HASHTABLE      (0x18)
-#define CELLT_HASH_BODY      (0x19)
-#define CELLT_HASH_CELL      (0x1A)
-#define CELLT_PROPERTY_MAP   (0x1B)
-#define CELLT_SHAPE          (0x1C)
+  CELLT_HASHTABLE     = (0x18),
+  CELLT_HASH_BODY     = (0x19),
+  CELLT_HASH_CELL     = (0x1A),
+  CELLT_PROPERTY_MAP  = (0x1B),
+  CELLT_SHAPE         = (0x1C),
+} cell_type_t;
 
 /*
  * Heap Data
@@ -117,25 +124,7 @@ VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
  *   `assert' statements to check the datatypes of JSValues.
  */
 
-#ifdef JSVALUE64
-
-#define TAGOFFSET 3
-#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
-
-typedef int64_t cint;
-typedef uint64_t cuint;
-
-typedef uint64_t JSValue;
-typedef uint64_t uintjsv_t;
-typedef int64_t intjsv_t;
-/* BYTES_IN and BITS_IN macros should not use sizeof so that
- * they can be used in preprocessor directive, e.g., #if
- */
-#define BYTES_IN_JSVALUE 8
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define PRIJSValue "016"PRIx64
-
-#else /* JSVALUE64 */
+#ifdef BIT_JSVALUE_32
 #ifndef BIT_32
 #error 32-bit JSvalue depends on 32-bit bytecode (BIT_32)
 #endif /* BIT_32 */
@@ -154,9 +143,29 @@ typedef int32_t intjsv_t;
  */
 #define BYTES_IN_JSVALUE 4
 #define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#define LOG_BYTES_IN_JSVALUE 2
 #define PRIJSValue "08"PRIx32
 
-#endif /* JSVALUE64 */
+
+#else /* BIT_JSVALUE_32 */
+#define TAGOFFSET 3
+#define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
+
+typedef int64_t cint;
+typedef uint64_t cuint;
+
+typedef uint64_t JSValue;
+typedef uint64_t uintjsv_t;
+typedef int64_t intjsv_t;
+/* BYTES_IN and BITS_IN macros should not use sizeof so that
+ * they can be used in preprocessor directive, e.g., #if
+ */
+#define BYTES_IN_JSVALUE 8
+#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#define LOG_BYTES_IN_JSVALUE 3
+#define PRIJSValue "016"PRIx64
+
+#endif /* BIT_JSVALUE_32 */
 
 /*
  * Tag operations
@@ -179,12 +188,6 @@ typedef struct {
 
 static inline HTag get_htag(JSValue v);
 static inline int  is_htag(JSValue v, HTag t);
-
-#ifdef USE_TYPES_GENERATED
-#include "types-generated.h"
-#else /* USE_TYPES_GENERATED */
-#include "types-handcraft.h"
-#endif /* USE_TYPES_GENERATED */
 
 /* Type conversion from/to JSValue
  *   JSValue -> JSObject             jsv_to_jsobject -- check and clear tag

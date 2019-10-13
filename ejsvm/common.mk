@@ -15,9 +15,6 @@ endif
 ifeq ($(SED),)
     SED = gsed
 endif
-ifeq ($(RUBY),)
-    RUBY = ruby
-endif
 ifeq ($(PYTHON),)
     PYTHON = python
 endif
@@ -127,7 +124,6 @@ GENERATED_HFILES = \
     instructions-opcode.h \
     instructions-table.h \
     instructions-label.h \
-    cell-header.h \
     specfile-fingerprint.h
 
 HFILES = $(GENERATED_HFILES) \
@@ -436,9 +432,6 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 endif
 endif
 endif
-
-cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< > $@
 
 instructions.h: instructions-opcode.h instructions-table.h
 

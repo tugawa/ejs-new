@@ -7,9 +7,6 @@
  * Electro-communications.
  */
 
-#include "cell-header.h"
-
-
 #ifndef USE_NATIVEGC
 #error Boehm GC is no longer supported
 #endif  /* USE_NATIVEGC */
