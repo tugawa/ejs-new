@@ -130,6 +130,16 @@ public class TypesGen {
         .append("\n");
     }
 
+    void appendHasHTagPredicate(StringBuilder sb) {
+        Set<VMRepType> rts = new HashSet<VMRepType>();
+        for (VMRepType rt: VMRepType.all())
+            if (rt.hasHT())
+                rts.add(rt);
+        sb.append("#define has_htag(x) ")
+        .append(minimumRepresentation(rts, VMRepType.all()))
+        .append("\n");
+    }
+
     String defineDTFamilyPredicates() {
         StringBuilder sb = new StringBuilder();
         appendDataTypeFamilyPredicates(sb,  "object", new String[] {
@@ -147,6 +157,7 @@ public class TypesGen {
                 "fixnum",
                 "flonum"
         });
+        appendHasHTagPredicate(sb);
         return sb.toString();
     }
 

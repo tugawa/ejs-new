@@ -1345,7 +1345,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
           }
           */
           if (IS_POINTER_LIKE_UINTJSV(x) &&
-              (is_object(x) || get_ptag(x).v == 0) &&
+              (has_htag(x) || get_ptag(x).v == 0) &&
               in_js_space(p))
             assert(is_marked_cell(p));
         }
