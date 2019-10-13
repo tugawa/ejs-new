@@ -125,6 +125,59 @@ cint_to_fixnumが使われていた箇所は主に以下の通り．
 * JSIteratorSize -> # of properties
 * HashData
 
+仮定: `sizeof(void *) <= sizeof(JSValue)`  ポインタ幅の方が小さいこともあり得る
+* `uintptr_t` ポインタと同じビット数の整数
+* `uintjsv_t` JSValue 型と同じビット数の整数 (JSValue と同時に定義する)
+
+仮定: `sizeof(JSValue) <= sizeof(cint)`
+
 ## cint の64bit化
 
+
+# メモ
+
+## 構造体で包む
+```
+typedef unsigned int JSValue;
+typedef unsigned int uintjsv_t;
+
+#define TAGMASK 0x7
+
+typedef struct {
+  uintjsv_t v;
+} PTag;
+
+static inline PTag get_ptag(JSValue v)
+{
+  return (PTag) {((uintjsv_t) v) & TAGMASK};
+}
+
+static inline int is_ptag(JSValue v, PTag pv)
+{
+  return get_ptag(v).v == pv.v;
+}
+
+#define T_GENERIC ((PTag) {0})
+
+int is_generic(JSValue v)
+{
+  return is_ptag(v, T_GENERIC);
+}
+```
+gccでは-O以上の最適化オプションを付けると次のコードを生成する．
+Compound literalはC99以上で有効
+* C11 standard (ISO/IEC 9899:2011): 6.5.2.5 Compound literals (p: 85-87)
+* C99 standard (ISO/IEC 9899:1999): 6.5.2.5 Compound literals (p: 75-77)
+```
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset %rbp, -16
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register %rbp
+	xorl	%eax, %eax
+	testb	$7, %dil
+	sete	%al
+	popq	%rbp
+	retq
+```
 
