@@ -7,15 +7,13 @@
 {
   Register dst = r0;
   JSValue ret;
-  Tag tag;
   double x1, x2;
 
   if (v1 == v2)
     ret = false_true(is_nan(v1));
   else {
     ret = JS_FALSE;
-    tag = TAG_PAIR(get_tag(v1), get_tag(v2));
-    switch (tag) {
+    switch (TAG_PAIR_VARS(v1, v2)) {
     case TP_FIXFIX:
     case TP_FIXFLO:
     case TP_FLOFIX:
@@ -37,23 +35,23 @@ FLOFLO:
       break;
     case TP_STRFIX:
 STRFIX:
-      v1 = string_to_number(v1);
+      v1 = string_to_number(context, v1);
       ret = true_false(v1 == v2);
       break;
     case TP_STRFLO:
 STRFLO:
-      v1 = string_to_number(v1);
+      v1 = string_to_number(context, v1);
       if (is_flonum(v1)) goto FLOFLO;
       ret = JS_FALSE;
       break;
     case TP_FIXSTR:
 FIXSTR:
-      v2 = string_to_number(v2);
+      v2 = string_to_number(context, v2);
       ret = true_false(v1 == v2);
       break;
     case TP_FLOSTR:
 FLOSTR:
-      v2 = string_to_number(v2);
+      v2 = string_to_number(context, v2);
       if (is_flonum(v2)) goto FLOFLO;
       ret = JS_FALSE;
       break;

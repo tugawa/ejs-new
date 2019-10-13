@@ -10,6 +10,7 @@
 #include "prefix.h"
 #define EXTERN extern
 #include "header.h"
+#include <limits.h>
 
 #define not_implemented(s)                                              \
   LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
@@ -27,7 +28,7 @@ BUILTIN_FUNCTION(string_constr)
   /* printf("In string_constr\n"); */
   rsv =
     new_string_object(context, DEBUG_NAME("string_constr"),
-                      gconsts.g_shape_String,
+                      gshapes.g_shape_String,
                       na > 0? args[1]: gconsts.g_string_empty);
   set_a(context, rsv);
 }
@@ -54,7 +55,7 @@ BUILTIN_FUNCTION(string_valueOf)
   builtin_prologue();  
   arg = args[0];
   if (is_string_object(arg))
-    arg = string_object_value(arg);
+    arg = get_jsstring_object_value(arg);
   else if (!is_string(arg))
     arg = JS_UNDEFINED;
   set_a(context, arg);
@@ -302,15 +303,15 @@ BUILTIN_FUNCTION(string_slice)
 
 int char_code_at(Context *context, JSValue str, JSValue a) {
   char *s;
-  int n;
+  cint n;
 
   GC_PUSH2(a,str);
   if (!is_string(str)) str = to_string(context, str);
-  if (is_fixnum(a)) n = fixnum_to_int(a);
+  if (is_fixnum(a)) n = fixnum_to_cint(a);
   else if (is_flonum(a)) n = flonum_to_int(a);
   else {
     a = to_number(context, a);
-    if (is_fixnum(a)) n = fixnum_to_int(a);
+    if (is_fixnum(a)) n = fixnum_to_cint(a);
     else if (is_flonum(a)) n = flonum_to_int(a);
     else {
       printf("cannot convert to a number\n");
@@ -387,7 +388,7 @@ JSValue string_indexOf_(Context *context, JSValue *args, int na,
   searchLen = string_length(s1);
 
   if (na >= 2 && !is_undefined(args[2])) pos = toInteger(context, args[2]);
-  else if (isLastIndexOf) pos = INFINITY;
+  else if (isLastIndexOf) pos = INT_MAX;
   else pos = 0;
   start = min(max(pos, 0), len);
   if (searchLen == 0)
@@ -537,17 +538,18 @@ BUILTIN_FUNCTION(string_fromCharCode)
 {
   JSValue a, ret;
   char *s;
-  int c, i;
+  cint c;
+  int i;
 
   builtin_prologue();
   s = (char *)malloc(sizeof(char) * (na + 1));
   for (i = 1; i <= na; i++) {
     a = args[i];
-    if (is_fixnum(a)) c = fixnum_to_int(a);
+    if (is_fixnum(a)) c = fixnum_to_cint(a);
     else if (is_flonum(a)) c = flonum_to_int(a);
     else {
       a = to_number(context, a);
-      if (is_fixnum(a)) c = fixnum_to_int(a);
+      if (is_fixnum(a)) c = fixnum_to_cint(a);
       else if (is_flonum(a)) c = flonum_to_int(a);
       else {
         printf("fromCharCode: cannot convert to a number\n");

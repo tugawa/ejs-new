@@ -73,7 +73,7 @@ static Shape *create_map_and_shape(char *name,
   uint32_t index = num_special;
 
   m = new_property_map(NULL, name, num_special, num_props, proto,
-                       gconsts.g_property_map_root);
+                       gpms.g_property_map_root);
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
     property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
@@ -113,7 +113,7 @@ static void fill_builtin_properties(JSValue object,
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
     JSValue value =
-      new_builtin_object(NULL, p->name, gconsts.g_shape_Builtin,
+      new_builtin_object(NULL, p->name, gshapes.g_shape_Builtin,
                          p->fn, builtin_not_a_constructor, p->na);
     set_prop_direct(NULL, object, cstr_to_string(NULL, p->name),
                     value, p->attr);
@@ -148,7 +148,7 @@ void init_meta_objects(void)
    * Step 0
    *  - Create root property map
    */
-  gconsts.g_property_map_root =
+  gpms.g_property_map_root =
     new_property_map(NULL, DEBUG_NAME("root"), 0, 0, JS_NULL, NULL);
 
   /*
@@ -172,7 +172,7 @@ void init_meta_objects(void)
       CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "Prototype"), psp, pproto,     \
                            T ## Prototype);                             \
     JSValue iproto = ctor(NULL, DEBUG_NAME(#T "Prototype"), os, ##ctorargs); \
-    gconsts.g_shape_ ## T =                                             \
+    gshapes.g_shape_ ## T =                                             \
       CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "0"), isp, iproto, T);         \
     gconsts.g_prototype_ ## T = iproto;                                 \
   } while(0)
@@ -193,7 +193,7 @@ void init_meta_objects(void)
   STEP1(Number,   OBJPROTO, NUMBER_SPECIAL_PROPS,  NUMBER_SPECIAL_PROPS,
         new_number_object, FIXNUM_ZERO);
 
-  gconsts.g_property_map_Object = gconsts.g_shape_Object->pm;
+  gpms.g_property_map_Object = gshapes.g_shape_Object->pm;
 
 #undef OBJPROTO
 #undef STEP1
@@ -206,7 +206,7 @@ void init_meta_objects(void)
    *   TODO: create dedicated object shapes for the constructors.
    */
 
-  gconsts.g_shape_Builtin =
+  gshapes.g_shape_Builtin =
     CREATE_MAP_AND_SHAPE(DEBUG_NAME("Builtin0"), BUILTIN_SPECIAL_PROPS,
                          gconsts.g_prototype_Function, Builtin);
 
@@ -216,7 +216,7 @@ void init_meta_objects(void)
     FILL_BUILTIN_PROPERTIES(gconsts.g_prototype_ ## T,          \
                             T ## Prototype);                    \
     ctor = new_builtin_object(NULL, DEBUG_NAME(#T),             \
-                              gconsts.g_shape_Builtin,          \
+                              gshapes.g_shape_Builtin,          \
                               cfun, cctor, na);                 \
     FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);            \
     gconsts.g_ctor_ ## T = ctor;                                \
@@ -239,9 +239,9 @@ void init_meta_objects(void)
   do {                                                                  \
     JSValue prototype, ctor;                                            \
     prototype = new_simple_object(NULL, DEBUG_NAME(#T "Prototype"),     \
-                                  gconsts.g_shape_Object);              \
+                                  gshapes.g_shape_Object);              \
     ctor = new_builtin_with_constr(NULL, DEBUG_NAME(#T),                \
-                                   gconsts.g_shape_Builtin,             \
+                                   gshapes.g_shape_Builtin,             \
                                    cfun, ccotr, na);                    \
     FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);                    \
     gconsts.g_ctor_ ## T = ctor;                                        \
@@ -262,9 +262,9 @@ void init_global_objects(void) {
    *   - fill gconsts
    */
   gconsts.g_global = new_simple_object(NULL, DEBUG_NAME("global"),
-                                       gconsts.g_shape_Object);
+                                       gshapes.g_shape_Object);
   gconsts.g_math = new_simple_object(NULL, DEBUG_NAME("math"),
-                                     gconsts.g_shape_Object);
+                                     gshapes.g_shape_Object);
 
   /* Step 2
    *   - fill propertyes

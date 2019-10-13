@@ -83,7 +83,7 @@ public class TypesGen {
         sb.append(") && (0");
         for (VMRepType.HT ht : hts)
             sb.append(" || ")
-            .append(String.format("(obj_header_tag(x) == %s)", ht.getName()));
+            .append(String.format("(get_htag(x).v == %s)", ht.getName()));
         sb.append("))");
         for (VMRepType.PT pt : unique)
             sb.append(" || ")

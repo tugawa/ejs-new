@@ -1,7 +1,7 @@
 \inst lessthan (Register dst, Value v1, Value v2)
 
 \when v1:fixnum && v2:fixnum \{
-  dst = true_false(((cint) v1) < ((cint) v2)); /* tag bits should be the same */
+  dst = true_false(((intjsv_t) v1) < ((intjsv_t) v2));
 \}
 
 \when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{

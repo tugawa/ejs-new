@@ -26,7 +26,7 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
   GC_PUSH(env);
   frame = (FunctionFrame *)
     gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
-              HTAG_FUNCTION_FRAME);
+              CELLT_FUNCTION_FRAME);
   GC_POP(env);
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
@@ -81,14 +81,14 @@ void init_context(FunctionTable *ftab, JSValue glob, size_t stack_limit,
 static Context *allocate_context(size_t stack_size)
 {
   /* GC is not allowed */
-  Context *ctx = (Context *) gc_malloc(NULL, sizeof(Context), HTAG_CONTEXT);
+  Context *ctx = (Context *) gc_malloc(NULL, sizeof(Context), CELLT_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc(NULL, sizeof(JSValue) * stack_size,
-                                     HTAG_STACK);
+                                     CELLT_STACK);
   ctx->exhandler_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                          gconsts.g_shape_Array, 0);
+                                          gshapes.g_shape_Array, 0);
   ctx->exhandler_stack_ptr = 0;
   ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                      gconsts.g_shape_Array, 0);
+                                      gshapes.g_shape_Array, 0);
   ctx->lcall_stack_ptr = 0;
   return ctx;
 }
@@ -113,9 +113,9 @@ void check_stack_invariant(Context *ctx)
 {
   int sp = get_sp(ctx);
   int fp = get_fp(ctx);
-  int pc = get_pc(ctx);
-  FunctionTable *cf = get_cf(ctx);
-  FunctionFrame *lp = get_lp(ctx);
+  int pc __attribute__((unused)) = get_pc(ctx);
+  FunctionTable *cf __attribute__((unused)) = get_cf(ctx);
+  FunctionFrame *lp __attribute__((unused)) = get_lp(ctx);
   int i;
 
   assert(is_valid_JSValue(get_global(ctx)));
@@ -127,10 +127,10 @@ void check_stack_invariant(Context *ctx)
     if (fp == 0)
       break;
     sp = fp - 1;
-    fp = get_stack(ctx, sp); sp--;
-    lp = (FunctionFrame *) get_stack(ctx, sp); sp--;
-    pc = get_stack(ctx, sp); sp--;
-    cf = (FunctionTable *) get_stack(ctx, sp); sp--;
+    fp = (int) (intjsv_t) get_stack(ctx, sp); sp--;
+    lp = jsv_to_function_frame(get_stack(ctx, sp)); sp--;
+    pc = (int) (intjsv_t) get_stack(ctx, sp); sp--;
+    cf = (FunctionTable *) jsv_to_noheap_ptr(get_stack(ctx, sp)); sp--;
   }
 }
 

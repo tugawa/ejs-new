@@ -12,40 +12,31 @@
 #include "header.h"
 
 /*
- * a counter for debugging
- */
-#ifdef DEBUG
-int count = 0;
-#endif /* DEBUG */
-
-/*
  * allocates a flonum
- * Note that the return value does not have a pointer tag.
  */
 FlonumCell *allocate_flonum(Context *ctx, double d)
 {
-  FlonumCell *n =
-    (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM);
-  n->value = d;
-  return n;
+  FlonumCell *p =    
+    (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM.v);
+  set_normal_flonum_ptr_value(p, d);
+  return p;
 }
 
 /*
  * allocates a string
  * It takes only the string length (excluding the last null character).
- * Note that the return value does not have a pointer tag.
  */
 StringCell *allocate_string(Context *ctx, uint32_t length)
 {
   /* plus 1 for the null terminater,
    * minus BYTES_IN_JSVALUE becasue StringCell has payload of
    * BYTES_IN_JSVALUE for placeholder */
-  uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
-  StringCell *v = (StringCell *) gc_malloc(ctx, size, HTAG_STRING);
+  uint32_t size = sizeof(StringCell) + length + 1 - BYTES_IN_JSVALUE;
+  StringCell *p = (StringCell *) gc_malloc(ctx, size, HTAG_STRING.v);
 #ifdef STROBJ_HAS_HASH
-  v->length = length;
+  set_normal_string_ptr_length(p, length);
 #endif
-  return v;
+  return p;
 }
 
 /*
@@ -55,17 +46,18 @@ StringCell *allocate_string(Context *ctx, uint32_t length)
 void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 {
   JSValue *body, *oldbody;
-
+  int length = get_jsarray_length(a);
   int i;
 
   GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
-                               HTAG_ARRAY_DATA);
+                               CELLT_ARRAY_DATA);
   GC_POP(a);
-  oldbody = array_body(a);
-  for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
-  array_body(a) = body;
-  array_size(a) = newsize;
+  oldbody = get_jsarray_body(a);
+  for (i = 0; i < length; i++)
+    body[i] = oldbody[i];
+  set_jsarray_body(a, body);
+  set_jsarray_size(a, newsize);
 }
 
 /*
@@ -73,10 +65,10 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
  */
 Iterator *allocate_iterator(Context *ctx) {
   Iterator *iter =
-    (Iterator *) gc_malloc(ctx, sizeof(Iterator), HTAG_ITERATOR);
-  iterator_body(iter) = NULL;
-  iterator_size(iter) = 0;
-  iterator_index(iter) = 0;
+    (Iterator *) gc_malloc(ctx, sizeof(Iterator), HTAG_ITERATOR.v);
+  set_iterator_ptr_body(iter, NULL);
+  set_iterator_ptr_size(iter, 0);
+  set_iterator_ptr_index(iter, 0);
   return iter;
 }
 
@@ -91,12 +83,12 @@ void allocate_iterator_data(Context *ctx, JSValue a, int size)
   int i;
   GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-                               HTAG_ARRAY_DATA);
+                               CELLT_ARRAY_DATA);
   GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
-  iterator_body(a) = body;
-  iterator_size(a) = size;
-  iterator_index(a) = 0;
+  set_jsiterator_body(a, body);
+  set_jsiterator_size(a, size);
+  set_jsiterator_index(a, 0);
 }
 
 /* Local Variables:      */

@@ -106,7 +106,7 @@ def ordinal(n):
 def gen_vardecl(kind, n):
   vname = var_name(kind, n)
   gen_indent(2)
-  ofile.write(kind + " " + vname + ";\n")
+  ofile.write(kind + " " + vname + " __attribute__((unused));\n")
 
 def gen_var_assignment(n, kind, jsv_kind = None):
   if not jsv_kind: jsv_kind = "_"
@@ -136,15 +136,17 @@ def gen_assignment(kind, n):
   ord = ordinal(n)
   vname = var_name(kind, n)
   gen_indent(2)
-  ofile.write(kind + " " + vname + " = get_" + ord + "_operand_" + post + "(insn);\n")
+  ofile.write(kind + " " + vname + " __attribute__((unused)) = get_" + ord + "_operand_" + post + "(insn);\n")
 
 def gen_assignment_smallprimitive(kind):
   gen_indent(2)
-  ofile.write("SmallPrimitive i1 = get_small_immediate(insn);\n")
+  ofile.write("SmallPrimitive i1 __attribute__((unused)) =" +
+              "get_small_immediate(insn);\n")
 
 def gen_assignment_bigprimitive(kind):
   gen_indent(2)
-  ofile.write("ConstantDisplacement d1 = get_big_constant_disp(insn);\n")
+  ofile.write("ConstantDisplacement d1 __attribute__((unused)) =" +
+              "get_big_constant_disp(insn);\n")
 
 def gen_assignment_instruction_displacement(kind, n):
   vname = var_name(kind, n)

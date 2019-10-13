@@ -155,7 +155,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 
 #define update_context() do {                           \
     curfn = get_cf(context);                            \
-    codesize = ftab_n_insns(curfn);                     \
     pc = get_pc(context);                               \
     fp = get_fp(context);                               \
     insns = curfn->insns + pc;                          \
@@ -178,7 +177,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
  */
 int vmrun_threaded(Context* context, int border) {
   FunctionTable *curfn;
-  int codesize;
   int pc;
   int fp;
   Instruction *insns;

@@ -27,7 +27,7 @@ void math_func(Context *context, int fp, double (*fn)(double)) {
     return;
   }
   /* v is either fixnum or flonum */
-  x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+  x = number_to_double(v);
   x = (*fn)(x);
   set_a_number(x);
 }
@@ -44,7 +44,7 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
     set_a(context, v1);
     return;
   }
-  x1 = is_fixnum(v1)? fixnum_to_double(v1): flonum_to_double(v1);
+  x1 = number_to_double(v1);
 
   v2 = args[2];
   if (!is_number(v2)) v2 = to_number(context, v2);
@@ -52,7 +52,7 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
     set_a(context, v2);
     return;
   }
-  x2 = is_fixnum(v2)? fixnum_to_double(v2): flonum_to_double(v2);
+  x2 = number_to_double(v2);
 
   x1 = (*fn)(x1, x2);
   set_a_number(x1);
@@ -141,7 +141,7 @@ BUILTIN_FUNCTION(math_max)
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
     /* v is either fixnum or flonum */
-    x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+    x = number_to_double(v);
     if (r < x) r = x;
   }
   set_a_number(r);
@@ -160,7 +160,7 @@ BUILTIN_FUNCTION(math_min)
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
     /* v is either fixnum or flonum */
-    x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+    x = number_to_double(v);
     if (x < r) r = x;
   }
   set_a_number(r);

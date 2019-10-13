@@ -7,12 +7,11 @@
  */
 {
   Register dst = r0;
-  Tag tag;
   double x1, x2;
 
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    regbase[dst] = true_false((int64_t)v1 < (int64_t)v2);
+    regbase[dst] = true_false(((intjsv_t) v1) < ((intjsv_t) v2));
     break;
   case TP_FIXFLO:
     x1 = fixnum_to_double(v1);

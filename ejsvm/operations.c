@@ -18,13 +18,12 @@
  * For details, see sect. 4.8.1.
  */
 JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
 
   if (is_object(v1))
     v1 = object_to_string(context, v1);
   if (is_object(v2))
     v2 = object_to_string(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_STRFLO:
     v2 = flonum_to_string(v2);
     goto STRSTR;
@@ -65,13 +64,11 @@ JSValue slow_add(Context *context, JSValue v1, JSValue v2) {
  * subtracts two values slowly
  */
 JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2, d;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  tag = TAG_PAIR(get_tag(v1), get_tag(v2));
-  switch (tag) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
       cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
@@ -104,13 +101,11 @@ JSValue slow_sub(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2, d;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  tag = TAG_PAIR(get_tag(v1), get_tag(v2));
-  switch (tag) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
       cint n1, n2, p;
@@ -118,7 +113,7 @@ JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
       n2 = fixnum_to_cint(v2);
       if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
         p = n1 * n2;
-        return cint_to_fixnum(p);
+        return cint_to_fixnum_nocheck(p);
       } else {
         x1 = (double)n1;
         x2 = (double)n2;
@@ -153,16 +148,14 @@ JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2, d;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  tag = TAG_PAIR(get_tag(v1), get_tag(v2));
-  switch (tag) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     {
-      int n1, n2, s;
+      cint n1, n2, s;
       n1 = fixnum_to_cint(v1);
       if (v2 == FIXNUM_ZERO) {
         if (n1 > 0) return gconsts.g_flonum_infinity;
@@ -171,7 +164,7 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
       } else {
         n2 = fixnum_to_cint(v2);
         s = n1 / n2;
-        return (n1 == n2 * s)? cint_to_fixnum(s):
+        return (n1 == n2 * s)? cint_to_number(context, s):
           double_to_flonum(context, (double)n1 / (double)n2);
       }
     }
@@ -206,13 +199,11 @@ JSValue slow_div(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2, d;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  tag = TAG_PAIR(get_tag(v1), get_tag(v2));
-  switch (tag) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     return (v2 == FIXNUM_ZERO)? gconsts.g_flonum_nan:
     cint_to_number(context, fixnum_to_cint(v1) % fixnum_to_cint(v2));
@@ -248,26 +239,25 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
-  cint x1, x2;
+  uint32_t x1, x2;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    return v1 & v2;
+    return (JSValue) (((uintjsv_t) v1) & ((uintjsv_t) v2));
   case TP_FIXFLO:
-    x1 = fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum(x1 & x2);
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = (uint32_t) flonum_to_cint(v2);
+    return cint_to_fixnum_nocheck((cint) (x1 & x2));
   case TP_FLOFIX:
-    x1 = flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum(x1 & x2);
+    x1 = (uint32_t) flonum_to_cint(v1);
+    x2 = (uint32_t) fixnum_to_cint(v2);
+    return cint_to_fixnum_nocheck((cint) (x1 & x2));
   case TP_FLOFLO:
-    x1 = flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum(x1 & x2);
+    x1 = (uint32_t) flonum_to_cint(v1);
+    x2 = (uint32_t) flonum_to_cint(v2);
+    return cint_to_number(context, (cint) (x1 & x2));
     break;
   default:
     return gconsts.g_flonum_nan;
@@ -275,26 +265,25 @@ JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
-  cint x1, x2;
+  uint32_t x1, x2;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    return v1 | v2;
+    return (JSValue) (((uintjsv_t) v1) | ((uintjsv_t) v2));
   case TP_FIXFLO:
-    x1 = fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum(x1 | x2);
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = (uint32_t) flonum_to_cint(v2);
+    return cint_to_number(context, (cint) (x1 | x2));
   case TP_FLOFIX:
-    x1 = flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum(x1 | x2);
+    x1 = (uint32_t) flonum_to_cint(v1);
+    x2 = (uint32_t) fixnum_to_cint(v2);
+    return cint_to_number(context, (cint) (x1 | x2));
   case TP_FLOFLO:
     x1 = flonum_to_cint(v1);
     x2 = flonum_to_cint(v2);
-    return cint_to_fixnum(x1 | x2);
+    return cint_to_number(context, (cint) (x1 | x2));
     break;
   default:
     return gconsts.g_flonum_nan;
@@ -302,8 +291,7 @@ JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
-  int32_t x1;
+  uint32_t x1;
   cint x2;
 
   if (!is_number(v1)) {
@@ -315,30 +303,29 @@ JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
     }
   }
   if (!is_number(v2)) v2 = to_number(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    x1 = (int32_t)fixnum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 << x2));
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 << x2));
   case TP_FIXFLO:
-    x1 = (int32_t)fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 << x2));
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 << x2));
   case TP_FLOFIX:
-    x1 = (int32_t)flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 << x2));
+    x1 = (uint32_t)flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 << x2));
   case TP_FLOFLO:
-    x1 = (int32_t)flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 << x2));
+    x1 = (uint32_t)flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 << x2));
   default:
     return gconsts.g_flonum_nan;
   }
 }
 
 JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   int32_t x1;
   cint x2;
 
@@ -351,59 +338,57 @@ JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2) {
     }
   }
   if (!is_number(v2)) v2 = to_number(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    x1 = (int32_t)fixnum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (int32_t) fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   case TP_FIXFLO:
-    x1 = (int32_t)fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (int32_t) fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   case TP_FLOFIX:
-    x1 = (int32_t)flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   case TP_FLOFLO:
-    x1 = (int32_t)flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   default:
     return gconsts.g_flonum_nan;
   }
 }
 
 JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   uint32_t x1;
   cint x2;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    x1 = (uint32_t)fixnum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   case TP_FIXFLO:
-    x1 = (uint32_t)fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (uint32_t) fixnum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
   case TP_FLOFIX:
-    x1 = (uint32_t)flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (uint32_t) flonum_to_cint(v1);
+    x2 = fixnum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 >> x2));
   case TP_FLOFLO:
-    x1 = (uint32_t)flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_fixnum((cint)(x1 >> x2));
+    x1 = (uint32_t) flonum_to_cint(v1);
+    x2 = flonum_to_cint(v2) & 31;
+    return cint_to_number(context, (cint)(x1 >> x2));
   default:
     return gconsts.g_flonum_nan;
   }
 }
 
 JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2;
 
   if (is_object(v1)) v1 = object_to_primitive(context, v1, HINT_NUMBER);
@@ -411,7 +396,7 @@ JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
   if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
   if (is_special(v2)) v2 = special_to_number(v2);
  LTAGAIN:
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     return true_false((int64_t)v1 < (int64_t)v2);
   case TP_FIXFLO:
@@ -429,14 +414,13 @@ JSValue slow_lessthan(Context *context, JSValue v1, JSValue v2) {
   case TP_STRSTR:
     return true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) < 0);
   default:
-    if (is_string(v1)) v1 = string_to_number(v1);
-    if (is_string(v2)) v2 = string_to_number(v2);
+    if (is_string(v1)) v1 = string_to_number(context, v1);
+    if (is_string(v2)) v2 = string_to_number(context, v2);
     goto LTAGAIN;
   }
 }
 
 JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
-  Tag tag;
   double x1, x2;
 
   if (is_object(v1)) v1 = object_to_primitive(context, v1, HINT_NUMBER);
@@ -444,7 +428,7 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
   if (is_object(v2)) v2 = object_to_primitive(context, v2, HINT_NUMBER);
   if (is_special(v2)) v2 = special_to_number(v2);
  LEAGAIN:
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
     return true_false((int64_t)v1 <= (int64_t)v2);
   case TP_FIXFLO:
@@ -462,8 +446,8 @@ JSValue slow_lessthanequal(Context *context, JSValue v1, JSValue v2) {
   case TP_STRSTR:
     return true_false(strcmp(string_to_cstr(v1), string_to_cstr(v2)) <= 0);
   default:
-    if (is_string(v1)) v1 = string_to_number(v1);
-    if (is_string(v2)) v2 = string_to_number(v2);
+    if (is_string(v1)) v1 = string_to_number(context, v1);
+    if (is_string(v2)) v2 = string_to_number(context, v2);
     goto LEAGAIN;
   }
 }

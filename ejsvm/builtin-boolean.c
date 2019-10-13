@@ -20,9 +20,9 @@ BUILTIN_FUNCTION(boolean_constr)
 
   builtin_prologue();  
   rsv = new_boolean_object(context, DEBUG_NAME("boolean_ctor"),
-                           gconsts.g_shape_Boolean, JS_FALSE);
+                           gshapes.g_shape_Boolean, JS_FALSE);
   if (na > 0)
-    boolean_object_value(rsv) = to_boolean(args[1]);
+    set_jsboolean_object_value(rsv, to_boolean(args[1]));
   set_a(context, rsv);
 }
 
@@ -42,7 +42,7 @@ BUILTIN_FUNCTION(boolean_valueOf)
   builtin_prologue();  
   arg = args[0];
   if (is_boolean_object(arg))
-    arg = boolean_object_value(arg);
+    arg = get_jsboolean_object_value(arg);
   set_a(context, arg);
 }
 

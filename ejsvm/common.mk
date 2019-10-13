@@ -15,9 +15,6 @@ endif
 ifeq ($(SED),)
     SED = gsed
 endif
-ifeq ($(RUBY),)
-    RUBY = ruby
-endif
 ifeq ($(PYTHON),)
     PYTHON = python
 endif
@@ -85,7 +82,7 @@ endif
 
 CPP=$(CC) -E
 
-CFLAGS += -std=gnu89 -Wall -Wno-unused-label $(INCLUDES)
+CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-unused-result $(INCLUDES)
 LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
@@ -127,7 +124,6 @@ GENERATED_HFILES = \
     instructions-opcode.h \
     instructions-table.h \
     instructions-label.h \
-    cell-header.h \
     specfile-fingerprint.h
 
 HFILES = $(GENERATED_HFILES) \
@@ -141,7 +137,9 @@ HFILES = $(GENERATED_HFILES) \
     globals.h \
     extern.h \
     log.h \
-    gc.h
+    gc.h \
+    context-inl.h \
+    types-inl.h
 ifeq ($(USE_VMDL),true)
     HFILES += vmdl-helper.h
 endif
@@ -295,9 +293,11 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(VMDL)
+ejsvm.spec: $(EJSVM_DIR)/instructions.def $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
+specfile-fingerprint.h: ejsvm.spec
+	touch $@
 else
 ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMDL)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
@@ -433,9 +433,6 @@ endif
 endif
 endif
 
-cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< > $@
-
 instructions.h: instructions-opcode.h instructions-table.h
 
 %.c:: $(EJSVM_DIR)/%.c
@@ -443,8 +440,6 @@ instructions.h: instructions-opcode.h instructions-table.h
 
 %.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
-
-codeloader.o: specfile-fingerprint.h
 
 object.o: object-compat.c
 

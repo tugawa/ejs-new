@@ -31,11 +31,11 @@
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif /* __USE_GNU */
-
-typedef uint64_t JSValue;
-#define BYTES_IN_JSVALUE (sizeof(JSValue))
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define PRIJSValue PRIx64
+#ifdef DEBUG
+#define DEBUG_NAME(name) name
+#else /* DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* DEBUG */
 
 #ifdef USE_BOEHMGC
 /* #define malloc(n) GC_malloc(n) */
@@ -60,18 +60,21 @@ typedef uint64_t JSValue;
 #define FILE_SBC   2
 
 #include "prefix.h"
+#include "types.h"
+#include "context.h"
+#include "gc.h"
+#include "hash.h"
 #include "log.h"
 #include "instructions.h"
-#include "context.h"
-#include "hash.h"
-#include "gc.h"
-#include "types.h"
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
 #ifdef USE_VMDL
 #include "vmdl-helper.h"
 #endif /* USE_VMDL */
+
+#include "context-inl.h"
+#include "types-inl.h"
 
 #endif /* HEADER_H_ */
 

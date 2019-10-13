@@ -64,15 +64,16 @@ BUILTIN_FUNCTION(array_constr)
   rsv = create_array_object(context, DEBUG_NAME("array_ctor"), size);
 #else /* ALLOC_SITE_CACHE */
   rsv = new_array_object(context, DEBUG_NAME("array_ctor"),
-                         gconsts.g_shape_Array, size);
+                         gshapes.g_shape_Array, size);
 #endif /* ALLOC_SITE_CACHE */
-  array_length(rsv) = length;  /* TODO: implement property */
+  set_jsarray_length(rsv, length);  /* TODO: implement property */
 
   /* fill elements if supplied */
   if (na >= 2) {
     int i;
+    JSValue *body = get_jsarray_body(rsv);
     for (i = 0; i < length; i++)
-      array_body(rsv)[i] = args[i + 1];
+      body[i] = args[i + 1];
   }
 
   GC_PUSH(rsv);
@@ -126,14 +127,14 @@ BUILTIN_FUNCTION(array_concat)
 
   builtin_prologue();
   a = new_array_object(context, DEBUG_NAME("array_concat"),
-                       gconsts.g_shape_Array, 0);
+                       gshapes.g_shape_Array, 0);
   n = 0;
   GC_PUSH(a);
   for (i = 0; i <= na; i++) {
     e = args[i];
     if (is_array(e)) {
       k = 0;
-      len = array_length(e);
+      len = get_jsarray_length(e);
       if (n + len > MAX_ARRAY_LENGTH)
         /* This should be improved */
         LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
@@ -157,7 +158,7 @@ BUILTIN_FUNCTION(array_concat)
     }
   }
   /* is the two lines below necessary? */
-  array_length(a) = n;
+  set_jsarray_length(a, n);
   set_prop_direct(context, a, gconsts.g_string_length,
                   cint_to_number(context, n), ATTR_NONE);
   GC_POP(a);
@@ -172,19 +173,20 @@ BUILTIN_FUNCTION(array_pop)
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a) - 1;    /* len >= -1 */
+  len = get_jsarray_length(a) - 1;    /* len >= -1 */
   if (len < 0) {
     set_a(context, JS_UNDEFINED);
     return;
   }
 
   flen = cint_to_number(context, len);
-  if (len < array_size(a))
-    ret = array_body(a)[len];
-  else
+  if (len < get_jsarray_size(a)) {
+    JSValue *body = get_jsarray_body(a);
+    ret = body[len];
+  } else
     ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
   delete_array_element(a, len);
-  array_length(a) = len;
+  set_jsarray_length(a, len);
   GC_PUSH(ret);
   set_prop_direct(context, a, gconsts.g_string_length, flen, ATTR_NONE);
   GC_POP(ret);
@@ -200,7 +202,7 @@ BUILTIN_FUNCTION(array_push)
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a);
+  len = get_jsarray_length(a);
   /*
    * The following for-loop is very inefficient.
    * This is for simplicity of implementation.
@@ -222,7 +224,7 @@ BUILTIN_FUNCTION(array_reverse)
   JSValue lowerValue, upperValue;
 
   builtin_prologue();
-  len = array_length(args[0]);
+  len = get_jsarray_length(args[0]);
   mid = len / 2;
 
   lowerValue = JS_NULL;
@@ -269,7 +271,7 @@ BUILTIN_FUNCTION(array_shift)
   cint len, from, to;
 
   builtin_prologue();
-  len = array_length(args[0]);
+  len = get_jsarray_length(args[0]);
   if (len <= 0) {
     set_a(context, JS_UNDEFINED);
     return;
@@ -290,7 +292,7 @@ BUILTIN_FUNCTION(array_shift)
   }
   delete_array_element(args[0], len - 1);
   /* should reallocate (shorten) body array here? */
-  array_length(args[0]) = --len;
+  set_jsarray_length(args[0], --len);
   set_prop_direct(context, args[0], gconsts.g_string_length,
                   cint_to_number(context, len), ATTR_NONE);
   GC_POP(first);
@@ -309,7 +311,7 @@ BUILTIN_FUNCTION(array_slice)
   start = (na >= 1)? args[1]: 0;
   end = (na >= 2)? args[2]: JS_UNDEFINED;
 
-  len = array_length(args[0]);
+  len = get_jsarray_length(args[0]);
   GC_PUSH2(o, end);
   relativeStart = toInteger(context, start);
   GC_POP(end);
@@ -325,7 +327,7 @@ BUILTIN_FUNCTION(array_slice)
 
   count = max(final - k, 0);
   a = new_array_object(context, DEBUG_NAME("array_slice"),
-                       gconsts.g_shape_Array, count);
+                       gshapes.g_shape_Array, count);
   GC_PUSH(a);
   n = 0;
   while (k < final) {
@@ -363,7 +365,7 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     GC_POP(y);
     return -1;
   } else if (is_function(comparefn) ||
-             (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
+             (is_builtin(comparefn) && get_jsbuiltin_nargs(comparefn) >= 2)) {
     /*
      * printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),
      *        fixnum_to_cint(y));
@@ -557,7 +559,7 @@ BUILTIN_FUNCTION(array_sort)
   builtin_prologue();
   obj = args[0];
   comparefn = args[1];
-  len = array_length(obj);
+  len = get_jsarray_length(obj);
   GC_PUSH(obj);
   asort(context, obj, 0, len - 1, comparefn);
   GC_POP(obj);
@@ -574,15 +576,16 @@ BUILTIN_FUNCTION(array_debugarray)
 
   builtin_prologue();
   a = args[0];
-  size = array_size(a);
-  length = array_length(a);
+  size = get_jsarray_size(a);
+  length = get_jsarray_length(a);
   to = length < size? length: size;
-  printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
-         size, length, to);
+  printf("debugarray: size = %lld length = %lld, to = %lld\n",
+         (long long) size, (long long) length, (long long) to);
   GC_PUSH(a);
   for (i = 0; i < to; i++) {
+    JSValue *body = get_jsarray_body(a);
     printf("i = %d: ", i);
-    print_value_simple(context, array_body(a)[i]);
+    print_value_simple(context, body[i]);
     printf("\n");
   }
   GC_POP(a);

@@ -70,11 +70,11 @@ static int prop_index(JSObject *p, JSValue name, Attribute *attrp,
   }
   if (is_transition(attr)) {
     if (next_map != NULL)
-      *next_map = (PropertyMap *) retv;
+      *next_map = retv.u.pm;
     return -1;
   } else {
     *attrp = attr;
-    return (int) retv;
+    return retv.u.index;
   }
 }
 
@@ -131,7 +131,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     }
   }
 
-  index = prop_index(remove_jsobject_tag(obj), name, &attr, &next_pm);
+  index = prop_index(jsv_to_jsobject(obj), name, &attr, &next_pm);
   if (index == -1) {
     /* Current map does not have the property named `name'.
      * Remark: Hidden class related objects must be GC_PUSHed because
@@ -214,7 +214,7 @@ JSValue get_prop(JSValue obj, JSValue name)
     if (__proto__ != JS_EMPTY)
       return __proto__;
   }
-  index = prop_index(remove_jsobject_tag(obj), name, &attr, NULL);
+  index = prop_index(jsv_to_jsobject(obj), name, &attr, NULL);
   if (index == -1 || is_system_prop(attr))
     return JS_EMPTY;
 #ifdef INLINE_CACHE
@@ -235,7 +235,7 @@ static JSValue get_system_prop(JSValue obj, JSValue name)
 
   assert(is_jsobject(obj));
 
-  index = prop_index(remove_jsobject_tag(obj), name, &attr, NULL);
+  index = prop_index(jsv_to_jsobject(obj), name, &attr, NULL);
   if (index == -1)
     return JS_EMPTY;
   assert(is_system_prop(attr));  /* or system property is overwritten */
@@ -280,12 +280,11 @@ JSValue get_prop_prototype_chain(JSValue obj, JSValue name)
  * Initialise common and property fields of JSObject.
  */
 static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
-                                   cell_type_t htag)
+                                   HTag htag)
 {
   size_t n_embedded = os->n_embedded_slots;
-  size_t size =
-    sizeof(JSObject) + sizeof(JSValue) * (n_embedded - JSOBJECT_MIN_EMBEDDED);
-  JSObject *p = (JSObject *) gc_malloc(ctx, size, htag);
+  size_t size = sizeof(JSObject) + sizeof(JSValue) * n_embedded;
+  JSObject *p = (JSObject *) gc_malloc(ctx, size, htag.v);
   int i;
 
   p->shape = os;
@@ -315,7 +314,7 @@ JSValue new_simple_object(Context *ctx, char *name, Shape *os)
   assert(Object_num_builtin_props +
          Object_num_double_props + Object_num_gconsts_props == 0);
 
-  return put_simple_object_tag(p);
+  return ptr_to_normal_simple_object(p);
 }
 
 JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
@@ -327,24 +326,24 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
   assert(os->pm->n_special_props == ARRAY_SPECIAL_PROPS);
 
   p = allocate_jsobject(ctx, name, os, HTAG_ARRAY);
-  array_ptr_body(p) = NULL;  /* tell GC not to follow this pointer */
+  set_array_ptr_body(p, NULL);  /* tell GC not to follow this pointer */
 
   GC_PUSH(p);
   array_data =
-    (JSValue *) gc_malloc(ctx, size * sizeof(JSValue), HTAG_ARRAY_DATA);
+    (JSValue *) gc_malloc(ctx, size * sizeof(JSValue), CELLT_ARRAY_DATA);
   GC_POP(p);
   for (i = 0; i < size; i++)
     array_data[i] = JS_UNDEFINED;
 
-  array_ptr_body(p)   = array_data;
-  array_ptr_size(p)   = size;
-  array_ptr_length(p) = size;
+  set_array_ptr_body(p, array_data);
+  set_array_ptr_size(p, size);
+  set_array_ptr_length(p, size);
 
   assert(Array_num_builtin_props +
          Array_num_double_props + Array_num_gconsts_props == 1);
   init_prop(p, gconsts.g_string_length, cint_to_number(ctx, (cint) size));
 
-  return put_array_tag(p);
+  return ptr_to_normal_array(p);
 }
 
 JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
@@ -355,20 +354,20 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   assert(os->pm->n_special_props == FUNCTION_SPECIAL_PROPS);
 
   prototype = new_simple_object(ctx, DEBUG_NAME("(prototype)"),
-                                gconsts.g_shape_Object);
+                                gshapes.g_shape_Object);
 
   GC_PUSH(prototype);
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
   GC_POP(prototype);
 
-  function_ptr_table_entry(p) = &(ctx->function_table[ft_index]);
-  function_ptr_environment(p) = get_lp(ctx);
+  set_function_ptr_table_entry(p, &(ctx->function_table[ft_index]));
+  set_function_ptr_environment(p, get_lp(ctx));
 
   assert(Function_num_builtin_props +
          Function_num_double_props + Function_num_gconsts_props == 1);
   init_prop(p, gconsts.g_string_prototype, prototype);
 
-  return put_function_tag(p);
+  return ptr_to_normal_function(p);
 }
 
 JSValue new_builtin_object(Context *ctx, char *name, Shape *os,
@@ -381,14 +380,14 @@ JSValue new_builtin_object(Context *ctx, char *name, Shape *os,
 
   p = allocate_jsobject(ctx, name, os, HTAG_BUILTIN);
 
-  builtin_ptr_body(p)        = cfun;
-  builtin_ptr_constructor(p) = cctor;
-  builtin_ptr_n_args(p)      = na;
+  set_builtin_ptr_body(p, cfun);
+  set_builtin_ptr_constructor(p, cctor);
+  set_builtin_ptr_nargs(p, na);
 
   assert(Builtin_num_builtin_props +
          Builtin_num_double_props + Builtin_num_gconsts_props == 0);
 
-  return put_builtin_tag(p);
+  return ptr_to_normal_builtin(p);
 }
 
 JSValue new_number_object(Context *ctx, char *name, Shape *os, JSValue v)
@@ -402,12 +401,12 @@ JSValue new_number_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_NUMBER);
   GC_POP(v);
 
-  number_object_ptr_value(p) = v;
+  set_number_object_ptr_value(p, v);
 
   assert(Number_num_builtin_props +
          Number_num_double_props + Number_num_gconsts_props == 0);
 
-  return put_number_object_tag(p);
+  return ptr_to_normal_number_object(p);
 }
 
 JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
@@ -421,13 +420,14 @@ JSValue new_string_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_STRING);
   GC_POP(v);
 
-  string_object_ptr_value(p) = v;
+  set_string_object_ptr_value(p, v);
 
   assert(String_num_builtin_props +
          String_num_double_props + String_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, string_length(v)));
+  init_prop(p, gconsts.g_string_length,
+            uint32_to_number(ctx, string_length(v)));
 
-  return put_string_object_tag(p);
+  return ptr_to_normal_string_object(p);
 }
 
 
@@ -442,9 +442,9 @@ JSValue new_boolean_object(Context *ctx, char *name, Shape *os, JSValue v)
   p = allocate_jsobject(ctx, name, os, HTAG_BOXED_BOOLEAN);
   GC_POP(v);
 
-  boolean_object_ptr_value(p) = v;
+  set_boolean_object_ptr_value(p, v);
 
-  return put_boolean_object_tag(p);
+  return ptr_to_normal_boolean_object(p);
 }
 
 #ifdef USE_REGEXP
@@ -483,7 +483,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   GC_PUSH2(__proto__, prev);
   hash = hash_create(ctx, n_props - n_special_props);
   GC_PUSH(hash);
-  m = (PropertyMap *) gc_malloc(ctx, sizeof(PropertyMap), HTAG_PROPERTY_MAP);
+  m = (PropertyMap *) gc_malloc(ctx, sizeof(PropertyMap), CELLT_PROPERTY_MAP);
   GC_POP3(hash, prev, __proto__);
 
   m->map       = hash;
@@ -502,7 +502,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 #ifdef HC_PROF
   m->n_enter = 0;
   m->n_leave = 0;
-  if (prev == gconsts.g_property_map_root)
+  if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
 #endif /* HC_PROF */
   return m;
@@ -557,20 +557,26 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
 void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
                                      JSValue name, int index, Attribute attr)
 {
-  hash_put_with_attribute(ctx, pm->map, name, (HashData) index, attr);
+  HashData data;
+  data.u.index = index;
+  hash_put_with_attribute(ctx, pm->map, name, data, attr);
 }
 
 static void property_map_add_transition(Context *ctx, PropertyMap *pm,
                                         JSValue name, PropertyMap *dest)
 {
+  HashData data;
+  data.u.pm = dest;
 #ifdef HC_SKIP_INTERNAL
-  uint16_t current_n_trans = pm->n_transitions;
-  pm->n_transitions = PM_N_TRANS_UNSURE;
-  hash_put_with_attribute(ctx, pm->map, name, (HashData) dest,
-                          ATTR_NONE | ATTR_TRANSITION);
-  pm->n_transitions = current_n_trans + 1;
+  {
+    uint16_t current_n_trans = pm->n_transitions;
+    pm->n_transitions = PM_N_TRANS_UNSURE;
+    hash_put_with_attribute(ctx, pm->map, name, data,
+                            ATTR_NONE | ATTR_TRANSITION);
+    pm->n_transitions = current_n_trans + 1;
+  }
 #else /* HC_SKIP_INTERNAL */
-  hash_put_with_attribute(ctx, pm->map, name, (HashData) dest,
+  hash_put_with_attribute(ctx, pm->map, name, data,
                           ATTR_NONE | ATTR_TRANSITION);
 #endif /* HC_SKIP_INTERNAL */
 }
@@ -581,7 +587,7 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   Shape *s;
   Shape **pp;
 
-  s = (Shape *) gc_malloc(ctx, sizeof(Shape), HTAG_SHAPE);
+  s = (Shape *) gc_malloc(ctx, sizeof(Shape), CELLT_SHAPE);
   s->pm = pm;
   s->n_embedded_slots  = num_embedded;
   s->n_extension_slots = num_extension;
@@ -615,7 +621,7 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
   int extension_index;
   JSObject *p;
 
-  p = remove_jsobject_tag(obj);
+  p = jsv_to_jsobject(obj);
 
   GC_PUSH2(p, os);
   HC_PROF_LEAVE_SHAPE(p->shape);
@@ -629,18 +635,19 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
     JSValue *extension;
     int i;
     extension = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * new_size,
-                                      HTAG_PROP);
+                                      CELLT_PROP);
     if (current_size == 0) {
       extension[0] = p->eprop[extension_index];
       i = 1;
     } else {
-      JSValue *current_extension = (JSValue *) p->eprop[extension_index];
+      JSValue *current_extension =
+        jsv_to_extension_prop(p->eprop[extension_index]);
       for (i = 0; i < current_size; i++)
         extension[i] = current_extension[i];
     }
     for (; i < new_size; i++)
       extension[i] = JS_UNDEFINED;
-    p->eprop[extension_index] = (JSValue) extension;
+    p->eprop[extension_index] = (JSValue) (uintjsv_t) (uintptr_t) extension;
   }
 
   /* 2. Assign new shape */
@@ -706,7 +713,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
       /* 1. If `prototype' is valid, find the property map */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY)
-        pm = (PropertyMap *) retv;
+        pm = jsv_to_property_map(retv);
       else {
         /* 2. If there is not, create it. */
         int n_props = 0;
@@ -714,7 +721,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
         GC_PUSH(prototype);
         pm = new_property_map(ctx, DEBUG_NAME("(new)"),
                               OBJECT_SPECIAL_PROPS, n_props, prototype,
-                              gconsts.g_property_map_root);
+                              gpms.g_property_map_root);
         GC_PUSH(pm);
         pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
                                       pm, n_embedded, 0);
@@ -724,7 +731,7 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
         set_prop(ctx, prototype, gconsts.g_string___property_map__,
-                 (JSValue) pm, ATTR_SYSTEM);
+                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
         GC_POP2(pm, prototype);
       }
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
@@ -749,7 +756,7 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL)
-    os = gconsts.g_shape_Array;
+    os = gshapes.g_shape_Array;
   obj = new_array_object(ctx, name, os, size);
   object_set_alloc_site(obj, as);
   return obj;
@@ -841,13 +848,13 @@ static void print_property_map_recursive(char *key, PropertyMap *pm)
   while(nextHashCell(pm->map, &iter, &p) != FAIL)
     if (is_transition(p->entry.attr))
       print_property_map_recursive(string_to_cstr(p->entry.key),
-                                   (PropertyMap *) p->entry.data);
+                                   p->entry.data.u.pm);
 }
 
 void hcprof_print_all_hidden_class(void)
 {
   struct root_property_map *e;
-  print_property_map_recursive(NULL, gconsts.g_property_map_root);
+  print_property_map_recursive(NULL, gpms.g_property_map_root);
   for (e = root_property_map; e != NULL; e = e->next)
     print_property_map_recursive(NULL, e->pm);
 }

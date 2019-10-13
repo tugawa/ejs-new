@@ -14,7 +14,7 @@
     InlineCache *ic = &insns->inl_cache;
     assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
     if (ic->shape == object_get_shape(obj) && ic->prop_name == idx)
-      regbase[dst] = remove_jsobject_tag(obj)->eprop[ic->index];
+      regbase[dst] = jsv_to_jsobject(obj)->eprop[ic->index];
     else
       regbase[dst] = get_object_prop(context, obj, idx, ic);
 #else /* INLINE_CACHE */

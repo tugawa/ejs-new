@@ -21,7 +21,7 @@ static int rehash(HashTable *table);
 static HashCell** alloc_hash_body(Context *ctx, int size)
 {
   HashCell **body = (HashCell **) gc_malloc(ctx, sizeof(HashCell*) * size,
-                                            HTAG_HASH_BODY);
+                                            CELLT_HASH_BODY);
   int i;
   for (i = 0; i < size; i++)
     body[i] = NULL;
@@ -31,7 +31,7 @@ static HashCell** alloc_hash_body(Context *ctx, int size)
 static HashCell* alloc_hash_cell(Context *ctx)
 {
   HashCell *cell = (HashCell *) gc_malloc(ctx,
-                                          sizeof(HashCell), HTAG_HASH_CELL);
+                                          sizeof(HashCell), CELLT_HASH_CELL);
   cell->next = NULL;
   return cell;
 }
@@ -48,13 +48,13 @@ HashTable *hash_create(Context *ctx, unsigned int size) {
     size = 1;
 
   body = (HashCell **) gc_malloc(ctx, sizeof(HashCell*) * size,
-                                 HTAG_HASH_BODY);
+                                 CELLT_HASH_BODY);
   for (i = 0; i < size; i++)
     body[i] = NULL;
 
   GC_PUSH(body);
   table = (HashTable *)gc_malloc(ctx,
-                                 sizeof(HashTable), HTAG_HASHTABLE);
+                                 sizeof(HashTable), CELLT_HASHTABLE);
   table->body = body;
   table->size = size;
   table->filled = 0;
@@ -279,9 +279,9 @@ void print_hash_table(HashTable *tab) {
     ec++;
     do {
       printf(" (%d: (", i);
-      printf("0x%"PRIx64" = ", p->entry.key); simple_print(p->entry.key);
+      printf("0x%"PRIJSValue" = ", p->entry.key); simple_print(p->entry.key);
       printf(", ");
-      printf("0x%"PRIx64, p->entry.data);
+      printf("0x%"PRIx64, p->entry.data.u.index);
       printf("))\n");
     } while ((p = p->next) != NULL);
     /* if (ec >= tab->entry_count) break; */

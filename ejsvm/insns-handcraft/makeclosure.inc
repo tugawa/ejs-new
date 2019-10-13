@@ -13,7 +13,7 @@
   Subscript ss = s1 + 1;
   save_context();
   regbase[r0] = new_function_object(context, DEBUG_NAME("insn:makeclosure"),
-                                    gconsts.g_shape_Function, ss);
+                                    gshapes.g_shape_Function, ss);
   update_context();
 }
 

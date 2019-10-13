@@ -178,9 +178,9 @@ public class VMRepType implements Comparable<VMRepType> {
         this.struct = struct;
     }
 
-    boolean hasHT() {
+    public boolean hasHT() {
         return ht != null;
-    };
+    }
 
     public PT getPT() {
         return pt;

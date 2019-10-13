@@ -20,11 +20,11 @@ BUILTIN_FUNCTION(number_constr)
 
   builtin_prologue();
   rsv = new_number_object(context, DEBUG_NAME("number_constr"),
-                          gconsts.g_shape_Number, FIXNUM_ZERO);
+                          gshapes.g_shape_Number, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
-    number_object_value(rsv) = to_number(context, args[1]);
+    set_jsnumber_object_value(rsv, to_number(context, args[1]));
   set_a(context, rsv);
   GC_POP(rsv);
 }
@@ -51,15 +51,15 @@ BUILTIN_FUNCTION(number_toString)
   rsv = args[0];
   if (is_number_object(rsv)) {
     if (na == 0 || args[1] == FIXNUM_TEN || args[1] == JS_UNDEFINED)
-      set_a(context, number_to_string(number_object_value(rsv)));
+      set_a(context, number_to_string(get_jsnumber_object_value(rsv)));
     else {
 
       if(!is_fixnum(args[1])){
         LOG_ERR("args[1] is not a fixnum.");
         set_a(context, JS_UNDEFINED); }
 
-      int n = (int)fixnum_to_int(args[1]);
-      JSValue v = number_object_value(rsv);
+      cint n = (int)fixnum_to_cint(args[1]);
+      JSValue v = get_jsnumber_object_value(rsv);
       char map[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
       int i, ff, acc;
@@ -74,10 +74,10 @@ BUILTIN_FUNCTION(number_toString)
        * divides the number into numeric and decimal parts
        */
       if(is_fixnum(v)) {
-        numeric = (int)fixnum_to_int(v);
+        numeric = (int) fixnum_to_cint(v);
         decimal = 0.0;
       }else{
-        numeric = (int)(flonum_to_double(v));
+        numeric = (int) flonum_to_double(v);
         decimal = flonum_to_double(v) - numeric; }
 
       /*
@@ -128,7 +128,7 @@ BUILTIN_FUNCTION(number_valueOf)
   builtin_prologue();
   rsv = args[0];
   if (is_number_object(rsv))
-    set_a(context, number_object_value(rsv));
+    set_a(context, get_jsnumber_object_value(rsv));
   else
     LOG_EXIT("Receiver of valueOf is not a Number instance\n");
 }

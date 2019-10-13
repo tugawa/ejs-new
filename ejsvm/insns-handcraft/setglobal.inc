@@ -8,7 +8,7 @@
   JSValue str = v0;
   JSValue src = v1;
   if (!is_string(str))
-    LOG_EXIT("SETGLOBAL: name is not a string\n");
+    LOG_EXIT("SETGLOBAL %"PRIJSValue" : name is not a string\n", str);
   else
     set_prop(context, context->global, str, src, ATTR_NONE);
 }

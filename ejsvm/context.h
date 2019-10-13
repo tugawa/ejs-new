@@ -10,7 +10,7 @@
 /*
  * function table
  */
-typedef struct function_table {
+struct function_table {
   int call_entry;         /* entry of a function call */
   int send_entry;         /* entry of a method call */
   int n_locals;           /* number of locals */
@@ -19,7 +19,7 @@ typedef struct function_table {
   int body_size;          /* number of elements in insns */
   int n_insns;            /* number of instructions */
   int n_constants;        /* number of constants (literals) */
-} FunctionTable;
+};
 
 #define ftab_call_entry(f)       ((f)->call_entry)
 #define ftab_send_entry(f)       ((f)->send_entry)
@@ -30,11 +30,11 @@ typedef struct function_table {
 /*
  * function frame
  */
-typedef struct function_frame {
+struct function_frame {
   struct function_frame *prev_frame;
   JSValue arguments;
-  JSValue locals[];
-} FunctionFrame;
+  JSValue locals[] __attribute__((aligned(sizeof(JSValue))));
+};
 
 #define fframe_prev(fr)           ((fr)->prev_frame)
 #define fframe_arguments(fr)      ((fr)->arguments)
@@ -61,7 +61,7 @@ typedef struct special_registers {
 #define CATCHSTACK_LIMIT (100)
 
 /* volatile */
-typedef struct context {
+struct context {
   JSValue global;
   FunctionTable *function_table;
   SpecialRegisters spreg;
@@ -75,7 +75,7 @@ typedef struct context {
 #ifdef USE_FFI
   struct foreign_env_cell *fenv;
 #endif
-} Context;
+};
 
 // #define currentFl(c)  (getSp(c) - getFp(c) + 1)
 #define set_fl(c, fl)  set_sp(c, (get_fp(c) + (fl) - 1))
@@ -140,18 +140,6 @@ typedef struct context {
 #define set_err(c,v)    ((c)->spreg.iserr = true, (c)->spreg.err = (v))
 #define is_err(c)       ((c)->spreg.iserr)
 
-#define save_special_registers(c, st, pos)      \
-  (st[pos] = (JSValue)(get_cf(c)),              \
-   st[(pos) + 1] = (JSValue)(get_pc(c)),        \
-   st[(pos) + 2] = (JSValue)(get_lp(c)),        \
-   st[(pos) + 3] = (JSValue)(get_fp(c)))
-
-#define restore_special_registers(c, st, pos)   \
-  (set_cf(c, (FunctionTable *)(st[pos])),       \
-   set_pc(c, st[(pos) + 1]),                    \
-   set_lp(c, (FunctionFrame *)(st[(pos) + 2])), \
-   set_fp(c, st[(pos) + 3]))
-
 #define INVOKE_POS (4)
 #define CF_POS     (3)
 #define PC_POS     (2)
@@ -162,6 +150,11 @@ typedef struct context {
 /* #define INITIAL_ARRAY_SIZE  (1000) */
 
 void check_stack_invariant(Context *ctx);
+static inline void save_special_registers(Context *ctx, JSValue *stack,
+                                          int pos);
+static inline void restore_special_registers(Context *ctx, JSValue *stack,
+                                             int pos);
+
 
 /* Local Variables:      */
 /* mode: c               */
