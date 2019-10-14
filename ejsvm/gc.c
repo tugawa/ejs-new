@@ -98,7 +98,7 @@
  *  - size    Size of the object in granule, including the header and extra.
  */
 
-#ifdef BIT_ALIGN_32
+#ifdef BIT_ALIGN32
 #define LOG_BYTES_IN_GRANULE  2
 #define HEADER_GRANULES       2
 #define HEADER_TYPE_BITS      8
@@ -108,7 +108,7 @@
 #define HEADER_MAGIC_BITS     16
 #define HEADER_SIZE_BITS      32
 #define HEADER_MAGIC          0x18
-#else /* BIT_ALIGN_32 */
+#else /* BIT_ALIGN32 */
 #define LOG_BYTES_IN_GRANULE  3
 #define HEADER_GRANULES       1
 #define HEADER_TYPE_BITS      8
@@ -118,7 +118,7 @@
 #define HEADER_MAGIC_BITS     16
 #define HEADER_SIZE_BITS      32
 #define HEADER_MAGIC          0x18
-#endif /* BIT_ALIGN_32 */
+#endif /* BIT_ALIGN32 */
 
 typedef struct header_t {
   cell_type_t  type:    HEADER_TYPE_BITS;

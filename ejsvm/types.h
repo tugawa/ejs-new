@@ -159,7 +159,7 @@ typedef int32_t intjsv_t;
 typedef int32_t cint;
 typedef uint32_t cuint;
 #define PRIJSValue "08"PRIx32
-#else /* BIT_JSVALUE_32 */
+#else /* BIT_JSVALUE32 */
 #define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
 typedef uint64_t uintjsv_t;
@@ -167,7 +167,7 @@ typedef int64_t intjsv_t;
 typedef int64_t cint;
 typedef uint64_t cuint;
 #define PRIJSValue "016"PRIx64
-#endif /* BIT_JSVALUE_32 */
+#endif /* BIT_JSVALUE32 */
 
 #define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)
 #define BYTES_IN_JSVALUE     (1 << LOG_BYTES_IN_JSVALUE)
@@ -632,8 +632,10 @@ static inline JSValue small_cint_to_fixnum(cint n)
 #define is_fixnum_range_double(d)                                       \
   (is_integer_value_double(d) && is_fixnum_range_cint((cint)(d)))
 
-#define half_fixnum_range(ival)                                         \
-  (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
+#define HALF_BITS_IN_FIXNUM (BITS_IN_FIXNUM >> 1)
+#define half_fixnum_range(x)                            \
+  ((-(1 << (HALF_BITS_IN_FIXNUM - 1)) <= (x)) &&        \
+   ((x) < (1 << (HALF_BITS_IN_FIXNUM - 1))))
 
 #define FIXNUM_MINUS_ONE (small_cint_to_fixnum((cint)-1))
 #define FIXNUM_ZERO      (small_cint_to_fixnum((cint)0))
