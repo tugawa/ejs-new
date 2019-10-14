@@ -97,7 +97,15 @@ $ ./ejsvm a.sbc
 
 ### Build option
 
-See comments in `Makefile.template`.
+**See comments in `Makefile.template` for the details.**
+
+* Genral options
+  * `USE_SBC=true/false`: Enable SBC support. (OBC is always supported)
+
+* Word size options
+  * `CFLAGS+=-DBIT_INSN32`: Use 32 bit layout of internal and OBC instructions.
+  * `CFLAGS+=-DBIT_JSVALUE32`: Use 32 bit layout of JSValue.  Pointer size should also be 32bit (`-m32` compiler and linker options are required).
+  * `CFLAGS+=-DBIT_ALIGN32`: Alignment heap objects in 32 bit boundary rather than 64 bit. Handcrafted code does not support this option.
 
 ### Usage
 
@@ -168,6 +176,10 @@ file are logged.
 * output 
   * `-o <filename>`: Output to `filename`.  (defailt: `source1.sbc`)
   * `--out-obc` (prefix is double minus): Output OBC (binary) format instead of SBC.
+  * `--out-insn32`: Emit 32 bit format of instructions (OBC only).
+  * `--out-align32`: Assume the number of pointer tag bit is 2 rather than 3.
+  * `--out-jsvalue32`: Assume JSValue is 32 bit data.
+  * `--out-bit32`: Same as `--out-insn32 --out-align32 --out-jsvalue32`
 
 * optimization
   * `-O`: Recommended set of optimizations.  (same as `--bc-opt const:cce:copy:rie:dce:reg:rie:dce:reg -opt-g3`)
