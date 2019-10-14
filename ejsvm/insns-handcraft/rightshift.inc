@@ -13,22 +13,22 @@
   case TP_FIXFIX:
     x1 = (int32_t)fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    regbase[dst] = cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    regbase[dst] = small_cint_to_fixnum((cint)(x1 >> x2));
     break;
   case TP_FIXFLO:
     x1 = (int32_t)fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    regbase[dst] = cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    regbase[dst] = small_cint_to_fixnum((cint)(x1 >> x2));
     break;
   case TP_FLOFIX:
     x1 = (int32_t)flonum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    regbase[dst] = cint_to_number(context, (cint)(x1 >> x2));
+    regbase[dst] = int32_to_number(context, x1 >> x2);
     break;
   case TP_FLOFLO:
     x1 = (int32_t)flonum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    regbase[dst] = cint_to_number(context, (cint)(x1 >> x2));
+    regbase[dst] = int32_to_number(context, x1 >> x2);
     break;
   default:
     regbase[dst] = slow_rightshift(context, v1, v2);

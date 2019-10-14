@@ -1,0 +1,33 @@
+simple_object: +normal_simple_object
+string:   +normal_string
+flonum:   +normal_flonum
+special:  +normal_special
+fixnum:   +normal_fixnum
+array:    +normal_array
+function: +normal_function
+builtin:  +normal_builtin
+iterator: +normal_iterator
+regexp: +normal_regexp
+string_object: +normal_string_object
+number_object: +normal_number_object
+boolean_object: +normal_boolean_object
+
+normal_string:  T_STRING(11)/HTAG_STRING(4)           StringCell
+normal_flonum:  T_GENERIC(00)/HTAG_FLONUM(5)          FlonumCell
+normal_special: T_SPECIAL(01)
+normal_fixnum:  T_FIXNUM(10)
+normal_simple_object:  T_GENERIC(00)/HTAG_SIMPLE_OBJECT(6) JSObject
+normal_array:   T_GENERIC(00)/HTAG_ARRAY(7)           JSObject
+normal_function:T_GENERIC(00)/HTAG_FUNCTION(8)        JSObject
+normal_builtin: T_GENERIC(00)/HTAG_BUILTIN(9)         JSObject
+normal_iterator:T_GENERIC(00)/HTAG_ITERATOR(10)       Iterator
+normal_regexp:  T_GENERIC(00)/HTAG_REGEXP(11)         JSObject
+normal_string_object: T_GENERIC(00)/HTAG_BOXED_STRING(12)  JSObject
+normal_number_object: T_GENERIC(00)/HTAG_BOXED_NUMBER(13)  JSObject
+normal_boolean_object:T_GENERIC(00)/HTAG_BOXED_BOOLEAN(14) JSObject
+
+%%%
+/* for GC */
+#define is_pointer(p)     (((p) & 2) == 0)
+#define is_leaf_object(p) (((p) & 6) == 4)
+

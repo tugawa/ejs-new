@@ -81,7 +81,7 @@
 #endif /* 0 */
 
 /*
- * Heap granule and object header layout
+ * Object header layout
  *
  * Heap objects are aligned in `granule' boundary.  Header may consist
  * of multiple granules.  HEADER_GRANULES gives the number of granules
@@ -98,8 +98,7 @@
  *  - size    Size of the object in granule, including the header and extra.
  */
 
-#ifdef BIT_ALIGN_32
-#define LOG_BYTES_IN_GRANULE  2
+#ifdef BIT_ALIGN32
 #define HEADER_GRANULES       2
 #define HEADER_TYPE_BITS      8
 #define HEADER_MARKBIT_BITS   1
@@ -108,8 +107,7 @@
 #define HEADER_MAGIC_BITS     16
 #define HEADER_SIZE_BITS      32
 #define HEADER_MAGIC          0x18
-#else /* BIT_ALIGN_32 */
-#define LOG_BYTES_IN_GRANULE  3
+#else /* BIT_ALIGN32 */
 #define HEADER_GRANULES       1
 #define HEADER_TYPE_BITS      8
 #define HEADER_MARKBIT_BITS   1
@@ -118,7 +116,7 @@
 #define HEADER_MAGIC_BITS     16
 #define HEADER_SIZE_BITS      32
 #define HEADER_MAGIC          0x18
-#endif /* BIT_ALIGN_32 */
+#endif /* BIT_ALIGN32 */
 
 typedef struct header_t {
   cell_type_t  type:    HEADER_TYPE_BITS;
@@ -128,12 +126,6 @@ typedef struct header_t {
   unsigned int gen:     HEADER_GEN_BITS;
   unsigned int size:    HEADER_SIZE_BITS;
 } header_t;
-
-#define LOG_BITS_IN_GRANULE  (LOG_BYTES_IN_GRANULE + 3)
-#define BYTES_IN_GRANULE     (1 << LOG_BYTES_IN_GRANULE)
-#define BITS_IN_GRANULE      (BYTES_IN_GRANULE * 8)
-#define BYTE_TO_GRANULE_ROUNDUP(x)              \
-  (((x) + BYTES_IN_GRANULE - 1) >> LOG_BYTES_IN_GRANULE)
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -852,7 +844,9 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
   length = (payload_bytes - sizeof(FunctionFrame)) >> LOG_BYTES_IN_JSVALUE;
   for (i = 0; i < length; i++)
     process_edge(p->locals[i]);
-  assert(p->locals[length - 1] == JS_UNDEFINED);  /* GC_DEBUG (cacary) */
+#ifdef DEBUG
+  assert(p->locals[length - 1] == JS_UNDEFINED);
+#endif /* DEBUG */
 }
 
 STATIC void process_node_Context(Context *context)
@@ -1345,7 +1339,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
           }
           */
           if (IS_POINTER_LIKE_UINTJSV(x) &&
-              (is_object(x) || get_ptag(x).v == 0) &&
+              (has_htag(x) || get_ptag(x).v == 0) &&
               in_js_space(p))
             assert(is_marked_cell(p));
         }

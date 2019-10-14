@@ -7,6 +7,11 @@
  * Electro-communications.
  */
 
+
+#ifdef BIT_ALIGN32
+#error handcrafted code does not support BIT_ALIGN32
+#endif /* BIT_ALIGN32 */
+
 /*
  * Objects
  */
@@ -40,6 +45,7 @@
  */
 #define is_object(v)             (is_ptag((v), T_GENERIC))
 #define is_number(v)             (is_fixnum((v)) || is_flonum((v)))
+#define has_htag(x)              ((get_ptag(x).v & 0x2) == 0)
 
 #define is_obj_header_tag(v,t)   (is_object((v)) && is_htag((v), (t)))
 
@@ -57,20 +63,6 @@
 #define is_fixnum(v)             (is_ptag((v), T_FIXNUM))
 #define is_special(v)            (is_ptag((v), T_SPECIAL))
 
-#define is_normal_simple_object(v)  is_simple_object(v)
-#define is_normal_array(v)          is_array(v)
-#define is_normal_function(v)       is_function(v)
-#define is_normal_builtin(v)        is_builtin(v)
-#define is_normal_iterator(v)       is_iterator(v)
-#define is_normal_regexp(v)         is_regexp(v)
-#define is_normal_number_object(v)  is_number_object(v)
-#define is_normal_boolean_object(v) is_boolean_object(v)
-#define is_normal_string_object(v)  is_string_object(v)
-#define is_normal_flonum(v)         is_flonum(v)
-#define is_normal_string(v)         is_string(v)
-#define is_normal_fixnum(v)         is_fixnum(v)
-#define is_normal_special(v)        is_special(v)
-
 #define VMRepType_LIST                                                  \
 VMRepType(normal_simple_object,  T_GENERIC, struct jsobject_cell)       \
 VMRepType(normal_array,          T_GENERIC, struct jsobject_cell)       \
@@ -79,7 +71,7 @@ VMRepType(normal_builtin,        T_GENERIC, struct jsobject_cell)       \
 VMRepType(normal_boolean_object, T_GENERIC, struct jsobject_cell)       \
 VMRepType(normal_number_object,  T_GENERIC, struct jsobject_cell)       \
 VMRepType(normal_string_object,  T_GENERIC, struct jsobject_cell)       \
-VMRepType(iterator,              T_GENERIC, struct iterator)            \
+VMRepType(normal_iterator,       T_GENERIC, struct iterator)            \
 VMRepType(normal_string,         T_STRING,  struct string_cell)         \
 VMRepType(normal_flonum,         T_FLONUM,  struct flonum_cell)         \
 VMRepTypeREGEXP
@@ -118,6 +110,20 @@ VMRepType(normal_regexp,         T_GENERIC, struct jsobject_cell)
 #define HTAG_BOXED_STRING  ((HTag) {HTAGV_BOXED_STRING})
 #define HTAG_BOXED_NUMBER  ((HTag) {HTAGV_BOXED_NUMBER})
 #define HTAG_BOXED_BOOLEAN ((HTag) {HTAGV_BOXED_BOOLEAN})
+
+#define is_normal_simple_object(v)  is_simple_object(v)
+#define is_normal_array(v)          is_array(v)
+#define is_normal_function(v)       is_function(v)
+#define is_normal_builtin(v)        is_builtin(v)
+#define is_normal_iterator(v)       is_iterator(v)
+#define is_normal_regexp(v)         is_regexp(v)
+#define is_normal_number_object(v)  is_number_object(v)
+#define is_normal_boolean_object(v) is_boolean_object(v)
+#define is_normal_string_object(v)  is_string_object(v)
+#define is_normal_flonum(v)         is_flonum(v)
+#define is_normal_string(v)         is_string(v)
+#define is_normal_fixnum(v)         is_fixnum(v)
+#define is_normal_special(v)        is_special(v)
 
 #define need_simple_object 1
 #define need_string 1

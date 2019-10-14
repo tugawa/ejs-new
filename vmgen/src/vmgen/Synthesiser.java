@@ -12,7 +12,7 @@ public abstract class Synthesiser implements GlobalConstantOptions {
     public abstract String synthesise(RuleSet plan, String prefix, InsnGen.Option option);
 
     public String getPTCode(String dispatchVar) {
-        return "get_tag("+dispatchVar+").v";
+        return "get_ptag("+dispatchVar+").v";
     }
 
     protected String getPTCode(String[] dispatchVars) {

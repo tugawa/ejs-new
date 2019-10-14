@@ -7,19 +7,19 @@
 \when v1:fixnum && v2:flonum \{
   int32_t x1 = (int32_t) fixnum_to_cint(v1);
   int32_t x2 = (int32_t) flonum_to_cint(v2);
-  dst = cint_to_number(context, (cint) (x1 | x2));
+  dst = int32_to_number(context, x1 | x2);
 \}
 
 \when v1:flonum && v2:fixnum \{
   int32_t x1 = (int32_t) flonum_to_cint(v1);
   int32_t x2 = (int32_t) fixnum_to_cint(v2);
-  dst = cint_to_number(context, (cint) (x1 | x2));
+  dst = int32_to_number(context, x1 | x2);
 \}
 
 \when v1:flonum && v2:flonum \{
   int32_t x1 = (int32_t) flonum_to_cint(v1);
   int32_t x2 = (int32_t) flonum_to_cint(v2);
-  dst = cint_to_number(context, (cint) (x1 | x2));
+  dst = int32_to_number(context, x1 | x2);
 \}
 
 \when v1:fixnum || v1:flonum \{

@@ -81,7 +81,21 @@ public class OutputFileComposer {
     }
 
     protected SpecFile spec;
-    OutputFileComposer(SpecFile spec) {
+    boolean align32;
+    boolean jsvalue32;
+    OutputFileComposer(SpecFile spec, boolean align32, boolean jsvalue32) {
         this.spec = spec;
+        this.align32 = align32;
+        this.jsvalue32 = jsvalue32;
+    }
+    
+    protected boolean inFixnumRange(double x) {
+        if (x == (double)(long) x) {
+            int fixnumBits = (jsvalue32 ? 32 : 64) - (align32 ? 2 : 3);
+            long fixnumMax = (1L << (fixnumBits - 1)) - 1;
+            long fixnumMin = -fixnumMax - 1;
+            return fixnumMin <= x && x <= fixnumMax;
+        }
+        return false;
     }
 }

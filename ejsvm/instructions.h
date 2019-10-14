@@ -151,7 +151,7 @@ typedef struct insn_info {
 /*
  * bytecode
  */
-#ifdef BIT_32
+#ifdef BIT_INSN32
 typedef uint32_t Bytecode;
 typedef int16_t  SmallPrimitive;
 typedef uint16_t BigPrimitiveIndex;
@@ -175,7 +175,7 @@ typedef uint32_t Counter;
 #define maxval_tag() (UINT8_MAX)
 
 #define PRIByteCode "08"PRIx32
-#else /* BIT_32 */
+#else /* BIT_INSN32 */
 typedef uint64_t Bytecode;
 typedef int32_t  SmallPrimitive;
 typedef uint32_t BigPrimitiveIndex;
@@ -199,7 +199,7 @@ typedef uint32_t Counter;
 #define maxval_tag() (UINT16_MAX)
 
 #define PRIByteCode "016"PRIx64
-#endif /* BIT_32 */
+#endif /* BIT_INSN32 */
 
 /*
  * adderss of a label for an instruction
@@ -210,22 +210,19 @@ typedef void *InsnLabel;
 /*
  * allocation site information
  */
-struct shape;
-struct property_map;
-typedef struct alloc_site {
-  struct shape *shape;
-  struct property_map *pm;
+struct alloc_site {
+  Shape *shape;
+  PropertyMap *pm;
   int polymorphic;
-} AllocSite;
+};
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
-struct shape;
-typedef struct inline_cache {
-  struct shape *shape;
+struct inline_cache {
+  Shape *shape;
   int index;
   JSValue prop_name;
-} InlineCache;
+};
 #endif /* INLINE_CACHE */
 
 /*
@@ -246,7 +243,7 @@ struct instruction {
 #endif
   /* next field is a dummy field to make sure the size of this structure
    * is a multiple of the sizeof JSValue. */
-  int last_field[] __attribute__ ((aligned(sizeof(JSValue))));
+  int last_field[] __attribute__((aligned(BYTES_IN_JSVALUE)));
 };
 
 /*
@@ -255,7 +252,7 @@ struct instruction {
  */
 #define get_literal(insns, disp)  (((JSValue *)(insns))[disp])
 
-#ifdef BIT_32
+#ifdef BIT_INSN32
 #define OPCODE_OFFSET         (24)
 #define FIRST_OPERAND_OFFSET  (16)
 #define SECOND_OPERAND_OFFSET (8)
@@ -271,7 +268,7 @@ struct instruction {
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x0000ffff))
 #define BIGPRIMITIVE_DISPMASK  ((Bytecode)(0x0000ffff))
 #define INSTRUCTION_DISPMASK    ((Bytecode)(0x0000ffff))
-#else /* BIT_32 */
+#else /* BIT_INSN32 */
 #define OPCODE_OFFSET         (48)
 #define FIRST_OPERAND_OFFSET  (32)
 #define SECOND_OPERAND_OFFSET (16)
@@ -287,7 +284,7 @@ struct instruction {
 #define BIGPRIMITIVE_SUBSCRMASK ((Bytecode)(0x00000000ffffffff))
 #define BIGPRIMITIVE_DISPMASK  ((Bytecode)(0x00000000ffffffff))
 #define INSTRUCTION_DISPMASK    ((Bytecode)(0x00000000ffffffff))
-#endif /* BIT_32 */
+#endif /* BIT_INSN32 */
 
 #define three_operands(op1, op2, op3)           \
   (((Bytecode)(op1) << FIRST_OPERAND_OFFSET) |  \

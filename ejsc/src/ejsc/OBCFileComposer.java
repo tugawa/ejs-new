@@ -32,37 +32,41 @@ public class OBCFileComposer extends OutputFileComposer {
         static final int FIELD_VALUE_UNDEFINED = 0x2;
 
         static class Bit32 extends InstructionBinaryFormat {
-            public Bit32(int specPTag) {
-                this.specPTag = specPTag;
+            public Bit32(int ptagBits, int specPTag) {
+                super(ptagBits, specPTag);
             }
             @Override public int instructionBytes() { return 4; }
             @Override public int opcodeBits()       { return 8; }
             @Override public int aBits()            { return 8; }
             @Override public int bBits()            { return 8; }
             @Override public int cBits()            { return 8; }
-            @Override public int ptagBits()         { return 3; }
         }
 
 
         static class Bit64 extends InstructionBinaryFormat {
-            public Bit64(int specPTag) {
-                this.specPTag = specPTag;
+            public Bit64(int ptagBits, int specPTag) {
+                super(ptagBits, specPTag);
             }
             @Override public int instructionBytes() { return 8; }
             @Override public int opcodeBits()       { return 16; }
             @Override public int aBits()            { return 16; }
             @Override public int bBits()            { return 16; }
             @Override public int cBits()            { return 16; }
-            @Override public int ptagBits()         { return 3; }
         }
 
+        int ptagBits;
         int specPTag;
+        
+        InstructionBinaryFormat(int ptagBits, int specPTag) {
+            this.ptagBits = ptagBits;
+            this.specPTag = specPTag;
+        }
+        
         abstract public int instructionBytes();
         abstract public int opcodeBits();
         abstract public int aBits();
         abstract public int bBits();
         abstract public int cBits();
-        abstract public int ptagBits();
         public int bbBits() {
             return bBits() + cBits();
         }
@@ -99,13 +103,13 @@ public class OBCFileComposer extends OutputFileComposer {
         public int specialFieldValue(SpecialValue v) {
             switch (v) {
             case TRUE:
-                return (FIELD_VALUE_TRUE << ptagBits()) | specPTag;
+                return (FIELD_VALUE_TRUE << ptagBits) | specPTag;
             case FALSE:
-                return (FIELD_VALUE_FALSE << ptagBits()) | specPTag;
+                return (FIELD_VALUE_FALSE << ptagBits) | specPTag;
             case NULL:
-                return (FIELD_VALUE_NULL << ptagBits()) | specPTag;
+                return (FIELD_VALUE_NULL << ptagBits) | specPTag;
             case UNDEFINED:
-                return (FIELD_VALUE_UNDEFINED << ptagBits()) | specPTag;
+                return (FIELD_VALUE_UNDEFINED << ptagBits) | specPTag;
             default:
                 throw new Error("Unknown special");
             }
@@ -237,7 +241,8 @@ public class OBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            if ((1L << (format.bbBits() - 1)) <= n || n < -(1L << (format.bbBits() - 1)))
+            if (inFixnumRange(n) &&
+                (1L << (format.bbBits() - 1)) <= n || n < -(1L << (format.bbBits() - 1)))
                 addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
             else {
                 int opcode = getOpcode(insnName);
@@ -411,12 +416,20 @@ public class OBCFileComposer extends OutputFileComposer {
     List<OBCFunction> obcFunctions;
     InstructionBinaryFormat format;
 
-    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean bit32) {
-        super(spec);
+    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean bit32, boolean align32, boolean jsvalue32) {
+        super(spec, align32, jsvalue32);
+        int ptagBits, specPTag;
+        if (align32) {
+            ptagBits = 2;
+            specPTag = 1;
+        } else {
+            ptagBits = 3;
+            specPTag = 6;
+        }
         if (bit32)
-            format = new InstructionBinaryFormat.Bit32(6);
+            format = new InstructionBinaryFormat.Bit32(ptagBits, specPTag);
         else
-            format = new InstructionBinaryFormat.Bit64(6);
+            format = new InstructionBinaryFormat.Bit64(ptagBits, specPTag);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb : fbs) {

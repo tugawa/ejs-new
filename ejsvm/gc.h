@@ -11,6 +11,18 @@
 #error Boehm GC is no longer supported
 #endif  /* USE_NATIVEGC */
 
+#ifdef BIT_ALIGN32
+#define LOG_BYTES_IN_GRANULE  2
+#else /* BIT_ALIGN32 */
+#define LOG_BYTES_IN_GRANULE  3
+#endif /* BIT_ALIGN32 */
+
+#define LOG_BITS_IN_GRANULE  (LOG_BYTES_IN_GRANULE + 3)
+#define BYTES_IN_GRANULE     (1 << LOG_BYTES_IN_GRANULE)
+#define BITS_IN_GRANULE      (BYTES_IN_GRANULE * 8)
+#define BYTE_TO_GRANULE_ROUNDUP(x)              \
+  (((x) + BYTES_IN_GRANULE - 1) >> LOG_BYTES_IN_GRANULE)
+
 #ifdef GC_PROF
 #define NUM_DEFINED_CELL_TYPES 0x1C
 extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
