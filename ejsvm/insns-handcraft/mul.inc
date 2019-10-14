@@ -17,7 +17,7 @@
       n2 = fixnum_to_cint(v2);
       if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
         p = n1 * n2;
-        regbase[dst] = cint_to_fixnum_nocheck(p);
+        regbase[dst] = small_cint_to_fixnum(p);
       } else {
         x1 = (double)n1;
         x2 = (double)n2;

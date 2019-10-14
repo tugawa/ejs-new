@@ -18,6 +18,7 @@
 /*
  * JS Type
  */
+/* types.h */
 typedef struct jsobject_cell JSObject;
 typedef struct iterator Iterator;
 typedef struct string_cell StringCell;
@@ -25,14 +26,25 @@ typedef struct flonum_cell FlonumCell;
 /*
  * no-JS type
  */
+/* types.h */
+typedef struct property_map PropertyMap;
+typedef struct shape Shape;
 /* context.h */
 typedef struct function_frame FunctionFrame;
 typedef struct context Context;
+/* hash.h */
+typedef struct hash_table HashTable;
 /*
  * no-heap type
  */
 /* context.h */
 typedef struct function_table FunctionTable;
+#ifdef ALLOC_SITE_CACHE
+typedef struct alloc_site AllocSite;
+#endif /* ALLOC_SITE_CACHE */
+#ifdef INLINE_CACHE
+typedef struct inline_cache InlineCache;
+#endif /* INLINE_CACHE */
 /* instruction.h */
 typedef struct instruction    Instruction;
 
@@ -139,42 +151,27 @@ VMHeapData(property_map,   CELLT_PROPERTY_MAP,   struct property_map)
 
 #define TAGMASK   ((((uintjsv_t) 1) << TAGOFFSET) - 1)
 
-#ifdef BIT_JSVALUE_32
-#ifndef BIT_32
-#error 32-bit JSvalue depends on 32-bit bytecode (BIT_32)
-#endif /* BIT_32 */
-
-typedef int32_t cint;
-typedef uint32_t cuint;
-
+#ifdef BIT_JSVALUE32
+#define LOG_BYTES_IN_JSVALUE 2
 typedef uint32_t JSValue;
 typedef uint32_t uintjsv_t;
 typedef int32_t intjsv_t;
-/* BYTES_IN and BITS_IN macros should not use sizeof so that
- * they can be used in preprocessor directive, e.g., #if
- */
-#define BYTES_IN_JSVALUE 4
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define LOG_BYTES_IN_JSVALUE 2
+typedef int32_t cint;
+typedef uint32_t cuint;
 #define PRIJSValue "08"PRIx32
-
-
 #else /* BIT_JSVALUE_32 */
-typedef int64_t cint;
-typedef uint64_t cuint;
-
+#define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
 typedef uint64_t uintjsv_t;
 typedef int64_t intjsv_t;
-/* BYTES_IN and BITS_IN macros should not use sizeof so that
- * they can be used in preprocessor directive, e.g., #if
- */
-#define BYTES_IN_JSVALUE 8
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
-#define LOG_BYTES_IN_JSVALUE 3
+typedef int64_t cint;
+typedef uint64_t cuint;
 #define PRIJSValue "016"PRIx64
-
 #endif /* BIT_JSVALUE_32 */
+
+#define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)
+#define BYTES_IN_JSVALUE     (1 << LOG_BYTES_IN_JSVALUE)
+#define BITS_IN_JSVALUE      (1 << LOG_BITS_IN_JSVALUE)
 
 /*
  * Tag operations
@@ -239,7 +236,7 @@ static inline JSValue ptr_to_##RT(S *p);
 VMRepType_LIST
 #undef VMRepType
 
-/*********
+/*
  * JavaScript Object Definition
  */
 
@@ -254,40 +251,40 @@ VMRepType_LIST
  * entry'.
  */
 
-struct hash_table;
-typedef struct property_map {
-  struct hash_table *map;    /* [const] property map and transitions */
-  struct property_map *prev; /* [weak] pointer to the previous map */
-  struct shape *shapes;      /* Weak list of existing shapes arranged from
+struct property_map {
+  HashTable *map;            /* [const] property map and transitions */
+  PropertyMap *prev;         /* [weak] pointer to the previous map */
+  Shape *shapes;             /* Weak list of existing shapes arranged from
                               * more specialised to less.
                               * (this pointer is strong) */
-  JSValue   __proto__;       /* [const] __proto__ of the object. */
-  uint32_t n_props;          /* [const] Number of properties in map.
+  uint16_t n_props;          /* [const] Number of properties in map.
                               * This number includes special props. */
-  uint16_t n_special_props;  /* [const] Number of special props. */
+  uint8_t n_special_props;   /* [const] Number of special props. */
 #ifdef HC_SKIP_INTERNAL
-  uint16_t n_transitions;    /* [const] Number of transitions. Used by GC.
+  uint8_t n_transitions;     /* [const] Number of transitions. Used by GC.
                               * 2 bits (0, 1, more, and UNSURE) would
                               * suffice. */
-#define PM_N_TRANS_UNSURE (1 << 15)
+#define PM_N_TRANS_UNSURE (1 << 7)
 #endif /* HC_SKIP_INTERNAL */
+  JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));
+                             /* [const] __proto__ of the object. */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
 #ifdef HC_PROF
-  int n_enter;
-  int n_leave;
+  uint32_t n_enter;
+  uint32_t n_leave;
 #endif /* HC_PROF */
-} PropertyMap;
+};
 
-typedef struct shape {
+struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
-  struct shape *next;         /* [weak] Weak list of exisnting shapes
+  Shape *next;                /* [weak] Weak list of exisnting shapes
                                * shareing the same map. */
-  uint32_t n_embedded_slots;  /* [const] Number of slots for properties
+  uint16_t n_embedded_slots;  /* [const] Number of slots for properties
                                * in the object. This number includes 
                                * special props. */
-  uint32_t n_extension_slots; /* [const] Size of extension array. */
+  uint16_t n_extension_slots; /* [const] Size of extension array. */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
@@ -297,18 +294,17 @@ typedef struct shape {
   uint32_t is_dead;
   uint32_t is_printed;
 #endif /* HC_PROF */
-} Shape;
+};
 
-struct alloc_site;
 struct jsobject_cell {
   Shape *shape;
 #ifdef ALLOC_SITE_CACHE
-  struct alloc_site *alloc_site;
+  AllocSite *alloc_site;
 #endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
-  JSValue eprop[];
+  JSValue eprop[] __attribute__((aligned(BYTES_IN_JSVALUE)));
 };
 
 #ifdef USE_REGEXP
@@ -416,16 +412,19 @@ DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
 /* Simple */
 #define OBJECT_SPECIAL_PROPS 0
 
-/* Array */
+/* Array
+ *   The length of array ranges up to 2^32-1 by specification.
+ *   If sizeof(uintjsv_t) < 32, size and length fields may overflow.
+ */
 #define ARRAY_SPECIAL_PROPS 3
-DEFINE_ACCESSORS_I(array, 0, uint64_t, size)
-DEFINE_ACCESSORS_I(array, 1, uint64_t, length)
+DEFINE_ACCESSORS_I(array, 0, uintjsv_t, size)
+DEFINE_ACCESSORS_I(array, 1, uintjsv_t, length)
 DEFINE_ACCESSORS_R(array, 2, JSValue *, body, array_data)
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
-#define MAX_ARRAY_LENGTH  ((uint64_t)(0xffffffff))
+#define MAX_ARRAY_LENGTH  ((uintjsv_t)(0xffffffff))
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 #define MINIMUM_ARRAY_SIZE  100
 
@@ -439,7 +438,7 @@ typedef void (*builtin_function_t)(struct context*, int, int);
 #define BUILTIN_SPECIAL_PROPS 3
 DEFINE_ACCESSORS_P(builtin, 0, builtin_function_t, body)
 DEFINE_ACCESSORS_P(builtin, 1, builtin_function_t, constructor)
-DEFINE_ACCESSORS_I(builtin, 2, int, nargs)
+DEFINE_ACCESSORS_I(builtin, 2, uintjsv_t, nargs)
 
 #ifdef USE_REGEXP
 /* Regexp */
@@ -448,11 +447,11 @@ DEFINE_ACCESSORS_I(builtin, 2, int, nargs)
 
 #define REX_SPECIAL_PROPS 6
 DEFINE_ACCESSORS_P(regexp, 0, char*, pattern)
-DEFINE_ACCESSORS_I(regexp, 1, int, reg)
-DEFINE_ACCESSORS_I(regexp, 2, int, global)
-DEFINE_ACCESSORS_I(regexp, 3, int, ignorecase)
-DEFINE_ACCESSORS_I(regexp, 4, int, multiline)
-DEFINE_ACCESSORS_I(regexp, 5, int, lastindex)
+DEFINE_ACCESSORS_I(regexp, 1, intjsv_t, reg)
+DEFINE_ACCESSORS_I(regexp, 2, intjsv_t, global)
+DEFINE_ACCESSORS_I(regexp, 3, intjsv_t, ignorecase)
+DEFINE_ACCESSORS_I(regexp, 4, intjsv_t, multiline)
+DEFINE_ACCESSORS_I(regexp, 5, intjsv_t, lastindex)
 
 #define F_REGEXP_NONE      (0x0)
 #define F_REGEXP_GLOBAL    (0x1)
@@ -509,15 +508,15 @@ static inline void set_js##RT##_##field(JSValue v, FT val)      \
 /* Iterator */
 
 struct iterator {
-  uint64_t size;        /* array size */
-  uint64_t index;       /* array index */
+  uint16_t size;        /* array size */
+  uint16_t index;       /* array index */
   JSValue *body;        /* pointer to a C array */
 };
 
 #define make_iterator(ctx) (put_iterator_tag(allocate_iterator(ctx)))
 
-DEFINE_ACCESSORS(normal_iterator, Iterator, uint64_t, size)
-DEFINE_ACCESSORS(normal_iterator, Iterator, uint64_t, index)
+DEFINE_ACCESSORS(normal_iterator, Iterator, uint16_t, size)
+DEFINE_ACCESSORS(normal_iterator, Iterator, uint16_t, index)
 DEFINE_ACCESSORS(normal_iterator, Iterator, JSValue*, body)
 
 /* 
@@ -599,14 +598,9 @@ DEFINE_GETTER(normal_string, StringCell, char*, value)
 
 /*
  * Fixnum
- * tag == T_FIXNUM
- *
- * In 64-bits environment, C's `int' is a 32-bits integer.
- * A fixnum value (61-bits signed integer) cannot be represented in an int. 
- * So we use `cint' to represent a fixnum value.
  */
-
-#define MAX_FIXNUM_CINT (((cint)(1) << (BITS_IN_JSVALUE - TAGOFFSET - 1)) - 1)
+#define BITS_IN_FIXNUM  (BITS_IN_JSVALUE - TAGOFFSET)
+#define MAX_FIXNUM_CINT ((((cint) 1) << (BITS_IN_FIXNUM - 1)) - 1)
 #define MIN_FIXNUM_CINT (-MAX_FIXNUM_CINT-1)
 #define is_fixnum_range_cint(n)                                 \
   ((MIN_FIXNUM_CINT <= (n)) && ((n) <= MAX_FIXNUM_CINT))
@@ -627,7 +621,7 @@ static inline cint fixnum_to_cint(JSValue v)
  * fixnum. cint_to_fixnum_nocheck should be used in limited caess
  * where the value is guaranteed to be small.
  */
-static inline JSValue cint_to_fixnum_nocheck(cint n)
+static inline JSValue small_cint_to_fixnum(cint n)
 {
   assert(is_fixnum_range_cint(n));
   return put_ptag(((uintjsv_t) n) << TAGOFFSET, T_FIXNUM);
@@ -638,31 +632,24 @@ static inline JSValue cint_to_fixnum_nocheck(cint n)
 #define is_fixnum_range_double(d)                                       \
   (is_integer_value_double(d) && is_fixnum_range_cint((cint)(d)))
 
-#define in_fixnum_range(dval)                           \
-  ((((double)(dval)) == ((double)((int64_t)(dval))))    \
-   && ((((int64_t)(dval)) <= MAX_FIXNUM_INT)            \
-       && (((int64_t)(dval)) >= MIN_FIXNUM_INT)))
-
-#define in_flonum_range(ival)                           \
-  ((ival ^ (ival << 1))                                 \
-   & ((int64_t)1 << (BITS_IN_JSVALUE - TAGOFFSET)))
-
 #define half_fixnum_range(ival)                                         \
   (((MIN_FIXNUM_CINT / 2) <= (ival)) && ((ival) <= (MAX_FIXNUM_CINT / 2)))
 
-#define FIXNUM_MINUS_ONE (cint_to_fixnum_nocheck((cint)-1))
-#define FIXNUM_ZERO      (cint_to_fixnum_nocheck((cint)0))
-#define FIXNUM_ONE       (cint_to_fixnum_nocheck((cint)1))
-#define FIXNUM_TEN       (cint_to_fixnum_nocheck((cint)10))
+#define FIXNUM_MINUS_ONE (small_cint_to_fixnum((cint)-1))
+#define FIXNUM_ZERO      (small_cint_to_fixnum((cint)0))
+#define FIXNUM_ONE       (small_cint_to_fixnum((cint)1))
+#define FIXNUM_TEN       (small_cint_to_fixnum((cint)10))
 
 
 #define cint_to_number(ctx, n)                                  \
   (is_fixnum_range_cint((n))?                                   \
-   cint_to_fixnum_nocheck((n)): cint_to_flonum(ctx, (n)))
+   small_cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
 
-#if BITS_IN_JSVALUE - TAGOFFSET >= 32
-#define uint32_to_number(ctx, n) (cint_to_fixnum_nocheck((cint) (n)))
+#if BITS_IN_FIXNUM >= 32
+#define int32_to_number(ctx, n) (small_cint_to_fixnum((cint) (n)))
+#define uint32_to_number(ctx, n) (small_cint_to_fixnum((cint) (n)))
 #else /* FIXNUM SIZE */
+#define int32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #endif /* FIXNUM SIZE */
 
@@ -670,7 +657,7 @@ static inline JSValue cint_to_fixnum_nocheck(cint n)
   ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
 #define double_to_number(ctx, d)                                        \
   (isnan((d)) ?  gconsts.g_flonum_nan :                                 \
-   is_fixnum_range_double((d)) ? cint_to_fixnum_nocheck((cint) (d)) :   \
+   is_fixnum_range_double((d)) ? small_cint_to_fixnum((cint) (d)) :     \
    double_to_flonum(ctx, (d)))
 
 /*

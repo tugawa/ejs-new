@@ -113,7 +113,7 @@ JSValue slow_mul(Context *context, JSValue v1, JSValue v2) {
       n2 = fixnum_to_cint(v2);
       if (half_fixnum_range(n1) && half_fixnum_range(n2)) {
         p = n1 * n2;
-        return cint_to_fixnum_nocheck(p);
+        return small_cint_to_fixnum(p);
       } else {
         x1 = (double)n1;
         x2 = (double)n2;
@@ -239,7 +239,7 @@ JSValue slow_mod(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
-  uint32_t x1, x2;
+  int32_t x1, x2;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
@@ -247,17 +247,17 @@ JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     return (JSValue) (((uintjsv_t) v1) & ((uintjsv_t) v2));
   case TP_FIXFLO:
-    x1 = (uint32_t) fixnum_to_cint(v1);
-    x2 = (uint32_t) flonum_to_cint(v2);
-    return cint_to_fixnum_nocheck((cint) (x1 & x2));
+    x1 = (int32_t) fixnum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    return small_cint_to_fixnum((cint) (x1 & x2));
   case TP_FLOFIX:
-    x1 = (uint32_t) flonum_to_cint(v1);
-    x2 = (uint32_t) fixnum_to_cint(v2);
-    return cint_to_fixnum_nocheck((cint) (x1 & x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) fixnum_to_cint(v2);
+    return small_cint_to_fixnum((cint) (x1 & x2));
   case TP_FLOFLO:
-    x1 = (uint32_t) flonum_to_cint(v1);
-    x2 = (uint32_t) flonum_to_cint(v2);
-    return cint_to_number(context, (cint) (x1 & x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    return int32_to_number(context, x1 & x2);
     break;
   default:
     return gconsts.g_flonum_nan;
@@ -265,7 +265,7 @@ JSValue slow_bitand(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
-  uint32_t x1, x2;
+  int32_t x1, x2;
 
   if (!is_number(v1)) v1 = to_number(context, v1);
   if (!is_number(v2)) v2 = to_number(context, v2);
@@ -273,17 +273,17 @@ JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     return (JSValue) (((uintjsv_t) v1) | ((uintjsv_t) v2));
   case TP_FIXFLO:
-    x1 = (uint32_t) fixnum_to_cint(v1);
-    x2 = (uint32_t) flonum_to_cint(v2);
-    return cint_to_number(context, (cint) (x1 | x2));
+    x1 = (int32_t) fixnum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    return int32_to_number(context, x1 | x2);
   case TP_FLOFIX:
-    x1 = (uint32_t) flonum_to_cint(v1);
-    x2 = (uint32_t) fixnum_to_cint(v2);
-    return cint_to_number(context, (cint) (x1 | x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) fixnum_to_cint(v2);
+    return int32_to_number(context, x1 | x2);
   case TP_FLOFLO:
-    x1 = flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    return cint_to_number(context, (cint) (x1 | x2));
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    return int32_to_number(context, x1 | x2);
     break;
   default:
     return gconsts.g_flonum_nan;
@@ -291,7 +291,7 @@ JSValue slow_bitor(Context *context, JSValue v1, JSValue v2) {
 }
 
 JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
-  uint32_t x1;
+  int32_t x1;
   cint x2;
 
   if (!is_number(v1)) {
@@ -305,21 +305,21 @@ JSValue slow_leftshift(Context *context, JSValue v1, JSValue v2) {
   if (!is_number(v2)) v2 = to_number(context, v2);
   switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    x1 = (uint32_t) fixnum_to_cint(v1);
+    x1 = (int32_t) fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 << x2));
+    return int32_to_number(context, x1 << x2);
   case TP_FIXFLO:
-    x1 = (uint32_t) fixnum_to_cint(v1);
+    x1 = (int32_t) fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 << x2));
+    return int32_to_number(context, x1 << x2);
   case TP_FLOFIX:
-    x1 = (uint32_t)flonum_to_cint(v1);
+    x1 = (int32_t)flonum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 << x2));
+    return int32_to_number(context, x1 << x2);
   case TP_FLOFLO:
-    x1 = (uint32_t)flonum_to_cint(v1);
+    x1 = (int32_t)flonum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 << x2));
+    return int32_to_number(context, x1 << x2);
   default:
     return gconsts.g_flonum_nan;
   }
@@ -342,19 +342,19 @@ JSValue slow_rightshift(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     x1 = (int32_t) fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return small_cint_to_fixnum((cint)(x1 >> x2));
   case TP_FIXFLO:
     x1 = (int32_t) fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return small_cint_to_fixnum((cint)(x1 >> x2));
   case TP_FLOFIX:
     x1 = (int32_t) flonum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return int32_to_number(context, x1 >> x2);
   case TP_FLOFLO:
     x1 = (int32_t) flonum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return int32_to_number(context, x1 >> x2);
   default:
     return gconsts.g_flonum_nan;
   }
@@ -370,19 +370,19 @@ JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     x1 = (uint32_t) fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return small_cint_to_fixnum((cint)(x1 >> x2));
   case TP_FIXFLO:
     x1 = (uint32_t) fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_fixnum_nocheck((cint)(x1 >> x2));
+    return small_cint_to_fixnum((cint)(x1 >> x2));
   case TP_FLOFIX:
     x1 = (uint32_t) flonum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 >> x2));
+    return uint32_to_number(context, x1 >> x2);
   case TP_FLOFLO:
     x1 = (uint32_t) flonum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return cint_to_number(context, (cint)(x1 >> x2));
+    return uint32_to_number(context, x1 >> x2);
   default:
     return gconsts.g_flonum_nan;
   }

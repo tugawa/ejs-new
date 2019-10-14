@@ -33,7 +33,7 @@ struct function_table {
 struct function_frame {
   struct function_frame *prev_frame;
   JSValue arguments;
-  JSValue locals[] __attribute__((aligned(sizeof(JSValue))));
+  JSValue locals[] __attribute__((aligned(BYTES_IN_JSVALUE)));
 };
 
 #define fframe_prev(fr)           ((fr)->prev_frame)

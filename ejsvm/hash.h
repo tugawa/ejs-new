@@ -59,12 +59,12 @@ typedef struct hash_iterator {
   HashCell *p;
 } HashIterator;
 
-typedef struct hash_table {
+struct hash_table {
   HashCell **body;
   unsigned int size;
   unsigned int entry_count;
   unsigned int filled;
-} HashTable;
+};
 
 typedef HashTable Map;
 

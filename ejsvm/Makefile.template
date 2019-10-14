@@ -65,7 +65,11 @@ HEAPSIZE      = -DJS_SPACE_BYTES=10485760
 # CFLAGS       += -DPROFILE
 
 ## word size
-CFLAGS        += -DBIT_32 # -DBIT_ALIGN32 -DJSVALUE32
+# INSN32/64    -- instruction size
+# JSVALUE32/64 -- JSValue size  (>= ponter size)
+# ALIGN32/64   -- alignment of heap-allocated data
+#CFLAGS        += -DBIT_INSN32 -DBIT_ALIGN32 -DBIT_JSVALUE32
+CFLAGS        += -DBIT_INSN64 -DBIT_ALIGN64 -DBIT_JSVALUE64
 
 ##
 ## developer options

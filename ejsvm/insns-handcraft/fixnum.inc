@@ -6,5 +6,5 @@
  */
 
 {
-  regbase[r0] = cint_to_fixnum_nocheck((cint)i1);
+  regbase[r0] = small_cint_to_fixnum((cint)i1);
 }

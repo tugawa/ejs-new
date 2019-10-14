@@ -45,6 +45,7 @@
  */
 #define is_object(v)             (is_ptag((v), T_GENERIC))
 #define is_number(v)             (is_fixnum((v)) || is_flonum((v)))
+#define has_htag(x)              ((get_ptag(x).v & 0x2) == 0)
 
 #define is_obj_header_tag(v,t)   (is_object((v)) && is_htag((v), (t)))
 
