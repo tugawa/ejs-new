@@ -370,11 +370,11 @@ JSValue slow_unsignedrightshift(Context *context, JSValue v1, JSValue v2) {
   case TP_FIXFIX:
     x1 = (uint32_t) fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;
-    return small_cint_to_fixnum((cint)(x1 >> x2));
+    return uint32_to_number(context, x1 >> x2);
   case TP_FIXFLO:
     x1 = (uint32_t) fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2) & 31;
-    return small_cint_to_fixnum((cint)(x1 >> x2));
+    return uint32_to_number(context, x1 >> x2);
   case TP_FLOFIX:
     x1 = (uint32_t) flonum_to_cint(v1);
     x2 = fixnum_to_cint(v2) & 31;

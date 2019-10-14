@@ -13,12 +13,12 @@
   case TP_FIXFIX:
     x1 = (uint32_t)fixnum_to_cint(v1);
     x2 = fixnum_to_cint(v2);
-    regbase[dst] = small_cint_to_fixnum((cint)(x1 >> x2));
+    regbase[dst] = uint32_to_number(context, x1 >> x2);
     break;
   case TP_FIXFLO:
     x1 = (uint32_t)fixnum_to_cint(v1);
     x2 = flonum_to_cint(v2);
-    regbase[dst] = small_cint_to_fixnum((cint)(x1 >> x2));
+    regbase[dst] = uint32_to_number(context, x1 >> x2);
     break;
   case TP_FLOFIX:
     x1 = (uint32_t)flonum_to_cint(v1);
