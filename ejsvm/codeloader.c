@@ -237,25 +237,31 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
   {
     union obc_file_header hdr;
     next_buf();
-#ifdef USE_SBC
+#if defined(USE_SBC) && defined(USE_OBC)
     if (obcsbc == FILE_SBC) {
+#endif /* defined(USE_SBC) && defined(USE_OBC) */
+#ifdef USE_SBC
       int fingerprint = buf_to_int("fingerprint");
       if (fingerprint != obc_file_header.s.fingerprint &&
           fingerprint != FINGERPRINT_WILDCARD)
         LOG_EXIT("SBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
                  obc_file_header.s.fingerprint, fingerprint);
-    }
 #endif /* USE_SBC */
-#ifdef USE_OBC
+#if defined(USE_SBC) && defined(USE_OBC)
+    }
     if (obcsbc == FILE_OBC) {
+#endif /* defined(USE_SBC) && defined(USE_OBC) */
+#ifdef USE_OBC
       hdr.s.magic = b[0];
       hdr.s.fingerprint = b[1];
       if (hdr.x != obc_file_header.x &&
           hdr.x != OBC_FILE_HEADER_WILDCARD.x)
         LOG_EXIT("OBC file header mismatch. 0x%x is expected but saw 0x%x.\n",
                  obc_file_header.s.fingerprint, hdr.s.fingerprint);
-    }
 #endif /* USE_OBC */
+#if defined(USE_SBC) && defined(USE_OBC)
+    }
+#endif /* defined(USE_SBC) && defined(USE_OBC) */
   }
 
   /*

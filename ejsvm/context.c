@@ -22,7 +22,9 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
   JSValue *locals;
   int i;
 
-  nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
+#ifdef DEBUG
+  nl++;
+#endif /* DEBUG */
   GC_PUSH(env);
   frame = (FunctionFrame *)
     gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
@@ -31,6 +33,13 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
   locals = frame->locals;
+#if BYTES_IN_JSVALUE < BYTES_IN_GRANULE
+  {
+    size_t bytes = sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl;
+    size_t overalloc = (-bytes) & ((1 << LOG_BYTES_IN_GRANULE) - 1);
+    nl += overalloc >> LOG_BYTES_IN_JSVALUE;
+  }
+#endif /* BYTES_IN_JSVALUE < BYTES_IN_GRANULE */
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;
   return frame;
