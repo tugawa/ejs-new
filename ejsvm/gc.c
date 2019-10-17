@@ -81,53 +81,6 @@
 #endif /* 0 */
 
 /*
- * Object header layout
- *
- * Heap objects are aligned in `granule' boundary.  Header may consist
- * of multiple granules.  HEADER_GRANULES gives the number of granules
- * in a header.
- *
- * Header fields
- *  - type    Cell type
- *  - markbit Mark bit for GC
- *  - extra   The number of over-allocated space in granule.
- *  - gen     Generation of this object describing the number of GC cycles
- *            have been performed (modulo field size) befor the allocation
- *            of this object.
- *  - magic   Magic number
- *  - size    Size of the object in granule, including the header and extra.
- */
-
-#ifdef BIT_ALIGN32
-#define HEADER_GRANULES       2
-#define HEADER_TYPE_BITS      8
-#define HEADER_MARKBIT_BITS   1
-#define HEADER_EXTRA_BITS     3
-#define HEADER_GEN_BITS       4
-#define HEADER_MAGIC_BITS     16
-#define HEADER_SIZE_BITS      32
-#define HEADER_MAGIC          0x18
-#else /* BIT_ALIGN32 */
-#define HEADER_GRANULES       1
-#define HEADER_TYPE_BITS      8
-#define HEADER_MARKBIT_BITS   1
-#define HEADER_EXTRA_BITS     3
-#define HEADER_GEN_BITS       4
-#define HEADER_MAGIC_BITS     16
-#define HEADER_SIZE_BITS      32
-#define HEADER_MAGIC          0x18
-#endif /* BIT_ALIGN32 */
-
-typedef struct header_t {
-  cell_type_t  type:    HEADER_TYPE_BITS;
-  unsigned int markbit: HEADER_MARKBIT_BITS;
-  unsigned int extra:   HEADER_EXTRA_BITS;
-  unsigned int magic:   HEADER_MAGIC_BITS;
-  unsigned int gen:     HEADER_GEN_BITS;
-  unsigned int size:    HEADER_SIZE_BITS;
-} header_t;
-
-/*
  * If the remaining room is smaller than a certain size,
  * we do not use the remainder for efficiency.  Rather,
  * we add it below the chunk being allocated.  In this case,
@@ -188,8 +141,8 @@ struct property_map_roots *property_map_roots;
 
 /* gc root stack */
 #define MAX_ROOTS 1000
-STATIC JSValue *gc_root_stack[MAX_ROOTS];
-STATIC int gc_root_stack_ptr = 0;
+JSValue *gc_root_stack[MAX_ROOTS];
+int gc_root_stack_ptr = 0;
 
 STATIC int gc_disabled = 1;
 
@@ -266,33 +219,6 @@ STATIC void print_memory_status(void);
  * Header operation
  */
 
-STATIC_INLINE header_t compose_header(size_t granules, size_t extra,
-                                      cell_type_t type)
-{
-  header_t hdr;
-  hdr.type = type;
-  hdr.markbit = 0;
-  hdr.extra = extra;
-  hdr.magic = HEADER_MAGIC;
-#ifdef GC_DEBUG
-  hdr.gen = generation;
-#else /* GC_DEBUG */
-  hdr.gen = 0;
-#endif /* GC_DEBUG */
-  hdr.size  = granules;
-  return hdr;
-}
-
-STATIC_INLINE void *header_to_payload(header_t *hdrp)
-{
-  return (void *) (hdrp + 1);
-}
-
-STATIC_INLINE header_t *payload_to_header(void *ptr)
-{
-  return ((header_t *) ptr) - 1;
-}
-
 STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 {
   header_t hdr = *hdrp;
@@ -330,7 +256,8 @@ STATIC_INLINE void mark_cell(void *p)
   mark_cell_header(hdrp);
 }
 
-STATIC_INLINE void unmark_cell(void *p)
+STATIC_INLINE void unmark_cell (void *p) __attribute__((unused));
+STATIC_INLINE void unmark_cell (void *p)
 {
   header_t *hdrp = payload_to_header(p);
   unmark_cell_header(hdrp);
@@ -467,25 +394,6 @@ void init_memory(size_t js_space_bytes)
   gc_sec = 0;
   gc_usec = 0;
 }
-
-void gc_push_checked(void *addr)
-{
-  gc_root_stack[gc_root_stack_ptr++] = (JSValue *) addr;
-}
-
-void gc_pop_checked(void *addr)
-{
-  assert(gc_root_stack[gc_root_stack_ptr - 1] == (JSValue *) addr);
-  --gc_root_stack_ptr;
-}
-
-#ifdef DEBUG
-cell_type_t gc_obj_header_type(void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  return hdrp->type;
-}
-#endif /* DEBUG */
 
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
