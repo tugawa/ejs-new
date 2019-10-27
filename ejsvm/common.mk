@@ -289,7 +289,6 @@ instructions-label.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 	$(GOTTA) --gen-insn-label -o $@
 
 vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
-	cp $(EJSVM_DIR)/gen-vmloop-cases-nonaka.rb ./gen-vmloop-cases-nonaka.rb
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
@@ -504,7 +503,7 @@ clean:
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
-	rm -f ejsvm ejsvm.spec
+	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 
 cleanest:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h

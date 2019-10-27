@@ -369,61 +369,6 @@ public class DslParser {
         return c;
     }
 
-    InstDef parse(List<Token> _tks) throws ParseErrorException {
-        InstDef instDef = null;
-        LinkedList<Token> tks = new LinkedList<Token>(_tks);
-        checkToken(tks.pollFirst(), TokenId.KEY_INST);
-        Token id = tks.pollFirst();
-        checkToken(id, TokenId.STRING);
-        checkToken(tks.pollFirst(), TokenId.PARENTHESES, "(");
-        Token op1 = tks.pollFirst();
-        Token t = tks.pollFirst();
-        String[] vars = null;
-        if (t.id == TokenId.COMMA) {
-            Token op2 = tks.pollFirst();
-            checkToken(op1, TokenId.STRING);
-            checkToken(op2, TokenId.STRING);
-            checkToken(tks.pollFirst(), TokenId.PARENTHESES, ")");
-            vars = new String[] { op1.raw, op2.raw };
-        } else if (t.id == TokenId.PARENTHESES) {
-            checkToken(op1, TokenId.STRING);
-            checkToken(t, TokenId.PARENTHESES, ")");
-            vars = new String[] { op1.raw };
-        }
-        instDef = new InstDef(id.raw, vars);
-        while (!tks.isEmpty()) {
-            Token tk = tks.pollFirst();
-            switch (tk.id) {
-            case KEY_WHEN: {
-                Condition c = parseConditionTokens(vars, tks);
-                Token cprog = tks.pollFirst();
-                checkToken(cprog, TokenId.CPROGRAM);
-                instDef.whenClauses.add(new WhenClause(c, cprog.raw));
-            } break;
-            case KEY_OTHERWISE: {
-                Token cprog = tks.pollFirst();
-                checkToken(cprog, TokenId.CPROGRAM);
-                instDef.whenClauses.add(new WhenClause(null, cprog.raw));
-            } break;
-            case KEY_PROLOGUE: {
-                Token cprog = tks.pollFirst();
-                checkToken(cprog, TokenId.CPROGRAM);
-                instDef.prologue = cprog.raw;
-            } break;
-            case KEY_EPILOGUE: {
-                Token cprog = tks.pollFirst();
-                checkToken(cprog, TokenId.CPROGRAM);
-                instDef.epilogue = cprog.raw;
-            } break;
-            case KEY_INST: break;
-            default: {
-                throw new ParseErrorException("unexpected token: "+ tk.raw);
-            }
-            }
-        }
-        return instDef;
-    }
-
     void appendParamDefIfNecessary(StringBuilder prologue, StringBuilder epilogue, String name, String def) {
         if (name.equals(def))
             return;
@@ -640,17 +585,11 @@ public class DslParser {
         String all = readAll(fname);
         List<Token> tks = new Tokenizer().tokenize(all);
         try {
-            InstDef instDef = parse(tks);
+            InstDef instDef = newParse(tks);
             return instDef;
-        } catch(ParseErrorException e) {
-            try {
-                System.out.println("// new DSL syntax");
-                InstDef instDef = newParse(tks);
-                return instDef;
-            } catch (ParseErrorException e2) {
-                e2.printStackTrace();
-                return null;
-            }
+        } catch (ParseErrorException e2) {
+            e2.printStackTrace();
+            return null;
         }
     }
 
