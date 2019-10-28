@@ -242,15 +242,14 @@ public class OBCFileComposer extends OutputFileComposer {
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
             if (inFixnumRange(n) &&
-                (1L << (format.bbBits() - 1)) <= n || n < -(1L << (format.bbBits() - 1)))
-                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
-            else {
+                (1L << (format.bbBits() - 1)) <= n || n < -(1L << (format.bbBits() - 1))) {
                 int opcode = getOpcode(insnName);
                 int a = dst.getRegisterNumber();
                 int b = n;
                 OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
                 instructions.add(insn);
-            }
+            } else
+                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
