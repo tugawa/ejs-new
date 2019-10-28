@@ -11,21 +11,142 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Stack;
 
 public class CodeGenerator extends IASTBaseVisitor {
 
-    static class JSLabel {
-        String name;
-        Label label;
+    static class Continuation {
+        Continuation k;
+        public void emitBreak(String labelName) {
+            k.emitBreak(labelName);
+        }
+        public void emitContinue(String labelName) {
+            k.emitContinue(labelName);
+        }
+        public void emitReturn(Register r) {
+            k.emitReturn(r);
+        }
+        public void emitThrow(Register r) {
+            k.emitThrow(r);
+        }
+        public void setPrev(Continuation k) {
+            this.k = k;
+        }
+        public Continuation getPrev() {
+            return k;
+        }
+    }
 
-        JSLabel(String name, Label label) {
-            this.name = name;
-            this.label = label;
+    class LoopContinuation extends Continuation {
+        private Label breakLabel, continueLabel;
+        private String labelName;
+        public LoopContinuation(String labelName, Label breakLabel, Label continueLabel) {
+            this.labelName = labelName;
+            this.breakLabel = breakLabel;
+            this.continueLabel = continueLabel;
+        }
+        @Override
+        public void emitBreak(String name) {
+            if (name != null && !labelName.equals(name))
+                super.emitBreak(name);
+            bcBuilder.push(new IJump(breakLabel));
+        }
+        @Override
+        public void emitContinue(String name) {
+            if (name != null && !labelName.equals(name))
+                super.emitContinue(name);
+            bcBuilder.push(new IJump(continueLabel));
+        }
+    }
+
+    class SwitchContinuation extends Continuation {
+        private Label breakLabel;
+        public SwitchContinuation(Label breakLabel) {
+            this.breakLabel = breakLabel;
+        }
+        @Override
+        public void emitBreak(String name) {
+            if (name != null)
+                super.emitBreak(name);
+            bcBuilder.push(new IJump(breakLabel));
+        }
+    }
+
+    class FunctionContinuation extends Continuation {
+        FunctionContinuation() {
+        }
+        @Override
+        public void emitBreak(String name) {
+            throw new Error("No enclosing loop/switch for `break'");
+        }
+        @Override
+        public void emitContinue(String name) {
+            throw new Error("No enclosing loop for `continue'");
+        }
+        @Override
+        public void emitReturn(Register r) {
+            if (r != null)
+                bcBuilder.push(new ISeta(r));
+            bcBuilder.push(new IRet());
+        }
+        @Override
+        public void emitThrow(Register r) {
+            bcBuilder.push(new IThrow(r));
+        }
+    }
+
+    class TryCatchContinuation extends Continuation {
+        public TryCatchContinuation() {
+        }
+        @Override
+        public void emitBreak(String name) {
+            bcBuilder.push(new IPophandler());
+            super.emitBreak(name);
+        }
+        @Override
+        public void emitContinue(String name) {
+            bcBuilder.push(new IPophandler());
+            super.emitContinue(name);
+        }
+        @Override
+        public void emitReturn(Register r) {
+            bcBuilder.push(new IPophandler());
+            super.emitReturn(r);
+        }
+    }
+
+    class TryFinallyContinuation extends Continuation {
+        Label finallyLabel;
+        public TryFinallyContinuation(Label finallyLabel) {
+            this.finallyLabel = finallyLabel;
+        }
+        private void localCall() {
+            bcBuilder.push(new IPophandler());
+            bcBuilder.push(new ILocalcall(finallyLabel));
+        }
+        @Override
+        public void emitBreak(String name) {
+            localCall();
+            super.emitBreak(name);
+        }
+        @Override
+        public void emitContinue(String name) {
+            localCall();
+            super.emitContinue(name);
+        }
+        @Override
+        public void emitReturn(Register r) {
+            localCall();
+            super.emitReturn(r);
+        }
+        @Override
+        public void emitThrow(Register r) {
+            localCall();
+            super.emitThrow(r);
         }
     }
 
     static class Environment {
-
         // Frame is made for each IASTFunction.
         static class Frame {
             List<String> params;
@@ -42,8 +163,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             private List<Register> argumentRegisters = new LinkedList<Register>();
             private Register[] paramRegisters;
 
-            LinkedList<JSLabel> breakLabels = new LinkedList<JSLabel>();
-            LinkedList<JSLabel> continueLabels = new LinkedList<JSLabel>();
+            Continuation continuation;
 
             Register registerOfGlobalObj = null;
 
@@ -74,6 +194,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 for (int i = 0; i < numOfArgumentRegisters; i++) {
                     argumentRegisters.get(i).n = numOfRegisters + numOfArgumentRegisters - i;
                 }
+                assert(continuation == null);
             }
 
             // If you need a new LocalVar while compiling IASTFunction's body,
@@ -91,20 +212,17 @@ public class CodeGenerator extends IASTBaseVisitor {
                 dynamicLocals.removeFirst();
             }
 
-            void pushBreakLabel(String name, Label label) {
-                breakLabels.push(new JSLabel(name, label));
+            void pushContinuation(Continuation k) {
+                k.setPrev(continuation);
+                continuation = k;
             }
 
-            void popBreakLabel() {
-                breakLabels.pop();
+            void popContinuation() {
+                continuation = continuation.getPrev();
             }
 
-            void pushContinueLabel(String name, Label label) {
-                continueLabels.push(new JSLabel(name, label));
-            }
-
-            void popContinueLabel() {
-                continueLabels.pop();
+            Continuation getContinuation() {
+                return continuation;
             }
 
             // If you need a fresh Register, you have to call this.
@@ -225,32 +343,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             return new Location(getCurrentFrame().getParamRegister(id));
         }
 
-        Label getBreakLabel(String name) {
-            Frame f = getCurrentFrame();
-            if (name == null) {
-                return f.breakLabels.getFirst().label;
-            } else {
-                for (JSLabel jsl : f.breakLabels) {
-                    if (name.equals(jsl.name))
-                        return jsl.label;
-                }
-            }
-            return null;
-        }
-
-        Label getContinueLabel(String name) {
-            Frame f = getCurrentFrame();
-            if (name == null) {
-                return f.continueLabels.getFirst().label;
-            } else {
-                for (JSLabel jsl : f.continueLabels) {
-                    if (name.equals(jsl.name))
-                        return jsl.label;
-                }
-            }
-            return null;
-        }
-
         int getNumberOfLocals() {
             return this.getCurrentFrame().getNumberOfLocals();
         }
@@ -314,6 +406,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         for (IASTFunctionExpression program: node.programs) {
             bcBuilder.openFunctionBCBuilder();
             env.openFrame(new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>(), true);
+            env.getCurrentFrame().pushContinuation(new FunctionContinuation());
             bcBuilder.setTopLevel();
             bcBuilder.setLogging(program.logging);
             Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
@@ -332,6 +425,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             /* do not put iret for top-level program */
             bcBuilder.setNumberOfLocals(0);
             bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
+            env.getCurrentFrame().popContinuation();
             env.closeFrame();
             bcBuilder.closeFuncBCBuilder();
         }        
@@ -388,8 +482,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         } else {
             compileNode(node.value, reg);
         }
-        bcBuilder.push(new ISeta(reg));
-        bcBuilder.push(new IRet());
+        env.getCurrentFrame().getContinuation().emitReturn(reg);
         return null;
     }
 
@@ -443,7 +536,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
         }
         Label breakLabel = new Label();
-        env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
+        env.getCurrentFrame().pushContinuation(new SwitchContinuation(breakLabel));
         for (IASTSwitchStatement.CaseClause caseClause : node.cases) {
             Label caseLabel = caseLabels.pollFirst();
             if (caseLabel != null) {
@@ -451,7 +544,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
             compileNode(caseClause.consequent, testReg);
         }
-        env.getCurrentFrame().popBreakLabel();
+        env.getCurrentFrame().popContinuation();
         bcBuilder.push(breakLabel);
         return null;
     }
@@ -488,11 +581,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(l2);
         if (node.body != null) {
-            env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
-            env.getCurrentFrame().pushContinueLabel(node.label, continueLabel);
+            env.getCurrentFrame().pushContinuation(new LoopContinuation(node.label, breakLabel, continueLabel));
             compileNode(node.body, reg);
-            env.getCurrentFrame().popBreakLabel();
-            env.getCurrentFrame().popContinueLabel();
+            env.getCurrentFrame().popContinuation();
         }
         bcBuilder.push(continueLabel);
         if (node.update != null)
@@ -518,11 +609,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(l2);
         if (node.body != null) {
-            env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
-            env.getCurrentFrame().pushContinueLabel(node.label, continueLabel);
+            env.getCurrentFrame().pushContinuation(new LoopContinuation(node.label, breakLabel, continueLabel));
             compileNode(node.body, reg);
-            env.getCurrentFrame().popBreakLabel();
-            env.getCurrentFrame().popContinueLabel();
+            env.getCurrentFrame().popContinuation();
         }
         bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
@@ -541,11 +630,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(continueLabel);
         bcBuilder.push(l1);
         if (node.body != null) {
-            env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
-            env.getCurrentFrame().pushContinueLabel(node.label, continueLabel);
+            env.getCurrentFrame().pushContinuation(new LoopContinuation(node.label, breakLabel, continueLabel));
             compileNode(node.body, reg);
-            env.getCurrentFrame().popBreakLabel();
-            env.getCurrentFrame().popContinueLabel();
+            env.getCurrentFrame().popContinuation();
         }
         Register testReg = env.getCurrentFrame().freshRegister();
         compileNode(node.test, testReg);
@@ -572,11 +659,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IIsundef(testReg, propReg));
         bcBuilder.push(new IJumptrue(l2, testReg));
         bcBuilder.push(continueLabel);
-        env.getCurrentFrame().pushBreakLabel(node.label, breakLabel);
-        env.getCurrentFrame().pushContinueLabel(node.label, continueLabel);
+        env.getCurrentFrame().pushContinuation(new LoopContinuation(node.label, breakLabel, continueLabel));
         compileNode(node.body, reg);
-        env.getCurrentFrame().popBreakLabel();
-        env.getCurrentFrame().popContinueLabel();
+        env.getCurrentFrame().popContinuation();
         bcBuilder.push(new IJump(l1));
         bcBuilder.push(breakLabel);
         bcBuilder.push(l2);
@@ -585,23 +670,13 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitBreakStatement(IASTBreakStatement node) {
-        Label label = env.getBreakLabel(node.label);
-        if (label != null) {
-            bcBuilder.push(new IJump(label));
-        } else {
-            throw new Error("Compile Error ... BreakStatement");
-        }
+        env.getCurrentFrame().getContinuation().emitBreak(node.label);
         return null;
     }
 
     @Override
     public Object visitContinueStatement(IASTContinueStatement node) {
-        Label label = env.getContinueLabel(node.label);
-        if (label != null) {
-            bcBuilder.push(new IJump(label));
-        } else {
-            throw new Error("Compile Error ... ContinueStatement");
-        }
+        env.getCurrentFrame().getContinuation().emitContinue(node.label);
         return null;
     }
 
@@ -640,6 +715,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
 
         env.openFrame(node.params, params, locals, regLocals, needFrame);
+        env.getCurrentFrame().pushContinuation(new FunctionContinuation());
 
         Register globalObjReg = env.getCurrentFrame().getParamRegister(THIS_OBJECT_REGISTER);
         env.setRegOfGlobalObj(globalObjReg);
@@ -674,11 +750,12 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register retReg = env.getCurrentFrame().freshRegister();
         compileNode(node.body, retReg);
         bcBuilder.push(new IUndefinedconst(reg));
-        bcBuilder.push(new ISeta(reg));
-        bcBuilder.push(new IRet());
+        env.getCurrentFrame().getContinuation().emitReturn(reg);
 
         bcBuilder.setNumberOfLocals(env.getNumberOfLocals());
         bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
+
+        env.getCurrentFrame().popContinuation();
 
         // Don't change the order.
         env.closeFrame();
