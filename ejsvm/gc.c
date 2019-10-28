@@ -642,7 +642,7 @@ STATIC void process_edge(uintptr_t ptr)
 #ifndef HC_SKIP_INTERNAL
       /* transition link is weak if HC_SKIP_INTERNAL */
       if (is_transition(p->entry.attr))
-        process_edge((uintptr_t) p->entry.data);  /* PropertyMap */
+        process_edge((uintptr_t) p->entry.data.u.pm);  /* PropertyMap */
 #endif /* HC_SKIP_INTERNAL */
       if (p->next != NULL)
         process_edge((uintptr_t) p->next);  /* HashCell */
