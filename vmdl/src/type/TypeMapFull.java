@@ -8,6 +8,7 @@ import java.util.Set;
 
 import type.AstType.AstBaseType;
 import type.AstType.JSValueType;
+import type.AstType.JSValueVMType;
 
 public class TypeMapFull extends TypeMapBase {
     Set<Map<String, AstType>> dictSet;
@@ -32,8 +33,15 @@ public class TypeMapFull extends TypeMapBase {
         Set<AstType> typeSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             AstType t = m.get(name);
-            if(t==null) continue;
+            if(t == null) continue;
             typeSet.add(t);
+        }
+        AstType t = globalDict.get(name);
+        if(t != null){
+            typeSet.add(t);
+        }
+        if(typeSet.isEmpty()){
+            throw new Error("The variable not found : "+name);
         }
         return typeSet;
     }
@@ -42,28 +50,90 @@ public class TypeMapFull extends TypeMapBase {
     public Set<String> getDispatchSet(){
         return new HashSet<String>(0);
     }
+    protected boolean needDetailType(String name, AstType type){
+        return ((type instanceof JSValueType) && !(type instanceof JSValueVMType));
+    }
+    private void detailPut(Set<Map<String, AstType>> set, Map<String, AstType> original, String name, AstType type){
+        if(needDetailType(name, type)){
+            for(JSValueVMType t : JSValueType.getChildren((JSValueType)type)){
+                Map<String, AstType> tempMap = cloneDict(original);
+                tempMap.put(name, t);
+                set.add(tempMap);
+            }
+            set.remove(original);
+            }else{
+            original.put(name, type);
+            }
+        }
+    private void detailAdd(Set<Map<String, AstType>> set, Map<String, AstType> original, String name, AstType type){
+        if(original.get(name)!=null){
+            System.err.println("Warning : The variable is already declared : "+name); 
+    }
+        detailPut(set, original, name, type);
+    }
+    private void detailAssign(Set<Map<String, AstType>> set, Map<String, AstType> original, String name, AstType type){
+        if(original.get(name)==null){
+            throw new Error("The variable is not declared : "+name); 
+        }
+        detailPut(set, original, name, type);
+    }
     public void add(String name, AstType type){
         for(Map<String, AstType> m : dictSet){
-            if(m.get(name)==null){
-                m.put(name, type);
-            }else{
-                m.replace(name, type);
-            }
+            detailAdd(dictSet, m, name, type);
         }
     }
     public void add(Map<String, AstType> map){
-        for(Map<String, AstType> m : dictSet){
-            m.putAll(map);
+        for(String name : map.keySet()){
+            AstType type = map.get(name);
+            add(name, type);
         }
+    }
+    private Set<Map<String,AstType>> getPutSet(Set<Map<String, AstType>> set, Map<String, AstType> map){
+        Set<Map<String,AstType>> newSet = cloneDictSet(set);
+        for(Map<String, AstType> originalMap : newSet){
+            for(String name : map.keySet()){
+                AstType type = map.get(name);
+                detailAdd(newSet, originalMap, name, type);
+            }
+        }
+        return newSet;
     }
     public void add(Set<Map<String, AstType>> set){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String, AstType> m : set){
-            for(Map<String, AstType> dsm : dictSet){
-                Map<String, AstType> newGamma = new HashMap<>();
-                newGamma.putAll(dsm);
-                newGamma.putAll(m);
-                newSet.add(newGamma);
+            newSet.addAll(getPutSet(dictSet, m));
+            }
+        dictSet = newSet;
+        }
+    public void add(String name, Map<Map<String, AstType>, AstType> map) {
+        Set<Map<String,AstType>> newDictSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : map.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    Map<String,AstType> newMap = cloneDict(dictMap);
+                    AstType type = map.get(exprMap);
+                    newDictSet.add(newMap);
+                    detailAdd(newDictSet, newMap, name, type);
+                }
+            }
+        }
+        dictSet = newDictSet;
+    }
+    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
+        Set<Map<String, AstType>> removeMaps = new HashSet<>();
+        Set<Map<String, AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
+            for(Map<String,AstType> dictMap : dictSet){
+                if(contains(dictMap, exprMap)){
+                    AstType replacedType = exprTypeMap.get(exprMap);
+                    detailAssign(newSet, dictMap, name, replacedType);
+                    removeMaps.add(dictMap);
+                }
+            }
+        }
+        for(Map<String, AstType> map : dictSet){
+            if(!removeMaps.contains(map)){
+                newSet.add(map);
             }
         }
         dictSet = newSet;
@@ -72,6 +142,7 @@ public class TypeMapFull extends TypeMapBase {
         for(Map<String, AstType> m : dictSet){
             if(m.containsKey(key)) return true;
         }
+        if(globalDict.containsKey(key)) return true;
         return false;
     }
     public Set<String> getKeys(){
@@ -90,8 +161,9 @@ public class TypeMapFull extends TypeMapBase {
                 if(type==null){
                     if(containsKey(s)){
                         type = AstType.BOT;
-                    }else
-                        throw new Error("Failure select : no such element \""+s+"\"");
+                    }else{
+                        throw new Error("No such element \""+s+"\"");
+                }
                 }
                 selectedMap.put(s, type);
             }
@@ -101,16 +173,9 @@ public class TypeMapFull extends TypeMapBase {
     }
     @Override
     public TypeMapBase clone(){
-        Set<Map<String, AstType>> newSet = new HashSet<>();
-        for(Map<String, AstType> m : dictSet){
-            Map<String, AstType> newGamma = new HashMap<>();
-            for(String s : m.keySet()){
-                newGamma.put(s, m.get(s));
+        return new TypeMapFull(cloneDictSet(dictSet), null);
             }
-            newSet.add(newGamma);
-        }
-        return new TypeMapFull(newSet, null);
-    }
+    @Override
     public TypeMapBase combine(TypeMapBase that){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         Set<Map<String, AstType>> thatDictSet = that.getDictSet();
@@ -149,6 +214,7 @@ public class TypeMapFull extends TypeMapBase {
                 int length = varNames.length;
                 NEXT_MAP: for(Map<String, AstType> m : dictSet){
                     for(int i=0; i<length; i++){
+                        if(!(m.get(varNames[i]) instanceof JSValueType)) continue NEXT_MAP;
                         if(!((JSValueType)AstType.get(v[i])).isSuperOrEqual((JSValueType)m.get(varNames[i]))){
                             continue NEXT_MAP;
                         }
@@ -207,8 +273,10 @@ public class TypeMapFull extends TypeMapBase {
                     if(xt instanceof JSValueType){
                         JSValueType t = (JSValueType)xt;
                         if(!t.isSuperOrEqual(JSValueType.get(dt))) continue NEXT_MAP;
-                    }else
-                        throw new Error("internal error :"+xt.toString());
+                    } else if (xt == AstType.BOT){
+                        continue NEXT_MAP;
+                    } else
+                        throw new Error("internal error: "+formalParams[i]+"="+xt.toString());
                 }
                 filtered.add(dts);
                 break;
@@ -226,7 +294,7 @@ public class TypeMapFull extends TypeMapBase {
     }
     @Override
     public String toString() {
-        return dictSet.toString();
+        return dictSet.toString()+", "+globalDict.toString();
     }
     @Override
     public boolean equals(Object obj) {
@@ -239,49 +307,7 @@ public class TypeMapFull extends TypeMapBase {
             return false;
         }
     }
-    public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
-        Set<Map<String, AstType>> removeMap = new HashSet<>();
-        Set<Map<String, AstType>> newSet = new HashSet<>();
-        for(Map<String,AstType> exprMap : exprTypeMap.keySet()){
-            for(Map<String,AstType> dictMap : dictSet){
-                if(contains(dictMap, exprMap)){
-                    Map<String,AstType> replacedMap = new HashMap<>();
-                    for(String s : dictMap.keySet()){
-                        replacedMap.put(s, dictMap.get(s));
-                    }
-                    replacedMap.replace(name, exprTypeMap.get(exprMap));
-                    removeMap.add(dictMap);
-                    newSet.add(replacedMap);
-                }
-            }
-        }
-        for(Map<String, AstType> map : dictSet){
-            if(!removeMap.contains(map)){
-                newSet.add(map);
-            }
-        }
-        dictSet = newSet;
-    }
-
-    public void add(String name, Map<Map<String, AstType>, AstType> map) {
-        Set<Map<String,AstType>> newDictSet = new HashSet<>();
-        for(Map<String,AstType> exprMap : map.keySet()){
-            for(Map<String,AstType> dictMap : dictSet){
-                if(contains(dictMap, exprMap)){
-                    Map<String,AstType> newMap = new HashMap<>();
-                    for(String s : dictMap.keySet()){
-                        newMap.put(s, dictMap.get(s));
-                    }
-                    newMap.put(name, map.get(exprMap));
-                    newDictSet.add(newMap);
-                }else{
-                    newDictSet.add(dictMap);
-                }
-            }
-        }
-        dictSet = newDictSet;
-    }
-
+    @Override
     public Map<Map<String, AstType>, AstType> combineExprTypeMap(Map<Map<String, AstType>, AstType> exprTypeMap1, Map<Map<String, AstType>, AstType> exprTypeMap2) {
         Map<Map<String, AstType>, AstType> newExprTypeMap = new HashMap<>();
         for(Map<String,AstType> map : exprTypeMap1.keySet()){
@@ -291,5 +317,15 @@ public class TypeMapFull extends TypeMapBase {
             newExprTypeMap.put(map, exprTypeMap2.get(map));
         }
         return newExprTypeMap;
+    }
+    @Override
+    public void putExprTypeElement(Map<String, AstType> key, AstType type) {
+        if((type instanceof JSValueType) && !(type instanceof JSValueVMType)){
+            for(JSValueVMType t : AstType.getChildren((JSValueType)type)){
+                exprTypeMap.put(key, t);
+            }
+        }else{
+            exprTypeMap.put(key, type);
+        }
     }
 }

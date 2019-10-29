@@ -9,6 +9,7 @@ import java.util.Set;
 import type.AstType.JSValueType;
 
 public abstract class TypeMapBase {
+    static Map<String, AstType> globalDict = new HashMap<>();
     Map<Map<String, AstType>, AstType> exprTypeMap;
 
     public TypeMapBase(){
@@ -24,11 +25,17 @@ public abstract class TypeMapBase {
     public abstract void addDispatch(String name);
     public abstract void clearDispatch();
     public abstract Set<String> getDispatchSet();
-    public abstract void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap);
     public abstract void add(String name, AstType type);
     public abstract void add(String name, Map<Map<String,AstType>,AstType> map);
     public abstract void add(Map<String, AstType> map);
     public abstract void add(Set<Map<String, AstType>> set);
+    public abstract void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap);
+    public void addGlobal(String name, AstType type){
+        if(globalDict.get(name) != null){
+            System.err.println("Warning : The variable is already declared in global : "+name);
+        }
+        globalDict.put(name, type);
+    }
     public abstract boolean containsKey(String key);
     public abstract Set<String> getKeys();
     public abstract TypeMapBase select(Collection<String> domain);
@@ -76,7 +83,7 @@ public abstract class TypeMapBase {
     public static Map<Map<String,AstType>,AstType> cloneExprTypeMap(Map<Map<String,AstType>,AstType> map){
         Map<Map<String,AstType>,AstType> newMap = new HashMap<>();
         for(Map<String,AstType> km : map.keySet()){
-            Map<String,AstType> clonedKeyMap = new HashMap<>(km);
+            Map<String,AstType> clonedKeyMap = cloneDict(km);
             newMap.put(clonedKeyMap, map.get(km));
         }
         return newMap;
@@ -101,4 +108,22 @@ public abstract class TypeMapBase {
     public abstract TypeMapBase getBottomDict();
     public abstract Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs);
     public abstract boolean hasBottom();
+    public static Set<Map<String,AstType>> cloneDictSet(Set<Map<String,AstType>> original){
+        Set<Map<String,AstType>> newSet = new HashSet<>();
+        for(Map<String,AstType> originalMap : original){
+            Map<String,AstType> cloneMap = new HashMap<>();
+            for(String s : originalMap.keySet()){
+                cloneMap.put(s, originalMap.get(s));
+            }
+            newSet.add(cloneMap);
+        }
+        return newSet;
+    }
+    public static Map<String,AstType> cloneDict(Map<String,AstType> original){
+        Map<String,AstType> newMap = new HashMap<>();
+        for(String s : original.keySet()){
+            newMap.put(s, original.get(s));
+        }
+        return newMap;
+    }
 }
