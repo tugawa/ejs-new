@@ -100,6 +100,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public TypeCheckVisitor() {
         init(TypeCheckVisitor.class, new DefaultVisitor());
+        numberOperatorInitialize();
     }
 
     public void start(Tree<?> node, OperandSpecifications opSpec, TypeMapBase typeMap) {
@@ -624,17 +625,19 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    AstType tCint = AstType.get("cint");
-    AstType tCdouble = AstType.get("cdouble");
-    AstType tCstring = AstType.get("cstring");
-    AstType tSubscript = AstType.get("Subscript");
+    Map<String, Integer> operatorNameToIndex = new HashMap<>();
+    private void numberOperatorInitialize(){
+        operatorNameToIndex.put("Add", 0);
+        operatorNameToIndex.put("Sub", 1);
+        operatorNameToIndex.put("Mul", 2);
+        operatorNameToIndex.put("Div", 3);
+        operatorNameToIndex.put("Mod", 4);
+    }
 
-    private Set<Map<String,AstType>> getKeySet(int[][] combiIndex, List<Set<Map<String,AstType>>> lKeySetSetList, List<Set<Map<String,AstType>>> rKeySetSetList){
-        int combiIndexSize = combiIndex.length;
+    private Set<Map<String,AstType>> getKeySet(Set<Map<String,AstType>> lKeySet, Set<Map<String,AstType>> rKeySet){
         Set<Map<String,AstType>> newKeySet = new HashSet<>();
-        for(int i=0; i< combiIndexSize; i++){
-            for(Map<String,AstType> m1 : lKeySetSetList.get(combiIndex[i][0])){
-                for(Map<String,AstType> m2 : rKeySetSetList.get(combiIndex[i][1])){
+        for(Map<String,AstType> m1 : lKeySet){
+            for(Map<String,AstType> m2 : rKeySet){
                     Map<String,AstType> tempMap = new HashMap<>(m1);
                     for(String name : m2.keySet()){
                         if(!m1.containsKey(name)){
@@ -651,42 +654,66 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
-        }
         return newKeySet;
     }
 
+    AstType tCint = AstType.get("cint");
+    AstType tCdouble = AstType.get("cdouble");
+    AstType tCstring = AstType.get("cstring");
+    AstType tDisplacement = AstType.get("Displacement");
+    AstType tSubscript = AstType.get("Subscript");
     private Map<Map<String,AstType>,AstType> numberOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
-        final int CINT      = 0;
-        final int CDOUBLE   = 1;
-        final int SUBSCRIPT = 2;
-        AstType typeArray[] = {tCint, tCdouble, tSubscript};
-        int typeArrayLength = typeArray.length;
-        int cintCombiIndex[][]    = {{CINT, CINT}, {CINT, SUBSCRIPT}, {SUBSCRIPT, CINT}, {SUBSCRIPT, SUBSCRIPT}};
-        int cdoubleCombiIndex[][] = {{CINT, CDOUBLE}, {CDOUBLE, CINT}, {SUBSCRIPT, CDOUBLE}, {SUBSCRIPT, CDOUBLE}, {CDOUBLE, CDOUBLE}};
+        final int CINT         = 0;
+        final int CDOUBLE      = 1;
+        final int DISPLACEMENT = 2;
+        final int SUBSCRIPT    = 3;
+        final AstType typeArray[] = {tCint, tCdouble, tDisplacement, tSubscript};
+        /*  rule ---> {<LeftOperandType>, <RightOperandType>, <ResultType>}, ... */
+        final int typeRule[][][] = {
+            //Add rule
+            {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE},
+             {CINT, SUBSCRIPT, SUBSCRIPT}, {SUBSCRIPT, CINT, SUBSCRIPT}, {CINT, DISPLACEMENT, SUBSCRIPT}, {DISPLACEMENT, CINT, SUBSCRIPT}},
+            //Sub rule
+            {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE},
+             {CINT, SUBSCRIPT, SUBSCRIPT}, {SUBSCRIPT, CINT, SUBSCRIPT}, {CINT, DISPLACEMENT, SUBSCRIPT}, {DISPLACEMENT, CINT, SUBSCRIPT},
+             {SUBSCRIPT, SUBSCRIPT, SUBSCRIPT}},
+            //Mul rule
+            {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE}},
+            //Div rule
+            {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE}},
+            //Mod rule
+            {{CINT, CINT, CINT}, {CINT, CDOUBLE, CDOUBLE}, {CDOUBLE, CINT, CDOUBLE}, {CDOUBLE, CDOUBLE, CDOUBLE}},
+        };
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
         TypeMapBase lTypeMap = visit(leftNode, dict);
         TypeMapBase rTypeMap = visit(rightNode, dict);
         List<Set<Map<String,AstType>>> lKeySetSetList = new ArrayList<>();
         List<Set<Map<String,AstType>>> rKeySetSetList = new ArrayList<>();
-        for(int i=0; i<typeArrayLength; i++){
+        for(int i=0; i<typeArray.length; i++){
             lKeySetSetList.add(lTypeMap.getKeySetValueOf(typeArray[i]));
             rKeySetSetList.add(rTypeMap.getKeySetValueOf(typeArray[i]));
         }
-        Set<Map<String,AstType>> newCintKeySet = getKeySet(cintCombiIndex, lKeySetSetList, rKeySetSetList);
-        Set<Map<String,AstType>> newCdoubleKeySet = getKeySet(cdoubleCombiIndex, lKeySetSetList, rKeySetSetList);
         Map<Map<String,AstType>,AstType> newExprTypeMap = new HashMap<>();
-        for(Map<String,AstType> m : newCintKeySet){
-            newExprTypeMap.put(m, tCint);
+        Integer index = operatorNameToIndex.get(node.getTag().toString());
+        if(index==null){
+            throw new Error("Unknown operator name : "+node.getTag().toString());
         }
-        for(Map<String,AstType> m : newCdoubleKeySet){
-            newExprTypeMap.put(m, tCdouble);
+        for(int[] rule : typeRule[index]){
+            Set<Map<String,AstType>> lOperandExprTypeMapSet = lKeySetSetList.get(rule[0]);
+            Set<Map<String,AstType>> rOperandExprTypeMapSet = rKeySetSetList.get(rule[1]);
+            AstType resultType   = typeArray[rule[2]];
+            Set<Map<String,AstType>> keySet = getKeySet(lOperandExprTypeMapSet, rOperandExprTypeMapSet);
+            for(Map<String, AstType> key : keySet){
+                newExprTypeMap.put(key, resultType);
+        }
         }
         if(newExprTypeMap.isEmpty()){
             throw new Error("type error: number Operate has no result type");
         }
         return newExprTypeMap;
     }
+
     private Map<Map<String,AstType>,AstType> bitwiseOperator(SyntaxTree node, TypeMapBase dict) throws Exception {
         SyntaxTree leftNode = node.get(Symbol.unique("left"));
         Map<Map<String,AstType>,AstType> lExprTypeMap = visit(leftNode, dict).getExprTypeMap();
