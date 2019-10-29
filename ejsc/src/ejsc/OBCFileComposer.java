@@ -25,97 +25,6 @@ public class OBCFileComposer extends OutputFileComposer {
 
     static final byte OBC_FILE_MAGIC = (byte) 0xec;
 
-    static abstract class InstructionBinaryFormat {
-        static final int FIELD_VALUE_TRUE = 0x3;
-        static final int FIELD_VALUE_FALSE = 0x1;
-        static final int FIELD_VALUE_NULL = 0x0;
-        static final int FIELD_VALUE_UNDEFINED = 0x2;
-
-        static class Bit32 extends InstructionBinaryFormat {
-            public Bit32(int ptagBits, int specPTag) {
-                super(ptagBits, specPTag);
-            }
-            @Override public int instructionBytes() { return 4; }
-            @Override public int opcodeBits()       { return 8; }
-            @Override public int aBits()            { return 8; }
-            @Override public int bBits()            { return 8; }
-            @Override public int cBits()            { return 8; }
-        }
-
-
-        static class Bit64 extends InstructionBinaryFormat {
-            public Bit64(int ptagBits, int specPTag) {
-                super(ptagBits, specPTag);
-            }
-            @Override public int instructionBytes() { return 8; }
-            @Override public int opcodeBits()       { return 16; }
-            @Override public int aBits()            { return 16; }
-            @Override public int bBits()            { return 16; }
-            @Override public int cBits()            { return 16; }
-        }
-
-        int ptagBits;
-        int specPTag;
-        
-        InstructionBinaryFormat(int ptagBits, int specPTag) {
-            this.ptagBits = ptagBits;
-            this.specPTag = specPTag;
-        }
-        
-        abstract public int instructionBytes();
-        abstract public int opcodeBits();
-        abstract public int aBits();
-        abstract public int bBits();
-        abstract public int cBits();
-        public int bbBits() {
-            return bBits() + cBits();
-        }
-        public int opcodeOffset() {
-            return aOffset() + aBits();
-        }
-        public int aOffset() {
-            return bOffset() + bBits();
-        }
-        public int bOffset() {
-            return cOffset() + cBits();
-        }
-        public int bbOffset() {
-            return 0;
-        }
-        public int cOffset() {
-            return 0;
-        }
-        public long opcodeMask() {
-            return ((1L << opcodeBits()) - 1) << opcodeOffset();
-        }
-        public long aMask() {
-            return ((1L << aBits()) - 1) << aOffset();
-        }
-        public long bMask() {
-            return ((1L << bBits()) - 1) << bOffset();
-        }
-        public long bbMask() {
-            return ((1L << bbBits()) - 1) << bbOffset();
-        }
-        public long cMask() {
-            return ((1L << cBits()) - 1) << cOffset();
-        }
-        public int specialFieldValue(SpecialValue v) {
-            switch (v) {
-            case TRUE:
-                return (FIELD_VALUE_TRUE << ptagBits) | specPTag;
-            case FALSE:
-                return (FIELD_VALUE_FALSE << ptagBits) | specPTag;
-            case NULL:
-                return (FIELD_VALUE_NULL << ptagBits) | specPTag;
-            case UNDEFINED:
-                return (FIELD_VALUE_UNDEFINED << ptagBits) | specPTag;
-            default:
-                throw new Error("Unknown special");
-            }
-        }
-    }
-
     static class OBCInstruction {
         enum Format {
             ABC,
@@ -241,16 +150,14 @@ public class OBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            if (inFixnumRange(n) &&
-                (1L << (format.bbBits() - 1)) <= n || n < -(1L << (format.bbBits() - 1)))
-                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
-            else {
+            if (format.inFixnumRange(n)) {
                 int opcode = getOpcode(insnName);
                 int a = dst.getRegisterNumber();
                 int b = n;
                 OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
                 instructions.add(insn);
-            }
+            } else
+                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -414,22 +321,9 @@ public class OBCFileComposer extends OutputFileComposer {
     }
 
     List<OBCFunction> obcFunctions;
-    InstructionBinaryFormat format;
 
-    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean bit32, boolean align32, boolean jsvalue32) {
-        super(spec, align32, jsvalue32);
-        int ptagBits, specPTag;
-        if (align32) {
-            ptagBits = 2;
-            specPTag = 1;
-        } else {
-            ptagBits = 3;
-            specPTag = 6;
-        }
-        if (bit32)
-            format = new InstructionBinaryFormat.Bit32(ptagBits, specPTag);
-        else
-            format = new InstructionBinaryFormat.Bit64(ptagBits, specPTag);
+    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean insn32, boolean align32) {
+        super(spec, insn32, align32);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb : fbs) {

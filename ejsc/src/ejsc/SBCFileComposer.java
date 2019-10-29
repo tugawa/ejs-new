@@ -117,15 +117,14 @@ public class SBCFileComposer extends OutputFileComposer {
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            if (inFixnumRange(n))
-                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
-            else {
+            if (format.inFixnumRange(n)) {
                 insnName = decorateInsnName(insnName, log);
                 String a = Integer.toString(dst.getRegisterNumber());
                 String b = Integer.toString(n);
                 SBCInstruction insn = new SBCInstruction(insnName, a, b);
                 instructions.add(insn);
-            }
+            } else
+                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
@@ -312,8 +311,8 @@ public class SBCFileComposer extends OutputFileComposer {
 
     List<SBCFunction> obcFunctions;
 
-    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean align32, boolean jsvalue32) {
-        super(spec, align32, jsvalue32);
+    SBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean insn32, boolean align32) {
+        super(spec, insn32, align32);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<SBCFunction>(fbs.size());
         for (BCBuilder.FunctionBCBuilder fb: fbs) {

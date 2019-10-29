@@ -52,7 +52,6 @@ public class Main {
         boolean optOutOBC = false;
         boolean optOutInsn32 = false;
         boolean optOutAlign32 = false;  // should be read from SpecFile
-        boolean optOutJSValue32 = false;
         OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) throws IOException {
@@ -118,14 +117,10 @@ public class Main {
                         break;
                     case "--out-bit32":
                         info.optOutAlign32 = true;
-                        info.optOutJSValue32 = true;
                         info.optOutInsn32 = true;
                         break;
                     case "--out-align32":
                         info.optOutAlign32 = true;
-                        break;
-                    case "--out-jsvalue32":
-                        info.optOutJSValue32 = true;
                         break;
                     case "--out-insn32":
                         info.optOutInsn32 = true;
@@ -261,10 +256,10 @@ public class Main {
         bcBuilder.assignFunctionIndex(true);
 
         if (info.optOutOBC) {
-            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutInsn32, info.optOutAlign32, info.optOutJSValue32);
+            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutInsn32, info.optOutAlign32);
             obc.output(info.outputFileName);
         } else {
-            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutAlign32, info.optOutJSValue32);
+            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutInsn32, info.optOutAlign32);
             sbc.output(info.outputFileName);
         }
     }
