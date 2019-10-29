@@ -13,7 +13,6 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -223,6 +222,8 @@ public class OperandSpecifications {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
     }
 
+    //Never used
+    /*
     private Set<String[]> getErrorOperandsString(String insnName) {
         Set<String[]> result = new HashSet<String[]>();
         for (OperandSpecificationRecord rec : spec) {
@@ -233,4 +234,5 @@ public class OperandSpecifications {
         }
         return result;
     }
+    */
 }

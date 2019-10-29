@@ -22,10 +22,18 @@ public class TypeMapLub extends TypeMapBase {
         dictSet = new HashSet<>();
         dictSet.add(dict);
     }
+    @Override
     public Set<Map<String, AstType>> getDictSet() {
         return dictSet;
     }
+    private boolean dictErrorCheck(String name){
+        return (dict.containsKey(name) ^ globalDict.containsKey(name));
+    }
+    @Override
     public Set<AstType> get(String name){
+        if(!dictErrorCheck(name)){
+            throw new Error("Double declare : "+name);
+        }
         Set<AstType> set = new HashSet<>();
         AstType type = dict.get(name);
         if(type == null){
@@ -37,14 +45,22 @@ public class TypeMapLub extends TypeMapBase {
         set.add(type);
         return set;
     }
+    @Override
     public void addDispatch(String name){}
+    @Override
     public void clearDispatch(){}
+    @Override
     public Set<String> getDispatchSet(){
         return new HashSet<String>(0);
     }
+    @Override
     public void add(String name, AstType type){
+        if(name != null){
+            System.err.println("Warning : The variable is already declared : "+name); 
+        }
         dict.put(name, type);
     }
+    @Override
     public void add(Map<String, AstType> map){
         for(String name : map.keySet()){
             AstType type = dict.get(name);
@@ -54,6 +70,7 @@ public class TypeMapLub extends TypeMapBase {
             dict.put(name, type);
         }
     }
+    @Override
     public void add(Set<Map<String, AstType>> set){
         Map<String, AstType> lubMap = new HashMap<>();
         for(Map<String, AstType> m : set){
@@ -64,14 +81,15 @@ public class TypeMapLub extends TypeMapBase {
                     lubMap.put(name, type);
                 }else{
                     lubMap.put(name, lubType.lub(type));
-        }
-    }
+                }
+            }
         }
         for(String name : lubMap.keySet()){
             AstType lubType = lubMap.get(name);
             dict.put(name, lubType);
         }
     }
+    @Override
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
         AstType type = AstType.BOT;
         for(Map<String,AstType> exprMap : map.keySet()){
@@ -81,6 +99,7 @@ public class TypeMapLub extends TypeMapBase {
         }
         dict.put(name, type);
     }
+    @Override
     public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
         Set<Map<String, AstType>> removeMap = new HashSet<>();
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -129,16 +148,19 @@ public class TypeMapLub extends TypeMapBase {
         }
         dict = newGamma;
     }
+    @Override
     public boolean containsKey(String key) {
         return (dict.containsKey(key) || globalDict.containsKey(key));
     }
+    @Override
     public Set<String> getKeys(){
         Set<String> keySet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             keySet.addAll(m.keySet());
-    }
+        }
         return keySet;
     }
+    @Override
     public TypeMapBase select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         for (String v : domain) {
@@ -175,6 +197,7 @@ public class TypeMapLub extends TypeMapBase {
         }
         return lubDict;
     }
+    @Override
     public TypeMapBase combine(TypeMapBase that) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         Map<String, AstType> thatDict = getLubDict(that.getDictSet());
@@ -209,7 +232,7 @@ public class TypeMapLub extends TypeMapBase {
         }
         return -1;
     }
-
+    @Override
     public TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
 
@@ -234,7 +257,7 @@ public class TypeMapLub extends TypeMapBase {
         
         return new TypeMapLub(newGamma);
     }
-
+    @Override
     public TypeMapBase rematch(String[] params, String[] args, Set<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
         for (String v : domain) {
@@ -247,10 +270,10 @@ public class TypeMapLub extends TypeMapBase {
         }
         return new TypeMapLub(newGamma);
     }
-
+    @Override
     public TypeMapBase getBottomDict() {
         return new TypeMapLub(cloneDict(dict));
-        }
+    }
     @Override
     public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs) {
         Set<VMDataType[]> filtered = new HashSet<VMDataType[]>();
@@ -271,14 +294,13 @@ public class TypeMapLub extends TypeMapBase {
         }
         return filtered;
     }
-    
+    @Override
     public boolean hasBottom() {
         for (AstType t: dict.values())
             if (t == AstType.BOT)
                 return true;
         return false;
     }
-    
     @Override
     public String toString() {
         return dict.toString()+", "+globalDict.toString();

@@ -10,7 +10,6 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 
 import vmdlc.ReplaceNameVisitor.DefaultVisitor;
 
@@ -32,9 +31,12 @@ public class ReplaceNameVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).accept(node, v1, v2);
     }
 
+    //Never used
+    /*
     private void print(Object o) {
         ConsoleUtils.println(o);
     }
+    */
 
     public class DefaultVisitor {
         public void accept(Tree<?> node, String v1, String v2) throws Exception {

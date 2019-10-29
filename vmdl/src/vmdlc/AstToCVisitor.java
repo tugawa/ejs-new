@@ -17,7 +17,6 @@ import java.util.Stack;
 import java.util.Set;
 import java.util.HashSet;
 import java.lang.Exception;
-import java.util.Arrays;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
 

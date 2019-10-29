@@ -26,10 +26,25 @@ public class TypeMapFull extends TypeMapBase {
     public TypeMapFull(Set<Map<String, AstType>> _dictSet, Set<String> _dispatchSet){
         dictSet = _dictSet;
     }
+    @Override
     public Set<Map<String, AstType>> getDictSet(){
         return dictSet;
     }
+    private boolean isDoubleDeclare(String name){
+        boolean flag = false;
+        for(Map<String, AstType> m : dictSet){
+            if(m.containsKey(name)){
+                flag = true;
+                break;
+            }
+        }
+        return (flag && globalDict.containsKey(name));
+    }
+    @Override
     public Set<AstType> get(String name){
+        if(isDoubleDeclare(name)){
+            throw new Error("Internal Error : The element is declare in local and global dict \""+name+"\"");
+        }
         Set<AstType> typeSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
             AstType t = m.get(name);
@@ -45,8 +60,11 @@ public class TypeMapFull extends TypeMapBase {
         }
         return typeSet;
     }
+    @Override
     public void addDispatch(String name){}
+    @Override
     public void clearDispatch(){}
+    @Override
     public Set<String> getDispatchSet(){
         return new HashSet<String>(0);
     }
@@ -61,14 +79,14 @@ public class TypeMapFull extends TypeMapBase {
                 set.add(tempMap);
             }
             set.remove(original);
-            }else{
+        }else{
             original.put(name, type);
-            }
         }
+    }
     private void detailAdd(Set<Map<String, AstType>> set, Map<String, AstType> original, String name, AstType type){
         if(original.get(name)!=null){
             System.err.println("Warning : The variable is already declared : "+name); 
-    }
+        }
         detailPut(set, original, name, type);
     }
     private void detailAssign(Set<Map<String, AstType>> set, Map<String, AstType> original, String name, AstType type){
@@ -77,11 +95,13 @@ public class TypeMapFull extends TypeMapBase {
         }
         detailPut(set, original, name, type);
     }
+    @Override
     public void add(String name, AstType type){
         for(Map<String, AstType> m : dictSet){
             detailAdd(dictSet, m, name, type);
         }
     }
+    @Override
     public void add(Map<String, AstType> map){
         for(String name : map.keySet()){
             AstType type = map.get(name);
@@ -98,13 +118,15 @@ public class TypeMapFull extends TypeMapBase {
         }
         return newSet;
     }
+    @Override
     public void add(Set<Map<String, AstType>> set){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String, AstType> m : set){
             newSet.addAll(getPutSet(dictSet, m));
-            }
-        dictSet = newSet;
         }
+        dictSet = newSet;
+    }
+    @Override
     public void add(String name, Map<Map<String, AstType>, AstType> map) {
         Set<Map<String,AstType>> newDictSet = new HashSet<>();
         for(Map<String,AstType> exprMap : map.keySet()){
@@ -119,6 +141,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         dictSet = newDictSet;
     }
+    @Override
     public void assign(String name, Map<Map<String, AstType>, AstType> exprTypeMap) {
         Set<Map<String, AstType>> removeMaps = new HashSet<>();
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -138,6 +161,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         dictSet = newSet;
     }
+    @Override
     public boolean containsKey(String key){
         for(Map<String, AstType> m : dictSet){
             if(m.containsKey(key)) return true;
@@ -145,6 +169,7 @@ public class TypeMapFull extends TypeMapBase {
         if(globalDict.containsKey(key)) return true;
         return false;
     }
+    @Override
     public Set<String> getKeys(){
         Set<String> keySet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -152,6 +177,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         return keySet;
     }
+    @Override
     public TypeMapBase select(Collection<String> domain){
         Set<Map<String, AstType>> selectedSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -163,7 +189,7 @@ public class TypeMapFull extends TypeMapBase {
                         type = AstType.BOT;
                     }else{
                         throw new Error("No such element \""+s+"\"");
-                }
+                    }
                 }
                 selectedMap.put(s, type);
             }
@@ -174,7 +200,7 @@ public class TypeMapFull extends TypeMapBase {
     @Override
     public TypeMapBase clone(){
         return new TypeMapFull(cloneDictSet(dictSet), null);
-            }
+    }
     @Override
     public TypeMapBase combine(TypeMapBase that){
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -199,6 +225,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         return -1;
     }
+    @Override
     public TypeMapBase enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
         Set<VMDataType[]> conditionSet = caseCondition.getTuples();
         Set<Map<String, AstType>> newSet = new HashSet<>();
@@ -235,6 +262,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         return new TypeMapFull(newSet, null);
     }
+    @Override
     public TypeMapBase rematch(String[] params, String[] args, Set<String> domain){
         Set<Map<String, AstType>> newSet = new HashSet<>();
         for(Map<String, AstType> m : dictSet){
@@ -251,6 +279,7 @@ public class TypeMapFull extends TypeMapBase {
         }
         return new TypeMapFull(newSet, null);
     }
+    @Override
     public TypeMapBase getBottomDict(){
         Set<String> domain = getKeys();
         Map<String, AstType> newGamma = new HashMap<>();
@@ -261,6 +290,7 @@ public class TypeMapFull extends TypeMapBase {
         newSet.add(newGamma);
         return new TypeMapFull(newSet, null);
     }
+    @Override
     public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs){
         Set<VMDataType[]> filtered = new HashSet<VMDataType[]>();
         int length = formalParams.length;
@@ -277,13 +307,14 @@ public class TypeMapFull extends TypeMapBase {
                         continue NEXT_MAP;
                     } else
                         throw new Error("internal error: "+formalParams[i]+"="+xt.toString());
-                }
+                    }
                 filtered.add(dts);
                 break;
             }
         }
         return filtered;
     }
+    @Override
     public boolean hasBottom(){
         for(Map<String, AstType> m : dictSet){
             for(AstType t : m.values()){

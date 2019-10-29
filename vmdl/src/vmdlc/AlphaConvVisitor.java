@@ -10,10 +10,10 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.HashMap;
 import java.lang.Exception;
 
@@ -46,9 +46,12 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).accept(node, dict);
     }
 
+    //Never used
+    /*
     private void print(Object o) {
         ConsoleUtils.println(o);
     }
+    */
 
     public class DefaultVisitor {
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -235,7 +238,7 @@ class VarDict {
     }
 
     public String search(String s) {
-        for (HashMap h : frames) {
+        for (Map<String,String> h : frames) {
             String v = (String)h.get(s);
             if (v != null) {
                 return v;

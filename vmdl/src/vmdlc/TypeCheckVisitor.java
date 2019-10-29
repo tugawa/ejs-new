@@ -200,16 +200,28 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
                     Set<Map<String, AstType>> newDictSet = new HashSet<>();
-                    
-                    for(VMDataType[] vec : tupleSet){
+                    if(tupleSet.isEmpty()){
                         Map<String, AstType> tempMap = new HashMap<>();
                         for(int i=0; i<length; i++){
-                            tempMap.put(variableStrings[i], AstType.get(vec[i]));
+                            tempMap.put(variableStrings[i], AstType.BOT);
                         }
                         newDictSet.add(tempMap);
+                    }else{
+                        for(VMDataType[] vec : tupleSet){
+                            Map<String, AstType> tempMap = new HashMap<>();
+                            for(int i=0; i<length; i++){
+                                tempMap.put(variableStrings[i], AstType.get(vec[i]));
+                            }
+                            newDictSet.add(tempMap);
+                        }
                     }
                     newDict.add(newDictSet);
                 }
+            }
+            /* add diaptched variables information */
+            Set<String> rematchVarSet = node.getRematchVarSet();
+            for(String s : rematchVarSet){
+                newDict.addDispatch(s);
             }
             SyntaxTree body = (SyntaxTree)definition.get(Symbol.unique("body"));
             dict = visit((SyntaxTree)body, newDict);
@@ -263,15 +275,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             TypeMapBase entryDict;
             TypeMapBase newEntryDict = dict;
-            for(String s : mp.getFormalParams()){
-                outDict.addDispatch(s);
-                newEntryDict.addDispatch(s);
-            }
-            Set<String> rematchVarSet = node.getRematchVarSet();
-            for(String s : rematchVarSet){
-                outDict.addDispatch(s);
-                newEntryDict.addDispatch(s);
-            }
             /*
             List<String> formalParams = new ArrayList<String>();
             for (String p: mp.getFormalParams())
@@ -638,22 +641,22 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         Set<Map<String,AstType>> newKeySet = new HashSet<>();
         for(Map<String,AstType> m1 : lKeySet){
             for(Map<String,AstType> m2 : rKeySet){
-                    Map<String,AstType> tempMap = new HashMap<>(m1);
-                    for(String name : m2.keySet()){
-                        if(!m1.containsKey(name)){
-                            tempMap.put(name, m2.get(name));
-                            continue;
-                        }
-                        if(m1.get(name)!=m2.get(name)){
-                            tempMap = null;
-                            break;
-                        }
+                Map<String,AstType> tempMap = new HashMap<>(m1);
+                for(String name : m2.keySet()){
+                    if(!m1.containsKey(name)){
+                        tempMap.put(name, m2.get(name));
+                        continue;
                     }
-                    if(tempMap!=null){
-                        newKeySet.add(tempMap);
+                    if(m1.get(name)!=m2.get(name)){
+                        tempMap = null;
+                        break;
                     }
                 }
+                if(tempMap!=null){
+                    newKeySet.add(tempMap);
+                }
             }
+        }
         return newKeySet;
     }
 
@@ -706,7 +709,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             Set<Map<String,AstType>> keySet = getKeySet(lOperandExprTypeMapSet, rOperandExprTypeMapSet);
             for(Map<String, AstType> key : keySet){
                 newExprTypeMap.put(key, resultType);
-        }
+            }
         }
         if(newExprTypeMap.isEmpty()){
             throw new Error("type error: number Operate has no result type");
@@ -831,10 +834,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstBaseType rangeType = (AstBaseType)funType.getRange();
            
             // TODO: type check
+            /*
             for (SyntaxTree arg : node.get(1)) {
                 Map<Map<String,AstType>,AstType> exprTypeMap = visit(arg, dict).getExprTypeMap();
             }
-            
+            */
             TypeMapBase tempMap = TYPE_MAP.clone();
 			tempMap.setExprTypeMap(TypeMapBase.getSimpleExprTypeMap(rangeType));
 			return tempMap;
