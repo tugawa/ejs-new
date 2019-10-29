@@ -3,7 +3,7 @@ fixnum SMALLPRIMITIVE Register int
 specconst SMALLPRIMITIVE Register int
 string BIGPRIMITIVE LABELONLY
 regexp BIGPRIMITIVE LABELONLY
-number BIGPRIMITIVE Register Displacement
+number BIGPRIMITIVE Register ConstantDisplacement
 add THREEOP Register JSValue JSValue
 sub THREEOP Register JSValue JSValue
 mul THREEOP Register JSValue JSValue
@@ -22,7 +22,6 @@ getarg THREEOP Register int Subscript
 setarg THREEOP int Subscript JSValue
 getprop THREEOP Register JSValue JSValue
 setprop THREEOP JSValue JSValue JSValue
-setarray THREEOP JSValue Subscript JSValue
 getglobal TWOOP Register JSValue
 setglobal TWOOP JSValue JSValue
 instanceof THREEOP Register JSValue JSValue
@@ -40,9 +39,9 @@ getglobalobj ONEOP Register
 newframe TWOOP int int
 ret ZEROOP
 nop ZEROOP
-jump UNCONDJUMP Displacement
-jumptrue CONDJUMP JSValue Displacement
-jumpfalse CONDJUMP JSValue Displacement
+jump UNCONDJUMP InstructionDisplacement
+jumptrue CONDJUMP JSValue InstructionDisplacement
+jumpfalse CONDJUMP JSValue InstructionDisplacement
 getlocal GETVAR Register int Subscript
 setlocal SETVAR int Subscript JSValue
 makeclosure MAKECLOSUREOP Register Subscript
@@ -53,13 +52,13 @@ newsend CALLOP LABELONLY
 call CALLOP JSValue int
 tailsend CALLOP LABELONLY
 tailcall CALLOP JSValue int
-pushhandler UNCONDJUMP Displacement
+pushhandler UNCONDJUMP InstructionDisplacement
 pophandler ZEROOP
 throw ZEROOP
-localcall UNCONDJUMP Displacement
+localcall UNCONDJUMP InstructionDisplacement
 localret ZEROOP
 poplocal ZEROOP
-error BIGPRIMITIVE Register Displacement
+error BIGPRIMITIVE Register ConstantDisplacement
 unknown UNKNOWNOP
 end ZEROOP
 %% superinstruction spec
