@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.lang.Exception;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
@@ -164,21 +165,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             println(");");
 
-            Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);                
-            if (jsvNum != 0 && errorInput.size() != 0) {
-                print("if (");
-                for (VMDataType[] dts: errorInput) {
-                    print("(equal_tag(" + jsvParams[0] + "," + dts[0] + ")");
-                    for (int i = 1; i < jsvNum; i++) {
-                        print(" && equal_tag(" + jsvParams[i] + "," + dts[i] + ")");
-                    }
-                    print(") ||\n\t");
-                }
-                println("0){");
-                println("    LOG_EXIT(\"unexpected operand type\\n\");");
-                println("}");
-            }
-
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
             visit(bodyNode, indent);
         }
@@ -213,7 +199,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
 
-            /*
             Set<VMDataType[]> dontCareInput = opSpec.getUnspecifiedOperands(currentFunctionName);
             Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
             Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
@@ -230,7 +215,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             if (errorConditions.size() > 0) {
                 rules.add(new RuleSet.Rule(errorAction, errorConditions));
             }
-            */
 
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
@@ -247,14 +231,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
                 /* OperandDataTypes set */
                 Set<RuleSet.OperandDataTypes> odts = new HashSet<RuleSet.OperandDataTypes>();
-                for (VMDataType[] vmtVec: vmtVecs) {
-                    /*
+                NEXT_VMDT: for (VMDataType[] vmtVec: vmtVecs) {
                     for (VMDataType[] remove : removeSet) {
                         if (Arrays.equals(vmtVec, remove)) {
                             continue NEXT_VMDT;
                         }
                     }
-                    */
                     RuleSet.OperandDataTypes odt = new RuleSet.OperandDataTypes(vmtVec);
                     odts.add(odt);
                 }
