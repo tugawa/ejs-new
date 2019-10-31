@@ -23,7 +23,7 @@ public class CommonConstantElimination {
     Register min(Set<Register> rs) {
         Register result = null;
         for (Register r: rs) {
-            if (result == null || r.n < result.n)
+            if (result == null || r.getRegisterNumber() < result.getRegisterNumber())
                 result = r;
         }
         return result;

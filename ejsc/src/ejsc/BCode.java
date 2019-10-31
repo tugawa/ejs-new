@@ -192,12 +192,15 @@ public abstract class BCode {
 }
 
 class Register {
-    int n;
+    private int n;
     Register(int n) {
         this.n = n;
     }
     public int getRegisterNumber() {
         return n;
+    }
+    public void setRegisterNumber(int n) {
+        this.n = n;
     }
     public String toString() {
         return Integer.toString(n);
@@ -752,6 +755,19 @@ class INewframe extends BCode {
     }
     public String toString() {
         return super.toString(name, len, makeArguments ? 1 : 0);
+    }
+}
+/* ZEROOP */
+class IExitframe extends BCode {
+    IExitframe() {
+        super("exitframe");
+    }
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name, logging);
+    }
+    public String toString() {
+        return super.toString(name);
     }
 }
 /* TWOOP */

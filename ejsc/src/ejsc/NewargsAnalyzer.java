@@ -7,26 +7,64 @@
  * Electro-communications.
  */
 package ejsc;
-import java.util.HashSet;
-import java.util.Set;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import ejsc.Main.Info.OptLocals;
 
 public class NewargsAnalyzer extends IASTBaseVisitor {
+
+    static public void execute(Main.Info.OptLocals optLocals, IASTProgram node) {
+        NewargsAnalyzer analyzer = new NewargsAnalyzer(optLocals);
+        analyzer.analyze(node);
+    }
+
     Main.Info.OptLocals optLocals;
     public boolean useArguments;
-    public boolean useFunction;
-    public Set<String> variables;
-    public Set<String> freeVariables;
 
     public NewargsAnalyzer(Main.Info.OptLocals optLocals) {
         this.optLocals = optLocals;
         useArguments = false;
-        useFunction = false;
-        variables = new HashSet<String>();
-        freeVariables = new HashSet<String>();
     }
 
-    public void analyze(IASTNode node) {
+    private void analyze(IASTNode node) {
         node.accept(this);
+    }
+
+    private IASTNode.VarDecl lookup(IASTNode.FrameHolder scope, String name) {
+        while (scope != null) {
+            for (IASTNode.VarDecl decl: scope.getVarDecls())
+                if (decl.getName().equals(name))
+                    return decl;
+            scope = scope.getOwnerFrame();
+        }
+        return IASTNode.VarDecl.createGlobalVarDecl(name);
+    }
+
+    private int relocateVariables(IASTNode.FrameHolder node, boolean needArguments) {
+        switch (optLocals) {
+        case NONE:
+            for (IASTNode.VarDecl decl: node.getVarDecls())
+                decl.markMayEscape();
+            break;
+        case PROSYM: case G1:
+            throw new Error("PROSYM and G1 are no longer supported");
+        case G3:
+            break;
+        }
+
+        int frameIndex = 0;
+        for (IASTNode.VarDecl decl: node.getVarDecls()) {
+            if (needArguments && decl instanceof IASTNode.ParameterVarDecl) {
+                IASTNode.ParameterVarDecl paramDecl = (IASTNode.ParameterVarDecl) decl;
+                paramDecl.convertToArguments();
+            } else if (decl.mayEscape())
+                decl.convertToFrame(frameIndex++);
+            else
+                decl.convertToRegister();
+        }
+        return frameIndex;
     }
 
     @Override
@@ -35,63 +73,36 @@ public class NewargsAnalyzer extends IASTBaseVisitor {
             NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
             func.body.accept(analyzer);
             func.needArguments = false;
-            func.needFrame = false;
+            func.frameSize = relocateVariables(func, false);
         }
         return null;
     }
+
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
-        node.innerUsedLocals = new HashSet<String>();
-        this.useFunction = true;
         NewargsAnalyzer analyzer = new NewargsAnalyzer(this.optLocals);
         node.body.accept(analyzer);
-        boolean useArg = analyzer.useArguments;
-        boolean useFunc = analyzer.useFunction;
-        boolean hasLocals = !node.locals.isEmpty();
-
-        for (String var : analyzer.variables) {
-            if (node.params.contains(var) || node.locals.contains(var))
-                continue;
-            this.freeVariables.add(var);
-        }
-        for (String var : analyzer.freeVariables) {
-            if (node.params.contains(var) || node.locals.contains(var))
-                node.innerUsedLocals.add(var);
-            else
-                this.freeVariables.add(var);
-        }
-        if (optLocals == Main.Info.OptLocals.G1) {
-            node.innerUsedLocals.addAll(node.params);
-            node.innerUsedLocals.addAll(node.locals);
-        } else if (optLocals == Main.Info.OptLocals.PROSYM) {
-            node.innerUsedLocals.addAll(node.locals);
-        }
-
-        switch (this.optLocals) {
-        case NONE:
-            throw new Error("NewargsAnalyzer is called with optLocals == NONE");
-        case PROSYM:
-            node.needArguments = useArg || useFunc;
-            node.needFrame = node.needArguments || hasLocals;
-            break;
-        case G1:
-            node.needArguments = useArg;
-            node.needFrame = true;
-            break;
-        case G3:
-            node.needArguments = useArg;
-            node.needFrame = node.needArguments || !node.innerUsedLocals.isEmpty();
-            break;
-        }
+        node.needArguments = (optLocals == OptLocals.NONE) ? true : analyzer.useArguments;
+        node.frameSize = relocateVariables(node, node.needArguments);
+        return null;
+    }
+    @Override
+    public Object visitTryCatchStatement(IASTTryCatchStatement node) {
+        node.body.accept(this);
+        node.handler.accept(this);
+        relocateVariables(node, false);
         return null;
     }
     @Override
     public Object visitIdentifier(IASTIdentifier node) {
+        assert(node.id != null);
         if (node.id != null) {
-            if (node.id.equals("arguments")) {
+            if (node.id.equals("arguments"))
                 useArguments = true;
-            } else {
-                variables.add(node.id);
+            else {
+                IASTNode.VarDecl decl = lookup(node.getOwnerFrame(), node.id);
+                decl.markMayEscapeUnlessOwnerFunction(node.getOwnerFunction());
+                node.setDeclaration(decl);
             }
         }
         return null;

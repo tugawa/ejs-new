@@ -8,12 +8,190 @@
  */
 package ejsc;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 abstract public class IASTNode {
+    static class VarDecl {
+        static enum Type {
+            ARGUMENT,
+            LOCAL_VAR,
+            EXCEPTION,
+            GLOBAL
+        }
+        static private final GlobalVarLoc GLOBAL_LOC = new GlobalVarLoc();
+        static HashMap<String, VarDecl> gvars = new HashMap<String, VarDecl>();
+        static VarDecl createGlobalVarDecl(String name) {
+            if (!gvars.containsKey(name)) {
+                VarDecl decl = new VarDecl(name);
+                decl.location = GLOBAL_LOC;
+                decl.type = Type.GLOBAL;
+                gvars.put(name, decl);
+            }
+            return gvars.get(name);
+        }
+
+        private String name;
+        protected VarLoc location;
+        protected Type type;
+        protected FrameHolder ownerFrame;
+
+        private VarDecl(String name) {
+            this.name = name;
+        }
+        public VarDecl(String name, Type type, FrameHolder ownerFrame) {
+            this.name = name;
+            this.type = type;
+            this.ownerFrame = ownerFrame;
+            this.location = new UnresolvedVarLoc();
+        }
+
+
+        public String getName() {
+            return name;
+        }
+        public VarLoc getLocation() {
+            return location;
+        }
+        public void markMayEscapeUnlessOwnerFunction(IASTFunctionExpression func) {
+            if (location instanceof GlobalVarLoc)
+                return;
+            if (ownerFrame instanceof IASTFunctionExpression) {
+                if (func != ownerFrame)
+                    markMayEscape();
+            } else {
+                if (func != ownerFrame.getOwnerFunction())
+                    markMayEscape();
+            }
+        }
+        public void markMayEscape() {
+            ((UnresolvedVarLoc) location).mayEscape = true;
+        }
+        public boolean mayEscape() {
+            return ((UnresolvedVarLoc) location).mayEscape;
+        }
+        public void convertToFrame(int index) {
+            location = new FrameVarLoc(ownerFrame, index);
+        }
+        public void convertToRegister() {
+            location = new RegisterVarLoc();
+        }
+    }
+    static class ParameterVarDecl extends VarDecl {
+        private int parameterIndex;
+        public ParameterVarDecl(String name, int parameterIndex, FrameHolder ownerFrame) {
+            super(name, VarDecl.Type.ARGUMENT, ownerFrame);
+            this.parameterIndex = parameterIndex;
+        }
+        public void convertToArguments() {
+            location = new ArgumentsVarLoc(ownerFrame, parameterIndex);
+        }
+        public int getParameterIndex() {
+            return parameterIndex;
+        }
+    }
+
+    static class VarLoc {
+    }
+    static class UnresolvedVarLoc extends VarLoc {
+        private boolean mayEscape;
+        public UnresolvedVarLoc() {
+            mayEscape = false;
+        }
+        public void markMayEscape() {
+            mayEscape = true;
+        }
+        public boolean mayEscape() {
+            return mayEscape;
+        }
+    }
+    static class RegisterVarLoc extends VarLoc {
+        private final int NOT_ALLOCATED = -1;
+        private int regNo;
+        public RegisterVarLoc() {
+            regNo = NOT_ALLOCATED;
+        }
+        public int getRegisterNo() {
+            if (regNo == NOT_ALLOCATED)
+                throw new Error("register number is not allocated");
+            return regNo;
+        }
+        public void setRegisterNo(int regNo) {
+            if (this.regNo != NOT_ALLOCATED)
+                throw new Error("register number has already been allocated");
+            this.regNo = regNo;
+        }
+    }
+    static class HeapVarLoc extends VarLoc {
+        private FrameHolder ownerFrame;
+        public HeapVarLoc(FrameHolder ownerFrame) {
+            this.ownerFrame = ownerFrame;
+        }
+        public int countStaticLink(FrameHolder node) {
+            int linkCount = 0;
+            while (node != ownerFrame) {
+                if (node.needArguments() || node.frameSize() > 0)
+                    linkCount++;
+                node = node.getOwnerFrame();
+            }
+            return linkCount;
+        }
+    }
+    static class ArgumentsVarLoc extends HeapVarLoc {
+        private int index;
+        public ArgumentsVarLoc(FrameHolder ownerFrame, int index) {
+            super(ownerFrame);
+            this.index = index;
+        }
+        public int getIndex() {
+            return index;
+        }
+    }
+    static class FrameVarLoc extends HeapVarLoc {
+        private int index;
+        public FrameVarLoc(FrameHolder ownerFrame, int index) {
+            super(ownerFrame);
+            this.index = index;
+        }
+        int getIndex() {
+            return index;
+        }
+    }
+    static class GlobalVarLoc extends VarLoc {
+    }
+
+    static public interface FrameHolder {
+        public Iterable<VarDecl> getVarDecls();
+        public IASTFunctionExpression getOwnerFunction();
+        public FrameHolder getOwnerFrame();
+        public int frameSize();
+        public boolean needArguments();
+    }
+
+    /*
+     * Try-catch statement introduces a scope of the catch-clause.
+     * To compute static link, we hold the inner most surrounding
+     * function or catch-clause in ownerFrame.  If try-catch
+     * statements are absent, ownerFrame is the same as ownerFunction.
+     */
+    private IASTFunctionExpression ownerFunction;
+    private FrameHolder ownerFrame;
+    IASTNode() {
+        this.ownerFunction = null;
+        this.ownerFrame = null;
+    }
+    public void setOwner(IASTFunctionExpression ownerFunction, FrameHolder ownerFrame) {
+        this.ownerFunction = ownerFunction;
+        this.ownerFrame = ownerFrame;
+    }
+    public IASTFunctionExpression getOwnerFunction() {
+        return ownerFunction;
+    }
+    public FrameHolder getOwnerFrame() {
+        return ownerFrame;
+    }
     abstract Object accept(IASTBaseVisitor visitor);
-    // abstract void compile(CodeGenerator.BCBuilder bcb, CodeGenerator.Environment env, Register reg)
 }
 
 class IASTProgram extends IASTNode {
@@ -204,18 +382,55 @@ class IASTThrowStatement extends IASTStatement {
     }
 }
 
-class IASTTryCatchStatement extends IASTStatement {
+class IASTTryCatchStatement extends IASTStatement implements IASTNode.FrameHolder {
     IASTStatement body;
-    String param;
+    VarDecl var;
     IASTStatement handler;
+
+    /* following fields are filled by semantic analysis */
+    FrameHolder prevFrameHolder;
+
     IASTTryCatchStatement(IASTStatement body, String param, IASTStatement handler) {
         this.body = body;
-        this.param = param;
+        this.var = new VarDecl(param, VarDecl.Type.EXCEPTION, this);
         this.handler = handler;
     }
     @Override
     Object accept(IASTBaseVisitor visitor) {
         return visitor.visitTryCatchStatement(this);
+    }
+
+    /* FrameHolder */
+    @Override
+    public Iterable<VarDecl> getVarDecls() {
+        return new Iterable<VarDecl> () {
+            @Override
+            public Iterator<VarDecl> iterator() {
+                return new Iterator<VarDecl>() {
+                    private boolean first = true;
+                    @Override
+                    public boolean hasNext() {
+                        return first;
+                    }
+                    @Override
+                    public VarDecl next() {
+                        if (first) {
+                            first = false;
+                            return var;
+                        }
+                        return null;
+                    }
+                };
+            }
+        };
+    }
+    @Override
+    public int frameSize() {
+        return var.mayEscape() ? 1 : 0;
+    }
+    @Override
+    public boolean needArguments() {
+        return false;
     }
 }
 
@@ -281,11 +496,11 @@ class IASTDoWhileStatement extends IASTStatement {
 }
 
 class IASTForInStatement extends IASTStatement {
-    String var;
+    IASTIdentifier var;
     IASTExpression object;
     IASTStatement body;
     String label;
-    IASTForInStatement(String var, IASTExpression object, IASTStatement body) {
+    IASTForInStatement(IASTIdentifier var, IASTExpression object, IASTStatement body) {
         this.var = var;
         this.object = object;
         this.body = body;
@@ -368,25 +583,72 @@ class IASTObjectExpression extends IASTExpression {
     }
 }
 
-class IASTFunctionExpression extends IASTExpression {
-    List<String> params;
-    List<String> locals;
-    HashSet<String> innerUsedLocals;
+class IASTFunctionExpression extends IASTExpression implements IASTNode.FrameHolder {
+    ParameterVarDecl[] params;
+    VarDecl[] locals;
     IASTStatement body;
     boolean logging;
+
+    /* following members are filled by semantic analysis */
     public boolean needArguments;
-    public boolean needFrame;
+    public int frameSize;
+
     IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body, boolean logging) {
-        this.params = params;
-        this.locals = locals;
+        this.params = new ParameterVarDecl[params.size()];
+        for (int i = 0; i < params.size(); i++)
+            this.params[i] = new ParameterVarDecl(params.get(i), i, this);
+        this.locals = locals.stream().map(name -> new VarDecl(name, VarDecl.Type.LOCAL_VAR, this)).toArray(VarDecl[]::new);
         this.body = body;
         this.logging = logging;
-        this.needArguments = true;
-        this.needFrame = true;
     }
     @Override
     Object accept(IASTBaseVisitor visitor) {
         return visitor.visitFunctionExpression(this);
+    }
+
+    /* FrameHolder */
+    @Override
+    public Iterable<VarDecl> getVarDecls() {
+        return new Iterable<VarDecl>() {
+            @Override
+            public Iterator<VarDecl> iterator() {
+                return new Iterator<VarDecl>() {
+                    boolean scanningParams = params.length > 0 ? true : false;
+                    int position = 0;
+                    @Override
+                    public boolean hasNext() {
+                        return scanningParams || position < locals.length;
+                    }
+                    @Override
+                    public VarDecl next() {
+                        if (scanningParams) {
+                            VarDecl decl = params[position++];
+                            if (position >= params.length) {
+                                scanningParams = false;
+                                position = 0;
+                            }
+                            return decl;
+                        } else {
+                            if (position < locals.length)
+                                return locals[position++];
+                            return null;
+                        }
+                    }
+                };
+            }
+        };
+    }
+
+    public boolean needFrame() {
+        return frameSize > 0 || needArguments;
+    }
+    @Override
+    public int frameSize() {
+        return frameSize;
+    }
+    @Override
+    public boolean needArguments() {
+        return needArguments;
     }
 }
 
@@ -505,12 +767,20 @@ class IASTMemberExpression extends IASTExpression {
 
 class IASTIdentifier extends IASTExpression {
     String id;
+    VarDecl decl;
     IASTIdentifier(String id) {
         this.id = id;
+        this.decl = null;
     }
     @Override
     Object accept(IASTBaseVisitor visitor) {
         return visitor.visitIdentifier(this);
+    }
+    public void setDeclaration(VarDecl decl) {
+        this.decl = decl;
+    }
+    public VarDecl getDeclaration() {
+        return decl;
     }
 }
 

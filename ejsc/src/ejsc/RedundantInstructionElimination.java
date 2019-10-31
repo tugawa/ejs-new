@@ -38,7 +38,7 @@ public class RedundantInstructionElimination {
         if (DEBUG) {
             System.out.print("Eliminate: "+bc+" LiveRegs = {");
             for (Register r: lra.getLiveRegisters(bc))
-                System.out.print("r"+r.n+" ");
+                System.out.print("r"+r.getRegisterNumber()+" ");
             System.out.println("}");
         }
 

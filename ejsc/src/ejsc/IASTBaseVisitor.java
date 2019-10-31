@@ -39,8 +39,11 @@ public class IASTBaseVisitor {
         return visitNode(node);
     }
     public Object visitBlockStatement(IASTBlockStatement node) {
-        for (IASTStatement s: node.stmts)
+        System.out.println("BlockStatement");
+        for (IASTStatement s: node.stmts) {
+            System.out.println("visiting "+s.getClass().getName());
             s.accept(this);
+        }
         return visitStatement(node);
     }
     public Object visitExpressionStatement(IASTExpressionStatement node) {
