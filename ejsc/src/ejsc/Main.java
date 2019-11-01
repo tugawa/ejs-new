@@ -218,7 +218,7 @@ public class Main {
         }
 
         // resolve variables
-        NewargsAnalyzer.execute(info.optLocals, iast);
+        ResolveVariables.execute(info.optLocals, iast);
         if (info.optPrintAnalyzer) {
             new IASTPrinter().print(iast);
         }

@@ -39,11 +39,8 @@ public class IASTBaseVisitor {
         return visitNode(node);
     }
     public Object visitBlockStatement(IASTBlockStatement node) {
-        System.out.println("BlockStatement");
-        for (IASTStatement s: node.stmts) {
-            System.out.println("visiting "+s.getClass().getName());
+        for (IASTStatement s: node.stmts)
             s.accept(this);
-        }
         return visitStatement(node);
     }
     public Object visitExpressionStatement(IASTExpressionStatement node) {
@@ -114,6 +111,7 @@ public class IASTBaseVisitor {
         return visitStatement(node);
     }
     public Object visitForInStatement(IASTForInStatement node) {
+        node.var.accept(this);
         node.object.accept(this);
         node.body.accept(this);
         return visitStatement(node);

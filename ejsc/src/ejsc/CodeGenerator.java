@@ -172,7 +172,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
 
             public Register freshRegister() {
-                Register r = new Register(registers.size());
+                Register r = new Register(registers.size() + 1);
                 registers.add(r);
                 return r;
             }
@@ -636,8 +636,8 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(callEntry);
         bcBuilder.push(new IGetglobalobj(env.getRegister(THIS_OBJECT_REGISTER)));
         bcBuilder.push(sendEntry);
-        if (node.needFrame())
-            bcBuilder.push(new INewframe(node.frameSize, node.needArguments));
+        if (node.frameSize() > 0)
+            bcBuilder.push(new INewframe(node.frameSize(), node.needArguments()));
         bcBuilder.pushMsetfl();
 
         /*
@@ -664,7 +664,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         bcBuilder.push(new IUndefinedconst(reg));
         env.getCurrentFrame().getContinuation().emitReturn(reg);
 
-        bcBuilder.setNumberOfLocals(node.frameSize);
+        bcBuilder.setNumberOfLocals(node.frameSize());
         bcBuilder.setNumberOfGPRegisters(env.getNumberOfGPRegisters());
 
         // Don't change the order.
@@ -1007,11 +1007,11 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IMove(varReg, srcReg));
         } else if (locx instanceof IASTNode.FrameVarLoc) {
             IASTNode.FrameVarLoc loc = (IASTNode.FrameVarLoc) locx;
-            int slink = loc.countStaticLink(node.getOwnerFrame());
+            int slink = loc.countStaticLink(node.getScope());
             bcBuilder.push(new ISetlocal(slink, loc.getIndex(), srcReg));
         } else if (locx instanceof IASTNode.ArgumentsVarLoc) {
             IASTNode.ArgumentsVarLoc loc = (IASTNode.ArgumentsVarLoc) locx;
-            int slink = loc.countStaticLink(node.getOwnerFrame());
+            int slink = loc.countStaticLink(node.getScope());
             bcBuilder.push(new ISetarg(slink, loc.getIndex(), srcReg));
         } else
             throw new Error("unknown VarLoc");
@@ -1029,11 +1029,11 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IMove(dstReg, varReg));
         } else if (locx instanceof IASTNode.FrameVarLoc) {
             IASTNode.FrameVarLoc loc = (IASTNode.FrameVarLoc) locx;
-            int slink = loc.countStaticLink(node.getOwnerFrame());
+            int slink = loc.countStaticLink(node.getScope());
             bcBuilder.push(new IGetlocal(dstReg, slink, loc.getIndex()));
         } else if (locx instanceof IASTNode.ArgumentsVarLoc) {
             IASTNode.ArgumentsVarLoc loc = (IASTNode.ArgumentsVarLoc) locx;
-            int slink = loc.countStaticLink(node.getOwnerFrame());
+            int slink = loc.countStaticLink(node.getScope());
             bcBuilder.push(new IGetarg(dstReg, slink, loc.getIndex()));
         } else
             throw new Error("unknown VarLoc");

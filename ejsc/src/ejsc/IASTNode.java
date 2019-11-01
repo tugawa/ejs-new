@@ -8,6 +8,7 @@
  */
 package ejsc;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,15 +36,15 @@ abstract public class IASTNode {
         private String name;
         protected VarLoc location;
         protected Type type;
-        protected FrameHolder ownerFrame;
+        protected ScopeHolder ownerScope;
 
         private VarDecl(String name) {
             this.name = name;
         }
-        public VarDecl(String name, Type type, FrameHolder ownerFrame) {
+        public VarDecl(String name, Type type, ScopeHolder ownerScope) {
             this.name = name;
             this.type = type;
-            this.ownerFrame = ownerFrame;
+            this.ownerScope = ownerScope;
             this.location = new UnresolvedVarLoc();
         }
 
@@ -57,11 +58,11 @@ abstract public class IASTNode {
         public void markMayEscapeUnlessOwnerFunction(IASTFunctionExpression func) {
             if (location instanceof GlobalVarLoc)
                 return;
-            if (ownerFrame instanceof IASTFunctionExpression) {
-                if (func != ownerFrame)
+            if (ownerScope instanceof IASTFunctionExpression) {
+                if (func != ownerScope)
                     markMayEscape();
             } else {
-                if (func != ownerFrame.getOwnerFunction())
+                if (func != ownerScope.getOwnerFunction())
                     markMayEscape();
             }
         }
@@ -72,7 +73,7 @@ abstract public class IASTNode {
             return ((UnresolvedVarLoc) location).mayEscape;
         }
         public void convertToFrame(int index) {
-            location = new FrameVarLoc(ownerFrame, index);
+            location = new FrameVarLoc(ownerScope, index);
         }
         public void convertToRegister() {
             location = new RegisterVarLoc();
@@ -80,12 +81,12 @@ abstract public class IASTNode {
     }
     static class ParameterVarDecl extends VarDecl {
         private int parameterIndex;
-        public ParameterVarDecl(String name, int parameterIndex, FrameHolder ownerFrame) {
-            super(name, VarDecl.Type.ARGUMENT, ownerFrame);
+        public ParameterVarDecl(String name, int parameterIndex, ScopeHolder ownerScope) {
+            super(name, VarDecl.Type.ARGUMENT, ownerScope);
             this.parameterIndex = parameterIndex;
         }
         public void convertToArguments() {
-            location = new ArgumentsVarLoc(ownerFrame, parameterIndex);
+            location = new ArgumentsVarLoc(ownerScope, parameterIndex);
         }
         public int getParameterIndex() {
             return parameterIndex;
@@ -124,24 +125,24 @@ abstract public class IASTNode {
         }
     }
     static class HeapVarLoc extends VarLoc {
-        private FrameHolder ownerFrame;
-        public HeapVarLoc(FrameHolder ownerFrame) {
-            this.ownerFrame = ownerFrame;
+        private ScopeHolder ownerScope;
+        public HeapVarLoc(ScopeHolder ownerScope) {
+            this.ownerScope = ownerScope;
         }
-        public int countStaticLink(FrameHolder node) {
+        public int countStaticLink(ScopeHolder node) {
             int linkCount = 0;
-            while (node != ownerFrame) {
-                if (node.needArguments() || node.frameSize() > 0)
+            while (node != ownerScope) {
+                if (node.frameSize() > 0)
                     linkCount++;
-                node = node.getOwnerFrame();
+                node = node.getScope();
             }
             return linkCount;
         }
     }
     static class ArgumentsVarLoc extends HeapVarLoc {
         private int index;
-        public ArgumentsVarLoc(FrameHolder ownerFrame, int index) {
-            super(ownerFrame);
+        public ArgumentsVarLoc(ScopeHolder ownerScope, int index) {
+            super(ownerScope);
             this.index = index;
         }
         public int getIndex() {
@@ -150,8 +151,8 @@ abstract public class IASTNode {
     }
     static class FrameVarLoc extends HeapVarLoc {
         private int index;
-        public FrameVarLoc(FrameHolder ownerFrame, int index) {
-            super(ownerFrame);
+        public FrameVarLoc(ScopeHolder ownerScope, int index) {
+            super(ownerScope);
             this.index = index;
         }
         int getIndex() {
@@ -161,35 +162,39 @@ abstract public class IASTNode {
     static class GlobalVarLoc extends VarLoc {
     }
 
-    static public interface FrameHolder {
+    static public interface ScopeHolder {
+        /**
+         * Iterate variable declarations from inner to outer,
+         * i.e., local variables -> parameters -> "arguments"
+         * for FunctionExpression.
+         */
         public Iterable<VarDecl> getVarDecls();
         public IASTFunctionExpression getOwnerFunction();
-        public FrameHolder getOwnerFrame();
+        public ScopeHolder getScope();
         public int frameSize();
-        public boolean needArguments();
     }
 
     /*
      * Try-catch statement introduces a scope of the catch-clause.
      * To compute static link, we hold the inner most surrounding
-     * function or catch-clause in ownerFrame.  If try-catch
-     * statements are absent, ownerFrame is the same as ownerFunction.
+     * function or catch-clause in ownerScope.  If try-catch
+     * statements are absent, ownerScope is the same as ownerFunction.
      */
     private IASTFunctionExpression ownerFunction;
-    private FrameHolder ownerFrame;
+    private ScopeHolder ownerScope;
     IASTNode() {
         this.ownerFunction = null;
-        this.ownerFrame = null;
+        this.ownerScope = null;
     }
-    public void setOwner(IASTFunctionExpression ownerFunction, FrameHolder ownerFrame) {
+    public void setOwner(IASTFunctionExpression ownerFunction, ScopeHolder ownerScope) {
         this.ownerFunction = ownerFunction;
-        this.ownerFrame = ownerFrame;
+        this.ownerScope = ownerScope;
     }
     public IASTFunctionExpression getOwnerFunction() {
         return ownerFunction;
     }
-    public FrameHolder getOwnerFrame() {
-        return ownerFrame;
+    public ScopeHolder getScope() {
+        return ownerScope;
     }
     abstract Object accept(IASTBaseVisitor visitor);
 }
@@ -382,13 +387,13 @@ class IASTThrowStatement extends IASTStatement {
     }
 }
 
-class IASTTryCatchStatement extends IASTStatement implements IASTNode.FrameHolder {
+class IASTTryCatchStatement extends IASTStatement implements IASTNode.ScopeHolder {
     IASTStatement body;
     VarDecl var;
     IASTStatement handler;
 
     /* following fields are filled by semantic analysis */
-    FrameHolder prevFrameHolder;
+    ScopeHolder prevFrameHolder;
 
     IASTTryCatchStatement(IASTStatement body, String param, IASTStatement handler) {
         this.body = body;
@@ -427,10 +432,6 @@ class IASTTryCatchStatement extends IASTStatement implements IASTNode.FrameHolde
     @Override
     public int frameSize() {
         return var.mayEscape() ? 1 : 0;
-    }
-    @Override
-    public boolean needArguments() {
-        return false;
     }
 }
 
@@ -583,22 +584,25 @@ class IASTObjectExpression extends IASTExpression {
     }
 }
 
-class IASTFunctionExpression extends IASTExpression implements IASTNode.FrameHolder {
+class IASTFunctionExpression extends IASTExpression implements IASTNode.ScopeHolder {
     ParameterVarDecl[] params;
     VarDecl[] locals;
     IASTStatement body;
+    boolean topLevel;
     boolean logging;
 
     /* following members are filled by semantic analysis */
     public boolean needArguments;
     public int frameSize;
+    public VarDecl argumentsArrayDecl;
 
-    IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body, boolean logging) {
+    IASTFunctionExpression(List<String> params, List<String> locals, IASTStatement body, boolean topLevel, boolean logging) {
         this.params = new ParameterVarDecl[params.size()];
         for (int i = 0; i < params.size(); i++)
             this.params[i] = new ParameterVarDecl(params.get(i), i, this);
         this.locals = locals.stream().map(name -> new VarDecl(name, VarDecl.Type.LOCAL_VAR, this)).toArray(VarDecl[]::new);
         this.body = body;
+        this.topLevel = topLevel;
         this.logging = logging;
     }
     @Override
@@ -606,49 +610,33 @@ class IASTFunctionExpression extends IASTExpression implements IASTNode.FrameHol
         return visitor.visitFunctionExpression(this);
     }
 
+    public VarDecl createArgumentsArray() {
+        assert(!topLevel);
+        if (argumentsArrayDecl == null)
+            argumentsArrayDecl = new VarDecl("arguments", VarDecl.Type.LOCAL_VAR, this);
+        return argumentsArrayDecl;
+    }
+
+    public VarDecl getArgumentsArray() {
+        return argumentsArrayDecl;
+    }
+
+    public boolean needArguments() {
+        return argumentsArrayDecl != null;
+    }
+
     /* FrameHolder */
     @Override
     public Iterable<VarDecl> getVarDecls() {
-        return new Iterable<VarDecl>() {
-            @Override
-            public Iterator<VarDecl> iterator() {
-                return new Iterator<VarDecl>() {
-                    boolean scanningParams = params.length > 0 ? true : false;
-                    int position = 0;
-                    @Override
-                    public boolean hasNext() {
-                        return scanningParams || position < locals.length;
-                    }
-                    @Override
-                    public VarDecl next() {
-                        if (scanningParams) {
-                            VarDecl decl = params[position++];
-                            if (position >= params.length) {
-                                scanningParams = false;
-                                position = 0;
-                            }
-                            return decl;
-                        } else {
-                            if (position < locals.length)
-                                return locals[position++];
-                            return null;
-                        }
-                    }
-                };
-            }
-        };
+        ArrayList<VarDecl> list = new ArrayList<VarDecl>(locals.length + params.length);
+        list.addAll(Arrays.asList(locals));
+        list.addAll(Arrays.asList(params));
+        return list;
     }
 
-    public boolean needFrame() {
-        return frameSize > 0 || needArguments;
-    }
     @Override
     public int frameSize() {
         return frameSize;
-    }
-    @Override
-    public boolean needArguments() {
-        return needArguments;
     }
 }
 
