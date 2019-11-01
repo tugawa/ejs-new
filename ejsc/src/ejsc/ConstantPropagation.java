@@ -209,15 +209,15 @@ public class ConstantPropagation {
         if (bcx instanceof INot) {
             INot bc = (INot) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, bc.src});
-            return new INot(bc.dst, ops[1]);
+            return new INot(bc.dst, ops[1], bc.exceptionDest);
         } else if (bcx instanceof IGetglobal) {
             IGetglobal bc = (IGetglobal) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, bc.varName});
-            return new IGetglobal(bc.dst, ops[1]);
+            return new IGetglobal(bc.dst, ops[1], bc.exceptionDest);
         } else if (bcx instanceof ISetglobal) {
             ISetglobal bc = (ISetglobal) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.varName, bc.src});
-            return new ISetglobal(ops[0], ops[1]);
+            return new ISetglobal(ops[0], ops[1], bc.exceptionDest);
         } else if (bcx instanceof ISetlocal) {
             ISetlocal bc = (ISetlocal) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {null, null, bc.src});
@@ -234,10 +234,6 @@ public class ConstantPropagation {
             ISetprop bc = (ISetprop) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.obj, bc.prop, bc.src});
             return new ISetprop(ops[0], ops[1], ops[2]);
-        } else if (bcx instanceof ISetarray) {
-            ISetarray bc = (ISetarray) bcx;
-            SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.ary, null, bc.src});
-            return new ISetarray(ops[0], bc.n, ops[2]);
         } else if (bcx instanceof ISeta) {
             ISeta bc = (ISeta) bcx;
             SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, new SrcOperand[] {bc.src});

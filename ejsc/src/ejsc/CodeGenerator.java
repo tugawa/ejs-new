@@ -37,6 +37,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         public void setPrev(Continuation k) {
             this.k = k;
         }
+        public Label getExceptionDest() {
+            return k.getExceptionDest();
+        }
         public Continuation getPrev() {
             return k;
         }
@@ -109,13 +112,19 @@ public class CodeGenerator extends IASTBaseVisitor {
             }
         }
         @Override
+        public Label getExceptionDest() {
+            return null;
+        }
+        @Override
         public void emitThrow(Register r) {
-            bcBuilder.push(new IThrow(r));
+            bcBuilder.push(new IThrow(r, exLabel()));
         }
     }
 
     class TryCatchContinuation extends Continuation {
-        public TryCatchContinuation() {
+        Label handlerLabel;
+        public TryCatchContinuation(Label handlerLabel) {
+            this.handlerLabel = handlerLabel;
         }
         @Override
         public void emitBreak(String name) {
@@ -131,6 +140,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         public void emitReturn(Register r) {
             bcBuilder.push(new IPophandler());
             super.emitReturn(r);
+        }
+        @Override
+        public Label getExceptionDest() {
+            return handlerLabel;
         }
     }
 
@@ -162,6 +175,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         public void emitThrow(Register r) {
             localCall();
             super.emitThrow(r);
+        }
+        @Override
+        public Label getExceptionDest() {
+            return finallyLabel;
         }
     }
 
@@ -221,10 +238,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    public static BCBuilder compile(IASTProgram program, Main.Info info) {
+    public static BCBuilder compile(IASTProgram program) {
         BCBuilder bcb = new BCBuilder();
         for (IASTFunctionExpression node: program.programs) {
-            CodeGenerator g = new CodeGenerator(bcb, info);
+            CodeGenerator g = new CodeGenerator(bcb);
             g.compileFunction(node);
         }
         return bcb;
@@ -232,15 +249,11 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     private BCBuilder bcBuilder;
     private Register dstReg;
-    private Main.Info info;
-    private Main.Info.OptLocals optLocals;
     private RegisterManager env;
     private Continuation continuation;
 
-    private CodeGenerator(BCBuilder bcb, Main.Info info) {
+    private CodeGenerator(BCBuilder bcb) {
         this.bcBuilder = bcb;
-        this.info = info;
-        optLocals = info.optLocals;
     }
 
     private void pushContinuation(Continuation k) {
@@ -254,6 +267,10 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     private Continuation getContinuation() {
         return continuation;
+    }
+
+    private Label exLabel() {
+        return continuation.getExceptionDest();
     }
 
     public void printByteCode(List<BCode> bcodes) {
@@ -470,9 +487,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         Label l1 = new Label();
         Label l2 = new Label();
         bcBuilder.push(new IPushhandler(l1));
-        pushContinuation(new TryCatchContinuation());
+        pushContinuation(new TryCatchContinuation(l1));
         compileNode(node.body, dstReg);
         popContinuation();
+        bcBuilder.push(new IPophandler());
         bcBuilder.push(new IJump(l2));
 
         bcBuilder.push(l1);
@@ -617,7 +635,7 @@ public class CodeGenerator extends IASTBaseVisitor {
     // precondition: node.params and node.locals are disjoint
     @Override
     public Object visitFunctionExpression(IASTFunctionExpression node) {
-        CodeGenerator g = new CodeGenerator(bcBuilder, info);
+        CodeGenerator g = new CodeGenerator(bcBuilder);
         BCBuilder.FunctionBCBuilder compiledFunction = g.compileFunction(node);
         bcBuilder.push(new IMakeclosure(dstReg, compiledFunction));
         return null;
@@ -636,10 +654,10 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register[] tmpRegs = new Register[1];
         tmpRegs[0] = env.freshRegister();
         bcBuilder.push(new IString(r1, "Array"));
-        bcBuilder.push(new IGetglobal(constructorReg, r1));
+        bcBuilder.push(new IGetglobal(constructorReg, r1, exLabel()));
         bcBuilder.push(new IFixnum(tmpRegs[0], node.elements.size()));
         bcBuilder.push(new INew(dstReg, constructorReg));
-        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false);
+        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false, exLabel());
         bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(dstReg));
         int i = 0;
@@ -657,9 +675,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         Register constructorReg = env.freshRegister();
         Register[] tmpRegs = new Register[0];
         bcBuilder.push(new IString(r1, "Object"));
-        bcBuilder.push(new IGetglobal(constructorReg, r1));
+        bcBuilder.push(new IGetglobal(constructorReg, r1, exLabel()));
         bcBuilder.push(new INew(dstReg, constructorReg));
-        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false);
+        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false, exLabel());
         bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(dstReg));
         for (IASTObjectExpression.Property prop : node.properties) {
@@ -682,13 +700,13 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r2 = env.freshRegister();
             compileNode(node.operands[0], r1);
             bcBuilder.push(new IFixnum(r2, -1));
-            bcBuilder.push(new IMul(dstReg, r1, r2));
+            bcBuilder.push(new IMul(dstReg, r1, r2, exLabel()));
         }
         break;
         case NOT: {
             Register r1 = env.freshRegister();
             compileNode(node.operands[0], r1);
-            bcBuilder.push(new INot(dstReg, r1));
+            bcBuilder.push(new INot(dstReg, r1, exLabel()));
         }
         break;
         case INC:
@@ -699,9 +717,9 @@ public class CodeGenerator extends IASTBaseVisitor {
                 compileNode(node.operands[0], r1);
                 bcBuilder.push(new IFixnum(r2, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
-                    bcBuilder.push(new IAdd(dstReg, r1, r2));
+                    bcBuilder.push(new IAdd(dstReg, r1, r2, exLabel()));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
-                    bcBuilder.push(new ISub(dstReg, r1, r2));
+                    bcBuilder.push(new ISub(dstReg, r1, r2, exLabel()));
                 }
                 compileAssignment(node.operands[0], dstReg);
             } else {
@@ -710,9 +728,9 @@ public class CodeGenerator extends IASTBaseVisitor {
                 compileNode(node.operands[0], dstReg);
                 bcBuilder.push(new IFixnum(r1, 1));
                 if (node.operator == IASTUnaryExpression.Operator.INC) {
-                    bcBuilder.push(new IAdd(r2, dstReg, r1));
+                    bcBuilder.push(new IAdd(r2, dstReg, r1, exLabel()));
                 } else if (node.operator == IASTUnaryExpression.Operator.DEC) {
-                    bcBuilder.push(new ISub(r2, dstReg, r1));
+                    bcBuilder.push(new ISub(r2, dstReg, r1, exLabel()));
                 }
                 compileAssignment(node.operands[0], r2);
             }
@@ -722,9 +740,9 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r1 = env.freshRegister();
             compileNode(node.operands[0], dstReg);
             bcBuilder.push(new IFixnum(r1, 0));
-            bcBuilder.push(new ISub(dstReg, r1, dstReg));
+            bcBuilder.push(new ISub(dstReg, r1, dstReg, exLabel()));
             bcBuilder.push(new IFixnum(r1, 1));
-            bcBuilder.push(new ISub(dstReg, dstReg, r1));
+            bcBuilder.push(new ISub(dstReg, dstReg, r1, exLabel()));
         }
         break;
         case TYPEOF:
@@ -733,7 +751,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             Register r1 = env.freshRegister();
             compileNode(node.operands[0], dstReg);
             bcBuilder.push(new IString(r1, "\"undefined\""));
-            bcBuilder.push(new IGetglobal(dstReg, r1));
+            bcBuilder.push(new IGetglobal(dstReg, r1, exLabel()));
         }
         break;
         case DELETE:
@@ -769,48 +787,48 @@ public class CodeGenerator extends IASTBaseVisitor {
         switch (node.operator) {
         // arithmetic
         case ADD: case ASSIGN_ADD: {
-            bcBuilder.push(new IAdd(dstReg, r1, r2));
+            bcBuilder.push(new IAdd(dstReg, r1, r2, exLabel()));
         } break;
         case SUB: case ASSIGN_SUB: {
-            bcBuilder.push(new ISub(dstReg, r1, r2));
+            bcBuilder.push(new ISub(dstReg, r1, r2, exLabel()));
         } break;
         case MUL: case ASSIGN_MUL: {
-            bcBuilder.push(new IMul(dstReg, r1, r2));
+            bcBuilder.push(new IMul(dstReg, r1, r2, exLabel()));
         } break;
         case DIV: case ASSIGN_DIV: {
-            bcBuilder.push(new IDiv(dstReg, r1, r2));
+            bcBuilder.push(new IDiv(dstReg, r1, r2, exLabel()));
         } break;
         case MOD: case ASSIGN_MOD: {
-            bcBuilder.push(new IMod(dstReg, r1, r2));
+            bcBuilder.push(new IMod(dstReg, r1, r2, exLabel()));
         } break;
 
         // shift
         case SHL: case ASSIGN_SHL: {
-            bcBuilder.push(new ILeftshift(dstReg, r1, r2));
+            bcBuilder.push(new ILeftshift(dstReg, r1, r2, exLabel()));
         } break;
         case SHR: case ASSIGN_SHR: {
-            bcBuilder.push(new IRightshift(dstReg, r1, r2));
+            bcBuilder.push(new IRightshift(dstReg, r1, r2, exLabel()));
         } break;
         case UNSIGNED_SHR: case ASSIGN_UNSIGNED_SHR: {
-            bcBuilder.push(new IUnsignedrightshift(dstReg, r1, r2));
+            bcBuilder.push(new IUnsignedrightshift(dstReg, r1, r2, exLabel()));
         } break;
 
         // bit
         case BOR: case ASSIGN_BOR: {
-            bcBuilder.push(new IBitor(dstReg, r1, r2));
+            bcBuilder.push(new IBitor(dstReg, r1, r2, exLabel()));
         } break;
         case BAND: case ASSIGN_BAND: {
-            bcBuilder.push(new IBitand(dstReg, r1, r2));
+            bcBuilder.push(new IBitand(dstReg, r1, r2, exLabel()));
         } break;
         case BXOR: case ASSIGN_BXOR: {
             Register r3 = env.freshRegister();
-            bcBuilder.push(new IBitor(r3, r1, r2));  // r3 = a | b
-            bcBuilder.push(new IBitand(r1, r1, r2));  // r1 = a & b
+            bcBuilder.push(new IBitor(r3, r1, r2, exLabel()));  // r3 = a | b
+            bcBuilder.push(new IBitand(r1, r1, r2, exLabel()));  // r1 = a & b
             bcBuilder.push(new IFixnum(r2, 0));
-            bcBuilder.push(new ISub(r1, r2, r1));    // r1 = -(a & b)
+            bcBuilder.push(new ISub(r1, r2, r1, exLabel()));    // r1 = -(a & b)
             bcBuilder.push(new IFixnum(r2, 1));
-            bcBuilder.push(new ISub(r1, r1, r2));    // r1 = ~(a & b)
-            bcBuilder.push(new IBitand(dstReg, r1, r3)); // reg = ~(a & b) & (a | b)
+            bcBuilder.push(new ISub(r1, r1, r2, exLabel()));    // r1 = ~(a & b)
+            bcBuilder.push(new IBitand(dstReg, r1, r3, exLabel())); // reg = ~(a & b) & (a | b)
         } break;
 
         // logical
@@ -845,7 +863,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             Label l2 = new Label();
             Label l3 = new Label();
             Label l4 = new Label();
-            bcBuilder.push(new IEqual(r3, r1, r2));
+            bcBuilder.push(new IEqual(r3, r1, r2, exLabel()));
             bcBuilder.push(new IIsundef(r4, r3));
             bcBuilder.push(new IJumpfalse(l1, r4));
             bcBuilder.push(new IString(r5, "valueOf"));
@@ -853,7 +871,7 @@ public class CodeGenerator extends IASTBaseVisitor {
             bcBuilder.push(new IJumpfalse(l2, r6));
 
             bcBuilder.push(new IGetprop(r7, r1, r5));
-            bcBuilder.push(new MCall(r1, r7, new Register[] {}, false, false));
+            bcBuilder.push(new MCall(r1, r7, new Register[] {}, false, false, exLabel()));
             bcBuilder.push(new IGeta(r8));
             bcBuilder.push(new IMove(r9, r2));
 
@@ -861,19 +879,19 @@ public class CodeGenerator extends IASTBaseVisitor {
 
             bcBuilder.push(l2);
             bcBuilder.push(new IGetprop(r7, r2, r5));
-            bcBuilder.push(new MCall(r2, r7, new Register[] {}, false, false));
+            bcBuilder.push(new MCall(r2, r7, new Register[] {}, false, false, exLabel()));
             bcBuilder.push(new IGeta(r9));
             bcBuilder.push(new IMove(r8, r1));
 
             bcBuilder.push(l3);
-            bcBuilder.push(new IEqual(r3, r8, r9));
+            bcBuilder.push(new IEqual(r3, r8, r9, exLabel()));
             bcBuilder.push(new IIsundef(r5, r3));
             bcBuilder.push(new IJumpfalse(l4, r5));
             bcBuilder.push(new IError(r3, "EQUAL_GETTOPRIMITIVE"));
             bcBuilder.push(l1);
             bcBuilder.push(l4);
             if (node.operator == IASTBinaryExpression.Operator.NOT_EQUAL)
-                bcBuilder.push(new INot(dstReg, r3));
+                bcBuilder.push(new INot(dstReg, r3, exLabel()));
         } break;
         case EQ: {
             bcBuilder.push(new IEq(dstReg, r1, r2));
@@ -881,19 +899,19 @@ public class CodeGenerator extends IASTBaseVisitor {
         case NOT_EQ: {
             Register r3 = env.freshRegister();
             bcBuilder.push(new IEq(r3, r1, r2));
-            bcBuilder.push(new INot(dstReg, r3));
+            bcBuilder.push(new INot(dstReg, r3, exLabel()));
         } break;
         case LT: {
-            bcBuilder.push(new ILessthan(dstReg, r1, r2));
+            bcBuilder.push(new ILessthan(dstReg, r1, r2, exLabel()));
         } break;
         case LTE: {
-            bcBuilder.push(new ILessthanequal(dstReg, r1, r2));
+            bcBuilder.push(new ILessthanequal(dstReg, r1, r2, exLabel()));
         } break;
         case GT: {
-            bcBuilder.push(new ILessthan(dstReg, r2, r1));
+            bcBuilder.push(new ILessthan(dstReg, r2, r1, exLabel()));
         } break;
         case GTE: {
-            bcBuilder.push(new ILessthanequal(dstReg, r2, r1));
+            bcBuilder.push(new ILessthanequal(dstReg, r2, r1, exLabel()));
         } break;
         case IN:
             throw new UnsupportedOperationException("Binary operator not implemented : in");
@@ -939,7 +957,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (locx instanceof IASTNode.GlobalVarLoc) {
             Register r1 = env.freshRegister();
             bcBuilder.push(new IString(r1, node.id));
-            bcBuilder.push(new ISetglobal(r1, srcReg));
+            bcBuilder.push(new ISetglobal(r1, srcReg, exLabel()));
         } else if (locx instanceof IASTNode.RegisterVarLoc) {
             IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
             Register varReg = env.getRegister(loc.getRegisterNo());
@@ -961,7 +979,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (locx instanceof IASTNode.GlobalVarLoc) {
             Register r1 = env.freshRegister();
             bcBuilder.push(new IString(r1, node.id));
-            bcBuilder.push(new IGetglobal(dstReg, r1));
+            bcBuilder.push(new IGetglobal(dstReg, r1, exLabel()));
         } else if (locx instanceof IASTNode.RegisterVarLoc) {
             IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
             Register varReg = env.getRegister(loc.getRegisterNo());
@@ -1020,7 +1038,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 IASTNode argument = node.arguments.get(i);
                 compileNode(argument, tmpRegs[i]);
             }
-            bcBuilder.pushMCall(objReg, propValReg, tmpRegs, false, false);
+            bcBuilder.pushMCall(objReg, propValReg, tmpRegs, false, false, exLabel());
         } else {
             Register calleeReg = env.freshRegister();
             compileNode(node.callee, calleeReg);
@@ -1028,7 +1046,7 @@ public class CodeGenerator extends IASTBaseVisitor {
                 IASTNode argument = node.arguments.get(i);
                 compileNode(argument, tmpRegs[i]);
             }            
-            bcBuilder.pushMCall(null, calleeReg, tmpRegs, false, false);
+            bcBuilder.pushMCall(null, calleeReg, tmpRegs, false, false, exLabel());
         }
         bcBuilder.pushMsetfl();
         bcBuilder.push(new IGeta(dstReg));
@@ -1047,13 +1065,13 @@ public class CodeGenerator extends IASTBaseVisitor {
             compileNode(argument, tmpRegs[i]);
         }
         bcBuilder.push(new INew(dstReg, constructorReg));
-        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false);
+        bcBuilder.pushMCall(dstReg, constructorReg, tmpRegs, true, false, exLabel());
 
         bcBuilder.pushMsetfl();
         Register strReg = env.freshRegister();
         bcBuilder.push(new IString(strReg, "Object"));
         Register objReg = env.freshRegister();
-        bcBuilder.push(new IGetglobal(objReg, strReg));
+        bcBuilder.push(new IGetglobal(objReg, strReg, exLabel()));
         Register resultOfNewSendReg = env.freshRegister();
         bcBuilder.push(new IGeta(resultOfNewSendReg));
         Register result = env.freshRegister();

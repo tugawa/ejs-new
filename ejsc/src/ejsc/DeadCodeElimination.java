@@ -37,9 +37,24 @@ public class DeadCodeElimination {
     public List<BCode> exec() {
         List<BCode> newBCodes = new ArrayList<BCode>(live.size());
         for (BCode bc: bcodes) {
-            if (live.contains(bc))
+            if (live.contains(bc)) {
                 newBCodes.add(bc);
-            else if (bc.getLabels().size() > 0) {
+
+                if (bc instanceof IPushhandler) {
+                    /*
+                     * If there is no edge to the handler, the handler is eliminated.
+                     * Pretend the pushhandler instruction itself is the handler, which
+                     * is never used but popped by pophandler.
+                     */
+                    IPushhandler pushHandler = (IPushhandler) bc;
+                    BCode handlerBc = pushHandler.label.getDestBCode();
+                    if (!live.contains(handlerBc)) {
+                        Label dummyHandler = new Label();
+                        pushHandler.addLabel(dummyHandler);
+                        pushHandler.label = dummyHandler;
+                    }
+                } 
+            } else if (bc.getLabels().size() > 0) {
                 for (BCode b: bcodes) {
                     if (b.getBranchTarget() == bc && live.contains(b))
                         throw new Error("internal error");                            
