@@ -216,6 +216,7 @@ INSN_GENERATED = \
     insns/makeiterator.inc \
     insns/move.inc \
     insns/newframe.inc \
+    insns/exitframe.inc \
     insns/nextpropnameidx.inc \
     insns/not.inc \
     insns/number.inc \

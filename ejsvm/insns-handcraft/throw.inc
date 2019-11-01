@@ -5,6 +5,7 @@
   InstructionDisplacement disp;
   int newpc;
   int handler_fp;
+  set_a(context, v0);
   exhandler_stack_pop(context, &newpc, &handler_fp);
   while (handler_fp != fp) {
     JSValue *stack;
