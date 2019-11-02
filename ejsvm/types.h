@@ -32,6 +32,7 @@ typedef struct shape Shape;
 /* context.h */
 typedef struct function_frame FunctionFrame;
 typedef struct context Context;
+typedef struct unwind_protect UnwindProtect;
 /* hash.h */
 typedef struct hash_table HashTable;
 /*
@@ -76,20 +77,21 @@ typedef enum cell_type_t {
   CELLT_BOXED_NUMBER  = HTAGV_BOXED_NUMBER,
   CELLT_BOXED_BOOLEAN = HTAGV_BOXED_BOOLEAN,
 
-  CELLT_PROP          = (0x11), /* Array of JSValues */
-  CELLT_ARRAY_DATA    = (0x12), /* Array of JSValues */
-  CELLT_FUNCTION_FRAME= (0x13), /* FunctionFrame */
-  CELLT_STR_CONS      = (0x14), /* StrCons */
-  CELLT_CONTEXT       = (0x15), /* Context */
-  CELLT_STACK         = (0x16), /* Array of JSValues */
+  CELLT_PROP          = 0x11, /* Array of JSValues */
+  CELLT_ARRAY_DATA    = 0x12, /* Array of JSValues */
+  CELLT_FUNCTION_FRAME= 0x13, /* FunctionFrame */
+  CELLT_STR_CONS      = 0x14, /* StrCons */
+  CELLT_CONTEXT       = 0x15, /* Context */
+  CELLT_STACK         = 0x16, /* Array of JSValues */
 #ifdef HIDDEN_CLASS
-  CELLT_HIDDEN_CLASS  = (0x17), /* HiddenClass */
+  CELLT_HIDDEN_CLASS  = 0x17, /* HiddenClass */
 #endif
-  CELLT_HASHTABLE     = (0x18),
-  CELLT_HASH_BODY     = (0x19),
-  CELLT_HASH_CELL     = (0x1A),
-  CELLT_PROPERTY_MAP  = (0x1B),
-  CELLT_SHAPE         = (0x1C),
+  CELLT_HASHTABLE     = 0x18,
+  CELLT_HASH_BODY     = 0x19,
+  CELLT_HASH_CELL     = 0x1A,
+  CELLT_PROPERTY_MAP  = 0x1B,
+  CELLT_SHAPE         = 0x1C,
+  CELLT_UNWIND        = 0x1D
 } cell_type_t;
 
 /*

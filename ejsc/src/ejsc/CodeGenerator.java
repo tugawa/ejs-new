@@ -121,9 +121,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    class TryCatchContinuation extends Continuation {
+    class TryContinuation extends Continuation {
         Label handlerLabel;
-        public TryCatchContinuation(Label handlerLabel) {
+        public TryContinuation(Label handlerLabel) {
             this.handlerLabel = handlerLabel;
         }
         @Override
@@ -144,6 +144,19 @@ public class CodeGenerator extends IASTBaseVisitor {
         @Override
         public Label getExceptionDest() {
             return handlerLabel;
+        }
+    }
+
+    class CatchContinuation extends Continuation {
+        @Override
+        public void emitBreak(String name) {
+            bcBuilder.push(new IExitframe());
+            super.emitBreak(name);
+        }
+        @Override
+        public void emitContinue(String name) {
+            bcBuilder.push(new IExitframe());
+            super.emitContinue(name);
         }
     }
 
@@ -490,7 +503,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Label l1 = new Label();
         Label l2 = new Label();
         bcBuilder.push(new IPushhandler(l1));
-        pushContinuation(new TryCatchContinuation(l1));
+        pushContinuation(new TryContinuation(l1));
         compileNode(node.body, dstReg);
         popContinuation();
         bcBuilder.push(new IPophandler());
@@ -502,12 +515,14 @@ public class CodeGenerator extends IASTBaseVisitor {
         if (locx instanceof IASTNode.FrameVarLoc) {
             IASTNode.FrameVarLoc loc = (IASTNode.FrameVarLoc) locx;
             Register r = env.freshRegister();
+            pushContinuation(new CatchContinuation());
             bcBuilder.push(new INewframe(1, false));
             bcBuilder.push(new IGeta(r));
             bcBuilder.push(new ISetlocal(0, loc.getIndex(), r));
             compileNode(node.handler, dstReg);
-            bcBuilder.push(l2);
+            popContinuation();
             bcBuilder.push(new IExitframe());
+            bcBuilder.push(l2);
         } else if (locx instanceof IASTNode.RegisterVarLoc) {
             IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
             Register r = env.freshRegister();

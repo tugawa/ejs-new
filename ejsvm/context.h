@@ -68,13 +68,22 @@ struct context {
   int tablesize;
   JSValue *stack;
   /* try-catch-finally */
-  JSValue exhandler_stack;    /* exception handler stack */
-  int exhandler_stack_ptr;
+  UnwindProtect *exhandler_stack_top;
+  UnwindProtect *exhandler_pool;   /* [weak] */
   JSValue lcall_stack;        /* local call stack */
   int lcall_stack_ptr;
 #ifdef USE_FFI
   struct foreign_env_cell *fenv;
 #endif
+};
+
+/* heap allocated */
+struct unwind_protect {
+  UnwindProtect *prev;
+  int fp;
+  int pc;
+  FunctionFrame *lp;   /* catch clause may make a local frame */
+  jmp_buf *jmp_buf;
 };
 
 // #define currentFl(c)  (getSp(c) - getFp(c) + 1)

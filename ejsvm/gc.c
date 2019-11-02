@@ -39,6 +39,7 @@
  *   CELLT_HASH_CELL      no     no        no        fixed HashCell
  *   CELLT_PROPERTY_MAP   no     yes       no        fixed PropertyMap
  *   CELLT_SHAPE          no     no        no        fixed Shape
+ *   CELLT_UNWIND         no     no        no        fixed UnwindProtect
  *
  * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
  * are stored in a dedicated slot and scand together with their owners.
@@ -136,8 +137,9 @@ STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
 
-enum gc_phase gc_phase = PHASE_INACTIVE;
-struct property_map_roots *property_map_roots;
+static enum gc_phase gc_phase = PHASE_INACTIVE;
+static struct property_map_roots *property_map_roots;
+static Context *the_context;
 
 /* gc root stack */
 #define MAX_ROOTS 1000
@@ -476,6 +478,7 @@ STATIC void garbage_collection(Context *ctx)
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
   property_map_roots = NULL;
+  the_context = ctx;
 
   /* mark */
   gc_phase = PHASE_MARK;
@@ -684,6 +687,12 @@ STATIC void process_edge(uintptr_t ptr)
 #endif /* WEAK_SHAPE_LIST */
       return;
     }
+  case CELLT_UNWIND:
+    {
+      UnwindProtect *p = (UnwindProtect *) ptr;
+      process_edge((uintptr_t) p->prev);
+      process_edge((uintptr_t) p->lp);
+    }
   default:
     abort();
   }
@@ -770,7 +779,7 @@ STATIC void process_node_Context(Context *context)
   process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
   process_edge((uintptr_t) context->spreg.a);
   process_edge((uintptr_t) context->spreg.err);
-  process_edge((uintptr_t) context->exhandler_stack);
+  process_edge((uintptr_t) context->exhandler_stack_top);
   process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
@@ -1044,9 +1053,9 @@ STATIC void weak_clear(void)
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable(&string_table);
   property_map_roots = NULL;
-#ifdef HC_PROF
-  /*  weak_clear_hcprof_entrypoints(); */
-#endif /* HC_PROF */
+
+  /* clear cache in the context */
+  the_context->exhandler_pool = NULL;
 }
 
 STATIC void sweep_space(struct space *space)

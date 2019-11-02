@@ -2,7 +2,11 @@
    pophandler
  */
 {
-  int newpc;
-  int handler_fp;
-  exhandler_stack_pop(context, &newpc, &handler_fp);
+  UnwindProtect *p;
+  p = context->exhandler_stack_top;
+  if (p != NULL) {
+    context->exhandler_stack_top = p;
+    p->prev = context->exhandler_pool;
+    context->exhandler_pool = p;
+  }
 }

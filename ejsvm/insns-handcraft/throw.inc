@@ -2,18 +2,8 @@
    throw
  */
 {
-  InstructionDisplacement disp;
-  int newpc;
-  int handler_fp;
+  save_context();
   set_a(context, v0);
-  exhandler_stack_pop(context, &newpc, &handler_fp);
-  while (handler_fp != fp) {
-    JSValue *stack;
-    stack = &get_stack(context, 0);
-    restore_special_registers(context, stack, fp - 4);
-    set_sp(context, fp - 5);
-    update_context();      /* TODO: optimise */
-  }
-  disp = (InstructionDisplacement) (newpc - pc);
-  set_pc_relative(disp);
+  exhandler_throw(context);
+  /* exhandler_throw never returns */
 }

@@ -431,7 +431,11 @@ class IASTTryCatchStatement extends IASTStatement implements IASTNode.ScopeHolde
     }
     @Override
     public int frameSize() {
-        return var.mayEscape() ? 1 : 0;
+        if (var.getLocation() instanceof HeapVarLoc)
+            return 1;
+        if (var.getLocation() instanceof UnresolvedVarLoc)
+            throw new Error("location has not been resolved");
+        return 0;
     }
 }
 

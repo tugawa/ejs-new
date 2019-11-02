@@ -23,6 +23,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <setjmp.h>
 
 #ifdef USE_BOEHMGC
 #include <gc.h>

@@ -145,9 +145,20 @@ static inline void gc_pop_checked(void *addr)
   --gc_root_stack_ptr;
 }
 
+static inline int gc_save_root_stack()
+{
+  extern int gc_root_stack_ptr;
+  return gc_root_stack_ptr;
+}
+
+static inline void gc_restore_root_stack(int sp)
+{
+  extern int gc_root_stack_ptr;
+  gc_root_stack_ptr = sp;
+}
+
 #define GC_ROOT(_type, _var) _type _var
 
-extern void gc_push_checked(void *addr);
 #define GC_PUSH(a)                gc_push_checked(&a)
 #define GC_PUSH2(a,b)             do {GC_PUSH(a); GC_PUSH(b);} while(0)
 #define GC_PUSH3(a,b,c)           do {GC_PUSH(a); GC_PUSH2(b,c);} while(0)
@@ -160,7 +171,6 @@ extern void gc_push_checked(void *addr);
 #define GC_PUSH8(a,b,c,d,e,f,g,h)                       \
   do {GC_PUSH(a); GC_PUSH7(b,c,d,e,f,g,h);} while(0)
 
-extern void gc_pop_checked(void* addr);
 #define GC_POP(a)                gc_pop_checked(&a)
 #define GC_POP2(a,b)             do {GC_POP(a); GC_POP(b);} while(0)
 #define GC_POP3(a,b,c)           do {GC_POP(a); GC_POP2(b,c);} while(0)

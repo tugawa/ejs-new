@@ -93,9 +93,8 @@ static Context *allocate_context(size_t stack_size)
   Context *ctx = (Context *) gc_malloc(NULL, sizeof(Context), CELLT_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc(NULL, sizeof(JSValue) * stack_size,
                                      CELLT_STACK);
-  ctx->exhandler_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                          gshapes.g_shape_Array, 0);
-  ctx->exhandler_stack_ptr = 0;
+  ctx->exhandler_stack_top = NULL;
+  ctx->exhandler_pool = NULL;
   ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
                                       gshapes.g_shape_Array, 0);
   ctx->lcall_stack_ptr = 0;
