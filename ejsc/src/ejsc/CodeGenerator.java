@@ -207,13 +207,6 @@ public class CodeGenerator extends IASTBaseVisitor {
             return r;
         }
 
-        private void allocateRegisterTo(IASTNode.VarLoc locx) {
-            if (locx instanceof IASTNode.RegisterVarLoc) {
-                IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
-                loc.setRegisterNo(freshRegister().getRegisterNumber());
-            }
-        }
-
         public RegisterManager(IASTFunctionExpression func) {
             /* create input registers */
             allocateRegister(THIS_OBJECT_REGISTER);
@@ -221,10 +214,20 @@ public class CodeGenerator extends IASTBaseVisitor {
                 allocateRegister(THIS_OBJECT_REGISTER + 1 + decl.getParameterIndex());
 
             /* allocate registers to not escaping variables */
-            for (VarDecl decl: func.params)
-                allocateRegisterTo(decl.getLocation());
-            for (VarDecl decl: func.locals)
-                allocateRegisterTo(decl.getLocation());
+            for (ParameterVarDecl decl: func.params) {
+                IASTNode.VarLoc locx = decl.getLocation();
+                if (locx instanceof IASTNode.RegisterVarLoc) {
+                    IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
+                    loc.setRegisterNo(THIS_OBJECT_REGISTER + 1 + decl.getParameterIndex());
+                }
+            }
+            for (VarDecl decl: func.locals) {
+                IASTNode.VarLoc locx = decl.getLocation();
+                if (locx instanceof IASTNode.RegisterVarLoc) {
+                    IASTNode.RegisterVarLoc loc = (IASTNode.RegisterVarLoc) locx;
+                    loc.setRegisterNo(freshRegister().getRegisterNumber());
+                }
+            }
         }
 
         public void close() {

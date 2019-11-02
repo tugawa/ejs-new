@@ -256,8 +256,13 @@ public class ConstantPropagation {
                                 (SrcOperand) cls.getDeclaredField("src2").get(bcx)
                         };
                         SrcOperand[] ops = findMostSpecificOperands(env, bcx.name, srcOperands);
-                        Constructor<? extends BCode> ctor = cls.getDeclaredConstructor(Register.class, SrcOperand.class, SrcOperand.class);
-                        return (BCode) ctor.newInstance(dst, ops[1], ops[2]);
+                        if (bcx instanceof CauseExceptionBCode) {
+                            Constructor<? extends BCode> ctor = cls.getDeclaredConstructor(Register.class, SrcOperand.class, SrcOperand.class, Label.class);
+                            return (BCode) ctor.newInstance(dst, ops[1], ops[2], ((CauseExceptionBCode) bcx).exceptionDest);
+                        } else {
+                            Constructor<? extends BCode> ctor = cls.getDeclaredConstructor(Register.class, SrcOperand.class, SrcOperand.class);
+                            return (BCode) ctor.newInstance(dst, ops[1], ops[2]);
+                        }
                     } catch (Exception e) {
                         throw new Error(e);
                     }
