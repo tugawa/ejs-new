@@ -225,8 +225,9 @@ static void exhandler_throw(Context *context)
     set_sp(context, fp - 5);
   }
 
-  /* 2. restore LP */
+  /* 2. restore LP and local call stack*/
   set_lp(context, p->lp);
+  context->lcall_stack_ptr = p->lcall_stack_ptr;
 
   /* 3. set PC to the handler address */
   set_pc(context, p->pc);

@@ -83,6 +83,7 @@ struct unwind_protect {
   int fp;
   int pc;
   FunctionFrame *lp;   /* catch clause may make a local frame */
+  int lcall_stack_ptr;
   jmp_buf *jmp_buf;
 };
 

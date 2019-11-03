@@ -16,6 +16,7 @@
   p->fp = fp;
   p->pc = pc + d0;
   p->lp = get_lp(context);
+  p->lcall_stack_ptr = context->lcall_stack_ptr;
   p->jmp_buf = &jmp_buf;
   p->prev = context->exhandler_stack_top;
   context->exhandler_stack_top = p;

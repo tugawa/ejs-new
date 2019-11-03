@@ -195,6 +195,29 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
+    class FinallyContinuation extends Continuation {
+        @Override
+        public void emitBreak(String name) {
+            bcBuilder.push(new IPoplocal());
+            super.emitBreak(name);
+        }
+        @Override
+        public void emitContinue(String name) {
+            bcBuilder.push(new IPoplocal());
+            super.emitContinue(name);
+        }
+        @Override
+        public void emitReturn(Register r) {
+            bcBuilder.push(new IPoplocal());
+            super.emitReturn(r);
+        }
+        @Override
+        public void emitThrow(Register r) {
+            bcBuilder.push(new IPoplocal());
+            super.emitThrow(r);
+        }
+    }
+
     class RegisterManager {
         /* map of register number to interned Register */
         private ArrayList<Register> registers = new ArrayList<Register>();
@@ -537,7 +560,32 @@ public class CodeGenerator extends IASTBaseVisitor {
 
     @Override
     public Object visitTryFinallyStatement(IASTTryFinallyStatement node) {
-        throw new UnsupportedOperationException("TryFinallyStatement has not been implemented yet.");
+        Label lByException = new Label();
+        Label lFinally = new Label();
+        Label lExit = new Label();
+        Register rException = env.freshRegister();
+        bcBuilder.push(new IPushhandler(lByException));
+        pushContinuation(new TryFinallyContinuation(lFinally));
+        compileNode(node.body, dstReg);
+        popContinuation();
+        bcBuilder.push(new IPophandler());
+        bcBuilder.push(new ILocalcall(lFinally));
+        bcBuilder.push(new IJump(lExit));
+
+        bcBuilder.push(lByException);
+        bcBuilder.pushMsetfl();
+        bcBuilder.push(new IGeta(rException));
+        bcBuilder.push(new ILocalcall(lFinally));
+        getContinuation().emitThrow(rException);
+
+        bcBuilder.push(lFinally);
+        pushContinuation(new FinallyContinuation());
+        compileNode(node.finaliser, dstReg);
+        popContinuation();
+        bcBuilder.push(new ILocalret());
+
+        bcBuilder.push(lExit);
+        return null;
     }
 
     @Override
