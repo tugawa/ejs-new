@@ -121,9 +121,9 @@ public class CodeGenerator extends IASTBaseVisitor {
         }
     }
 
-    class TryContinuation extends Continuation {
+    class TryCatchContinuation extends Continuation {
         Label handlerLabel;
-        public TryContinuation(Label handlerLabel) {
+        public TryCatchContinuation(Label handlerLabel) {
             this.handlerLabel = handlerLabel;
         }
         @Override
@@ -526,7 +526,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Label l1 = new Label();
         Label l2 = new Label();
         bcBuilder.push(new IPushhandler(l1));
-        pushContinuation(new TryContinuation(l1));
+        pushContinuation(new TryCatchContinuation(l1));
         compileNode(node.body, dstReg);
         popContinuation();
         bcBuilder.push(new IPophandler());
