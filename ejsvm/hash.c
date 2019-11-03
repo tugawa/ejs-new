@@ -47,19 +47,20 @@ HashTable *hash_create(Context *ctx, unsigned int size) {
   if (size == 0)
     size = 1;
 
+  table = (HashTable *)gc_malloc(ctx,
+                                 sizeof(HashTable), CELLT_HASHTABLE);
+  table->body = NULL;  /* tell GC no to follow this pointer */
+  GC_PUSH(table);
+
   body = (HashCell **) gc_malloc(ctx, sizeof(HashCell*) * size,
                                  CELLT_HASH_BODY);
   for (i = 0; i < size; i++)
     body[i] = NULL;
-
-  GC_PUSH(body);
-  table = (HashTable *)gc_malloc(ctx,
-                                 sizeof(HashTable), CELLT_HASHTABLE);
   table->body = body;
   table->size = size;
   table->filled = 0;
   table->entry_count = 0;
-  GC_POP(body);
+  GC_POP(table);
   return table;
 }
 
