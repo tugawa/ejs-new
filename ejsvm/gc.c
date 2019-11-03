@@ -779,7 +779,8 @@ STATIC void process_node_Context(Context *context)
   process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
   process_edge((uintptr_t) context->spreg.a);
   process_edge((uintptr_t) context->spreg.err);
-  process_edge((uintptr_t) context->exhandler_stack_top);
+  if (context->exhandler_stack_top != NULL)
+    process_edge((uintptr_t) context->exhandler_stack_top);
   process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
