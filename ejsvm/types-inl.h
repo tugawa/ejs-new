@@ -122,4 +122,41 @@ static inline JSValue ptr_to_##RT(S *p)				\
 VMRepType_LIST
 #undef VMRepType_LIST
 
+
+/*
+ * Number
+ */
+
+static inline JSValue small_cint_to_fixnum(cint n)
+{
+  assert(is_fixnum_range_cint(n));
+  return put_ptag(((uintjsv_t) n) << TAGOFFSET, T_FIXNUM);
+}
+
+static inline JSValue cint_to_number(Context *ctx, cint n)
+{
+  if (is_fixnum_range_cint(n))
+    return small_cint_to_fixnum(n);
+  else
+    return cint_to_flonum(ctx, n);
+}
+
+static inline double number_to_double(JSValue v)
+{
+  if (is_fixnum(v))
+    return fixnum_to_double(v);
+  else
+    return flonum_to_double(v);
+}
+
+static inline JSValue double_to_number(Context *ctx, double n)
+{
+  if (isnan(n))
+    return gconsts.g_flonum_nan;
+  else if (is_fixnum_range_double(n))
+    return small_cint_to_fixnum((cint) n);
+  else
+    return double_to_flonum(ctx, n);
+}
+
 #endif /* TYPES_INL_H */

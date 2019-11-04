@@ -548,8 +548,13 @@ DEFINE_ACCESSORS(normal_flonum, FlonumCell, double, value)
 #define normal_flonum_to_double(p)  flonum_value(p)
 #define normal_flonum_to_cint(p)    ((cint)(flonum_value(p)))
 #define normal_flonum_to_int(p)     ((int)(flonum_value(p)))
-#define normal_flonum_is_nan(p)                         \
-  (is_flonum((p))? isnan(flonum_to_double((p))): 0)
+static inline int normal_flonum_is_nan(JSValue v)
+{
+  if (is_flonum(v))
+    return isnan(flonum_to_double(v));
+  else
+    return 0;
+}
 
 /*
  * String VMDataType Interface
@@ -623,11 +628,7 @@ static inline cint fixnum_to_cint(JSValue v)
  * fixnum. cint_to_fixnum_nocheck should be used in limited caess
  * where the value is guaranteed to be small.
  */
-static inline JSValue small_cint_to_fixnum(cint n)
-{
-  assert(is_fixnum_range_cint(n));
-  return put_ptag(((uintjsv_t) n) << TAGOFFSET, T_FIXNUM);
-}
+static inline JSValue small_cint_to_fixnum(cint n);
 
 #define is_integer_value_double(d) ((d) == (double)((cint)(d)))
 
@@ -645,9 +646,7 @@ static inline JSValue small_cint_to_fixnum(cint n)
 #define FIXNUM_TEN       (small_cint_to_fixnum((cint)10))
 
 
-#define cint_to_number(ctx, n)                                  \
-  (is_fixnum_range_cint((n))?                                   \
-   small_cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
+static inline JSValue cint_to_number(Context *ctx, cint n);
 
 #if BITS_IN_FIXNUM >= 32
 #define int32_to_number(ctx, n) (small_cint_to_fixnum((cint) (n)))
@@ -657,12 +656,8 @@ static inline JSValue small_cint_to_fixnum(cint n)
 #define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #endif /* FIXNUM SIZE */
 
-#define number_to_double(p)                                             \
-  ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
-#define double_to_number(ctx, d)                                        \
-  (isnan((d)) ?  gconsts.g_flonum_nan :                                 \
-   is_fixnum_range_double((d)) ? small_cint_to_fixnum((cint) (d)) :     \
-   double_to_flonum(ctx, (d)))
+static inline double number_to_double(JSValue v);
+static inline JSValue double_to_number(Context *ctx, double n);
 
 /*
  * Special
