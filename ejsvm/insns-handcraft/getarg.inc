@@ -15,5 +15,6 @@
   //regbase[dst] = array_body_index(fframe_arguments(fr), index);
   arguments = fframe_arguments(fr);
   regbase[dst] = get_array_element(arguments, index);
-  assert(regbase[dst] != JS_EMPTY);
+  if (regbase[dst] == JS_EMPTY)
+    regbase[dst] = JS_UNDEFINED;
 }

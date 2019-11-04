@@ -15,5 +15,6 @@
   }
   arguments = fframe_arguments(fr);
   dst = get_array_element(arguments, index);
-  assert(dst != JS_EMPTY);
+  if (dst == JS_EMPTY)
+    dst = JS_UNDEFINED;
 \}
