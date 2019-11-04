@@ -10,7 +10,7 @@ ENTER_INSN(__LINE__);
 
   oldfl = get_sp(context) - fp + 1;
   // printf("fp = %d, newfl = %d, fp + newfl = %d\n", fp, newfl, fp + newfl);
-  if (fp + newfl > STACK_LIMIT)
+  if (fp + newfl > regstack_limit)
     LOG_EXIT("register stack overflow\n");
   set_sp(context, fp + newfl - 1);
   while (++oldfl <= newfl)
