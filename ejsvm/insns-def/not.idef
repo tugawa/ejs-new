@@ -13,5 +13,5 @@
   dst = false_true(v1 == gconsts.g_flonum_nan);
 \}
 \otherwise \{
-  dst = JS_TRUE;
+  dst = JS_FALSE;
 \}
