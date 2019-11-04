@@ -7,7 +7,7 @@
  * Electro-communications.
  */
 
-#define FUNCTION_TABLE_LIMIT  (100)
+#define FUNCTION_TABLE_LIMIT  (200)
 
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;

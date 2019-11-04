@@ -7,11 +7,6 @@
  * Electro-communications.
  */
 
-#define FUNCTION_TABLE_LIMIT  (100)
-
-EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
-EXTERN StrTable string_table;
-
 extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
