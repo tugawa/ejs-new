@@ -1,14 +1,17 @@
-\inst not (Register dst, Value v)
+\inst not (Register dst, Value v1)
 
+\when v1:special \{
+  dst = false_true(v1 == JS_TRUE);
+\}
+\when v1:string \{
+  dst = false_true(v1 == gconsts.g_string_empty);
+\}
+\when v1:fixnum \{
+  dst = false_true(v1 == FIXNUM_ZERO);
+\}
+\when v1:flonum \{
+  dst = false_true(v1 == gconsts.g_flonum_nan);
+\}
 \otherwise \{
-/*
-   not dst reg
-     dst : destination register
-     reg  : source register
-   $dst = ! $reg
- */
-
-  dst = true_false(v == JS_FALSE || v == FIXNUM_ZERO ||
-                   v == gconsts.g_flonum_nan ||
-                   v == gconsts.g_string_empty);
+  dst = JS_TRUE;
 \}
