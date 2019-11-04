@@ -101,6 +101,34 @@ static Context *allocate_context(size_t stack_size)
   return ctx;
 }
 
+static void print_single_frame(Context *ctx, int index)
+{
+  fprintf(log_stream,
+          "  #%d %p LP:%p, PC: %d, SP:%d, FP:%d (#i = %d, #c = %d)\n",
+          index,
+          ctx->spreg.cf,
+          ctx->spreg.lp,
+          ctx->spreg.pc,
+          ctx->spreg.sp,
+          ctx->spreg.fp,
+          ctx->spreg.cf->n_insns,
+          ctx->spreg.cf->n_constants);
+}
+
+void print_backtrace(Context *ctx)
+{
+  JSValue *stack = &get_stack(ctx, 0);
+  int i = 0;
+  fprintf(log_stream, "backtrace:\n");
+  print_single_frame(ctx, i++);
+  while (ctx->spreg.fp != 0) {
+    ctx->spreg.sp = ctx->spreg.fp - 5;
+    restore_special_registers(ctx, stack, ctx->spreg.fp - 4);
+    print_single_frame(ctx, i++);
+  };
+}
+
+
 
 /*
  * TODO: tidyup debug fuctions

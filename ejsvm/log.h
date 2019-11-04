@@ -16,6 +16,7 @@
 #define LOG_FUNC
 #define LOG_ERR(...) return
 #define LOG_EXIT(...) return
+#define LOG_EXIT2(context, ...) return
 
 #define ASSERT_OBJECT(o)
 
@@ -31,14 +32,35 @@
 #ifdef DEBUG
 #define LOG_EXIT(...)                           \
   do {                                          \
+    LOG_FUNC;                                   \
     fprintf(log_stream, __VA_ARGS__);           \
+    putc('\n', log_stream);                     \
+    abort();                                    \
+  } while (0)
+#define LOG_EXIT2(context, ...)                 \
+  do {                                          \
+    LOG_FUNC;                                   \
+    fprintf(log_stream, __VA_ARGS__);           \
+    putc('\n', log_stream);                     \
+    print_backtrace(context);                   \
     abort();                                    \
   } while (0)
 #else /* DEBUG */
-#define LOG_EXIT(...)                                   \
-  do { LOG_FUNC; fprintf(log_stream, __VA_ARGS__);      \
-    putc('\n', log_stream);  exit(1); }                 \
-  while (0)
+#define LOG_EXIT(...)                           \
+  do {                                          \
+    LOG_FUNC;                                   \
+    fprintf(log_stream, __VA_ARGS__);           \
+    putc('\n', log_stream);                     \
+    exit(1);                                    \
+  } while (0)
+#define LOG_EXIT2(context, ...)                 \
+  do {                                          \
+    LOG_FUNC;                                   \
+    fprintf(log_stream, __VA_ARGS__);           \
+    putc('\n', log_stream);                     \
+    print_backtrace(context);                   \
+    abort();                                    \
+  } while (0)
 #endif /* DEBUG */
 
 #define ASSERT_OBJECT(o) do {                               \
@@ -52,6 +74,7 @@
 #define LOG_FUNC
 #define LOG_ERR(...)
 #define LOG_EXIT(...) exit(1)
+#define LOG_EXIT2(context, ...) exit(1)
 #define ASSERT_OBJECT(o)
 
 #endif /* DEBUG */

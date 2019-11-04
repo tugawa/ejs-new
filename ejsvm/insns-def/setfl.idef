@@ -5,7 +5,8 @@
   int oldfl = get_sp(context) - fp + 1;
 
   if (fp + newfl > regstack_limit) {
-    LOG_EXIT("register stack overflow\n");
+    save_context();
+    LOG_EXIT2(context, "register stack overflow\n");
   }
   set_sp(context, fp + newfl - 1);
   while (++oldfl <= newfl) {
