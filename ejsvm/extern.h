@@ -124,6 +124,11 @@ EXTERN_PROPERTY_TABLES_PCI(Function);
 EXTERN_PROPERTY_TABLES_I(Builtin);
 
 /*
+ * builtin-performance.c
+ */
+EXTERN_PROPERTY_TABLES_I(Performance);
+
+/*
  * call.c
  */
 extern void call_function(Context *, JSValue, int, int);

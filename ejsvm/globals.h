@@ -83,6 +83,7 @@ EXTERN struct global_constant_objects {
 
   JSValue g_global;
   JSValue g_math;
+  JSValue g_performance;
   JSValue g_regexp;
 } gconsts;
 

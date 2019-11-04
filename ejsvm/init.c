@@ -265,12 +265,15 @@ void init_global_objects(void) {
                                        gshapes.g_shape_Object);
   gconsts.g_math = new_simple_object(NULL, DEBUG_NAME("math"),
                                      gshapes.g_shape_Object);
+  gconsts.g_performance = new_simple_object(NULL, DEBUG_NAME("perforamnce"),
+                                            gshapes.g_shape_Object);
 
   /* Step 2
    *   - fill propertyes
    */
   FILL_BUILTIN_PROPERTIES(gconsts.g_global, Global);
   FILL_BUILTIN_PROPERTIES(gconsts.g_math, Math);
+  FILL_BUILTIN_PROPERTIES(gconsts.g_performance, Performance);
 }
 
 /* Local Variables:      */

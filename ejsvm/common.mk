@@ -157,6 +157,7 @@ OFILES = \
     builtin-regexp.o \
     builtin-string.o \
     builtin-function.o \
+    builtin-performance.o \
     call.o \
     codeloader.o \
     context.o \

@@ -233,6 +233,7 @@ ObjDoubleProp  Global_double_props[] = {};
 ObjGconstsProp Global_gconsts_props[] = {
   { "Object",    &gconsts.g_ctor_Object,     ATTR_DE   },
   { "Array",     &gconsts.g_ctor_Array,      ATTR_DE   },
+  { "Function",  &gconsts.g_ctor_Function,   ATTR_DE   },
   { "Number",    &gconsts.g_ctor_Number,     ATTR_DE   },
   { "String",    &gconsts.g_ctor_String,     ATTR_DE   },
   { "Boolean",   &gconsts.g_ctor_Boolean,    ATTR_DE   },
@@ -242,6 +243,7 @@ ObjGconstsProp Global_gconsts_props[] = {
   { "NaN",       &gconsts.g_flonum_nan,      ATTR_DDDE },
   { "Infinity",  &gconsts.g_flonum_infinity, ATTR_DDDE },
   { "Math",      &gconsts.g_math,            ATTR_DE   },
+  { "performance", &gconsts.g_performance,   ATTR_DE   },
   { "true",      &gconsts.g_boolean_true,    ATTR_DE   },
   { "false",     &gconsts.g_boolean_false,   ATTR_DE   },
   { "null",      &gconsts.g_null,            ATTR_DE   },
