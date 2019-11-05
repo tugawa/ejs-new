@@ -1154,7 +1154,10 @@ STATIC void sweep(void)
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
-  while(a != b) {
+  while(a != b && a->prev != NULL) {
+    /* If both a->n_props and b->n_props are 0, rewind `a', so that we can
+     * do NULL check only for `a'.
+     */
     if (a->n_props < b->n_props)
       b = b->prev;
     else
