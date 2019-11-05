@@ -14,7 +14,5 @@
     fr = fframe_prev(fr);
   }
   arguments = fframe_arguments(fr);
-  dst = get_array_element(arguments, index);
-  if (dst == JS_EMPTY)
-    dst = JS_UNDEFINED;
+  dst = get_array_element(context, arguments, index);
 \}

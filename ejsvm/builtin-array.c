@@ -141,8 +141,7 @@ BUILTIN_FUNCTION(array_concat)
       while (k < len) {
         if (has_array_element(e, k)) {
           GC_PUSH(e);
-          subElement = get_array_element(a, k);
-          assert(subElement != JS_EMPTY);
+          subElement = get_array_element(context, a, k);
           set_array_prop(context, a, cint_to_number(context, n), subElement);
           GC_POP(e);
         }
@@ -234,14 +233,10 @@ BUILTIN_FUNCTION(array_reverse)
     lowerExists = has_array_element(args[0], lower);
     upperExists = has_array_element(args[0], upper);
 
-    if (lowerExists) {
-      lowerValue = get_array_element(args[0], lower);
-      assert(lowerValue != JS_EMPTY);
-    }
-    if (upperExists) {
-      upperValue = get_array_element(args[0], upper);
-      assert(lowerValue != JS_EMPTY);
-    }
+    if (lowerExists)
+      lowerValue = get_array_element(context, args[0], lower);
+    if (upperExists)
+      upperValue = get_array_element(context, args[0], upper);
 
     if (lowerExists && upperExists) {
       set_array_prop(context, args[0], cint_to_number(context, lower),
@@ -277,14 +272,13 @@ BUILTIN_FUNCTION(array_shift)
     return;
   }
 
-  first = get_array_element(args[0], 0);
+  first = get_array_element(context, args[0], 0);
   assert(first != JS_EMPTY);
   GC_PUSH(first);
   for (from = 1; from < len; from++) {
     to = from - 1;
     if (has_array_element(args[0], from)) {
-      fromVal = get_array_element(args[0], from);
-      assert(fromVal != JS_EMPTY);
+      fromVal = get_array_element(context, args[0], from);
       set_array_prop(context, args[0], cint_to_number(context, to), fromVal);
     } else {
       delete_array_element(args[0], to);
@@ -332,7 +326,7 @@ BUILTIN_FUNCTION(array_slice)
   n = 0;
   while (k < final) {
     if (has_array_element(o,k)) {
-      kValue = get_array_element(o, k);
+      kValue = get_array_element(context, o, k);
       set_array_prop(context, a, cint_to_number(context, n), kValue);
     }
     k++;
@@ -445,12 +439,10 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
   cint i, j;
   GC_PUSH2(array, comparefn);
   for (i = l; i <= r; i++) {
-    tmp = get_array_element(array, i); /* tmp = a[i] */
-    assert(tmp != JS_EMPTY);
+    tmp = get_array_element(context, array, i); /* tmp = a[i] */
     GC_PUSH(tmp);
     for (j = i - 1; l <= j; j--) {
-      aj = get_array_element(array, j);
-      assert(tmp != JS_EMPTY);
+      aj = get_array_element(context, array, j);
       GC_PUSH(aj);
       if (sortCompare(context, aj, tmp, comparefn) > 0)
         set_array_prop(context, array, cint_to_number(context, j + 1), aj);
@@ -475,12 +467,9 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   JSValue v0, v1, v2;
   cint m = l + ((r - l) / 2);
   GC_PUSH2(array, comparefn);
-  v0 = get_array_element(array, l);
-  assert(v0 != JS_EMPTY);
-  v1 = get_array_element(array, m);
-  assert(v1 != JS_EMPTY);
-  v2 = get_array_element(array, r);
-  assert(v2 != JS_EMPTY);
+  v0 = get_array_element(context, array, l);
+  v1 = get_array_element(context, array, m);
+  v2 = get_array_element(context, array, r);
   GC_PUSH3(v0, v1, v2);
   /* Sort v0 v1 v2 */
   if (sortCompare(context, v0, v1, comparefn) > 0)  /* v0 < v1 */
@@ -503,27 +492,29 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   set_array_prop(context, array, cint_to_number(context, r), v2);
   /* a[m] = a[l+1] */
   set_array_prop(context, array, cint_to_number(context, m),
-                 get_array_element(array, l+1));
+                 get_array_element(context, array, l+1));
  /* a[l+1] = v1(=p) */
   set_array_prop(context, array, cint_to_number(context, l+1), v1);
   i = l+2;
   j = r-1;
   /* Sorting (from i to j) */
   while (1) {
-    while (i < r && sortCompare(context, p, get_array_element(array, i),
+    while (i < r && sortCompare(context, p,
+                                get_array_element(context, array, i),
                                 comparefn) > 0)
       i++;
-    while (l < j && sortCompare(context, p, get_array_element(array, j),
+    while (l < j && sortCompare(context, p,
+                                get_array_element(context, array, j),
                                 comparefn) < 0)
       j--;
     if (i >= j)
       break;
     /* Exchange a[i] and a[j] */
-    tmp = get_array_element(array, i);
+    tmp = get_array_element(context, array, i);
     assert(tmp != JS_EMPTY);
     GC_PUSH(tmp);
     set_array_prop(context, array, cint_to_number(context, i),
-                   get_array_element(array, j));
+                   get_array_element(context, array, j));
     GC_POP(tmp);
     set_array_prop(context, array, cint_to_number(context, j), tmp);
     i++;
