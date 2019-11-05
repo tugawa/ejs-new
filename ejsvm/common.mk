@@ -157,6 +157,7 @@ OFILES = \
     builtin-regexp.o \
     builtin-string.o \
     builtin-function.o \
+    builtin-performance.o \
     call.o \
     codeloader.o \
     context.o \
@@ -216,6 +217,7 @@ INSN_GENERATED = \
     insns/makeiterator.inc \
     insns/move.inc \
     insns/newframe.inc \
+    insns/exitframe.inc \
     insns/nextpropnameidx.inc \
     insns/not.inc \
     insns/number.inc \

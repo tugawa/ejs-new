@@ -28,10 +28,12 @@ typedef struct flonum_cell FlonumCell;
  */
 /* types.h */
 typedef struct property_map PropertyMap;
+typedef struct property_map_list PropertyMapList;
 typedef struct shape Shape;
 /* context.h */
 typedef struct function_frame FunctionFrame;
 typedef struct context Context;
+typedef struct unwind_protect UnwindProtect;
 /* hash.h */
 typedef struct hash_table HashTable;
 /*
@@ -76,20 +78,22 @@ typedef enum cell_type_t {
   CELLT_BOXED_NUMBER  = HTAGV_BOXED_NUMBER,
   CELLT_BOXED_BOOLEAN = HTAGV_BOXED_BOOLEAN,
 
-  CELLT_PROP          = (0x11), /* Array of JSValues */
-  CELLT_ARRAY_DATA    = (0x12), /* Array of JSValues */
-  CELLT_FUNCTION_FRAME= (0x13), /* FunctionFrame */
-  CELLT_STR_CONS      = (0x14), /* StrCons */
-  CELLT_CONTEXT       = (0x15), /* Context */
-  CELLT_STACK         = (0x16), /* Array of JSValues */
+  CELLT_PROP          = 0x11, /* Array of JSValues */
+  CELLT_ARRAY_DATA    = 0x12, /* Array of JSValues */
+  CELLT_FUNCTION_FRAME= 0x13, /* FunctionFrame */
+  CELLT_STR_CONS      = 0x14, /* StrCons */
+  CELLT_CONTEXT       = 0x15, /* Context */
+  CELLT_STACK         = 0x16, /* Array of JSValues */
 #ifdef HIDDEN_CLASS
-  CELLT_HIDDEN_CLASS  = (0x17), /* HiddenClass */
+  CELLT_HIDDEN_CLASS  = 0x17, /* HiddenClass */
 #endif
-  CELLT_HASHTABLE     = (0x18),
-  CELLT_HASH_BODY     = (0x19),
-  CELLT_HASH_CELL     = (0x1A),
-  CELLT_PROPERTY_MAP  = (0x1B),
-  CELLT_SHAPE         = (0x1C),
+  CELLT_HASHTABLE     = 0x18,
+  CELLT_HASH_BODY     = 0x19,
+  CELLT_HASH_CELL     = 0x1A,
+  CELLT_PROPERTY_MAP  = 0x1B,
+  CELLT_SHAPE         = 0x1C,
+  CELLT_UNWIND        = 0x1D,
+  CELLT_PROPERTY_MAP_LIST = 0x1E
 } cell_type_t;
 
 /*
@@ -264,7 +268,7 @@ struct property_map {
   uint8_t n_transitions;     /* [const] Number of transitions. Used by GC.
                               * 2 bits (0, 1, more, and UNSURE) would
                               * suffice. */
-#define PM_N_TRANS_UNSURE (1 << 7)
+#define PM_N_TRANS_UNSURE   (1 << 7)
 #endif /* HC_SKIP_INTERNAL */
   JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));
                              /* [const] __proto__ of the object. */
@@ -276,6 +280,13 @@ struct property_map {
   uint32_t n_leave;
 #endif /* HC_PROF */
 };
+
+#ifdef HC_SKIP_INTERNAL
+struct property_map_list {
+  PropertyMap* pm;
+  PropertyMapList *next;
+};
+#endif /* HC_SKIP_INTERNAL */
 
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
@@ -546,8 +557,13 @@ DEFINE_ACCESSORS(normal_flonum, FlonumCell, double, value)
 #define normal_flonum_to_double(p)  flonum_value(p)
 #define normal_flonum_to_cint(p)    ((cint)(flonum_value(p)))
 #define normal_flonum_to_int(p)     ((int)(flonum_value(p)))
-#define normal_flonum_is_nan(p)                         \
-  (is_flonum((p))? isnan(flonum_to_double((p))): 0)
+static inline int normal_flonum_is_nan(JSValue v)
+{
+  if (is_flonum(v))
+    return isnan(flonum_to_double(v));
+  else
+    return 0;
+}
 
 /*
  * String VMDataType Interface
@@ -621,11 +637,7 @@ static inline cint fixnum_to_cint(JSValue v)
  * fixnum. cint_to_fixnum_nocheck should be used in limited caess
  * where the value is guaranteed to be small.
  */
-static inline JSValue small_cint_to_fixnum(cint n)
-{
-  assert(is_fixnum_range_cint(n));
-  return put_ptag(((uintjsv_t) n) << TAGOFFSET, T_FIXNUM);
-}
+static inline JSValue small_cint_to_fixnum(cint n);
 
 #define is_integer_value_double(d) ((d) == (double)((cint)(d)))
 
@@ -643,9 +655,7 @@ static inline JSValue small_cint_to_fixnum(cint n)
 #define FIXNUM_TEN       (small_cint_to_fixnum((cint)10))
 
 
-#define cint_to_number(ctx, n)                                  \
-  (is_fixnum_range_cint((n))?                                   \
-   small_cint_to_fixnum((n)): cint_to_flonum(ctx, (n)))
+static inline JSValue cint_to_number(Context *ctx, cint n);
 
 #if BITS_IN_FIXNUM >= 32
 #define int32_to_number(ctx, n) (small_cint_to_fixnum((cint) (n)))
@@ -655,12 +665,8 @@ static inline JSValue small_cint_to_fixnum(cint n)
 #define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #endif /* FIXNUM SIZE */
 
-#define number_to_double(p)                                             \
-  ((is_fixnum(p)? fixnum_to_double(p): flonum_to_double(p)))
-#define double_to_number(ctx, d)                                        \
-  (isnan((d)) ?  gconsts.g_flonum_nan :                                 \
-   is_fixnum_range_double((d)) ? small_cint_to_fixnum((cint) (d)) :     \
-   double_to_flonum(ctx, (d)))
+static inline double number_to_double(JSValue v);
+static inline JSValue double_to_number(Context *ctx, double n);
 
 /*
  * Special

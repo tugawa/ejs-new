@@ -56,6 +56,8 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   oldbody = get_jsarray_body(a);
   for (i = 0; i < length; i++)
     body[i] = oldbody[i];
+  for (; i < newsize; i++)
+    body[i] = JS_UNDEFINED;
   set_jsarray_body(a, body);
   set_jsarray_size(a, newsize);
 }

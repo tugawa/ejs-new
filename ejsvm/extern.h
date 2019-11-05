@@ -7,11 +7,6 @@
  * Electro-communications.
  */
 
-#define FUNCTION_TABLE_LIMIT  (100)
-
-EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
-EXTERN StrTable string_table;
-
 extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
@@ -129,6 +124,11 @@ EXTERN_PROPERTY_TABLES_PCI(Function);
 EXTERN_PROPERTY_TABLES_I(Builtin);
 
 /*
+ * builtin-performance.c
+ */
+EXTERN_PROPERTY_TABLES_I(Performance);
+
+/*
  * call.c
  */
 extern void call_function(Context *, JSValue, int, int);
@@ -150,10 +150,12 @@ extern JSValue specstr_to_jsvalue(const char *);
 /*
  * context.c
  */
-void reset_context(Context *, FunctionTable *);
+extern void reset_context(Context *, FunctionTable *);
 extern FunctionFrame *new_frame(Context *, FunctionTable *, FunctionFrame *, int);
 extern void pop_special_registers(Context *, int, JSValue *);
-extern void init_context(FunctionTable *, JSValue, size_t, Context **);
+extern void reset_context(Context *ctx, FunctionTable *ftab);
+extern void init_context(size_t, Context **);
+extern void print_backtrace(Context *);
 
 /*
  * conversion.c
@@ -216,8 +218,8 @@ extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
  * init.c
  */
 extern void init_global_constants(void);
-extern void init_meta_objects(void);
-extern void init_global_objects(void);
+extern void init_meta_objects(Context *);
+extern void init_global_objects(Context *);
 extern void init_builtin(Context *);
 
 /*
@@ -308,7 +310,7 @@ extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name,
 #else /* INLINE_CACHE */
 extern JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name);
 #endif /* INLINE_CACHE */
-extern JSValue get_array_element(JSValue obj, cint index);
+extern JSValue get_array_element(Context * ctx, JSValue obj, cint index);
 extern JSValue get_array_prop(Context *ctx, JSValue obj, JSValue name);
 extern int has_array_element(JSValue a, cint n);
 extern int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v);

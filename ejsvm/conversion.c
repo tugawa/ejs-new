@@ -498,8 +498,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 
   for (i = 0; i < length; i++) {
     GC_PUSH(array);
-    item = get_array_element(array, i);
-    assert(item != JS_EMPTY);
+    item = get_array_element(context, array, i);
     GC_POP(array);
     strs[i] = to_string(NULL, item);
     sumlen += string_length(strs[i]);

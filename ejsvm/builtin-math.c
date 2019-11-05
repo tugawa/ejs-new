@@ -11,8 +11,6 @@
 #define EXTERN extern
 #include "header.h"
 
-
-
 #define set_a_number(x) set_a(context, double_to_number(context, (x)))
 
 void math_func(Context *context, int fp, double (*fn)(double)) {

@@ -480,6 +480,8 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   HashTable   *hash;
   PropertyMap *m;
 
+  assert(ctx != NULL);
+
   GC_PUSH2(__proto__, prev);
   hash = hash_create(ctx, n_props - n_special_props);
   GC_PUSH(hash);
@@ -505,6 +507,22 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
 #endif /* HC_PROF */
+
+#ifdef HC_SKIP_INTERNAL
+  GC_PUSH(m);
+  /* avoid registration of the root map, whose prev is NULL.
+   * Note gpms.g_property_map_root is NULL before the root map is created.
+   */
+  if (prev != NULL && prev == gpms.g_property_map_root) {
+    PropertyMapList *p =
+      (PropertyMapList*) gc_malloc(ctx, sizeof(PropertyMapList),
+                                   CELLT_PROPERTY_MAP_LIST);
+    p->pm = m;
+    p->next = ctx->property_map_roots;
+    ctx->property_map_roots = p;
+  }
+  GC_POP(m);
+#endif /* HC_SKIP_INTERNAL */
   return m;
 }
 
@@ -587,6 +605,8 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   Shape *s;
   Shape **pp;
 
+  assert(num_embedded > 0);
+
   s = (Shape *) gc_malloc(ctx, sizeof(Shape), CELLT_SHAPE);
   s->pm = pm;
   s->n_embedded_slots  = num_embedded;
@@ -665,17 +685,21 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
   /* 1. check if cache is available and compatible */
   if (as != NULL && as->pm &&
       (as->pm->__proto__ == __proto__ || as->pm->__proto__ == JS_EMPTY)) {
-    assert(as->pm->n_special_props == n_special);
+    PropertyMap *pm = as->pm;
+    assert(pm->n_special_props == n_special);
     if (as->shape == NULL) {
+      size_t n_embedded = pm->n_props;
+      /* at least one normal embeded slot */
+      if (pm->n_props == pm->n_special_props)
+        n_embedded += 1;
       /* 2. if cached Shape is not available, find shape created for
        *    other alloction site. */
-      if (as->pm->shapes != NULL &&
-          as->pm->shapes->n_embedded_slots == as->pm->n_props)
-        as->shape = as->pm->shapes;
+      if (pm->shapes != NULL && pm->shapes->n_embedded_slots == n_embedded)
+        as->shape = pm->shapes;
       else
         /* 3. if there is not, create it */
         as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
-                                     as->pm->n_props, 0);
+                                     n_embedded, 0);
     }
     return as->shape;
   }

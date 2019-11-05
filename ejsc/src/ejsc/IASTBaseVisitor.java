@@ -111,6 +111,7 @@ public class IASTBaseVisitor {
         return visitStatement(node);
     }
     public Object visitForInStatement(IASTForInStatement node) {
+        node.var.accept(this);
         node.object.accept(this);
         node.body.accept(this);
         return visitStatement(node);

@@ -39,6 +39,8 @@
  *   CELLT_HASH_CELL      no     no        no        fixed HashCell
  *   CELLT_PROPERTY_MAP   no     yes       no        fixed PropertyMap
  *   CELLT_SHAPE          no     no        no        fixed Shape
+ *   CELLT_UNWIND         no     no        no        fixed UnwindProtect
+ *   CELLT_PROPERTY_MAP_LIST no  no        no        fixed PropertyMapList
  *
  * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
  * are stored in a dedicated slot and scand together with their owners.
@@ -110,11 +112,6 @@ struct space {
   char *name;
 };
 
-struct property_map_roots {
-  PropertyMap *pm;
-  struct property_map_roots *next;
-};
-
 /*
  * Constants
  */
@@ -136,8 +133,8 @@ STATIC struct space js_space;
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
 
-enum gc_phase gc_phase = PHASE_INACTIVE;
-struct property_map_roots *property_map_roots;
+static enum gc_phase gc_phase = PHASE_INACTIVE;
+static Context *the_context;
 
 /* gc root stack */
 #define MAX_ROOTS 1000
@@ -187,6 +184,8 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 1a */ "HASH_CELL",
     /* 1b */ "PROPERTY_MAP",
     /* 1c */ "SHAPE",
+    /* 1d */ "UNWIND",
+    /* 1e */ "PROPERTY_MAP_LIST",
 };
 #endif /* GC_PROF */
 
@@ -475,7 +474,7 @@ STATIC void garbage_collection(Context *ctx)
   GCLOG("Before Garbage Collection\n");
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
-  property_map_roots = NULL;
+  the_context = ctx;
 
   /* mark */
   gc_phase = PHASE_MARK;
@@ -660,16 +659,6 @@ STATIC void process_edge(uintptr_t ptr)
       if (p->shapes != NULL)
         process_edge((uintptr_t) p->shapes); /* Shape */
       process_edge((uintptr_t) p->__proto__);
-      /* collect children of roots for entriy points of weak lists */
-      if (p->prev == gpms.g_property_map_root) {
-        struct property_map_roots *e =
-          (struct property_map_roots *)
-          space_alloc(&js_space, sizeof(struct property_map_roots),
-                      CELLT_FREE);
-        e->pm = p;
-        e->next = property_map_roots;
-        property_map_roots = e;
-      }
       return;
     }
   case CELLT_SHAPE:
@@ -684,6 +673,17 @@ STATIC void process_edge(uintptr_t ptr)
 #endif /* WEAK_SHAPE_LIST */
       return;
     }
+  case CELLT_UNWIND:
+    {
+      UnwindProtect *p = (UnwindProtect *) ptr;
+      process_edge((uintptr_t) p->prev);
+      process_edge((uintptr_t) p->lp);
+    }
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
+  case CELLT_PROPERTY_MAP_LIST:
+    abort();
+    break;
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
   default:
     abort();
   }
@@ -770,7 +770,8 @@ STATIC void process_node_Context(Context *context)
   process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
   process_edge((uintptr_t) context->spreg.a);
   process_edge((uintptr_t) context->spreg.err);
-  process_edge((uintptr_t) context->exhandler_stack);
+  if (context->exhandler_stack_top != NULL)
+    process_edge((uintptr_t) context->exhandler_stack_top);
   process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
@@ -953,9 +954,16 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 
 STATIC void weak_clear_shapes()
 {
-  struct property_map_roots *e;
-  for (e = property_map_roots; e != NULL; e = e->next)
-    weak_clear_shape_recursive(e->pm);
+  PropertyMapList **pp;
+  for (pp = &the_context->property_map_roots; *pp != NULL;) {
+    PropertyMapList *e = *pp;
+    if (is_marked_cell(e->pm)) {
+      mark_cell(e);
+      weak_clear_shape_recursive(e->pm);
+      pp = &(*pp)->next;
+    } else
+      *pp = (*pp)->next;
+  }
 }
 #endif /* WEAK_SHAPE_LIST */
 
@@ -986,6 +994,7 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 {
   HashIterator iter;
   HashCell *p;
+  int n_transitions = 0;
 
   assert(is_marked_cell(pm));
 
@@ -997,7 +1006,7 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
        * If the next node is both
        *   1. not pointed to through strong pointers and
        *   2. outgoing edge is exactly 1,
-       * then, the node is an internal node.
+       * then, the node is an internal node to be eliminated.
        */
       while (!is_marked_cell(next) && next->n_transitions == 1) {
 #ifdef VERBOSE_WEAK
@@ -1005,6 +1014,12 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* VERBOSE_WEAK */
         next = get_transition_dest(next);
       }
+      if (!is_marked_cell(next) && next->n_transitions == 0) {
+        p->deleted = 1;             /* TODO: use hash_delete */
+        p->entry.data.u.pm = NULL;  /* make invariant check success */
+        continue;
+      }
+      n_transitions++;
 #ifdef VERBOSE_WEAK
       if (is_marked_cell(next))
         printf("preserve PropertyMap %p because it has been marked\n", next);
@@ -1019,13 +1034,27 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
       next->prev = pm;
       weak_clear_property_map_recursive(next);
     }
+  pm->n_transitions = n_transitions;
 }
 
 STATIC void weak_clear_property_maps()
 {
-  struct property_map_roots *e;
-  for (e = property_map_roots; e != NULL; e = e->next)
-    weak_clear_property_map_recursive(e->pm);
+  PropertyMapList **pp;
+  for (pp = &the_context->property_map_roots; *pp != NULL; ) {
+    PropertyMap *pm = (*pp)->pm;
+    while(!is_marked_cell(pm) && pm->n_transitions == 1)
+      pm = get_transition_dest(pm);
+    if (!is_marked_cell(pm) && pm->n_transitions == 0)
+      *pp = (*pp)->next;
+    else {
+      pm = (*pp)->pm;
+      mark_cell(*pp);
+      if (!is_marked_cell(pm))
+        process_edge((uintptr_t) pm);
+      weak_clear_property_map_recursive(pm);
+      pp = &(*pp)->next;
+    }
+  }
 }
 #endif /* HC_SKIP_INTERNAL */
 
@@ -1043,10 +1072,9 @@ STATIC void weak_clear(void)
   weak_clear_shapes();
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable(&string_table);
-  property_map_roots = NULL;
-#ifdef HC_PROF
-  /*  weak_clear_hcprof_entrypoints(); */
-#endif /* HC_PROF */
+
+  /* clear cache in the context */
+  the_context->exhandler_pool = NULL;
 }
 
 STATIC void sweep_space(struct space *space)
@@ -1144,7 +1172,10 @@ STATIC void sweep(void)
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
-  while(a != b) {
+  while(a != b && a->prev != NULL) {
+    /* If both a->n_props and b->n_props are 0, rewind `a', so that we can
+     * do NULL check only for `a'.
+     */
     if (a->n_props < b->n_props)
       b = b->prev;
     else

@@ -7,7 +7,7 @@
   </target>
   
   <target name="compile" depends="init">
-    <javac srcdir="${src}" destdir="${bin}"/>
+    <javac srcdir="${src}" destdir="${bin}" debug="on"/>
   </target>
 
   <target name="dist" depends="compile">

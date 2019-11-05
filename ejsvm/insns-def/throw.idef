@@ -1,17 +1,8 @@
-\inst throw ()
+\inst throw (Value src)
 
 \otherwise \{
-  InstructionDisplacement disp;
-  int newpc;
-  int handler_fp;
-  exhandler_stack_pop(context, &newpc, &handler_fp);
-  while (handler_fp != fp) {
-    JSValue *stack;
-    stack = &get_stack(context, 0);
-    restore_special_registers(context, stack, fp - 4);
-    set_sp(context, fp - 5);
-    update_context();      /* TODO: optimise */
-  }
-  disp = (InstructionDisplacement) (newpc - pc);
-  set_pc_relative(disp);
+  save_context();
+  set_a(context, src);
+  exhandler_throw(context);
+  /* exhandler_throw never returns */
 \}

@@ -36,6 +36,7 @@ geta                  ONEOP          Register
 geterr                ONEOP          Register
 getglobalobj          ONEOP          Register
 newframe              TWOOP          int        int
+exitframe             ZEROOP
 ret                   ZEROOP
 nop                   ZEROOP
 jump                  UNCONDJUMP     InstructionDisplacement
@@ -53,7 +54,7 @@ tailsend              CALLOP         LABELONLY
 tailcall              CALLOP         JSValue    int
 pushhandler           UNCONDJUMP     InstructionDisplacement
 pophandler            ZEROOP
-throw                 ZEROOP
+throw                 ONEOP          JSValue
 localcall             UNCONDJUMP     InstructionDisplacement
 localret              ZEROOP
 poplocal              ZEROOP

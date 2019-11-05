@@ -7,7 +7,7 @@
  * Electro-communications.
  */
 
-#define FUNCTION_TABLE_LIMIT  (100)
+#define FUNCTION_TABLE_LIMIT  (200)
 
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
 EXTERN StrTable string_table;
@@ -83,6 +83,7 @@ EXTERN struct global_constant_objects {
 
   JSValue g_global;
   JSValue g_math;
+  JSValue g_performance;
   JSValue g_regexp;
 } gconsts;
 

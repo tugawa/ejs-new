@@ -1012,6 +1012,9 @@ void add_constant_info(CItable *ci, Opcode c, unsigned int index,
 void set_function_table(FunctionTable *ftable, int index, Instruction *insns,
                         int callentry, int sendentry, int nlocals,
                         int ninsns, int nconsts) {
+  if (index >= FUNCTION_TABLE_LIMIT)
+    LOG_EXIT("too many functions (consider increasing FUNCTION_TABLE_LIMIT)");
+
   ftable[index].ilabel_created = false;
   ftable[index].insns = insns;
   ftable[index].call_entry = callentry;

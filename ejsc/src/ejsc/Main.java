@@ -206,9 +206,6 @@ public class Main {
 
             // normalize ESTree.
             new ESTreeNormalizer().normalize(ast);
-            //            if (info.optPrintESTree) {
-            //                System.out.println(ast.getEsTree());
-            //            }
 
             // convert ESTree into iAST.
             IASTGenerator iastgen = new IASTGenerator();
@@ -220,19 +217,15 @@ public class Main {
             new IASTPrinter().print(iast);
         }
 
-        // iAST level optimisation
-        if (info.optLocals != Info.OptLocals.NONE) {
-            // iAST newargs analyzer
-            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
-            analyzer.analyze(iast);
-            if (info.optPrintAnalyzer) {
-                new IASTPrinter().print(iast);
-            }
+        // resolve variables
+        ResolveVariables.execute(info.optLocals, iast);
+        if (info.optPrintAnalyzer) {
+            new IASTPrinter().print(iast);
         }
 
         // convert iAST into low level code.
-        CodeGenerator codegen = new CodeGenerator(info);
-        BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
+        BCBuilder bcBuilder = CodeGenerator.compile((IASTProgram) iast);
+
         bcBuilder.optimisation(info.optBc, info.optPrintOptimisation, info);
 
         bcBuilder.assignAddress();
