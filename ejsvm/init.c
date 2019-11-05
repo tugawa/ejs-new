@@ -53,7 +53,8 @@ void init_global_constants(void) {
   gconsts.g_undefined = JS_UNDEFINED;
 }
 
-static Shape *create_map_and_shape(char *name,
+static Shape *create_map_and_shape(Context *ctx,
+                                   char *name,
                                    uint32_t num_special,
                                    JSValue proto,
                                    ObjBuiltinProp builtin_props[],
@@ -72,36 +73,37 @@ static Shape *create_map_and_shape(char *name,
   uint32_t num_embedded = num_props + (num_normal_props == 0 ? 1 : 0);
   uint32_t index = num_special;
 
-  m = new_property_map(NULL, name, num_special, num_props, proto,
+  m = new_property_map(ctx, name, num_special, num_props, proto,
                        gpms.g_property_map_root);
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
-    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+    property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),
                                     index++, p->attr);
   }
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
-    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+    property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),
                                     index++, p->attr);
   }
   for (i = 0; i < num_gconsts_props; i++) {
     ObjGconstsProp *p = &gconsts_props[i];
-    property_map_add_property_entry(NULL, m, cstr_to_string(NULL, p->name),
+    property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),
                                     index++, p->attr);
   }
-  s = new_object_shape(NULL, name, m, num_embedded, 0);
+  s = new_object_shape(ctx, name, m, num_embedded, 0);
   return s;
 }
-#define CREATE_MAP_AND_SHAPE(name, num_special, proto, KEY)     \
-  create_map_and_shape(name, num_special, proto,                \
-                       KEY ## _builtin_props,                   \
-                       KEY ## _num_builtin_props,               \
-                       KEY ## _double_props,                    \
-                       KEY ## _num_double_props,                \
-                       KEY ## _gconsts_props,                   \
+#define CREATE_MAP_AND_SHAPE(ctx, name, num_special, proto, KEY)  \
+  create_map_and_shape(ctx, name, num_special, proto,             \
+                       KEY ## _builtin_props,                     \
+                       KEY ## _num_builtin_props,                 \
+                       KEY ## _double_props,                      \
+                       KEY ## _num_double_props,                  \
+                       KEY ## _gconsts_props,                     \
                        KEY ## _num_gconsts_props)
 
-static void fill_builtin_properties(JSValue object,
+static void fill_builtin_properties(Context *ctx,
+                                    JSValue object,
                                     ObjBuiltinProp builtin_props[],
                                     uint32_t num_builtin_props,
                                     ObjDoubleProp double_props[],
@@ -113,24 +115,24 @@ static void fill_builtin_properties(JSValue object,
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
     JSValue value =
-      new_builtin_object(NULL, p->name, gshapes.g_shape_Builtin,
+      new_builtin_object(ctx, p->name, gshapes.g_shape_Builtin,
                          p->fn, builtin_not_a_constructor, p->na);
-    set_prop_direct(NULL, object, cstr_to_string(NULL, p->name),
+    set_prop_direct(ctx, object, cstr_to_string(ctx, p->name),
                     value, p->attr);
   }
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
-    set_prop_direct(NULL, object, cstr_to_string(NULL, p->name),
-                    double_to_flonum(NULL, p->value), p->attr);
+    set_prop_direct(ctx, object, cstr_to_string(ctx, p->name),
+                    double_to_flonum(ctx, p->value), p->attr);
   }
   for (i = 0; i < num_gconsts_props; i++) {
     ObjGconstsProp *p = &gconsts_props[i];
-    set_prop_direct(NULL, object, cstr_to_string(NULL, p->name),
+    set_prop_direct(ctx, object, cstr_to_string(ctx, p->name),
                     *(p->addr), p->attr);
   }
 }
-#define FILL_BUILTIN_PROPERTIES(object, KEY)           \
-  fill_builtin_properties(object,                      \
+#define FILL_BUILTIN_PROPERTIES(ctx, object, KEY)      \
+  fill_builtin_properties(ctx, object,                 \
                           KEY ## _builtin_props,       \
                           KEY ## _num_builtin_props,   \
                           KEY ## _double_props,        \
@@ -142,14 +144,14 @@ static void fill_builtin_properties(JSValue object,
  * initialisation of prototypes objects, constructor objects, and their
  * property maps and shapes.
  */
-void init_meta_objects(void)
+void init_meta_objects(Context *ctx)
 {
   /*
    * Step 0
    *  - Create root property map
    */
   gpms.g_property_map_root =
-    new_property_map(NULL, DEBUG_NAME("root"), 0, 0, JS_NULL, NULL);
+    new_property_map(ctx, DEBUG_NAME("root"), 0, 0, JS_NULL, NULL);
 
   /*
    * Step 1
@@ -169,11 +171,11 @@ void init_meta_objects(void)
 #define STEP1(T, pproto, psp, isp, ctor, ctorargs...)                   \
   do {                                                                  \
     Shape *os =                                                         \
-      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "Prototype"), psp, pproto,     \
+      CREATE_MAP_AND_SHAPE(ctx, DEBUG_NAME(#T "Prototype"), psp, pproto, \
                            T ## Prototype);                             \
-    JSValue iproto = ctor(NULL, DEBUG_NAME(#T "Prototype"), os, ##ctorargs); \
+    JSValue iproto = ctor(ctx, DEBUG_NAME(#T "Prototype"), os, ##ctorargs); \
     gshapes.g_shape_ ## T =                                             \
-      CREATE_MAP_AND_SHAPE(DEBUG_NAME(#T "0"), isp, iproto, T);         \
+      CREATE_MAP_AND_SHAPE(ctx, DEBUG_NAME(#T "0"), isp, iproto, T);    \
     gconsts.g_prototype_ ## T = iproto;                                 \
   } while(0)
 
@@ -207,18 +209,18 @@ void init_meta_objects(void)
    */
 
   gshapes.g_shape_Builtin =
-    CREATE_MAP_AND_SHAPE(DEBUG_NAME("Builtin0"), BUILTIN_SPECIAL_PROPS,
+    CREATE_MAP_AND_SHAPE(ctx, DEBUG_NAME("Builtin0"), BUILTIN_SPECIAL_PROPS,
                          gconsts.g_prototype_Function, Builtin);
 
 #define STEP2(T, cfun, cctor, na)                               \
   do {                                                          \
     JSValue ctor;                                               \
-    FILL_BUILTIN_PROPERTIES(gconsts.g_prototype_ ## T,          \
+    FILL_BUILTIN_PROPERTIES(ctx, gconsts.g_prototype_ ## T,     \
                             T ## Prototype);                    \
-    ctor = new_builtin_object(NULL, DEBUG_NAME(#T),             \
+    ctor = new_builtin_object(ctx, DEBUG_NAME(#T),              \
                               gshapes.g_shape_Builtin,          \
                               cfun, cctor, na);                 \
-    FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);            \
+    FILL_BUILTIN_PROPERTIES(ctx, ctor, T ## Constructor);       \
     gconsts.g_ctor_ ## T = ctor;                                \
   } while (0)
 
@@ -238,12 +240,12 @@ void init_meta_objects(void)
 #define STEP3(T, cfun, cctor, na)                                       \
   do {                                                                  \
     JSValue prototype, ctor;                                            \
-    prototype = new_simple_object(NULL, DEBUG_NAME(#T "Prototype"),     \
+    prototype = new_simple_object(ctx, DEBUG_NAME(#T "Prototype"),      \
                                   gshapes.g_shape_Object);              \
-    ctor = new_builtin_with_constr(NULL, DEBUG_NAME(#T),                \
+    ctor = new_builtin_with_constr(ctx, DEBUG_NAME(#T),                 \
                                    gshapes.g_shape_Builtin,             \
                                    cfun, ccotr, na);                    \
-    FILL_BUILTIN_PROPERTIES(ctor, T ## Constructor);                    \
+    FILL_BUILTIN_PROPERTIES(ctx, ctor, T ## Constructor);               \
     gconsts.g_ctor_ ## T = ctor;                                        \
   } while (0)
 
@@ -257,23 +259,23 @@ void init_meta_objects(void)
 /*
  * initializes global objects
  */
-void init_global_objects(void) {
+void init_global_objects(Context *ctx) {
   /* Step 1
    *   - fill gconsts
    */
-  gconsts.g_global = new_simple_object(NULL, DEBUG_NAME("global"),
+  gconsts.g_global = new_simple_object(ctx, DEBUG_NAME("global"),
                                        gshapes.g_shape_Object);
-  gconsts.g_math = new_simple_object(NULL, DEBUG_NAME("math"),
+  gconsts.g_math = new_simple_object(ctx, DEBUG_NAME("math"),
                                      gshapes.g_shape_Object);
-  gconsts.g_performance = new_simple_object(NULL, DEBUG_NAME("perforamnce"),
+  gconsts.g_performance = new_simple_object(ctx, DEBUG_NAME("perforamnce"),
                                             gshapes.g_shape_Object);
 
   /* Step 2
    *   - fill propertyes
    */
-  FILL_BUILTIN_PROPERTIES(gconsts.g_global, Global);
-  FILL_BUILTIN_PROPERTIES(gconsts.g_math, Math);
-  FILL_BUILTIN_PROPERTIES(gconsts.g_performance, Performance);
+  FILL_BUILTIN_PROPERTIES(ctx, gconsts.g_global, Global);
+  FILL_BUILTIN_PROPERTIES(ctx, gconsts.g_math, Math);
+  FILL_BUILTIN_PROPERTIES(ctx, gconsts.g_performance, Performance);
 }
 
 /* Local Variables:      */

@@ -61,30 +61,32 @@ void init_special_registers(SpecialRegisters *spreg){
 
 void reset_context(Context *ctx, FunctionTable *ftab) {
   init_special_registers(&(ctx->spreg));
-  // ctx->function_table = ftab;
   ctx->function_table = function_table;
   set_cf(ctx, ftab);
-  /*
-   * It seems that existing frame in the lp register can be reused,
-   * but for simplicity, we allocate a new frame.
-   */
   set_lp(ctx, new_frame(NULL, ftab, NULL, 0));
+
+  ctx->global = gconsts.g_global;
+  ctx->exhandler_stack_top = NULL;
+  ctx->exhandler_pool = NULL;
+  ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
+                                      gshapes.g_shape_Array, 0);
+  ctx->lcall_stack_ptr = 0;
 }
 
 /*
- * initializes the outer-most context.
- * This function is call only once from the main function before entering
- * the loop.
+ * Create context with minimum initialisation to create objects.
+ * Note that global objects are not created because their creation needs
+ * context.  Bottom half of initialisation is done in reset_context.
  */
-void init_context(FunctionTable *ftab, JSValue glob, size_t stack_limit,
-                  Context **context)
+void init_context(size_t stack_limit, Context **context)
 {
   Context *c;
 
   c = allocate_context(stack_limit);
   *context = c;
-  c->global = glob;
-  reset_context(c, ftab);
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
+  c->property_map_roots = NULL;
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 }
 
 static Context *allocate_context(size_t stack_size)
@@ -93,11 +95,6 @@ static Context *allocate_context(size_t stack_size)
   Context *ctx = (Context *) gc_malloc(NULL, sizeof(Context), CELLT_CONTEXT);
   ctx->stack = (JSValue *) gc_malloc(NULL, sizeof(JSValue) * stack_size,
                                      CELLT_STACK);
-  ctx->exhandler_stack_top = NULL;
-  ctx->exhandler_pool = NULL;
-  ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
-                                      gshapes.g_shape_Array, 0);
-  ctx->lcall_stack_ptr = 0;
   return ctx;
 }
 

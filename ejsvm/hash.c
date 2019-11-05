@@ -142,7 +142,8 @@ int hash_delete(HashTable *table, HashKey key) {
        prev = cell, cell = cell->next) {
     if (cell->entry.key == key) {
       /* found */
-      if (!is_dont_delete(cell->entry.attr)) return HASH_GET_FAILED;
+      if (!is_dont_delete(cell->entry.attr))
+        return HASH_GET_FAILED;
       if (prev == NULL) {
         table->body[index] = cell->next;
       } else {
@@ -174,7 +175,10 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   for (i = 0; i < fromsize; i++) {
     for (cell = from->body[i]; cell != NULL; cell = cell->next) {
       /* we do not copy the transition entry. */
-      if (is_transition(cell->entry.attr)) continue;
+      if (is_transition(cell->entry.attr))
+        continue;
+      if (cell->deleted)
+        continue;
       index = string_hash(cell->entry.key) % tosize;
       new = alloc_hash_cell(ctx);
       new->deleted = false;
@@ -230,38 +234,50 @@ int init_hash_iterator(HashTable *t, HashIterator *h) {
   return FALSE;
 }
 
-HashIterator createHashIterator(HashTable *table) {
-  int i, size = table->size;
+/*
+ * Find the next cell.
+ * param iter: Startig point of serach.  `iter->p == NULL' directs to
+ * start searching from the begining of the list at `iter->index + 1'.
+ */
+static void advance_iterator(HashTable *table, HashIterator *iter)
+{
+  HashCell *p;
+  int i;
+  
+  for (p = iter->p; p != NULL; p = p->next)
+    if (!p->deleted) {
+      iter->p = p;
+      return;
+    }
+  for (i = iter->index + 1; i < table->size; i++)
+    for (p = table->body[i]; p != NULL; p = p->next)
+      if (!p->deleted) {
+        iter->p = p;
+        iter->index = i;
+        return;
+      }
+  iter->p = NULL;
+}
+
+HashIterator createHashIterator(HashTable *table)
+{
   HashIterator iter;
 
   iter.p = NULL;
-  for (i = 0; i < size; i++) {
-    if (table->body[i] != NULL) {
-      iter.p = table->body[i];
-      iter.index = i;
-      break;
-    }
-  }
+  iter.index = -1;
+  advance_iterator(table, &iter);
   return iter;
 }
 
-int nextHashCell(HashTable *table, HashIterator *iter, HashCell **p) {
-  int i;
-
-  if (iter->p == NULL) return FAIL;
-  *p = iter->p;
-  if (iter->p->next != NULL) {
-    iter->p = iter->p->next;
-    return SUCCESS;
-  }
-  for (i = iter->index + 1; i < table->size; i++) {
-    if (table->body[i] != NULL) {
-      iter->index = i;
-      iter->p = table->body[i];
-      return SUCCESS;
-    }
-  }
-  iter->p = NULL;
+int nextHashCell(HashTable *table, HashIterator *iter, HashCell **pp)
+{
+  advance_iterator(table, iter);  /* Save the case the current cell is deleted
+                                   * after the last call of `nextHashCell'. */
+  if (iter->p == NULL)
+    return FAIL;
+  *pp = iter->p;
+  iter->p = iter->p->next;
+  advance_iterator(table, iter);
   return SUCCESS;
 }
 

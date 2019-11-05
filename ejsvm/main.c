@@ -389,10 +389,12 @@ int main(int argc, char *argv[]) {
   init_memory(heap_limit);
 
   init_string_table(STRING_TABLE_SIZE);
+  init_context(regstack_limit, &context);
   init_global_constants();
-  init_meta_objects();
-  init_global_objects();
-  init_context(function_table, gconsts.g_global, regstack_limit, &context);
+  init_meta_objects(context);
+  init_global_objects(context);
+  reset_context(context, function_table);
+  context->global = gconsts.g_global;
   srand((unsigned)time(NULL));
 
   for (; k < iter; k++) {

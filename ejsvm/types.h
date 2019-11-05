@@ -28,6 +28,7 @@ typedef struct flonum_cell FlonumCell;
  */
 /* types.h */
 typedef struct property_map PropertyMap;
+typedef struct property_map_list PropertyMapList;
 typedef struct shape Shape;
 /* context.h */
 typedef struct function_frame FunctionFrame;
@@ -91,7 +92,8 @@ typedef enum cell_type_t {
   CELLT_HASH_CELL     = 0x1A,
   CELLT_PROPERTY_MAP  = 0x1B,
   CELLT_SHAPE         = 0x1C,
-  CELLT_UNWIND        = 0x1D
+  CELLT_UNWIND        = 0x1D,
+  CELLT_PROPERTY_MAP_LIST = 0x1E
 } cell_type_t;
 
 /*
@@ -266,7 +268,7 @@ struct property_map {
   uint8_t n_transitions;     /* [const] Number of transitions. Used by GC.
                               * 2 bits (0, 1, more, and UNSURE) would
                               * suffice. */
-#define PM_N_TRANS_UNSURE (1 << 7)
+#define PM_N_TRANS_UNSURE   (1 << 7)
 #endif /* HC_SKIP_INTERNAL */
   JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));
                              /* [const] __proto__ of the object. */
@@ -278,6 +280,13 @@ struct property_map {
   uint32_t n_leave;
 #endif /* HC_PROF */
 };
+
+#ifdef HC_SKIP_INTERNAL
+struct property_map_list {
+  PropertyMap* pm;
+  PropertyMapList *next;
+};
+#endif /* HC_SKIP_INTERNAL */
 
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */

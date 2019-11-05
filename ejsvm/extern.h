@@ -153,7 +153,8 @@ extern JSValue specstr_to_jsvalue(const char *);
 extern void reset_context(Context *, FunctionTable *);
 extern FunctionFrame *new_frame(Context *, FunctionTable *, FunctionFrame *, int);
 extern void pop_special_registers(Context *, int, JSValue *);
-extern void init_context(FunctionTable *, JSValue, size_t, Context **);
+extern void reset_context(Context *ctx, FunctionTable *ftab);
+extern void init_context(size_t, Context **);
 extern void print_backtrace(Context *);
 
 /*
@@ -217,8 +218,8 @@ extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
  * init.c
  */
 extern void init_global_constants(void);
-extern void init_meta_objects(void);
-extern void init_global_objects(void);
+extern void init_meta_objects(Context *);
+extern void init_global_objects(Context *);
 extern void init_builtin(Context *);
 
 /*

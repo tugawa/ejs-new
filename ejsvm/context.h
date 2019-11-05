@@ -75,6 +75,9 @@ struct context {
 #ifdef USE_FFI
   struct foreign_env_cell *fenv;
 #endif
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
+  PropertyMapList *property_map_roots; /* [weak list] */
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 };
 
 /* heap allocated */
