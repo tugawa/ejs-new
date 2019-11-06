@@ -438,9 +438,9 @@ public class ASTGenerator extends ECMAScriptBaseVisitor<Node> {
 
     @Override public Node visitTernaryExpression(ECMAScriptParser.TernaryExpressionContext ctx) {
         IExpression test = (IExpression) visit(ctx.singleExpression(0));
-        IExpression alternate = (IExpression) visit(ctx.singleExpression(1));
-        IExpression consequent = (IExpression) visit(ctx.singleExpression(2));
-        return new ConditionalExpression(test, alternate, consequent);
+        IExpression consequent = (IExpression) visit(ctx.singleExpression(1));
+        IExpression alternate= (IExpression) visit(ctx.singleExpression(2));
+        return new ConditionalExpression(test, consequent, alternate);
     }
 
     @Override public Node visitBitOrExpression(ECMAScriptParser.BitOrExpressionContext ctx) {

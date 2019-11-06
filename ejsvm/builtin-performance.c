@@ -22,8 +22,8 @@ BUILTIN_FUNCTION(perf_now)
   if (has_seen_time) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    current_time = (tv.tv_sec - first_tv.tv_sec) * 1000 * 1000;
-    current_time += tv.tv_usec - first_tv.tv_usec;
+    current_time = (tv.tv_sec - first_tv.tv_sec) * 1000;
+    current_time += (tv.tv_usec - first_tv.tv_usec) / 1000;
   } else {
     has_seen_time = 1;
     gettimeofday(&first_tv, NULL);
