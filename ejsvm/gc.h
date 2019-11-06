@@ -106,7 +106,7 @@ static inline header_t *payload_to_header(void *ptr)
  */
 
 #ifdef GC_PROF
-#define NUM_DEFINED_CELL_TYPES 0x1C
+#define NUM_DEFINED_CELL_TYPES 0x1E
 extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
 #define CELLT_NAME(t) ((t) <= NUM_DEFINED_CELL_TYPES ? cell_type_name[t] : "")
 #else /* GC_PROF */
