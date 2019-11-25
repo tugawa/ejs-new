@@ -234,10 +234,19 @@ extern void debug_print(Context *, int);
 /*
  * object.c
  */
+#ifdef INLINE_CACHE
+extern void set_prop_(Context *ctx, JSValue obj, JSValue name,
+                      JSValue v, Attribute att, int skip_setter,
+                      InlineCache *ic);
+#define set_prop(c,o,n,v,a) set_prop_(c,o,n,v,a,0,NULL)
+#define set_prop_with_ic(c,o,n,v,a,ic) set_prop_(c,o,n,v,a,0,ic)
+#define set_prop_direct(c,o,n,v,a) set_prop_(c,o,n,v,a,1,NULL)
+#else /* INLINE_CACHE */
 extern void set_prop_(Context *ctx, JSValue obj, JSValue name,
                       JSValue v, Attribute att, int skip_setter);
 #define set_prop(c,o,n,v,a) set_prop_(c,o,n,v,a,0)
 #define set_prop_direct(c,o,n,v,a) set_prop_(c,o,n,v,a,1)
+#endif /* INLINE_CACHE */
 #ifdef INLINE_CACHE
 extern JSValue get_prop_with_ic(JSValue obj, JSValue name,
                                 InlineCache *ic);

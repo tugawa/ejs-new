@@ -102,8 +102,13 @@ static void init_prop(JSObject *p, JSValue name, JSValue value)
  * set_prop fails if the object has a property of the same name
  * with a conflicting attribute.
  */
+#ifdef INLINE_CACHE
+void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
+               Attribute att, int skip_setter, InlineCache *ic)
+#else /* INLINE_CACHE */
 void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
                Attribute att, int skip_setter)
+#endif /* INLINE_CACHE */
 {
   PropertyMap *next_pm;
   int index;
@@ -189,6 +194,14 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     GC_POP6(next_os, next_pm, current_os, v, name, obj);
   }
 
+#ifdef INLINE_CACHE
+  if (ic != NULL && ic->shape == NULL &&
+      object_get_shape(obj)->n_extension_slots == 0) {
+    ic->shape = object_get_shape(obj);
+    ic->prop_name = name;
+    ic->index = index;
+  }
+#endif /* INLINE_CACHE */
   object_set_prop(obj, index, v);
 
 #undef PRINT  /* VERBOSE_SET_PROP */

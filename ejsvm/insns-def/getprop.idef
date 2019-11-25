@@ -1,10 +1,14 @@
 \inst getprop (Register dst, Value obj, Value prop)
 
+\when obj:array && prop:fixnum \{
+  dst = get_array_element(context, obj, fixnum_to_cint(prop));
+\}
+
 \when obj:array \{
   dst = get_array_prop(context, obj, prop);
 \}
 
-\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) && prop:string\{
 #ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
@@ -14,6 +18,14 @@
     else
       dst = get_object_prop(context, obj, prop, ic);
   }
+#else /* INLINE_CACHE */
+  dst = get_object_prop(context, obj, prop);
+#endif /* INLINE_CACHE */
+\}
+
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
+#ifdef INLINE_CACHE
+  dst = get_object_prop(context, obj, prop, NULL);
 #else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);
 #endif /* INLINE_CACHE */

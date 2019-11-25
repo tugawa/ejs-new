@@ -241,7 +241,8 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
       GC_POP3(v, p, a);
     }
     p = fixnum_to_string(p);
-    return set_object_prop(ctx, a, p, v);
+    set_prop(ctx, a, p, v, ATTR_NONE);
+    return SUCCESS;
   }
 
   if (!is_string(p)) {
@@ -265,7 +266,8 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
         }
       }
       GC_POP3(v, p, a);
-      return set_object_prop(ctx, a, p, v);
+      set_prop(ctx, a, p, v, ATTR_NONE);
+      return SUCCESS;
     }
     GC_POP3(v, p, a);
     if (p == gconsts.g_string_length && is_fixnum(v)) {
@@ -285,7 +287,8 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
         GC_POP3(v, p, a);
       }
     }
-    return set_object_prop(ctx, a, p, v);
+    set_prop(ctx, a, p, v, ATTR_NONE);
+    return SUCCESS;
   }
 }
 
