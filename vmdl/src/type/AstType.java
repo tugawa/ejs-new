@@ -8,8 +8,8 @@
  */
 package type;
 
-
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
@@ -44,7 +44,7 @@ HeapObject
 public class AstType {
     static Map<String, AstBaseType> definedTypes = new HashMap<String, AstBaseType>();
     static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<VMDataType, JSValueVMType>();
-    static Map<JSValueType, Set<JSValueVMType>> childrenMap = new HashMap<>();
+    static Map<AstBaseType, Set<AstType>> childrenMap = new HashMap<>();
     static void defineType(String name) {
         AstBaseType t = new AstBaseType(name);
         definedTypes.put(name, t);
@@ -52,16 +52,19 @@ public class AstType {
     static void defineJSValueType(String name, JSValueType parent) {
         AstBaseType t = new JSValueType(name, parent);
         definedTypes.put(name, t);
+        putChild(parent, t);
     }
-    private static void putChild(JSValueType parent, JSValueVMType vmt){
-        Set<JSValueVMType> set = childrenMap.get(parent);
-        if(set == null){
-            set = new HashSet<>();
+    private static void putChild(AstBaseType parent, AstBaseType child){
+        Set<AstType> children = childrenMap.get(parent);
+        if(children == null){
+            children = new HashSet<>();
         }
-        set.add(vmt);
-        childrenMap.put(parent, set);
-        if(parent.parent != null){
-            putChild(parent.parent, vmt);
+        children.add(child);
+        childrenMap.put(parent, children);
+        if(!(parent instanceof JSValueType)) return;
+        JSValueType jparent = (JSValueType)parent;
+        if(jparent.parent != null){
+            putChild(jparent.parent, child);
         }
     }
     static void defineJSValueVMType(String name, JSValueType parent, VMDataType vmt) {
@@ -76,8 +79,9 @@ public class AstType {
     public static JSValueVMType get(VMDataType vmt) {
         return vmtToType.get(vmt);
     }
-    public static Set<JSValueVMType> getChildren(JSValueType parent){
-        return childrenMap.get(parent);
+    public static Set<AstType> getChildren(AstType parent){
+        if(!(parent instanceof AstBaseType)) return Collections.emptySet();
+        return childrenMap.get((AstBaseType)parent);
     }
     static {
         defineType("Top");
@@ -132,10 +136,24 @@ public class AstType {
         throw new Error("Unknown type: "+node.toText());
     }
 
+    public boolean isSuperOrEqual(AstType t) {
+        if(t == AstType.BOT) return false;
+        if(!(t instanceof JSValueType)){
+            return t == this;
+        }
+        JSValueType jsvt = (JSValueType)t;
+        while(jsvt != null){
+            if (jsvt == this) return true;
+            jsvt = jsvt.parent;
+        }
+        return false;
+    }
+
     public static class AstBaseType extends AstType {
         private AstBaseType(String _name) {
             name = _name;
         }
+        
         public String toString() {
             return name;
         }

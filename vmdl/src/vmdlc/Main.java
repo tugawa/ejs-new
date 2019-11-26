@@ -42,12 +42,6 @@ public class Main {
 
     static Option option = new Option();
 
-    static final TypeMapBase[] TYPE_MAPS = {
-        new TypeMapLub(),
-        new TypeMapHalf(),
-        new TypeMapFull()
-    };
-
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
             String opt = args[i++];
@@ -61,7 +55,7 @@ public class Main {
                 option.mDisableMatchOptimisation = true;
             } else if(opt.matches("-T.")){
                 Integer num = Integer.parseInt(opt.substring(2));
-                if((num <= 0) || (num > TYPE_MAPS.length)){
+                if((num <= 0) || (num > TypeCheckVisitor.CheckTypePlicy.values().length)){
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
@@ -158,7 +152,7 @@ public class Main {
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec, TYPE_MAPS[typeMapIndex-1]);
+        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
 
         String program = new AstToCVisitor().start(ast, opSpec);
 

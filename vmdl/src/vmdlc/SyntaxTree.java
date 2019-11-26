@@ -13,26 +13,26 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 
 import type.AstType;
-import type.TypeMapBase;
+import type.ExprTypeSet;
+import type.TypeMapSet;
 import vmdlc.SyntaxTree;
 
 import java.util.Set;
-import java.util.Map;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
-    TypeMapBase dict;
-    Map<Map<String, AstType>, AstType> exprTypeMap;
+    TypeMapSet dict;
+    ExprTypeSet exprTypeSet;
     Set<String> rematchVarSet;
 
     public SyntaxTree() {
         super();
-        exprTypeMap = null;
+        exprTypeSet = null;
         rematchVarSet = null;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
-        exprTypeMap = null;
+        exprTypeSet = null;
         rematchVarSet = null;
     }
 
@@ -77,31 +77,31 @@ public class SyntaxTree extends Tree<SyntaxTree> {
 
     @Override
     protected void appendExtraStringfied(StringBuilder sb) {
-        if (exprTypeMap == null) {
+        if (exprTypeSet == null) {
             sb.append(" []");
-        } else if (exprTypeMap.isEmpty()){
+        } else if (exprTypeSet.getTypeSet().isEmpty()){
             sb.append(" []");
         } else {
-            sb.append(" (");
-            for(Map<String,AstType> m : exprTypeMap.keySet()){
-                sb.append(m.toString()+"->"+exprTypeMap.get(m)+",");
+            sb.append(" [");
+            for(AstType type : exprTypeSet.getTypeSet()){
+                sb.append(type+",");
             }
-            sb.append(")");
+            sb.append("]");
             /*
             sb.append(" " + this.type);
             */
         }
     }
     
-    public void setExprTypeMap(Map<Map<String, AstType>, AstType> _exprTypeMap) {
-        exprTypeMap = _exprTypeMap;
+    public void setExprTypeSet(ExprTypeSet _exprTypeSet) {
+        exprTypeSet = _exprTypeSet;
     }
     
-    public void setTypeMap(TypeMapBase dict) {
+    public void setTypeMapSet(TypeMapSet dict) {
         this.dict = dict;
     }
     
-    public TypeMapBase getTypeMap() {
+    public TypeMapSet getTypeMapSet() {
         return dict;
     }
 
