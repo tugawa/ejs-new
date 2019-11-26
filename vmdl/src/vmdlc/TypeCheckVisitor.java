@@ -404,6 +404,30 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    final static AstType tCint = AstType.get("cint");
+    final static AstType tCdobule = AstType.get("cdouble");
+    final static AstType tSubscript = AstType.get("Subscript");
+    final static AstType tDisplacement = AstType.get("Displacement");
+    final static Set<AstType> cNumbers = new HashSet<>();
+    final static Set<AstType> cInts = new HashSet<>();
+    static{
+        cNumbers.add(tCint);
+        cNumbers.add(tCdobule);
+        cNumbers.add(tSubscript);
+        cNumbers.add(tDisplacement);
+        cInts.add(tCint);
+        cInts.add(tCdobule);
+        cInts.add(tSubscript);
+        cInts.add(tDisplacement);
+
+    }
+    private boolean acceptAssign(AstType type, AstType assign){
+        if(type.isSuperOrEqual(assign)) return true;
+        if(type==tCdobule && cNumbers.contains(assign)) return true;
+        if(cInts.contains(type) && cInts.contains(assign)) return true;
+        return false;
+    }
+
     public class Assignment extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -418,6 +442,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
                 for(AstType type : exprTypeSet){
+                    if(!acceptAssign(leftType, type)){
+                        throw new Error("Expression types "+type+", need types "+leftType+" (at line "+node.getLineNum()+")");
+                    }
                     TypeMap temp = typeMap.clone();
                     Set<TypeMap> assignedSet = dict.getAssignedSet(temp, leftName, type);
                     newSet.addAll(assignedSet);
@@ -444,7 +471,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
-                    if(!(varType.isSuperOrEqual(type))){
+                    if(!acceptAssign(varType, type)){
                         throw new Error("Expression types "+type+", need types "+varType+" (at line "+node.getLineNum()+")");
                     }
                     TypeMap temp = typeMap.clone();
@@ -606,7 +633,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 AstType result = checker.typeOf(lt, rt);
                 if(result == null){
                     throw new Error("Illigal types given in operator: "
-                        +leftExprTypeSet.toString()+","+rightExprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                        +lt.toString()+","+rt.toString()+" (at line "+node.getLineNum()+")");
                 }
                 resultTypeSet.add(result);
             }

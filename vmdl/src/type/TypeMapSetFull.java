@@ -1,6 +1,7 @@
 package type;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +20,7 @@ public class TypeMapSetFull extends TypeMapSet {
     public void setDispatchSet(Set<String> set){}
     @Override
     public Set<String> getDispatchSet(){
-        return new HashSet<String>(0);
+        return Collections.emptySet();
     }
     protected Set<AstType> getTypeSet(String name, AstType type){
         Set<AstType> set = AstType.getChildren(type);
@@ -75,7 +76,7 @@ public class TypeMapSetFull extends TypeMapSet {
     }
     @Override
     public Set<String> getKeys(){
-        if(typeMapSet.isEmpty()) return new HashSet<>();
+        if(typeMapSet.isEmpty()) return Collections.emptySet();
         TypeMap typeMap = getOne();
         return typeMap.keySet();
     }
