@@ -734,4 +734,20 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print("\"");
         }
     }
+    public class TypeArray extends DefaultVisitor{
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            visit(node.get(Symbol.unique("type")), indent);
+            print("[]");
+        }
+    }
+    public class ArrayIndex extends DefaultVisitor{
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            visit(node.get(Symbol.unique("recv")), indent);
+            print("[");
+            visit(node.get(Symbol.unique("index")), indent);
+            print("]");
+        }
+    }
 }

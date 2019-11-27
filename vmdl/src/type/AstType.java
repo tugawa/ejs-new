@@ -80,7 +80,10 @@ public class AstType {
     public static void addAlias(String typeName, AstBaseType realType){
         definedTypes.put(typeName, realType);
     }
-    public static AstBaseType get(String name) {
+    public static AstType get(String name) {
+        if(name.endsWith("[]")){
+            return new AstArrayType(get(name.substring(0, name.length()-2)));
+        }
         return definedTypes.get(name);
     }
     public static JSValueVMType get(VMDataType vmt) {
@@ -133,7 +136,9 @@ public class AstType {
                 al.add(nodeToType(node.get(i)));
             }
             return new AstPairType(al);
-        } else if (node.is(Symbol.unique("JSValueTypeName")) ||
+        } else if(node.is(Symbol.unique("TypeArray"))) {
+            return new AstArrayType(nodeToType(node.get(Symbol.unique("type"))));
+        }else if (node.is(Symbol.unique("JSValueTypeName")) ||
                 node.is(Symbol.unique("Ctype")) ||
                 node.is(Symbol.unique("UserTypeName"))) {
             return AstType.get(node.toText());
@@ -147,7 +152,7 @@ public class AstType {
     public boolean isSuperOrEqual(AstType t) {
         if(t == AstType.BOT) return true;
         if(!(t instanceof AstBaseType)){
-            return t == this;
+            return t.equals(this);
         }
         AstBaseType type = (AstBaseType)t;
         while(type != null){
@@ -155,6 +160,13 @@ public class AstType {
             type = type.parent;
         }
         return false;
+    }
+
+    @Override
+    public boolean equals(Object obj){
+        if(obj == null) return false;
+        if(!(obj instanceof AstType)) return false;
+        return this==obj;
     }
 
     public static class AstBaseType extends AstType {
@@ -284,6 +296,16 @@ HeapObject
         public ArrayList<AstType> getTypes() {
             return types;
         }
+        @Override
+        public int hashCode(){
+            return types.hashCode();
+        }
+        @Override
+        public boolean equals(Object obj){
+            if(obj == null) return false;
+            if(!(obj instanceof AstPairType)) return false;
+            return types.equals(((AstPairType)obj).types);
+        }
     }
 
     public static class AstProductType extends AstType {
@@ -305,6 +327,41 @@ HeapObject
         }
         public AstType getRange() {
             return range;
+        }
+        @Override
+        public int hashCode(){
+            return domain.hashCode()*range.hashCode();
+        }
+        @Override
+        public boolean equals(Object obj){
+            if(obj == null) return false;
+            if(!(obj instanceof AstProductType)) return false;
+            return (domain.equals(((AstProductType)obj).domain)
+                 && range.equals(((AstProductType)obj).range));
+        }
+    }
+
+    public static class AstArrayType extends AstType{
+        AstType elementType;
+        public AstArrayType(AstType _elementType){
+            elementType = _elementType;
+        }
+        @Override
+        public String toString(){
+            return elementType.toString()+"[]";
+        }
+        public AstType getElementType(){
+            return elementType;
+        }
+        @Override
+        public int hashCode(){
+            return elementType.hashCode();
+        }
+        @Override
+        public boolean equals(Object obj){
+            if(obj == null) return false;
+            if(!(obj instanceof AstArrayType)) return false;
+            return elementType.equals(((AstArrayType)obj).elementType);
         }
     }
 }

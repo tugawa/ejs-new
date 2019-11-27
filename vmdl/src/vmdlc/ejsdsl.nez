@@ -28,11 +28,12 @@ PatternDefinition = { "pattern" _ $patternname(VarName) $var(VarName) "=" $patte
 ////////////////////////////////
 //// Names
 ////////////////////////////////
-TypeName   = { 'void' #VoidTypeName } !W _
-           / { 'Top' #TopTypeName } !W _ 
-           / CTypeName
-           / { JSValueTypeName #JSValueTypeName } !W _
-           / { NAME #UserTypeName } _
+TypeName_  = { 'void' #VoidTypeName } !W
+           / { 'Top' #TopTypeName } !W
+           / { Ctypes #Ctype } !W
+           / { JSValueTypeName #JSValueTypeName } !W
+           / { NAME #UserTypeName } !W
+TypeName = TypeName_ {$type '[]' #TypeArray }* !W _
 VarName      = Name
 FunctionName = Name
 LabelName = Name
@@ -143,14 +144,13 @@ PrimaryExpression = Constant
 
 FunctionCall = VarName {$recv _FunctionCall}*
 _FunctionCall = $({ "(" Arguments? ")" #ArgList })
-_Index        = "[" $(Expression) "]"
+_Index        = "[" $index(Expression) "]"
 _Field        = "." $(VarName)
 Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
 
 ////////////////////////////////
 //// ExternC
 ////////////////////////////////
-CTypeName  = { Ctypes #Ctype } _
 CValue     = '"' { StringContent* #CValue } '"'
 StringContent = ESCAPE
               / &'\\\n' . . / ![\"\n\\] .
@@ -276,12 +276,12 @@ Annotation = { 'vmInstruction' } !W _
 
 ObjectMemberAnnotation = { "embed" } _
 
-Ctypes = 'cint' !W
-       / 'cdouble' !W
-       / 'cstring' !W
-       / 'Displacement' !W
-       / 'Subscript' !W
-       / 'HeapObject' !W
+Ctypes = 'cint'
+       / 'cdouble'
+       / 'cstring'
+       / 'Displacement'
+       / 'Subscript'
+       / 'HeapObject'
 
 ////////////////////////////////
 //// Symbols

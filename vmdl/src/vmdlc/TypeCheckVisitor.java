@@ -423,7 +423,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
     private boolean acceptAssign(AstType type, AstType assign){
         if(type.isSuperOrEqual(assign)) return true;
-        if(type==tCdobule && cNumbers.contains(assign)) return true;
+        if(type.equals(tCdobule) && cNumbers.contains(assign)) return true;
         if(cInts.contains(type) && cInts.contains(assign)) return true;
         return false;
     }
@@ -465,7 +465,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
-            AstType varType = AstType.get(typeNode.toText());
+            AstType varType = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
             Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
@@ -527,7 +527,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree typeNode = initNode.get(Symbol.unique("type"));
             SyntaxTree varNode = initNode.get(Symbol.unique("var"));
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
-            AstType varType = AstType.get(typeNode.toText());
+            AstType varType = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
             Set<TypeMap> doSet = new HashSet<>();
             for(TypeMap typeMap : dict){
@@ -558,10 +558,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class CTypeDef extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
-            AstType type = AstType.get(typeNode.toText());
-            TypeMap.addGlobal(varNode.toText(), type);
+            SyntaxTree varNode = node.get(Symbol.unique("var"));
+            SyntaxTree valueNode = node.get(Symbol.unique("value"));
+            AstType type = AstType.nodeToType(typeNode);
+            String typeName = varNode.toText();
+            String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
+            if(!(type instanceof AstBaseType)){
+                throw new Error("Extern type must be basic type: "+type.toString()+" (at line "+node.getLineNum()+")");
+            }
+            AstType.addAlias(typeName, (AstBaseType)type);
+            AstToCVisitor.addCType(typeName, cValue);
             return dict;
         }
     }
@@ -584,9 +591,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
-            AstType type = AstType.get(typeNode.toText());
-            TypeMap.addGlobal(varNode.toText(), type);
-
+            SyntaxTree valueNode = node.get(Symbol.unique("value"));
+            AstType type = AstType.nodeToType(typeNode);
+            String varName = varNode.toText();
+            String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
+            TypeMap.addGlobal(varName, type);
+            AstToCVisitor.addCConstant(varName, cValue);
             return dict;
         }
     }
@@ -844,10 +854,28 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     //*********************************
 
     public class ArrayIndex extends DefaultVisitor {
+        private boolean isIndex(AstType type){
+            return (type == AstType.get("cint") || type == AstType.get("Subscript"));
+        }
         @Override
-        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            // TODO
-            return dict;
+        public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree recvNode = node.get(Symbol.unique("recv"));
+            SyntaxTree indexNode = node.get(Symbol.unique("index"));
+            ExprTypeSet recvTypeSet = visit(recvNode, dict);
+            ExprTypeSet indexTypeSet = visit(indexNode, dict);
+            ExprTypeSet newSet = EXPR_TYPE.clone();
+            for(AstType type : indexTypeSet){
+                if(!isIndex(type)){
+                    throw new Error("Array index must be cint or Subscript: "+type.toString()+" (at line "+node.getLineNum()+")");
+                }
+            }
+            for(AstType type : recvTypeSet){
+                if(!(type instanceof AstArrayType)){
+                    throw new Error("Array refer with non array type: "+type.toString()+" (at line "+node.getLineNum()+")");
+                }
+                newSet.add(((AstArrayType)type).getElementType());
+            }
+            return newSet;
         }
     }
     public class Field extends DefaultVisitor {
@@ -924,7 +952,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
             String name = node.toText();
             if (dict.containsKey(name)) {
-                ExprTypeSet newSet = EXPR_TYPE.clone();
+                ExprTypeSet newSet = new ExprTypeSetDetail();
                 for(TypeMap map : dict){
                     newSet.add(map.get(name));
                 }
