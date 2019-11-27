@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Arrays;
 import java.lang.Exception;
 
@@ -57,10 +58,21 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             return matchLabel != null && matchLabel.equals(label);
         }
     }
+    private static Map<String, String> cConstTable = new HashMap<>();
+    private static Map<String, String> cTypeTable = new HashMap<>();
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
     OperandSpecifications opSpec;
+    
+    public static void addCConstant(String name, String cValue){
+        cConstTable.put(name, cValue);
+    }
+
+    public static void addCType(String name, String cValue){
+        cTypeTable.put(name, cValue);
+    }
+
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -171,6 +183,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public class CFunction extends DefaultVisitor {
+        public void accept(Tree<?> node, int indent) throws Exception {
+        }
+    }
+
+    public class CConstantDef extends DefaultVisitor {
+        public void accept(Tree<?> node, int indent) throws Exception {
+        }
+    }
+
+    public class CTypeDef extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
         }
     }
@@ -665,7 +687,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Name extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print(node.toText());
+            String name = node.toText();
+            if(cConstTable.containsKey(name)){
+                print(cConstTable.get(name));
+            }else{
+                print(name);
+            }
         }
     }
     public class JSValueTypeName extends DefaultVisitor {
@@ -677,7 +704,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class UserTypeName extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print(node.toText());
+            String nodeName = cTypeTable.get(node.toText());
+            String typeName = cTypeTable.get(nodeName);
+            if(typeName != null){
+                print(typeName);
+            }else{
+                print(nodeName);
+            }
         }
     }
     public class Ctype extends DefaultVisitor {
@@ -689,6 +722,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             varmap.put("cstring", "char*");
             varmap.put("Displacement", "Displacement");
             varmap.put("Subscript", "Subscript");
+            //NOTE: HeapObject cannnot print
             print(varmap.get(node.toText()));
         }
     }
@@ -700,12 +734,4 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print("\"");
         }
     }
-
-    /*
-    public class Trinary extends DefaultVisitor {
-        @Override
-        public void accept(Tree<?> node, int indent) throws Exception {
-        }
-    }
-     */
 }

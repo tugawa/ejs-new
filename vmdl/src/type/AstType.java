@@ -77,6 +77,9 @@ public class AstType {
         vmtToType.put(vmt,  t);
         putChild(parent, AstType.get(vmt));
     }
+    public static void addAlias(String typeName, AstBaseType realType){
+        definedTypes.put(typeName, realType);
+    }
     public static AstBaseType get(String name) {
         return definedTypes.get(name);
     }
@@ -131,7 +134,8 @@ public class AstType {
             }
             return new AstPairType(al);
         } else if (node.is(Symbol.unique("JSValueTypeName")) ||
-                node.is(Symbol.unique("Ctype"))) {
+                node.is(Symbol.unique("Ctype")) ||
+                node.is(Symbol.unique("UserTypeName"))) {
             return AstType.get(node.toText());
         } else if (node.is(Symbol.unique("TopTypeName")))
             return AstType.get("Top");
@@ -177,7 +181,7 @@ public class AstType {
     }
     public AstType lub(AstType that) {
         if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
-            throw new Error("InternalError: AstType lub type error ");
+            throw new Error("InternalError: AstType lub type error "+this.toString()+", "+that.toString());
         }
         AstBaseType a = (AstBaseType)that;
         AstBaseType b = (AstBaseType)this;

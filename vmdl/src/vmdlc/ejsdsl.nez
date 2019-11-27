@@ -158,7 +158,7 @@ StringContent = ESCAPE
 ExternC = "externC" _ CTypeDefinition
         / "externC" _ CFunctionDefinition
         / "externC" _ CConstantDefinition
-CTypeDefinition = { "type" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CTypedef }
+CTypeDefinition = { "type" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CTypeDef }
                 / { ObjectMapping #CObjectmapping }
 ObjectMapping   = "mapping" _ $type(TypeName) "{" $members(ObjectMembers) "}" ";"
 ObjectMembers   = { $(ObjectMember)* #Members }

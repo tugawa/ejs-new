@@ -55,8 +55,10 @@ public class TypeMap{
         dict.replace(key, value);
     }
 
-    public Boolean containsKey(String key) {
-        return dict.containsKey(key);
+    public boolean containsKey(String key) {
+        boolean contain = dict.containsKey(key);
+        if(contain) return true;
+        return global.containsKey(key);
     }
 
     public Set<String> keySet() {
