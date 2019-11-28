@@ -25,8 +25,11 @@ import vmdlc.AstToCVisitor.DefaultVisitor;
 import dispatch.DispatchProcessor;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
+import type.AstType;
+import type.ExprTypeSet;
 import type.TypeMapSet;
 import type.VMDataType;
+import type.AstType.AstMappingType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;
@@ -193,6 +196,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public class CTypeDef extends DefaultVisitor {
+        public void accept(Tree<?> node, int indent) throws Exception {
+        }
+    }
+
+    public class CObjectmapping extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
         }
     }
@@ -635,12 +643,39 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
         }
     }
-    public class Field extends DefaultVisitor {
+    public class FieldAccess extends DefaultVisitor {
+        private void pointerPrint(Tree<?> recvNode, Tree<?> fieldNode) throws Exception {
+            print("*(");
+            embeddedPrint(recvNode, fieldNode);
+            print(")");
+        }
+        private void embeddedPrint(Tree<?> recvNode, Tree<?> fieldNode) throws Exception {
+            visit(recvNode, 0);
+            print(".");
+            visit(fieldNode, 0);
+        }
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            visit(node.get(0), 0);
-            print(".");
-            visit(node.get(1), 0);
+            SyntaxTree recvNode = (SyntaxTree) node.get(Symbol.unique("recv"));
+            SyntaxTree fieldNode = (SyntaxTree) node.get(Symbol.unique("field"));
+            ExprTypeSet exprTypeSet = recvNode.getExprTypeSet();
+            if(exprTypeSet.getTypeSet().size() != 1){
+                throw new Error("Illigal field access");
+            }
+            AstType type = exprTypeSet.getOne();
+            if(!(type instanceof AstMappingType)){
+                throw new Error("Illigal field access");
+            }
+            AstMappingType mtype = (AstMappingType)type;
+            String fieldName = fieldNode.toText();
+            Set<String> annotaions = mtype.getFieldAnnotations(fieldName);
+            if(annotaions != null){
+                if(annotaions.contains("embedded")){
+                    embeddedPrint(recvNode, fieldNode);
+                    return;
+                }
+            }
+            pointerPrint(recvNode, fieldNode);
         }
     }
     public class Float extends DefaultVisitor {
@@ -704,7 +739,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class UserTypeName extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            String nodeName = cTypeTable.get(node.toText());
+            String nodeName = node.toText();
             String typeName = cTypeTable.get(nodeName);
             if(typeName != null){
                 print(typeName);

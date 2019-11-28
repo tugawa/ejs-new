@@ -165,6 +165,13 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class FieldAccess extends DefaultVisitor {
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            SyntaxTree recv = (SyntaxTree) node.get(Symbol.unique("recv"));
+            visit(recv, dict);
+        }
+    }
+
     public class Name extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, VarDict dict) throws Exception {

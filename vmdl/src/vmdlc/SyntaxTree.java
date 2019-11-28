@@ -97,6 +97,10 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         exprTypeSet = _exprTypeSet;
     }
     
+    public ExprTypeSet getExprTypeSet() {
+        return exprTypeSet;
+    }
+
     public void setTypeMapSet(TypeMapSet dict) {
         this.dict = dict;
     }

@@ -16,6 +16,17 @@ public class TypeMapSetLub extends TypeMapSetFull {
     }
 
     @Override
+    public void setTypeMapSet(Set<TypeMap> _typeMapSet){
+        TypeMap newMap = null;
+        for(TypeMap map : _typeMapSet){
+            newMap = map.lub(newMap);
+        }
+        Set<TypeMap> newSet = new HashSet<>();
+        newSet.add(newMap);
+        super.setTypeMapSet(newSet);
+    }
+
+    @Override
     public Set<TypeMap> getAddedSet(TypeMap typeMap, String name, AstType type){
         Set<TypeMap> addedSet = new HashSet<>();
         TypeMap temp = typeMap.clone();

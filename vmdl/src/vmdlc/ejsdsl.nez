@@ -145,7 +145,7 @@ PrimaryExpression = Constant
 FunctionCall = VarName {$recv _FunctionCall}*
 _FunctionCall = $({ "(" Arguments? ")" #ArgList })
 _Index        = "[" $index(Expression) "]"
-_Field        = "." $(VarName)
+_Field        = "." $field(VarName)
 Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
 
 ////////////////////////////////
@@ -274,7 +274,7 @@ Annotation = { 'vmInstruction' } !W _
            / { 'tailCall' } !W _
            / { 'noIncPC' } !W _
 
-ObjectMemberAnnotation = { "embed" } _
+ObjectMemberAnnotation = { "embedded" } _
 
 Ctypes = 'cint'
        / 'cdouble'
@@ -301,7 +301,7 @@ Ctypes = 'cint'
 "," = ',' _
 "->" = '->' _
 "constant" = 'constant' !W
-"embed" = 'embed' !W
+"embedded" = 'embedded' !W
 "match" = 'match' !W
 "case" = 'case' !W
 "if" = 'if' !W

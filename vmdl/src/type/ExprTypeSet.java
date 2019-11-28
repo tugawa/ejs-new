@@ -25,6 +25,13 @@ public abstract class ExprTypeSet implements Iterable<AstType>{
         return typeSet;
     }
 
+    public AstType getOne(){
+        for(AstType type : typeSet){
+            return type;
+        }
+        return null;
+    }
+
     @Override
     public String toString(){
         return typeSet.toString();

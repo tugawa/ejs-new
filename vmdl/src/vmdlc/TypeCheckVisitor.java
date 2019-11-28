@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -173,12 +174,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     // Visit for expression
     private final ExprTypeSet visit(SyntaxTree node, TypeMap dict) throws Exception {
         /*
-         * System.err.println("==================");
-         * System.err.println(node.getTag().toString());
-         * System.err.println(node.toString()); System.err.println("----");
-         * System.err.println("dict:"+dict.toString()); System.err.println("----");
-         * System.err.println("exprMap:"+dict.getExprTypeMap().toString());
-         */
+        System.err.println("==================");
+        System.err.println(node.getTag().toString());
+        System.err.println(node.toString());
+        System.err.println("----");
+        System.err.println("dict:"+dict.toString());
+        System.err.println("----");
+        */
         return find(node.getTag().toString()).accept(node, dict);
     }
 
@@ -372,10 +374,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Rematch extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            String label = node.get(Symbol.unique("label")).toText();
+            SyntaxTree labelNode = node.get(Symbol.unique("label"));
+            String label = labelNode.toText();
             TypeMapSet matchDict = matchStack.getDict(label);
             if (matchDict == null){
-                throw new Error("Labeled Match not found: "+label+" (at line "+node.getLineNum()+")");
+                ErrorPrinter.error("Labeled Match not found: "+label, labelNode);
             }
             Set<String> domain = matchDict.getKeys();
             String[] matchParams = matchStack.getParams(label);
@@ -438,12 +441,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(TypeMap typeMap : dict){
                 AstType leftType = typeMap.get(leftName);
                 if(leftType instanceof JSValueType){
-                    throw new Error("JSValue variable cannot assign (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("JSValue variable cannot assign", leftNode);
+                    break;
                 }
                 ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
                 for(AstType type : exprTypeSet){
                     if(!acceptAssign(leftType, type)){
-                        throw new Error("Expression types "+type+", need types "+leftType+" (at line "+node.getLineNum()+")");
+                        ErrorPrinter.error("Expression types "+type+", need types "+leftType, rightNode);
                     }
                     TypeMap temp = typeMap.clone();
                     Set<TypeMap> assignedSet = dict.getAssignedSet(temp, leftName, type);
@@ -466,13 +470,16 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree exprNode = node.get(Symbol.unique("expr"));
             AstType varType = AstType.nodeToType(typeNode);
+            if(varType==null){
+                ErrorPrinter.error("Type not found: "+typeNode.toText(), typeNode);
+            }
             String varName = varNode.toText();
             Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
                     if(!acceptAssign(varType, type)){
-                        throw new Error("Expression types "+type+", need types "+varType+" (at line "+node.getLineNum()+")");
+                        ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);
                     }
                     TypeMap temp = typeMap.clone();
                     Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, type);
@@ -503,9 +510,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             } else {
                 TypeMapSet elseDict = visit(elseNode, copyDict);
                 if(!thenDict.getKeys().equals(elseDict.getKeys())){
-                    throw new Error("Both environment keys must be equal: "
-                    +thenDict.getKeys().toString()+", "+elseDict.getKeys().toString()
-                    +" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Both environment keys must be equal", node);
                 }
                 resultDict = thenDict.combine(elseDict);
             }
@@ -534,7 +539,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
                 for(AstType t : exprTypeSet){
                     if(!(varType.isSuperOrEqual(t))){
-                        throw new Error("Illigal type declare: "+t.toString()+" (at line "+node.getLineNum()+")");
+                        ErrorPrinter.error("Illigal type declare: "+t.toString(), exprNode);
                     }
                     doSet.addAll(dict.getAddedSet(typeMap, varName, t));
                 }
@@ -565,10 +570,35 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String typeName = varNode.toText();
             String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
             if(!(type instanceof AstBaseType)){
-                throw new Error("Extern type must be basic type: "+type.toString()+" (at line "+node.getLineNum()+")");
+                ErrorPrinter.error("Extern type must be basic type: "+type.toString(), typeNode);
+                type = AstType.get("Top");
             }
             AstType.addAlias(typeName, (AstBaseType)type);
             AstToCVisitor.addCType(typeName, cValue);
+            return dict;
+        }
+    }
+
+    public class CObjectmapping extends DefaultVisitor {
+        @Override
+        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            SyntaxTree mappingTypeNode = node.get(Symbol.unique("type"));
+            SyntaxTree membersNode = node.get(Symbol.unique("members"));
+            String mappingTypeName = mappingTypeNode.toText();
+            AstMappingType mappingType = AstType.defineMappingType(mappingTypeName);
+            for(SyntaxTree memberNode : membersNode){
+                SyntaxTree typeNode = memberNode.get(Symbol.unique("type"));
+                SyntaxTree varNode = memberNode.get(Symbol.unique("var"));
+                Set<String> annotations = Collections.emptySet();
+                if(memberNode.has(Symbol.unique("annotations"))){
+                    SyntaxTree anotationsNode = memberNode.get(Symbol.unique("annotations"));
+                    annotations = new HashSet<>();
+                    annotations.add(anotationsNode.toText());
+                }
+                AstType type = AstType.nodeToType(typeNode);
+                String name = varNode.toText();
+                mappingType.addField(annotations, name, type);
+            }
             return dict;
         }
     }
@@ -620,8 +650,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             ExprTypeSet elseExprTypeSet = visit(elseNode, dict);
             for(AstType type : condExprTypeSet){
                 if(type != AstType.get("cint")){
-                    throw new Error("Illigal types given in trinary operator condition: "
-                        +condExprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Condition must type cint: "+condExprTypeSet.toString(), condNode);
                 }
             }
             return thenExprTypeSet.combine(elseExprTypeSet);
@@ -642,8 +671,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (AstType rt : rightExprTypeSet){
                 AstType result = checker.typeOf(lt, rt);
                 if(result == null){
-                    throw new Error("Illigal types given in operator: "
-                        +lt.toString()+","+rt.toString()+" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Illigal types given in operator: "
+                        +lt.toString()+","+rt.toString(), node);
+                    result = AstType.BOT;
                 }
                 resultTypeSet.add(result);
             }
@@ -788,7 +818,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (AstType t : exprTypeSet) {
                 AstType result = checker.typeOf(t);
                 if(result == null){
-                    throw new Error("Illigal types given in operator: "+exprTypeSet.toString()+" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Illigal types given in operator: "+t.toString(), node);
+                    result = AstType.BOT;
                 }
                 resultTypeSet.add(result);
             }
@@ -834,10 +865,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String functionName = recv.toText();
             AstType type = dict.get(functionName);
             if(type == null){
-                throw new Error("function is not defined: "+functionName);
+                ErrorPrinter.error("Function not found: "+functionName, recv);
             }
             if(!(type instanceof AstProductType)){
-                throw new Error("function is not AstProductType: "+functionName);
+                ErrorPrinter.error("Non function refered as function: "+functionName, recv);
             }
             AstProductType functionType = (AstProductType)type;
             //TODO: domain check
@@ -866,23 +897,39 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             ExprTypeSet newSet = EXPR_TYPE.clone();
             for(AstType type : indexTypeSet){
                 if(!isIndex(type)){
-                    throw new Error("Array index must be cint or Subscript: "+type.toString()+" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Array index must be cint or Subscript: "+type.toString(), indexNode);
                 }
             }
             for(AstType type : recvTypeSet){
                 if(!(type instanceof AstArrayType)){
-                    throw new Error("Array refer with non array type: "+type.toString()+" (at line "+node.getLineNum()+")");
+                    ErrorPrinter.error("Non array refered as Array: "+type.toString(), recvNode);
                 }
                 newSet.add(((AstArrayType)type).getElementType());
             }
             return newSet;
         }
     }
-    public class Field extends DefaultVisitor {
+    public class FieldAccess extends DefaultVisitor {
         @Override
-        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            // TODO
-            return dict;
+        public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
+            SyntaxTree recvNode = node.get(Symbol.unique("recv"));
+            SyntaxTree fieldNode = node.get(Symbol.unique("field"));
+            ExprTypeSet recvTypeSet = visit(recvNode, dict);
+            String fieldName = fieldNode.toText();
+            ExprTypeSet fieldTypeSet = EXPR_TYPE.clone();
+            for(AstType type : recvTypeSet){
+                if(!(type instanceof AstMappingType)){
+                    ErrorPrinter.error("Non mappingobject refered as mappingobject: "+type.toString(), recvNode);
+                }
+                AstMappingType mappingType = (AstMappingType) type;
+                AstType fieldType = mappingType.getFieldType(fieldName);
+                if(fieldType == null){
+                    ErrorPrinter.error("Field not found: "+fieldName, fieldNode);
+                }
+                fieldTypeSet.add(fieldType);
+            }
+            recvNode.setExprTypeSet(recvTypeSet);
+            return fieldTypeSet;
         }
     }
 
@@ -943,7 +990,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
             String name = node.toText();
             if (!dict.containsKey(name)) {
-                throw new Error("No such name: "+"\""+name+"\" (at line "+node.getLineNum()+")");
+                ErrorPrinter.error("Name not found: "+name, node);
             }
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(dict.get(name));

@@ -149,11 +149,12 @@ public class Main {
 
         SyntaxTree ast = parse(sourceFile);
 
+        ErrorPrinter.setSource(sourceFile);
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
-
+        
         String program = new AstToCVisitor().start(ast, opSpec);
 
         System.out.println(program);

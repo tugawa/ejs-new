@@ -42,8 +42,9 @@ HeapObject
  */
 
 public class AstType {
-    static Map<String, AstBaseType> definedTypes = new HashMap<String, AstBaseType>();
-    static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<VMDataType, JSValueVMType>();
+    static Map<String, AstBaseType> definedTypes = new HashMap<>();
+    static Map<String, AstMappingType> definedMappingTypes = new HashMap<>();
+    static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<>();
     static Map<AstBaseType, Set<AstType>> childrenMap = new HashMap<>();
     static void defineType(String name) {
         defineType(name, null);
@@ -77,6 +78,11 @@ public class AstType {
         vmtToType.put(vmt,  t);
         putChild(parent, AstType.get(vmt));
     }
+    public static AstMappingType defineMappingType(String name) {
+        AstMappingType type = new AstMappingType(name);
+        definedMappingTypes.put(name, type);
+        return type;
+    }
     public static void addAlias(String typeName, AstBaseType realType){
         definedTypes.put(typeName, realType);
     }
@@ -84,7 +90,9 @@ public class AstType {
         if(name.endsWith("[]")){
             return new AstArrayType(get(name.substring(0, name.length()-2)));
         }
-        return definedTypes.get(name);
+        AstBaseType type = definedTypes.get(name);
+        if(type != null) return type;
+        return definedMappingTypes.get(name);
     }
     public static JSValueVMType get(VMDataType vmt) {
         return vmtToType.get(vmt);
@@ -362,6 +370,68 @@ HeapObject
             if(obj == null) return false;
             if(!(obj instanceof AstArrayType)) return false;
             return elementType.equals(((AstArrayType)obj).elementType);
+        }
+    }
+
+    public static class AstMappingType extends AstType{
+        Set<Field> members;
+        private AstMappingType(String _name){
+            name = _name;
+            members = new HashSet<>();
+        }
+        @Override
+        public String toString(){
+            return name;
+        }
+        public AstType getFieldType(String name){
+            for(Field field : members){
+                if(field.name.equals(name)) return field.type;
+            }
+            return null;
+        }
+        public Set<String> getFieldAnnotations(String name){
+            for(Field field : members){
+                if(field.name.equals(name)) return field.annotations;
+            }
+            return null;
+        }
+        public void addField(Set<String> annotations, String name, AstType type){
+            members.add(new Field(annotations, name, type));
+        }
+        @Override
+        public int hashCode(){
+            return name.hashCode();
+        }
+        @Override
+        public boolean equals(Object obj){
+            if(obj == null) return false;
+            if(!(obj instanceof AstMappingType)) return false;
+            AstMappingType that = (AstMappingType)obj;
+            return (name.equals(that.name) && members.equals(that.members));
+        }
+
+        private class Field{
+            private Set<String> annotations;
+            private String name;
+            private AstType type;
+            private Field(Set<String> _annotations, String _name, AstType _type){
+                annotations = _annotations;
+                name = _name;
+                type = _type;
+            }
+            @Override
+            public int hashCode(){
+                return name.hashCode();
+            }
+            @Override
+            public boolean equals(Object obj){
+                if(obj == null) return false;
+                if(!(obj instanceof Field)) return false;
+                Field that = (Field)obj;
+                return (name.equals(that.name)
+                     && annotations.equals(that.annotations)
+                     && type.equals(type));
+            }
         }
     }
 }

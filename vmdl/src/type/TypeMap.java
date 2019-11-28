@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Collection;
 import java.util.Set;
-
+import java.util.Map.Entry;
 import java.lang.Error;
 
 public class TypeMap{
@@ -53,6 +53,17 @@ public class TypeMap{
             throw new Error("InternalError: the element is not exist: "+key);
         }
         dict.replace(key, value);
+    }
+
+    public TypeMap lub(TypeMap that){
+        if(that == null) return clone();
+        Map<String, AstType> newMap = new HashMap<>();
+        for(Entry<String, AstType> entry : dict.entrySet()){
+            String name = entry.getKey();
+            AstType type = that.get(name).lub(entry.getValue());
+            newMap.put(name, type);
+        }
+        return new TypeMap(newMap);
     }
 
     public boolean containsKey(String key) {
