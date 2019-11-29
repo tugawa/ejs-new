@@ -19,7 +19,6 @@ externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
 externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
 externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
 
-externC FixnumToCint: Fixnum -> cint
 externC FlonumToCint: Flonum -> cint
 
 externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
@@ -43,7 +42,6 @@ externC (needContext, triggerGC) Call_function : (JSValue, cint, cint) -> void
 externC (needContext, triggerGC) Call_builtin : (JSValue, cint, cint, cint) -> void
 externC (needContext, triggerGC) Tailcall_function : (JSValue, cint, cint) -> void
 externC (needContext, triggerGC) Tailcall_builtin : (JSValue, cint, cint) -> void
-externC Update_context : void -> void
 externC Next_insn_noincpc : void -> void
 externC Next_insn_incpc : void -> void
 
@@ -56,12 +54,11 @@ externC IsFlonumNegInfinity : JSValue -> cint
 externC IsFlonumNan : JSValue -> cint
 externC IsFixnumZero : JSValue -> cint
 externC Isobject : JSValue -> JSValue
-externC LogicalRightShift : cint -> cint
+externC LogicalRightShift : (cint, cint) -> cint
 
 externC Floor : cdouble -> cdouble
 externC Ceil : cdouble -> cdouble
 
-externC Next_insn_noincpc : void -> void
 externC toBoolean : JSValue -> JSValue
 
 externC (needContext, triggerGC) Get_a : void -> JSValue
@@ -83,7 +80,7 @@ externC Logexit : cstring -> void
 externC Nextpropnameidx : JSValue -> JSValue
 
 externC (needContext) New_normal_object : void -> JSObject
-externC (needContext) Initialize_new_object : (JSValue, JSValue) -> JSValue
+externC (needContext) Initialize_new_object : (JSValue, JSValue) -> JSObject
 externC JS_undefined : void -> JSObject
 externC Newframe : cint -> void
 externC Makearguments : void -> void
@@ -104,3 +101,6 @@ externC Setglobal : (JSValue, JSValue) -> void
 externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
+
+externC constant Bool JS_TRUE = "JS_TRUE";
+externC constant Bool JS_FALSE = "JS_FALSE";

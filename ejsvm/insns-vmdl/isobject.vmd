@@ -8,10 +8,10 @@ isobject : JSValue -> JSValue
 isobject (v1) {
     top: match (v1) {
       case (object v1) {
-          return true;
+          return JS_TRUE;
       }
       case (true) {
-          return false;
+          return JS_FALSE;
       }
     }
 

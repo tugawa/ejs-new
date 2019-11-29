@@ -24,7 +24,7 @@ mod (v1, v2) {
         return Flonum_Nan();
       } else {
         cdouble d = x1 / x2;
-        cdouble d2 = d >= 0 ? Floor(d) : Ceil(d);
+        cdouble d2 = d >= 0.0 ? Floor(d) : Ceil(d);
         cdouble d3 = x1 - (d2 * x2);
         return CdoubleToNumber(d3);
       }

@@ -17,12 +17,12 @@ unsignedrightshift (v1, v2) {
       return CintToFixnum(LogicalRightShift(x1, x2));
     }
     case (Flonum v1 && Fixnum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
+      cint x1 = ((FlonumToCint(v1) << 32) >> 32);
       cint x2 = FixnumToCint(v2);
       return CintToFixnum(LogicalRightShift(x1, x2));
     }
     case (Flonum v1 && Flonum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
+      cint x1 = ((FlonumToCint(v1) << 32) >> 32);
       cint x2 = FlonumToCint(v2);
       return CintToFixnum(LogicalRightShift(x1, x2));
     }

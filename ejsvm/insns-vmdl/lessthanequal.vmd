@@ -3,20 +3,20 @@
 #include "externc.vmdh"
 
 (vmInstruction, needContext)
-lessthanequal : (JSValue, JSValue) -> Fixnum
+lessthanequal : (JSValue, JSValue) -> Bool
 
 lessthanequal (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      return FIXNUM_LESSTHANEQ(v1, v2) ? true : false;
+      return FIXNUM_LESSTHANEQ(v1, v2) ? JS_TRUE : JS_FALSE;
     }
     case (number v1 && number v2) {
       cdouble x1 = toCdouble(v1);
       cdouble x2 = toCdouble(v2);
-      return x1 <= x2 ? true : false;
+      return x1 <= x2 ? JS_TRUE : JS_FALSE;
     }
     case (String v1 && String v2) {
-      return Strcmp(String_to_cstr(v1), String_to_cstr(v2)) <= 0 ? true : false;
+      return Strcmp(String_to_cstr(v1), String_to_cstr(v2)) <= 0 ? JS_TRUE : JS_FALSE;
     }
     case ((String v1 || Special v1) && (String v2 || Special v2)) {
       Number u1 = toNumber(v1);

@@ -27,7 +27,7 @@ div (v1, v2) {
       cdouble x2 = toCdouble(v2);
       cdouble d = x1 / x2;
       if (IsFlonumInfinity(CdoubleToFlonum(d))) {
-          return d > 0 ? Flonum_Infinity() : Flonum_NegInfinity();
+          return d > 0.0 ? Flonum_Infinity() : Flonum_NegInfinity();
       } else if (IsFlonumNan(CdoubleToFlonum(d))) {
           return Flonum_Nan();
       } else {

@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import type.VMDataType;
+import vmdlc.ErrorPrinter;
 import vmdlc.SyntaxTree;
 import nez.ast.Symbol;
 
@@ -147,9 +148,14 @@ public class AstType {
         } else if(node.is(Symbol.unique("TypeArray"))) {
             return new AstArrayType(nodeToType(node.get(Symbol.unique("type"))));
         }else if (node.is(Symbol.unique("JSValueTypeName")) ||
-                node.is(Symbol.unique("Ctype")) ||
-                node.is(Symbol.unique("UserTypeName"))) {
+                node.is(Symbol.unique("Ctype"))){
             return AstType.get(node.toText());
+        }else if (node.is(Symbol.unique("UserTypeName"))) {
+            AstType type = AstType.get(node.toText());
+            if(type == null){
+                ErrorPrinter.error("Unkwon type: "+node.toText(), node);
+            }
+            return type;
         } else if (node.is(Symbol.unique("TopTypeName")))
             return AstType.get("Top");
         else if (node.is(Symbol.unique("VoidTypeName")))

@@ -5,25 +5,28 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-//import java.util.StringUtils;
-
 public class ErrorPrinter{
-    private static List<String> code = null;
+    private static List<String> codes = null;
 
     public static void error(String message, SyntaxTree node){
         StringBuilder builder = new StringBuilder();
         int line = node.getLineNum();
         long column = node.getSourcePosition();
         int textLength = node.toText().length();
-        for(int i=0; i<line-1; i++) column -= code.get(i).length() + 1;
+        for(int i=0; i<line-1; i++){
+            column -= codes.get(i).length() + 1;
+        }
         builder.append("[error] ");
         builder.append(message);
         builder.append(" (at line "+line+":"+column+")\n\n");
-        if(code != null){
-            builder.append(code.get(line-1));
+        if(codes != null){
+            String code = codes.get(line-1);
+            int lineLength = code.length();
+            builder.append(code);
+            if(textLength+column-1 >= lineLength) builder.append(" ...");
             builder.append('\n');
             for(int i=0; i<column; i++) builder.append(' ');
-            for(int i=0; i<textLength; i++) builder.append('^');
+            for(int i=0; i<textLength && i+column<lineLength; i++) builder.append('^');
         }
         builder.append('\n');
         System.err.print(builder.toString());
@@ -32,9 +35,9 @@ public class ErrorPrinter{
 
     public static void setSource(String path){
         try{
-            code = Files.readAllLines(Paths.get(path));
+            codes = Files.readAllLines(Paths.get(path));
         }catch(IOException e){
-            code = null;
+            codes = null;
         }
     }
 }

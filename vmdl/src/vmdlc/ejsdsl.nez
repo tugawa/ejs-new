@@ -80,9 +80,10 @@ If = { "if" _ "(" $cond(Expression) ")"
        $then(Statement)
        ("else" _ $else(Statement))? #If }
 
-Do     = { "do" _ "(" $init(DoInit)? "step" _ $step(DoStep)? ")"
+Do     = { "do" _ "(" $init(DoInit)? "to" _ $limit(DoLimit)? "step" _ $step(DoStep)? ")"
                   $block(Block) #Do }
 DoInit = { $type(TypeName) $var(VarName) "=" $expr(Expression) #DoInit}
+DoLimit = { $(Expression) #DoLimit }
 DoStep = { $(Expression) #DoStep }
 
 Rematch = { "rematch" _ $label(LabelName) "(" $(VarName) ("," $(VarName))* ")" ";" #Rematch }
@@ -143,7 +144,7 @@ PrimaryExpression = Constant
                   / VarName
 
 FunctionCall = VarName {$recv _FunctionCall}*
-_FunctionCall = $({ "(" Arguments? ")" #ArgList })
+_FunctionCall = $args({ "(" Arguments? ")" #ArgList })
 _Index        = "[" $index(Expression) "]"
 _Field        = "." $field(VarName)
 Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
@@ -307,6 +308,7 @@ Ctypes = 'cint'
 "if" = 'if' !W
 "else" = 'else' !W
 "do" = 'do' !W
+"to" = 'to' !W
 "step" = 'step' !W
 "rematch" = 'rematch' !W
 "pattern" = 'pattern' !W

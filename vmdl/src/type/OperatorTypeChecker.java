@@ -111,6 +111,9 @@ public class OperatorTypeChecker{
     BITWISE_OR.add(CINT, CINT, T_CINT);
     // LESSTHAN_EQUALS, GRATORTHAN_EQUALS, LESSTHAN, GRATORTHAN
     LESSTHAN_EQUALS.add(CINT, CINT, T_CINT);
+    LESSTHAN_EQUALS.add(CDOUBLE, CDOUBLE, T_CINT);
+    LESSTHAN_EQUALS.add(SUBSCRIPT, SUBSCRIPT, T_CINT);
+    LESSTHAN_EQUALS.add(DISPLACEMENT, DISPLACEMENT, T_CINT);
     // LEFT_SHIFT, RIGHT_SHIFT
     LEFT_SHIFT.add(CINT, CINT, T_CINT);
     // NOTE: EQUALS and NOT_EQUALS defined in EqualsOperatorTypeChecker
@@ -146,6 +149,6 @@ class EqualsOperatorTypeChecker extends OperatorTypeChecker{
     if(!lindex.equals(rindex)){
       return null;
     }
-    return ltype;
+    return AstType.get("cint");
   }
 }

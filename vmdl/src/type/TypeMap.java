@@ -105,11 +105,12 @@ public class TypeMap{
         return false;
     }
 
-    public static void addGlobal(String key, AstType value) {
+    public static boolean addGlobal(String key, AstType value) {
         if(global.get(key) != null){
-            System.err.println("InternalWarnig: Double define: "+key);
+            return false;
         }
         global.put(key, value);
+        return true;
     }
 
     @Override

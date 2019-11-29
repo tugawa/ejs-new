@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.Map;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -188,6 +189,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).saveType(node, dict);
     }
 
+    private final void saveFunction(SyntaxTree node, AstProductType type) throws Exception{
+        find(node.getTag().toString()).saveFunctionType(node, type);
+    }
+
     public class DefaultVisitor {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             return dict;
@@ -200,6 +205,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
             for (SyntaxTree chunk : node) {
                 save(chunk, dict);
+            }
+        }
+
+        public void saveFunctionType(SyntaxTree node, AstProductType type) throws Exception {
+            for (SyntaxTree chunk : node) {
+                saveFunction(chunk, type);
             }
         }
     }
@@ -219,7 +230,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
-            TypeMap.addGlobal(name, funtype);
+            boolean isAdded = TypeMap.addGlobal(name, funtype);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+name, node);
+            }
 
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
@@ -293,13 +307,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         }
                     }
                 }
+            }else{
+                newSet2 = Collections.emptySet();
             }
             TypeMapSet newDict = TYPE_MAP.clone();
             newDict.setTypeMapSet(newSet2);
             newDict.setDispatchSet(node.getRematchVarSet());
             SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));
-            dict = visit((SyntaxTree) body, newDict);
-
+            saveFunction(body, funtype);
+            dict = visit(body, newDict);
             save(nameNode, dict);
             save(nodeName, dict);
             save(paramsNode, dict);
@@ -339,6 +355,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
         }
+
     }
 
     public class Match extends DefaultVisitor {
@@ -397,13 +414,36 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public class Return extends DefaultVisitor {
+        AstProductType functionType;
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            if(functionType == null){
+                throw new Error("Connnot solve functionType: null");
+            }
+            AstType rangeType = functionType.getRange();
+            if(rangeType == null){
+                throw new Error("function range typs null");
+            }
+            if(rangeType != AstType.get("void")){
+                SyntaxTree valNode = node.get(0);
+                for(TypeMap map : dict){
+                    ExprTypeSet exprTypeSet = visit(valNode, map);
+                    for(AstType t : exprTypeSet){
+                        if(!(rangeType.isSuperOrEqual(t))){
+                            ErrorPrinter.error("Return type "+t+", function types "+functionType.toString(), valNode);
+                        }
+                    }
+                }
+            }
             save(node.get(0), dict);
             return dict;
         }
 
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
+        }
+
+        public void saveFunctionType(SyntaxTree node, AstProductType type) throws Exception {
+            functionType = type;
         }
     }
 
@@ -424,11 +464,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         cInts.add(tDisplacement);
 
     }
-    private boolean acceptAssign(AstType type, AstType assign){
-        if(type.isSuperOrEqual(assign)) return true;
-        if(type.equals(tCdobule) && cNumbers.contains(assign)) return true;
-        if(cInts.contains(type) && cInts.contains(assign)) return true;
-        return false;
+    private AstType getAssignType(AstType type, AstType assign){
+        if(type.isSuperOrEqual(assign)) return assign;
+        if(type.equals(tCdobule) && cNumbers.contains(assign)) return tCdobule;
+        if(cInts.contains(type) && cInts.contains(assign)) return tCint;
+        return null;
     }
 
     public class Assignment extends DefaultVisitor {
@@ -442,15 +482,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 AstType leftType = typeMap.get(leftName);
                 if(leftType instanceof JSValueType){
                     ErrorPrinter.error("JSValue variable cannot assign", leftNode);
-                    break;
                 }
                 ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
                 for(AstType type : exprTypeSet){
-                    if(!acceptAssign(leftType, type)){
+                    AstType assginedType = getAssignType(leftType, type);
+                    if(assginedType == null){
                         ErrorPrinter.error("Expression types "+type+", need types "+leftType, rightNode);
                     }
                     TypeMap temp = typeMap.clone();
-                    Set<TypeMap> assignedSet = dict.getAssignedSet(temp, leftName, type);
+                    Set<TypeMap> assignedSet = dict.getAssignedSet(temp, leftName, assginedType);
                     newSet.addAll(assignedSet);
                 }
             }
@@ -478,11 +518,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
-                    if(!acceptAssign(varType, type)){
+                    AstType assginedType = getAssignType(varType, type);
+                    if(assginedType == null){
                         ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);
                     }
                     TypeMap temp = typeMap.clone();
-                    Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, type);
+                    Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, assginedType);
                     newSet.addAll(addedSet);
                 }
             }
@@ -529,6 +570,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree initNode = node.get(Symbol.unique("init"));
+            SyntaxTree limitNode = node.get(Symbol.unique("limit"));
+            SyntaxTree stepNode = node.get(Symbol.unique("step"));
             SyntaxTree typeNode = initNode.get(Symbol.unique("type"));
             SyntaxTree varNode = initNode.get(Symbol.unique("var"));
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
@@ -537,11 +580,23 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             Set<TypeMap> doSet = new HashSet<>();
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
+                ExprTypeSet limitExprTypeSet = visit(limitNode.get(0), typeMap);
+                ExprTypeSet stepExprTypeSet = visit(stepNode.get(0), typeMap);
                 for(AstType t : exprTypeSet){
                     if(!(varType.isSuperOrEqual(t))){
-                        ErrorPrinter.error("Illigal type declare: "+t.toString(), exprNode);
+                        ErrorPrinter.error("Expression types "+t+", need types "+varType, exprNode);
                     }
                     doSet.addAll(dict.getAddedSet(typeMap, varName, t));
+                }
+                for(AstType t : limitExprTypeSet){
+                    if(!(varType.isSuperOrEqual(t))){
+                        ErrorPrinter.error("Expression types "+t+", need types "+varType, limitNode.get(0));
+                    }
+                }
+                for(AstType t : stepExprTypeSet){
+                    if(!(varType.isSuperOrEqual(t))){
+                        ErrorPrinter.error("Expression types "+t+", need types "+varType, stepNode.get(0));
+                    }
                 }
             }
             TypeMapSet doDict = TYPE_MAP.clone();
@@ -549,9 +604,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             TypeMapSet savedDict;
             do {
                 savedDict = doDict.clone();
-                SyntaxTree blockNode = initNode.get(Symbol.unique("block"));
+                SyntaxTree blockNode = node.get(Symbol.unique("block"));
                 doDict = visit(blockNode, doDict);
-            } while (!dict.equals(savedDict));
+            } while (!doDict.equals(savedDict));
             return dict;
         }
     }
@@ -571,7 +626,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
             if(!(type instanceof AstBaseType)){
                 ErrorPrinter.error("Extern type must be basic type: "+type.toString(), typeNode);
-                type = AstType.get("Top");
             }
             AstType.addAlias(typeName, (AstBaseType)type);
             AstToCVisitor.addCType(typeName, cValue);
@@ -611,7 +665,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType range = AstType.nodeToType(typeNode.get(1));
             SyntaxTree nameNode = node.get(Symbol.unique("name"));
             AstType type = new AstProductType(domain, range);
-            TypeMap.addGlobal(nameNode.toText(), type);
+            String name = nameNode.toText();
+            boolean isAdded = TypeMap.addGlobal(name, type);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+name, node);
+            }
             return dict;
         }
     }
@@ -625,7 +683,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             AstType type = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
             String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
-            TypeMap.addGlobal(varName, type);
+            boolean isAdded = TypeMap.addGlobal(varName, type);
+            if(!isAdded){
+                ErrorPrinter.error("Double define: "+varName, node);
+            }
             AstToCVisitor.addCConstant(varName, cValue);
             return dict;
         }
@@ -650,7 +711,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             ExprTypeSet elseExprTypeSet = visit(elseNode, dict);
             for(AstType type : condExprTypeSet){
                 if(type != AstType.get("cint")){
-                    ErrorPrinter.error("Condition must type cint: "+condExprTypeSet.toString(), condNode);
+                    ErrorPrinter.error("Condition must type cint: "+type.toString(), condNode);
                 }
             }
             return thenExprTypeSet.combine(elseExprTypeSet);
@@ -673,7 +734,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if(result == null){
                     ErrorPrinter.error("Illigal types given in operator: "
                         +lt.toString()+","+rt.toString(), node);
-                    result = AstType.BOT;
                 }
                 resultTypeSet.add(result);
             }
@@ -819,7 +879,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 AstType result = checker.typeOf(t);
                 if(result == null){
                     ErrorPrinter.error("Illigal types given in operator: "+t.toString(), node);
-                    result = AstType.BOT;
                 }
                 resultTypeSet.add(result);
             }
@@ -859,20 +918,50 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     //*********************************
 
     public class FunctionCall extends DefaultVisitor {
+        private void checkArguments(List<AstType> argTypes, SyntaxTree argsNode, TypeMap dict) throws Exception{
+            SyntaxTree[] argNodes = (SyntaxTree[])argsNode.getSubTree();
+            int length = argNodes.length;
+            for(int i=0; i<length; i++){
+                ExprTypeSet argRealTypes = visit(argNodes[i], dict);
+                for(AstType t : argRealTypes){
+                    if(!argTypes.get(i).isSuperOrEqual(t)){
+                        ErrorPrinter.error("Argument types "+t.toString()
+                            +", need types "+argTypes.get(i), argNodes[i]);
+                    }
+                }
+            }
+        }
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-            SyntaxTree recv = node.get(Symbol.unique("recv"));
-            String functionName = recv.toText();
+            SyntaxTree recvNode = node.get(Symbol.unique("recv"));
+            String functionName = recvNode.toText();
             AstType type = dict.get(functionName);
             if(type == null){
-                ErrorPrinter.error("Function not found: "+functionName, recv);
+                ErrorPrinter.error("Function not found: "+functionName, recvNode);
             }
             if(!(type instanceof AstProductType)){
-                ErrorPrinter.error("Non function refered as function: "+functionName, recv);
+                ErrorPrinter.error("Non function refered as function: "+functionName, recvNode);
             }
             AstProductType functionType = (AstProductType)type;
-            //TODO: domain check
-            //AstType domain = functionType.getDomain();
+            AstType domain = functionType.getDomain();
+            List<AstType> argTypes;
+            if(domain instanceof AstPairType){
+                argTypes = ((AstPairType)domain).getTypes();
+            }else{
+                argTypes = new ArrayList<>();
+                argTypes.add(domain);
+            }
+            SyntaxTree argsNode = node.get(Symbol.unique("args"));
+            if(argsNode.size()==0){
+                if(argTypes.size() != 1 || !argTypes.contains(AstType.get("void"))){
+                    ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
+                }
+            }else{
+                if(argsNode.size() != argTypes.size()){
+                    ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
+                }
+                checkArguments(argTypes, argsNode, dict);
+            }
             AstType range  = functionType.getRange();
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(range);

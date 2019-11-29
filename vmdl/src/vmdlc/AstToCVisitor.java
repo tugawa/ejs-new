@@ -409,14 +409,19 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> initNode = node.get(Symbol.unique("init"));
+            Tree<?> limitNode = node.get(Symbol.unique("limit"));
             Tree<?> stepNode = node.get(Symbol.unique("step"));
             Tree<?> blockNode = node.get(Symbol.unique("block"));
             printIndent(indent, "for (");
             visit(initNode, 0);
             Tree<?> varNode = initNode.get(Symbol.unique("var"));
-            print(";;");
+            print("; ");
             visit(varNode, 0);
-            print("=");
+            print("<=");
+            visit(limitNode, 0);
+            print("; ");
+            visit(varNode, 0);
+            print("+=");
             visit(stepNode, 0);
             println(") {");
             visit(blockNode, indent + 1);
@@ -432,7 +437,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(typeNode, 0);
             print(" ");
             visit(varNode, 0);
-            print(" = ");
+            print("=");
             visit(exprNode, 0);
         }
     }
@@ -709,13 +714,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class _True extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print("JS_TRUE");
+            print("1");
         }
     }
     public class _False extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            print("JS_FALSE");
+            print("0");
         }
     }
 

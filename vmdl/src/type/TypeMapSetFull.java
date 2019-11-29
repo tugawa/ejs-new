@@ -78,6 +78,9 @@ public class TypeMapSetFull extends TypeMapSet {
     public Set<String> getKeys(){
         if(typeMapSet.isEmpty()) return Collections.emptySet();
         TypeMap typeMap = getOne();
+        if(typeMap==null){
+            System.err.println(typeMapSet.toString());
+        }
         return typeMap.keySet();
     }
     @Override

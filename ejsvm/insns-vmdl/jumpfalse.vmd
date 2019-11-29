@@ -4,7 +4,7 @@
 jumpfalse : (JSValue, Displacement) -> void
 
 jumpfalse (v0, d1) {
-    if (v0 == false || toBoolean(v0) == false) {
+    if (v0 == JS_FALSE || toBoolean(v0) == JS_FALSE) {
         Jump(d1);
         Next_insn_noincpc();
     } else {

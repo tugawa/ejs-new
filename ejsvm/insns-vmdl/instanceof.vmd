@@ -11,7 +11,7 @@ instanceof (v1, v2) {
           return Instanceof(v1, v2);
       }
       case (true) {
-          return false;
+          return JS_FALSE;
       }
     }
 }
