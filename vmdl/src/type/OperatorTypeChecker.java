@@ -121,7 +121,7 @@ public class OperatorTypeChecker{
   public AstType typeOf(AstType type){
     Integer index = numberMap.get(type);
     if(index == null){
-      System.err.println("InternalWarning: Index out of range: "+type.toString());
+      //System.err.println("InternalWarning: Index out of range: "+type.toString());
       return null;
     }
     return unaryOperatorTypeTable[index];
@@ -130,7 +130,7 @@ public class OperatorTypeChecker{
     Integer lindex = numberMap.get(ltype);
     Integer rindex = numberMap.get(rtype);
     if(lindex == null || rindex == null){
-      System.err.println("InternalWarning: Index out of range: ("+ltype.toString()+", "+rtype.toString()+")");
+      //System.err.println("InternalWarning: Index out of range: ("+ltype.toString()+", "+rtype.toString()+")");
       return null;
     }
     return binaryOperatorTypeTable[lindex][rindex];
@@ -143,7 +143,7 @@ class EqualsOperatorTypeChecker extends OperatorTypeChecker{
     Integer lindex = numberMap.get(ltype);
     Integer rindex = numberMap.get(rtype);
     if(lindex == null || rindex == null){
-      System.err.println("InternalWarning: Index out of range: ("+ltype.toString()+", "+rtype.toString()+")");
+      //System.err.println("InternalWarning: Index out of range: ("+ltype.toString()+", "+rtype.toString()+")");
       return null;
     }
     if(!lindex.equals(rindex)){

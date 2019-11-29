@@ -719,10 +719,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     //**********************************
-    // BiaryOperators
+    // BinaryOperators
     //**********************************
 
-    private ExprTypeSet biaryOperator(SyntaxTree node, TypeMap dict, OperatorTypeChecker checker) throws Exception{
+    private ExprTypeSet binaryOperator(SyntaxTree node, TypeMap dict, OperatorTypeChecker checker) throws Exception{
         SyntaxTree leftNode  = node.get(Symbol.unique("left"));
         SyntaxTree rightNode = node.get(Symbol.unique("right"));
         ExprTypeSet leftExprTypeSet  = visit(leftNode, dict);
@@ -732,7 +732,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (AstType rt : rightExprTypeSet){
                 AstType result = checker.typeOf(lt, rt);
                 if(result == null){
-                    ErrorPrinter.error("Illigal types given in operator: "
+                    ErrorPrinter.recursiveError("Illigal types given in operator: "
                         +lt.toString()+","+rt.toString(), node);
                 }
                 resultTypeSet.add(result);
@@ -744,126 +744,126 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Or extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.OR);
+			return binaryOperator(node, dict, OperatorTypeChecker.OR);
         }
     }
 
     public class And extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.AND);
+			return binaryOperator(node, dict, OperatorTypeChecker.AND);
         }
     }
 
     public class BitwiseOr extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.BITWISE_OR);
+			return binaryOperator(node, dict, OperatorTypeChecker.BITWISE_OR);
         }
     }
 
     public class BitwiseXOr extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.BITWISE_XOR);
+			return binaryOperator(node, dict, OperatorTypeChecker.BITWISE_XOR);
         }
     }
 
     public class BitwiseAnd extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.BITWISE_AND);
+			return binaryOperator(node, dict, OperatorTypeChecker.BITWISE_AND);
         }
     }
 
     public class Equals extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.EQUALS);
+			return binaryOperator(node, dict, OperatorTypeChecker.EQUALS);
         }
     }
 
     public class NotEquals extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.NOT_EQUALS);
+			return binaryOperator(node, dict, OperatorTypeChecker.NOT_EQUALS);
         }
     }
 
     public class LessThanEquals extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.LESSTHAN_EQUALS);
+			return binaryOperator(node, dict, OperatorTypeChecker.LESSTHAN_EQUALS);
         }
     }
 
     public class GreaterThanEquals extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.GRATORTHAN_EQUALS);
+			return binaryOperator(node, dict, OperatorTypeChecker.GRATORTHAN_EQUALS);
         }
     }
 
     public class LessThan extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.LESSTHAN);
+			return binaryOperator(node, dict, OperatorTypeChecker.LESSTHAN);
         }
     }
 
     public class GreaterThan extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.GRATORTHAN);
+			return binaryOperator(node, dict, OperatorTypeChecker.GRATORTHAN);
         }
     }
 
     public class LeftShift extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.LEFT_SHIFT);
+			return binaryOperator(node, dict, OperatorTypeChecker.LEFT_SHIFT);
         }
     }
 
     public class RightShift extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.RIGHT_SHIFT);
+			return binaryOperator(node, dict, OperatorTypeChecker.RIGHT_SHIFT);
         }
     }
 
     public class Add extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.ADD);
+			return binaryOperator(node, dict, OperatorTypeChecker.ADD);
         }
     }
 
     public class Sub extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.SUB);
+			return binaryOperator(node, dict, OperatorTypeChecker.SUB);
         }
     }
 
     public class Mul extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.MUL);
+			return binaryOperator(node, dict, OperatorTypeChecker.MUL);
         }
     }
 
     public class Div extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.DIV);
+			return binaryOperator(node, dict, OperatorTypeChecker.DIV);
         }
     }
 
     public class Mod extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
-			return biaryOperator(node, dict, OperatorTypeChecker.MOD);
+			return binaryOperator(node, dict, OperatorTypeChecker.MOD);
         }
     }
 
