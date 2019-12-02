@@ -447,56 +447,31 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    final static AstType tCint = AstType.get("cint");
-    final static AstType tCdobule = AstType.get("cdouble");
-    final static AstType tSubscript = AstType.get("Subscript");
-    final static AstType tDisplacement = AstType.get("Displacement");
-    final static Set<AstType> cNumbers = new HashSet<>();
-    final static Set<AstType> cInts = new HashSet<>();
-    static{
-        cNumbers.add(tCint);
-        cNumbers.add(tCdobule);
-        cNumbers.add(tSubscript);
-        cNumbers.add(tDisplacement);
-        cInts.add(tCint);
-        cInts.add(tCdobule);
-        cInts.add(tSubscript);
-        cInts.add(tDisplacement);
-
-    }
-    private AstType getAssignType(AstType type, AstType assign){
-        if(type.isSuperOrEqual(assign)) return assign;
-        if(type.equals(tCdobule) && cNumbers.contains(assign)) return tCdobule;
-        if(cInts.contains(type) && cInts.contains(assign)) return tCint;
-        return null;
-    }
-
     public class Assignment extends DefaultVisitor {
+        private boolean isArrayIndexOrFieldAccess(SyntaxTree varNode){
+            String tag = varNode.getTag().toString();
+            return (tag.equals("LeftHandIndex") || tag.equals("LeftHandField"));
+        }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
-            String leftName = leftNode.toText();
-            Set<TypeMap> newSet = new HashSet<>();
+            boolean ignoreFlag = isArrayIndexOrFieldAccess(leftNode);
             for(TypeMap typeMap : dict){
-                AstType leftType = typeMap.get(leftName);
-                if(leftType instanceof JSValueType){
-                    ErrorPrinter.error("JSValue variable cannot assign", leftNode);
-                }
-                ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
-                for(AstType type : exprTypeSet){
-                    AstType assginedType = getAssignType(leftType, type);
-                    if(assginedType == null){
-                        ErrorPrinter.error("Expression types "+type+", need types "+leftType, rightNode);
+                ExprTypeSet leftTypeSet = visit(leftNode, typeMap);
+                for(AstType leftType : leftTypeSet){
+                    if(!ignoreFlag && (leftType instanceof JSValueType)){
+                        ErrorPrinter.error("JSValue variable cannot assign", leftNode);
                     }
-                    TypeMap temp = typeMap.clone();
-                    Set<TypeMap> assignedSet = dict.getAssignedSet(temp, leftName, assginedType);
-                    newSet.addAll(assignedSet);
+                    ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
+                    for(AstType type : exprTypeSet){
+                        if(!leftType.isSuperOrEqual(type)){
+                            ErrorPrinter.error("Expression types "+type+", need types "+leftType, rightNode);
+                        }
+                    }
                 }
             }
-            TypeMapSet newTypeMapSet = TYPE_MAP.clone();
-            newTypeMapSet.setTypeMapSet(newSet);
-            return newTypeMapSet;
+            return dict;
         }
 
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -518,12 +493,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
-                    AstType assginedType = getAssignType(varType, type);
-                    if(assginedType == null){
+                    if(!varType.isSuperOrEqual(type)){
                         ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);
                     }
                     TypeMap temp = typeMap.clone();
-                    Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, assginedType);
+                    Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, type);
                     newSet.addAll(addedSet);
                 }
             }
@@ -998,6 +972,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return newSet;
         }
     }
+
+    public class LeftHandIndex extends ArrayIndex {
+        @Override
+        public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return super.accept(node, dict);
+        }
+    }
+
     public class FieldAccess extends DefaultVisitor {
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
@@ -1019,6 +1001,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             recvNode.setExprTypeSet(recvTypeSet);
             return fieldTypeSet;
+        }
+    }
+
+    public class LeftHandField extends FieldAccess {
+        @Override
+        public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
+            return super.accept(node, dict);
         }
     }
 

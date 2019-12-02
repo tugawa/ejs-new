@@ -638,16 +638,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    public class Index extends DefaultVisitor {
-        @Override
-        public void accept(Tree<?> node, int indent) throws Exception {
-            visit(node.get(0), 0);
-            print("[");
-            visit(node.get(1), 0);
-            print("]");
-
-        }
-    }
     public class FieldAccess extends DefaultVisitor {
         private void pointerPrint(Tree<?> recvNode, Tree<?> fieldNode) throws Exception {
             print("*(");
@@ -683,6 +673,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             pointerPrint(recvNode, fieldNode);
         }
     }
+
+    public class LeftHandField extends FieldAccess{
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            super.accept(node, indent);
+        }
+    }
+
     public class Float extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -788,6 +786,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print("[");
             visit(node.get(Symbol.unique("index")), indent);
             print("]");
+        }
+    }
+
+    public class LeftHandIndex extends ArrayIndex{
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            super.accept(node, indent);
         }
     }
 }

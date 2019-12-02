@@ -92,7 +92,7 @@ Assignment             = { $left(LeftHandSide) "<-" $right(Expression) ";" #Assi
                        / { $left(Pairs) "<-" $right(FunctionCall) ";" #AssignmentPair }
 
 Pairs                  = { "(" $(VarName) ( "," $(VarName) )* ")" #Pairs}
-LeftHandSide           = _LeftHandSidePrimitive {$recv _FunctionCall / _Index / _Field }*
+LeftHandSide           = _LeftHandSidePrimitive {$recv _FunctionCall / _Index #LeftHandIndex / _Field #LeftHandField }*
 _LeftHandSidePrimitive = "(" LeftHandSide ")"
                        / VarName
 
