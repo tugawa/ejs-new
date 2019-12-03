@@ -8,6 +8,7 @@ EJSVM_DIR = ../ejsvm
 
 DATATYPES = $(EJSVM_DIR)/datatypes/default.def
 OPERANDSPEC = $(EJSVM_DIR)/operand-spec/any.spec
+FUNCTIONSPEC =  $(EJSVM_DIR)/function-spec/any.spec
 # OPERANDSPEC = $(EJSVM_DIR)/operand-spec/fixnum-unspec.spec
 SUPERINSNSPEC = $(EJSVM_DIR)/superinsn-spec/all.si
 SUPERINSNTYPE = 4

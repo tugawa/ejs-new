@@ -30,6 +30,9 @@
 
 #define CintToCdouble(x) ((double)(x))
 #define CdoubleToCint(x) ((int)(x))
+#define BoolToSpecial(x) (x)
+#define NullToSpecial(x) (x)
+#define UndefinedToSpecial(x) (x)
 
 #define FIXNUM_EQ(v1,v2) ((int64_t) (v1) == (int64_t) (v2))
 #define FIXNUM_LESSTHAN(v1,v2)   ((int64_t) (v1) < (int64_t) (v2))

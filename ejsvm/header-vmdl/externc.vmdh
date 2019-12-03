@@ -2,6 +2,9 @@ externC CintToCdouble : cint -> cdouble
 externC CdoubleToCint : cdouble -> cint
 externC FixnumToCint : Fixnum -> cint
 externC FlonumToCint : Flonum -> cint
+externC BoolToSpecial : Bool -> Special
+externC NullToSpecial : Null -> Special
+externC UndefinedToSpecial : Undefined -> Special
 externC (needContext, triggerGC) CintToNumber : cint -> Number
 externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
 externC (needContext, triggerGC) CdoubleToFlonum: cdouble -> Flonum
@@ -78,6 +81,7 @@ externC Update_context : void -> void
 externC New_normal_function : Subscript -> JSValue
 externC (needContext, triggerGC) New_normal_iterator : JSValue -> JSValue
 externC Logexit : cstring -> void
+externC type_error : cstring -> void
 externC Nextpropnameidx : JSValue -> JSValue
 
 externC (needContext) New_normal_object : void -> JSObject
@@ -103,5 +107,8 @@ externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 
+
 externC constant Bool JS_TRUE = "JS_TRUE";
 externC constant Bool JS_FALSE = "JS_FALSE";
+externC constant Null JS_NULL = "JS_NULL";
+externC constant Undefined JS_UNDEFINED = "JS_UNDEFINED";

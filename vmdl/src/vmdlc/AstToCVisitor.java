@@ -96,7 +96,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 visit(chunk, 0);
             }
             StringBuffer sb = outStack.pop();
-            sb.append(getEpilogueLabel() + ": ;\n");
+            if(!outputMode.isFunctionMode()) sb.append(getEpilogueLabel() + ": ;\n");
             String program = sb.toString();
             return program;
         } catch (Exception e) {

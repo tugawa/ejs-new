@@ -1,6 +1,6 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 rightshift : (JSValue, JSValue) -> Fixnum

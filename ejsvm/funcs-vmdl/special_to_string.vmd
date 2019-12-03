@@ -1,0 +1,19 @@
+#include "../header-vmdl/externc.vmdh"
+
+#include "../header-vmdl/mappings.vmdh"
+
+special_to_string : JSValue -> JSValue
+special_to_string(v){
+    if(v == BoolToSpecial(JS_TRUE)){
+        return gconsts.g_string_true;
+    }
+    if(v == BoolToSpecial(JS_FALSE)){
+        return gconsts.g_string_false;
+    }
+    if(v == NullToSpecial(JS_NULL)){
+        return gconsts.g_string_null;
+    }
+    if(v == UndefinedToSpecial(JS_UNDEFINED)){
+        return gconsts.g_string_undefined;
+    }
+}

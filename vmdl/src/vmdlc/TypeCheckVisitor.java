@@ -518,16 +518,16 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             TypeMapSet copyDict = dict.clone();
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             TypeMapSet thenDict = visit(thenNode, dict);
-            SyntaxTree elseNode = node.get(Symbol.unique("else"));
             TypeMapSet resultDict;
-            if (elseNode == null) {
-                resultDict = thenDict;
-            } else {
+            if (node.has(Symbol.unique("else"))) {
+                SyntaxTree elseNode = node.get(Symbol.unique("else"));
                 TypeMapSet elseDict = visit(elseNode, copyDict);
                 if(!thenDict.getKeys().equals(elseDict.getKeys())){
                     ErrorPrinter.error("Both environment keys must be equal", node);
                 }
                 resultDict = thenDict.combine(elseDict);
+            } else {
+                resultDict = thenDict;
             }
             SyntaxTree condNode = node.get(Symbol.unique("cond"));
             save(condNode, resultDict);

@@ -88,6 +88,8 @@
 /*
  * converts a special value to a string
  */
+
+ /*
 JSValue special_to_string(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -102,7 +104,9 @@ JSValue special_to_string(JSValue v) {
     type_error("special expected in special_to_string");
     return gconsts.g_string_empty;
   }
-}
+}*/
+
+#include "funcs/special_to_string.inc"
 
 /*
  * convers a special value to a number

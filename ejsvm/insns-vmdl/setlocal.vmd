@@ -1,4 +1,4 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 setlocal : (cint, Subscript, JSValue) -> void

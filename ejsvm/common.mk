@@ -75,6 +75,7 @@ EJSI=$(EJSI_DIR)/ejsi
 INSNGEN_VMGEN=java -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
+FUNCGEN_VMDL=java -jar $(VMDL) -f
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
 
@@ -227,9 +228,13 @@ INSN_GENERATED = \
 
 INSN_HANDCRAFT =
 
+FUNC_GENERATED = \
+    funcs/special_to_string.inc
+
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
+FUNCS_FILES = $(FUNC_GENERATED)
 
 ######################################################
 
@@ -300,6 +305,10 @@ insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd
 	mkdir -p insns-vmdl
 	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
 
+funcs-vmdl/%.vmd: $(EJSVM_DIR)/funcs-vmdl/%.vmd
+	mkdir -p funcs-vmdl
+	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
+
 ifeq ($(DATATYPES),)
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
@@ -314,6 +323,11 @@ $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
 	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL)
+	mkdir -p funcs
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+	-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -331,6 +345,12 @@ $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
 		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL)
+	mkdir -p funcs
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+	-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -425,7 +445,7 @@ cell-header.h: $(EJSVM_DIR)/cell-header.def
 
 instructions.h: instructions-opcode.h instructions-table.h
 
-%.c:: $(EJSVM_DIR)/%.c
+%.c:: $(EJSVM_DIR)/%.c $(FUNCS_FILES)
 	cp $< $@
 
 %.h:: $(EJSVM_DIR)/%.h
@@ -490,19 +510,23 @@ check: $(CHECKRESULTS)
 clean:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
 	rm -rf insns
+	rm -rf funcs
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
+	rm -rf funcs-vmdl
 	rm -f ejsvm ejsvm.spec
 
 cleanest:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
 	rm -rf insns
+	rm -rf funcs
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
+	rm -rf funcs-vmdl
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 	(cd $(VMGEN_DIR); ant clean)
 	rm -f $(VMGEN)
