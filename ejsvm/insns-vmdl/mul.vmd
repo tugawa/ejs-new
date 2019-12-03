@@ -14,7 +14,7 @@ mul (v1, v2) {
         cint p = n1 * n2;
         return CintToFixnum(p);
       } else {
-        cdouble d = n1 * n2;
+        cdouble d = CintToCdouble(n1 * n2);
         return CdoubleToNumber(d);
       }
     }

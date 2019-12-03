@@ -39,8 +39,22 @@ public class Main {
     static String operandSpecFile;
     static String insnDefFile;
     static int typeMapIndex = 1;
+    static OutputMode outPutMode = OutputMode.Instruction;
 
     static Option option = new Option();
+
+    public static enum OutputMode{
+        Instruction(false),
+        Function(true);
+
+        private boolean functionMode;
+        private OutputMode(boolean functionMode){
+            this.functionMode = functionMode;
+        }
+        public boolean isFunctionMode(){
+            return functionMode;
+        }
+    };
 
     static void parseOption(String[] args) {
         for (int i = 0; i < args.length; ) {
@@ -59,6 +73,8 @@ public class Main {
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
+            } else if (opt.equals("-f")) {
+                outPutMode = OutputMode.Function;
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -152,10 +168,10 @@ public class Main {
         ErrorPrinter.setSource(sourceFile);
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
-        new AlphaConvVisitor().start(ast, true, insnDef);
+        if(!outPutMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
         new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
         
-        String program = new AstToCVisitor().start(ast, opSpec);
+        String program = new AstToCVisitor().start(ast, opSpec, outPutMode);
 
         System.out.println(program);
     }

@@ -1,4 +1,7 @@
+externC CintToCdouble : cint -> cdouble
+externC CdoubleToCint : cdouble -> cint
 externC FixnumToCint : Fixnum -> cint
+externC FlonumToCint : Flonum -> cint
 externC (needContext, triggerGC) CintToNumber : cint -> Number
 externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
 externC (needContext, triggerGC) CdoubleToFlonum: cdouble -> Flonum
@@ -18,8 +21,6 @@ externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
 externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
 externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
 externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
-
-externC FlonumToCint: Flonum -> cint
 
 externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
 externC FIXNUM_LESSTHANEQ: (Fixnum, Fixnum) -> cint

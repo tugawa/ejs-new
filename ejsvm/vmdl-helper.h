@@ -28,6 +28,8 @@
 #define SetObjectProp(v1,v2,v3)  set_object_prop(context, (v1), (v2), (v3))
 #define String_to_cstr(v)  string_to_cstr((v))
 
+#define CintToCdouble(x) ((double)(x))
+#define CdoubleToCint(x) ((int)(x))
 
 #define FIXNUM_EQ(v1,v2) ((int64_t) (v1) == (int64_t) (v2))
 #define FIXNUM_LESSTHAN(v1,v2)   ((int64_t) (v1) < (int64_t) (v2))

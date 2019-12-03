@@ -120,6 +120,9 @@ public class AstType {
         defineJSValueVMType("Flonum", jsNumType, VMDataType.get("flonum"));
         defineJSValueVMType("Special", jsValType, VMDataType.get("special"));
         JSValueType jsSpeType = (JSValueType) AstType.get("Special");
+        defineJSValueType("Bool", jsSpeType);
+        defineJSValueType("Null", jsSpeType);
+        defineJSValueType("Undefined", jsSpeType);
         defineJSValueType("JSObject", jsValType);
         JSValueType jsObjType = (JSValueType) AstType.get("JSObject");
         defineJSValueVMType("SimpleObject", jsObjType, VMDataType.get("simple_object"));
@@ -131,7 +134,6 @@ public class AstType {
         defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
         defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
-        defineJSValueType("Bool", jsSpeType);
     }
 
     String name;
