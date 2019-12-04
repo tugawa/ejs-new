@@ -2,10 +2,20 @@
 
 \when obj:array && prop:fixnum \{
   dst = get_array_element(context, obj, fixnum_to_cint(prop));
+#ifdef DEBUG_GETPROP_VALUE
+  printf("getprop: ");
+  print_value(context, dst, 1);
+  printf("\n");
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \when obj:array \{
   dst = get_array_prop(context, obj, prop);
+#ifdef DEBUG_GETPROP_VALUE
+  printf("getprop: ");
+  print_value(context, dst, 1);
+  printf("\n");
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) && prop:string\{
@@ -21,6 +31,11 @@
 #else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);
 #endif /* INLINE_CACHE */
+#ifdef DEBUG_GETPROP_VALUE
+  printf("getprop: ");
+  print_value(context, dst, 1);
+  printf("\n");
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
@@ -29,6 +44,11 @@
 #else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);
 #endif /* INLINE_CACHE */
+#ifdef DEBUG_GETPROP_VALUE
+  printf("getprop: ");
+  print_value(context, dst, 1);
+  printf("\n");
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \otherwise \{
