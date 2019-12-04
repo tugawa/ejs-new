@@ -91,4 +91,7 @@ CFLAGS       += -DGC_PROF
 ## show hidden class related profiling information (make --hc-prof available)
 CFLAGS       += -DHC_PROF
 
+# use explicit mark stack rather than recursive call
+#CFLAGS      += -DMARK_STACK
+
 include $(EJSVM_DIR)/common.mk

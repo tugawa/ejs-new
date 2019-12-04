@@ -4,6 +4,21 @@
   set_array_prop(context, obj, prop, val);
 \}
 
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:function) && prop:string \{
+#ifdef INLINE_CACHE
+  {
+    InlineCache *ic = &insns->inl_cache;
+    assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
+    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+      jsv_to_jsobject(obj)->eprop[ic->index] = val;
+    else
+      set_prop_with_ic(context, obj, prop, val, ATTR_NONE, ic);
+  }
+#else /* INLINE_CACHE */
+  set_object_prop(context, obj, prop, val);
+#endif /* INLINE_CACHE */
+\}
+
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:function) \{
   set_object_prop(context, obj, prop, val);
 \}

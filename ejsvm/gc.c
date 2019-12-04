@@ -143,6 +143,12 @@ int gc_root_stack_ptr = 0;
 
 STATIC int gc_disabled = 1;
 
+#ifdef MARK_STACK
+#define MARK_STACK_SIZE 1000 * 1000
+static uintptr_t mark_stack[MARK_STACK_SIZE];
+static int mark_stack_ptr;
+#endif /* MARK_STACK */
+
 int generation = 0;
 int gc_sec;
 int gc_usec;
@@ -205,6 +211,9 @@ STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 STATIC void sweep(void);
+#ifdef MARK_STACK
+STATIC_INLINE void process_node(uintptr_t ptr);
+#endif /* MARK_STACK */
 #ifdef ALLOC_SITE_CACHE
 STATIC void alloc_site_update_info(JSObject *p);
 #endif /* ALLOC_SITE_CACHE */
@@ -447,6 +456,33 @@ void try_gc(Context *ctx)
  * GC
  */
 
+
+#ifdef MARK_STACK
+STATIC_INLINE void mark_stack_push(uintptr_t ptr)
+{
+  assert(mark_stack_ptr < MARK_STACK_SIZE);
+  mark_stack[mark_stack_ptr++] = ptr;
+}
+
+STATIC_INLINE uintptr_t mark_stack_pop()
+{
+  return mark_stack[--mark_stack_ptr];
+}
+
+STATIC_INLINE int mark_stack_is_empty()
+{
+  return mark_stack_ptr == 0;
+}
+
+STATIC void process_mark_stack()
+{
+  while (!mark_stack_is_empty()) {
+    uintptr_t ptr = mark_stack_pop();
+    process_node(ptr);
+  }
+}
+#endif /* MARK_STACK */
+
 STATIC_INLINE int check_gc_request(Context *ctx)
 {
   if (js_space.free_bytes <
@@ -479,6 +515,10 @@ STATIC void garbage_collection(Context *ctx)
   /* mark */
   gc_phase = PHASE_MARK;
   scan_roots(ctx);
+
+#ifdef MARK_STACK
+  process_mark_stack();
+#endif /* MARK_STACK */
 
   /* weak */
   gc_phase = PHASE_WEAK;
@@ -524,6 +564,7 @@ STATIC void garbage_collection(Context *ctx)
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
 
+STATIC void process_edge(uintptr_t ptr);
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
 STATIC void process_edge_HashBody(HashCell **p, size_t length);
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
@@ -531,15 +572,8 @@ STATIC void process_node_Context(Context *p);
 STATIC void scan_function_table_entry(FunctionTable *p);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
 
-STATIC void process_edge(uintptr_t ptr)
+STATIC_INLINE void process_node(uintptr_t ptr)
 {
-  if (is_fixnum(ptr) || is_special(ptr))
-    return;
-
-  ptr = ptr & ~TAGMASK;
-  if (in_js_space((void *) ptr) && test_and_mark_cell((void *) ptr))
-    return;
-
   /* part of code for processing the node is inlined */
   switch (payload_to_header((void *) ptr)->type) {
   case CELLT_STRING:
@@ -712,6 +746,22 @@ STATIC void process_edge(uintptr_t ptr)
       alloc_site_update_info(p);
 #endif /* ALLOC_SITE_CACHE */
   }
+}
+
+STATIC void process_edge(uintptr_t ptr)
+{
+  if (is_fixnum(ptr) || is_special(ptr))
+    return;
+
+  ptr = ptr & ~TAGMASK;
+  if (in_js_space((void *) ptr) && test_and_mark_cell((void *) ptr))
+    return;
+
+#ifdef MARK_STACK
+  mark_stack_push(ptr);
+#else /* MARK_STACK */
+  process_node(ptr);
+#endif /* MARK_STACK */
 }
 
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
@@ -1028,8 +1078,12 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
                next, next->n_props, next->n_transitions);
 #endif /* VERBOSE_WEAK */
       /* Resurrect if it is branching node or terminal node */
-      if (!is_marked_cell(next))
+      if (!is_marked_cell(next)) {
         process_edge((uintptr_t) next);
+#ifdef MARK_STACK
+        process_mark_stack();
+#endif /* MARK_STACK */
+      }
       p->entry.data.u.pm = next;
       next->prev = pm;
       weak_clear_property_map_recursive(next);
@@ -1049,8 +1103,12 @@ STATIC void weak_clear_property_maps()
     else {
       pm = (*pp)->pm;
       mark_cell(*pp);
-      if (!is_marked_cell(pm))
+      if (!is_marked_cell(pm)) {
         process_edge((uintptr_t) pm);
+#ifdef MARK_STACK
+        process_mark_stack();
+#endif /* MARK_STACK */
+      }
       weak_clear_property_map_recursive(pm);
       pp = &(*pp)->next;
     }
