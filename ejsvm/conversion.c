@@ -500,7 +500,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
     GC_PUSH(array);
     item = get_array_element(context, array, i);
     GC_POP(array);
-    strs[i] = to_string(NULL, item);
+    strs[i] = to_string(context, item);
     sumlen += string_length(strs[i]);
   }
 
