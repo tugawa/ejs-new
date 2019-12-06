@@ -89,7 +89,6 @@
  * converts a special value to a string
  */
 
- /*
 JSValue special_to_string(JSValue v) {
   switch (v) {
   case JS_UNDEFINED:
@@ -104,9 +103,7 @@ JSValue special_to_string(JSValue v) {
     type_error("special expected in special_to_string");
     return gconsts.g_string_empty;
   }
-}*/
-
-#include "funcs/special_to_string.inc"
+}
 
 /*
  * convers a special value to a number
@@ -321,6 +318,7 @@ JSValue flonum_to_object(Context *ctx, JSValue v) {
 /*
  * converts an object to a string
  */
+
 JSValue object_to_string(Context *context, JSValue v) {
   JSValue f;
 
@@ -356,7 +354,7 @@ JSValue object_to_string(Context *context, JSValue v) {
   }
  NEXT1:
   type_error_exception("neither toString nor valueOf returned a string in object_to_string");
-  return gconsts.g_string_undefined;     /* not reached */
+  return gconsts.g_string_undefined;      /* not reached */
 }
 
 /*

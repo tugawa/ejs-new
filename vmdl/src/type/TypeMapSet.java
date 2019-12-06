@@ -13,13 +13,24 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
         typeMapSet = new HashSet<>();
     }
     public TypeMapSet(Set<TypeMap> _typeMapSet){
-        typeMapSet = _typeMapSet;
+        if(_typeMapSet == null){
+            typeMapSet = new HashSet<>();
+        }else{
+            typeMapSet = _typeMapSet;
+        }
     }
 
     public void setTypeMapSet(Set<TypeMap> _typeMapSet){
-        typeMapSet = _typeMapSet;
+        if(_typeMapSet == null){
+            typeMapSet = new HashSet<>();
+        }else{
+            typeMapSet = _typeMapSet;
+        }
     }
     public Set<TypeMap> getTypeMapSet(){
+        if(typeMapSet == null){
+            throw new Error("Illigal TypeMapSet state: null");
+        }
         return typeMapSet;
     }
     public abstract void setDispatchSet(Set<String> set);

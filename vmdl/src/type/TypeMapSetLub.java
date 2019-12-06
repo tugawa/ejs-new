@@ -17,7 +17,14 @@ public class TypeMapSetLub extends TypeMapSetFull {
 
     @Override
     public void setTypeMapSet(Set<TypeMap> _typeMapSet){
-        if(_typeMapSet.isEmpty()) return;
+        if(_typeMapSet == null){
+            super.setTypeMapSet(null);
+            return;
+        }
+        if(_typeMapSet.isEmpty()){
+            super.setTypeMapSet(null);
+            return;
+        }
         TypeMap newMap = null;
         for(TypeMap map : _typeMapSet){
             newMap = map.lub(newMap);

@@ -1,3 +1,11 @@
+externC constant Bool JS_TRUE = "JS_TRUE";
+externC constant Bool JS_FALSE = "JS_FALSE";
+externC constant Null JS_NULL = "JS_NULL";
+externC constant Undefined JS_UNDEFINED = "JS_UNDEFINED";
+externC constant Fixnum FIXNUM_ZERO = "FIXNUM_ZERO";
+externC constant Fixnum FIXNUM_ONE = "FIXNUM_ONE";
+externC constant cstring EMPTY_CSTRING = "\"\"";
+
 externC CintToCdouble : cint -> cdouble
 externC CdoubleToCint : cdouble -> cint
 externC FixnumToCint : Fixnum -> cint
@@ -14,7 +22,6 @@ externC (needContext, triggerGC) FixnumToString : Fixnum -> String
 externC (needContext, triggerGC) FlonumToString : Flonum -> String
 externC (needContext, triggerGC) FixnumToCdouble : Fixnum -> cdouble
 externC (needContext, triggerGC) SpecialToString : Special -> String
-externC (needContext, triggerGC) ObjectToString : JSValue -> String
 externC (needContext, triggerGC) toString : JSValue -> String
 externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
 externC (needContext, triggerGC) toNumber: JSValue -> Number
@@ -71,7 +78,7 @@ externC (needContext, triggerGC) Get_err : void -> JSValue
 externC (needContext, triggerGC) Get_global : JSValue -> JSValue
 externC (needContext) Get_globalobj : void -> JSValue
 externC (needContext, triggerGC) Getlocal: (cint, Subscript) -> JSValue
-externC (needContext) Instanceof : (JSValue, JSValue) -> JSValue
+externC Instanceof : (JSValue, JSValue) -> JSValue
 externC Isundefined : JSValue -> JSValue
 externC Jump : Displacement -> void
 externC Lcall_stack_push : void -> void
@@ -82,6 +89,7 @@ externC New_normal_function : Subscript -> JSValue
 externC (needContext, triggerGC) New_normal_iterator : JSValue -> JSValue
 externC Logexit : cstring -> void
 externC type_error : cstring -> void
+externC type_error_exception : cstring -> void
 externC Nextpropnameidx : JSValue -> JSValue
 
 externC (needContext) New_normal_object : void -> JSObject
@@ -107,8 +115,15 @@ externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 
-
-externC constant Bool JS_TRUE = "JS_TRUE";
-externC constant Bool JS_FALSE = "JS_FALSE";
-externC constant Null JS_NULL = "JS_NULL";
-externC constant Undefined JS_UNDEFINED = "JS_UNDEFINED";
+externC (needContext) new_normal_boolean_object : JSValue -> BooleanObject
+externC is_string : JSValue -> cint
+externC string_value : String -> cstring
+externC IsEmptyCstring : cstring -> cint
+externC Strtol : (cstring, cstring, cint) -> cint
+externC Strtod : (cstring, cstring) -> cdouble
+externC is_fixnum_range_cint : cint -> cint
+externC get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
+externC (needContext) invoke_function0 : (JSValue, JSValue, cint) -> JSValue
+externC (needContext) invoke_builtin0 : (JSValue, JSValue, cint) -> JSValue
+externC GC_PUSH : JSValue -> void
+externC GC_POP : JSValue -> void

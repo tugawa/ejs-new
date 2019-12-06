@@ -140,15 +140,12 @@ public class OperatorTypeChecker{
 class EqualsOperatorTypeChecker extends OperatorTypeChecker{
   @Override
   public AstType typeOf(AstType ltype, AstType rtype){
-    Integer lindex = numberMap.get(ltype);
-    Integer rindex = numberMap.get(rtype);
-    if(lindex == null || rindex == null){
-      //System.err.println("InternalWarning: Index out of range: ("+ltype.toString()+", "+rtype.toString()+")");
-      return null;
+    AstType result;
+    if(ltype.isSuperOrEqual(rtype) || rtype.isSuperOrEqual(ltype)){
+      result = AstType.get("cint");
+    }else{
+      result = null;
     }
-    if(!lindex.equals(rindex)){
-      return null;
-    }
-    return AstType.get("cint");
+    return result;
   }
 }

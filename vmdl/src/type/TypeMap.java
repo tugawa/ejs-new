@@ -57,6 +57,11 @@ public class TypeMap{
 
     public TypeMap lub(TypeMap that){
         if(that == null) return clone();
+        if(that.dict.isEmpty()) return clone();
+        if(!dict.keySet().equals(that.keySet())){
+            System.err.println(dict.toString());
+            System.err.println(that.dict.toString());
+        }
         Map<String, AstType> newMap = new HashMap<>();
         for(Entry<String, AstType> entry : dict.entrySet()){
             String name = entry.getKey();

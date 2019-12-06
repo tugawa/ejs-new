@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(vmInstruction, tailCall)
+(needContext, vmInstruction, tailCall)
 fixnum : cint -> Fixnum
 
 fixnum (i1) {

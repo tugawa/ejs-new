@@ -166,6 +166,7 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
 
         ErrorPrinter.setSource(sourceFile);
+        new ExternProcessVisitor().start(ast);
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
         if(!outPutMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);

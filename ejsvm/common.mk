@@ -228,8 +228,7 @@ INSN_GENERATED = \
 
 INSN_HANDCRAFT =
 
-FUNC_GENERATED = \
-    funcs/special_to_string.inc
+FUNC_GENERATED = 
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))

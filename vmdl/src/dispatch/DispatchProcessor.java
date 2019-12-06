@@ -72,7 +72,7 @@ public class DispatchProcessor {
     //
     // Translate half-normalised rule set into datatype dispatching code
     //
-    public String translate(RuleSet hlrs, DispatchPlan dispatchPlan, Option option, String currentFunctionName) {
+    public String translate(RuleSet hlrs, DispatchPlan dispatchPlan, Option option, String currentFunctionName, String currentMatchLabelName) {
         //
         // Step 1-3. Decompose VMDatatype to VMreptype in rules
         //
@@ -122,7 +122,7 @@ public class DispatchProcessor {
         //
         // Step 6. Code Generation
         //
-        String labelPrefix = option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+        String labelPrefix = option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName) + currentMatchLabelName;
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro(), option, typeLabels, labelPrefix);
     }
 

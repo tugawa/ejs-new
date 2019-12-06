@@ -26,6 +26,8 @@ import type.AstType.*;
 import type.AstType;
 import type.ExprTypeSet;
 import type.ExprTypeSetLub;
+import type.FunctionAnnotation;
+import type.FunctionTable;
 import type.ExprTypeSetDetail;
 import type.OperatorTypeChecker;
 import type.TypeMap;
@@ -193,6 +195,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).saveFunctionType(node, type);
     }
 
+    private final void notifyNeedContext(SyntaxTree node, boolean flag) throws Exception{
+        find(node.getTag().toString()).notifyContextFlag(node, flag);
+    }
+
     public class DefaultVisitor {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             return dict;
@@ -213,6 +219,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 saveFunction(chunk, type);
             }
         }
+
+        public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
+            for (SyntaxTree chunk : node) {
+                notifyNeedContext(chunk, flag);
+            }
+        }
     }
 
     //**********************************
@@ -225,15 +237,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree type = node.get(Symbol.unique("type"));
             AstProductType funtype = (AstProductType) AstType.nodeToType((SyntaxTree) type);
 
+
             SyntaxTree definition = node.get(Symbol.unique("definition"));
 
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
-            boolean isAdded = TypeMap.addGlobal(name, funtype);
-            if(!isAdded){
-                ErrorPrinter.error("Double define: "+name, node);
+            //Functions are already defined in FunctionCpnstructVisitor
+            if(!FunctionTable.getType(name).equals(funtype)){
+                throw new Error("FunctionTable is broken: FunctionTable types "
+                    +FunctionTable.getType(name)+" real types " + funtype);
             }
+            
 
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
@@ -268,14 +283,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                             nJsvMap.put(paramName, paramType);
                     }
                 }
-                for(TypeMap map : dict){
-                    for(String v : nJsvMap.keySet()){
-                        AstType t = nJsvMap.get(v);
-                        newSet.addAll(dict.getAddedSet(map, v, t));
-                    }
-                }
                 if(newSet.isEmpty()){
                     newSet.add(new TypeMap());
+                }
+                for(TypeMap map : newSet){
+                    for(String v : nJsvMap.keySet()){
+                        AstType t = nJsvMap.get(v);
+                        map.add(v, t);
+                    }
                 }
                 /* add JSValue parameters (apply operand spec) */
                 if (nJsvTypes > 0) {
@@ -306,15 +321,19 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                             newSet2.addAll(dict.getAddedSet(map, jsvMap));
                         }
                     }
+                }else{
+                    newSet2 = newSet;
                 }
             }else{
                 newSet2 = Collections.emptySet();
             }
             TypeMapSet newDict = TYPE_MAP.clone();
+            //System.err.println("BEGINSET:"+newSet2.toString());
             newDict.setTypeMapSet(newSet2);
             newDict.setDispatchSet(node.getRematchVarSet());
             SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));
             saveFunction(body, funtype);
+            notifyNeedContext(body, FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext));
             dict = visit(body, newDict);
             save(nameNode, dict);
             save(nodeName, dict);
@@ -585,24 +604,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    //**********************************
-    // ExternCs
-    //**********************************
-
     public class CTypeDef extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree typeNode = node.get(Symbol.unique("type"));
-            SyntaxTree varNode = node.get(Symbol.unique("var"));
-            SyntaxTree valueNode = node.get(Symbol.unique("value"));
-            AstType type = AstType.nodeToType(typeNode);
-            String typeName = varNode.toText();
-            String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
-            if(!(type instanceof AstBaseType)){
-                ErrorPrinter.error("Extern type must be basic type: "+type.toString(), typeNode);
-            }
-            AstType.addAlias(typeName, (AstBaseType)type);
-            AstToCVisitor.addCType(typeName, cValue);
             return dict;
         }
     }
@@ -610,23 +614,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class CObjectmapping extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree mappingTypeNode = node.get(Symbol.unique("type"));
-            SyntaxTree membersNode = node.get(Symbol.unique("members"));
-            String mappingTypeName = mappingTypeNode.toText();
-            AstMappingType mappingType = AstType.defineMappingType(mappingTypeName);
-            for(SyntaxTree memberNode : membersNode){
-                SyntaxTree typeNode = memberNode.get(Symbol.unique("type"));
-                SyntaxTree varNode = memberNode.get(Symbol.unique("var"));
-                Set<String> annotations = Collections.emptySet();
-                if(memberNode.has(Symbol.unique("annotations"))){
-                    SyntaxTree anotationsNode = memberNode.get(Symbol.unique("annotations"));
-                    annotations = new HashSet<>();
-                    annotations.add(anotationsNode.toText());
-                }
-                AstType type = AstType.nodeToType(typeNode);
-                String name = varNode.toText();
-                mappingType.addField(annotations, name, type);
-            }
             return dict;
         }
     }
@@ -634,16 +621,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class CFunction extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree typeNode = node.get(Symbol.unique("type"));
-            AstType domain = AstType.nodeToType(typeNode.get(0));
-            AstType range = AstType.nodeToType(typeNode.get(1));
-            SyntaxTree nameNode = node.get(Symbol.unique("name"));
-            AstType type = new AstProductType(domain, range);
-            String name = nameNode.toText();
-            boolean isAdded = TypeMap.addGlobal(name, type);
-            if(!isAdded){
-                ErrorPrinter.error("Double define: "+name, node);
-            }
             return dict;
         }
     }
@@ -651,17 +628,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class CConstantDef extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree typeNode = node.get(Symbol.unique("type"));
-            SyntaxTree varNode = node.get(Symbol.unique("var"));
-            SyntaxTree valueNode = node.get(Symbol.unique("value"));
-            AstType type = AstType.nodeToType(typeNode);
-            String varName = varNode.toText();
-            String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
-            boolean isAdded = TypeMap.addGlobal(varName, type);
-            if(!isAdded){
-                ErrorPrinter.error("Double define: "+varName, node);
-            }
-            AstToCVisitor.addCConstant(varName, cValue);
             return dict;
         }
     }
@@ -892,6 +858,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     //*********************************
 
     public class FunctionCall extends DefaultVisitor {
+        boolean needContextFlag;
+        private void checkNeedContext(String functionName, SyntaxTree node){
+            if(!FunctionTable.contains(functionName)){
+                throw new Error("FunctionTable is broken: not has "+functionName);
+            }
+            if(!needContextFlag && FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
+                ErrorPrinter.recursiveError("Call function that need context in function that does not need", node);
+            }
+        }
         private void checkArguments(List<AstType> argTypes, SyntaxTree argsNode, TypeMap dict) throws Exception{
             SyntaxTree[] argNodes = (SyntaxTree[])argsNode.getSubTree();
             int length = argNodes.length;
@@ -909,13 +884,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree recvNode = node.get(Symbol.unique("recv"));
             String functionName = recvNode.toText();
-            AstType type = dict.get(functionName);
+            AstType type = FunctionTable.getType(functionName);
             if(type == null){
                 ErrorPrinter.error("Function not found: "+functionName, recvNode);
             }
             if(!(type instanceof AstProductType)){
                 ErrorPrinter.error("Non function refered as function: "+functionName, recvNode);
             }
+            checkNeedContext(functionName, node);
             AstProductType functionType = (AstProductType)type;
             AstType domain = functionType.getDomain();
             List<AstType> argTypes;
@@ -940,6 +916,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(range);
             return newSet;
+        }
+        @Override
+        public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
+            needContextFlag = flag;
         }
     }
 

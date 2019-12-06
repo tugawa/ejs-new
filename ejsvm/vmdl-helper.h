@@ -7,26 +7,30 @@
  * Electro-communications.
  */
 
-#define concat(s1,s2)      ejs_string_concat(context, (s1), (s2))
-#define toString(v)        to_string(context, (v))
+#define concat(context,s1,s2)      ejs_string_concat((context), (s1), (s2))
+#define toString(context,v)        to_string((context), (v))
 /* #define FlonumToCdouble(f) to_double(context, (f)) */
 #define FlonumToCdouble(v) flonum_to_double((v))
-#define CdoubleToNumber(x) double_to_number((x))
-#define CdoubleToFlonum(x) double_to_flonum((x))
+#define CdoubleToNumber(context,x) double_to_number((x))
+#define CdoubleToFlonum(context,x) double_to_flonum((x))
 #define FixnumToCint(v)    fixnum_to_cint((v))
-#define FixnumToCdouble(v) fixnum_to_double((v))
-#define CintToNumber(x)    cint_to_number((x))
-#define CintToFixnum(x)    cint_to_fixnum((x))
+#define FixnumToCdouble(context,v) fixnum_to_double((v))
+#define CintToNumber(context,x)    cint_to_number((x))
+#define CintToFixnum(context,x)    cint_to_fixnum((x))
 #define FlonumToCint(v)    flonum_to_cint((v))
-#define toCdouble(v)       to_double(context, (v))
-#define toNumber(v)        to_number(context, (v))
-#define toObject(v)        to_object(context, (v))
+#define toCdouble(context,v)       to_double((context), (v))
+#define toNumber(context,v)        to_number((context), (v))
+#define toObject(context,v)        to_object((context), (v))
 #define toBoolean(v)        to_boolean((v))
-#define getArrayProp(v1,v2)      get_array_prop(context, (v1), (v2))
-#define getObjectProp(v1,v2)     get_object_prop(context, (v1), (v2))
-#define SetArrayProp(v1,v2,v3)   set_array_prop(context, (v1), (v2), (v3))
-#define SetObjectProp(v1,v2,v3)  set_object_prop(context, (v1), (v2), (v3))
+#define getArrayProp(context,v1,v2)      get_array_prop((context), (v1), (v2))
+#define getObjectProp(context,v1,v2)     get_object_prop((context), (v1), (v2))
+#define SetArrayProp(context,v1,v2,v3)   set_array_prop((context), (v1), (v2), (v3))
+#define SetObjectProp(context,v1,v2,v3)  set_object_prop((context), (v1), (v2), (v3))
 #define String_to_cstr(v)  string_to_cstr((v))
+
+#define FlonumToString(context,v) flonum_to_string((v))
+#define FixnumToString(context,v) fixnum_to_string((v))
+#define SpecialToString(context,v) special_to_string((v))
 
 #define CintToCdouble(x) ((double)(x))
 #define CdoubleToCint(x) ((int)(x))
@@ -41,7 +45,7 @@
 #define FIXNUM_OR(v1,v2)        ((int64_t) (v1) | (int64_t) (v2))
 
 
-#define Object_to_primitive_hint_number(v) object_to_primitive(context, (v) ,HINT_NUMBER)
+#define Object_to_primitive_hint_number(context,v) object_to_primitive((context), (v) ,HINT_NUMBER)
 #define Strcmp(x1,x2)         strcmp((x1), (x2))
 #define Half_fixnum_range(x)  half_fixnum_range((x))
 
@@ -62,31 +66,31 @@
 #define IsSend(op)      (((op) != CALL)? TRUE : FALSE)
 #define IsTailSend(op)  (((op) == TAILSEND)? TRUE : FALSE)
 #define IsNewSend(op)   (((op) == NEWSEND)? TRUE : FALSE)
-#define Set_fp()        set_fp(context, fp)
-#define Set_pc()        set_pc(context, pc)
+#define Set_fp(context)        set_fp(context, fp)
+#define Set_pc(context)        set_pc(context, pc)
 #define Set_sp(n)       set_sp(context, fp - n)
-#define Try_gc()        try_gc(context)
-#define Call_function(fn, n, sendp)		\
+#define Try_gc(context)        try_gc(context)
+#define Call_function(context,fn, n, sendp)		\
   call_function(context, (fn), (n), (sendp))
-#define Call_builtin(fn, n, sendp, newp)		\
+#define Call_builtin(context,fn, n, sendp, newp)		\
   call_builtin(context, (fn), (n), (sendp), (newp))
-#define Tailcall_function(fn, n, sendp)			\
+#define Tailcall_function(context,fn, n, sendp)			\
   tailcall_function(context, (fn), (n), (sendp))
-#define Tailcall_builtin(fn, n, sendp)			\
+#define Tailcall_builtin(context,fn, n, sendp)			\
   tailcall_builtin(context, (fn), (n), (sendp), FALSE)
 #define Update_context()          update_context()
 #define Save_context()            save_context()
-#define New_normal_object()       new_normal_object(context)
-#define New_normal_function(ss)   new_normal_function(context, ss)
-#define Initialize_new_object(con, o)   initialize_new_object(context, con, o)
+#define New_normal_object(context)       new_normal_object((context))
+#define New_normal_function(ss)   new_normal_function((context), ss)
+#define Initialize_new_object(context,con, o)   initialize_new_object((context), con, o)
 #define Next_insn_noincpc()       NEXT_INSN_NOINCPC()
 #define Next_insn_incpc()         NEXT_INSN_INCPC()
 #define JS_undefined()            JS_UNDEFINED
 
-#define Get_a()                     get_a(context)
-#define Get_err()                   get_err(context)
-#define Get_global(v1)              get_global_helper(context, v1)
-#define Get_globalobj()             (context->global)
+#define Get_a(context)                     get_a((context))
+#define Get_err(context)                   get_err((context))
+#define Get_global(context,v1)              get_global_helper((context), v1)
+#define Get_globalobj(context)             ((context)->global)
 #define Instanceof(v1, v2)          instanceof_helper(v1, v2)
 #define Isundefined(v1)             true_false(is_undefined((v1)))
 #define Isobject(v1)                is_object((v1))
@@ -98,11 +102,11 @@
 #define Not(obj)                    true_false(obj == JS_FALSE || obj == FIXNUM_ZERO || obj == gconsts.g_flonum_nan || obj == gconsts.g_string_empty)
 #define Get_literal(d1)             get_literal(insns, d1)
 
-#define New_normal_iterator(obj)  new_normal_iterator(context, obj)
+#define New_normal_iterator(context,obj)  new_normal_iterator((context), obj)
 #define Logexit(str)                LOG_EXIT(str)
 
-#define Getarguments(link, index)  getarguments_helper(context, link, index)
-#define Getlocal(link, index)      getlocal_helper(context, link, index)
+#define Getarguments(context,link, index)  getarguments_helper((context), link, index)
+#define Getlocal(context,link, index)      getlocal_helper((context), link, index)
 #define Localret()                 localret_helper(context, pc)
 #define Pushhandler(d0)            exhandler_stack_push(context, pc + d0, fp)
 
@@ -141,7 +145,7 @@
   fframe_arguments(fr) = args;						\
   fframe_locals_idx(fr, 0) = args;
 
-#define Throw()							\
+#define Throw(context)							\
   int newpc, handler_fp;					\
   exhandler_stack_pop(context, &newpc, &handler_fp);		\
   while (handler_fp != fp) {					\
