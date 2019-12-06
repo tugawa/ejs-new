@@ -350,14 +350,14 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
 
   set_array_ptr_body(p, array_data);
   set_array_ptr_size(p, size);
-  set_array_ptr_length(p, size);
+  set_array_ptr_length(p, cint_to_number(ctx, (cint) size));
 
   assert(Array_num_builtin_props +
          Array_num_double_props + Array_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, (cint) size));
 
   return ptr_to_normal_array(p);
 }
+
 
 JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
 {

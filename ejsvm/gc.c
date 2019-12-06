@@ -585,9 +585,10 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       JSObject *p = (JSObject *) ptr;
       JSValue *a_body = get_array_ptr_body(p);
-      uint64_t a_length = get_array_ptr_length(p);
+      uint64_t a_length = (uint64_t) number_to_double(get_array_ptr_length(p));
       uint64_t a_size = get_array_ptr_size(p);
       size_t len = a_length < a_size ? a_length : a_size;
+      process_edge(get_array_ptr_length(p));
       if (a_body != NULL)
         /* a_body may be NULL during initialization */
         process_edge_JSValue_array(a_body, 0, len);
@@ -1350,6 +1351,14 @@ STATIC void check_invariant_nobw_space(struct space *space)
 STATIC void check_invariant(void)
 {
   check_invariant_nobw_space(&js_space);
+}
+
+STATIC void print_free_list(void)
+{
+  struct free_chunk *p;
+  for (p = js_space.freelist; p; p = p->next)
+    printf("%d ", p->header.size * BYTES_IN_GRANULE);
+  printf("\n");
 }
 
 

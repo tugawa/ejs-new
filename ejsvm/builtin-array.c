@@ -603,7 +603,7 @@ ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "debugarray",     array_debugarray,     0, ATTR_DE },
 };
 ObjDoubleProp  ArrayPrototype_double_props[] = {
-  { "length",   0, ATTR_DDDE },
+  { "length",   0, ATTR_DDDE, 2},
 };
 ObjGconstsProp ArrayPrototype_gconsts_props[] = {};
 /* constructor */
@@ -615,7 +615,7 @@ ObjGconstsProp ArrayConstructor_gconsts_props[] = {
 /* instance */
 ObjBuiltinProp Array_builtin_props[] = {};
 ObjDoubleProp  Array_double_props[] = {
-  { "length",    0, ATTR_DDDE },  /* placeholder */
+  { "length",    0, ATTR_DDDE, 2 },  /* placeholder */
 };
 ObjGconstsProp Array_gconsts_props[] = {};
 DEFINE_PROPERTY_TABLE_SIZES_PCI(Array);

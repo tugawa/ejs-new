@@ -429,8 +429,8 @@ DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
  */
 #define ARRAY_SPECIAL_PROPS 3
 DEFINE_ACCESSORS_I(array, 0, uintjsv_t, size)
-DEFINE_ACCESSORS_I(array, 1, uintjsv_t, length)
-DEFINE_ACCESSORS_R(array, 2, JSValue *, body, array_data)
+DEFINE_ACCESSORS_R(array, 1, JSValue *, body, array_data)
+DEFINE_ACCESSORS_J(array, 2, length)  /* TODO: ensure consistency */
 
 #define ASIZE_INIT   10       /* default initial size of the C array */
 #define ASIZE_DELTA  10       /* delta when expanding the C array */
