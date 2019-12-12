@@ -11,26 +11,26 @@ bitand (v1, v2) {
       return FIXNUM_AND(v1, v2);
     }
     case (Fixnum v1 && Flonum v2) {
-      cint x1 = FixnumToCint(v1);
-      cint x2 = FlonumToCint(v2);
-      return CintToNumber(x1 & x2);
+      cint x1 = fixnum_to_cint(v1);
+      cint x2 = flonum_to_cint(v2);
+      return cint_to_number(x1 & x2);
     }
     case (Flonum v1 && Fixnum v2) {
-      cint x1 = FlonumToCint(v1);
-      cint x2 = FixnumToCint(v2);
-      return CintToNumber(x1 & x2);
+      cint x1 = flonum_to_cint(v1);
+      cint x2 = fixnum_to_cint(v2);
+      return cint_to_number(x1 & x2);
     }
     case (number v1) {
-      Number u2 = toNumber(v2);
+      Number u2 = to_number(v2);
       rematch top(v1, u2);
     }
     case (number v2) {
-      Number u1 = toNumber(v1);
+      Number u1 = to_number(v1);
       rematch top(u1, v2);
     }
     case (true) {
-      Number u1 = toNumber(v1);
-      Number u2 = toNumber(v2);
+      Number u1 = to_number(v1);
+      Number u2 = to_number(v2);
       rematch top(u1, u2);
     }
   }

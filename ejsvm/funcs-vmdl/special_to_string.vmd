@@ -1,19 +1,26 @@
 #include "../header-vmdl/externc.vmdh"
 
-#include "../header-vmdl/mappings.vmdh"
 
-special_to_string : JSValue -> JSValue
+(makeInline) special_to_string : Special-> String
 special_to_string(v){
-    if(v == BoolToSpecial(JS_TRUE)){
-        return gconsts.g_string_true;
-    }
-    if(v == BoolToSpecial(JS_FALSE)){
-        return gconsts.g_string_false;
-    }
-    if(v == NullToSpecial(JS_NULL)){
-        return gconsts.g_string_null;
-    }
-    if(v == UndefinedToSpecial(JS_UNDEFINED)){
-        return gconsts.g_string_undefined;
+    top: match(v){
+        case(Special v){
+            if(v == JS_TRUE){
+                return gconsts.g_string_true;
+            }
+            if(v == JS_FALSE){
+                return gconsts.g_string_false;
+            }
+            if(v == JS_NULL){
+                return gconsts.g_string_null;
+            }
+            if(v == JS_UNDEFINED){
+                return gconsts.g_string_undefined;
+            }
+        }
+        case(true){
+            type_error("special expected in special_to_string");
+            return gconsts.g_string_empty;
+        }
     }
 }

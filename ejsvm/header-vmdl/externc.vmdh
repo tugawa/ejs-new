@@ -1,36 +1,35 @@
-externC constant Bool JS_TRUE = "JS_TRUE";
-externC constant Bool JS_FALSE = "JS_FALSE";
-externC constant Null JS_NULL = "JS_NULL";
-externC constant Undefined JS_UNDEFINED = "JS_UNDEFINED";
+externC constant Special JS_TRUE = "JS_TRUE";
+externC constant Special JS_FALSE = "JS_FALSE";
+externC constant Special JS_NULL = "JS_NULL";
+externC constant Special JS_UNDEFINED = "JS_UNDEFINED";
 externC constant Fixnum FIXNUM_ZERO = "FIXNUM_ZERO";
 externC constant Fixnum FIXNUM_ONE = "FIXNUM_ONE";
 externC constant cstring EMPTY_CSTRING = "\"\"";
+externC constant JSValue EMPTY_JSVALUE = "JS_NULL";
+externC constant cint HINT_STRING = "HINT_STRING";
+externC constant cdouble NAN = "NAN";
 
-externC CintToCdouble : cint -> cdouble
-externC CdoubleToCint : cdouble -> cint
-externC FixnumToCint : Fixnum -> cint
-externC FlonumToCint : Flonum -> cint
-externC BoolToSpecial : Bool -> Special
-externC NullToSpecial : Null -> Special
-externC UndefinedToSpecial : Undefined -> Special
-externC (needContext, triggerGC) CintToNumber : cint -> Number
-externC (needContext, triggerGC) CintToFixnum : cint -> Fixnum
-externC (needContext, triggerGC) CdoubleToFlonum: cdouble -> Flonum
+externC cint_to_double : cint -> cdouble
+externC double_to_cint : cdouble -> cint
+externC fixnum_to_cint : Fixnum -> cint
+externC cint_to_string : cint -> String
+externC double_to_string : cdouble -> String
+externC double_to_number : cdouble -> Number
+externC double_to_flonum : cdouble -> Flonum
+externC flonum_to_double : Flonum -> cdouble
+externC (needContext) array_to_string : (Array, String) -> String
+externC string_to_cstr: String -> cstring
+externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
+externC flonum_to_cint : Flonum -> cint
+externC (triggerGC) cint_to_number : cint -> Number
+externC (triggerGC) cint_to_fixnum : cint -> Fixnum
 externC (needContext, triggerGC) concat : (String, String) -> String
-externC (needContext, triggerGC) CdoubleToNumber : cdouble -> Number
-externC (needContext, triggerGC) FixnumToString : Fixnum -> String
-externC (needContext, triggerGC) FlonumToString : Flonum -> String
-externC (needContext, triggerGC) FixnumToCdouble : Fixnum -> cdouble
-externC (needContext, triggerGC) SpecialToString : Special -> String
-externC (needContext, triggerGC) toString : JSValue -> String
-externC (needContext, triggerGC) toCdouble :JSValue -> cdouble
-externC (needContext, triggerGC) toNumber: JSValue -> Number
-externC (needContext, triggerGC) toObject: JSValue -> JSObject
+externC (triggerGC) fixnum_to_double : Fixnum -> cdouble
+externC CstrToString : cstring -> String
 externC (needContext, triggerGC) getArrayProp: (Array, JSValue) -> JSValue
 externC (needContext, triggerGC) getObjectProp: (JSObject, JSValue) -> JSValue
 externC (needContext, triggerGC) SetArrayProp: (Array, JSValue, JSValue) -> void
 externC (needContext, triggerGC) SetObjectProp: (JSObject, JSValue, JSValue) -> void
-externC (needContext, triggerGC) Object_to_primitive_hint_number: JSObject -> JSValue
 
 externC FIXNUM_LESSTHAN: (Fixnum, Fixnum) -> cint
 externC FIXNUM_LESSTHANEQ: (Fixnum, Fixnum) -> cint
@@ -38,8 +37,7 @@ externC FIXNUM_EQ: (Fixnum, Fixnum) -> cint
 externC FIXNUM_AND: (Fixnum, Fixnum) -> Fixnum
 externC FIXNUM_OR: (Fixnum, Fixnum) -> Fixnum
 
-externC String_to_cstr: String -> Top
-externC Strcmp: (Top, Top) -> cint
+externC Strcmp: (cstring, cstring) -> cint
 externC Half_fixnum_range: cint -> cint
 
 externC Get_opcode : void -> cint
@@ -69,8 +67,6 @@ externC LogicalRightShift : (cint, cint) -> cint
 
 externC Floor : cdouble -> cdouble
 externC Ceil : cdouble -> cdouble
-
-externC toBoolean : JSValue -> JSValue
 
 externC (needContext, triggerGC) Get_a : void -> JSValue
 externC (needContext, triggerGC) Getarguments: (cint, Subscript) -> JSValue
@@ -116,8 +112,9 @@ externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 
 externC (needContext) new_normal_boolean_object : JSValue -> BooleanObject
+externC (needContext) new_normal_string_object : JSValue -> StringObject
+externC (needContext) new_normal_number_object : JSValue -> NumberObject
 externC is_string : JSValue -> cint
-externC string_value : String -> cstring
 externC IsEmptyCstring : cstring -> cint
 externC Strtol : (cstring, cstring, cint) -> cint
 externC Strtod : (cstring, cstring) -> cdouble
@@ -127,3 +124,14 @@ externC (needContext) invoke_function0 : (JSValue, JSValue, cint) -> JSValue
 externC (needContext) invoke_builtin0 : (JSValue, JSValue, cint) -> JSValue
 externC GC_PUSH : JSValue -> void
 externC GC_POP : JSValue -> void
+externC false_true : cint -> Special
+
+externC isnan : cdouble -> cint
+externC isinf : cdouble -> cint
+externC GetProp : (JSValue, JSValue, JSValue) -> cint
+externC (needContext) print_value_simple : JSValue -> void
+externC PutLnChar : void -> void
+
+#include "../header-vmdl/funcs-vmdl.vmdh"
+
+#include "../header-vmdl/mappings.vmdh"

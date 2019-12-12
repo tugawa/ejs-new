@@ -175,7 +175,15 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     varTypes = new ArrayList<>(1);
                     varTypes.add(funDomainType);
                 }
-                print(funType.getRange().toString()+" "+name+" (");
+                String typeString;
+                if(AstType.get("JSValue").isSuperOrEqual(funType.getRange())){
+                    typeString = "JSValue";
+                }else{
+                    typeString = funType.getRange().toString();
+                    if(typeString.equals("cdouble")) typeString = "double";
+                    else if(typeString.equals("cstring")) typeString = "char*";
+                }
+                print(typeString+" "+name+" (");
                 SyntaxTree paramsNode = ((SyntaxTree)bodyNode).get(Symbol.unique("params"));
                 int size = paramsNode.size();
                 if(!FunctionTable.contains(name)){
@@ -191,11 +199,17 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 while(true){
                     AstType varType = varTypes.get(i);
                     String varName = paramsNode.get(i).toText();
+                    AstType realVarType;
                     String typeName;
                     if(varType instanceof AstAliasType){
-                        typeName = ((AstAliasType)varType).getCTypeName().toString();
+                        realVarType = AstType.get(((AstAliasType)varType).getCTypeName());
                     }else{
-                        typeName = varType.toString();
+                        realVarType = varType;
+                    }
+                    if(AstType.get("JSValue").isSuperOrEqual(realVarType)){
+                        typeName = "JSValue";
+                    }else{
+                        typeName = realVarType.toString();
                     }
                     print(typeName+" "+varName);
                     i++;
@@ -683,9 +697,18 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedNode != null){
+                // TEST PRINT ******************************************
+                System.err.println("Original:"+node.toString());
+                System.err.println("Expanded:"+expandedNode.toString());
+                // *****************************************************
+                visit(expandedNode, indent);
+                return;
+            }
+            String functionName = node.get(0).toText();
             visit(node.get(0), 0);
             print("(");
-            String functionName = node.get(0).toText();
             if(!FunctionTable.contains(functionName)){
                 throw new Error("FunctionTable is broken: not has "+functionName);
             }

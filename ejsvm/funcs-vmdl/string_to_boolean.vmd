@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) string_to_boolean : String -> Special
+string_to_boolean(v){
+    top: match(v){
+        case(String v){
+            return false_true(IsEmptyCstring(string_to_cstr(v)));
+        }
+        case(true){
+            type_error("string expected in string_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

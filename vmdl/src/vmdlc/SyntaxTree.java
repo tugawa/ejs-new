@@ -17,23 +17,33 @@ import type.ExprTypeSet;
 import type.TypeMapSet;
 import vmdlc.SyntaxTree;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
     TypeMapSet dict;
     ExprTypeSet exprTypeSet;
     Set<String> rematchVarSet;
+    Set<SyntaxTree> expandedTreeCandidate;
+    SyntaxTree expandedTree;
+    boolean cannotExpandFlag;
 
     public SyntaxTree() {
         super();
         exprTypeSet = null;
         rematchVarSet = null;
+        expandedTreeCandidate = null;
+        expandedTree = null;
+        cannotExpandFlag = false;
     }
 
     public SyntaxTree(Symbol tag, Source source, long pos, int len, int size, Object value) {
         super(tag, source, pos, len, size > 0 ? new SyntaxTree[size] : null, value);
         exprTypeSet = null;
         rematchVarSet = null;
+        expandedTreeCandidate = null;
+        expandedTree = null;
+        cannotExpandFlag = false;
     }
 
     @Override
@@ -116,4 +126,38 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     public Set<String> getRematchVarSet(){
         return rematchVarSet;
     }
+
+    public void addExpandedTreeCandidate(SyntaxTree tree){
+        if(expandedTreeCandidate == null){
+            expandedTreeCandidate = new HashSet<>();
+            expandedTree = tree;
+        }
+        expandedTreeCandidate.add(tree);
+    }
+
+    public void setFailToExpansion(){
+        cannotExpandFlag = true;
+    }
+
+    public SyntaxTree getExpanndedTree(){
+        if(expandedTreeCandidate == null || cannotExpandFlag){
+            return null;
+        }
+        if(expandedTreeCandidate.size() == 1){
+            return expandedTree;
+        }
+        return null;
+    }
+
+    /*
+    @Override
+    public boolean equals(Object that){
+        if(!(that instanceof SyntaxTree)) return false;
+        SyntaxTree thatTree = (SyntaxTree) that;
+        if(subTree == null) return value.equals(thatTree.getValue());
+        for(SyntaxTree tree : subTree){
+            if()
+        }
+    }
+    */
 }

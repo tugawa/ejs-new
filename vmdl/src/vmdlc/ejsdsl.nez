@@ -274,6 +274,7 @@ Annotation = { 'vmInstruction' } !W _
            / { 'triggerGC' } !W _
            / { 'tailCall' } !W _
            / { 'noIncPC' } !W _
+           / { 'makeInline' } !W _
 
 ObjectMemberAnnotation = { "embedded" } _
 

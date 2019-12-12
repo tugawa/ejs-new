@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) fixnum_to_boolean : Fixnum -> Special
+fixnum_to_boolean(v){
+    top: match(v){
+        case(Fixnum v){
+            return false_true(v == FIXNUM_ZERO);
+        }
+        case(true){
+            type_error("fixnum expected in fixnum_to_boolean");
+            return JS_FALSE;
+        }
+    }
+}

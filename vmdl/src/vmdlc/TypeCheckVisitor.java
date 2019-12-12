@@ -116,8 +116,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     MatchStack matchStack;
-
     OperandSpecifications opSpec;
+    boolean inlineExpansionFlag;
 
     public static enum CheckTypePlicy{
         Lub(new TypeMapSetLub(), new ExprTypeSetLub()),
@@ -144,8 +144,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, OperandSpecifications opSpec, CheckTypePlicy policy) {
+    public void start(Tree<?> node, OperandSpecifications opSpec, CheckTypePlicy policy, boolean inlineExpansionFlag) {
         this.opSpec = opSpec;
+        this.inlineExpansionFlag = inlineExpansionFlag;
         try {
             TYPE_MAP  = policy.getTypeMap();
             EXPR_TYPE = policy.getExprTypeSet();
@@ -867,11 +868,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 ErrorPrinter.recursiveError("Call function that need context in function that does not need", node);
             }
         }
-        private void checkArguments(List<AstType> argTypes, SyntaxTree argsNode, TypeMap dict) throws Exception{
+        private List<ExprTypeSet> checkArguments(List<AstType> argTypes, SyntaxTree argsNode, TypeMap dict) throws Exception{
             SyntaxTree[] argNodes = (SyntaxTree[])argsNode.getSubTree();
             int length = argNodes.length;
+            List<ExprTypeSet> realTypes = new ArrayList<>(length);
             for(int i=0; i<length; i++){
                 ExprTypeSet argRealTypes = visit(argNodes[i], dict);
+                realTypes.add(argRealTypes);
                 for(AstType t : argRealTypes){
                     if(!argTypes.get(i).isSuperOrEqual(t)){
                         ErrorPrinter.error("Argument types "+t.toString()
@@ -879,6 +882,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
+            return realTypes;
         }
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
@@ -902,6 +906,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 argTypes.add(domain);
             }
             SyntaxTree argsNode = node.get(Symbol.unique("args"));
+            List<ExprTypeSet> argTypeList = Collections.emptyList();
             if(argsNode.size()==0){
                 if(argTypes.size() != 1 || !argTypes.contains(AstType.get("void"))){
                     ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
@@ -910,9 +915,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if(argsNode.size() != argTypes.size()){
                     ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
                 }
-                checkArguments(argTypes, argsNode, dict);
+                argTypeList = checkArguments(argTypes, argsNode, dict);
             }
-            AstType range  = functionType.getRange();
+            if(inlineExpansionFlag){
+                if(InlineFileProcessor.isInlineExpandable(functionName)){
+                    SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
+                    if(!expandedNode.equals(node)){
+                        node.addExpandedTreeCandidate(expandedNode);
+                        visit(expandedNode, dict);
+                    }else{
+                        node.setFailToExpansion();
+                    }
+                }
+            }
+            AstType range = functionType.getRange();
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(range);
             return newSet;

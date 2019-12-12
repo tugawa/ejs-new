@@ -7,7 +7,7 @@ div : (JSValue, JSValue) -> JSValue
 div (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint n1 = FixnumToCint(v1);
+      cint n1 = fixnum_to_cint(v1);
       if (IsFixnumZero(v2)) {
           if (n1 > 0) {
               return Flonum_Infinity();
@@ -17,34 +17,34 @@ div (v1, v2) {
               return Flonum_NegInfinity();
           }
       } else {
-        cint n2 = FixnumToCint(v2);
+        cint n2 = fixnum_to_cint(v2);
         cint s = n1 / n2;
-        return (n1 == n2 * s) ? CintToFixnum(s) : CdoubleToFlonum(FixnumToCdouble(v1) / FixnumToCdouble(v2));
+        return (n1 == n2 * s) ? cint_to_fixnum(s) : double_to_flonum(fixnum_to_double(v1) / fixnum_to_double(v2));
       }
     }
     case (Fixnum v1 && Flonum v2 || Flonum v1 && Fixnum v2 || Flonum v1 && Flonum v2) {
-      cdouble x1 = toCdouble(v1);
-      cdouble x2 = toCdouble(v2);
+      cdouble x1 = to_double(v1);
+      cdouble x2 = to_double(v2);
       cdouble d = x1 / x2;
-      if (IsFlonumInfinity(CdoubleToFlonum(d))) {
+      if (IsFlonumInfinity(double_to_flonum(d))) {
           return d > 0.0 ? Flonum_Infinity() : Flonum_NegInfinity();
-      } else if (IsFlonumNan(CdoubleToFlonum(d))) {
+      } else if (IsFlonumNan(double_to_flonum(d))) {
           return Flonum_Nan();
       } else {
-          return CdoubleToNumber(d);
+          return double_to_number(d);
       }
     }
     case (number v1) {
-        Number u2 = toNumber(v2);
+        Number u2 = to_number(v2);
         rematch top(v1, u2);
     }
     case (number v2) {
-        Number u1 = toNumber(v1);
+        Number u1 = to_number(v1);
         rematch top(u1, v2);
     }
     case (true) {
-      Number u1 = toNumber(v1);
-      Number u2 = toNumber(v2);
+      Number u1 = to_number(v1);
+      Number u2 = to_number(v2);
       rematch top(u1, u2);
     }
   }

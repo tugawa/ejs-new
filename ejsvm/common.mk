@@ -75,7 +75,7 @@ EJSI=$(EJSI_DIR)/ejsi
 INSNGEN_VMGEN=java -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
-FUNCGEN_VMDL=java -jar $(VMDL) -f
+FUNCGEN_VMDL=$(INSNGEN_VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
 
@@ -112,6 +112,12 @@ else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_CUSTOMIZE_OT=false
     SUPERINSN_PSEUDO_IDEF=false
     SUPERINSN_REORDER_DISPATCH=false
+endif
+
+ifeq ($(USE_VMDL_INLINE_EXPANSION),true)
+	VMDL_INLINE_FLAG=--useinline vmdl_workspace/inlines.inline
+else
+	VMDL_INLINE_FLAG=
 endif
 
 GENERATED_HFILES = \
@@ -228,7 +234,63 @@ INSN_GENERATED = \
 
 INSN_HANDCRAFT =
 
-FUNC_GENERATED = 
+FUNC_GENERATED = \
+	funcs/string_to_boolean.inc \
+	funcs/string_to_number.inc \
+	funcs/string_to_object.inc \
+	funcs/special_to_boolean.inc \
+	funcs/special_to_number.inc \
+	funcs/special_to_object.inc \
+	funcs/special_to_string.inc \
+	funcs/fixnum_to_string.inc \
+	funcs/fixnum_to_boolean.inc \
+	funcs/fixnum_to_object.inc \
+	funcs/flonum_to_string.inc \
+	funcs/flonum_to_boolean.inc \
+	funcs/flonum_to_object.inc \
+	funcs/number_to_string.inc \
+	funcs/object_to_string.inc \
+	funcs/object_to_boolean.inc \
+	funcs/object_to_number.inc \
+	funcs/object_to_primitive.inc \
+	funcs/to_string.inc \
+	funcs/to_boolean.inc \
+	funcs/to_number.inc \
+	funcs/to_object.inc \
+	funcs/to_double.inc \
+	funcs/special_to_double.inc \
+	funcs/number_to_cint.inc \
+	funcs/number_to_double.inc
+
+FUNCS_VMD = \
+	funcs-vmdl/string_to_boolean.vmd \
+	funcs-vmdl/string_to_number.vmd \
+	funcs-vmdl/string_to_object.vmd \
+	funcs-vmdl/special_to_boolean.vmd \
+	funcs-vmdl/special_to_number.vmd \
+	funcs-vmdl/special_to_object.vmd \
+	funcs-vmdl/special_to_string.vmd \
+	funcs-vmdl/fixnum_to_string.vmd \
+	funcs-vmdl/fixnum_to_boolean.vmd \
+	funcs-vmdl/fixnum_to_object.vmd \
+	funcs-vmdl/flonum_to_string.vmd \
+	funcs-vmdl/flonum_to_boolean.vmd \
+	funcs-vmdl/flonum_to_object.vmd \
+	funcs-vmdl/number_to_string.vmd \
+	funcs-vmdl/object_to_string.vmd \
+	funcs-vmdl/object_to_boolean.vmd \
+	funcs-vmdl/object_to_number.vmd \
+	funcs-vmdl/object_to_primitive.vmd \
+	funcs-vmdl/to_string.vmd \
+	funcs-vmdl/to_boolean.vmd \
+	funcs-vmdl/to_number.vmd \
+	funcs-vmdl/to_object.vmd \
+	funcs-vmdl/to_double.vmd \
+	funcs-vmdl/special_to_double.vmd \
+	funcs-vmdl/number_to_cint.vmd \
+	funcs-vmdl/number_to_double.vmd
+
+VMDL_WORKSPACE = 
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
@@ -315,9 +377,17 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
+vmdl_workspace/inlines.inline: $(FUNCS_VMD)#$(wildcard $(EJSVM_DIR)/funcs-vmdl/*.vmd)
+	mkdir -p vmdl_workspace
+	rm -f vmdl_workspace/inlines.inline
+	$(foreach FILE_VMD, $^, \
+		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+		-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
+	) touch $@ || (rm $@; exit 1)
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) vmdl_workspace/inlines.inline
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
@@ -338,9 +408,17 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
+vmdl_workspace/inlines.inline: $(FUNCS_VMD)#$(wildcard $(EJSVM_DIR)/funcs-vmdl/*.vmd)
+	mkdir -p vmdl_workspace
+	rm -f vmdl_workspace/inlines.inline
+	$(foreach FILE_VMD, $^, \
+		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+		-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
+	) touch $@ || (rm $@; exit 1)
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) vmdl_workspace/inlines.inline
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
 		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
@@ -515,6 +593,7 @@ clean:
 	rm -rf si
 	rm -rf insns-vmdl
 	rm -rf funcs-vmdl
+	rm -rf vmdl_workspace
 	rm -f ejsvm ejsvm.spec
 
 cleanest:
@@ -526,6 +605,7 @@ cleanest:
 	rm -rf si
 	rm -rf insns-vmdl
 	rm -rf funcs-vmdl
+	rm -rf vmdl_workspace
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 	(cd $(VMGEN_DIR); ant clean)
 	rm -f $(VMGEN)

@@ -1,0 +1,23 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) special_to_number : Special -> Number
+special_to_number(v){
+    top: match(v){
+        case(Special v){
+            if(v == JS_UNDEFINED){
+                return gconsts.g_flonum_nan;
+            }
+            if(v == JS_FALSE || v == JS_NULL){
+                return FIXNUM_ZERO;
+            }
+            if(v == JS_TRUE){
+                return FIXNUM_ONE;
+            }
+        }
+        case(true){
+            type_error("special expected in special_to_number");
+            return gconsts.g_flonum_nan;
+        }
+    }
+}

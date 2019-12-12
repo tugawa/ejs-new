@@ -1,0 +1,25 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) special_to_object : Special-> JSValue
+special_to_object(v){
+    top: match(v){
+        case(Special v){
+            if(v == JS_UNDEFINED){
+                type_error_exception("trying to convert undefined to an object");
+                return JS_UNDEFINED;
+            }
+            if(v == JS_NULL){
+                type_error_exception("trying to convert null to an object");
+                return JS_UNDEFINED;
+            }
+            if(v == JS_TRUE || v == JS_FALSE){
+                return new_normal_boolean_object(v);
+            }
+        }
+        case(true){
+            type_error("special expected in special_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

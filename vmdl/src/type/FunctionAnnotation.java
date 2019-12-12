@@ -7,7 +7,8 @@ public enum FunctionAnnotation {
     needContext(),
     triggerGC(),
     tailCall(),
-    noIncPC();
+    noIncPC(),
+    makeInline();
 
     private FunctionAnnotation(){
     }

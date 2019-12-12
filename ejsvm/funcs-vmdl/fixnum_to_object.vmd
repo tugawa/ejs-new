@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) fixnum_to_object : Fixnum -> JSValue
+fixnum_to_object(v){
+    top: match(v){
+        case(Fixnum v){
+            return new_normal_number_object(v);
+        }
+        case(true){
+            type_error("fixnum expected in fixnum_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

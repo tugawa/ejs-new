@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) fixnum_to_string : Fixnum-> String
+fixnum_to_string(v){
+    top: match(v){
+        case(Fixnum v){
+            return cint_to_string(fixnum_to_cint(v));
+        }
+        case(true){
+            type_error("fixnum expected in fixnum_to_string");
+            return gconsts.g_string_empty;
+        }
+    }
+}

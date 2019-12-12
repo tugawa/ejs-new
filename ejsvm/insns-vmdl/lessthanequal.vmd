@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext)
-lessthanequal : (JSValue, JSValue) -> Bool
+lessthanequal : (JSValue, JSValue) -> Special
 
 lessthanequal (v1, v2) {
   top: match (v1, v2) {
@@ -11,24 +11,24 @@ lessthanequal (v1, v2) {
       return FIXNUM_LESSTHANEQ(v1, v2) ? JS_TRUE : JS_FALSE;
     }
     case (number v1 && number v2) {
-      cdouble x1 = toCdouble(v1);
-      cdouble x2 = toCdouble(v2);
+      cdouble x1 = to_double(v1);
+      cdouble x2 = to_double(v2);
       return x1 <= x2 ? JS_TRUE : JS_FALSE;
     }
     case (String v1 && String v2) {
-      return Strcmp(String_to_cstr(v1), String_to_cstr(v2)) <= 0 ? JS_TRUE : JS_FALSE;
+      return Strcmp(string_to_cstr(v1), string_to_cstr(v2)) <= 0 ? JS_TRUE : JS_FALSE;
     }
     case ((String v1 || Special v1) && (String v2 || Special v2)) {
-      Number u1 = toNumber(v1);
-      Number u2 = toNumber(v2);
+      Number u1 = to_number(v1);
+      Number u2 = to_number(v2);
       rematch top (u1, u2);
     }
     case ((String v1 || Special v1) && number v2) {
-      Number u1 = toNumber(v1);
+      Number u1 = to_number(v1);
       rematch top (u1, v2);
     }
     case (number v1 && (String v2 || Special v2)) {
-      Number u2 = toNumber(v2);
+      Number u2 = to_number(v2);
       rematch top (v1, u2);
     }
     case (object v1 && ffss v2) {

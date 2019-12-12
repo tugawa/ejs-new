@@ -33,19 +33,22 @@ import vmdlc.TypeCheckVisitor;
 
 public class Main {
     static final String VMDL_GRAMMAR = "ejsdsl.nez";
+    static final String INLINE_FILE = "./inlines.inline";
     static String sourceFile;
     static String dataTypeDefFile;
     static String vmdlGrammarFile;
     static String operandSpecFile;
     static String insnDefFile;
+    static String inlineExpansionFile;
     static int typeMapIndex = 1;
-    static OutputMode outPutMode = OutputMode.Instruction;
+    static OutputMode outputMode = OutputMode.Instruction;
 
     static Option option = new Option();
 
     public static enum OutputMode{
         Instruction(false),
-        Function(true);
+        Function(true),
+        MakeInline(true);
 
         private boolean functionMode;
         private OutputMode(boolean functionMode){
@@ -73,8 +76,10 @@ public class Main {
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
-            } else if (opt.equals("-f")) {
-                outPutMode = OutputMode.Function;
+            } else if (opt.equals("--preprocess")) {
+                outputMode = OutputMode.MakeInline;
+            } else if (opt.equals("--useinline")) {
+                inlineExpansionFile = args[i++];
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -99,6 +104,7 @@ public class Main {
             System.out.println("              -T1: use Lub");
             System.out.println("              -T2: partly detail");
             System.out.println("              -T3: perfectly detail");
+            System.out.println("   --inline  output inline expansion information");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
             System.out.println("   -Xcmp:opt_pass [MR:S]");
             System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
@@ -114,16 +120,20 @@ public class Main {
         }
     }
 
-    static SyntaxTree parse(String sourceFile) throws IOException {
+    static Grammar getGrammar() throws IOException {
         ParserGenerator pg = new ParserGenerator();
-        Grammar grammar = null;
-
+        Grammar grammar;
         if (vmdlGrammarFile != null)
             grammar = pg.loadGrammar(vmdlGrammarFile);
         else {
             StringSource grammarText = readDefaultGrammar();
             grammar = pg.newGrammar(grammarText, "nez");
         }
+        return grammar;
+    }
+
+    static SyntaxTree parse(String sourceFile) throws IOException {
+        Grammar grammar = getGrammar();
 
         //grammar.dump();
         Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
@@ -166,13 +176,26 @@ public class Main {
         SyntaxTree ast = parse(sourceFile);
 
         ErrorPrinter.setSource(sourceFile);
-        new ExternProcessVisitor().start(ast);
+        if(inlineExpansionFile != null) InlineFileProcessor.read(inlineExpansionFile, getGrammar());
+        String functionName = new ExternProcessVisitor().start(ast);
+        if(outputMode != OutputMode.MakeInline){
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
+                outputMode = OutputMode.Instruction;
+            }else{
+                outputMode = OutputMode.Function;
+            }
+        }
         new DesugarVisitor().start(ast);
         new DispatchVarCheckVisitor().start(ast);
-        if(!outPutMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1]);
-        
-        String program = new AstToCVisitor().start(ast, opSpec, outPutMode);
+        if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
+        new TypeCheckVisitor().start(ast, opSpec, TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null));
+
+        String program;
+        if(outputMode == OutputMode.MakeInline){
+            program = new InlineInfoVisitor().start(ast);
+        }else{
+            program = new AstToCVisitor().start(ast, opSpec, outputMode);
+        }
 
         System.out.println(program);
     }

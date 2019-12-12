@@ -1,0 +1,43 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) to_double : JSValue -> cdouble
+to_double(v){
+    top: match(v){
+        case(Fixnum v){
+            return cint_to_double(fixnum_to_cint(v));
+        }
+        case(Flonum v){
+            return flonum_to_double(v);
+        }
+        case(String v){
+            cstring p = string_to_cstr(v);
+            cstring q = EMPTY_CSTRING;
+            if(IsEmptyCstring(p)) return 0.0;
+            cint n = Strtol(p, q, 10);
+            if(p != q && IsEmptyCstring(q)) return cint_to_double(n);
+            cdouble d = Strtod(p, q);
+            if(p != q && IsEmptyCstring(q)) return d;
+            return NAN;
+        }
+        case(Special v){
+            return special_to_double(v);
+        }
+        case(object v){
+            JSValue w = object_to_number(v);
+            objectLevel: match(w){
+                case(Fixnum w){
+                    return cint_to_double(fixnum_to_cint(w));
+                }
+                case(Flonum w){
+                    return flonum_to_double(w);
+                }
+            }
+        }
+        case(true){
+            return NAN;
+        }
+    }
+}

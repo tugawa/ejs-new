@@ -28,6 +28,14 @@ public class ErrorPrinter{
         return builder.toString();
     }
 
+    public static void error(String message){
+        StringBuilder builder = new StringBuilder();
+        builder.append("[error] ");
+        builder.append(message);
+        System.err.print(builder.toString());
+        System.exit(-1);
+    }
+
     public static void error(String message, SyntaxTree node){
         int line = node.getLineNum();
         long column = node.getSourcePosition();

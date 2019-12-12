@@ -1,0 +1,26 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) to_number : JSValue -> Number
+to_number(v){
+    top: match(v){
+        case(number v){
+            return v;
+        }
+        case(String v){
+            return string_to_number(v);
+        }
+        case(Special v){
+            return special_to_number(v);
+        }
+        case(object v){
+            return object_to_number(v);
+        }
+        case(true){
+            LOG_ERR("This cannot happen in to_number");
+            return gconsts.g_flonum_nan;
+        }
+    }
+}

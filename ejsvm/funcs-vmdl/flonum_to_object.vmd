@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) flonum_to_object : Flonum -> JSValue
+flonum_to_object(v){
+    top: match(v){
+        case(Flonum v){
+            return new_normal_number_object(v);
+        }
+        case(true){
+            type_error("flonum expected in flonum_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

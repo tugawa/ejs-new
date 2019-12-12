@@ -1,0 +1,105 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline) object_to_string : JSValue -> String
+object_to_string(v){
+    top: match(v){
+        case(object v){
+            JSValue f1 = get_prop_prototype_chain(v, gconsts.g_string_tostring);
+            if(f1 != JS_UNDEFINED){
+                GC_PUSH(v);
+                toStringLevel: match(f1){
+                    case(Function f1){
+                        JSValue invoked = invoke_function0(v, f1, true);
+                        GC_POP(v);
+                        invokedFunction: match(invoked){
+                            case(String invoked){
+                                return invoked;
+                            }
+                            case(Fixnum invoked){
+                                return fixnum_to_string(invoked);
+                            }
+                            case(Flonum invoked){
+                                return flonum_to_string(invoked);
+                            }
+                            case(Special invoked){
+                                return special_to_string(invoked);
+                            }
+                        }
+                    }
+                    case(Builtin f1){
+                        JSValue invoked = invoke_builtin0(v, f1, true);
+                        GC_POP(v);
+                        invokedBuiltin: match(invoked){
+                            case(String invoked){
+                                return invoked;
+                            }
+                            case(Fixnum invoked){
+                                return fixnum_to_string(invoked);
+                            }
+                            case(Flonum invoked){
+                                return flonum_to_string(invoked);
+                            }
+                            case(Special invoked){
+                                return special_to_string(invoked);
+                            }
+                        }
+                    }
+                    case(true){
+                        GC_POP(v);
+                    }
+                }
+            }
+            JSValue f2 = get_prop_prototype_chain(v, gconsts.g_string_valueof);
+            GC_PUSH(v);
+            if(f2 != JS_UNDEFINED){
+                toStringLevel: match(f2){
+                    case(Function f2){
+                        JSValue invoked = invoke_function0(v, f2, true);
+                        GC_POP(v);
+                        invokedFunction: match(invoked){
+                            case(String invoked){
+                                return invoked;
+                            }
+                            case(Fixnum invoked){
+                                return fixnum_to_string(invoked);
+                            }
+                            case(Flonum invoked){
+                                return flonum_to_string(invoked);
+                            }
+                            case(Special invoked){
+                                return special_to_string(invoked);
+                            }
+                        }
+                    }
+                    case(Builtin f2){
+                        JSValue invoked = invoke_builtin0(v, f2, true);
+                        GC_POP(v);
+                        invokedBuiltin: match(invoked){
+                            case(String invoked){
+                                return invoked;
+                            }
+                            case(Fixnum invoked){
+                                return fixnum_to_string(invoked);
+                            }
+                            case(Flonum invoked){
+                                return flonum_to_string(invoked);
+                            }
+                            case(Special invoked){
+                                return special_to_string(invoked);
+                            }
+                        }
+                    }
+                }
+            }
+            type_error_exception("neither to_string nor valueOf returned a string in object_to_string");
+            return gconsts.g_string_undefined;     /* not reached */
+        }
+        case(true){
+            type_error("object expected in object_to_string");
+            return gconsts.g_string_empty;
+        }
+    }
+}

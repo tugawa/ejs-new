@@ -161,32 +161,35 @@ extern void init_context(FunctionTable *, JSValue, Context **);
 extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
-/* JSValue special_to_object(JSValue v); */
+extern JSValue special_to_object(Context *, JSValue);
 extern JSValue string_to_number(JSValue);
-/* JSValue string_to_boolean(JSValue v); */
-/* JSValue string_to_object(JSValue v); */
+extern JSValue string_to_boolean(JSValue);
+extern JSValue string_to_object(Context *, JSValue); 
 extern JSValue fixnum_to_string(JSValue);
 extern JSValue flonum_to_string(JSValue);
 extern JSValue number_to_string(JSValue);
-/* JSValue fixnum_to_boolean(JSValue v); */
-/* JSValue flonum_to_boolean(JSValue v); */
-/* JSValue fixnum_to_object(JSValue v); */
-/* JSValue flonum_to_object(JSValue v); */
+extern JSValue fixnum_to_boolean(JSValue);
+extern JSValue flonum_to_boolean(JSValue);
+extern JSValue fixnum_to_object(Context *, JSValue);
+extern JSValue flonum_to_object(Context *, JSValue);
 extern double primitive_to_double(JSValue);
 extern JSValue primitive_to_string(JSValue);
 extern JSValue object_to_string(Context *, JSValue);
+extern JSValue object_to_boolean(JSValue);
 extern JSValue object_to_number(Context *, JSValue);
-extern JSValue object_to_primitive(Context *, JSValue, int);
+extern JSValue object_to_primitive(Context *, JSValue, cint);
 extern JSValue array_to_string(Context *, JSValue, JSValue);
 extern JSValue to_object(Context *, JSValue);
 extern JSValue to_string(Context *, JSValue);
-extern JSValue to_boolean(JSValue v);
+extern JSValue to_boolean(JSValue);
 extern JSValue to_number(Context *, JSValue);
 extern double to_double(Context *, JSValue);
-extern JSValue number_to_cint(JSValue n);
+extern cint number_to_cint(JSValue);
+extern double number_to_double(JSValue);
 extern cint toInteger(Context *context, JSValue a);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
+extern JSValue double_to_string(double);
 
 /*
  * hash.c

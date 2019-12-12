@@ -4,5 +4,5 @@
 fixnum : cint -> Fixnum
 
 fixnum (i1) {
-    return CintToFixnum(i1);
+    return cint_to_fixnum(i1);
 }

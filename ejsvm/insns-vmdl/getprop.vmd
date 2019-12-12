@@ -13,7 +13,7 @@ getprop (obj, index) {
       return getObjectProp(obj, index);
     }
     case (true) {
-      JSValue obj2 = toObject(obj);
+      JSValue obj2 = to_object(obj);
       rematch top (obj2, index);
     }
   }

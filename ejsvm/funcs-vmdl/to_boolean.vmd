@@ -1,0 +1,29 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) to_boolean : JSValue -> Special
+to_boolean(v){
+    top: match(v){
+        case(String v){
+            return string_to_boolean(v);
+        }
+        case(Fixnum v){
+            return fixnum_to_boolean(v);
+        }
+        case(Flonum v){
+            return flonum_to_boolean(v);
+        }
+        case(Special v){
+            return special_to_boolean(v);
+        }
+        case(object v){
+            return object_to_boolean(v);
+        }
+        case(true){
+            LOG_ERR("This cannot happen in to_boolean");
+            return JS_FALSE;
+        }
+    }
+}

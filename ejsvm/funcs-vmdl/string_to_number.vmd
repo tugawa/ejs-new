@@ -1,0 +1,36 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) string_to_number : String -> Number
+string_to_number(v){
+    top: match(v){
+        case(String v){
+            cstring p = string_to_cstr(v);
+            cstring q = EMPTY_CSTRING;
+            if(IsEmptyCstring(p)){
+                return FIXNUM_ZERO;
+            }
+            cint n = Strtol(p, q, 10);
+            if(p != q){
+                if(IsEmptyCstring(q)){
+                    if (is_fixnum_range_cint(n)){
+                        return cint_to_fixnum(n);
+                    }else{
+                        return double_to_flonum(cint_to_double(n));
+                    }
+                }
+            }
+            cdouble d = Strtod(p, q);
+            if(p != q){
+                if(IsEmptyCstring(q)){
+                    return double_to_flonum(d);
+                }
+            }
+            return gconsts.g_flonum_nan;
+        }
+        case(true){
+            type_error("string expected in strint_to_number");
+            return gconsts.g_flonum_nan;
+        }
+    }
+}

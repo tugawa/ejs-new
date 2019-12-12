@@ -8,35 +8,15 @@
  */
 
 #define concat(context,s1,s2)      ejs_string_concat((context), (s1), (s2))
-#define toString(context,v)        to_string((context), (v))
+//#define toString(context,v)        to_string((context), (v))
 /* #define FlonumToCdouble(f) to_double(context, (f)) */
-#define FlonumToCdouble(v) flonum_to_double((v))
-#define CdoubleToNumber(context,x) double_to_number((x))
-#define CdoubleToFlonum(context,x) double_to_flonum((x))
-#define FixnumToCint(v)    fixnum_to_cint((v))
-#define FixnumToCdouble(context,v) fixnum_to_double((v))
-#define CintToNumber(context,x)    cint_to_number((x))
-#define CintToFixnum(context,x)    cint_to_fixnum((x))
-#define FlonumToCint(v)    flonum_to_cint((v))
-#define toCdouble(context,v)       to_double((context), (v))
-#define toNumber(context,v)        to_number((context), (v))
-#define toObject(context,v)        to_object((context), (v))
-#define toBoolean(v)        to_boolean((v))
 #define getArrayProp(context,v1,v2)      get_array_prop((context), (v1), (v2))
 #define getObjectProp(context,v1,v2)     get_object_prop((context), (v1), (v2))
 #define SetArrayProp(context,v1,v2,v3)   set_array_prop((context), (v1), (v2), (v3))
 #define SetObjectProp(context,v1,v2,v3)  set_object_prop((context), (v1), (v2), (v3))
-#define String_to_cstr(v)  string_to_cstr((v))
 
-#define FlonumToString(context,v) flonum_to_string((v))
-#define FixnumToString(context,v) fixnum_to_string((v))
-#define SpecialToString(context,v) special_to_string((v))
-
-#define CintToCdouble(x) ((double)(x))
-#define CdoubleToCint(x) ((int)(x))
-#define BoolToSpecial(x) (x)
-#define NullToSpecial(x) (x)
-#define UndefinedToSpecial(x) (x)
+#define cint_to_double(x) ((double)(x))
+#define double_to_cint(x) ((cint)(x))
 
 #define FIXNUM_EQ(v1,v2) ((int64_t) (v1) == (int64_t) (v2))
 #define FIXNUM_LESSTHAN(v1,v2)   ((int64_t) (v1) < (int64_t) (v2))
@@ -116,6 +96,13 @@
 #define Setfl(i0)                  setfl_helper(context, regbase, fp, i0)
 #define Setglobal(str, src)        setglobal_helper(context, str, src)
 #define Setlocal(link, index, v)   setlocal_helper(context, link, index, v)
+
+#define Strtol(p, q, n)            strtol((p), &(q), n)
+#define Strtod(p, q)               strtod((p), &(q))
+#define IsEmptyCstring(str)        ((str)[0] == '\0')
+#define CstrToString(cstr)         cstr_to_string(NULL, (cstr))
+#define GetProp(v1, v2, v3)        get_prop((v1), (v2), &(v3))
+#define PutLnChar()                putchar('\n')
 
 #define Pophandler()					\
   int newpc, handler_fp;				\
