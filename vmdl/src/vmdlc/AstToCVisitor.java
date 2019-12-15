@@ -700,8 +700,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
             if(expandedNode != null){
                 // TEST PRINT ******************************************
-                System.err.println("Original:"+node.toString());
-                System.err.println("Expanded:"+expandedNode.toString());
+                //System.err.println("Original:"+node.toString());
+                //System.err.println("Expanded:"+expandedNode.toString());
                 // *****************************************************
                 visit(expandedNode, indent);
                 return;

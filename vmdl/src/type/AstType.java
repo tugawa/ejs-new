@@ -102,6 +102,23 @@ public class AstType {
         if(!(parent instanceof AstBaseType)) return Collections.emptySet();
         return childrenMap.get((AstBaseType)parent);
     }
+    public Set<VMDataType> getVMDataTypes(){
+        if(this instanceof JSValueVMType){
+            JSValueVMType vmType = (JSValueVMType) this;
+            Set<VMDataType> result = new HashSet<>(1);
+            result.add(vmType.vmt);
+            return result;
+        }
+        if(!(this instanceof JSValueType)){
+            return null;
+        }
+        Set<AstType> children = getChildren(this);
+        Set<VMDataType> result = new HashSet<>();
+        for(AstType child : children){
+            result.addAll(child.getVMDataTypes());
+        }
+        return result;
+    }
     static {
         defineType("Top");
         defineType("void");

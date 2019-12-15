@@ -15,11 +15,13 @@ import nez.ast.Symbol;
 import java.util.Set;
 import java.util.Map;
 import java.util.Stack;
+import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.AbstractMap.SimpleEntry;
 
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
@@ -118,6 +120,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     MatchStack matchStack;
     OperandSpecifications opSpec;
     boolean inlineExpansionFlag;
+    boolean genFunctionDependencyFlag;
+    OperandSpecifications funcSpec = null;
 
     public static enum CheckTypePlicy{
         Lub(new TypeMapSetLub(), new ExprTypeSetLub()),
@@ -144,9 +148,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, OperandSpecifications opSpec, CheckTypePlicy policy, boolean inlineExpansionFlag) {
+    public void start(Tree<?> node, OperandSpecifications opSpec,
+        CheckTypePlicy policy, boolean inlineExpansionFlag, boolean genFunctionDependencyFlag, OperandSpecifications funcSpec) {
         this.opSpec = opSpec;
         this.inlineExpansionFlag = inlineExpansionFlag;
+        this.genFunctionDependencyFlag = genFunctionDependencyFlag;
+        this.funcSpec = funcSpec;
         try {
             TYPE_MAP  = policy.getTypeMap();
             EXPR_TYPE = policy.getExprTypeSet();
@@ -200,6 +207,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).notifyContextFlag(node, flag);
     }
 
+    private final void notifyFunctionInformation(SyntaxTree node, Entry<String, List<String>> entry){
+        find(node.getTag().toString()).notifyCurrentFunction(node, entry);
+    }
+
     public class DefaultVisitor {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             return dict;
@@ -224,6 +235,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
             for (SyntaxTree chunk : node) {
                 notifyNeedContext(chunk, flag);
+            }
+        }
+
+        public void notifyCurrentFunction(SyntaxTree node, Entry<String, List<String>> entry){
+            for (SyntaxTree chunk : node) {
+                notifyFunctionInformation(chunk, entry);
             }
         }
     }
@@ -335,6 +352,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));
             saveFunction(body, funtype);
             notifyNeedContext(body, FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext));
+            List<String> argNames = new ArrayList<>(paramsNode.size());
+            for(SyntaxTree param : paramsNode){
+                argNames.add(param.toText());
+            }
+            notifyFunctionInformation(body, new SimpleEntry<String, List<String>>(name, argNames));
             dict = visit(body, newDict);
             save(nameNode, dict);
             save(nodeName, dict);
@@ -859,7 +881,67 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     //*********************************
 
     public class FunctionCall extends DefaultVisitor {
+        private final OperandSpecifications.OperandSpecificationRecord.Behaviour ACCEPT =
+            OperandSpecifications.OperandSpecificationRecord.Behaviour.ACCEPT;
         boolean needContextFlag;
+        String currentFunctionName;
+        List<String> currentFunctionArgNames;
+        private Set<List<AstType>> typeSetListToListSet(List<ExprTypeSet> typesList){
+            int size = typesList.size();
+            if(size == 0) return new HashSet<>();
+            Set<List<AstType>> newSet = typeSetListToListSet(typesList.subList(1, size));
+            Set<AstType> typeSet = typesList.get(0).getTypeSet();
+            for(AstType t : typeSet){
+                List<AstType> elementList = new ArrayList<>();
+                elementList.add(t);
+                newSet.add(elementList);
+            }
+            return newSet;
+        }
+        private List<AstType> getTypeList(List<String> nameList, TypeMap map){
+            List<AstType> result = new ArrayList<>(nameList.size());
+            for(String name : nameList){
+                result.add(map.get(name));
+            }
+            return result;
+        }
+        private Set<List<String>> astsToVmdNamess(List<AstType> src){
+            int size = src.size();
+            if(size == 0){
+                Set<List<String>> newSet = new HashSet<>(1);
+                newSet.add(Collections.emptyList());
+                return newSet;
+            }
+            Set<List<String>> tailSet = astsToVmdNamess(src.subList(1, size));
+            Set<VMDataType> heads = src.get(0).getVMDataTypes();
+            Set<String> headNames = new HashSet<>();
+            if(heads != null){
+                headNames = new HashSet<>(heads.size());
+                for(VMDataType type : heads){
+                    headNames.add(type.toString());
+                }
+            }else{
+                headNames = new HashSet<>(1);
+                headNames.add("-");
+            }
+            Set<List<String>> newSet = new HashSet<>(tailSet.size()*headNames.size());
+            for(String headName : headNames){
+                for(List<String> tail : tailSet){
+                    List<String> newList = new ArrayList<>(tail.size()+1);
+                    newList.add(headName);
+                    newList.addAll(tail);
+                    newSet.add(newList);
+                }
+            }
+            return newSet;
+        }
+        private Set<List<String>> toVMDataTypeNemess(Set<List<AstType>> src){
+            Set<List<String>> result = new HashSet<>();
+            for(List<AstType> list : src){
+                result.addAll(astsToVmdNamess(list));
+            }
+            return result;
+        }
         private void checkNeedContext(String functionName, SyntaxTree node){
             if(!FunctionTable.contains(functionName)){
                 throw new Error("FunctionTable is broken: not has "+functionName);
@@ -917,6 +999,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 argTypeList = checkArguments(argTypes, argsNode, dict);
             }
+            Set<List<AstType>> argTypess = typeSetListToListSet(argTypeList);
+            if(genFunctionDependencyFlag){
+                List<AstType> currentFunctionArgTypes =  getTypeList(currentFunctionArgNames, dict);
+                for(List<AstType> types : argTypess){
+                    TypeDependencyProcessor.addDependency(currentFunctionName, currentFunctionArgTypes, functionName, types);
+                }
+            }
             if(inlineExpansionFlag){
                 if(InlineFileProcessor.isInlineExpandable(functionName)){
                     SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
@@ -928,6 +1017,30 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
+            if(funcSpec != null){
+                if(funcSpec.hasName(functionName)){
+                    Set<List<String>> vmdTypesNamess = toVMDataTypeNemess(argTypess);
+                    for(List<String> typeNames : vmdTypesNamess){
+                        List<String> excludeMinus = new ArrayList<>();
+                        for(String name : typeNames){
+                            if(name.equals("-")) continue;
+                            excludeMinus.add(name);
+                        }
+                        int length = excludeMinus.size();
+                        VMDataType[] excludeMinusTypes = new VMDataType[length];
+                        for(int i=0; i<length; i++){
+                            excludeMinusTypes[i] = VMDataType.get(excludeMinus.get(i));
+                        }
+                        if(funcSpec.findSpecificationRecord(functionName, excludeMinusTypes).behaviour != ACCEPT){
+                            String[] typeNamesArray = new String[excludeMinus.size()];
+                            for(int i=0; i<excludeMinus.size(); i++){
+                                typeNamesArray[i] = excludeMinus.get(i);
+                            }
+                            funcSpec.insertRecord(functionName, typeNamesArray, ACCEPT);
+                        }
+                    }
+                }
+            }
             AstType range = functionType.getRange();
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(range);
@@ -936,6 +1049,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
             needContextFlag = flag;
+        }
+        @Override
+        public void notifyCurrentFunction(SyntaxTree node, Entry<String, List<String>> entry) {
+            currentFunctionName = entry.getKey();
+            currentFunctionArgNames = entry.getValue();
         }
     }
 

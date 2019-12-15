@@ -8,8 +8,11 @@
  */
 package vmdlc;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,9 +46,33 @@ public class OperandSpecifications {
             this.operandTypes = operandTypes;
             this.behaviour = behaviour;
         }
+
+        @Override
+        public String toString(){
+            StringBuilder builder = new StringBuilder();
+            builder.append(insnName);
+            builder.append(" (");
+            builder.append(String.join(",", operandTypes));
+            builder.append(") ");
+            builder.append(behaviour.toString().toLowerCase());
+            return builder.toString();
+        }
+
+        @Override
+        public OperandSpecificationRecord clone(){
+            return new OperandSpecificationRecord(insnName, operandTypes.clone(), behaviour);
+        }
     }
     List<OperandSpecificationRecord> spec;
     Map<String, Integer> arities;
+
+    public OperandSpecifications(){
+    }
+
+    public OperandSpecifications(List<OperandSpecificationRecord> spec, Map<String, Integer> arities){
+        this.spec = spec;
+        this.arities = arities;
+    }
 
     void load(Scanner sc) {
         final String P_SYMBOL = "[a-zA-Z_]+";
@@ -222,6 +250,55 @@ public class OperandSpecifications {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
     }
 
+    public void insertRecord(String insnName, String[] operandTypes, OperandSpecificationRecord.Behaviour behaviour){
+        spec.add(0, new OperandSpecificationRecord(insnName, operandTypes, behaviour));
+    }
+
+    public void write(FileWriter writer) throws IOException{
+        StringBuilder builder = new StringBuilder();
+        for(OperandSpecificationRecord record : spec){
+            builder.append(record.toString());
+            builder.append('\n');
+        }
+        writer.write(builder.toString());
+    }
+
+    public void write(String fileName) throws IOException{
+        try{
+            FileWriter writer = new FileWriter(new File(fileName));
+            write(writer);
+            writer.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public boolean hasName(String name){
+        return (arities.get(name) != null);
+    }
+
+    public Map<String, Set<VMDataType[]>> getAllAccpetSpecifications(){
+        Map<String, Set<VMDataType[]>> result = new HashMap<>();
+        for(OperandSpecificationRecord record : spec){
+            String name = record.insnName;
+            Set<VMDataType[]> acceptTypess = getAcceptOperands(name);
+            result.put(name, acceptTypess);
+        }
+        return result;
+    }
+
+    @Override
+    public OperandSpecifications clone(){
+        List<OperandSpecificationRecord> cloneRecord = new ArrayList<>(spec.size());
+        for(OperandSpecificationRecord rec : spec){
+            cloneRecord.add(rec.clone());
+        }
+        Map<String, Integer> cloneArities = new HashMap<>(arities.size());
+        for(Entry<String, Integer> entry : arities.entrySet()){
+            cloneArities.put(entry.getKey(), entry.getValue());
+        }
+        return new OperandSpecifications(cloneRecord, cloneArities);
+    }
     //Never used
     /*
     private Set<String[]> getErrorOperandsString(String insnName) {

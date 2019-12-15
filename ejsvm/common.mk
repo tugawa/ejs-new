@@ -68,6 +68,12 @@ VMGEN=$(VMGEN_DIR)/vmgen.jar
 
 VMDL_DIR=$(EJSVM_DIR)/../vmdl
 VMDL=$(VMDL_DIR)/vmdlc.jar
+VMDL_WORKSPACE=vmdl_workspace
+VMDL_INLINE=inlines.inline
+VMDL_ARGSPEC=funcs.spec
+VMDL_FUNCANYSPEC=any.spec
+VMDL_FUNCNEEDSPEC=funcs-need.spec
+VMDL_FUNCDEPENDENCY=dependency.ftd
 
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
@@ -115,7 +121,7 @@ else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
 endif
 
 ifeq ($(USE_VMDL_INLINE_EXPANSION),true)
-	VMDL_INLINE_FLAG=--useinline vmdl_workspace/inlines.inline
+	VMDL_INLINE_FLAG=--useinline $(VMDL_WORKSPACE)/$(VMDL_INLINE)
 else
 	VMDL_INLINE_FLAG=
 endif
@@ -262,6 +268,66 @@ FUNC_GENERATED = \
 	funcs/number_to_cint.inc \
 	funcs/number_to_double.inc
 
+INSNS_VMD = \
+    insns-vmdl/add.vmd \
+    insns-vmdl/bitand.vmd \
+    insns-vmdl/bitor.vmd \
+    insns-vmdl/call.vmd \
+    insns-vmdl/div.vmd \
+    insns-vmdl/eq.vmd \
+    insns-vmdl/equal.vmd \
+    insns-vmdl/getprop.vmd \
+    insns-vmdl/leftshift.vmd \
+    insns-vmdl/lessthan.vmd \
+    insns-vmdl/lessthanequal.vmd \
+    insns-vmdl/mod.vmd \
+    insns-vmdl/mul.vmd \
+    insns-vmdl/new.vmd \
+    insns-vmdl/rightshift.vmd \
+    insns-vmdl/setprop.vmd \
+    insns-vmdl/sub.vmd \
+    insns-vmdl/tailcall.vmd \
+    insns-vmdl/unsignedrightshift.vmd \
+    insns-vmdl/error.vmd \
+    insns-vmdl/fixnum.vmd \
+    insns-vmdl/geta.vmd \
+    insns-vmdl/getarg.vmd \
+    insns-vmdl/geterr.vmd \
+    insns-vmdl/getglobal.vmd \
+    insns-vmdl/getglobalobj.vmd \
+    insns-vmdl/getlocal.vmd \
+    insns-vmdl/instanceof.vmd \
+    insns-vmdl/isobject.vmd \
+    insns-vmdl/isundef.vmd \
+    insns-vmdl/jump.vmd \
+    insns-vmdl/jumpfalse.vmd \
+    insns-vmdl/jumptrue.vmd \
+    insns-vmdl/localcall.vmd \
+    insns-vmdl/makeclosure.vmd \
+    insns-vmdl/makeiterator.vmd \
+    insns-vmdl/move.vmd \
+    insns-vmdl/newframe.vmd \
+    insns-vmdl/nextpropnameidx.vmd \
+    insns-vmdl/not.vmd \
+    insns-vmdl/number.vmd \
+    insns-vmdl/pushhandler.vmd \
+    insns-vmdl/seta.vmd \
+    insns-vmdl/setarg.vmd \
+    insns-vmdl/setarray.vmd \
+    insns-vmdl/setfl.vmd \
+    insns-vmdl/setglobal.vmd \
+    insns-vmdl/setlocal.vmd \
+    insns-vmdl/specconst.vmd \
+    insns-vmdl/typeof.vmd \
+    insns-vmdl/end.vmd \
+    insns-vmdl/localret.vmd \
+    insns-vmdl/nop.vmd \
+    insns-vmdl/pophandler.vmd \
+    insns-vmdl/poplocal.vmd \
+    insns-vmdl/ret.vmd \
+    insns-vmdl/throw.vmd \
+    insns-vmdl/unknown.vmd
+
 FUNCS_VMD = \
 	funcs-vmdl/string_to_boolean.vmd \
 	funcs-vmdl/string_to_number.vmd \
@@ -289,8 +355,6 @@ FUNCS_VMD = \
 	funcs-vmdl/special_to_double.vmd \
 	funcs-vmdl/number_to_cint.vmd \
 	funcs-vmdl/number_to_double.vmd
-
-VMDL_WORKSPACE = 
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
@@ -377,26 +441,35 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 
 ifeq ($(USE_VMDL), true)
-vmdl_workspace/inlines.inline: $(FUNCS_VMD)#$(wildcard $(EJSVM_DIR)/funcs-vmdl/*.vmd)
-	mkdir -p vmdl_workspace
-	rm -f vmdl_workspace/inlines.inline
-	$(foreach FILE_VMD, $^, \
+$(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC): 
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/$(VMDL_FUNCANYSPEC) $@
+$(VMDL_WORKSPACE)/$(VMDL_ARGSPEC):
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/$(VMDL_ARGSPEC) $@
+$(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC): $(INSN_GENERATED)  $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY)
+	mkdir -p $(VMDL_WORKSPACE)
+	$(FUNCGEN_VMDL) --genspec -d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) || (rm $@; exit 1)
+$(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY): $(FUNCS_VMD) $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC)
+	mkdir -p $(VMDL_WORKSPACE)
+	rm -f $(VMDL_WORKSPACE)/$(VMDL_INLINE)
+	$(foreach FILE_VMD, $(FUNCS_VMD), \
 		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
-		-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
+		-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
 	) touch $@ || (rm $@; exit 1)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) vmdl_workspace/inlines.inline
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
-	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
-$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL)
+	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def -A $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
-	-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -408,26 +481,35 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 endif
 else
 ifeq ($(USE_VMDL), true)
-vmdl_workspace/inlines.inline: $(FUNCS_VMD)#$(wildcard $(EJSVM_DIR)/funcs-vmdl/*.vmd)
-	mkdir -p vmdl_workspace
-	rm -f vmdl_workspace/inlines.inline
-	$(foreach FILE_VMD, $^, \
+$(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC): 
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/$(VMDL_FUNCANYSPEC) $@
+$(VMDL_WORKSPACE)/$(VMDL_ARGSPEC):
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/$(VMDL_ARGSPEC) $@
+$(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC): $(INSN_GENERATED)  $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY)
+	mkdir -p $(VMDL_WORKSPACE)
+	$(FUNCGEN_VMDL) --genspec -d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) || (rm $@; exit 1)
+$(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY): $(FUNCS_VMD) $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC)
+	mkdir -p $(VMDL_WORKSPACE)
+	rm -f $(VMDL_WORKSPACE)/$(VMDL_INLINE)
+	$(foreach FILE_VMD, $(FUNCS_VMD), \
 		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
-		-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
+		-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $@ &&\
 	) touch $@ || (rm $@; exit 1)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) vmdl_workspace/inlines.inline
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
-$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def -A $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-	-d $(DATATYPES) -o $(FUNCTIONSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
