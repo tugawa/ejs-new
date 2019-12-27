@@ -91,7 +91,7 @@ public class TypeMapSetHalf extends TypeMapSetFull {
         }
         for(String name : that.getKeys()){
             if(dispatchSet.contains(name)) continue;
-            thatLubMap.put(name, lub(typeMapSet, name));
+            thatLubMap.put(name, lub(that.typeMapSet, name));
         }
         for(TypeMap map : this){
             TypeMap newMap = new TypeMap();

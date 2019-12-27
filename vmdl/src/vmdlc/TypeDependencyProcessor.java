@@ -171,6 +171,13 @@ public class TypeDependencyProcessor {
                     if(typeNames[i].equals("null")) continue;
                     excludeNullTypes[j++] = VMDataType.get(typeNames[i]);
                 }
+                if(!result.hasName(functionName)){
+                    String[] excludeNullTypeNames = new String[excludeNullSize];
+                    for(int i=0; i<excludeNullSize; i++){
+                        excludeNullTypeNames[i] = excludeNullTypes[i].toString();
+                    }
+                    result.insertRecord(functionName, excludeNullTypeNames, ACCEPT);
+                }
                 if(result.findSpecificationRecord(functionName, excludeNullTypes).behaviour != ACCEPT){
                     result.insertRecord(functionName, typeNames, ACCEPT);
                 }
@@ -198,7 +205,10 @@ public class TypeDependencyProcessor {
             if(needFunctionTypes == null) return;
             for(Entry<String, List<VMDataType>> entry : needFunctionTypes){
                 FunctionTypeDependency ftd = dependencyMap.get(entry.getKey());
-                if(ftd == null) continue;
+                if(ftd == null){
+                    ftd =  new FunctionTypeDependency(entry.getKey());
+                    dependencyMap.put(entry.getKey(), ftd);
+                }
                 ftd.addNeedTypes(entry.getValue(), dependencyMap);
             }
         }

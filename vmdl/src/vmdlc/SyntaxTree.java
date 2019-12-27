@@ -18,6 +18,7 @@ import type.TypeMapSet;
 import vmdlc.SyntaxTree;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
@@ -149,15 +150,23 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         return null;
     }
 
-    /*
+    @Override
+    public int hashCode() {
+        return toText().hashCode();
+    }
+
     @Override
     public boolean equals(Object that){
         if(!(that instanceof SyntaxTree)) return false;
         SyntaxTree thatTree = (SyntaxTree) that;
-        if(subTree == null) return value.equals(thatTree.getValue());
-        for(SyntaxTree tree : subTree){
-            if()
+        if(subTree == null) return toText().equals(thatTree.toText());
+        Iterator<SyntaxTree> subTreeIterator = this.iterator();
+        Iterator<SyntaxTree> thatSubTreeIterator = thatTree.iterator();
+        while(subTreeIterator.hasNext() && thatSubTreeIterator.hasNext()){
+            SyntaxTree subTree = subTreeIterator.next();
+            SyntaxTree thatSubTree = thatSubTreeIterator.next();
+            if(!subTree.equals(thatSubTree)) return false;
         }
+        return !(subTreeIterator.hasNext() || thatSubTreeIterator.hasNext());
     }
-    */
 }

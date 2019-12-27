@@ -75,7 +75,7 @@ public class OperandSpecifications {
     }
 
     void load(Scanner sc) {
-        final String P_SYMBOL = "[a-zA-Z_]+";
+        final String P_SYMBOL = "[a-zA-Z_][a-zA-Z0-9_]*";
         final String P_OPERANDS = "\\(\\s*([^)]*)\\s*\\)";
         final String P_BEHAVIOUR = "accept|error|unspecified";
         final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s*"+P_OPERANDS+"\\s*("+P_BEHAVIOUR+")\\s*$");
@@ -298,6 +298,18 @@ public class OperandSpecifications {
             cloneArities.put(entry.getKey(), entry.getValue());
         }
         return new OperandSpecifications(cloneRecord, cloneArities);
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        for(OperandSpecificationRecord r : spec){
+            builder.append(r.toString());
+            builder.append(",");
+        }
+        builder.append("]");
+        return builder.toString();
     }
     //Never used
     /*

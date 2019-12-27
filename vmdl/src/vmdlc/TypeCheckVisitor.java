@@ -543,7 +543,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     newSet.addAll(addedSet);
                 }
             }
-            TypeMapSet newTypeMapSet = TYPE_MAP.clone();
+            TypeMapSet newTypeMapSet = dict.clone();
             newTypeMapSet.setTypeMapSet(newSet);
             save(exprNode, dict);
             save(varNode, dict);
@@ -615,7 +615,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
-            TypeMapSet doDict = TYPE_MAP.clone();
+            TypeMapSet doDict = dict.clone();
             doDict.setTypeMapSet(doSet);
             TypeMapSet savedDict;
             do {

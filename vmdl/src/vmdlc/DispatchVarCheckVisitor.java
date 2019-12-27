@@ -62,7 +62,7 @@ public class DispatchVarCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (int i = 0; i < paramsNode.size(); i++) {
                 rematchVarSet.add(paramsNode.get(i).toText());
             }
-            visit(node.get(Symbol.unique("cases")), node);
+            visit(node.get(Symbol.unique("cases")), topNode);
         }
     }
 

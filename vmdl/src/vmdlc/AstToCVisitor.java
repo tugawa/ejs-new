@@ -10,6 +10,7 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
+import nez.lang.FunctionName;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
@@ -221,6 +222,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             visit(bodyNode, indent);
             if(outputMode.isFunctionMode()){
+                print("LOG_EXIT(\"unexpected function execute: "+name+"\\n\");\n");
                 print("}");
             }
         }
@@ -247,7 +249,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 println(");");
             }
-
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
             visit(bodyNode, indent);
         }
@@ -700,8 +701,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
             if(expandedNode != null){
                 // TEST PRINT ******************************************
-                //System.err.println("Original:"+node.toString());
-                //System.err.println("Expanded:"+expandedNode.toString());
+                // System.err.println("Original:"+node.toString());
+                // System.err.println("Expanded:"+expandedNode.toString());
                 // *****************************************************
                 visit(expandedNode, indent);
                 return;
