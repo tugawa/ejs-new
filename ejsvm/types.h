@@ -274,6 +274,8 @@ struct property_map {
                              /* [const] __proto__ of the object. */
 #ifdef DEBUG
   char *name;
+  uint16_t n_user_special_props; /* [const] Number of special props that is
+                                  * registered in the map. */
 #endif /* DEBUG */
 #ifdef HC_PROF
   uint32_t n_enter;
@@ -422,6 +424,7 @@ DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
 
 /* Simple */
 #define OBJECT_SPECIAL_PROPS 0
+#define OBJECT_USPECIAL_PROPS 0
 
 /* Array
  *   The length of array ranges up to 2^32-1 by specification.

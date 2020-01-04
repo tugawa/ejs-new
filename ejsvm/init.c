@@ -69,21 +69,25 @@ static Shape *create_map_and_shape(Context *ctx,
   int i;
   uint32_t num_normal_props =
     num_builtin_props + num_double_props + num_gconsts_props;
+  uint32_t num_user_special_props;
   uint32_t num_props;
   uint32_t num_embedded;
   uint32_t index = num_special;
 
   /* remove special props */
+  num_user_special_props = 0;
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
     if (p->index != -1)
-      num_normal_props--;
+      num_user_special_props++;
   }
+  num_normal_props -= num_user_special_props;
 
   num_props = num_normal_props + num_special;
   num_embedded = num_props + (num_normal_props == 0 ? 1 : 0);
 
-  m = new_property_map(ctx, name, num_special, num_props, proto,
+  m = new_property_map(ctx, name, num_special, num_props,
+                       num_user_special_props, proto,
                        gpms.g_property_map_root);
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
@@ -137,7 +141,7 @@ static void fill_builtin_properties(Context *ctx,
   for (i = 0; i < num_double_props; i++) {
     ObjDoubleProp *p = &double_props[i];
     set_prop_direct(ctx, object, cstr_to_string(ctx, p->name),
-                    double_to_flonum(ctx, p->value), p->attr);
+                    double_to_number(ctx, p->value), p->attr);
   }
   for (i = 0; i < num_gconsts_props; i++) {
     ObjGconstsProp *p = &gconsts_props[i];
@@ -165,7 +169,7 @@ void init_meta_objects(Context *ctx)
    *  - Create root property map
    */
   gpms.g_property_map_root =
-    new_property_map(ctx, DEBUG_NAME("root"), 0, 0, JS_NULL, NULL);
+    new_property_map(ctx, DEBUG_NAME("root"), 0, 0, 0, JS_NULL, NULL);
 
   /*
    * Step 1

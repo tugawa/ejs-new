@@ -1,7 +1,7 @@
 \inst not (Register dst, Value v1)
 
 \when v1:special \{
-  dst = false_true(v1 == JS_TRUE);
+  dst = v1 == JS_TRUE ? JS_FALSE : JS_TRUE;
 \}
 \when v1:string \{
   dst = true_false(v1 == gconsts.g_string_empty);

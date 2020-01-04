@@ -1,4 +1,6 @@
+#ifndef NEW_ARRAY
 static void remove_array_props(JSValue a, cint from, cint to);
+#endif /* NEW_ARRAY */
   
 /**
  * Obtain property of the object. It converts type of ``name'' if necessary.
@@ -9,7 +11,7 @@ static void remove_array_props(JSValue a, cint from, cint to);
 JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name,
 			InlineCache *ic)
 #else /* INLINE_CACHE */
-JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name)
+  JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name)
 #endif /* INLINE_CACHE */
 {
   if (!is_string(name)) {
@@ -30,11 +32,13 @@ JSValue get_object_prop(Context *ctx, JSValue obj, JSValue name)
  */
 JSValue get_array_element(Context *ctx, JSValue array, cint index)
 {
-  JSValue prop;
+  JSValue prop, ret;
   assert(is_array(array));
-  if (0 <= index && index < get_jsarray_size(array))
-    return (index < get_jsarray_length(array) ?
-	    get_jsarray_body(array)[index] : JS_UNDEFINED);
+
+  if ((ret = get_array_element_no_proto(array, index)) != JS_EMPTY) {
+    return ret;
+  }
+
   prop = cint_to_number(ctx, index);
   prop = number_to_string(prop);
   return get_prop_prototype_chain(array, prop);
@@ -48,38 +52,6 @@ JSValue get_array_element(Context *ctx, JSValue array, cint index)
  */
 JSValue get_array_prop(Context *ctx, JSValue a, JSValue p)
 {
-  /*
-   * if (p is a number) {
-   *   if (p is within the range of an subscript of an array)
-   *     returns the p-th element of a
-   *   else {
-   *     p = number_to_string(idx);
-   *     returns the value regsitered under the property p
-   *   }
-   * } else {
-   *   if (p is not a string) p = to_string(p);
-   *   s = string_to_number(p);
-   *   if (s is within the range of an subscript of an array)
-   *     returns the s-th element of a
-   *   else
-   *     returns the value regsitered under the property p
-   * }
-   *
-   * I am afraid that the above definition is incorrect.
-   *
-   * } else if (p is a string) {
-   *   s = string_to_number(p);
-   *   if (s is within the range of an subscript of an array)
-   *     returns the s-th element of a
-   *   else
-   *     returns the value regsitered under the property p
-   * } else {
-   *   p = to_string(p);
-   *   returns the value regsitered under the property p
-   * }
-   *
-   */
-
   if (is_fixnum(p))
     return get_array_element(ctx, a, fixnum_to_cint(p));
 
@@ -138,6 +110,135 @@ int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v)
   return SUCCESS;
 }
 
+
+#ifdef NEW_ARRAY
+/*
+ * An array element is stored
+ *  1. in array storage, or
+ *  2. as a property
+ * If 0 <= index < array.size, then the element is stored in the array storage.
+ * Otherwise, it is stored as a property.
+ *
+ * Before judging where an element should be stored to, array storage may
+ * be expanded.  If array.size <= index < ASIZE_LIMIT, the array storage
+ * is expanded to the length of index.
+ */
+
+/*
+ * Try to set a value into an continuous array of Array.
+ * If the index is out of range of limit of continuous container,
+ * handle it as a normal property.
+ */
+void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
+{
+  assert(is_array(array));
+
+  /* 1. If array.size <= index < ASIZE_LIMIT, expand the storage */
+  if (get_jsarray_size(array) <= index && index < ASIZE_LIMIT) {
+    GC_PUSH2(array, v);
+    reallocate_array_data(ctx, array, index + 1);
+    GC_POP2(v, array);
+  }
+
+  /* 2. If 0 <= index < array.size, store the value to the storage */
+  if (0 <= index && index < get_jsarray_size(array)) {
+    JSValue *storage = get_jsarray_body(array);
+    storage[index] = v;
+  } else {
+    /* 3. otherwise, store it as a property */
+    JSValue prop;
+    GC_PUSH2(array, v);
+    prop = cint_to_number(ctx, index);
+    prop = number_to_string(prop);
+    GC_POP2(v, array);
+    set_prop(ctx, array, prop, v, ATTR_NONE);
+  }
+
+  /* 4. Adjust `length' property. */
+  {
+    JSValue length_value;
+    cint length;
+    length_value = get_jsarray_length(array);
+    assert(is_fixnum(length_value));
+    length = fixnum_to_cint(length_value);
+    if (length <= index)
+      set_jsarray_length(array, cint_to_number(ctx, index + 1));
+  }
+}
+
+int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
+{
+  JSValue index_prop;
+
+  /* 1. If prop is fixnum, do element access. */
+  if (is_fixnum(prop)) {
+    cint index = fixnum_to_cint(prop);
+    set_array_element(ctx, array, index, v);
+    return SUCCESS;
+  }
+
+  /* 2. Convert prop to a string. */
+  GC_PUSH2(array, v);
+  if (!is_string(prop))
+    prop = to_string(ctx, prop);
+
+  /* 3. If prop is fixnum-like, do element access. */
+  GC_PUSH(prop);
+  index_prop = string_to_number(ctx, prop);
+  GC_POP3(prop, v, array);
+  if (is_fixnum(index_prop)) {
+    cint index = fixnum_to_cint(index_prop);
+    set_array_element(ctx, array, index, v);
+    return SUCCESS;
+  }
+
+  /* 4. If prop is `length', adjust container size. */
+  if (prop == gconsts.g_string_length) {
+    double double_length;
+    int32_t length;
+    if (!is_number(v))
+      v = to_number(ctx, v);
+    double_length = number_to_double(v);
+    length = (int32_t) double_length;
+    if (double_length != (double) length || length < 0)
+      LOG_EXIT("invalid array length");
+    /* 4.1. If length is less than ASIZE_LIMIT, adjust container size. */
+    if (length <= ASIZE_LIMIT) {
+      uint32_t size = get_jsarray_size(array);
+      if (size != length)
+	reallocate_array_data(ctx, array, length);
+    }
+    /* 4.2. If new length is smaller, delete numerical properties. */
+    if (length < get_jsarray_length(array)) {
+      Shape *os = object_get_shape(array);
+      PropertyMap *pm = os->pm;
+      HashIterator iter = createHashIterator(pm->map);
+      HashCell *p;
+      while (nextHashCell(pm->map, &iter, &p) != FAIL) {
+	if (!is_transition(p->entry.attr)) {
+	  JSValue key = (JSValue) p->entry.key;
+	  JSValue number_key;
+	  double double_key;
+	  int32_t int32_key;
+	  assert(is_string(key));
+	  number_key = string_to_number(ctx, key);
+	  double_key = number_to_double(number_key);
+	  int32_key = (int32_t) double_key;
+	  if (int32_key >= 0 && double_key == (double) int32_key)
+	    set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
+	}
+      }
+    }
+    /* 4.3 Set length property. */
+    set_jsarray_length(array, v);
+    return SUCCESS;
+  }
+
+  /* 5. Set normal property */
+  set_prop(ctx, array, prop, v, ATTR_NONE);
+  return SUCCESS;
+}
+#else /* NEW_ARRAY */
 /*
  *  set_array_index_value
  *  a is an array and n is a subscript where n >= 0.
@@ -228,6 +329,7 @@ int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
  */
 int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
 {
+  /* If index is fixnum, try index access */
   if (is_fixnum(p)) {
     cint n;
 
@@ -292,7 +394,6 @@ int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v)
   }
 }
 
-
 /*
  * removes array data whose subscript is between `from' and `to'
  * that are stored in the property table.
@@ -304,6 +405,7 @@ static void remove_array_props(JSValue a, cint from, cint to)
   for (; from < to ; from++)
     delete_array_element(a, from);
 }
+#endif /* NEW_ARRAY */
 
 /*
  * delete the hash cell with key and the property of the object
@@ -483,3 +585,10 @@ double cstr_to_double(char* cstr)
   if (*endPtr == '\0') return ret;
   else return NAN;
 }
+
+
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */

@@ -585,13 +585,15 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       JSObject *p = (JSObject *) ptr;
       JSValue *a_body = get_array_ptr_body(p);
-      uint64_t a_length = (uint64_t) number_to_double(get_array_ptr_length(p));
-      uint64_t a_size = get_array_ptr_size(p);
-      size_t len = a_length < a_size ? a_length : a_size;
-      process_edge(get_array_ptr_length(p));
-      if (a_body != NULL)
+      if (a_body != NULL) {
         /* a_body may be NULL during initialization */
+        uint64_t a_size = get_array_ptr_size(p);
+        uint64_t a_length =
+          (uint64_t) number_to_double(get_array_ptr_length(p));
+        size_t len = a_length < a_size ? a_length : a_size;
+        process_edge(get_array_ptr_length(p));
         process_edge_JSValue_array(a_body, 0, len);
+      }
       break;
     }
   case CELLT_FUNCTION:
