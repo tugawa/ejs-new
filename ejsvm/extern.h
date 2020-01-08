@@ -324,13 +324,8 @@ extern JSValue get_array_element(Context * ctx, JSValue obj, cint index);
 extern JSValue get_array_prop(Context *ctx, JSValue obj, JSValue name);
 extern int has_array_element(JSValue a, cint n);
 extern int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v);
-#ifdef NEW_ARRAY
 extern void set_array_element(Context *ctx, JSValue array, cint index,
                               JSValue v);
-#else /* NEW_ARRAY */
-extern int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
-                                 int setlength);
-#endif /* NEW_ARRAY */
 extern int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v);
 extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);

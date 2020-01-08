@@ -321,7 +321,7 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
   p->alloc_site = NULL;
 #endif /* ALLOC_SITE_CACHE */
   for (i = 0; i < n_embedded; i++)
-    p->eprop[i] = JS_UNDEFINED;
+    p->eprop[i] = JS_EMPTY;
 
 #ifdef DEBUG
   p->name = name;

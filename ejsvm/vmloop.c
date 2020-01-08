@@ -238,15 +238,9 @@ static void exhandler_throw(Context *context)
 
 static void lcall_stack_push(Context* context, int pc)
 {
-#ifdef NEW_ARRAY
   set_array_element(context, context->lcall_stack,
                     context->lcall_stack_ptr++,
                     cint_to_number(context, (cint) pc));
-#else /* NEW_ARRAY */
-  set_array_index_value(context, context->lcall_stack,
-                        context->lcall_stack_ptr++,
-                        cint_to_number(context, (cint) pc), FALSE);
-#endif /* NEW_ARRAY */
 }
 
 static int lcall_stack_pop(Context* context, int *pc)
