@@ -94,4 +94,15 @@ CFLAGS       += -DHC_PROF
 # use explicit mark stack rather than recursive call
 #CFLAGS      += -DMARK_STACK
 
+##
+## debug/sanity check options
+##
+
+## show values of properties in GETPROP/SETPROP instructions
+#CFLAGS   += DEBUG_GETPROP_VALUE
+
+## GC reports unmatured (not reached the end of HC
+## transisiton graph) dead objects
+#CFLAGS   += CHECK_MATURED
+
 include $(EJSVM_DIR)/common.mk

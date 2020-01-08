@@ -210,6 +210,9 @@ STATIC void garbage_collection(Context *ctx);
 STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
+#ifdef CHECK_MATURED
+STATIC void check_matured(void);
+#endif /* CHECK_MATURED */
 STATIC void sweep(void);
 #ifdef MARK_STACK
 STATIC_INLINE void process_node(uintptr_t ptr);
@@ -519,6 +522,11 @@ STATIC void garbage_collection(Context *ctx)
 #ifdef MARK_STACK
   process_mark_stack();
 #endif /* MARK_STACK */
+
+  /* profile */
+#ifdef CHECK_MATURED
+  check_matured();
+#endif /* CHECK_MATURED */
 
   /* weak */
   gc_phase = PHASE_WEAK;
@@ -1220,6 +1228,51 @@ STATIC void sweep_space(struct space *space)
   (*p) = NULL;
   space->free_bytes = free_bytes;
 }
+
+#ifdef CHECK_MATURED
+STATIC void check_matured()
+{
+  struct space *space = &js_space;
+  uintptr_t scan = space->addr;
+  while (scan < space->addr + space->bytes) {
+    header_t *hdrp = (header_t *) scan;
+    if (!is_marked_cell_header(hdrp)) {
+      switch(hdrp->type) {
+      case CELLT_SIMPLE_OBJECT:
+      case CELLT_ARRAY:
+      case CELLT_FUNCTION:
+      case CELLT_BUILTIN:
+      case CELLT_BOXED_NUMBER:
+      case CELLT_BOXED_STRING:
+      case CELLT_BOXED_BOOLEAN:
+#ifdef USE_REGEXP
+      case CELLT_REGEXP:
+#endif /* USE_REGEXP */
+        {
+          JSObject *p = (JSObject *) header_to_payload(hdrp);
+          Shape *os = p->shape;
+          int i;
+          for (i = os->pm->n_special_props + 1; i < os->n_embedded_slots; i++) {
+            JSValue v;
+            if (i == os->n_embedded_slots - 1 && os->n_extension_slots > 0) {
+              JSValue *extension = (JSValue *) p->eprop[i];
+              v = extension[0];
+            } else
+              v = p->eprop[i];
+            if (v == JS_EMPTY)
+              printf("unmatured object (object %p index %d value = EMPTY)\n",
+                     p, i);
+          }
+        }
+        break;
+      default:
+        break;
+      }
+    }
+    scan += hdrp->size << LOG_BYTES_IN_GRANULE;
+  }
+}
+#endif /* CHECK_MATURED */
 
 
 STATIC void sweep(void)
