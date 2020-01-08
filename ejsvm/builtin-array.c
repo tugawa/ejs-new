@@ -134,7 +134,7 @@ BUILTIN_FUNCTION(array_concat)
     e = args[i];
     if (is_array(e)) {
       k = 0;
-      len = get_jsarray_length(e);
+      len = number_to_cint(get_jsarray_length(e));
       if (n + len > MAX_ARRAY_LENGTH)
         /* This should be improved */
         LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
@@ -172,7 +172,7 @@ BUILTIN_FUNCTION(array_pop)
 
   builtin_prologue();
   a = args[0];
-  len = get_jsarray_length(a) - 1;    /* len >= -1 */
+  len = number_to_cint(get_jsarray_length(a)) - 1;    /* len >= -1 */
   if (len < 0) {
     set_a(context, JS_UNDEFINED);
     return;
@@ -197,11 +197,11 @@ BUILTIN_FUNCTION(array_push)
 {
   JSValue a, ret;
   cint len;
-  int i;
+  cint i;
 
   builtin_prologue();
   a = args[0];
-  len = get_jsarray_length(a);
+  len = number_to_cint(get_jsarray_length(a));
   /*
    * The following for-loop is very inefficient.
    * This is for simplicity of implementation.
@@ -223,7 +223,7 @@ BUILTIN_FUNCTION(array_reverse)
   JSValue lowerValue, upperValue;
 
   builtin_prologue();
-  len = get_jsarray_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   mid = len / 2;
 
   lowerValue = JS_NULL;
@@ -266,7 +266,7 @@ BUILTIN_FUNCTION(array_shift)
   cint len, from, to;
 
   builtin_prologue();
-  len = get_jsarray_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   if (len <= 0) {
     set_a(context, JS_UNDEFINED);
     return;
@@ -305,7 +305,7 @@ BUILTIN_FUNCTION(array_slice)
   start = (na >= 1)? args[1]: 0;
   end = (na >= 2)? args[2]: JS_UNDEFINED;
 
-  len = get_jsarray_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   GC_PUSH2(o, end);
   relativeStart = toInteger(context, start);
   GC_POP(end);
@@ -550,7 +550,7 @@ BUILTIN_FUNCTION(array_sort)
   builtin_prologue();
   obj = args[0];
   comparefn = args[1];
-  len = get_jsarray_length(obj);
+  len = number_to_cint(get_jsarray_length(obj));
   GC_PUSH(obj);
   asort(context, obj, 0, len - 1, comparefn);
   GC_POP(obj);
@@ -568,7 +568,7 @@ BUILTIN_FUNCTION(array_debugarray)
   builtin_prologue();
   a = args[0];
   size = get_jsarray_size(a);
-  length = get_jsarray_length(a);
+  length = number_to_cint(get_jsarray_length(a));
   to = length < size? length: size;
   printf("debugarray: size = %lld length = %lld, to = %lld\n",
          (long long) size, (long long) length, (long long) to);
@@ -603,7 +603,7 @@ ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "debugarray",     array_debugarray,     0, ATTR_DE },
 };
 ObjDoubleProp  ArrayPrototype_double_props[] = {
-  { "length",   0, ATTR_DDDE },
+  { "length",   0, ATTR_DDDE, 2},
 };
 ObjGconstsProp ArrayPrototype_gconsts_props[] = {};
 /* constructor */
@@ -615,7 +615,7 @@ ObjGconstsProp ArrayConstructor_gconsts_props[] = {
 /* instance */
 ObjBuiltinProp Array_builtin_props[] = {};
 ObjDoubleProp  Array_double_props[] = {
-  { "length",    0, ATTR_DDDE },  /* placeholder */
+  { "length",    0, ATTR_DDDE, 2 },  /* placeholder */
 };
 ObjGconstsProp Array_gconsts_props[] = {};
 DEFINE_PROPERTY_TABLE_SIZES_PCI(Array);

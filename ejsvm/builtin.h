@@ -36,6 +36,7 @@ typedef struct obj_double_prop {
   char *name;
   double value;
   Attribute attr;
+  int index;
 } ObjDoubleProp;
 
 typedef struct obj_gconsts_prop {

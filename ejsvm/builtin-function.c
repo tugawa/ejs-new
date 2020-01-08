@@ -42,7 +42,8 @@ BUILTIN_FUNCTION(function_apply)
 
   GC_PUSH(as);
 
-  if ((alen_jsv = get_prop(as, gconsts.g_string_length)) != JS_EMPTY)
+  if ((alen_jsv = get_prop_prototype_chain(as, gconsts.g_string_length))
+      != JS_EMPTY)
     /* gccheck reports an error about alen_jsv falsely here */
     alen = number_to_cint(to_number(context, alen_jsv));
   else

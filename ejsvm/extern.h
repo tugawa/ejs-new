@@ -282,6 +282,7 @@ extern JSValue new_regexp_object(Context *ctx, char *name, Shape *os,
 
 extern PropertyMap *new_property_map(Context *ctx, char *name,
                                      int n_special_props, int n_props,
+                                     int n_user_special_props,
                                      JSValue __proto__, PropertyMap *prev);
 extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
                                             JSValue name, int data,
@@ -323,8 +324,8 @@ extern JSValue get_array_element(Context * ctx, JSValue obj, cint index);
 extern JSValue get_array_prop(Context *ctx, JSValue obj, JSValue name);
 extern int has_array_element(JSValue a, cint n);
 extern int set_object_prop(Context *ctx, JSValue o, JSValue p, JSValue v);
-extern int set_array_index_value(Context *ctx, JSValue a, cint n, JSValue v,
-                                 int setlength);
+extern void set_array_element(Context *ctx, JSValue array, cint index,
+                              JSValue v);
 extern int set_array_prop(Context *ctx, JSValue a, JSValue p, JSValue v);
 extern int delete_object_prop(JSValue obj, HashKey key);
 extern int delete_array_element(JSValue a, cint n);

@@ -255,6 +255,16 @@ static JSValue get_system_prop(JSValue obj, JSValue name)
   return object_get_prop(obj, index);
 }
 
+static JSValue get_array_element_no_proto(JSValue array, cint index)
+{
+  assert(is_array(array));
+  if (0 <= index &&
+      index < number_to_double(get_jsarray_length(array)) &&
+      index < get_jsarray_size(array))
+    return get_jsarray_body(array)[index];
+  return JS_EMPTY;
+}
+
 /**
  * Search for the property by following the prototype chain if necessary.
  * If the property is not defined in any object on the chain, it returns
@@ -276,11 +286,17 @@ JSValue get_prop_prototype_chain(JSValue obj, JSValue name)
     obj = get_prop(obj, gconsts.g_string___proto__);
   }
 #endif /* INLINE_CACHE */
-
   while (is_jsobject(obj)) {
     JSValue ret = get_prop(obj, name);
     if (ret != JS_EMPTY)
       return ret;
+    if (is_array(obj)) {
+      JSValue num = string_to_number(NULL, name);
+      if (is_fixnum(num))
+        ret = get_array_element_no_proto(obj, fixnum_to_cint(num));
+      if (ret != JS_EMPTY)
+        return ret;
+    }
     obj = get_prop(obj, gconsts.g_string___proto__);
   }
   return JS_UNDEFINED;
@@ -305,7 +321,7 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
   p->alloc_site = NULL;
 #endif /* ALLOC_SITE_CACHE */
   for (i = 0; i < n_embedded; i++)
-    p->eprop[i] = JS_UNDEFINED;
+    p->eprop[i] = JS_EMPTY;
 
 #ifdef DEBUG
   p->name = name;
@@ -350,14 +366,14 @@ JSValue new_array_object(Context *ctx, char *name, Shape *os, size_t size)
 
   set_array_ptr_body(p, array_data);
   set_array_ptr_size(p, size);
-  set_array_ptr_length(p, size);
+  set_array_ptr_length(p, cint_to_number(ctx, (cint) size));
 
   assert(Array_num_builtin_props +
          Array_num_double_props + Array_num_gconsts_props == 1);
-  init_prop(p, gconsts.g_string_length, cint_to_number(ctx, (cint) size));
 
   return ptr_to_normal_array(p);
 }
+
 
 JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
 {
@@ -488,6 +504,7 @@ JSValue new_regexp_object(Context *ctx, char *name, char *pat, int flag)
 
 PropertyMap *new_property_map(Context *ctx, char *name,
                               int n_special_props, int n_props,
+                              int n_user_special_props,
                               JSValue __proto__, PropertyMap *prev)
 {
   HashTable   *hash;
@@ -513,6 +530,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 
 #ifdef DEBUG
   m->name = name;
+  m->n_user_special_props = n_user_special_props;
 #endif /* DEBUG */
 #ifdef HC_PROF
   m->n_enter = 0;
@@ -561,6 +579,11 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
     __proto__ = prev->__proto__;
   m = new_property_map(ctx, DEBUG_NAME("(extended)"),
                        prev->n_special_props, prev->n_props + 1,
+#ifdef DEBUG
+                       prev->n_user_special_props,
+#else /* DEBUG */
+                       0,
+#endif /* DEBUG */
                        __proto__, prev);
   GC_PUSH(m);
 
@@ -568,7 +591,8 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
 #ifdef DEBUG
   {
     int n = hash_copy(ctx, prev->map, m->map);
-    assert(n == prev->n_props - prev->n_special_props);
+    assert(n == prev->n_props - prev->n_special_props +
+           prev->n_user_special_props);
   }
 #else /* DEBUG */
   hash_copy(ctx, prev->map, m->map);
@@ -757,7 +781,8 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
         int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
         GC_PUSH(prototype);
         pm = new_property_map(ctx, DEBUG_NAME("(new)"),
-                              OBJECT_SPECIAL_PROPS, n_props, prototype,
+                              OBJECT_SPECIAL_PROPS, n_props,
+                              OBJECT_USPECIAL_PROPS, prototype,
                               gpms.g_property_map_root);
         GC_PUSH(pm);
         pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),

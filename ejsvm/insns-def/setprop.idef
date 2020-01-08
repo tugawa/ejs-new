@@ -1,10 +1,20 @@
 \inst setprop (Value obj, Value prop, Value val)
 
 \when obj:array \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("setprop: %"PRIJSValue"[%"PRIJSValue"] <- %"PRIJSValue"\n",
+	   obj, prop, val);
+#endif /* DEBUG_GETPROP_VALUE */
   set_array_prop(context, obj, prop, val);
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:function) && prop:string \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("setprop: %"PRIJSValue"[%s] <- %"PRIJSValue"\n",
+	   obj, string_to_cstr(prop), val);
+#endif /* DEBUG_GETPROP_VALUE */
 #ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
@@ -20,6 +30,11 @@
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:builtin || obj:string_object || obj:simple_object || obj:function) \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("setprop: %"PRIJSValue"[%"PRIJSValue"] <- %"PRIJSValue"\n",
+	   obj, prop, val);
+#endif /* DEBUG_GETPROP_VALUE */
   set_object_prop(context, obj, prop, val);
 \}
 

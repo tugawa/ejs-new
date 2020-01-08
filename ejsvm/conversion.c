@@ -364,7 +364,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     type_error("object expected in object_to_number");
     return FIXNUM_ZERO;
   }
-  if ((f = get_prop(v, gconsts.g_string_valueof)) != JS_EMPTY) {
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_valueof)) != JS_EMPTY) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
@@ -378,7 +378,7 @@ JSValue object_to_number(Context *context, JSValue v) {
     if (is_boolean(f)) return special_to_number(f);
   }
  NEXT0:
-  if ((f = get_prop(v, gconsts.g_string_tostring)) != JS_EMPTY) {
+  if ((f = get_prop_prototype_chain(v, gconsts.g_string_tostring)) != JS_EMPTY) {
     GC_PUSH(v);
     if (is_function(f)) f = invoke_function0(context, v, f, TRUE);
     else if (is_builtin(f)) f = invoke_builtin0(context, v, f, TRUE);
