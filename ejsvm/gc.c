@@ -702,7 +702,8 @@ STATIC_INLINE void process_node(uintptr_t ptr)
         process_edge((uintptr_t) p->prev); /* PropertyMap */
 #endif /* HC_SKIP_INTERNAL */
       if (p->shapes != NULL)
-        process_edge((uintptr_t) p->shapes); /* Shape */
+        process_edge((uintptr_t) p->shapes); /* Shape
+                                              * (always keep the largest one) */
       process_edge((uintptr_t) p->__proto__);
       return;
     }
@@ -710,12 +711,14 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       Shape *p = (Shape *) ptr;
       process_edge((uintptr_t) p->pm);
+#ifndef NO_SHAPE_CACHE
 #ifdef WEAK_SHAPE_LIST
       /* p->next is weak */
 #else /* WEAK_SHAPE_LIST */
       if (p->next != NULL)
         process_edge((uintptr_t) p->next);
 #endif /* WEAK_SHAPE_LIST */
+#endif /* NO_SHAPE_CACHE */
       return;
     }
   case CELLT_UNWIND:
@@ -980,7 +983,6 @@ STATIC void weak_clear_StrTable(StrTable *table)
 #ifdef WEAK_SHAPE_LIST
 void weak_clear_shape_recursive(PropertyMap *pm)
 {
-  Shape **p;
   HashIterator iter;
   HashCell *cell;
 
@@ -989,21 +991,26 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #else /* VERBOSE_GC_SHAPE */
 #define PRINT(x...)
 #endif /* VERBOSE_GC_SHAPE */
-  
-  for (p = &pm->shapes; *p != NULL; ) {
-    Shape *os = *p;
-    if (is_marked_cell(os))
-      p = &(*p)->next;
-    else {
-      Shape *skip = *p;
-      *p = skip->next;
+
+#ifndef NO_SHAPE_CACHE
+  {
+    Shape **p;
+    for (p = &pm->shapes; *p != NULL; ) {
+      Shape *os = *p;
+      if (is_marked_cell(os))
+        p = &(*p)->next;
+      else {
+        Shape *skip = *p;
+        *p = skip->next;
 #ifdef DEBUG
-      PRINT("skip %p emp: %d ext: %d\n",
-            skip, skip->n_embedded_slots, skip->n_extension_slots);
-      skip->next = NULL;  /* avoid Black->While check failer */
+        PRINT("skip %p emp: %d ext: %d\n",
+              skip, skip->n_embedded_slots, skip->n_extension_slots);
+        skip->next = NULL;  /* avoid Black->While check failer */
 #endif /* DEBUG */
+      }
     }
   }
+#endif /* NO_SHAPE_CACHE */
 
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
@@ -1363,9 +1370,14 @@ STATIC void check_invariant_nobw_space(struct space *space)
     case CELLT_PROPERTY_MAP:
       {
         PropertyMap *pm = (PropertyMap *) payload;
+#ifdef NO_SHAPE_CACHE
+        if (pm->shapes != NULL)
+          assert(payload_to_header(pm->shapes)->type == CELLT_SHAPE);
+#else /* NO_SHAPE_CACHE */
         Shape *os;
         for (os = pm->shapes; os != NULL; os = os->next)
           assert(payload_to_header(os)->type == CELLT_SHAPE);
+#endif /* NO_SHAPE_CACHE */
         goto DEFAULT;
       }
     default:
