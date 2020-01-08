@@ -576,9 +576,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMDL)
-	mkdir -p insns-vmdl
-	$(CPP_VMDL) $(EJSVM_DIR)/insns-vmdl/$(call orig_insn,$@).vmd > insns-vmdl/$(call orig_insn,$@).vmd || (rm $@; exit 1)
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMDL) insns-vmdl/*.vmd
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
