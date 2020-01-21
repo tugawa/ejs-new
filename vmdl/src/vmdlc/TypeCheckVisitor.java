@@ -346,7 +346,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 newSet2 = Collections.emptySet();
             }
             TypeMapSet newDict = TYPE_MAP.clone();
-            //System.err.println("BEGINSET:"+newSet2.toString());
             newDict.setTypeMapSet(newSet2);
             newDict.setDispatchSet(node.getRematchVarSet());
             SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));

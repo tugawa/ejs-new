@@ -209,11 +209,10 @@ public class Main {
             }
         }
         new DesugarVisitor().start(ast);
-        new DispatchVarCheckVisitor().start(ast);
         if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
+        new DispatchVarCheckVisitor().start(ast);
         new TypeCheckVisitor().start(ast, opSpec,
             TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec);
-
         String program;
         if(outputMode == OutputMode.MakeInline){
             program = new InlineInfoVisitor().start(ast);
