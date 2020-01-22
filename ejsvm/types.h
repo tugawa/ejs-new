@@ -292,8 +292,10 @@ struct property_map_list {
 
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
+#ifndef NO_SHAPE_CACHE
   Shape *next;                /* [weak] Weak list of exisnting shapes
                                * shareing the same map. */
+#endif /* NO_SHAPE_CACHE */
   uint16_t n_embedded_slots;  /* [const] Number of slots for properties
                                * in the object. This number includes 
                                * special props. */
