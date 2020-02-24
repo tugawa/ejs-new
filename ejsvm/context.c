@@ -32,14 +32,8 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
   GC_POP(env);
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
+  frame->nlocals = nl;
   locals = frame->locals;
-#if BYTES_IN_JSVALUE < BYTES_IN_GRANULE
-  {
-    size_t bytes = sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl;
-    size_t overalloc = (-bytes) & ((1 << LOG_BYTES_IN_GRANULE) - 1);
-    nl += overalloc >> LOG_BYTES_IN_JSVALUE;
-  }
-#endif /* BYTES_IN_JSVALUE < BYTES_IN_GRANULE */
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;
   return frame;

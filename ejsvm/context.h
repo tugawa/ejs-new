@@ -33,11 +33,13 @@ struct function_table {
 struct function_frame {
   struct function_frame *prev_frame;
   JSValue arguments;
+  int nlocals;
   JSValue locals[] __attribute__((aligned(BYTES_IN_JSVALUE)));
 };
 
 #define fframe_prev(fr)           ((fr)->prev_frame)
 #define fframe_arguments(fr)      ((fr)->arguments)
+#define fframe_nlocals(fr)        ((fr)->nlocals)
 #define fframe_locals(fr)         ((fr)->locals)
 #define fframe_locals_idx(fr, i)  ((fr)->locals[i])
 
