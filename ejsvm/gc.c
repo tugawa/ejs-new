@@ -189,7 +189,11 @@ void init_memory(size_t bytes)
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   void *addr;
-
+#ifdef DEBUG
+  static int count;
+  count++;
+#endif /* DEBUG */
+  
   if (check_gc_request(ctx))
     garbage_collection(ctx);
   addr = space_alloc(request_bytes, type);

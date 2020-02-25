@@ -21,6 +21,7 @@ static int sizeclass_map[GRANULES_IN_PAGE];
 struct space {
   uintptr_t addr, end;
   int num_pages;
+  int num_free_pages;
   struct free_page_header *page_pool;
   struct so_page_header *freelist[NUM_SIZECLASSES];
 };
@@ -60,7 +61,7 @@ STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
 	return -1;
     }
     index += 8;
-    c = ++*p;
+    c = *++p;
   } while (index < len);
 
   return -1;
@@ -102,14 +103,14 @@ STATIC_INLINE void page_so_set_end_used_bitmap(so_page_header *ph)
 #if BYTES_IN_GRANULE == 4
   ((unsigned int *) used_bmp)[index] |= ~((1 << offset) - 1);
 #elif BYTES_IN_GRANULE == 8
-  ((unsigned long long *) used_bmp)[index] |= ~((1 << offset) - 1);
+  ((unsigned long long *) used_bmp)[index] |= ~((1LL << offset) - 1);
 #else
 #error not implemented
 #endif
 }
 
 STATIC_INLINE void
-page_so_init(so_page_header *ph, cell_type_t type, unsigned int size)
+page_so_init(so_page_header *ph, unsigned int size, cell_type_t type)
 {
   unsigned int bmp_granules;
   ph->page_type = PAGE_TYPE_SOBJ;
@@ -178,7 +179,7 @@ STATIC_INLINE uintptr_t page_lo_payload(lo_page_header *ph)
  */
 STATIC_INLINE void mark_cell(void *p)
 {
-  page_header_t *xph = payload_to_page_header(p);
+  page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
@@ -193,7 +194,7 @@ STATIC_INLINE void mark_cell(void *p)
 STATIC_INLINE void unmark_cell (void *p) __attribute__((unused));
 STATIC_INLINE void unmark_cell (void *p)
 {
-  page_header_t *xph = payload_to_page_header(p);
+  page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
@@ -207,7 +208,7 @@ STATIC_INLINE void unmark_cell (void *p)
 
 STATIC_INLINE int is_marked_cell(void *p)
 {
-  page_header_t *xph = payload_to_page_header(p);
+  page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
@@ -221,7 +222,7 @@ STATIC_INLINE int is_marked_cell(void *p)
 
 STATIC_INLINE int test_and_mark_cell(void *p)
 {
-  page_header_t *xph = payload_to_page_header(p);
+  page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
@@ -246,10 +247,11 @@ STATIC_INLINE int test_and_mark_cell(void *p)
 STATIC_INLINE void compute_sizeclass_map()
 {
   int i, index;
-  for (i = 1, index = 0; i <= GRANULES_IN_PAGE; i++) {
-    if (i > sizeclasses[index])
+  for (i = 0, index = 0; i <= GRANULES_IN_PAGE; i++) {
+    sizeclass_map[i] = index;
+    if (index < (sizeof(sizeclasses) / sizeof(sizeclasses[0])) &&
+	i == sizeclasses[index])
       index++;
-    sizeclass_map[i - 1] = index;
   }
 }
 
@@ -261,6 +263,7 @@ void space_init(size_t bytes)
   
   addr = (uintptr_t) malloc(bytes + BYTES_IN_PAGE - 1);
   space.num_pages = bytes / BYTES_IN_PAGE;
+  space.num_free_pages = space.num_pages;
   p = (struct free_page_header *)
     ((addr + BYTES_IN_PAGE - 1) & ~(BYTES_IN_PAGE - 1));
   space.addr = (uintptr_t) p;
@@ -285,6 +288,7 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
     free_page_header *p = *pp;
     if (p->num_pages == alloc_pages) {
       *pp = p->next;
+      space.num_free_pages -= alloc_pages;
       return (page_header_t *) p;
     } else if (p->num_pages > alloc_pages) {
       int num_pages = p->num_pages - alloc_pages;
@@ -296,6 +300,7 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       p->num_pages = num_pages - alloc_pages;
       p->next = next;
       *pp = p;
+      space.num_free_pages -= alloc_pages;
       return found;
     }
   }
@@ -369,8 +374,9 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
     if (xph != NULL) {
       so_page_header *ph = &xph->u.so;
       uintptr_t found;
-      page_so_init(ph, request_granules, type);
+      page_so_init(ph, sizeclasses[sizeclass_index], type);
       ph->next = space.freelist[sizeclass_index];
+      space.freelist[sizeclass_index] = ph;
       found = alloc_block_in_page(ph);
       assert((found & (BYTES_IN_GRANULE - 1)) == 0);
       return found;
@@ -382,7 +388,10 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
 
 void *space_alloc(uintptr_t request_bytes, cell_type_t type)
 {
-  int request_granules = ROUNDUP(request_bytes, BYTES_IN_GRANULE);
+  int request_granules =
+    (request_bytes + BYTES_IN_GRANULE - 1) >> LOG_BYTES_IN_GRANULE;
+  if (request_granules == 0)
+    request_granules = 1;
 
   if (request_granules > GRANULES_IN_PAGE)
     return (void*) alloc_large_object(request_granules, type);
@@ -401,7 +410,8 @@ void sweep()
 
 int space_check_gc_request()
 {
-  return 0;
+  return space.num_free_pages < (space.num_pages >> 2);
+;
 }
 
 int in_js_space(void *addr_)

@@ -1,5 +1,5 @@
-#define LOG_BYTES_IN_PAGE 8
-#define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_GRANULE)
+#define LOG_BYTES_IN_PAGE 9
+#define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
 #define GRANULES_IN_PAGE  (1 << (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE))
 
 #define PAGE_HEADER_TYPE_BITS    9
@@ -43,8 +43,10 @@ typedef struct page_header_t {
   } u;
 } page_header_t;
 
-#define payload_to_page_header(p)				\
-  ((page_header_t *) (((uintptr_t) (p)) & ~(BYTES_IN_PAGE - 1)))
+static inline page_header_t *payload_to_page_header(uintptr_t ptr)
+{
+  return ((page_header_t *) (ptr & ~(BYTES_IN_PAGE - 1)));
+}
 
 
 /* space interface */
