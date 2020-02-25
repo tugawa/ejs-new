@@ -1,16 +1,16 @@
 #define LOG_BYTES_IN_PAGE 9
+#define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
-#define GRANULES_IN_PAGE  (1 << (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE))
+#define GRANULES_IN_PAGE  (1 << LOG_GRANULES_IN_PAGE)
 
 #define PAGE_HEADER_TYPE_BITS    9
 #define PAGE_HEADER_SO_SIZE_BITS (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define PAGE_HEADER_LO_SIZE_BITS 32
-#define PAGE_HEADER_MARKBIT_BITS 1
 
 typedef enum page_type_t {
-  PAGE_TYPE_FREE = 0,
-  PAGE_TYPE_SOBJ = 1,
-  PAGE_TYPE_LOBJ = 2
+  PAGE_TYPE_FREE = 1,
+  PAGE_TYPE_SOBJ = 2,
+  PAGE_TYPE_LOBJ = 3
 } page_type_t;
 
 typedef struct free_page_header free_page_header;
@@ -30,14 +30,14 @@ typedef struct page_header_t {
     struct so_page_header {
       page_type_t page_type: 2;
       cell_type_t type:      PAGE_HEADER_TYPE_BITS;
-      unsigned int size:      PAGE_HEADER_SO_SIZE_BITS;  /* size of block */
+      unsigned int size:     PAGE_HEADER_SO_SIZE_BITS;  /* size of block (in granule) */
       struct so_page_header *next __attribute__((aligned(BYTES_IN_GRANULE)));
       unsigned char bitmap[];
     } so;
     struct lo_page_header {
       page_type_t  page_type: 2;
       cell_type_t  type:      PAGE_HEADER_TYPE_BITS;
-      unsigned int markbit:   PAGE_HEADER_MARKBIT_BITS;
+      unsigned int markbit:   1;
       unsigned int size:      PAGE_HEADER_LO_SIZE_BITS;  /* size of payload */
     } lo;
   } u;

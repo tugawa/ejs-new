@@ -103,9 +103,9 @@ STATIC_INLINE void page_so_set_end_used_bitmap(so_page_header *ph)
   int offset = blocks & (BITS_IN_GRANULE - 1);
 
 #if BYTES_IN_GRANULE == 4
-  ((unsigned int *) used_bmp)[index] |= ~((1 << offset) - 1);
+  ((uint32_t *) used_bmp)[index] |= ~((1 << offset) - 1);
 #elif BYTES_IN_GRANULE == 8
-  ((unsigned long long *) used_bmp)[index] |= ~((1LL << offset) - 1);
+  ((uint64_t *) used_bmp)[index] |= ~((1LL << offset) - 1);
 #else
 #error not implemented
 #endif
@@ -175,6 +175,14 @@ STATIC_INLINE uintptr_t page_lo_payload(lo_page_header *ph)
   uintptr_t addr = (uintptr_t) ph;
   addr += ROUNDUP(sizeof(lo_page_header), BYTES_IN_GRANULE);
   return addr;
+}
+
+STATIC_INLINE size_t page_lo_pages(lo_page_header *ph)
+{
+  size_t granules =
+    ROUNDUP(sizeof(lo_page_header), BYTES_IN_GRANULE) + ph->size;
+  size_t pages = (granules + GRANULES_IN_PAGE - 1) >> LOG_GRANULES_IN_PAGE;
+  return pages;
 }
 
 /*
@@ -408,8 +416,129 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
  * sweep
  */
 
+
+/**
+ * 1. Copy mark bmp to used bmp.
+ * 2. Clear mark bmp.
+ * 3. Link this page to the free list (unlesss full or empty).
+ * return 0 if empty
+ **/
+int sweep_so_page(so_page_header *ph)
+{
+#if BYTES_IN_GRANULE == 4
+#define granule_t uint32_t
+#define ZELO 0
+#elif BYTES_IN_GRANULE == 8
+#define granule_t uint64_t
+#define ZERO 0LL
+#else
+#error not implemented
+#endif
+
+  unsigned int bmp_granules = page_so_bmp_granules(ph);
+  granule_t *mark_bmp = (granule_t *) page_so_mark_bitmap(ph);
+  granule_t *used_bmp = (granule_t *) page_so_used_bitmap(ph);
+  granule_t is_free = ZERO;
+  granule_t is_full = ~ZERO;
+  int i;
+
+  for (i = 0; i < bmp_granules - 1; i++) {
+    granule_t x = mark_bmp[i];
+    is_free |= x;
+    is_full &= x;
+    used_bmp[i] = x;
+  }
+  {
+    granule_t x = mark_bmp[i];
+    is_free |= x;
+    used_bmp[i] = x;
+  }
+  if (is_free == ZERO)
+    return 0;
+  page_so_set_end_used_bitmap(ph);
+  is_full &= used_bmp[i];
+  if (is_full != ~ZERO) {
+    int sizeclass_index = sizeclass_map[ph->size];
+    ph->next = space.freelist[sizeclass_index];
+    space.freelist[sizeclass_index] = ph;
+  }
+  return 1;
+
+#undef granule_t
+#undef ZERO
+}
+
 void sweep()
 {
+  uintptr_t page_addr;
+  int i;
+  free_page_header *last_free = NULL;
+  free_page_header **free_pp = &space.page_pool;
+
+  for (i = 0; i < sizeof(sizeclasses) / sizeof(sizeclasses[0]); i++)
+    space.freelist[i] = NULL;
+  space.num_free_pages = 0;
+
+  page_addr = space.addr;
+  while (page_addr < space.end) {
+    while (page_addr < space.end) {
+      page_header_t *xph = (page_header_t*) page_addr;
+      printf("%lx ", page_addr);
+      if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+	so_page_header *ph = &xph->u.so;
+	printf("so\n");
+	page_addr += BYTES_IN_PAGE;
+	if (sweep_so_page(ph) == 0) {
+	  last_free = &xph->u.free;
+	  break;
+	}
+      } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
+	lo_page_header *ph = &xph->u.lo;
+	printf("lo\n");
+	page_addr += page_lo_pages(ph) << LOG_BYTES_IN_PAGE;
+	if (ph->markbit == 0) {
+	  last_free = &xph->u.free;
+	  break;
+	}
+	ph->markbit = 0;
+      } else {
+	assert(xph->u.x.page_type == PAGE_TYPE_FREE);
+	printf("free\n");
+	page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
+	last_free = &xph->u.free;
+      }
+    }
+    while (page_addr < space.end) {
+      page_header_t *xph = (page_header_t *) page_addr;
+      if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+	so_page_header *ph = &xph->u.so;
+	page_addr  += BYTES_IN_PAGE;
+	if (sweep_so_page(ph) != 0)
+	  break;
+      } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
+	lo_page_header *ph = &xph->u.lo;
+	page_addr += page_lo_pages(ph) << LOG_BYTES_IN_PAGE;
+	if (ph->markbit != 0) {
+	  ph->markbit = 0;
+	  break;
+	}
+      } else {
+	assert(xph->u.x.page_type == PAGE_TYPE_FREE);
+	page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
+      }
+    }
+    if (last_free != NULL) {
+      unsigned int bytes = page_addr - ((uintptr_t) last_free);
+      unsigned int pages = bytes >> LOG_BYTES_IN_PAGE;
+      *free_pp = last_free;
+      free_pp = &last_free->next;
+      last_free->page_type = PAGE_TYPE_FREE;
+      last_free->num_pages = pages;
+      last_free->next = NULL;
+      last_free = NULL;
+      space.num_free_pages += pages;
+    }
+  }
   return;
 }
 
