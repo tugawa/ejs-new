@@ -30,6 +30,10 @@ struct space {
 
 struct space space;
 
+#ifdef DEBUG
+static void verify_free_page(free_page_header *ph);
+#endif /* DEBUG */
+
 /* bitmap operation */
 STATIC_INLINE void bmp_set(unsigned char* bmp, int index)
 {
@@ -311,6 +315,9 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       p->page_type = PAGE_TYPE_FREE;
       p->num_pages = num_pages;
       p->next = next;
+#ifdef DEBUG
+      verify_free_page(p);
+#endif /* DEBUG */
       *pp = p;
       space.num_free_pages -= alloc_pages;
       return found;
@@ -457,6 +464,7 @@ int sweep_so_page(so_page_header *ph)
     return 0;
   page_so_set_end_used_bitmap(ph);
   is_full &= used_bmp[i];
+  memset(mark_bmp, 0, bmp_granules << LOG_BYTES_IN_GRANULE);
   if (is_full != ~ZERO) {
     int sizeclass_index = sizeclass_map[ph->size];
     ph->next = space.freelist[sizeclass_index];
@@ -473,6 +481,7 @@ void sweep()
   uintptr_t page_addr;
   int i;
   free_page_header *last_free = NULL;
+  uintptr_t free_end = 0;
   free_page_header **free_pp = &space.page_pool;
 
   for (i = 0; i < sizeof(sizeclasses) / sizeof(sizeclasses[0]); i++)
@@ -483,10 +492,8 @@ void sweep()
   while (page_addr < space.end) {
     while (page_addr < space.end) {
       page_header_t *xph = (page_header_t*) page_addr;
-      printf("%lx ", page_addr);
       if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
 	so_page_header *ph = &xph->u.so;
-	printf("so\n");
 	page_addr += BYTES_IN_PAGE;
 	if (sweep_so_page(ph) == 0) {
 	  last_free = &xph->u.free;
@@ -494,7 +501,6 @@ void sweep()
 	}
       } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
 	lo_page_header *ph = &xph->u.lo;
-	printf("lo\n");
 	page_addr += page_lo_pages(ph) << LOG_BYTES_IN_PAGE;
 	if (ph->markbit == 0) {
 	  last_free = &xph->u.free;
@@ -503,11 +509,11 @@ void sweep()
 	ph->markbit = 0;
       } else {
 	assert(xph->u.x.page_type == PAGE_TYPE_FREE);
-	printf("free\n");
 	page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
 	last_free = &xph->u.free;
       }
     }
+    free_end = page_addr;
     while (page_addr < space.end) {
       page_header_t *xph = (page_header_t *) page_addr;
       if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
@@ -526,15 +532,19 @@ void sweep()
 	assert(xph->u.x.page_type == PAGE_TYPE_FREE);
 	page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
       }
+      free_end = page_addr;
     }
     if (last_free != NULL) {
-      unsigned int bytes = page_addr - ((uintptr_t) last_free);
+      unsigned int bytes = free_end - ((uintptr_t) last_free);
       unsigned int pages = bytes >> LOG_BYTES_IN_PAGE;
-      *free_pp = last_free;
-      free_pp = &last_free->next;
       last_free->page_type = PAGE_TYPE_FREE;
       last_free->num_pages = pages;
       last_free->next = NULL;
+#ifdef DEBUG
+      verify_free_page(last_free);
+#endif /* DEBUG */
+      *free_pp = last_free;
+      free_pp = &last_free->next;
       last_free = NULL;
       space.num_free_pages += pages;
     }
@@ -557,3 +567,15 @@ int in_js_space(void *addr_)
 void space_print_memory_status()
 {
 }
+
+#ifdef DEBUG
+static void verify_free_page(free_page_header *ph)
+{
+  assert(space.addr <= (uintptr_t) ph);
+  assert((uintptr_t) ph < space.end);
+  assert(((uintptr_t) ph) + (ph->num_pages << LOG_BYTES_IN_PAGE) <= space.end);
+  assert(ph->next == NULL || space.addr <= (uintptr_t) ph->next);
+  assert(ph->next == NULL || (uintptr_t) ph->next < space.end);
+  memset(ph + 1, 0xef, (ph->num_pages << LOG_BYTES_IN_PAGE) - sizeof(*ph));
+}
+#endif /* DEBUG */
