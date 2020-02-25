@@ -6,15 +6,17 @@
 
 #if LOG_BYTES_IN_GRANULE == 2
 static const int sizeclasses[] = {
-  1, 2, 4, 8, 15, 31, 62
+  1, 2, 4, 8, 15, 31, 62, 124
 };
 #else /* LOG_BYTES_IN_GRANULE == 3 */
 static const int sizeclasses[] = {
-  1, 2, 4, 8, 15, 31
+  1, 2, 4, 8, 15, 30, 60
 };
 #endif /* LOG_BYTES_IN_GRANULE */
 
 #define NUM_SIZECLASSES (sizeof(sizeclasses) / sizeof(int))
+#define MAX_SOBJ_GRANULES \
+  (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1])
 
 static int sizeclass_map[GRANULES_IN_PAGE];
 
@@ -153,8 +155,9 @@ STATIC_INLINE uintptr_t page_so_first_block(so_page_header *ph)
 STATIC_INLINE int page_so_block_index(so_page_header *ph, uintptr_t p)
 {
   uintptr_t first_block = page_so_first_block(ph);
-  int index = (((uintptr_t) p) - first_block) / ph->size;
-  assert((((uintptr_t) p) - first_block) % ph->size == 0);
+  unsigned int size_in_byte = ph->size << LOG_BYTES_IN_GRANULE;
+  int index = (((uintptr_t) p) - first_block) / size_in_byte;
+  assert((((uintptr_t) p) - first_block) % size_in_byte == 0);
   return index;
 }
 
@@ -286,6 +289,7 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
 
   for (pp = &space.page_pool; *pp != NULL; pp = &(*pp)->next) {
     free_page_header *p = *pp;
+    assert(p->page_type == PAGE_TYPE_FREE);
     if (p->num_pages == alloc_pages) {
       *pp = p->next;
       space.num_free_pages -= alloc_pages;
@@ -297,7 +301,7 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       p = (free_page_header *)
 	(((uintptr_t) p) + (alloc_pages << LOG_BYTES_IN_PAGE));
       p->page_type = PAGE_TYPE_FREE;
-      p->num_pages = num_pages - alloc_pages;
+      p->num_pages = num_pages;
       p->next = next;
       *pp = p;
       space.num_free_pages -= alloc_pages;
@@ -356,6 +360,7 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
   /* find a half-used page */
   for (pp = &space.freelist[sizeclass_index]; *pp != NULL; ) {
     struct so_page_header *p = *pp;
+    assert(p->page_type == PAGE_TYPE_SOBJ);
     if (p->type == type) {
       found = alloc_block_in_page(p);
       if (found != 0) {
@@ -393,7 +398,7 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
   if (request_granules == 0)
     request_granules = 1;
 
-  if (request_granules > GRANULES_IN_PAGE)
+  if (request_granules > MAX_SOBJ_GRANULES)
     return (void*) alloc_large_object(request_granules, type);
   else
     return (void*) alloc_small_object(request_granules, type);
