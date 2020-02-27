@@ -47,13 +47,17 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 {
   JSValue *body, *oldbody;
   JSValue length_value = get_jsarray_length(a);
-  int32_t length;
+  int32_t size, length;
   int i;
 
   assert(newsize <= ASIZE_LIMIT);
 
   GC_PUSH(a);
   length = (int32_t) number_to_double(length_value);
+  size = get_jsarray_size(a);
+  if (size < length)
+    length = size;
+  assert(length < newsize);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
                                CELLT_ARRAY_DATA);
   GC_POP(a);

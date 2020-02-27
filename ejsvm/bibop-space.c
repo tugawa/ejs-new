@@ -2,8 +2,6 @@
 #define BITS_IN_BYTE (1 << LOG_BITS_IN_BYTE)
 #define ROUNDUP(s,u) (((s) + (u) - 1) & ~((u) - 1))
 
-#define NUM_BITMAPS 2  /* free bitmap and mark bitmap */
-
 #if LOG_BYTES_IN_GRANULE == 2
 static const int sizeclasses[] = {
   1, 2, 4, 8, 15, 31, 62, 124
@@ -20,12 +18,13 @@ static const int sizeclasses[] = {
 
 static int sizeclass_map[GRANULES_IN_PAGE];
 
+#define NUM_TYPES 0x20
 struct space {
   uintptr_t addr, end;
   int num_pages;
   int num_free_pages;
   struct free_page_header *page_pool;
-  struct so_page_header *freelist[NUM_SIZECLASSES];
+  struct so_page_header *freelist[NUM_TYPES][NUM_SIZECLASSES];
 };
 
 struct space space;
@@ -298,7 +297,7 @@ void space_init(size_t bytes)
 {
   uintptr_t addr;
   struct free_page_header *p;
-  int i;
+  int i, j;
   
   addr = (uintptr_t) malloc(bytes + BYTES_IN_PAGE - 1);
   space.num_pages = bytes / BYTES_IN_PAGE;
@@ -311,8 +310,9 @@ void space_init(size_t bytes)
   p->num_pages = space.num_pages;
   p->next = NULL;
   space.page_pool = p;
-  for (i = 0; i < NUM_SIZECLASSES; i++)
-    space.freelist[i] = NULL;
+  for (i = 0; i < NUM_TYPES; i++)
+    for (j = 0; j < NUM_SIZECLASSES; j++)
+      space.freelist[i][j] = NULL;
   compute_sizeclass_map();
 }
 
@@ -404,19 +404,17 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
   so_page_header **pp;
 
   /* find a half-used page */
-  for (pp = &space.freelist[sizeclass_index]; *pp != NULL; ) {
+  for (pp = &space.freelist[type][sizeclass_index]; *pp != NULL; ) {
     struct so_page_header *p = *pp;
     assert(p->page_type == PAGE_TYPE_SOBJ);
-    if (p->type == type) {
-      found = alloc_block_in_page(p);
-      if (found != 0) {
-	assert((found & (BYTES_IN_GRANULE - 1)) == 0);
-	return found;
-      }
-      /* This page was full and failed to allocate in this page. */
-      *pp = p->next;
-    } else
-      pp = &p->next;
+    assert(p->type == type);
+    found = alloc_block_in_page(p);
+    if (found != 0) {
+      assert((found & (BYTES_IN_GRANULE - 1)) == 0);
+      return found;
+    }
+    /* This page was full and failed to allocate in this page. */
+    *pp = p->next;
   }
 
   /* allocate a new page */
@@ -426,8 +424,8 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
       so_page_header *ph = &xph->u.so;
       uintptr_t found;
       page_so_init(ph, sizeclasses[sizeclass_index], type);
-      ph->next = space.freelist[sizeclass_index];
-      space.freelist[sizeclass_index] = ph;
+      ph->next = space.freelist[type][sizeclass_index];
+      space.freelist[type][sizeclass_index] = ph;
       found = alloc_block_in_page(ph);
       assert((found & (BYTES_IN_GRANULE - 1)) == 0);
       return found;
@@ -498,8 +496,8 @@ int sweep_so_page(so_page_header *ph)
   memset(mark_bmp, 0, bmp_granules << LOG_BYTES_IN_GRANULE);
   if (is_full != ~ZERO) {
     int sizeclass_index = sizeclass_map[ph->size];
-    ph->next = space.freelist[sizeclass_index];
-    space.freelist[sizeclass_index] = ph;
+    ph->next = space.freelist[ph->type][sizeclass_index];
+    space.freelist[ph->type][sizeclass_index] = ph;
   }
   return 1;
 
@@ -510,7 +508,7 @@ int sweep_so_page(so_page_header *ph)
 void sweep()
 {
   uintptr_t page_addr;
-  int i;
+  int i, j;
   free_page_header *last_free = NULL;
   uintptr_t free_end = 0;
   free_page_header **free_pp = &space.page_pool;
@@ -518,8 +516,9 @@ void sweep()
   uintptr_t prev_free_end = 0;
 #endif /* VERIFY_BIBOP */
 
-  for (i = 0; i < sizeof(sizeclasses) / sizeof(sizeclasses[0]); i++)
-    space.freelist[i] = NULL;
+  for (i = 0; i < NUM_TYPES; i++)
+    for (j = 0; j < NUM_SIZECLASSES; j++)
+      space.freelist[i][j] = NULL;
   space.num_free_pages = 0;
 
   page_addr = space.addr;

@@ -496,11 +496,12 @@ STATIC void print_free_list(void)
   printf("\n");
 }
 
+#endif /* GC_DEBUG */
+
 STATIC void space_print_memory_status(void)
 {
   GCLOG("  free_bytes = %d\n", js_space.free_bytes);
 }
-#endif /* GC_DEBUG */
 
 /* Local Variables:      */
 /* mode: c               */
