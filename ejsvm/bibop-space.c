@@ -30,9 +30,11 @@ struct space {
 
 struct space space;
 
-#ifdef DEBUG
+#ifdef VERIFY_BIBOP
 static void verify_free_page(free_page_header *ph);
-#endif /* DEBUG */
+#endif /* VERIFY_BIBOP */
+void space_print_memory_status();
+
 
 /* bitmap operation */
 STATIC_INLINE void bmp_set(unsigned char* bmp, int index)
@@ -174,6 +176,28 @@ STATIC_INLINE int page_so_blocks(so_page_header *ph)
   return payload_granules / size;
 }  
 
+STATIC_INLINE int page_so_used_blocks(so_page_header *ph)
+{
+  static char nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3 };
+  unsigned char *used_bmp = page_so_used_bitmap(ph);
+  int nblocks = page_so_blocks(ph);
+  unsigned char c;
+  int count = 0;
+  int i;
+
+  for (i = 0; i < (nblocks >> LOG_BITS_IN_BYTE); i++) {
+    c = used_bmp[i];
+    count += nbits[c & 0x7];
+    count += nbits[(c >> 4) & 0x7];
+  }
+  c = used_bmp[i];
+  for (i = 0; i < (nblocks & (BITS_IN_BYTE - 1)); i++) {
+    count += c & 1;
+    c >>= 1;
+  }
+  return count;
+}
+
 STATIC_INLINE uintptr_t page_lo_payload(lo_page_header *ph)
 {
   uintptr_t addr = (uintptr_t) ph;
@@ -303,6 +327,11 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
     free_page_header *p = *pp;
     assert(p->page_type == PAGE_TYPE_FREE);
     if (p->num_pages == alloc_pages) {
+#ifdef VERIFY_BIBOP
+      verify_free_page(p->next);
+      assert(p->next != NULL ||
+	     ((uintptr_t) p) + (p->num_pages << LOG_BYTES_IN_PAGE)== space.end);
+#endif /* VERIFY_BIBOP */
       *pp = p->next;
       space.num_free_pages -= alloc_pages;
       return (page_header_t *) p;
@@ -315,9 +344,11 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       p->page_type = PAGE_TYPE_FREE;
       p->num_pages = num_pages;
       p->next = next;
-#ifdef DEBUG
+#ifdef VERIFY_BIBOP
       verify_free_page(p);
-#endif /* DEBUG */
+      assert(p->next != NULL ||
+	     ((uintptr_t) p) + (p->num_pages << LOG_BYTES_IN_PAGE)== space.end);
+#endif /* VERIFY_BIBOP */
       *pp = p;
       space.num_free_pages -= alloc_pages;
       return found;
@@ -483,6 +514,9 @@ void sweep()
   free_page_header *last_free = NULL;
   uintptr_t free_end = 0;
   free_page_header **free_pp = &space.page_pool;
+#ifdef VERIFY_BIBOP
+  uintptr_t prev_free_end = 0;
+#endif /* VERIFY_BIBOP */
 
   for (i = 0; i < sizeof(sizeclasses) / sizeof(sizeclasses[0]); i++)
     space.freelist[i] = NULL;
@@ -497,6 +531,9 @@ void sweep()
 	page_addr += BYTES_IN_PAGE;
 	if (sweep_so_page(ph) == 0) {
 	  last_free = &xph->u.free;
+#ifdef VERIFY_BIBOP
+	  assert(prev_free_end < (uintptr_t) last_free);
+#endif /* VERIFY_BIBOP */
 	  break;
 	}
       } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
@@ -504,6 +541,9 @@ void sweep()
 	page_addr += page_lo_pages(ph) << LOG_BYTES_IN_PAGE;
 	if (ph->markbit == 0) {
 	  last_free = &xph->u.free;
+#ifdef VERIFY_BIBIOP
+	  assert(prev_free_end < (uintptr_t) last_free);
+#endif /* VERIFY_BIBOP */
 	  break;
 	}
 	ph->markbit = 0;
@@ -511,6 +551,10 @@ void sweep()
 	assert(xph->u.x.page_type == PAGE_TYPE_FREE);
 	page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
 	last_free = &xph->u.free;
+#ifdef VERIFY_BIBOP
+	assert(prev_free_end < (uintptr_t) last_free);
+#endif /* VERIFY_BIBIOP */
+	break;
       }
     }
     free_end = page_addr;
@@ -540,21 +584,33 @@ void sweep()
       last_free->page_type = PAGE_TYPE_FREE;
       last_free->num_pages = pages;
       last_free->next = NULL;
-#ifdef DEBUG
+#ifdef VERIFY_BIBOP
+      prev_free_end = free_end;
       verify_free_page(last_free);
-#endif /* DEBUG */
+      memset(last_free + 1, 0xef,
+	     (last_free->num_pages << LOG_BYTES_IN_PAGE) - sizeof(*last_free));
+#endif /* VERIFY_BIBOP */
       *free_pp = last_free;
       free_pp = &last_free->next;
       last_free = NULL;
       space.num_free_pages += pages;
     }
   }
+#ifdef VERIFY_BIBOP
+  {
+    free_page_header *ph;
+    for (ph = space.page_pool; ph != NULL; ph = ph->next)
+      assert(ph->next != NULL ||
+	     ((uintptr_t) ph) + (ph->num_pages << LOG_BYTES_IN_PAGE)
+	     == space.end);
+  }
+#endif /* VERIFY_BIBOP */
   return;
 }
 
 int space_check_gc_request()
 {
-  return space.num_free_pages < (space.num_pages >> 2);
+  return space.num_free_pages < (space.num_pages >> 3);
 ;
 }
 
@@ -566,9 +622,39 @@ int in_js_space(void *addr_)
 
 void space_print_memory_status()
 {
+  uintptr_t page_addr;
+
+  printf("space.num_free_pages = %d\n", space.num_free_pages);
+  for (page_addr = space.addr; page_addr < space.end; ) {
+    page_header_t *xph = (page_header_t *) page_addr;
+    if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+      printf("%p - %p (1) SOBJ size = %d type = %d %d/%d, %d\n",
+	     (void*) page_addr,
+	     (void*) (page_addr + BYTES_IN_PAGE),
+	     xph->u.so.size, xph->u.so.type,
+	     page_so_used_blocks(&xph->u.so),
+	     page_so_blocks(&xph->u.so),
+	     page_so_used_blocks(&xph->u.so) * 100 / page_so_blocks(&xph->u.so));
+      page_addr += BYTES_IN_PAGE;
+    } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
+      printf("%p - %p (%d) LOBJ size = %d type = %d\n",
+	     (void*) page_addr,
+	     (void*) (page_addr + (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE)),
+	     (int) page_lo_pages(&xph->u.lo),
+	     xph->u.lo.size,
+	     xph->u.lo.type);
+      page_addr += page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE;
+    } else {
+      printf("%p - %p (%d) FREE\n",
+	     (void *) page_addr,
+	     (void *) (page_addr + (xph->u.free.num_pages << LOG_BYTES_IN_PAGE)),
+	     xph->u.free.num_pages);
+      page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
+    }
+  }
 }
 
-#ifdef DEBUG
+#ifdef VERIFY_BIBOP
 static void verify_free_page(free_page_header *ph)
 {
   assert(space.addr <= (uintptr_t) ph);
@@ -576,6 +662,5 @@ static void verify_free_page(free_page_header *ph)
   assert(((uintptr_t) ph) + (ph->num_pages << LOG_BYTES_IN_PAGE) <= space.end);
   assert(ph->next == NULL || space.addr <= (uintptr_t) ph->next);
   assert(ph->next == NULL || (uintptr_t) ph->next < space.end);
-  memset(ph + 1, 0xef, (ph->num_pages << LOG_BYTES_IN_PAGE) - sizeof(*ph));
 }
-#endif /* DEBUG */
+#endif /* VERIFY_BIBOP */

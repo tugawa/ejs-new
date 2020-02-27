@@ -199,8 +199,12 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   addr = space_alloc(request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
-  if (addr == NULL)
+  if (addr == NULL) {
+    printf("Out of memory\n");
+    printf("#GC = %d\n", generation);
+    space_print_memory_status();
     abort();
+  }
   return addr;
 }
 
@@ -323,7 +327,7 @@ STATIC void garbage_collection(Context *ctx)
   }
 
   generation++;
-  /* printf("Exit gc, generation = %d\n", generation); */
+  printf("Exit gc, generation = %d\n", generation);
 
   gc_phase = PHASE_INACTIVE;
 }
