@@ -7,11 +7,9 @@
  * Electro-communications.
  */
 
-#ifdef EXCESSIVE_GC
-#define GC_THREASHOLD_SHIFT 4
-#else  /* EXCESSIVE_GC */
-#define GC_THREASHOLD_SHIFT 1
-#endif /* EXCESSIVE_GC */
+#include "prefix.h"
+#define EXTERN extern
+#include "header.h"
 
 /*
  * If the remaining room is smaller than a certain size,
@@ -24,29 +22,12 @@
  */
 #define MINIMUM_FREE_CHUNK_GRANULES 4
 
-/*
- *  Types
- */
-
-#define CELLT_FREE          (0xff)
-
-struct free_chunk {
-  header_t header;
-  struct free_chunk *next;
-};
-
-struct space {
-  uintptr_t addr;
-  size_t bytes;
-  size_t free_bytes;
-  struct free_chunk* freelist;
-  char *name;
-};
+#define STATIC static
 
 /*
  * Variables
  */
-STATIC struct space js_space;
+struct space js_space;
 #ifdef GC_DEBUG
 STATIC struct space debug_js_shadow;
 #endif /* GC_DEBUG */
@@ -56,7 +37,6 @@ STATIC struct space debug_js_shadow;
  */
 /* space */
 STATIC void create_space(struct space *space, size_t bytes, char* name);
-STATIC int in_js_space(void *addr);
 #ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
@@ -64,7 +44,6 @@ STATIC header_t *get_shadow(void *ptr);
 #ifdef CHECK_MATURED
 STATIC void check_matured(void);
 #endif /* CHECK_MATURED */
-STATIC void sweep(void);
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);
@@ -75,65 +54,11 @@ STATIC void print_memory_status(void);
  * Header operation
  */
 
+STATIC_INLINE size_t get_payload_granules(header_t *hdrp) __attribute((unused));
 STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 {
   header_t hdr = *hdrp;
   return hdr.size - hdr.extra - HEADER_GRANULES;
-}
-
-STATIC_INLINE void mark_cell_header(header_t *hdrp)
-{
-#ifdef GC_DEBUG
-  {
-    header_t *shadow = get_shadow(hdrp);
-    assert(hdrp->magic == HEADER_MAGIC);
-    assert(hdrp->type == shadow->type);
-    assert(hdrp->size - hdrp->extra ==
-           shadow->size - shadow->extra);
-    assert(hdrp->gen == shadow->gen);
-  }
-#endif /* GC_DEBUG */
-  hdrp->markbit = 1;
-}
-
-STATIC_INLINE void unmark_cell_header(header_t *hdrp)
-{
-  hdrp->markbit = 0;
-}
-
-STATIC_INLINE int is_marked_cell_header(header_t *hdrp)
-{
-  return hdrp->markbit;
-}
-
-STATIC_INLINE void mark_cell(void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  mark_cell_header(hdrp);
-}
-
-STATIC_INLINE void unmark_cell (void *p) __attribute__((unused));
-STATIC_INLINE void unmark_cell (void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  unmark_cell_header(hdrp);
-}
-
-STATIC_INLINE int is_marked_cell(void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  return is_marked_cell_header(hdrp);
-}
-
-STATIC_INLINE int test_and_mark_cell(void *p)
-{
-  header_t *hdrp;
-  assert(in_js_space(p));
-  hdrp = payload_to_header(p);
-  if (is_marked_cell_header(hdrp))
-    return 1;
-  mark_cell_header(hdrp);
-  return 0;
 }
 
 /*
@@ -153,12 +78,6 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
   space->free_bytes = bytes;
   space->freelist = p;
   space->name = name;
-}
-
-STATIC int in_js_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return (js_space.addr <= addr && addr < js_space.addr + js_space.bytes);
 }
 
 #ifdef GC_DEBUG
@@ -236,7 +155,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
  * GC interface
  */
 
-static void space_init(size_t bytes)
+void space_init(size_t bytes)
 {
   create_space(&js_space, bytes, "js_space");
 #ifdef GC_DEBUG
@@ -244,7 +163,7 @@ static void space_init(size_t bytes)
 #endif /* GC_DEBUG */
 }
 
-static void* space_alloc(uintptr_t request_bytes, uint32_t type)
+void* space_alloc(uintptr_t request_bytes, uint32_t type)
 {
   void* addr = js_space_alloc(&js_space, request_bytes, type);
 #ifdef GC_DEBUG
@@ -267,14 +186,6 @@ static void* space_alloc(uintptr_t request_bytes, uint32_t type)
   return addr;
 }
 
-STATIC_INLINE int space_check_gc_request()
-{
-  if (js_space.free_bytes <
-      js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
-    return 1;
-  return 0;
-}
-
 /*
  * GC
  */
@@ -284,8 +195,6 @@ STATIC void sweep_space(struct space *space)
   struct free_chunk **p;
   uintptr_t scan = space->addr;
   uintptr_t free_bytes = 0;
-
-  GCLOG_SWEEP("sweep %s\n", space->name);
 
   space->freelist = NULL;
   p = &space->freelist;
@@ -330,9 +239,6 @@ STATIC void sweep_space(struct space *space)
       chunk_granules = (scan - free_start) >> LOG_BYTES_IN_GRANULE;
       if (chunk_granules >= MINIMUM_FREE_CHUNK_GRANULES) {
         struct free_chunk *chunk = (struct free_chunk *) free_start;
-        GCLOG_SWEEP("add_cunk %x - %x (%d bytes)\n",
-                    free_start - space->addr, scan - space->addr,
-                    scan - free_start);
         chunk->header = compose_header(chunk_granules, 0, CELLT_FREE);
         *p = chunk;
         p = &chunk->next;
@@ -407,7 +313,7 @@ STATIC void check_matured()
 }
 #endif /* CHECK_MATURED */
 
-STATIC void sweep(void)
+void sweep(void)
 {
 #ifdef GC_DEBUG
   check_invariant();
@@ -498,10 +404,12 @@ STATIC void print_free_list(void)
 
 #endif /* GC_DEBUG */
 
+#ifdef GC_DEBUG
 STATIC void space_print_memory_status(void)
 {
-  GCLOG("  free_bytes = %d\n", js_space.free_bytes);
+  printf("  free_bytes = %d\n", js_space.free_bytes);
 }
+#endif /* GC_DEBUG */
 
 /* Local Variables:      */
 /* mode: c               */

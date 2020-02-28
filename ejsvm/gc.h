@@ -50,33 +50,12 @@ extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
 extern void try_gc(Context *ctx);
 
-static inline void gc_push_checked(void *addr)
-{
-  extern JSValue *gc_root_stack[];
-  extern int gc_root_stack_ptr;
-  gc_root_stack[gc_root_stack_ptr++] = (JSValue *) addr;
-}
-
-static inline void gc_pop_checked(void *addr)
-{
-  extern JSValue *gc_root_stack[];
-  extern int gc_root_stack_ptr;
-  assert(gc_root_stack[gc_root_stack_ptr - 1] == (JSValue *) addr);
-  --gc_root_stack_ptr;
-}
-
-static inline int gc_save_root_stack()
-{
-  extern int gc_root_stack_ptr;
-  return gc_root_stack_ptr;
-}
-
-static inline void gc_restore_root_stack(int sp)
-{
-  extern int gc_root_stack_ptr;
-  gc_root_stack_ptr = sp;
-}
-
+static inline void gc_restore_root_stack(int sp);
+static inline int gc_save_root_stack();
+static inline void gc_pop_checked(void *addr);
+static inline void gc_push_checked(void *addr);
+static inline cell_type_t gc_obj_header_type(void *p);
+  
 #define GC_ROOT(_type, _var) _type _var
 
 #define GC_PUSH(a)                gc_push_checked(&a)
@@ -100,12 +79,6 @@ static inline void gc_restore_root_stack(int sp)
 #define GC_POP7(a,b,c,d,e,f,g)   do {GC_POP(a); GC_POP6(b,c,d,e,f,g);} while(0)
 #define GC_POP8(a,b,c,d,e,f,g,h)                        \
   do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
-
-#ifdef BIBOP
-#include "bibop-space.h"
-#else /* BIBOP */
-#include "freelist-space.h"
-#endif /* BIBOP */
 
 /* Local Variables:      */
 /* mode: c               */

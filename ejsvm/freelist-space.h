@@ -1,3 +1,12 @@
+#ifndef FREELIST_SPACE_H
+#define FREELIST_SPACE_H
+
+#ifdef EXCESSIVE_GC
+#define GC_THREASHOLD_SHIFT 4
+#else  /* EXCESSIVE_GC */
+#define GC_THREASHOLD_SHIFT 1
+#endif /* EXCESSIVE_GC */
+
 /*
  * Object header layout
  *
@@ -61,24 +70,47 @@ static inline header_t compose_header(size_t granules, size_t extra,
   return hdr;
 }
 
-static inline void *header_to_payload(header_t *hdrp)
-{
-  return (void *) (hdrp + 1);
-}
+/*
+ *  Types
+ */
 
-static inline header_t *payload_to_header(void *ptr)
-{
-  return ((header_t *) ptr) - 1;
-}
+#define CELLT_FREE          (0xff)
 
-/* space interface */
-static inline cell_type_t space_get_cell_type(uintptr_t ptr)
-{
-  return payload_to_header((void *) ptr)->type;
-}
+struct free_chunk {
+  header_t header;
+  struct free_chunk *next;
+};
 
-/* GC interface */
-static inline cell_type_t gc_obj_header_type(void *p)
-{
-  return space_get_cell_type((uintptr_t) p);
-}
+struct space {
+  uintptr_t addr;
+  size_t bytes;
+  size_t free_bytes;
+  struct free_chunk* freelist;
+  char *name;
+};
+
+extern struct space js_space;
+
+static inline void *header_to_payload(header_t *hdrp);
+static inline header_t *payload_to_header(void *ptr);
+
+static inline void mark_cell_header(header_t *hdrp);
+static inline void unmark_cell_header(header_t *hdrp);
+static inline int is_marked_cell_header(header_t *hdrp);
+
+  
+/* GC private functions */
+static inline void mark_cell(void *p);
+static inline int is_marked_cell(void *p);
+static inline  int test_and_mark_cell(void *p);
+extern void space_init(size_t bytes);
+extern void *space_alloc(uintptr_t request_bytes, cell_type_t type);
+extern void sweep(void);
+static inline int space_check_gc_request();
+static inline int in_js_space(void *addr_);
+static inline cell_type_t space_get_cell_type(uintptr_t ptr);
+#ifdef GC_DEBUG
+extern void space_print_memory_status(void);
+#endif /* GC_DEBUG */
+
+#endif /* FREELIST_SPACE_H */

@@ -54,16 +54,6 @@
  *   StrTable string_table (global.h)
  */
 
-#ifndef NDEBUG
-#define GC_DEBUG 1
-#define STATIC        /* make symbols global for debugger */
-#define STATIC_INLINE /* make symbols global for debugger */
-#else
-#undef GC_DEBUG
-#define STATIC static
-#define STATIC_INLINE static inline
-#endif
-
 #if 0
 #define GCLOG(...) LOG(__VA_ARGS__)
 #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
@@ -75,12 +65,6 @@
 #define GCLOG_ALLOC(...)
 #define GCLOG_SWEEP(...)
 #endif /* 0 */
-
-#ifdef BIBOP
-#include "bibop-space.c"
-#else /* BIBOP */
-#include "freelist-space.c"
-#endif /* BIBOP */
 
 /*
  * Constants
@@ -201,8 +185,10 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
               request_bytes, type, addr);
   if (addr == NULL) {
     printf("Out of memory\n");
+#ifdef DEBUG_GC
     printf("#GC = %d\n", generation);
     space_print_memory_status();
+#endif /* DEBUG_GC */
     abort();
   }
   return addr;

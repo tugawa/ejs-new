@@ -1,39 +1,25 @@
-#define LOG_BITS_IN_BYTE  3
-#define BITS_IN_BYTE (1 << LOG_BITS_IN_BYTE)
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
+
+#include "prefix.h"
+#define EXTERN extern
+#include "header.h"
+
 #define ROUNDUP(s,u) (((s) + (u) - 1) & ~((u) - 1))
 
-#if LOG_BYTES_IN_GRANULE == 2
-static const int sizeclasses[] = {
-  1, 2, 4, 8, 15, 31, 62, 124
-};
-#else /* LOG_BYTES_IN_GRANULE == 3 */
-static const int sizeclasses[] = {
-  1, 2, 4, 8, 15, 30, 60
-};
-#endif /* LOG_BYTES_IN_GRANULE */
-
-#define NUM_SIZECLASSES (sizeof(sizeclasses) / sizeof(int))
-#define MAX_SOBJ_GRANULES \
-  (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1])
-
 static int sizeclass_map[GRANULES_IN_PAGE];
-
-#define NUM_TYPES 0x20
-struct space {
-  uintptr_t addr, end;
-  int num_pages;
-  int num_free_pages;
-  struct free_page_header *page_pool;
-  struct so_page_header *freelist[NUM_TYPES][NUM_SIZECLASSES];
-};
-
 struct space space;
 
 #ifdef VERIFY_BIBOP
 static void verify_free_page(free_page_header *ph);
 #endif /* VERIFY_BIBOP */
 void space_print_memory_status();
-
 
 /* bitmap operation */
 STATIC_INLINE void bmp_set(unsigned char* bmp, int index)
@@ -99,6 +85,14 @@ STATIC_INLINE uintptr_t page_so_first_block(so_page_header *ph);
 STATIC_INLINE int page_so_block_index(so_page_header *ph, uintptr_t p);
 STATIC_INLINE int page_so_blocks(so_page_header *ph);
 STATIC_INLINE uintptr_t page_lo_payload(lo_page_header *ph);
+
+#ifdef GC_DEBUG
+page_header_t *payload_to_page_header(uintptr_t ptr)
+{
+  return ((page_header_t *) (ptr & ~(BYTES_IN_PAGE - 1)));
+}
+#endif /* GC_DEBUG */
+
 
 STATIC_INLINE void page_so_set_end_used_bitmap(so_page_header *ph)
 {
@@ -187,6 +181,7 @@ STATIC_INLINE int page_so_blocks(so_page_header *ph)
   return payload_granules / size;
 }  
 
+#ifdef GC_DEBUG
 STATIC_INLINE int page_so_used_blocks(so_page_header *ph)
 {
   static char nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3 };
@@ -208,6 +203,7 @@ STATIC_INLINE int page_so_used_blocks(so_page_header *ph)
   }
   return count;
 }
+#endif /* GC_DEBUG */
 
 STATIC_INLINE uintptr_t page_lo_payload(lo_page_header *ph)
 {
@@ -227,7 +223,7 @@ STATIC_INLINE size_t page_lo_pages(lo_page_header *ph)
 /*
  * cell mark
  */
-STATIC_INLINE void mark_cell(void *p)
+void mark_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
@@ -256,7 +252,7 @@ STATIC_INLINE void unmark_cell (void *p)
   }
 }
 
-STATIC_INLINE int is_marked_cell(void *p)
+int is_marked_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
@@ -270,7 +266,7 @@ STATIC_INLINE int is_marked_cell(void *p)
   }
 }
 
-/*STATIC_INLINE*/ int test_and_mark_cell(void *p)
+int test_and_mark_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
@@ -322,7 +318,7 @@ void space_init(size_t bytes)
   p->num_pages = space.num_pages;
   p->next = NULL;
   space.page_pool = p;
-  for (i = 0; i < NUM_TYPES; i++)
+  for (i = 0; i < NUM_CELL_TYPES; i++)
     for (j = 0; j < NUM_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
   compute_sizeclass_map();
@@ -408,7 +404,7 @@ STATIC_INLINE uintptr_t alloc_block_in_page(so_page_header *ph)
   }
 }
 
-static uintptr_t
+STATIC_INLINE uintptr_t
 alloc_small_object(uintptr_t request_granules, cell_type_t type)
 {
   uintptr_t found = 0;
@@ -471,7 +467,7 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
  * 3. Link this page to the free list (unlesss full or empty).
  * return 0 if empty
  **/
-int sweep_so_page(so_page_header *ph)
+static int sweep_so_page(so_page_header *ph)
 {
 #if BYTES_IN_GRANULE == 4
 #define granule_t uint32_t
@@ -528,7 +524,7 @@ void sweep()
   uintptr_t prev_free_end = 0;
 #endif /* VERIFY_BIBOP */
 
-  for (i = 0; i < NUM_TYPES; i++)
+  for (i = 0; i < NUM_CELL_TYPES; i++)
     for (j = 0; j < NUM_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
   space.num_free_pages = 0;
@@ -619,18 +615,7 @@ void sweep()
   return;
 }
 
-int space_check_gc_request()
-{
-  return space.num_free_pages < (space.num_pages >> 3);
-;
-}
-
-int in_js_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return space.addr <= addr && addr < space.end;
-}
-
+#ifdef GC_DEBUG
 void space_print_memory_status()
 {
   uintptr_t page_addr;
@@ -664,6 +649,7 @@ void space_print_memory_status()
     }
   }
 }
+#endif /* GC_DEBUG */
 
 #ifdef VERIFY_BIBOP
 static void verify_free_page(free_page_header *ph)

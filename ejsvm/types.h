@@ -93,7 +93,8 @@ typedef enum cell_type_t {
   CELLT_PROPERTY_MAP  = 0x1B,
   CELLT_SHAPE         = 0x1C,
   CELLT_UNWIND        = 0x1D,
-  CELLT_PROPERTY_MAP_LIST = 0x1E
+  CELLT_PROPERTY_MAP_LIST = 0x1E,
+  NUM_CELL_TYPES
 } cell_type_t;
 
 /*
