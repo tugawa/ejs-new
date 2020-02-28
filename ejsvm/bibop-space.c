@@ -313,7 +313,7 @@ void space_init(size_t bytes)
   p = (struct free_page_header *)
     ((addr + BYTES_IN_PAGE - 1) & ~(BYTES_IN_PAGE - 1));
   space.addr = (uintptr_t) p;
-  space.end = space.addr + bytes;
+  space.end = space.addr + (bytes & ~(BYTES_IN_PAGE - 1));
   p->page_type = PAGE_TYPE_FREE;
   p->num_pages = space.num_pages;
   p->next = NULL;

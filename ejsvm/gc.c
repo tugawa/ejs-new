@@ -313,7 +313,7 @@ STATIC void garbage_collection(Context *ctx)
   }
 
   generation++;
-  printf("Exit gc, generation = %d\n", generation);
+  /*  printf("Exit gc, generation = %d\n", generation); */
 
   gc_phase = PHASE_INACTIVE;
 }
