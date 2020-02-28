@@ -31,6 +31,9 @@ typedef struct page_header_t {
       page_type_t page_type: 2;
       cell_type_t type:      PAGE_HEADER_TYPE_BITS;
       unsigned int size:     PAGE_HEADER_SO_SIZE_BITS;  /* size of block (in granule) */
+#ifdef BIBOP_CACHE_BMP_GRANULES
+      unsigned int bmp_granules: 3;
+#endif /* BIBOP_CACHE_BMP_GRANULES */
       struct so_page_header *next __attribute__((aligned(BYTES_IN_GRANULE)));
       unsigned char bitmap[];
     } so;

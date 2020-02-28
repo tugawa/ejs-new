@@ -70,7 +70,7 @@ STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
     index += 8;
     c = *++p;
   } while (index < len);
-
+  
   return -1;
 }
 
@@ -124,6 +124,14 @@ page_so_init(so_page_header *ph, unsigned int size, cell_type_t type)
   ph->type = type;
   ph->size = size;
   ph->next = NULL;
+#ifdef BIBOP_CACHE_BMP_GRANULES
+  {
+    unsigned int bmp_entries = GRANULES_IN_PAGE / size;
+    unsigned int bmp_granules =
+      (bmp_entries + BITS_IN_GRANULE - 1) >> LOG_BITS_IN_GRANULE;
+    ph->bmp_granules = bmp_granules;
+  }
+#endif /* BIBOP_CACHE_BMP_GRANULES */
   bmp_granules = page_so_bmp_granules(ph);
   memset(ph->bitmap, 0, (bmp_granules << LOG_BYTES_IN_GRANULE) * 2);
   page_so_set_end_used_bitmap(ph);
@@ -131,11 +139,15 @@ page_so_init(so_page_header *ph, unsigned int size, cell_type_t type)
 
 STATIC_INLINE size_t page_so_bmp_granules(so_page_header *ph)
 {
+#ifdef BIBOP_CACHE_BMP_GRANULES
+  return ph->bmp_granules;
+#else /* BIBOP_CACHE_BMP_GRANULES */
   unsigned int size = ph->size;
   unsigned int bmp_entries = GRANULES_IN_PAGE / size;
   unsigned int bmp_granules =
     (bmp_entries + BITS_IN_GRANULE - 1) >> LOG_BITS_IN_GRANULE;
   return bmp_granules;
+#endif /* BIBOP_CACHE_BMP_GRANULES */
 }
 
 STATIC_INLINE unsigned char *page_so_mark_bitmap(so_page_header *ph)
@@ -258,7 +270,7 @@ STATIC_INLINE int is_marked_cell(void *p)
   }
 }
 
-STATIC_INLINE int test_and_mark_cell(void *p)
+/*STATIC_INLINE*/ int test_and_mark_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
   if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
