@@ -452,10 +452,6 @@ instructions.h: instructions-opcode.h instructions-table.h
 
 object.o: object-compat.c
 
-gc.o: freelist-space.c space.h
-
-gc.h: freelist-space.h bibop-space.h
-
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) $(CFLAGS_VMDL) -o $@ $<
 
