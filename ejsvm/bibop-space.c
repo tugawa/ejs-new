@@ -324,6 +324,9 @@ void space_init(size_t bytes)
 #ifdef BIBOP_SEGREGATE_1PAGE
   space.single_page_pool = NULL;
 #endif /* BIBOP_SEGREGATE_1PAGE */
+#ifdef BIBOP_2WAY_ALLOC
+  space.last_free_chunk = space.page_pool;
+#endif /* BIBOP_2WAY_ALLOC */
   compute_sizeclass_map();
 }
 
@@ -339,9 +342,25 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
     if (space.single_page_pool != NULL) {
       free_page_header *found = space.single_page_pool;
       space.single_page_pool = found->next;
+      space.num_free_pages -= 1;
       return (page_header_t *) found;
     }
 #endif /* BIBOP_SEGREGATE_1PAGE */
+
+#ifdef BIBOP_2WAY_ALLOC
+  if (alloc_pages == 1) {
+    if (space.last_free_chunk != NULL &&
+	space.last_free_chunk->num_pages > 1) {
+      free_page_header *p = space.last_free_chunk;
+      free_page_header *found = (free_page_header *)
+	(((uintptr_t) p) + ((p->num_pages - 1) << LOG_BYTES_IN_PAGE));
+      assert(p->next == NULL);
+      p->num_pages -= 1;
+      space.num_free_pages -= 1;
+      return (page_header_t*) found;
+    }
+  }
+#endif /* BIBOP_2WAY_ALLOC */
 
   for (pp = &space.page_pool; *pp != NULL; pp = &(*pp)->next) {
     free_page_header *p = *pp;
@@ -367,6 +386,10 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       verify_free_page(p);
 #endif /* VERIFY_BIBOP */
       *pp = p;
+#ifdef BIBOP_2WAY_ALLOC
+      if (found == (page_header_t *) space.last_free_chunk)
+	space.last_free_chunk = p;
+#endif /* BIBOP_2WAY_ALLOC */
       space.num_free_pages -= alloc_pages;
       return found;
     }
@@ -544,6 +567,9 @@ void sweep()
 #ifdef BIBOP_SEGREGATE_1PAGE
   space.single_page_pool = NULL;
 #endif /* BIBOP_SEGREGATE_1PAGE */
+#ifdef BIBOP_2WAY_ALLOC
+  space.last_free_chunk = NULL;
+#endif /* BIBOP_2WAY_ALLOC */
 
   page_addr = space.addr;
   while (page_addr < space.end) {
@@ -621,6 +647,9 @@ void sweep()
       } else {
 	*free_pp = last_free;
 	free_pp = &last_free->next;
+#ifdef BIBOP_2WAY_ALLOC
+	space.last_free_chunk = last_free;
+#endif /* BIBOP_2WAY_ALLOC */
       }
 #else /* BIBOP_SEGREGATE_1PAGE */
       *free_pp = last_free;

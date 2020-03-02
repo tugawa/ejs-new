@@ -1,7 +1,7 @@
 #ifndef BIBOP_SPACE_H
 #define BIBOP_SPACE_H
 
-#define LOG_BYTES_IN_PAGE 9
+#define LOG_BYTES_IN_PAGE 10
 #define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
 #define GRANULES_IN_PAGE  (1 << LOG_GRANULES_IN_PAGE)
@@ -12,15 +12,19 @@
 #define PAGE_HEADER_SO_SIZE_BITS (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define PAGE_HEADER_LO_SIZE_BITS 32
 
+static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2
-static const int sizeclasses[] = {
   1, 2, 4, 8, 15, 31, 62, 124
-};
 #else /* LOG_BYTES_IN_GRANULE == 3 */
-static const int sizeclasses[] = {
+#if LOG_BYTES_IN_PAGE == 10
   1, 2, 4, 8, 15, 30, 60
-};
+#elif LOG_BYTES_IN_PAGE == 9
+  1, 2, 4, 8, 15, 30
+#else /* LOG_BYTES_IN_PAGE */
+#error not implemented
+#endif /* LOG_BYTES_IN_PAGE */
 #endif /* LOG_BYTES_IN_GRANULE */
+};
 
 #define NUM_SIZECLASSES (sizeof(sizeclasses) / sizeof(int))
 #define MAX_SOBJ_GRANULES \
@@ -35,6 +39,9 @@ struct space {
 #ifdef BIBOP_SEGREGATE_1PAGE
   struct free_page_header *single_page_pool;
 #endif /* BIBOP_SEGREGATE_1PAGE */
+#ifdef BIBOP_2WAY_ALLOC
+  struct free_page_header *last_free_chunk;
+#endif /* BIBOP_2WAY_ALLOC */
 };
 
 typedef enum page_type_t {
