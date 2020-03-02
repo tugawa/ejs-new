@@ -185,10 +185,10 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
               request_bytes, type, addr);
   if (addr == NULL) {
     printf("Out of memory\n");
-#ifdef DEBUG_GC
+#ifdef GC_DEBUG
     printf("#GC = %d\n", generation);
     space_print_memory_status();
-#endif /* DEBUG_GC */
+#endif /* GC_DEBUG */
     abort();
   }
   return addr;

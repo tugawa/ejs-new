@@ -624,27 +624,30 @@ void space_print_memory_status()
   for (page_addr = space.addr; page_addr < space.end; ) {
     page_header_t *xph = (page_header_t *) page_addr;
     if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
-      printf("%p - %p (1) SOBJ size = %d type = %d %d/%d, %d\n",
+      printf("%p - %p ( 1) %5d SOBJ size = %d type = %d %d/%d, %d\n",
 	     (void*) page_addr,
 	     (void*) (page_addr + BYTES_IN_PAGE),
+	     BYTES_IN_PAGE - (xph->u.so.size << LOG_BYTES_IN_GRANULE) * page_so_used_blocks(&xph->u.so),
 	     xph->u.so.size, xph->u.so.type,
 	     page_so_used_blocks(&xph->u.so),
 	     page_so_blocks(&xph->u.so),
 	     page_so_used_blocks(&xph->u.so) * 100 / page_so_blocks(&xph->u.so));
       page_addr += BYTES_IN_PAGE;
     } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
-      printf("%p - %p (%d) LOBJ size = %d type = %d\n",
+      printf("%p - %p (%2d) %5lu LOBJ size = %d type = %d\n",
 	     (void*) page_addr,
 	     (void*) (page_addr + (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE)),
 	     (int) page_lo_pages(&xph->u.lo),
+	     (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE) - (xph->u.lo.size << LOG_BYTES_IN_GRANULE),
 	     xph->u.lo.size,
 	     xph->u.lo.type);
       page_addr += page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE;
     } else {
-      printf("%p - %p (%d) FREE\n",
+      printf("%p - %p (%2d) %5d FREE\n",
 	     (void *) page_addr,
 	     (void *) (page_addr + (xph->u.free.num_pages << LOG_BYTES_IN_PAGE)),
-	     xph->u.free.num_pages);
+	     xph->u.free.num_pages,
+	     xph->u.free.num_pages << LOG_BYTES_IN_PAGE);
       page_addr += xph->u.free.num_pages << LOG_BYTES_IN_PAGE;
     }
   }
