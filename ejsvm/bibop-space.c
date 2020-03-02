@@ -321,6 +321,9 @@ void space_init(size_t bytes)
   for (i = 0; i < NUM_CELL_TYPES; i++)
     for (j = 0; j < NUM_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
+#ifdef BIBOP_SEGREGATE_1PAGE
+  space.single_page_pool = NULL;
+#endif /* BIBOP_SEGREGATE_1PAGE */
   compute_sizeclass_map();
 }
 
@@ -331,14 +334,22 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
 {
   free_page_header **pp;
 
+#ifdef BIBOP_SEGREGATE_1PAGE
+  if (alloc_pages == 1)
+    if (space.single_page_pool != NULL) {
+      free_page_header *found = space.single_page_pool;
+      space.single_page_pool = found->next;
+      return (page_header_t *) found;
+    }
+#endif /* BIBOP_SEGREGATE_1PAGE */
+
   for (pp = &space.page_pool; *pp != NULL; pp = &(*pp)->next) {
     free_page_header *p = *pp;
     assert(p->page_type == PAGE_TYPE_FREE);
     if (p->num_pages == alloc_pages) {
 #ifdef VERIFY_BIBOP
-      verify_free_page(p->next);
-      assert(p->next != NULL ||
-	     ((uintptr_t) p) + (p->num_pages << LOG_BYTES_IN_PAGE)== space.end);
+      if (p->next != NULL)
+	verify_free_page(p->next);
 #endif /* VERIFY_BIBOP */
       *pp = p->next;
       space.num_free_pages -= alloc_pages;
@@ -354,8 +365,6 @@ STATIC_INLINE page_header_t *alloc_page(size_t alloc_pages)
       p->next = next;
 #ifdef VERIFY_BIBOP
       verify_free_page(p);
-      assert(p->next != NULL ||
-	     ((uintptr_t) p) + (p->num_pages << LOG_BYTES_IN_PAGE)== space.end);
 #endif /* VERIFY_BIBOP */
       *pp = p;
       space.num_free_pages -= alloc_pages;
@@ -520,6 +529,9 @@ void sweep()
   free_page_header *last_free = NULL;
   uintptr_t free_end = 0;
   free_page_header **free_pp = &space.page_pool;
+#ifdef BIBOP_SEGREGATE_1PAGE
+  free_page_header **free_single_pp = &space.single_page_pool;
+#endif /* BIBOP_SEGREGATE_1PAGE */
 #ifdef VERIFY_BIBOP
   uintptr_t prev_free_end = 0;
 #endif /* VERIFY_BIBOP */
@@ -528,6 +540,10 @@ void sweep()
     for (j = 0; j < NUM_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
   space.num_free_pages = 0;
+  space.page_pool = NULL;
+#ifdef BIBOP_SEGREGATE_1PAGE
+  space.single_page_pool = NULL;
+#endif /* BIBOP_SEGREGATE_1PAGE */
 
   page_addr = space.addr;
   while (page_addr < space.end) {
@@ -588,6 +604,7 @@ void sweep()
     if (last_free != NULL) {
       unsigned int bytes = free_end - ((uintptr_t) last_free);
       unsigned int pages = bytes >> LOG_BYTES_IN_PAGE;
+
       last_free->page_type = PAGE_TYPE_FREE;
       last_free->num_pages = pages;
       last_free->next = NULL;
@@ -597,8 +614,18 @@ void sweep()
       memset(last_free + 1, 0xef,
 	     (last_free->num_pages << LOG_BYTES_IN_PAGE) - sizeof(*last_free));
 #endif /* VERIFY_BIBOP */
+#ifdef BIBOP_SEGREGATE_1PAGE
+      if (pages == 1) {
+	*free_single_pp = last_free;
+	free_single_pp = &last_free->next;
+      } else {
+	*free_pp = last_free;
+	free_pp = &last_free->next;
+      }
+#else /* BIBOP_SEGREGATE_1PAGE */
       *free_pp = last_free;
       free_pp = &last_free->next;
+#endif /* BIBOP_SEGREGATE_1PAGE */
       last_free = NULL;
       space.num_free_pages += pages;
     }
@@ -607,9 +634,13 @@ void sweep()
   {
     free_page_header *ph;
     for (ph = space.page_pool; ph != NULL; ph = ph->next)
-      assert(ph->next != NULL ||
-	     ((uintptr_t) ph) + (ph->num_pages << LOG_BYTES_IN_PAGE)
-	     == space.end);
+      verify_free_page(ph);
+#ifdef BIBOP_SEGREGATE_1PAGE
+    for (ph = space.single_page_pool; ph != NULL; ph = ph->next)  {
+      assert(ph->num_pages == 1);
+      verify_free_page(ph);
+    }
+#endif /* BIBOP_SEGREGATE_1PAGE */
   }
 #endif /* VERIFY_BIBOP */
   return;

@@ -32,6 +32,9 @@ struct space {
   int num_free_pages;
   struct free_page_header *page_pool;
   struct so_page_header *freelist[NUM_CELL_TYPES][NUM_SIZECLASSES];
+#ifdef BIBOP_SEGREGATE_1PAGE
+  struct free_page_header *single_page_pool;
+#endif /* BIBOP_SEGREGATE_1PAGE */
 };
 
 typedef enum page_type_t {

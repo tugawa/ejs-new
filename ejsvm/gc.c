@@ -148,7 +148,7 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
  * prototype
  */
 /* GC */
-STATIC_INLINE int check_gc_request(Context *);
+STATIC_INLINE int check_gc_request(Context *, int);
 STATIC void garbage_collection(Context *ctx);
 STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
@@ -178,18 +178,27 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   count++;
 #endif /* DEBUG */
   
-  if (check_gc_request(ctx))
+  if (check_gc_request(ctx, 0))
     garbage_collection(ctx);
   addr = space_alloc(request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
   if (addr == NULL) {
-    printf("Out of memory\n");
+    if (check_gc_request(ctx, 1)) {
 #ifdef GC_DEBUG
-    printf("#GC = %d\n", generation);
-    space_print_memory_status();
+      printf("emergency GC\n");
 #endif /* GC_DEBUG */
-    abort();
+      garbage_collection(ctx);
+      addr = space_alloc(request_bytes, type);
+    }
+    if (addr == NULL) {
+      printf("Out of memory\n");
+#ifdef GC_DEBUG
+      printf("#GC = %d\n", generation);
+      space_print_memory_status();
+#endif /* GC_DEBUG */
+      abort();
+    }
   }
   return addr;
 }
@@ -202,14 +211,14 @@ void disable_gc(void)
 void enable_gc(Context *ctx)
 {
   if (--gc_disabled == 0) {
-    if (check_gc_request(ctx))
+    if (check_gc_request(ctx, 0))
       garbage_collection(ctx);
   }
 }
 
 void try_gc(Context *ctx)
 {
-  if (check_gc_request(ctx))
+  if (check_gc_request(ctx, 0))
     garbage_collection(ctx);
 }
 
@@ -245,9 +254,9 @@ STATIC void process_mark_stack()
 }
 #endif /* MARK_STACK */
 
-STATIC_INLINE int check_gc_request(Context *ctx)
+STATIC_INLINE int check_gc_request(Context *ctx, int force)
 {
-  if (space_check_gc_request()) {
+  if (force || space_check_gc_request()) {
     if (ctx == NULL) {
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
       return 0;
