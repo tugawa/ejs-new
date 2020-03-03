@@ -19,11 +19,23 @@ static inline page_header_t *payload_to_page_header(uintptr_t ptr)
 }
 #endif /* GC_DEBUG */
 
+#ifdef BIBOP_MOBJ
+static inline
+cell_status *page_mo_cell_status(so_page_header *ph, uintptr_t ptr)
+{
+  return (cell_status *) (ptr + ((ph->size - 1) << LOG_BYTES_IN_GRANULE));
+}
+#endif /* BIBOP_MOBJ */
+
 static inline cell_type_t space_get_cell_type(uintptr_t ptr)
 {
   page_header_t *ph = payload_to_page_header(ptr);
   if (ph->u.x.page_type == PAGE_TYPE_SOBJ)
     return ph->u.so.type;
+#ifdef BIBOP_MOBJ
+  else if (ph->u.x.page_type == PAGE_TYPE_MOBJ)
+    return page_mo_cell_status(&ph->u.so, ptr)->type;
+#endif /* BIBOP_MOBJ */
   else
     return ph->u.lo.type;
 }

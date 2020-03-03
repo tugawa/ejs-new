@@ -327,7 +327,9 @@ int main(int argc, char *argv[]) {
   init_global_objects(context);
   reset_context(context, function_table);
   context->global = gconsts.g_global;
+#ifndef NO_SRAND
   srand((unsigned)time(NULL));
+#endif /* NO_SRAND */
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)

@@ -226,7 +226,11 @@ STATIC_INLINE size_t page_lo_pages(lo_page_header *ph)
 void mark_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
-  if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+  if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+      || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+      ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
     int index = page_so_block_index(ph, (uintptr_t) p);
@@ -241,7 +245,11 @@ STATIC_INLINE void unmark_cell (void *p) __attribute__((unused));
 STATIC_INLINE void unmark_cell (void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
-  if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+  if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+      || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+      ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
     int index = page_so_block_index(ph, (uintptr_t) p);
@@ -255,7 +263,11 @@ STATIC_INLINE void unmark_cell (void *p)
 int is_marked_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
-  if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+  if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+      || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+      ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
     int index = page_so_block_index(ph, (uintptr_t) p);
@@ -269,7 +281,11 @@ int is_marked_cell(void *p)
 int test_and_mark_cell(void *p)
 {
   page_header_t *xph = payload_to_page_header((uintptr_t) p);
-  if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+  if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+      || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+      ) {
     so_page_header *ph = (so_page_header *) xph;
     unsigned char *mark_bmp = page_so_mark_bitmap(ph);
     int index = page_so_block_index(ph, (uintptr_t) p);
@@ -319,8 +335,12 @@ void space_init(size_t bytes)
   p->next = NULL;
   space.page_pool = p;
   for (i = 0; i < NUM_CELL_TYPES; i++)
-    for (j = 0; j < NUM_SIZECLASSES; j++)
+    for (j = 0; j < NUM_SOBJ_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
+#ifdef BIBOP_MOBJ
+  for (i = 0; i < NUM_MOBJ_SIZECLASSES; i++)
+    space.mo_freelist[i] = NULL;
+#endif /* BIBOP_MOBJ */
 #ifdef BIBOP_SEGREGATE_1PAGE
   space.single_page_pool = NULL;
 #endif /* BIBOP_SEGREGATE_1PAGE */
@@ -437,7 +457,7 @@ STATIC_INLINE uintptr_t alloc_block_in_page(so_page_header *ph)
 }
 
 STATIC_INLINE uintptr_t
-alloc_small_object(uintptr_t request_granules, cell_type_t type)
+alloc_small_object(unsigned int request_granules, cell_type_t type)
 {
   uintptr_t found = 0;
   int sizeclass_index = sizeclass_map[request_granules];
@@ -475,6 +495,57 @@ alloc_small_object(uintptr_t request_granules, cell_type_t type)
   return 0;
 }
 
+#ifdef BIBOP_MOBJ
+STATIC_INLINE uintptr_t
+alloc_middle_object(unsigned int request_granules, cell_type_t type)
+{
+  uintptr_t found = 0;
+  unsigned int total_granules = request_granules + 1;
+  int sizeclass_index =
+    sizeclass_map[total_granules] - NUM_SOBJ_SIZECLASSES;
+  so_page_header **pp;
+
+  /* find a half-used page */
+  for (pp = &space.mo_freelist[sizeclass_index]; *pp != NULL; ) {
+    struct so_page_header *p = *pp;
+    assert(p->page_type == PAGE_TYPE_MOBJ);
+    assert(p->type == 0);
+    found = alloc_block_in_page(p);
+    if (found != 0) {
+      cell_status *status = page_mo_cell_status(p, found);
+      assert((found & (BYTES_IN_GRANULE - 1)) == 0);
+      status->type = type;
+      status->extra = p->size - request_granules;
+      return found;
+    }
+    /* This page was full and failed to allocate in this page. */
+    *pp = p->next;
+  }
+
+  /* allocate a new page */
+  {
+    page_header_t *xph = alloc_page(1);
+    if (xph != NULL) {
+      so_page_header *ph = &xph->u.so;
+      uintptr_t found;
+      cell_status *status;
+      page_so_init(ph, sizeclasses[sizeclass_index + NUM_SOBJ_SIZECLASSES], 0);
+      ph->page_type = PAGE_TYPE_MOBJ;
+      ph->next = space.mo_freelist[sizeclass_index];
+      space.mo_freelist[sizeclass_index] = ph;
+      found = alloc_block_in_page(ph);
+      assert((found & (BYTES_IN_GRANULE - 1)) == 0);
+      status = page_mo_cell_status(ph, found);
+      status->type = type;
+      status->extra = ph->size - request_granules;
+      return found;
+    }
+  }
+
+  return 0;
+}
+#endif /* BIBOP_MOBJ */
+
 void *space_alloc(uintptr_t request_bytes, cell_type_t type)
 {
   int request_granules =
@@ -482,10 +553,14 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
   if (request_granules == 0)
     request_granules = 1;
 
-  if (request_granules > MAX_SOBJ_GRANULES)
-    return (void*) alloc_large_object(request_granules, type);
-  else
+  if (request_granules <= MAX_SOBJ_GRANULES)
     return (void*) alloc_small_object(request_granules, type);
+#ifdef BIBOP_MOBJ
+  else if (request_granules <= MAX_MOBJ_GRANULES)
+    return (void*) alloc_middle_object(request_granules, type);
+#endif /* BIBOP_MOBJ */
+  else
+    return (void*) alloc_large_object(request_granules, type);
 }
 
 /*
@@ -535,9 +610,21 @@ static int sweep_so_page(so_page_header *ph)
   is_full &= used_bmp[i];
   memset(mark_bmp, 0, bmp_granules << LOG_BYTES_IN_GRANULE);
   if (is_full != ~ZERO) {
+#ifdef BIBOP_MOBJ
+    if (ph->size <= MAX_SOBJ_GRANULES) {
+      int sizeclass_index = sizeclass_map[ph->size];
+      ph->next = space.freelist[ph->type][sizeclass_index];
+      space.freelist[ph->type][sizeclass_index] = ph;
+    } else {
+      int sizeclass_index = sizeclass_map[ph->size] - NUM_SOBJ_SIZECLASSES;
+      ph->next = space.mo_freelist[sizeclass_index];
+      space.mo_freelist[sizeclass_index] = ph;
+    }
+#else /* BIBOP_MOBJ */
     int sizeclass_index = sizeclass_map[ph->size];
     ph->next = space.freelist[ph->type][sizeclass_index];
     space.freelist[ph->type][sizeclass_index] = ph;
+#endif /* BIBOP_MOBJ */
   }
   return 1;
 
@@ -560,8 +647,12 @@ void sweep()
 #endif /* VERIFY_BIBOP */
 
   for (i = 0; i < NUM_CELL_TYPES; i++)
-    for (j = 0; j < NUM_SIZECLASSES; j++)
+    for (j = 0; j < NUM_SOBJ_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
+#ifdef BIBOP_MOBJ
+  for (i = 0; i < NUM_MOBJ_SIZECLASSES; i++)
+      space.mo_freelist[i] = NULL;
+#endif /* BIBOP_MOBJ */
   space.num_free_pages = 0;
   space.page_pool = NULL;
 #ifdef BIBOP_SEGREGATE_1PAGE
@@ -575,7 +666,11 @@ void sweep()
   while (page_addr < space.end) {
     while (page_addr < space.end) {
       page_header_t *xph = (page_header_t*) page_addr;
-      if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+      if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+	  || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+	  ) {
 	so_page_header *ph = &xph->u.so;
 	page_addr += BYTES_IN_PAGE;
 	if (sweep_so_page(ph) == 0) {
@@ -609,7 +704,11 @@ void sweep()
     free_end = page_addr;
     while (page_addr < space.end) {
       page_header_t *xph = (page_header_t *) page_addr;
-      if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+      if (xph->u.x.page_type == PAGE_TYPE_SOBJ
+#ifdef BIBOP_MOBJ
+	  || xph->u.x.page_type == PAGE_TYPE_MOBJ
+#endif /* BIBOP_MOBJ */
+	  ) {
 	so_page_header *ph = &xph->u.so;
 	page_addr  += BYTES_IN_PAGE;
 	if (sweep_so_page(ph) != 0)
@@ -693,6 +792,18 @@ void space_print_memory_status()
 	     page_so_blocks(&xph->u.so),
 	     page_so_used_blocks(&xph->u.so) * 100 / page_so_blocks(&xph->u.so));
       page_addr += BYTES_IN_PAGE;
+#ifdef BIBOP_MOBJ
+    } else if (xph->u.x.page_type == PAGE_TYPE_MOBJ) {
+      printf("%p - %p ( 1) %5d MOBJ size = %d type = %d %d/%d, %d\n",
+	     (void*) page_addr,
+	     (void*) (page_addr + BYTES_IN_PAGE),
+	     BYTES_IN_PAGE - (xph->u.so.size << LOG_BYTES_IN_GRANULE) * page_so_used_blocks(&xph->u.so),
+	     xph->u.so.size, xph->u.so.type,
+	     page_so_used_blocks(&xph->u.so),
+	     page_so_blocks(&xph->u.so),
+	     page_so_used_blocks(&xph->u.so) * 100 / page_so_blocks(&xph->u.so));
+      page_addr += BYTES_IN_PAGE;
+#endif /* BIBOP_MOBJ */
     } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
       printf("%p - %p (%2d) %5lu LOBJ size = %d type = %d\n",
 	     (void*) page_addr,

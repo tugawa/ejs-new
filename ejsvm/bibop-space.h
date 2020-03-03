@@ -1,7 +1,7 @@
 #ifndef BIBOP_SPACE_H
 #define BIBOP_SPACE_H
 
-#define LOG_BYTES_IN_PAGE 10
+#define LOG_BYTES_IN_PAGE 12
 #define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
 #define GRANULES_IN_PAGE  (1 << LOG_GRANULES_IN_PAGE)
@@ -16,7 +16,11 @@ static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2
   1, 2, 4, 8, 15, 31, 62, 124
 #else /* LOG_BYTES_IN_GRANULE == 3 */
-#if LOG_BYTES_IN_PAGE == 10
+#if LOG_BYTES_IN_PAGE == 12
+  1, 2, 4, 8, 15, 21, 31, 63, 127, 254
+#elif LOG_BYTES_IN_PAGE == 11
+  1, 2, 4, 8, 15, 21, 31, 63, 127
+#elif LOG_BYTES_IN_PAGE == 10
   1, 2, 4, 8, 15, 30, 60
 #elif LOG_BYTES_IN_PAGE == 9
   1, 2, 4, 8, 15, 30
@@ -25,17 +29,29 @@ static const int sizeclasses[] = {
 #endif /* LOG_BYTES_IN_PAGE */
 #endif /* LOG_BYTES_IN_GRANULE */
 };
-
 #define NUM_SIZECLASSES (sizeof(sizeclasses) / sizeof(int))
-#define MAX_SOBJ_GRANULES \
+
+#ifdef BIBOP_MOBJ
+#define MAX_SOBJ_GRANULES    2
+#define NUM_SOBJ_SIZECLASSES 2
+#define NUM_MOBJ_SIZECLASSES (NUM_SIZECLASSES - NUM_SOBJ_SIZECLASSES)
+#define MAX_MOBJ_GRANULES						\
+  (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1] - 1)
+#else /* BIBOP_MOBJ */
+#define MAX_SOBJ_GRANULES						\
   (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1])
+#define NUM_SOBJ_SIZECLASSES NUM_SIZECLASSES
+#endif /* BIBOP_MOBJ */
 
 struct space {
   uintptr_t addr, end;
   int num_pages;
   int num_free_pages;
   struct free_page_header *page_pool;
-  struct so_page_header *freelist[NUM_CELL_TYPES][NUM_SIZECLASSES];
+  struct so_page_header *freelist[NUM_CELL_TYPES][NUM_SOBJ_SIZECLASSES];
+#ifdef BIBOP_MOBJ
+  struct so_page_header *mo_freelist[NUM_MOBJ_SIZECLASSES];
+#endif /* BIBOP_MOBJ */
 #ifdef BIBOP_SEGREGATE_1PAGE
   struct free_page_header *single_page_pool;
 #endif /* BIBOP_SEGREGATE_1PAGE */
@@ -47,7 +63,10 @@ struct space {
 typedef enum page_type_t {
   PAGE_TYPE_FREE = 1,
   PAGE_TYPE_SOBJ = 2,
-  PAGE_TYPE_LOBJ = 3
+#ifdef BIBOP_MOBJ
+  PAGE_TYPE_MOBJ = 3,
+#endif /* BIBOP_MOBJ */
+  PAGE_TYPE_LOBJ = 4
 } page_type_t;
 
 typedef struct free_page_header free_page_header;
@@ -69,7 +88,7 @@ typedef struct page_header_t {
       cell_type_t type:      PAGE_HEADER_TYPE_BITS;
       unsigned int size:     PAGE_HEADER_SO_SIZE_BITS;  /* size of block (in granule) */
 #ifdef BIBOP_CACHE_BMP_GRANULES
-      unsigned int bmp_granules: 3;
+      unsigned int bmp_granules: 4;
 #endif /* BIBOP_CACHE_BMP_GRANULES */
       struct so_page_header *next __attribute__((aligned(BYTES_IN_GRANULE)));
       unsigned char bitmap[];
@@ -82,6 +101,14 @@ typedef struct page_header_t {
     } lo;
   } u;
 } page_header_t;
+
+#ifdef BIBOP_MOBJ
+typedef struct cell_status cell_status;
+struct cell_status {
+  cell_type_t  type:  PAGE_HEADER_TYPE_BITS;
+  unsigned int extra: LOG_BYTES_IN_PAGE;
+};
+#endif /* BIBOP_MOBJ */
 
 /* GC private functions */
 extern void mark_cell(void *p);
@@ -103,6 +130,11 @@ extern page_header_t *payload_to_page_header(uintptr_t ptr);
 /* bibop-space private functions */
 static inline page_header_t *payload_to_page_header(uintptr_t ptr);
 #endif /* GC_DEBUG */
+
+#ifdef BIBOP_MOBJ
+static inline
+cell_status *page_mo_cell_status(so_page_header *ph, uintptr_t ptr);
+#endif /* BIBOP_MOBJ */
 
 extern struct space space;
 
