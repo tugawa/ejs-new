@@ -200,6 +200,15 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
       abort();
     }
   }
+#ifdef GC_PROF
+  if (addr != NULL) {
+    size_t bytes = request_bytes;
+    total_alloc_bytes += bytes;
+    total_alloc_count++;
+    pertype_alloc_bytes[type] += bytes;
+    pertype_alloc_count[type]++;
+  }
+#endif /* GC_PROF */
   return addr;
 }
 

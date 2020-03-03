@@ -157,7 +157,7 @@ void print_gc_prof()
   }
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
-  printf(" %"PRId64" %"PRId64" ",
+  printf("%"PRId64" %"PRId64" ",
          generation > 1 ? total_live_bytes / (generation - 1) : 0,
          generation > 1 ? total_live_count / (generation - 1) : 0);
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {

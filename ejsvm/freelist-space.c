@@ -173,16 +173,6 @@ void* space_alloc(uintptr_t request_bytes, uint32_t type)
     *shadow = *hdrp;
   }
 #endif /* GC_DEBUG */
-#ifdef GC_PROF
-  if (addr != NULL) {
-    header_t *hdrp = payload_to_header(addr);
-    size_t bytes = hdrp->size << LOG_BYTES_IN_GRANULE;
-    total_alloc_bytes += bytes;
-    total_alloc_count++;
-    pertype_alloc_bytes[type] += bytes;
-    pertype_alloc_count[type]++;
-  }
-#endif /* GC_PROF */
   return addr;
 }
 

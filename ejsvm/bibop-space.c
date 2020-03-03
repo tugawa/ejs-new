@@ -38,6 +38,8 @@ STATIC_INLINE int bmp_test(unsigned char* bmp, int index)
 }
 
 STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
+  __attribute__((unused));
+STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
 {
   int index = start;
   unsigned char *p = bmp + (index >> LOG_BITS_IN_BYTE);
@@ -58,6 +60,22 @@ STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
   } while (index < len);
   
   return -1;
+}
+
+STATIC_INLINE int bmp_count_live(unsigned char *bmp, int len)
+{
+  const static unsigned char one_bits[] =
+    { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
+  int count = 0;
+  int c;
+
+  while (len >= 8) {
+    count += one_bits[*bmp++];
+    len -= 8;
+  }
+  c = *bmp & ((1 << len) - 1);
+  count += one_bits[c];
+  return count;
 }
 
 /* page layout
@@ -632,6 +650,38 @@ static int sweep_so_page(so_page_header *ph)
 #undef ZERO
 }
 
+#ifdef GC_PROF
+void profile_live_objects()
+{
+  uintptr_t page_addr;
+  for (page_addr = space.addr; page_addr < space.end; ) {
+    page_header_t *xph = (page_header_t *) page_addr;
+    if (xph->u.x.page_type == PAGE_TYPE_SOBJ) {
+      so_page_header *ph = &xph->u.so;
+      unsigned char *used_bmp = page_so_used_bitmap(ph);
+      int nblocks = page_so_blocks(ph);
+      int nlive = bmp_count_live(used_bmp, nblocks);
+      pertype_live_bytes[ph->type] +=
+	(ph->size << LOG_BYTES_IN_GRANULE) * nlive;
+      pertype_live_count[ph->type] += nlive;
+      page_addr += BYTES_IN_PAGE;
+#ifdef BIBOP_MOBJ
+    } else if (xph->u.x.page_type == PAGE_TYPE_MOBJ) {
+#error not implemented
+#endif /* BIBOP_MOBJ */
+    } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
+      lo_page_header *ph = &xph->u.lo;
+      pertype_live_bytes[ph->type] += ph->size;
+      pertype_live_count[ph->type] += 1;
+      page_addr += page_lo_pages(ph) << LOG_BYTES_IN_PAGE;
+    } else {
+      free_page_header *ph = &xph->u.free;
+      page_addr += ph->num_pages << LOG_BYTES_IN_PAGE;
+    }
+  }
+}
+#endif /* GC_PROF */
+
 void sweep()
 {
   uintptr_t page_addr;
@@ -771,6 +821,10 @@ void sweep()
 #endif /* BIBOP_SEGREGATE_1PAGE */
   }
 #endif /* VERIFY_BIBOP */
+
+#ifdef GC_PROF
+  profile_live_objects();
+#endif /* GC_PROF */
   return;
 }
 
