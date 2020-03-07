@@ -116,6 +116,7 @@ public class TypeMapSetLub extends TypeMapSetFull {
         }
         return -1;
     }
+    /*
     @Override
     public TypeMapSet enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
         TypeMap typeMap = getOne();
@@ -130,6 +131,41 @@ public class TypeMapSetLub extends TypeMapSetFull {
         for (int i = 0; i < varNames.length; i++) {
             AstType t = vtvs.getMostSpecificType(varNames[i]);
             newMap.add(varNames[i], t);
+        }
+        for(String name : typeMap.keySet()){
+            AstType type = typeMap.get(name);
+            int index = indexOf(varNames, name);
+            if(index == -1){
+                newMap.add(name, type);
+            }
+        }
+        newSet.add(newMap);
+        return new TypeMapSetLub(newSet);
+    }*/
+    @Override
+    public TypeMapSet enterCase(String[] varNames, VMDataTypeVecSet caseCondition){
+        TypeMap typeMap = getOne();
+        TypeMap newMap = new TypeMap();
+        Set<TypeMap> newSet = new HashSet<>();
+        AstType[] paramTypes = new AstType[varNames.length];
+        for (int i = 0; i < varNames.length; i++){
+            paramTypes[i] = typeMap.get(varNames[i]);
+        }
+        AstType[] newParamTypes = new AstType[varNames.length];
+        for (int i = 0; i < newParamTypes.length; i++){
+            newParamTypes[i] = AstType.BOT;
+        }
+        Set<VMDataType[]> condTypeSet = caseCondition.getTuples();
+        for(VMDataType[] vmds : condTypeSet){
+            for (int i = 0; i < varNames.length; i++) {
+                AstType t = AstType.get(vmds[i]);
+                if(paramTypes[i].isSuperOrEqual(t)){
+                    newParamTypes[i] = newParamTypes[i].lub(t);
+                }
+            }
+        }
+        for (int i = 0; i < varNames.length; i++) {
+            newMap.add(varNames[i], newParamTypes[i]);
         }
         for(String name : typeMap.keySet()){
             AstType type = typeMap.get(name);
