@@ -1,6 +1,23 @@
 #ifndef FREELIST_SPACE_INL_H
 #define FREELIST_SPACE_INL_H
 
+static inline header_t compose_header(size_t granules, size_t extra,
+                                      cell_type_t type)
+{
+  header_t hdr;
+  hdr.type = type;
+  hdr.markbit = 0;
+  hdr.extra = extra;
+  hdr.magic = HEADER_MAGIC;
+#ifdef GC_DEBUG
+  hdr.gen = generation;
+#else /* GC_DEBUG */
+  hdr.gen = 0;
+#endif /* GC_DEBUG */
+  hdr.size  = granules;
+  return hdr;
+}
+
 static inline void *header_to_payload(header_t *hdrp)
 {
   return (void *) (hdrp + 1);

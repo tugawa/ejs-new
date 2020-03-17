@@ -22,8 +22,6 @@
  */
 #define MINIMUM_FREE_CHUNK_GRANULES 4
 
-#define STATIC static
-
 /*
  * Variables
  */
@@ -81,7 +79,7 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
 }
 
 #ifdef GC_DEBUG
-STATIC header_t *get_shadow(void *ptr)
+header_t *get_shadow(void *ptr)
 {
   if (in_js_space(ptr)) {
     uintptr_t a = (uintptr_t) ptr;
@@ -397,7 +395,7 @@ STATIC void print_free_list(void)
 #ifdef GC_DEBUG
 STATIC void space_print_memory_status(void)
 {
-  printf("  free_bytes = %d\n", js_space.free_bytes);
+  printf("  free_bytes = %zu\n", js_space.free_bytes);
 }
 #endif /* GC_DEBUG */
 

@@ -54,21 +54,7 @@ typedef struct header_t {
 } header_t;
 
 static inline header_t compose_header(size_t granules, size_t extra,
-                                      cell_type_t type)
-{
-  header_t hdr;
-  hdr.type = type;
-  hdr.markbit = 0;
-  hdr.extra = extra;
-  hdr.magic = HEADER_MAGIC;
-#ifdef GC_DEBUG
-  hdr.gen = generation;
-#else /* GC_DEBUG */
-  hdr.gen = 0;
-#endif /* GC_DEBUG */
-  hdr.size  = granules;
-  return hdr;
-}
+                                      cell_type_t type);
 
 /*
  *  Types
@@ -98,7 +84,6 @@ static inline void mark_cell_header(header_t *hdrp);
 static inline void unmark_cell_header(header_t *hdrp);
 static inline int is_marked_cell_header(header_t *hdrp);
 
-  
 /* GC private functions */
 static inline void mark_cell(void *p);
 static inline int is_marked_cell(void *p);
@@ -111,6 +96,10 @@ static inline int in_js_space(void *addr_);
 static inline cell_type_t space_get_cell_type(uintptr_t ptr);
 #ifdef GC_DEBUG
 extern void space_print_memory_status(void);
+#endif /* GC_DEBUG */
+
+#ifdef GC_DEBUG
+header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
 
 #endif /* FREELIST_SPACE_H */
