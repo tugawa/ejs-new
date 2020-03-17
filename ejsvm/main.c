@@ -422,7 +422,14 @@ int main(int argc, char *argv[]) {
     LOG("%"PRId64"\n", callcount);
 #endif
 
-    if (cputime_flag == TRUE) {
+#ifdef FLONUM_PROF
+    {
+      extern void double_hash_flush(void);
+      double_hash_flush();
+    }
+#endif /* FLONUM_PROF */
+
+  if (cputime_flag == TRUE) {
       time_t sec;
       suseconds_t usec;
 
@@ -439,7 +446,7 @@ int main(int argc, char *argv[]) {
     if (gcprof_flag == TRUE)
       print_gc_prof();
 #endif /* GC_PROF */
-    
+
     if (repl_flag == TRUE) {
       printf("\xff");
       fflush(stdout);

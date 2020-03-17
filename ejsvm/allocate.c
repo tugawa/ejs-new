@@ -11,14 +11,76 @@
 #define EXTERN extern
 #include "header.h"
 
+
+#ifdef FLONUM_PROF
+
+#define LOG_DOUBLE_HASH_SIZE 11
+#define DOUBLE_HASH_SIZE (1 << LOG_DOUBLE_HASH_SIZE)
+#define DOUBLE_HASH_FLUSH_THREASHOLD  10
+
+struct double_hash_record {
+  double v;
+  int c;
+};
+
+static struct double_hash_record double_hash[DOUBLE_HASH_SIZE];
+static int double_hash_used;
+
+void double_hash_flush()
+{
+  int i;
+  printf("used: %d\n", double_hash_used);
+  double_hash_used = 0;
+  for (i = 0; i < DOUBLE_HASH_SIZE; i++) {
+    if (double_hash[i].c != 0) {
+      printf("%lf %d\n", double_hash[i].v, double_hash[i].c);
+      double_hash[i].c = 0;
+    }
+  }
+}
+
+static inline int double_hash_key(double v)
+{
+  unsigned long key = *(unsigned long *)&v;
+  key ^= key >> 12;
+  key ^= key >> 32;
+  key ^= key >> (52 - LOG_DOUBLE_HASH_SIZE);
+  key &= (DOUBLE_HASH_SIZE - 1);
+  return (int) key;
+}
+
+static void double_hash_put(double v)
+{
+  int key = double_hash_key(v);
+  int i;
+  for (i = 0; i < DOUBLE_HASH_FLUSH_THREASHOLD; i++) {
+    if (double_hash[key].c == 0) {
+      double_hash[key].v = v;
+      double_hash[key].c = 1;
+      double_hash_used++;
+      return;
+    } else if (double_hash[key].v == v) {
+      double_hash[key].c++;
+      return;
+    }
+    key = (key + DOUBLE_HASH_FLUSH_THREASHOLD + 1) & (DOUBLE_HASH_SIZE - 1);
+  }
+  double_hash_flush();
+  double_hash_put(v);
+}
+#endif /* FLONUM_PROF */
+
 /*
  * allocates a flonum
  */
 FlonumCell *allocate_flonum(Context *ctx, double d)
 {
-  FlonumCell *p =    
+  FlonumCell *p =
     (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM.v);
   set_normal_flonum_ptr_value(p, d);
+#ifdef FLONUM_PROF
+  double_hash_put(d);
+#endif /* FLONUM_PROF */
   return p;
 }
 
