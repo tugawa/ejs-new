@@ -114,18 +114,29 @@ page_header_t *payload_to_page_header(uintptr_t ptr)
 
 STATIC_INLINE void page_so_set_end_used_bitmap(so_page_header *ph)
 {
-  unsigned char *used_bmp = page_so_used_bitmap(ph);
-  int blocks = page_so_blocks(ph);
-  int index = blocks >> LOG_BITS_IN_GRANULE;
-  int offset = blocks & (BITS_IN_GRANULE - 1);
-
 #if BYTES_IN_GRANULE == 4
-  ((uint32_t *) used_bmp)[index] |= ~((1 << offset) - 1);
+#define granule_t uint32_t
+#define ZERO 0
+#define ONE 1
 #elif BYTES_IN_GRANULE == 8
-  ((uint64_t *) used_bmp)[index] |= ~((1LL << offset) - 1);
-#else
+#define granule_t uint64_t
+#define ZERO 0LL
+#define ONE 1LL
+#else /* BYTES_IN_GRANULE */
 #error not implemented
-#endif
+#endif /* BYTES_IN_GRANULE */
+
+  unsigned char *used_bmp = page_so_used_bitmap(ph);
+  size_t bmp_entries = GRANULES_IN_PAGE / ph->size;
+  size_t bmp_granules =
+    (bmp_entries + BITS_IN_GRANULE - 1) >> LOG_BITS_IN_GRANULE;
+  size_t blocks = page_so_blocks(ph);
+  size_t index = blocks >> LOG_BITS_IN_GRANULE;
+  size_t offset = blocks & (BITS_IN_GRANULE - 1);
+
+  ((granule_t *) used_bmp)[index++] |= ~((ONE << offset) - 1);
+  while (index < bmp_granules)
+    ((granule_t *) used_bmp)[index++] = ~ZERO;
 }
 
 STATIC_INLINE void
@@ -382,6 +393,13 @@ void space_init(size_t bytes)
   uintptr_t addr;
   struct free_page_header *p;
   int i, j;
+
+  /*
+  printf("PAGE_TYPE: %d\n", 3);
+  printf("PAGE_HEADER_TYPE_BITS: %d\n", PAGE_HEADER_TYPE_BITS);
+  printf("PAGE_HEADER_SO_SIZE_BITS: %d\n", PAGE_HEADER_SO_SIZE_BITS);
+  printf("PAGE_HEADER_SO_BMP_GRANULES_BITS: %d\n", PAGE_HEADER_SO_BMP_GRANULES_BITS);
+  */
   
   addr = (uintptr_t) malloc(bytes + BYTES_IN_PAGE - 1);
   space.num_pages = bytes / BYTES_IN_PAGE;
@@ -704,7 +722,7 @@ static int sweep_so_page(so_page_header *ph)
 {
 #if BYTES_IN_GRANULE == 4
 #define granule_t uint32_t
-#define ZELO 0
+#define ZERO 0
 #elif BYTES_IN_GRANULE == 8
 #define granule_t uint64_t
 #define ZERO 0LL

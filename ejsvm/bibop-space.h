@@ -11,6 +11,8 @@
 #define PAGE_HEADER_TYPE_BITS    9
 #define PAGE_HEADER_SO_SIZE_BITS (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define PAGE_HEADER_LO_SIZE_BITS 32
+#define PAGE_HEADER_SO_BMP_GRANULES_BITS \
+  (LOG_GRANULES_IN_PAGE - LOG_BITS_IN_GRANULE + 1)
 
 static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2
@@ -94,7 +96,7 @@ typedef struct page_header_t {
       cell_type_t type:      PAGE_HEADER_TYPE_BITS;
       unsigned int size:     PAGE_HEADER_SO_SIZE_BITS;  /* size of block (in granule) */
 #ifdef BIBOP_CACHE_BMP_GRANULES
-      unsigned int bmp_granules: 4;
+      unsigned int bmp_granules: PAGE_HEADER_SO_BMP_GRANULES_BITS;
 #endif /* BIBOP_CACHE_BMP_GRANULES */
 #ifdef FLONUM_SPACE
 #define FLONUM_PAGE_MARKER ((void*)-1)
