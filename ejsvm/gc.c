@@ -164,7 +164,7 @@ void init_memory(size_t bytes)
 {
   space_init(bytes);
   gc_root_stack_ptr = 0;
-  gc_disabled = 0;
+  gc_disabled = 1;
   generation = 1;
   gc_sec = 0;
   gc_usec = 0;

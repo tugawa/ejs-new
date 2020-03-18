@@ -374,6 +374,7 @@ int main(int argc, char *argv[]) {
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
     reset_context(context, &function_table[base_function]);
+    enable_gc(context);
     vmrun_threaded(context, 0);
 
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
