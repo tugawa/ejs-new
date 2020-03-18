@@ -93,7 +93,8 @@ typedef enum cell_type_t {
   CELLT_PROPERTY_MAP  = 0x1B,
   CELLT_SHAPE         = 0x1C,
   CELLT_UNWIND        = 0x1D,
-  CELLT_PROPERTY_MAP_LIST = 0x1E
+  CELLT_PROPERTY_MAP_LIST = 0x1E,
+  NUM_CELL_TYPES
 } cell_type_t;
 
 /*
@@ -292,8 +293,10 @@ struct property_map_list {
 
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
+#ifndef NO_SHAPE_CACHE
   Shape *next;                /* [weak] Weak list of exisnting shapes
                                * shareing the same map. */
+#endif /* NO_SHAPE_CACHE */
   uint16_t n_embedded_slots;  /* [const] Number of slots for properties
                                * in the object. This number includes 
                                * special props. */
@@ -435,9 +438,12 @@ DEFINE_ACCESSORS_I(array, 0, uintjsv_t, size)
 DEFINE_ACCESSORS_R(array, 1, JSValue *, body, array_data)
 DEFINE_ACCESSORS_J(array, 2, length)  /* TODO: ensure consistency */
 
+#ifdef NEW_ASIZE_STRATEGY
+#define LOG_ASIZE_EXPAND_FACTOR 4
+#else /* NEW_ASIZE_STRATEGY */
 #define ASIZE_INIT   10       /* default initial size of the C array */
-#define ASIZE_DELTA  10       /* delta when expanding the C array */
 #define ASIZE_LIMIT  100      /* limit size of the C array */
+#endif /* NEW_ASIZE_STRATEGY */
 #define MAX_ARRAY_LENGTH  ((uintjsv_t)(0xffffffff))
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 #define MINIMUM_ARRAY_SIZE  100

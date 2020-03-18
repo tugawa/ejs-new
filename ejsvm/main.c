@@ -157,7 +157,7 @@ void print_gc_prof()
   }
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
-  printf(" %"PRId64" %"PRId64" ",
+  printf("%"PRId64" %"PRId64" ",
          generation > 1 ? total_live_bytes / (generation - 1) : 0,
          generation > 1 ? total_live_count / (generation - 1) : 0);
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
@@ -327,7 +327,9 @@ int main(int argc, char *argv[]) {
   init_global_objects(context);
   reset_context(context, function_table);
   context->global = gconsts.g_global;
+#ifndef NO_SRAND
   srand((unsigned)time(NULL));
+#endif /* NO_SRAND */
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -372,6 +374,7 @@ int main(int argc, char *argv[]) {
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
     reset_context(context, &function_table[base_function]);
+    enable_gc(context);
     vmrun_threaded(context, 0);
 
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
@@ -420,7 +423,14 @@ int main(int argc, char *argv[]) {
     LOG("%"PRId64"\n", callcount);
 #endif
 
-    if (cputime_flag == TRUE) {
+#ifdef FLONUM_PROF
+    {
+      extern void double_hash_flush(void);
+      double_hash_flush();
+    }
+#endif /* FLONUM_PROF */
+
+  if (cputime_flag == TRUE) {
       time_t sec;
       suseconds_t usec;
 
@@ -437,7 +447,7 @@ int main(int argc, char *argv[]) {
     if (gcprof_flag == TRUE)
       print_gc_prof();
 #endif /* GC_PROF */
-    
+
     if (repl_flag == TRUE) {
       printf("\xff");
       fflush(stdout);

@@ -54,22 +54,6 @@
  *   StrTable string_table (global.h)
  */
 
-#ifndef NDEBUG
-#define GC_DEBUG 1
-#define STATIC        /* make symbols global for debugger */
-#define STATIC_INLINE /* make symbols global for debugger */
-#else
-#undef GC_DEBUG
-#define STATIC static
-#define STATIC_INLINE static inline
-#endif
-
-#ifdef EXCESSIVE_GC
-#define GC_THREASHOLD_SHIFT 4
-#else  /* EXCESSIVE_GC */
-#define GC_THREASHOLD_SHIFT 1
-#endif /* EXCESSIVE_GC */
-
 #if 0
 #define GCLOG(...) LOG(__VA_ARGS__)
 #define GCLOG_TRIGGER(...) LOG(__VA_ARGS__)
@@ -81,36 +65,6 @@
 #define GCLOG_ALLOC(...)
 #define GCLOG_SWEEP(...)
 #endif /* 0 */
-
-/*
- * If the remaining room is smaller than a certain size,
- * we do not use the remainder for efficiency.  Rather,
- * we add it below the chunk being allocated.  In this case,
- * the size in the header includes the extra words.
- *
- * MINIMUM_FREE_CHECK_GRANULES >= HEADER_GRANULES + roundup(pointer granules)
- * MINIMUM_FREE_CHUNK_GRANULES <= 2^HEADER_EXTRA_BITS
- */
-#define MINIMUM_FREE_CHUNK_GRANULES 4
-
-/*
- *  Types
- */
-
-#define CELLT_FREE          (0xff)
-
-struct free_chunk {
-  header_t header;
-  struct free_chunk *next;
-};
-
-struct space {
-  uintptr_t addr;
-  size_t bytes;
-  size_t free_bytes;
-  struct free_chunk* freelist;
-  char *name;
-};
 
 /*
  * Constants
@@ -128,11 +82,6 @@ enum gc_phase {
 /*
  * Variables
  */
-STATIC struct space js_space;
-#ifdef GC_DEBUG
-STATIC struct space debug_js_shadow;
-#endif /* GC_DEBUG */
-
 static enum gc_phase gc_phase = PHASE_INACTIVE;
 static Context *the_context;
 
@@ -198,209 +147,24 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 /*
  * prototype
  */
-/* space */
-STATIC void create_space(struct space *space, size_t bytes, char* name);
-STATIC int in_js_space(void *addr);
-#ifdef GC_DEBUG
-STATIC header_t *get_shadow(void *ptr);
-#endif /* GC_DEBUG */
 /* GC */
-STATIC_INLINE int check_gc_request(Context *);
+STATIC_INLINE int check_gc_request(Context *, int);
 STATIC void garbage_collection(Context *ctx);
 STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
-#ifdef CHECK_MATURED
-STATIC void check_matured(void);
-#endif /* CHECK_MATURED */
-STATIC void sweep(void);
 #ifdef MARK_STACK
 STATIC_INLINE void process_node(uintptr_t ptr);
 #endif /* MARK_STACK */
 #ifdef ALLOC_SITE_CACHE
 STATIC void alloc_site_update_info(JSObject *p);
 #endif /* ALLOC_SITE_CACHE */
-#ifdef GC_DEBUG
-STATIC void check_invariant(void);
-STATIC void print_memory_status(void);
-#endif /* GC_DEBUG */
 
-
-/*
- * Header operation
- */
-
-STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
+void init_memory(size_t bytes)
 {
-  header_t hdr = *hdrp;
-  return hdr.size - hdr.extra - HEADER_GRANULES;
-}
-
-STATIC_INLINE void mark_cell_header(header_t *hdrp)
-{
-#ifdef GC_DEBUG
-  {
-    header_t *shadow = get_shadow(hdrp);
-    assert(hdrp->magic == HEADER_MAGIC);
-    assert(hdrp->type == shadow->type);
-    assert(hdrp->size - hdrp->extra ==
-           shadow->size - shadow->extra);
-    assert(hdrp->gen == shadow->gen);
-  }
-#endif /* GC_DEBUG */
-  hdrp->markbit = 1;
-}
-
-STATIC_INLINE void unmark_cell_header(header_t *hdrp)
-{
-  hdrp->markbit = 0;
-}
-
-STATIC_INLINE int is_marked_cell_header(header_t *hdrp)
-{
-  return hdrp->markbit;
-}
-
-STATIC_INLINE void mark_cell(void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  mark_cell_header(hdrp);
-}
-
-STATIC_INLINE void unmark_cell (void *p) __attribute__((unused));
-STATIC_INLINE void unmark_cell (void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  unmark_cell_header(hdrp);
-}
-
-STATIC_INLINE int is_marked_cell(void *p)
-{
-  header_t *hdrp = payload_to_header(p);
-  return is_marked_cell_header(hdrp);
-}
-
-STATIC_INLINE int test_and_mark_cell(void *p)
-{
-  header_t *hdrp;
-  assert(in_js_space(p));
-  hdrp = payload_to_header(p);
-  if (is_marked_cell_header(hdrp))
-    return 1;
-  mark_cell_header(hdrp);
-  return 0;
-}
-
-/*
- *  Space
- */
-STATIC void create_space(struct space *space, size_t bytes, char *name)
-{
-  uintptr_t addr;
-  struct free_chunk *p;
-  addr = (uintptr_t) malloc(bytes + BYTES_IN_GRANULE - 1);
-  p = (struct free_chunk *)
-    ((addr + BYTES_IN_GRANULE - 1) & ~((1 << LOG_BYTES_IN_GRANULE) - 1));
-  p->header = compose_header(bytes >> LOG_BYTES_IN_GRANULE, 0, CELLT_FREE);
-  p->next = NULL;
-  space->addr = (uintptr_t) p;
-  space->bytes = bytes;
-  space->free_bytes = bytes;
-  space->freelist = p;
-  space->name = name;
-}
-
-STATIC int in_js_space(void *addr_)
-{
-  uintptr_t addr = (uintptr_t) addr_;
-  return (js_space.addr <= addr && addr < js_space.addr + js_space.bytes);
-}
-
-#ifdef GC_DEBUG
-STATIC header_t *get_shadow(void *ptr)
-{
-  if (in_js_space(ptr)) {
-    uintptr_t a = (uintptr_t) ptr;
-    uintptr_t off = a - js_space.addr;
-    return (header_t *) (debug_js_shadow.addr + off);
-  } else
-    return NULL;
-}
-#endif /* GC_DEBUG */
-
-/*
- * Returns a pointer to the first address of the memory area
- * available to the VM.  The header precedes the area.
- * The header has the size of the chunk including the header,
- * the area available to the VM, and extra bytes if any.
- * Other header bits are zero
- */
-STATIC_INLINE void* space_alloc(struct space *space,
-                                size_t request_bytes, cell_type_t type)
-{
-  size_t  alloc_granules;
-  struct free_chunk **p;
-  
-  alloc_granules = BYTE_TO_GRANULE_ROUNDUP(request_bytes);
-  alloc_granules += HEADER_GRANULES;
-
-  /* allocate from freelist */
-  for (p = &space->freelist; *p != NULL; p = &(*p)->next) {
-    struct free_chunk *chunk = *p;
-    size_t chunk_granules = chunk->header.size;
-    if (chunk_granules >= alloc_granules) {
-      if (chunk_granules >= alloc_granules + MINIMUM_FREE_CHUNK_GRANULES) {
-        /* This chunk is large enough to leave a part unused.  Split it */
-        size_t remaining_granules = chunk_granules - alloc_granules;
-        header_t *hdrp = (header_t *)
-          (((uintptr_t) chunk) + (remaining_granules << LOG_BYTES_IN_GRANULE));
-        *hdrp = compose_header(alloc_granules, 0, type);
-        chunk->header.size = remaining_granules;
-        space->free_bytes -= alloc_granules << LOG_BYTES_IN_GRANULE;
-        return header_to_payload(hdrp);
-      } else {
-        /* This chunk is too small to split. */
-        header_t *hdrp = (header_t *) chunk;
-        *p = (*p)->next;
-        *hdrp = compose_header(chunk_granules,
-                               chunk_granules - alloc_granules, type);
-        space->free_bytes -= chunk_granules << LOG_BYTES_IN_JSVALUE;
-        return header_to_payload(hdrp);
-      }
-    }
-  }
-
-#ifdef DEBUG
-  {
-    struct free_chunk *chunk;
-    for (chunk = space->freelist; chunk != NULL; chunk = chunk->next)
-      LOG(" %u", chunk->header.size * BYTES_IN_GRANULE);
-  }
-  LOG("\n");
-  LOG("js_space.bytes = %zu\n", js_space.bytes);
-  LOG("js_space.free_bytes = %zu\n", js_space.free_bytes);
-  LOG("gc_disabled = %d\n", gc_disabled);
-  LOG("request = %zu\n", request_bytes);
-  LOG("type = 0x%x\n", type);
-  LOG("memory exhausted\n");
-#endif /* DEBUG */
-  abort();
-  return NULL;
-}
-
-
-/*
- * GC interface
- */
-
-void init_memory(size_t js_space_bytes)
-{
-  create_space(&js_space, js_space_bytes, "js_space");
-#ifdef GC_DEBUG
-  create_space(&debug_js_shadow, js_space_bytes, "debug_js_shadow");
-#endif /* GC_DEBUG */
+  space_init(bytes);
   gc_root_stack_ptr = 0;
-  gc_disabled = 0;
+  gc_disabled = 1;
   generation = 1;
   gc_sec = 0;
   gc_usec = 0;
@@ -409,23 +173,36 @@ void init_memory(size_t js_space_bytes)
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 {
   void *addr;
-
-  if (check_gc_request(ctx))
+#ifdef DEBUG
+  static int count;
+  count++;
+#endif /* DEBUG */
+  
+  if (check_gc_request(ctx, 0))
     garbage_collection(ctx);
-  addr = space_alloc(&js_space, request_bytes, type);
-  GCLOG_ALLOC("gc_jsalloc: req %x bytes type %d => %p\n",
+  addr = space_alloc(request_bytes, type);
+  GCLOG_ALLOC("gc_malloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
+  if (addr == NULL) {
+    if (check_gc_request(ctx, 1)) {
 #ifdef GC_DEBUG
-  {
-    header_t *hdrp = payload_to_header(addr);
-    header_t *shadow = get_shadow(hdrp);
-    *shadow = *hdrp;
-  }
+      printf("emergency GC\n");
 #endif /* GC_DEBUG */
+      garbage_collection(ctx);
+      addr = space_alloc(request_bytes, type);
+    }
+    if (addr == NULL) {
+      printf("Out of memory\n");
+#ifdef GC_DEBUG
+      printf("#GC = %d\n", generation);
+      space_print_memory_status();
+#endif /* GC_DEBUG */
+      abort();
+    }
+  }
 #ifdef GC_PROF
-  {
-    header_t *hdrp = payload_to_header(addr);
-    size_t bytes = hdrp->size << LOG_BYTES_IN_GRANULE;
+  if (addr != NULL) {
+    size_t bytes = request_bytes;
     total_alloc_bytes += bytes;
     total_alloc_count++;
     pertype_alloc_bytes[type] += bytes;
@@ -435,6 +212,13 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   return addr;
 }
 
+#ifdef FLONUM_SPACE
+FlonumCell *gc_try_alloc_flonum(double x)
+{
+  return space_try_alloc_flonum(x);
+}
+#endif /* FLONUM_SPACE */
+
 void disable_gc(void)
 {
   gc_disabled++;
@@ -443,14 +227,14 @@ void disable_gc(void)
 void enable_gc(Context *ctx)
 {
   if (--gc_disabled == 0) {
-    if (check_gc_request(ctx))
+    if (check_gc_request(ctx, 0))
       garbage_collection(ctx);
   }
 }
 
 void try_gc(Context *ctx)
 {
-  if (check_gc_request(ctx))
+  if (check_gc_request(ctx, 0))
     garbage_collection(ctx);
 }
 
@@ -486,10 +270,9 @@ STATIC void process_mark_stack()
 }
 #endif /* MARK_STACK */
 
-STATIC_INLINE int check_gc_request(Context *ctx)
+STATIC_INLINE int check_gc_request(Context *ctx, int force)
 {
-  if (js_space.free_bytes <
-      js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT)) {
+  if (force || space_check_gc_request()) {
     if (ctx == NULL) {
       GCLOG_TRIGGER("Needed gc for js_space -- cancelled: ctx == NULL\n");
       return 0;
@@ -555,7 +338,7 @@ STATIC void garbage_collection(Context *ctx)
   }
 
   generation++;
-  /* printf("Exit gc, generation = %d\n", generation); */
+  /*  printf("Exit gc, generation = %d\n", generation); */
 
   gc_phase = PHASE_INACTIVE;
 }
@@ -583,7 +366,7 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC_INLINE void process_node(uintptr_t ptr)
 {
   /* part of code for processing the node is inlined */
-  switch (payload_to_header((void *) ptr)->type) {
+  switch (space_get_cell_type(ptr)) {
   case CELLT_STRING:
   case CELLT_FLONUM:
     return;
@@ -702,7 +485,8 @@ STATIC_INLINE void process_node(uintptr_t ptr)
         process_edge((uintptr_t) p->prev); /* PropertyMap */
 #endif /* HC_SKIP_INTERNAL */
       if (p->shapes != NULL)
-        process_edge((uintptr_t) p->shapes); /* Shape */
+        process_edge((uintptr_t) p->shapes); /* Shape
+                                              * (always keep the largest one) */
       process_edge((uintptr_t) p->__proto__);
       return;
     }
@@ -710,12 +494,14 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       Shape *p = (Shape *) ptr;
       process_edge((uintptr_t) p->pm);
+#ifndef NO_SHAPE_CACHE
 #ifdef WEAK_SHAPE_LIST
       /* p->next is weak */
 #else /* WEAK_SHAPE_LIST */
       if (p->next != NULL)
         process_edge((uintptr_t) p->next);
 #endif /* WEAK_SHAPE_LIST */
+#endif /* NO_SHAPE_CACHE */
       return;
     }
   case CELLT_UNWIND:
@@ -798,23 +584,15 @@ STATIC void process_edge_HashBody(HashCell **p, size_t length)
 
 STATIC void process_node_FunctionFrame(FunctionFrame *p)
 {
-  size_t payload_bytes, length, i;
+  size_t i;
 
   if (p->prev_frame != NULL)
     process_edge((uintptr_t) p->prev_frame); /* FunctionFrame */
   process_edge(p->arguments);
-  /* local variables
-   *   TODO: no idea about the number of local variables.
-   */
-  payload_bytes =
-    get_payload_granules(payload_to_header(p)) << LOG_BYTES_IN_GRANULE;
-  assert(sizeof(FunctionFrame) % BYTES_IN_JSVALUE == 0);
-  assert(payload_bytes % BYTES_IN_JSVALUE == 0);
-  length = (payload_bytes - sizeof(FunctionFrame)) >> LOG_BYTES_IN_JSVALUE;
-  for (i = 0; i < length; i++)
+  for (i = 0; i < p->nlocals; i++)
     process_edge(p->locals[i]);
 #ifdef DEBUG
-  assert(p->locals[length - 1] == JS_UNDEFINED);
+  assert(p->locals[p->nlocals - 1] == JS_UNDEFINED);
 #endif /* DEBUG */
 }
 
@@ -980,7 +758,6 @@ STATIC void weak_clear_StrTable(StrTable *table)
 #ifdef WEAK_SHAPE_LIST
 void weak_clear_shape_recursive(PropertyMap *pm)
 {
-  Shape **p;
   HashIterator iter;
   HashCell *cell;
 
@@ -989,21 +766,26 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #else /* VERBOSE_GC_SHAPE */
 #define PRINT(x...)
 #endif /* VERBOSE_GC_SHAPE */
-  
-  for (p = &pm->shapes; *p != NULL; ) {
-    Shape *os = *p;
-    if (is_marked_cell(os))
-      p = &(*p)->next;
-    else {
-      Shape *skip = *p;
-      *p = skip->next;
+
+#ifndef NO_SHAPE_CACHE
+  {
+    Shape **p;
+    for (p = &pm->shapes; *p != NULL; ) {
+      Shape *os = *p;
+      if (is_marked_cell(os))
+        p = &(*p)->next;
+      else {
+        Shape *skip = *p;
+        *p = skip->next;
 #ifdef DEBUG
-      PRINT("skip %p emp: %d ext: %d\n",
-            skip, skip->n_embedded_slots, skip->n_extension_slots);
-      skip->next = NULL;  /* avoid Black->While check failer */
+        PRINT("skip %p emp: %d ext: %d\n",
+              skip, skip->n_embedded_slots, skip->n_extension_slots);
+        skip->next = NULL;  /* avoid Black->While check failer */
 #endif /* DEBUG */
+      }
     }
   }
+#endif /* NO_SHAPE_CACHE */
 
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
@@ -1146,143 +928,6 @@ STATIC void weak_clear(void)
   the_context->exhandler_pool = NULL;
 }
 
-STATIC void sweep_space(struct space *space)
-{
-  struct free_chunk **p;
-  uintptr_t scan = space->addr;
-  uintptr_t free_bytes = 0;
-
-  GCLOG_SWEEP("sweep %s\n", space->name);
-
-  space->freelist = NULL;
-  p = &space->freelist;
-  while (scan < space->addr + space->bytes) {
-    uintptr_t last_used = 0;
-    uintptr_t free_start;
-    /* scan used area */
-    while (scan < space->addr + space->bytes &&
-           is_marked_cell_header((header_t *) scan)) {
-      header_t *hdrp = (header_t *) scan;
-      assert(hdrp->magic == HEADER_MAGIC);
-#ifdef GC_PROF
-      {
-        cell_type_t type = hdrp->type;
-        size_t bytes =
-          (hdrp->size - hdrp->extra) << LOG_BYTES_IN_GRANULE;
-        pertype_live_bytes[type]+= bytes;
-        pertype_live_count[type]++;
-      }
-#endif /* GC_PROF */
-      unmark_cell_header((header_t *) scan);
-      last_used = scan;
-      scan += hdrp->size << LOG_BYTES_IN_GRANULE;
-    }
-    free_start = scan;
-    while (scan < space->addr + space->bytes &&
-           !is_marked_cell_header((header_t *) scan)) {
-      header_t *hdrp = (header_t *) scan;
-      assert(hdrp->magic == HEADER_MAGIC);
-      scan += hdrp->size << LOG_BYTES_IN_GRANULE;
-    }
-    if (free_start < scan) {
-      size_t chunk_granules;
-      if (last_used != 0) {
-        /* Previous chunk may have extra bytes. Take them back. */
-        header_t *last_hdrp = (header_t *) last_used;
-        size_t extra = last_hdrp->extra;
-        free_start -= extra << LOG_BYTES_IN_GRANULE;
-        last_hdrp->size -= extra;
-        last_hdrp->extra = 0;
-      }
-      chunk_granules = (scan - free_start) >> LOG_BYTES_IN_GRANULE;
-      if (chunk_granules >= MINIMUM_FREE_CHUNK_GRANULES) {
-        struct free_chunk *chunk = (struct free_chunk *) free_start;
-        GCLOG_SWEEP("add_cunk %x - %x (%d bytes)\n",
-                    free_start - space->addr, scan - space->addr,
-                    scan - free_start);
-        chunk->header = compose_header(chunk_granules, 0, CELLT_FREE);
-        *p = chunk;
-        p = &chunk->next;
-        free_bytes += scan - free_start;
-#ifdef GC_DEBUG
-        {
-          char *p;
-          for (p = (char *) (chunk + 1); p < (char *) scan; p++)
-            *p = 0xcc;
-        }
-#endif /* GC_DEBUG */
-      } else  {
-        /* Too small to make a chunk.
-         * Append it at the end of previous chunk, if any */
-        if (last_used != 0) {
-          header_t *last_hdrp = (header_t *) last_used;
-          assert(last_hdrp->extra == 0);
-          last_hdrp->size += chunk_granules;
-          last_hdrp->extra = chunk_granules;
-        } else
-          *(header_t *) free_start =
-            compose_header(chunk_granules, 0, CELLT_FREE);
-      }
-    }
-  }
-  (*p) = NULL;
-  space->free_bytes = free_bytes;
-}
-
-#ifdef CHECK_MATURED
-STATIC void check_matured()
-{
-  struct space *space = &js_space;
-  uintptr_t scan = space->addr;
-  while (scan < space->addr + space->bytes) {
-    header_t *hdrp = (header_t *) scan;
-    if (!is_marked_cell_header(hdrp)) {
-      switch(hdrp->type) {
-      case CELLT_SIMPLE_OBJECT:
-      case CELLT_ARRAY:
-      case CELLT_FUNCTION:
-      case CELLT_BUILTIN:
-      case CELLT_BOXED_NUMBER:
-      case CELLT_BOXED_STRING:
-      case CELLT_BOXED_BOOLEAN:
-#ifdef USE_REGEXP
-      case CELLT_REGEXP:
-#endif /* USE_REGEXP */
-        {
-          JSObject *p = (JSObject *) header_to_payload(hdrp);
-          Shape *os = p->shape;
-          int i;
-          for (i = os->pm->n_special_props + 1; i < os->n_embedded_slots; i++) {
-            JSValue v;
-            if (i == os->n_embedded_slots - 1 && os->n_extension_slots > 0) {
-              JSValue *extension = (JSValue *) p->eprop[i];
-              v = extension[0];
-            } else
-              v = p->eprop[i];
-            if (v == JS_EMPTY)
-              printf("unmatured object (object %p index %d value = EMPTY)\n",
-                     p, i);
-          }
-        }
-        break;
-      default:
-        break;
-      }
-    }
-    scan += hdrp->size << LOG_BYTES_IN_GRANULE;
-  }
-}
-#endif /* CHECK_MATURED */
-
-
-STATIC void sweep(void)
-{
-#ifdef GC_DEBUG
-  check_invariant();
-#endif /* GC_DEBUG */
-  sweep_space(&js_space);
-}
-
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
@@ -1341,86 +986,10 @@ STATIC void alloc_site_update_info(JSObject *p)
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef GC_DEBUG
-#define OFFSET_OF(T, F) (((uintptr_t) &((T *) 0)->F) >> LOG_BYTES_IN_JSVALUE)
-
-STATIC void check_invariant_nobw_space(struct space *space)
-{
-  uintptr_t scan = space->addr;
-
-  while (scan < space->addr + space->bytes) {
-    header_t *hdrp = (header_t *) scan;
-    uintptr_t payload = (uintptr_t) header_to_payload(hdrp);
-    switch (hdrp->type) {
-    case CELLT_STRING:
-    case CELLT_FLONUM:
-    case CELLT_ARRAY_DATA:
-    case CELLT_CONTEXT:
-    case CELLT_STACK:
-    case CELLT_HIDDEN_CLASS:
-    case CELLT_HASHTABLE:
-    case CELLT_HASH_CELL:
-      break;
-    case CELLT_PROPERTY_MAP:
-      {
-        PropertyMap *pm = (PropertyMap *) payload;
-        Shape *os;
-        for (os = pm->shapes; os != NULL; os = os->next)
-          assert(payload_to_header(os)->type == CELLT_SHAPE);
-        goto DEFAULT;
-      }
-    default:
-    DEFAULT:
-      if (is_marked_cell_header(hdrp)) {
-        /* this object is black; should not contain a pointer to white */
-        size_t payload_bytes =
-          get_payload_granules(hdrp) << LOG_BYTES_IN_GRANULE;
-        size_t i;
-#if BYTES_IN_JSVALUE >= BYTES_IN_GRANULE
-#define STEP_BYTES BYTES_IN_GRANULE
-#else
-#define STEP_BYTES BYTES_IN_JSVALUE
-#endif
-        for (i = 0; i < payload_bytes; i += STEP_BYTES) {
-          JSValue v = *(JSValue *) (payload + i);
-          uintjsv_t x = (uintjsv_t) v;
-          void * p = (void *) (uintptr_t) clear_ptag(v);
-          /* weak pointers */
-          /*
-          if (HEADER0_GET_TYPE(header) == CELLT_STR_CONS) {
-            if (i == OFFSET_OF(StrCons, str))
-              continue;
-          }
-          */
-          if (IS_POINTER_LIKE_UINTJSV(x) &&
-              (has_htag(x) || get_ptag(x).v == 0) &&
-              in_js_space(p))
-            assert(is_marked_cell(p));
-        }
-      }
-      break;
-    }
-    scan += hdrp->size << LOG_BYTES_IN_GRANULE;
-  }
-}
-
-STATIC void check_invariant(void)
-{
-  check_invariant_nobw_space(&js_space);
-}
-
-STATIC void print_free_list(void)
-{
-  struct free_chunk *p;
-  for (p = js_space.freelist; p; p = p->next)
-    printf("%d ", p->header.size * BYTES_IN_GRANULE);
-  printf("\n");
-}
-
-
 STATIC void print_memory_status(void)
 {
-  GCLOG("  gc_disabled = %d\n", gc_disabled);
-  GCLOG("  js_space.free_bytes = %d\n", js_space.free_bytes);
+  GCLOG("gc_disabled = %d\n", gc_disabled);
+  space_print_memory_status();
 }
 #endif /* GC_DEBUG */
 

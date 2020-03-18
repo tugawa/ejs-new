@@ -139,7 +139,8 @@ HFILES = $(GENERATED_HFILES) \
     log.h \
     gc.h \
     context-inl.h \
-    types-inl.h
+    types-inl.h \
+    gc-inl.h
 ifeq ($(USE_VMDL),true)
     HFILES += vmdl-helper.h
 endif
@@ -248,6 +249,13 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ifeq ($(OPT_GC),native)
     CFLAGS+=-DUSE_NATIVEGC=1
+    OFILES+=freelist-space.o
+    HFILES+=freelist-space.h freelist-space-inl.h
+endif
+ifeq ($(OPT_GC),bibop)
+    CFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
+    OFILES+=bibop-space.o
+    HFILES+=bibop-space.h bibop-space-inl.h
 endif
 ifeq ($(OPT_GC),boehmgc)
     CFLAGS+=-DUSE_BOEHMGC=1
