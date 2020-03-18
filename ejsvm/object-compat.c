@@ -129,14 +129,13 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
   assert(is_array(array));
 
 #ifdef NEW_ASIZE_STRATEGY
-#define LOG_ASIZE_FACTOR 4
   /* 1. If array.size <= index < array.size * ASIZE_FACTOR + 1,
    *    expand the storage */
   {
     int32_t size = get_jsarray_size(array);
-    if (size <= index && index < size + (size >> LOG_ASIZE_FACTOR) + 1) {
+    if (size <= index && index < size + (size >> LOG_ASIZE_EXPAND_FACTOR) + 1) {
       GC_PUSH2(array, v);
-      reallocate_array_data(ctx, array, size + (size >> LOG_ASIZE_FACTOR) + 1);
+      reallocate_array_data(ctx, array, size + (size >> LOG_ASIZE_EXPAND_FACTOR) + 1);
       GC_POP2(v, array);
     }
   }
@@ -207,6 +206,7 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
   }
 }
 #else /* NEW_ASIZE_STRATEGY */
+static void
 remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
 {
   Shape *os = object_get_shape(array);

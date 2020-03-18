@@ -18,21 +18,6 @@ void insertionSort(Context*, JSValue, cint, cint, JSValue);
 void swap(JSValue*, JSValue*);
 
 /*
- * computes the asize for a given n
- */
-cint compute_asize(cint n) {
-  cint s, news;
-
-  s = ASIZE_INIT;
-  while (s < n) {
-    news = increase_asize(s);
-    if (s == news) return n;
-    s = news;
-  }
-  return s;
-}
-
-/*
  * constructor for array
  */
 BUILTIN_FUNCTION(array_constr)
@@ -57,7 +42,7 @@ BUILTIN_FUNCTION(array_constr)
      */
     length = na;
   }
-  size = compute_asize(length);
+  size = length;
 
   /* allocate the array */
 #ifdef ALLOC_SITE_CACHE
@@ -66,7 +51,9 @@ BUILTIN_FUNCTION(array_constr)
   rsv = new_array_object(context, DEBUG_NAME("array_ctor"),
                          gshapes.g_shape_Array, size);
 #endif /* ALLOC_SITE_CACHE */
-  set_jsarray_length(rsv, length);  /* TODO: implement property */
+  GC_PUSH(rsv);
+  set_jsarray_length(rsv, cint_to_number(context, length));
+  GC_POP(rsv);
 
   /* fill elements if supplied */
   if (na >= 2) {
@@ -75,12 +62,6 @@ BUILTIN_FUNCTION(array_constr)
     for (i = 0; i < length; i++)
       body[i] = args[i + 1];
   }
-
-  GC_PUSH(rsv);
-  set_prop_direct(context, rsv, gconsts.g_string_length,
-                  cint_to_number(context, length), ATTR_NONE);
-  GC_POP(rsv);
-
   /* set as the return value */
   set_a(context, rsv);
 }
