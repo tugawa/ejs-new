@@ -58,6 +58,12 @@ struct space {
 #ifdef BIBOP_2WAY_ALLOC
   struct free_page_header *last_free_chunk;
 #endif /* BIBOP_2WAY_ALLOC */
+#ifdef FLONUM_SPACE
+#define LOG_MAX_FLONUM_PAGES 4
+#define MAX_FLONUM_PAGES (1 << LOG_MAX_FLONUM_PAGES)
+  struct so_page_header *flonum_pages[MAX_FLONUM_PAGES];
+  int num_flonum_pages;
+#endif /* FLONUM_SPACE */
 };
 
 typedef enum page_type_t {
@@ -90,6 +96,9 @@ typedef struct page_header_t {
 #ifdef BIBOP_CACHE_BMP_GRANULES
       unsigned int bmp_granules: 4;
 #endif /* BIBOP_CACHE_BMP_GRANULES */
+#ifdef FLONUM_SPACE
+#define FLONUM_PAGE_MARKER ((void*)-1)
+#endif /* FLONUM_SPACE */
       struct so_page_header *next __attribute__((aligned(BYTES_IN_GRANULE)));
       unsigned char bitmap[];
     } so;
@@ -123,6 +132,9 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr);
 #ifdef GC_DEBUG
 extern void space_print_memory_status(void);
 #endif /* GC_DEBUG */
+#ifdef FLONUM_SPACE
+extern FlonumCell *space_try_alloc_flonum(double x);
+#endif /* FLONUM_SPACE */
 
 #ifdef GC_DEBUG
 extern page_header_t *payload_to_page_header(uintptr_t ptr);

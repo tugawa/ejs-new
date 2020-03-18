@@ -95,7 +95,7 @@ STATIC_INLINE int bmp_count_live(unsigned char *bmp, int len)
  */
 
 STATIC_INLINE void
-page_so_init(so_page_header *ph, cell_type_t type, unsigned int size);
+page_so_init(so_page_header *ph, unsigned int size, cell_type_t type);
 STATIC_INLINE size_t page_so_bmp_granules(so_page_header *ph);
 STATIC_INLINE unsigned char *page_so_mark_bitmap(so_page_header *ph);
 STATIC_INLINE unsigned char *page_so_used_bitmap(so_page_header *ph);
@@ -149,16 +149,58 @@ page_so_init(so_page_header *ph, unsigned int size, cell_type_t type)
   page_so_set_end_used_bitmap(ph);
 }
 
+STATIC_INLINE size_t page_so_bmp_granules_by_size(size_t size)
+  __attribute__((unused));
+STATIC_INLINE size_t page_so_bmp_granules_by_size(size_t size)
+{
+  const size_t bmp_entries = GRANULES_IN_PAGE / size;
+  const size_t bmp_granules =
+    (bmp_entries + BITS_IN_GRANULE - 1) >> LOG_BITS_IN_GRANULE;
+  return bmp_granules;
+}
+
+STATIC_INLINE size_t page_so_mark_bitmap_offset()
+  __attribute__((unused));
+STATIC_INLINE size_t page_so_mark_bitmap_offset()
+{
+  return (size_t) &((so_page_header *) 0)->bitmap;
+}
+
+STATIC_INLINE size_t page_so_used_bitmap_offset_by_size(size_t size)
+  __attribute__((unused));
+STATIC_INLINE size_t page_so_used_bitmap_offset_by_size(size_t size)
+{
+  const size_t mark_bmp_offset = page_so_mark_bitmap_offset();
+  const size_t bmp_granules = page_so_bmp_granules_by_size(size);
+  return mark_bmp_offset + (bmp_granules << LOG_BYTES_IN_GRANULE);
+}
+
+STATIC_INLINE size_t page_so_first_block_offset_by_size(size_t size)
+  __attribute__((unused));
+STATIC_INLINE size_t page_so_first_block_offset_by_size(size_t size)
+{
+  const size_t mark_bmp_offset = page_so_mark_bitmap_offset();
+  const size_t bmp_granules = page_so_bmp_granules_by_size(size);
+  return mark_bmp_offset + (bmp_granules << LOG_BYTES_IN_GRANULE) * 2;
+}
+
+STATIC_INLINE size_t page_so_blocks_by_size(size_t size)
+  __attribute__((unused));
+STATIC_INLINE size_t page_so_blocks_by_size(size_t size)
+{
+  size_t payload_offset = page_so_first_block_offset_by_size(size);
+  size_t payload_granules =
+    GRANULES_IN_PAGE - (payload_offset  >> LOG_BYTES_IN_GRANULE);
+  return payload_granules / size;
+}
+
 STATIC_INLINE size_t page_so_bmp_granules(so_page_header *ph)
 {
 #ifdef BIBOP_CACHE_BMP_GRANULES
   return ph->bmp_granules;
 #else /* BIBOP_CACHE_BMP_GRANULES */
   unsigned int size = ph->size;
-  unsigned int bmp_entries = GRANULES_IN_PAGE / size;
-  unsigned int bmp_granules =
-    (bmp_entries + BITS_IN_GRANULE - 1) >> LOG_BITS_IN_GRANULE;
-  return bmp_granules;
+  return page_so_bmp_granules_by_size(size);
 #endif /* BIBOP_CACHE_BMP_GRANULES */
 }
 
@@ -365,6 +407,9 @@ void space_init(size_t bytes)
 #ifdef BIBOP_2WAY_ALLOC
   space.last_free_chunk = space.page_pool;
 #endif /* BIBOP_2WAY_ALLOC */
+#ifdef FLONUM_SPACE
+  space.num_flonum_pages = 0;
+#endif /* FLONUM_SPACE */
   compute_sizeclass_map();
 }
 
@@ -581,6 +626,69 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
     return (void*) alloc_large_object(request_granules, type);
 }
 
+#ifdef FLONUM_SPACE
+static inline unsigned int flonum_space_hash(double x)
+{
+  unsigned long long key = *(unsigned long long*)&x;
+  key ^= key >> 12;
+  key ^= key >> 32;
+  key ^= key >> (52 - LOG_GRANULES_IN_PAGE);
+  return (unsigned int) key;
+}
+
+FlonumCell *space_try_alloc_flonum(double x)
+{
+  const size_t flonum_cell_granules =
+    (sizeof(FlonumCell) + BYTES_IN_GRANULE - 1) >> LOG_BYTES_IN_GRANULE;
+  const size_t nblocks = page_so_blocks_by_size(flonum_cell_granules);
+  unsigned int key;
+  int page_idx;
+  so_page_header *ph;
+  unsigned char *used_bmp;
+  FlonumCell *payload;
+
+  if (space.num_flonum_pages == 0) {
+    so_page_header *flonum_pages[MAX_FLONUM_PAGES];
+    int i;
+    for (i = 0; i < MAX_FLONUM_PAGES; i++) {
+      page_header_t *xph = alloc_page(1);
+      so_page_header *ph;
+      if (xph == NULL)
+	return NULL;
+      ph = &xph->u.so;
+      page_so_init(ph, flonum_cell_granules, CELLT_FLONUM);
+      ph->page_type = PAGE_TYPE_SOBJ;
+      ph->next = NULL;
+      flonum_pages[i] = ph;
+    }
+    for (i = 0; i < MAX_FLONUM_PAGES; i++) {
+      flonum_pages[i]->next = FLONUM_PAGE_MARKER;
+      space.flonum_pages[i] = flonum_pages[i];
+    }
+    space.num_flonum_pages = MAX_FLONUM_PAGES;
+  }
+  key = flonum_space_hash(x);
+  page_idx = key & (MAX_FLONUM_PAGES - 1);
+  key >>= LOG_MAX_FLONUM_PAGES;
+  key %= nblocks;
+  ph = space.flonum_pages[page_idx];
+  used_bmp =
+    ((unsigned char *) ph) +
+    page_so_used_bitmap_offset_by_size(flonum_cell_granules);
+  payload = (FlonumCell *)
+    (((unsigned char *) ph) +
+     page_so_first_block_offset_by_size(flonum_cell_granules));
+  if (bmp_test(used_bmp, key) != 0) {
+    if (payload[key].value == x)
+      return &payload[key];
+    return NULL;
+  }
+  payload[key].value = x;
+  bmp_set(used_bmp, key);
+  return &payload[key];
+}
+#endif /* FLONUM_SPACE */
+
 /*
  * sweep
  */
@@ -622,11 +730,20 @@ static int sweep_so_page(so_page_header *ph)
     is_free |= x;
     used_bmp[i] = x;
   }
+#ifdef FLONUM_SPACE
+  if (ph->next != FLONUM_PAGE_MARKER && is_free == ZERO)
+    return 0;
+#else /* FLONUM_SPACE */
   if (is_free == ZERO)
     return 0;
+#endif /* FLONUM_SPACE */
   page_so_set_end_used_bitmap(ph);
   is_full &= used_bmp[i];
   memset(mark_bmp, 0, bmp_granules << LOG_BYTES_IN_GRANULE);
+#ifdef FLONUM_SPACE
+  if (ph->next == FLONUM_PAGE_MARKER)
+    return 1;
+#endif /* FLONUM_SPACE */
   if (is_full != ~ZERO) {
 #ifdef BIBOP_MOBJ
     if (ph->size <= MAX_SOBJ_GRANULES) {

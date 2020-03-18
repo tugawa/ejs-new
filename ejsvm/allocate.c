@@ -41,7 +41,7 @@ void double_hash_flush()
 
 static inline int double_hash_key(double v)
 {
-  unsigned long key = *(unsigned long *)&v;
+  unsigned long long key = *(unsigned long long*)&v;
   key ^= key >> 12;
   key ^= key >> 32;
   key ^= key >> (52 - LOG_DOUBLE_HASH_SIZE);
@@ -75,12 +75,17 @@ static void double_hash_put(double v)
  */
 FlonumCell *allocate_flonum(Context *ctx, double d)
 {
-  FlonumCell *p =
-    (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM.v);
-  set_normal_flonum_ptr_value(p, d);
+  FlonumCell *p;
 #ifdef FLONUM_PROF
   double_hash_put(d);
 #endif /* FLONUM_PROF */
+#ifdef FLONUM_SPACE
+  p = gc_try_alloc_flonum(d);
+  if (p != NULL)
+    return p;
+#endif /* FLONUM_SPACE */
+  p = (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM.v);
+  set_normal_flonum_ptr_value(p, d);
   return p;
 }
 

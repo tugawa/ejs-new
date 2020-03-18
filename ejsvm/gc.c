@@ -212,6 +212,13 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
   return addr;
 }
 
+#ifdef FLONUM_SPACE
+FlonumCell *gc_try_alloc_flonum(double x)
+{
+  return space_try_alloc_flonum(x);
+}
+#endif /* FLONUM_SPACE */
+
 void disable_gc(void)
 {
   gc_disabled++;

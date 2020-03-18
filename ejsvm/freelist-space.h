@@ -1,6 +1,10 @@
 #ifndef FREELIST_SPACE_H
 #define FREELIST_SPACE_H
 
+#ifdef FLONUM_SPACE
+#error freelist space does not support FLONUM_SPACE.
+#endif /* FLONUM_SPACE */
+
 #ifdef EXCESSIVE_GC
 #define GC_THREASHOLD_SHIFT 4
 #else  /* EXCESSIVE_GC */
