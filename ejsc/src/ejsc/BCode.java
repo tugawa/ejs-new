@@ -378,11 +378,7 @@ class IString extends BCode {
     String str;
     IString(Register dst, String str) {
         super("string", dst);
-        // TODO: check string format.  Too many backslashes?
         this.str = str;
-        this.str = this.str.replaceAll("\n", "\\\\n");
-        this.str = this.str.replaceAll(" ", "\\\\s");
-        this.str = this.str.replaceAll("\"", "\\\\\"");
     }
     @Override
     public void emit(CodeBuffer buf) {
