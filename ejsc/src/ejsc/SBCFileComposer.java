@@ -70,6 +70,8 @@ public class SBCFileComposer extends OutputFileComposer {
             escape = escape.replace("\f", "\\f");
             escape = escape.replace("\n", "\\n");
             escape = escape.replace("\r", "\\r");
+            escape = escape.replace("\t", "\\t");
+            escape = escape.replace(" ", "\\s");
             return "\""+escape+"\""; // TODO: do escape
         }
 
