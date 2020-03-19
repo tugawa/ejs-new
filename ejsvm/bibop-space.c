@@ -13,7 +13,7 @@
 
 #define ROUNDUP(s,u) (((s) + (u) - 1) & ~((u) - 1))
 
-static int sizeclass_map[GRANULES_IN_PAGE];
+static int sizeclass_map[GRANULES_IN_PAGE + 1];
 struct space space;
 
 #ifdef VERIFY_BIBOP
@@ -647,7 +647,13 @@ void *space_alloc(uintptr_t request_bytes, cell_type_t type)
 #ifdef FLONUM_SPACE
 static inline unsigned int flonum_space_hash(double x)
 {
-  unsigned long long key = *(unsigned long long*)&x;
+  union {
+    unsigned long long ll;
+    double d;
+  } dtoll;
+  unsigned long long key;
+  dtoll.d = x;
+  key = dtoll.ll;
   key ^= key >> 12;
   key ^= key >> 32;
   key ^= key >> (52 - LOG_GRANULES_IN_PAGE);
@@ -828,7 +834,7 @@ void sweep()
   free_page_header **free_single_pp = &space.single_page_pool;
 #endif /* BIBOP_SEGREGATE_1PAGE */
 #ifdef VERIFY_BIBOP
-  uintptr_t prev_free_end = 0;
+  uintptr_t prev_free_end __attribute__((unused)) = 0;
 #endif /* VERIFY_BIBOP */
 
   for (i = 0; i < NUM_CELL_TYPES; i++)
