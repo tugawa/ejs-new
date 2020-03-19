@@ -76,8 +76,10 @@ TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
 
 ifeq ($(USE_VMDL),true)
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
+SPECGEN_JAR=$(VMDL)
 else
 SPECGEN=java -cp $(VMGEN) vmgen.SpecFileGen
+SPECGEN_JAR=$(VMGEN)
 endif
 
 CPP=$(CC) -E
@@ -302,13 +304,13 @@ vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec: $(EJSVM_DIR)/instructions.def $(VMDL)
+ejsvm.spec: $(EJSVM_DIR)/instructions.def $(SPECGEN_JAR)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
 specfile-fingerprint.h: ejsvm.spec
 	touch $@
 else
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMDL)
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(SPECGEN_JAR)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
 		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
