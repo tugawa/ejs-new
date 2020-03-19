@@ -65,13 +65,11 @@ public class SBCFileComposer extends OutputFileComposer {
 
         String escapeString(String s) {
             String escape;
-            System.out.println("String escape from: "+s);
             escape = s.replace("\\", "\\\\");
             escape = escape.replace("\"", "\\\"");
             escape = escape.replace("\f", "\\f");
             escape = escape.replace("\n", "\\n");
             escape = escape.replace("\r", "\\r");
-            System.out.println("String escape to: "+escape);
             return "\""+s+"\""; // TODO: do escape
         }
 
