@@ -161,6 +161,7 @@ OFILES = \
     builtin-string.o \
     builtin-function.o \
     builtin-performance.o \
+    cstring.o \
     call.o \
     codeloader.o \
     context.o \

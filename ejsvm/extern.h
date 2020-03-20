@@ -369,6 +369,16 @@ extern void init_builtin_regexp(Context *);
 #endif /* USE_REGEXP */
 
 /*
+ * cstring.c
+ */
+extern size_t cstr_length(const char *p);
+extern char *cstr_skip_space(char *str);
+extern const char *ccstr_skip_space(const char *str);
+extern JSValue cstr_parse_int(Context *ctx, const char *p, int radix);
+#define PARSE_INT_RADIX_AUTO 0
+extern JSValue cstr_parse_float(Context *ctx, const char *p);
+
+/*
  * gc.c
  */
 #ifdef GC_PROF
