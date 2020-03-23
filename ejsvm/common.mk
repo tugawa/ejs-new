@@ -471,7 +471,7 @@ $(VMDL):
 
 #### ejsc
 $(EJSC): $(VMGEN) ejsvm.spec
-	(cd $(EJSC_DIR); ant clean; ant -Dspecfile=$(PWD)/ejsvm.spec)
+	(cd $(EJSC_DIR); ant clean; ant -Dspecfile=$(CURDIR)/ejsvm.spec)
 
 #### ejsi
 $(EJSI):
