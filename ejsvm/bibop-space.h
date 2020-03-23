@@ -101,8 +101,8 @@ typedef struct page_header_t {
 #ifdef FLONUM_SPACE
 #define FLONUM_PAGE_MARKER ((void*)-1)
 #endif /* FLONUM_SPACE */
-      struct so_page_header *next __attribute__((aligned(BYTES_IN_GRANULE)));
-      unsigned char bitmap[];
+      struct so_page_header *next;
+      unsigned char bitmap[]  __attribute__((aligned(BYTES_IN_GRANULE)));
     } so;
     struct lo_page_header {
       page_type_t  page_type: 3;
