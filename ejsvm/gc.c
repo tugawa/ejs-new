@@ -30,6 +30,7 @@
  *   CELLT_ITERATOR       yes    yes       no        yes   Iterator
  *   CELLT_PROP           no     yes       no        no    JSValue*
  *   CELLT_ARRAY_DATA     no     no        no        no    JSValue*
+ *   CELLT_BYTE_ARRAY     no     no        no        no    non pointer
  *   CELLT_FUNCTION_FRAME no     no        no        yes   FunctionFrame
  *   CELLT_STR_CONS       no     no        no        fixed StrCons
  *   CELLT_CONTEXT        no     no        no        fixed Context
@@ -129,18 +130,19 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 10 */ "",
     /* 11 */ "PROP",
     /* 12 */ "ARRAY_DATA",
-    /* 13 */ "FUNCTION_FRAME",
-    /* 14 */ "STR_CONS",
-    /* 15 */ "CONTEXT",
-    /* 16 */ "STACK",
-    /* 17 */ "HIDDEN_CLASS",
-    /* 18 */ "HASHTABLE",
-    /* 19 */ "HASH_BODY",
-    /* 1a */ "HASH_CELL",
-    /* 1b */ "PROPERTY_MAP",
-    /* 1c */ "SHAPE",
-    /* 1d */ "UNWIND",
-    /* 1e */ "PROPERTY_MAP_LIST",
+    /* 13 */ "BYTE_ARRAY",
+    /* 14 */ "FUNCTION_FRAME",
+    /* 15 */ "STR_CONS",
+    /* 16 */ "CONTEXT",
+    /* 17 */ "STACK",
+    /* 18 */ "HIDDEN_CLASS",
+    /* 19 */ "HASHTABLE",
+    /* 1a */ "HASH_BODY",
+    /* 1b */ "HASH_CELL",
+    /* 1c */ "PROPERTY_MAP",
+    /* 1d */ "SHAPE",
+    /* 1e */ "UNWIND",
+    /* 1f */ "PROPERTY_MAP_LIST",
 };
 #endif /* GC_PROF */
 
@@ -437,6 +439,8 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_PROP:
   case CELLT_ARRAY_DATA:
     abort();
+  case CELLT_BYTE_ARRAY:
+    return;
   case CELLT_FUNCTION_FRAME:
     process_node_FunctionFrame((FunctionFrame *) ptr);
     return;

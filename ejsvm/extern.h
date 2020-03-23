@@ -56,6 +56,7 @@ extern StringCell *allocate_string(Context *, uint32_t);
 extern void reallocate_array_data(Context *, JSValue, int);
 extern Iterator *allocate_iterator(Context *);
 extern void allocate_iterator_data(Context *, JSValue, int);
+extern ByteArray allocate_byte_array(Context *ctx, size_t size);
 
 /*
  * builtin.c
@@ -213,6 +214,10 @@ extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
 extern void init_string_table(unsigned int);
 extern JSValue cstr_to_string_ool(Context *context, const char *s);
 extern JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2);
+extern JSValue string_to_upper_lower_case(Context *ctx, JSValue str, int upper);
+extern JSValue string_make_substring(Context *ctx,
+				     JSValue str, cint from, cint len);
+extern cint string_char_code_at(JSValue str, cint pos);
 
 /*
  * init.c
