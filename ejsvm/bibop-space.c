@@ -1000,11 +1000,11 @@ void space_print_memory_status()
       page_addr += BYTES_IN_PAGE;
 #endif /* BIBOP_MOBJ */
     } else if (xph->u.x.page_type == PAGE_TYPE_LOBJ) {
-      printf("%p - %p (%2d) %5uz LOBJ size = %d type = %d\n",
+      printf("%p - %p (%2d) %5d LOBJ size = %d type = %d\n",
 	     (void*) page_addr,
 	     (void*) (page_addr + (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE)),
 	     (int) page_lo_pages(&xph->u.lo),
-	     (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE) - (xph->u.lo.size << LOG_BYTES_IN_GRANULE),
+	     (int) (page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE) - (xph->u.lo.size << LOG_BYTES_IN_GRANULE),
 	     xph->u.lo.size,
 	     xph->u.lo.type);
       page_addr += page_lo_pages(&xph->u.lo) << LOG_BYTES_IN_PAGE;
