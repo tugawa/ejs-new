@@ -26,6 +26,12 @@ void space_print_memory_status();
  * bitmap operation
  *
  */
+STATIC_INLINE int bmp_count_live(unsigned char *bmp, int len)
+  __attribute__((unused));
+STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
+  __attribute__((unused));
+
+
 STATIC_INLINE void bmp_set(unsigned char* bmp, int index)
 {
   bmp[index >> LOG_BITS_IN_BYTE] |= (1 << (index & (BITS_IN_BYTE - 1)));
@@ -41,8 +47,6 @@ STATIC_INLINE int bmp_test(unsigned char* bmp, int index)
   return bmp[index >> LOG_BITS_IN_BYTE] & (1 << (index & (BITS_IN_BYTE - 1)));
 }
 
-STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
-  __attribute__((unused));
 STATIC_INLINE int bmp_find_first_zero(unsigned char* bmp, int start, int len)
 {
   int index = start;
