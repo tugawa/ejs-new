@@ -1,6 +1,14 @@
 #ifndef BIBOP_SPACE_H
 #define BIBOP_SPACE_H
 
+#if BYTES_IN_GRANULE == 4
+typedef uint32_t granule_t;
+#elif BYTES_IN_GRANULE == 8
+typedef uint64_t granule_t;
+#else /* BYTES_IN_GRANULE */
+#error not implemented
+#endif /* BYTES_IN_GRANULE */
+
 #define LOG_BYTES_IN_PAGE 12
 #define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
@@ -33,27 +41,38 @@ static const int sizeclasses[] = {
 };
 #define NUM_SIZECLASSES (sizeof(sizeclasses) / sizeof(int))
 
-#ifdef BIBOP_MOBJ
-#define MAX_SOBJ_GRANULES    2
-#define NUM_SOBJ_SIZECLASSES 2
-#define NUM_MOBJ_SIZECLASSES (NUM_SIZECLASSES - NUM_SOBJ_SIZECLASSES)
-#define MAX_MOBJ_GRANULES						\
-  (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1] - 1)
-#else /* BIBOP_MOBJ */
 #define MAX_SOBJ_GRANULES						\
   (sizeclasses[sizeof(sizeclasses) / sizeof(sizeclasses[0]) - 1])
 #define NUM_SOBJ_SIZECLASSES NUM_SIZECLASSES
-#endif /* BIBOP_MOBJ */
+
+/*
+ * so_page_header: default page header type for small object, which is either
+ *   sobm_page_header: page header with used bitmap
+ *   sofl_page_header: page header with freelist.
+ * Regardless of the default page header type, sobm_page_header is used
+ * for flonum space.
+ */
+#ifdef BIBOP_FREELIST
+#  define USE_FREELIST
+#  define so_page_header sofl_page_header
+#  ifdef FLONUM_SPACE
+#    define USE_USEDBMP
+#  endif /* FLONUM_SPACE */
+#else /* BIBOP_FREELIST */
+#  define USE_USEDBMP
+#  define so_page_header sobm_page_header
+#endif /* BIBOP_FREELIST */
 
 struct space {
   uintptr_t addr, end;
   int num_pages;
   int num_free_pages;
   struct free_page_header *page_pool;
-  struct so_page_header *freelist[NUM_CELL_TYPES][NUM_SOBJ_SIZECLASSES];
-#ifdef BIBOP_MOBJ
-  struct so_page_header *mo_freelist[NUM_MOBJ_SIZECLASSES];
-#endif /* BIBOP_MOBJ */
+#ifdef BIBOP_FREELIST
+  struct sofl_page_header *freelist[NUM_CELL_TYPES][NUM_SOBJ_SIZECLASSES];
+#else /* BIBOP_FREELIST */
+  struct sobm_page_header *freelist[NUM_CELL_TYPES][NUM_SOBJ_SIZECLASSES];
+#endif /* BIBOP_FREELIST */
 #ifdef BIBOP_SEGREGATE_1PAGE
   struct free_page_header *single_page_pool;
 #endif /* BIBOP_SEGREGATE_1PAGE */
@@ -63,7 +82,7 @@ struct space {
 #ifdef FLONUM_SPACE
 #define LOG_MAX_FLONUM_PAGES 4
 #define MAX_FLONUM_PAGES (1 << LOG_MAX_FLONUM_PAGES)
-  struct so_page_header *flonum_pages[MAX_FLONUM_PAGES];
+  struct sobm_page_header *flonum_pages[MAX_FLONUM_PAGES];
   int num_flonum_pages;
 #endif /* FLONUM_SPACE */
 };
@@ -71,17 +90,37 @@ struct space {
 typedef enum page_type_t {
   PAGE_TYPE_FREE = 1,
   PAGE_TYPE_SOBJ = 2,
-#ifdef BIBOP_MOBJ
-  PAGE_TYPE_MOBJ = 3,
-#endif /* BIBOP_MOBJ */
-  PAGE_TYPE_LOBJ = 4
+  PAGE_TYPE_LOBJ = 3
 } page_type_t;
 
+typedef struct page_header_t page_header_t;
 typedef struct free_page_header free_page_header;
-typedef struct so_page_header so_page_header;
+#ifdef USE_USEDBMP
+typedef struct sobm_page_header sobm_page_header;
+#endif /* USE_USEDBMP */
+#ifdef USE_FREELIST
+typedef struct sofl_page_header sofl_page_header;
+#endif /* USE_FREELIST */
 typedef struct lo_page_header lo_page_header;
 
-typedef struct page_header_t {
+typedef struct so_page_header_common {
+  page_type_t page_type: 3;
+  cell_type_t type:      PAGE_HEADER_TYPE_BITS;
+  size_t      size:      PAGE_HEADER_SO_SIZE_BITS;
+#ifdef BIBOP_CACHE_BMP_GRANULES
+  size_t      bmp_granules: PAGE_HEADER_SO_BMP_GRANULES_BITS;
+#endif /* BIBOP_CACHE_BMP_GRANULES */
+#ifdef DEBUG
+  int has_freelist: 1;
+#endif /* DEBUG */
+
+#ifdef FLONUM_SPACE
+#define FLONUM_PAGE_MARKER ((void*)-1)
+#endif /* FLONUM_SPACE */
+  so_page_header *next;
+} so_page_header_common;
+
+struct page_header_t {
   union {
     struct {
       page_type_t page_type: 3;
@@ -91,19 +130,20 @@ typedef struct page_header_t {
       unsigned int num_pages;
       struct free_page_header *next;
     } free;
-    struct so_page_header {
-      page_type_t page_type: 3;
-      cell_type_t type:      PAGE_HEADER_TYPE_BITS;
-      unsigned int size:     PAGE_HEADER_SO_SIZE_BITS;  /* size of block (in granule) */
-#ifdef BIBOP_CACHE_BMP_GRANULES
-      unsigned int bmp_granules: PAGE_HEADER_SO_BMP_GRANULES_BITS;
-#endif /* BIBOP_CACHE_BMP_GRANULES */
-#ifdef FLONUM_SPACE
-#define FLONUM_PAGE_MARKER ((void*)-1)
-#endif /* FLONUM_SPACE */
-      struct so_page_header *next;
-      unsigned char bitmap[]  __attribute__((aligned(BYTES_IN_GRANULE)));
-    } so;
+    struct so_page_header_common so;
+#ifdef USE_USEDBMP
+    struct sobm_page_header {
+      so_page_header_common c;
+      granule_t bitmap[] __attribute__((aligned(BYTES_IN_GRANULE)));
+    } sobm;
+#endif /* USE_USEDBMP */
+#ifdef USE_FREELIST
+    struct sofl_page_header{
+      so_page_header_common c;
+      granule_t freelist __attribute__((aligned(BYTES_IN_GRANULE)));
+      granule_t bitmap[];
+    } sofl;
+#endif /* USE_FREELIST */
     struct lo_page_header {
       page_type_t  page_type: 3;
       cell_type_t  type:      PAGE_HEADER_TYPE_BITS;
@@ -111,15 +151,7 @@ typedef struct page_header_t {
       unsigned int size:      PAGE_HEADER_LO_SIZE_BITS;  /* size of payload */
     } lo;
   } u;
-} page_header_t;
-
-#ifdef BIBOP_MOBJ
-typedef struct cell_status cell_status;
-struct cell_status {
-  cell_type_t  type:  PAGE_HEADER_TYPE_BITS;
-  unsigned int extra: LOG_BYTES_IN_PAGE;
 };
-#endif /* BIBOP_MOBJ */
 
 /* GC private functions */
 extern void mark_cell(void *p);
@@ -144,11 +176,6 @@ extern page_header_t *payload_to_page_header(uintptr_t ptr);
 /* bibop-space private functions */
 static inline page_header_t *payload_to_page_header(uintptr_t ptr);
 #endif /* GC_DEBUG */
-
-#ifdef BIBOP_MOBJ
-static inline
-cell_status *page_mo_cell_status(so_page_header *ph, uintptr_t ptr);
-#endif /* BIBOP_MOBJ */
 
 extern struct space space;
 
