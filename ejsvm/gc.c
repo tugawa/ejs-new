@@ -135,7 +135,7 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 15 */ "STR_CONS",
     /* 16 */ "CONTEXT",
     /* 17 */ "STACK",
-    /* 18 */ "HIDDEN_CLASS",
+    /* 18 */ "" /* was HIDDEN_CLASS */,
     /* 19 */ "HASHTABLE",
     /* 1a */ "HASH_BODY",
     /* 1b */ "HASH_CELL",
