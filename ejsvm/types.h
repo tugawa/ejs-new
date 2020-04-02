@@ -57,12 +57,12 @@ typedef struct instruction    Instruction;
 #include "types-handcraft.h"
 #endif /* USE_TYPES_GENERATED */
 
-
 /* Cell types
  *   0        : CELLT_FEEE
  *   1 - 0x10 : HTAG (JSValue)
  *   0x11 -   : others
  */
+#define LOG_MAX_NUM_CELL_TYPES 6
 typedef enum cell_type_t {
   CELLT_STRING        = HTAGV_STRING,
   CELLT_FLONUM        = HTAGV_FLONUM,
@@ -80,21 +80,23 @@ typedef enum cell_type_t {
 
   CELLT_PROP          = 0x11, /* Array of JSValues */
   CELLT_ARRAY_DATA    = 0x12, /* Array of JSValues */
-  CELLT_FUNCTION_FRAME= 0x13, /* FunctionFrame */
-  CELLT_STR_CONS      = 0x14, /* StrCons */
-  CELLT_CONTEXT       = 0x15, /* Context */
-  CELLT_STACK         = 0x16, /* Array of JSValues */
+  CELLT_BYTE_ARRAY    = 0x13, /* Array of primitives */
+  CELLT_FUNCTION_FRAME= 0x14, /* FunctionFrame */
+  CELLT_STR_CONS      = 0x15, /* StrCons */
+  CELLT_CONTEXT       = 0x16, /* Context */
+  CELLT_STACK         = 0x17, /* Array of JSValues */
 #ifdef HIDDEN_CLASS
-  CELLT_HIDDEN_CLASS  = 0x17, /* HiddenClass */
+  CELLT_HIDDEN_CLASS  = 0x18, /* HiddenClass */
 #endif
-  CELLT_HASHTABLE     = 0x18,
-  CELLT_HASH_BODY     = 0x19,
-  CELLT_HASH_CELL     = 0x1A,
-  CELLT_PROPERTY_MAP  = 0x1B,
-  CELLT_SHAPE         = 0x1C,
-  CELLT_UNWIND        = 0x1D,
-  CELLT_PROPERTY_MAP_LIST = 0x1E,
-  NUM_CELL_TYPES
+  CELLT_HASHTABLE     = 0x19,
+  CELLT_HASH_BODY     = 0x1A,
+  CELLT_HASH_CELL     = 0x1B,
+  CELLT_PROPERTY_MAP  = 0x1C,
+  CELLT_SHAPE         = 0x1D,
+  CELLT_UNWIND        = 0x1E,
+  CELLT_PROPERTY_MAP_LIST = 0x1F,
+  NUM_CELL_TYPES,
+  MAX_NUM_CELL_TYPES  = (1 << LOG_MAX_NUM_CELL_TYPES) - 1
 } cell_type_t;
 
 /*
@@ -734,6 +736,11 @@ static inline int is_false(JSValue v)
   set_prop_with_attribute(c, o, cstr_to_string((c),(s)), v, attr)
 #define set_obj_cstr_prop_none(c, o, s, v)      \
   set_obj_cstr_prop(c, o, s, v, ATTR_NONE)
+
+/*
+ * generic byte array (HTAG_BYTE_ARRAY)
+ */
+typedef char *ByteArray;
 
 /* Local Variables:      */
 /* mode: c               */

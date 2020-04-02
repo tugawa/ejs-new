@@ -31,7 +31,7 @@
 
 #ifdef BIT_ALIGN32
 #define HEADER_GRANULES       2
-#define HEADER_TYPE_BITS      8
+#define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
 #define HEADER_MARKBIT_BITS   1
 #define HEADER_EXTRA_BITS     3
 #define HEADER_GEN_BITS       4
@@ -40,7 +40,7 @@
 #define HEADER_MAGIC          0x18
 #else /* BIT_ALIGN32 */
 #define HEADER_GRANULES       1
-#define HEADER_TYPE_BITS      8
+#define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
 #define HEADER_MARKBIT_BITS   1
 #define HEADER_EXTRA_BITS     3
 #define HEADER_GEN_BITS       4

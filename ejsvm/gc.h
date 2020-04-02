@@ -32,7 +32,7 @@
  */
 
 #ifdef GC_PROF
-#define NUM_DEFINED_CELL_TYPES 0x1E
+#define NUM_DEFINED_CELL_TYPES 0x1F
 extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
 #define CELLT_NAME(t) ((t) <= NUM_DEFINED_CELL_TYPES ? cell_type_name[t] : "")
 #else /* GC_PROF */

@@ -39,59 +39,70 @@ BUILTIN_FUNCTION(builtin_isFinite)
  * parseInt str rad
  * converts a string to a number
  */
-BUILTIN_FUNCTION(builtin_parse_int)
+BUILTIN_FUNCTION(builtin_parseInt)
 {
-  JSValue str, rad;
-  char *cstr;
-  char *endPtr;
+  JSValue str, rad, ret;
+  const char *cstr;
   int32_t irad;
-  cint ret;
 
   builtin_prologue();
-  str = to_string(context, args[1]);
-  GC_PUSH(str);
-  rad = to_number(context, args[2]);
-  GC_POP(str);
+  str = na >= 1 ? args[1] : gconsts.g_string_empty;
+  rad = na >= 2 ? args[2] : JS_UNDEFINED;
+
+  GC_PUSH2(str, rad);
+
+  str = to_string(context, str);
+  if (!is_string(str))
+    goto return_nan;
   cstr = string_to_cstr(str);
 
-  if (!is_undefined(rad)) {
-    if (is_fixnum(rad)) irad = fixnum_to_cint(rad);
-    else if (is_flonum(rad)) irad = flonum_to_cint(rad);
-    else irad = 10;
-    if (irad < 2 || irad > 36) {
-      set_a(context, gconsts.g_flonum_nan);
-      return;
-    }
-  } else
-    irad = 10;
+  if (rad == JS_UNDEFINED)
+    irad = PARSE_INT_RADIX_AUTO;
+  else {
+    rad = to_number(context, rad);
+    if (is_undefined(rad))
+      irad = PARSE_INT_RADIX_AUTO;
+    else if (is_number(rad)) {
+      irad = number_to_cint(rad);
+      if (irad == 0)
+	irad = PARSE_INT_RADIX_AUTO;
+      else if (irad < 2 || irad > 36)
+	goto return_nan;
+    } else
+      irad = 10;
+  }
 
-  cstr = space_chomp(cstr);
-  ret = strtol(cstr, &endPtr, irad);
-  if (cstr == endPtr)
-    set_a(context, gconsts.g_flonum_nan);
-  else
-    set_a(context, cint_to_number(context, ret));
+  ret = cstr_parse_int(context, cstr, irad);
+  set_a(context, ret);
+  GC_POP2(rad, str);
+  return;
+
+ return_nan:
+  set_a(context, gconsts.g_flonum_nan);
+  GC_POP2(rad, str);
+  return;
 }
 
-#ifdef need_float
-BUILTIN_FUNCTION(builtin_parse_float)
+BUILTIN_FUNCTION(builtin_parseFloat)
 {
-  JSValue str;
-  char *cstr;
-  double x;
+  JSValue str, ret;
+  const char *cstr;
 
   builtin_prologue();
+  if (na == 0)
+    goto return_nan;
   str = to_string(context, args[1]);
+  if (!is_string(str))
+    goto return_nan;
   cstr = string_to_cstr(str);
-  cstr = space_chomp(cstr);
+  ret = cstr_parse_float(context, cstr);
+  set_a(context, ret);
+  return;
 
-  x = strtod(cstr, NULL);
-  if (is_fixnum_range_double(x))
-    set_a(context, double_to_fixnum(x));
-  else
-    set_a(context, double_to_flonum(x));
+ return_nan:
+  set_a(context, gconsts.g_flonum_nan);
+  return;
 }
-#endif /* need_float */
 
 /*
  * throws Error because it is not a constructor
@@ -214,10 +225,8 @@ BUILTIN_FUNCTION(builtin_papi_get_real)
 ObjBuiltinProp Global_builtin_props[] = {
   { "isNaN",          builtin_isNaN,              1, ATTR_DDDE },
   { "isFinite",       builtin_isFinite,           1, ATTR_DE   },
-  /*
-  { "parseInt",       builtin_parseInt,           2, ATTR_DE   },
-  { "parseFloat",     builtin_parseFloat,         1, ATTR_DE   },
-  */
+  { "parseInt",       builtin_parseInt,          2, ATTR_DE   },
+  { "parseFloat",     builtin_parseFloat,        1, ATTR_DE   },
   { "print",          builtin_print,              0, ATTR_ALL  },
   { "printv",         builtin_printv,             0, ATTR_ALL  },
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },

@@ -193,6 +193,63 @@ JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
 }
 #endif /* need_embedded_string */
 
+JSValue string_to_upper_lower_case(Context *ctx, JSValue str, int upper)
+{
+  const char *src;
+  ByteArray buf;
+  size_t len, i;
+
+  assert(is_string(str));
+
+  len = string_length(str);
+
+  GC_PUSH(str);
+  buf = allocate_byte_array(ctx, len + 1);
+  GC_POP(str);
+
+  src = string_value(str);
+  if (upper == TRUE)
+    for (i = 0; i < len; i++)
+      buf[i] = toupper(src[i]);
+  else
+    for (i = 0; i < len; i++)
+      buf[i] = tolower(src[i]);
+  buf[i] = '\0';
+
+  return cstr_to_string(ctx, buf);
+}
+
+JSValue string_make_substring(Context *ctx, JSValue str, cint from, cint len)
+{
+  ByteArray buf;
+  const char *src;
+  int i, j;
+
+  assert(is_string(str));
+
+  GC_PUSH(str);
+  buf = allocate_byte_array(ctx, len + 1);
+  GC_POP(str);
+
+  src = string_value(str);
+  for (i = from, j = 0; j < len; i++, j++)
+    buf[j] = src[i];
+  buf[j] = '\0';
+
+  return cstr_to_string(ctx, buf);
+}
+
+cint string_char_code_at(JSValue str, cint pos)
+{
+  const char *cstr;
+  assert(is_string(str));
+  assert(0 <= pos);
+  assert(pos < string_length(str));
+
+  cstr = string_value(str);
+  return cstr[pos];
+}
+
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */

@@ -140,6 +140,14 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 }
 
 /*
+ * allocates a ByteArray
+ */
+ByteArray allocate_byte_array(Context *ctx, size_t size)
+{
+  return (ByteArray) gc_malloc(ctx, size, CELLT_BYTE_ARRAY);
+}
+
+/*
  * allocates an iterator
  */
 Iterator *allocate_iterator(Context *ctx) {

@@ -99,9 +99,6 @@ CFLAGS       += -DFLONUM_SPACE
 ## use explicit mark stack rather than recursive call
 #CFLAGS      += -DMARK_STACK
 
-## Use flonum space (only BiBoP space supports)
-CFLAGS       += -DFLONUM_SPACE
-
 ## array size strategy
 CFLAGS       += -DNEW_ASIZE_STRATEGY
 
@@ -115,9 +112,10 @@ CFALGS       += -DBIBOP_CACHE_BMP_GRANULES
 CFLAGS       += -DBIBOP_SEGREGATE_1PAGE
 ## allocate pages of size one from the bottom of the heap
 CFLAGS       += -DBIBOP_2WAY_ALLOC
-## middle size objects are stored in page but stored with their types so
-## multiple types are allocated in the same page.
-#CFLAGS      += -DBIBOP_MOBJ
+## link free blocks in a page to form a freelist
+CFLAGS       += -DBIBOP_FREELIST
+## use flonum pages as if it is a hashtable to encourage sahreing flonum objects
+#CFLAGS       += -DFLONUM_SPACE
 ## debug
 CFLAGS       += -DVERIFY_BIBOP
 

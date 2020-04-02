@@ -64,7 +64,15 @@ public class SBCFileComposer extends OutputFileComposer {
         }
 
         String escapeString(String s) {
-            return "\""+s+"\""; // TODO: do escape
+            String escape;
+            escape = s.replace("\\", "\\\\");
+            escape = escape.replace("\"", "\\\"");
+            escape = escape.replace("\f", "\\f");
+            escape = escape.replace("\n", "\\n");
+            escape = escape.replace("\r", "\\r");
+            escape = escape.replace("\t", "\\t");
+            escape = escape.replace(" ", "\\s");
+            return "\""+escape+"\"";
         }
 
         String formatConstant(int index, String constStr) {
