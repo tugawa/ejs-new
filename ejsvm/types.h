@@ -57,12 +57,12 @@ typedef struct instruction    Instruction;
 #include "types-handcraft.h"
 #endif /* USE_TYPES_GENERATED */
 
-
 /* Cell types
  *   0        : CELLT_FEEE
  *   1 - 0x10 : HTAG (JSValue)
  *   0x11 -   : others
  */
+#define LOG_MAX_NUM_CELL_TYPES 6
 typedef enum cell_type_t {
   CELLT_STRING        = HTAGV_STRING,
   CELLT_FLONUM        = HTAGV_FLONUM,
@@ -95,7 +95,8 @@ typedef enum cell_type_t {
   CELLT_SHAPE         = 0x1D,
   CELLT_UNWIND        = 0x1E,
   CELLT_PROPERTY_MAP_LIST = 0x1F,
-  NUM_CELL_TYPES
+  NUM_CELL_TYPES,
+  MAX_NUM_CELL_TYPES  = (1 << LOG_MAX_NUM_CELL_TYPES) - 1
 } cell_type_t;
 
 /*
