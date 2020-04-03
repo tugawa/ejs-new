@@ -486,7 +486,7 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
     return gconsts.g_string_empty;
   }
   ret = gconsts.g_string_empty;
-  length = number_to_double(get_jsarray_length(array));
+  length = number_to_cint(get_jsarray_length(array));
   if (length <= 0)
     return ret;
 
