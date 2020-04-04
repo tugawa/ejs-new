@@ -357,15 +357,33 @@ STATIC void garbage_collection(Context *ctx)
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
 
+#ifdef GENERIC_PROCESS_NODE
+typedef int (*tracer_t)(uintptr_t ptr);
+STATIC int process_edge_mark(uintptr_t ptr);
+STATIC void process_node_FunctionFrame( FunctionFrame *p);
+STATIC void process_node_Context(tracer_t process_edge, Context *p);
+STATIC void scan_function_table_entry(tracer_t process_edge, FunctionTable *p);
+STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp);
+#else /* GENERIC_PROCESS_NODE */
+#ifdef PROCESS_EDGE
+STATIC int process_edge(uintptr_t ptr);
+#else /* PROCESS_EDGE */
 STATIC void process_edge(uintptr_t ptr);
-STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
-STATIC void process_edge_HashBody(HashCell **p, size_t length);
+#endif /* PROCESS_EDGE */
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
 STATIC void process_node_Context(Context *p);
 STATIC void scan_function_table_entry(FunctionTable *p);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
+#endif /* GENERIC_PROCESS_NODE */
 
+STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
+STATIC void process_edge_HashBody(HashCell **p, size_t length);
+
+#ifdef GENERIC_PROCESS_NODE
+STATIC_INLINE void process_node(tracer_t process_edge, uintptr_t ptr)
+#else /* GENERIC_PROCESS_NODE */
 STATIC_INLINE void process_node(uintptr_t ptr)
+#endif /* GENERIC_PROCESS_NDOE */
 {
   /* part of code for processing the node is inlined */
   switch (space_get_cell_type(ptr)) {
@@ -438,7 +456,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     }
   case CELLT_PROP:
   case CELLT_ARRAY_DATA:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
   case CELLT_BYTE_ARRAY:
     return;
   case CELLT_FUNCTION_FRAME:
@@ -465,7 +487,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
       return;
     }
   case CELLT_HASH_BODY:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
   case CELLT_HASH_CELL:
     {
       HashCell *p = (HashCell *) ptr;
@@ -549,6 +575,24 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   }
 }
 
+#ifdef PROCESS_EDGE
+STATIC int process_edge_mark(uintptr_t ptr)
+{
+  if (is_fixnum(ptr) || is_special(ptr))
+    return 0;
+
+  ptr = ptr & ~TAGMASK;
+  if (in_js_space((void *) ptr) && test_and_mark_cell((void *) ptr))
+    return 0;
+
+#ifdef MARK_STACK
+  mark_stack_push(ptr);
+#else /* MARK_STACK */
+  process_node(process_edge_mark, ptr);
+#endif /* MARK_STACK */
+  return 1;
+}
+#else /* PROCESS_EDGE */
 STATIC void process_edge(uintptr_t ptr)
 {
   if (is_fixnum(ptr) || is_special(ptr))
@@ -564,29 +608,49 @@ STATIC void process_edge(uintptr_t ptr)
   process_node(ptr);
 #endif /* MARK_STACK */
 }
+#endif /* PROCESS_EDGE */
 
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
 {
   size_t i;
   assert(in_js_space(p));
+#ifdef PROCESS_EDGE
+  if (process_edge((uintprt_t) p)) {
+    for (i = start; i < length; i++)
+      process_edge((uintptr_t) p[i]);
+  }
+#else /* PROCESS_EDGE */
   if (test_and_mark_cell(p))
     return;
   for (i = start; i < length; i++)
     process_edge((uintptr_t) p[i]);
+#endif /* PROCESS_EDGE */
 }
 
 STATIC void process_edge_HashBody(HashCell **p, size_t length)
 {
   size_t i;
   assert(in_js_space(p));
+#ifdef PROCESS_EDGE
+  if (process_edge((uintptr_t) p)) {
+    for (i = 0; i < length; i++)
+      if (p[i] != NULL)
+        process_edge((uintptr_t) p[i]);  /* HashCell */
+  }  
+#else /* PROCESS_EDGE */
   if (test_and_mark_cell(p))
     return;
   for (i = 0; i < length; i++)
     if (p[i] != NULL)
       process_edge((uintptr_t) p[i]);  /* HashCell */
+#endif /* PROCESS_EDGE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_node_FunctionFrame(tracer_t process_edge, FunctionFrame *p)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void process_node_FunctionFrame(FunctionFrame *p)
+#endif /* GENERIC_PROCESS_NODE */
 {
   size_t i;
 
@@ -600,7 +664,11 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
 #endif /* DEBUG */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_node_Context(tracer_t process_edge, Context *context)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void process_node_Context(Context *context)
+#endif /* GENERIC_PROCESS_NODE */
 {
   int i;
 
