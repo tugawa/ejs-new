@@ -478,7 +478,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     process_node_Context((Context *) ptr);
     return;
   case CELLT_STACK:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
   case CELLT_HASHTABLE:
     {
       HashTable *p = (HashTable *) ptr;
@@ -542,7 +546,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   case CELLT_PROPERTY_MAP_LIST:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
     break;
 #endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
   default:
@@ -576,7 +584,7 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 }
 
 #ifdef PROCESS_EDGE
-STATIC int process_edge_mark(uintptr_t ptr)
+STATIC int process_edge(uintptr_t ptr)
 {
   if (is_fixnum(ptr) || is_special(ptr))
     return 0;
@@ -588,7 +596,7 @@ STATIC int process_edge_mark(uintptr_t ptr)
 #ifdef MARK_STACK
   mark_stack_push(ptr);
 #else /* MARK_STACK */
-  process_node(process_edge_mark, ptr);
+  process_node(ptr);
 #endif /* MARK_STACK */
   return 1;
 }
@@ -615,7 +623,7 @@ STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
   size_t i;
   assert(in_js_space(p));
 #ifdef PROCESS_EDGE
-  if (process_edge((uintprt_t) p)) {
+  if (process_edge((uintptr_t) p)) {
     for (i = start; i < length; i++)
       process_edge((uintptr_t) p[i]);
   }
@@ -687,7 +695,11 @@ STATIC void process_node_Context(Context *context)
 
   /* process stack */
   assert(!is_marked_cell(context->stack));
+#ifdef PROCESS_EDGE
+  process_edge(context->stack);
+#else /* PROCESS_EDGE */
   mark_cell(context->stack);
+#endif /* PROCESS_EDGE */
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
 }
 
@@ -873,7 +885,11 @@ STATIC void weak_clear_shapes()
   for (pp = &the_context->property_map_roots; *pp != NULL;) {
     PropertyMapList *e = *pp;
     if (is_marked_cell(e->pm)) {
+#ifdef PROCESS_EDGE
+      process_edge(e);
+#else /* PROCESS_EDGE */
       mark_cell(e);
+#endif /* PROCESS_EDGE */
       weak_clear_shape_recursive(e->pm);
       pp = &(*pp)->next;
     } else
@@ -943,12 +959,19 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
                next, next->n_props, next->n_transitions);
 #endif /* VERBOSE_WEAK */
       /* Resurrect if it is branching node or terminal node */
-      if (!is_marked_cell(next)) {
-        process_edge((uintptr_t) next);
+#ifdef PROCESS_EDGE
 #ifdef MARK_STACK
+      if (process_edge((uintptr_t) next))
         process_mark_stack();
+#else /* MARK_STACK */
+      process_edge((uintptr_t) next);
 #endif /* MARK_STACK */
-      }
+#else /* PROCESS_EDGE */
+      process_edge((uintptr_t) next);
+#ifdef MARK_STACK
+      process_mark_stack();
+#endif /* MARK_STACK */
+#endif /* PROCESS_EDGE */
       p->entry.data.u.pm = next;
       next->prev = pm;
       weak_clear_property_map_recursive(next);
@@ -967,7 +990,11 @@ STATIC void weak_clear_property_maps()
       *pp = (*pp)->next;
     else {
       pm = (*pp)->pm;
+#ifdef PROCESS_EDGE
+      process_edge(*pp);
+#else /* PROCESS_EDGE */
       mark_cell(*pp);
+#endif /* PROCESS_EDGE */
       if (!is_marked_cell(pm)) {
         process_edge((uintptr_t) pm);
 #ifdef MARK_STACK
