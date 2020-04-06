@@ -186,11 +186,6 @@ void init_memory(size_t bytes)
   gc_usec = 0;
 }
 
-//#ifdef __cplusplus
-extern "C" {
-  void* gc_malloc(Context *ctx, uintptr_t request_bytes, cell_type_t type);
-}
-//#endif
 void* gc_malloc(Context *ctx, uintptr_t request_bytes, cell_type_t type)
 {
   void *addr;
