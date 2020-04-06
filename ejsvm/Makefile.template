@@ -23,6 +23,13 @@ CFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 
 ##
+## C++
+##
+GC_CXX = true
+# CFLAGS is also given to the compiler (i.e., $(CXX) $(CFLAGS) $(CXXFLAGS))
+CXXFLAGS = -std=c++11
+
+##
 ## VMDL
 ##
 USE_VMDL=false
@@ -32,6 +39,7 @@ USE_VMDL=false
 ##
 
 CC = gcc
+CXX = gcc
 SED = gsed
 # SED = sed
 PYTHON = python

@@ -71,9 +71,7 @@ typedef enum cell_type_t {
   CELLT_FUNCTION      = HTAGV_FUNCTION,
   CELLT_BUILTIN       = HTAGV_BUILTIN,
   CELLT_ITERATOR      = HTAGV_ITERATOR,
-#ifdef USE_REGEXP
   CELLT_REGEXP        = HTAGV_REGEXP,
-#endif
   CELLT_BOXED_STRING  = HTAGV_BOXED_STRING,
   CELLT_BOXED_NUMBER  = HTAGV_BOXED_NUMBER,
   CELLT_BOXED_BOOLEAN = HTAGV_BOXED_BOOLEAN,
@@ -162,7 +160,7 @@ typedef uint32_t uintjsv_t;
 typedef int32_t intjsv_t;
 typedef int32_t cint;
 typedef uint32_t cuint;
-#define PRIJSValue "08"PRIx32
+#define PRIJSValue "08" PRIx32
 #else /* BIT_JSVALUE32 */
 #define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
@@ -170,7 +168,7 @@ typedef uint64_t uintjsv_t;
 typedef int64_t intjsv_t;
 typedef int64_t cint;
 typedef uint64_t cuint;
-#define PRIJSValue "016"PRIx64
+#define PRIJSValue "016" PRIx64
 #endif /* BIT_JSVALUE32 */
 
 #define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)

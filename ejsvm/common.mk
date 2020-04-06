@@ -12,6 +12,12 @@ endif
 ifeq ($(CC),cc)
     CC = clang
 endif
+ifeq ($(CXX),cc)
+    CC = clang
+endif
+ifeq ($(CXXFLAGS),)
+    CXXFLAGS = -std=c++11
+endif
 ifeq ($(SED),)
     SED = gsed
 endif
@@ -250,6 +256,12 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
+ifeq ($(GC_CXX),true)
+CXX_FILES = gc.cc
+else
+CXX_FILES =
+endif
+
 ifeq ($(OPT_GC),native)
     CFLAGS+=-DUSE_NATIVEGC=1
     OFILES+=freelist-space.o
@@ -447,6 +459,9 @@ endif
 
 instructions.h: instructions-opcode.h instructions-table.h
 
+$(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
+	cp $< $@
+
 %.c:: $(EJSVM_DIR)/%.c
 	cp $< $@
 
@@ -457,6 +472,10 @@ object.o: object-compat.c
 
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) $(CFLAGS_VMDL) -o $@ $<
+
+#gc.o:%.o:%.cc $(HFILES)
+$(patsubst %.cc,%.o,$(CPP_FILES)):%.o:%.cc $(HFILES)
+	$(CXX) -c $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
@@ -510,7 +529,7 @@ check: $(CHECKRESULTS)
 #### clean
 
 clean:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
@@ -519,7 +538,7 @@ clean:
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 
 cleanest:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)

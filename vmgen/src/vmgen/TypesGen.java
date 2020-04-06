@@ -32,7 +32,7 @@ public class TypesGen {
         StringBuilder sb = new StringBuilder();
         for (VMRepType.HT ht: VMRepType.allHT()) {
             sb.append(String.format("#define %s %d\n", ht.getValueName(), ht.getValue()));
-            sb.append(String.format("#define %s ((HTag) {%s})\n", ht.getName(), ht.getValueName()));
+            sb.append(String.format("#define %s ((HTag) {%s})\n", ht.getName(), ht.getCelltypeName()));
         }
         return sb.toString();
     }

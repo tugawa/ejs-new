@@ -7,6 +7,10 @@
  * Electro-communications.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int ftable_flag;
 extern int trace_flag;
 extern int lastprint_flag;
@@ -43,10 +47,6 @@ extern int numinsts;
 extern int n_hc;
 extern int n_enter_hc;
 extern int n_exit_hc;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /*
  * allocate.c

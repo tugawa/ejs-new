@@ -1,6 +1,10 @@
 #ifndef BIBOP_SPACE_H
 #define BIBOP_SPACE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if BYTES_IN_GRANULE == 4
 typedef uint32_t granule_t;
 #elif BYTES_IN_GRANULE == 8
@@ -179,5 +183,9 @@ static inline page_header_t *payload_to_page_header(uintptr_t ptr);
 #endif /* GC_DEBUG */
 
 extern struct space space;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BIBOP_SPACE_H */

@@ -198,7 +198,7 @@ typedef uint32_t Counter;
 #define minval_tag() (0)
 #define maxval_tag() (UINT16_MAX)
 
-#define PRIByteCode "016"PRIx64
+#define PRIByteCode "016" PRIx64
 #endif /* BIT_INSN32 */
 
 /*
