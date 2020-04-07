@@ -80,9 +80,12 @@ enum gc_phase {
   PHASE_FINALISE,
 };
 
-#ifdef GENERIC_PROCESS_NODE
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
 typedef int (*tracer_t)(uintptr_t ptr);
-#endif /* GENERIC_PROCESS_NODE */
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+#ifdef PROCESS_EDGE_FP
+tracer_t process_edge;
+#endif /* PROCESS_EDGE_FP */
 
 /*
  * Variables
@@ -156,8 +159,10 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
 STATIC void garbage_collection(Context *ctx);
-#ifdef GENERIC_PROCESS_NODE
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
 STATIC int process_edge_mark(uintptr_t ptr);
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+#ifdef GENERIC_PROCESS_NODE
 STATIC void scan_roots(tracer_t process_edge, Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(tracer_t process_edge);
@@ -324,6 +329,9 @@ STATIC void garbage_collection(Context *ctx)
 
   /* mark */
   gc_phase = PHASE_MARK;
+#ifdef PROCESS_EDGE_FP
+  process_edge = process_edge_mark;
+#endif /* PROCESS_EDGE_FP */
 #ifdef GENERIC_PROCESS_NODE
   scan_roots(process_edge_mark, ctx);
 #else /* GENERIC_PROCESS_NODE */
@@ -399,11 +407,13 @@ STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp);
 STATIC void process_edge_JSValue_array(tracer_t process_edge, JSValue *p, size_t start, size_t length);
 STATIC void process_edge_HashBody(tracer_t process_edge, HashCell **p, size_t length);
 #else /* GENERIC_PROCESS_NODE */
+#ifndef PROCESS_EDGE_FP
 #ifdef PROCESS_EDGE
 STATIC int process_edge(uintptr_t ptr);
 #else /* PROCESS_EDGE */
 STATIC void process_edge(uintptr_t ptr);
 #endif /* PROCESS_EDGE */
+#endif /* PROCESS_EDGE_FP */
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
 STATIC void process_node_Context(Context *p);
 STATIC void scan_function_table_entry(FunctionTable *p);
@@ -644,11 +654,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 }
 
 #ifdef PROCESS_EDGE
-#ifdef GENERIC_PROCESS_NODE
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
 STATIC int process_edge_mark(uintptr_t ptr)
-#else /* GENERIC_PROCESS_NODE */
+#else /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
 STATIC int process_edge(uintptr_t ptr)
-#endif /* GENERIC_PROCESS_NODE */
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
 {
 #ifdef MUX_TRACER
   switch (gc_phase) {
