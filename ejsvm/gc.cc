@@ -165,8 +165,17 @@ STATIC void weak_clear(tracer_t process_edge);
 STATIC_INLINE void process_node(tracer_t process_edge, uintptr_t ptr);
 #endif /* MARK_STACK */
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_roots(Context *ctx);
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear_StrTable(StrTable *table);
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear(void);
 #ifdef MARK_STACK
 STATIC_INLINE void process_node(uintptr_t ptr);
@@ -259,6 +268,18 @@ void try_gc(Context *ctx)
  * GC
  */
 
+#ifndef GENERIC_PROCESS_NODE
+#ifndef PROCESS_EDGE
+#ifdef CXX_TRACER
+class DefaultTracer {
+public:
+    static void process_edge(uintptr_t ptr);
+    static void mark_cell(void *ptr) { ::mark_cell(ptr); }
+    static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
+};
+#endif /* CXX_TRACER */
+#endif /* PROCESS_EDGE */
+#endif /* GENERIC_PROCESS_NODE */
 
 #ifdef MARK_STACK
 STATIC_INLINE void mark_stack_push(uintptr_t ptr)
@@ -327,7 +348,11 @@ STATIC void garbage_collection(Context *ctx)
 #ifdef GENERIC_PROCESS_NODE
   scan_roots(process_edge_mark, ctx);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+  scan_roots<DefaultTracer>(ctx);
+#else /* CXX_TRACER */
   scan_roots(ctx);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NDOE */
 
 #ifdef MARK_STACK
@@ -348,7 +373,11 @@ STATIC void garbage_collection(Context *ctx)
 #ifdef GENERIC_PROCESS_NODE
   weak_clear(process_edge_mark);
 #else /* GENERIC_PROCESS_NDOE */
+#ifdef CXX_TRACER
+  weak_clear<DefaultTracer>();
+#else /* CXX_TRACER */
   weak_clear();
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
 
   /* sweep */
@@ -402,19 +431,56 @@ STATIC void process_edge_HashBody(tracer_t process_edge, HashCell **p, size_t le
 #ifdef PROCESS_EDGE
 STATIC int process_edge(uintptr_t ptr);
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+/*
+class DefaultTracer {
+public:
+    static void process_edge(uintptr_t ptr);
+    static void mark_cell(void *ptr) { ::mark_cell(ptr); }
+    static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
+};
+*/
+#else /* CXX_TRACER */
 STATIC void process_edge(uintptr_t ptr);
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
+
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_node_Context(Context *p);
+
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_function_table_entry(FunctionTable *p);
+
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
+
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
+
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_edge_HashBody(HashCell **p, size_t length);
 #endif /* GENERIC_PROCESS_NODE */
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC_INLINE void process_node(tracer_t process_edge, uintptr_t ptr)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC_INLINE void process_node(uintptr_t ptr)
 #endif /* GENERIC_PROCESS_NDOE */
 {
@@ -435,11 +501,19 @@ STATIC_INLINE void process_node(uintptr_t ptr)
         uint64_t a_length =
           (uint64_t) number_to_double(get_array_ptr_length(p));
         size_t len = a_length < a_size ? a_length : a_size;
+#ifdef CXX_TRACER
+        Tracer::process_edge(get_array_ptr_length(p));
+#else /* CXX_TRACER */
         process_edge(get_array_ptr_length(p));
+#endif /* CXX_TRACER */
 #ifdef GENERIC_PROCESS_NODE
         process_edge_JSValue_array(process_edge, a_body, 0, len);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+        process_edge_JSValue_array<Tracer>(a_body, 0, len);
+#else /* CXX_TRACER */
         process_edge_JSValue_array(a_body, 0, len);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
       }
       break;
@@ -452,7 +526,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
        * scan_function_table_entry(ftentry);
        *    All function table entries are scanned through Context
        */
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) frame);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) frame);
+#endif /* CXX_TRACER */
       break;
     }
   case CELLT_BUILTIN:
@@ -461,14 +539,22 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       JSObject *p = (JSObject *) ptr;
       JSValue value = get_number_object_ptr_value(p);
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) value);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) value);
+#endif /* CXX_TRACER */
       break;
     }
   case CELLT_BOXED_STRING:
     {
       JSObject *p = (JSObject *) ptr;
       JSValue value = get_string_object_ptr_value(p);
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) value);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) value);
+#endif /* CXX_TRACER */
       break;
     }
   case CELLT_BOXED_BOOLEAN:
@@ -491,7 +577,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 #ifdef GENERIC_PROCESS_NODE
         process_edge_JSValue_array(process_edge, p->body, 0, p->size);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+        process_edge_JSValue_array<Tracer>(p->body, 0, p->size);
+#else /* CXX_TRACER */
         process_edge_JSValue_array(p->body, 0, p->size);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
       }
       return;
@@ -509,7 +599,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 #ifdef GENERIC_PROCESS_NODE
     process_node_FunctionFrame(process_edge, (FunctionFrame *) ptr);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+    process_node_FunctionFrame<Tracer>((FunctionFrame *) ptr);
+#else /* CXX_TRACER */
     process_node_FunctionFrame((FunctionFrame *) ptr);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
     return;
   case CELLT_STR_CONS:
@@ -517,14 +611,22 @@ STATIC_INLINE void process_node(uintptr_t ptr)
       StrCons *p = (StrCons *) ptr;
       /* WEAK: p->str */
       if (p->next != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->next); /* StrCons */
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->next); /* StrCons */
+#endif /* CXX_TRACER */
       return;
     }
   case CELLT_CONTEXT:
 #ifdef GENERIC_PROCESS_NODE
     process_node_Context(process_edge, (Context *) ptr);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+    process_node_Context<Tracer>((Context *) ptr);
+#else /* CXX_TRACER */
     process_node_Context((Context *) ptr);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
     return;
   case CELLT_STACK:
@@ -540,7 +642,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 #ifdef GENERIC_PROCESS_NODE
         process_edge_HashBody(process_edge, p->body, p->size);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+        process_edge_HashBody<Tracer>(p->body, p->size);
+#else /* CXX_TRACER */
         process_edge_HashBody(p->body, p->size);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
       }
       return;
@@ -554,41 +660,78 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_HASH_CELL:
     {
       HashCell *p = (HashCell *) ptr;
+#ifdef CXX_TRACER
+      Tracer::process_edge(p->entry.key);
+#else /* CXX_TRACER */
       process_edge(p->entry.key);
+#endif /* CXX_TRACER */
 #ifndef HC_SKIP_INTERNAL
       /* transition link is weak if HC_SKIP_INTERNAL */
       if (is_transition(p->entry.attr))
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->entry.data.u.pm);  /* PropertyMap */
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->entry.data.u.pm);  /* PropertyMap */
+#endif /* CXX_TRACER */
 #endif /* HC_SKIP_INTERNAL */
       if (p->next != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->next);  /* HashCell */
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->next);  /* HashCell */
+#endif /* CXX_TRACER */
       return;
     }
   case CELLT_PROPERTY_MAP:
     {
       PropertyMap *p = (PropertyMap *) ptr;
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) p->map); /* HashTable */
+#else /* CXX_TRACER */
       process_edge((uintptr_t) p->map); /* HashTable */
+#endif /* CXX_TRACER */
 #ifndef HC_SKIP_INTERNAL
       if (p->prev != NULL)
         /* weak if HC_SKIP_INTERNAL */
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->prev); /* PropertyMap */
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->prev); /* PropertyMap */
+#endif /* CXX_TRACER */
 #endif /* HC_SKIP_INTERNAL */
       if (p->shapes != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->shapes); /* Shape
+                                              * (always keep the largest one) */
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->shapes); /* Shape
                                               * (always keep the largest one) */
+#endif /* CXX_TRACER */
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) p->__proto__);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) p->__proto__);
+#endif /* CXX_TRACER */
       return;
     }
   case CELLT_SHAPE:
     {
       Shape *p = (Shape *) ptr;
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) p->pm);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) p->pm);
+#endif /* CXX_TRACER */
 #ifndef NO_SHAPE_CACHE
 #ifdef WEAK_SHAPE_LIST
       /* p->next is weak */
 #else /* WEAK_SHAPE_LIST */
       if (p->next != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) p->next);
+#else /* CXX_TRACER */
         process_edge((uintptr_t) p->next);
+#endif /* CXX_TRACER */
 #endif /* WEAK_SHAPE_LIST */
 #endif /* NO_SHAPE_CACHE */
       return;
@@ -596,8 +739,13 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_UNWIND:
     {
       UnwindProtect *p = (UnwindProtect *) ptr;
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) p->prev);
+      Tracer::process_edge((uintptr_t) p->lp);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) p->prev);
       process_edge((uintptr_t) p->lp);
+#endif /* CXX_TRACER */
     }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   case CELLT_PROPERTY_MAP_LIST:
@@ -620,10 +768,18 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
     int i;
     /* 1. shape */
+#ifdef CXX_TRACER
+    Tracer::process_edge((uintptr_t) os);
+#else /* CXX_TRACER */
     process_edge((uintptr_t) os);
+#endif /* CXX_TRACER */
     /* 2. embedded propertyes */
     for (i = os->pm->n_special_props; i < actual_embedded; i++)
+#ifdef CXX_TRACER
+      Tracer::process_edge(p->eprop[i]);
+#else /* CXX_TRACER */
       process_edge(p->eprop[i]);
+#endif /* CXX_TRACER */
     if (n_extension != 0) {
       /* 3. extension */
       JSValue *extension = jsv_to_extension_prop(p->eprop[actual_embedded]);
@@ -631,8 +787,13 @@ STATIC_INLINE void process_node(uintptr_t ptr)
       process_edge_JSValue_array(process_edge, extension, 0,
                                  os->pm->n_props - actual_embedded);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+      process_edge_JSValue_array<Tracer>(extension, 0,
+                                 os->pm->n_props - actual_embedded);
+#else /* CXX_TRACER */
       process_edge_JSValue_array(extension, 0,
                                  os->pm->n_props - actual_embedded);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
     }
 #ifdef ALLOC_SITE_CACHE
@@ -682,19 +843,31 @@ STATIC int process_edge(uintptr_t ptr)
 #endif /* MUX_TRACER */
 }
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+void DefaultTracer::process_edge(uintptr_t ptr)
+#else /* CXX_TRACER */
 STATIC void process_edge(uintptr_t ptr)
+#endif /* CXX_TRACER */
 {
   if (is_fixnum(ptr) || is_special(ptr))
     return;
 
   ptr = ptr & ~TAGMASK;
+#ifdef CXX_TRACER
+  if (in_js_space((void *) ptr) && DefaultTracer::test_and_mark_cell((void *) ptr))
+#else /* CXX_TRACER */
   if (in_js_space((void *) ptr) && test_and_mark_cell((void *) ptr))
+#endif /* CXX_TRACER */
     return;
 
 #ifdef MARK_STACK
   mark_stack_push(ptr);
 #else /* MARK_STACK */
+#ifdef CXX_TRACER
+  process_node<DefaultTracer>(ptr);
+#else /* CXX_TRACER */
   process_node(ptr);
+#endif /* CXX_TRACER */
 #endif /* MARK_STACK */
 }
 #endif /* PROCESS_EDGE */
@@ -703,6 +876,9 @@ STATIC void process_edge(uintptr_t ptr)
 STATIC void process_edge_JSValue_array(tracer_t process_edge,
     JSValue *p, size_t start, size_t length)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -714,16 +890,27 @@ STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
       process_edge((uintptr_t) p[i]);
   }
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+  if (Tracer::test_and_mark_cell(p))
+#else /* CXX_TRACER */
   if (test_and_mark_cell(p))
+#endif /* CXX_TRACER */
     return;
   for (i = start; i < length; i++)
+#ifdef CXX_TRACER
+    Tracer::process_edge((uintptr_t) p[i]);
+#else /* CXX_TRACER */
     process_edge((uintptr_t) p[i]);
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
 }
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC void process_edge_HashBody(tracer_t process_edge, HashCell **p, size_t length)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_edge_HashBody(HashCell **p, size_t length)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -736,27 +923,50 @@ STATIC void process_edge_HashBody(HashCell **p, size_t length)
         process_edge((uintptr_t) p[i]);  /* HashCell */
   }  
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+  if (Tracer::test_and_mark_cell(p))
+#else /* CXX_TRACER */
   if (test_and_mark_cell(p))
+#endif /* CXX_TRACER */
     return;
   for (i = 0; i < length; i++)
     if (p[i] != NULL)
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) p[i]);  /* HashCell */
+#else /* CXX_TRACER */
       process_edge((uintptr_t) p[i]);  /* HashCell */
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
 }
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC void process_node_FunctionFrame(tracer_t process_edge, FunctionFrame *p)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_node_FunctionFrame(FunctionFrame *p)
 #endif /* GENERIC_PROCESS_NODE */
 {
   size_t i;
 
   if (p->prev_frame != NULL)
+#ifdef CXX_TRACER
+    Tracer::process_edge((uintptr_t) p->prev_frame); /* FunctionFrame */
+#else /* CXX_TRACER */
     process_edge((uintptr_t) p->prev_frame); /* FunctionFrame */
+#endif /* CXX_TRACER */
+#ifdef CXX_TRACER
+  Tracer::process_edge(p->arguments);
+#else /* CXX_TRACER */
   process_edge(p->arguments);
+#endif /* CXX_TRACER */
   for (i = 0; i < p->nlocals; i++)
+#ifdef CXX_TRACER
+    Tracer::process_edge(p->locals[i]);
+#else /* CXX_TRACER */
     process_edge(p->locals[i]);
+#endif /* CXX_TRACER */
 #ifdef DEBUG
   assert(p->locals[p->nlocals - 1] == JS_UNDEFINED);
 #endif /* DEBUG */
@@ -765,12 +975,19 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
 #ifdef GENERIC_PROCESS_NODE
 STATIC void process_node_Context(tracer_t process_edge, Context *context)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_node_Context(Context *context)
 #endif /* GENERIC_PROCESS_NODE */
 {
   int i;
 
+#ifdef CXX_TRACER
+  Tracer::process_edge((uintptr_t) context->global);
+#else /* CXX_TRACER */
   process_edge((uintptr_t) context->global);
+#endif /* CXX_TRACER */
   /* function table is a static data structure
    *   Note: spreg.cf points to internal address of the function table.
    */
@@ -778,33 +995,62 @@ STATIC void process_node_Context(Context *context)
 #ifdef GENERIC_PROCESS_NODE
     scan_function_table_entry(process_edge, &context->function_table[i]);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+    scan_function_table_entry<Tracer>(&context->function_table[i]);
+#else /* CXX_TRACER */
     scan_function_table_entry(&context->function_table[i]);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
   }
+#ifdef CXX_TRACER
+  Tracer::process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
+  Tracer::process_edge((uintptr_t) context->spreg.a);
+  Tracer::process_edge((uintptr_t) context->spreg.err);
+#else /* CXX_TRACER */
   process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
   process_edge((uintptr_t) context->spreg.a);
   process_edge((uintptr_t) context->spreg.err);
+#endif /* CXX_TRACER */
   if (context->exhandler_stack_top != NULL)
+#ifdef CXX_TRACER
+    Tracer::process_edge((uintptr_t) context->exhandler_stack_top);
+#else /* CXX_TRACER */
     process_edge((uintptr_t) context->exhandler_stack_top);
+#endif /* CXX_TRACER */
+#ifdef CXX_TRACER
+  Tracer::process_edge((uintptr_t) context->lcall_stack);
+#else /* CXX_TRACER */
   process_edge((uintptr_t) context->lcall_stack);
+#endif /* CXX_TRACER */
 
   /* process stack */
   assert(!is_marked_cell(context->stack));
 #ifdef PROCESS_EDGE
   process_edge((uintptr_t) context->stack);
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+  Tracer::mark_cell(context->stack);
+#else /* CXX_TRACER */
   mark_cell(context->stack);
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
 #ifdef GENERIC_PROCESS_NODE
   scan_stack(process_edge, context->stack, context->spreg.sp, context->spreg.fp);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+  scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
+#else /* CXX_TRACER */
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
 }
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC void scan_function_table_entry(tracer_t process_edge, FunctionTable *p)
 #else /* GENERIC_PROCESS_NODE */ 
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_function_table_entry(FunctionTable *p)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -814,7 +1060,11 @@ STATIC void scan_function_table_entry(FunctionTable *p)
     size_t n_constants = p->n_constants;
     size_t i;
     for (i = 0; i < n_constants; i++)
+#ifdef CXX_TRACER
+      Tracer::process_edge(constant_pool[i]);
+#else /* CXX_TRACER */
       process_edge(constant_pool[i]);
+#endif /* CXX_TRACER */
   }
 
 #ifdef ALLOC_SITE_CACHE
@@ -825,10 +1075,18 @@ STATIC void scan_function_table_entry(FunctionTable *p)
       Instruction *insn = &p->insns[i];
       AllocSite *alloc_site = &insn->alloc_site;
       if (alloc_site->shape != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) alloc_site->shape);
+#else /* CXX_TRACER */
         process_edge((uintptr_t) alloc_site->shape);
+#endif /* CXX_TRACER */
       /* TODO: too eary PM sacnning. scan after updating alloc site info */
       if (alloc_site->pm != NULL)
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) alloc_site->pm);
+#else /* CXX_TRACER */
         process_edge((uintptr_t) alloc_site->pm);
+#endif /* CXX_TRACER */
     }
   }
 #endif /* ALLOC_SITE_CACHE */
@@ -841,8 +1099,13 @@ STATIC void scan_function_table_entry(FunctionTable *p)
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
       if (ic->shape != NULL) {
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) ic->shape);
+        Tracer::process_edge((uintptr_t) ic->prop_name);
+#else /* CXX_TRACER */
         process_edge((uintptr_t) ic->shape);
         process_edge((uintptr_t) ic->prop_name);
+#endif /* CXX_TRACER */
       }
     }
   }
@@ -852,18 +1115,29 @@ STATIC void scan_function_table_entry(FunctionTable *p)
 #ifdef GENERIC_PROCESS_NODE
 STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
 #endif /* GENERIC_PROCESS_NODE */
 {
   while (1) {
     while (sp >= fp) {
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) stack[sp]);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) stack[sp]);
+#endif /* CXX_TRACER */
       sp--;
     }
     if (sp < 0)
       return;
     fp = stack[sp--]; /* FP */
+#ifdef CXX_TRACER
+    Tracer::process_edge((uintptr_t) jsv_to_function_frame(stack[sp--])); /* LP */
+#else /* CXX_TRACER */
     process_edge((uintptr_t) jsv_to_function_frame(stack[sp--])); /* LP */
+#endif /* CXX_TRACER */
     sp--; /* PC */
     sp--; /* CF (function table entries are scanned as a part of context) */
   }
@@ -872,6 +1146,9 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
 #ifdef GENERIC_PROCESS_NODE
 STATIC void scan_string_table(tracer_t process_edge, StrTable *p)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_string_table(StrTable *p)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -881,12 +1158,19 @@ STATIC void scan_string_table(StrTable *p)
 
   for (i = 0; i < length; i++)
     if (vec[i] != NULL)
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) vec[i]); /* StrCons */
+#else /* CXX_TRACER */
       process_edge((uintptr_t) vec[i]); /* StrCons */
+#endif /* CXX_TRACER */
 }
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC void scan_roots(tracer_t process_edge, Context *ctx)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void scan_roots(Context *ctx)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -899,19 +1183,31 @@ STATIC void scan_roots(Context *ctx)
     struct global_constant_objects *gconstsp = &gconsts;
     JSValue *p;
     for (p = (JSValue *) gconstsp; p < (JSValue *) (gconstsp + 1); p++)
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) *p);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) *p);
+#endif /* CXX_TRACER */
   }
   {
     struct global_property_maps *gpmsp = &gpms;
     PropertyMap **p;
     for (p = (PropertyMap **) gpmsp; p < (PropertyMap **) (gpmsp + 1); p++)
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) *p);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) *p);
+#endif /* CXX_TRACER */
   }
   {
     struct global_object_shapes *gshapesp = &gshapes;
     Shape** p;
     for (p = (Shape **) gshapesp; p < (Shape **) (gshapesp + 1); p++)
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) *p);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) *p);
+#endif /* CXX_TRACER */
   }
 
   /* function table: do not trace.
@@ -922,19 +1218,31 @@ STATIC void scan_roots(Context *ctx)
 #ifdef GENERIC_PROCESS_NODE
   scan_string_table(process_edge, &string_table);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+  scan_string_table<Tracer>(&string_table);
+#else /* CXX_TRACER */
   scan_string_table(&string_table);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
 
   /*
    * Context
    */
+#ifdef CXX_TRACER
+  Tracer::process_edge((uintptr_t) ctx); /* Context */
+#else /* CXX_TRACER */
   process_edge((uintptr_t) ctx); /* Context */
+#endif /* CXX_TRACER */
 
   /*
    * GC_PUSH'ed
    */
   for (i = 0; i < gc_root_stack_ptr; i++)
+#ifdef CXX_TRACER
+    Tracer::process_edge(*(uintptr_t*) gc_root_stack[i]);
+#else /* CXX_TRACER */
     process_edge(*(uintptr_t*) gc_root_stack[i]);
+#endif /* CXX_TRACER */
 }
 
 /*
@@ -1001,6 +1309,9 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #ifdef GENERIC_PROCESS_NODE
 STATIC void weak_clear_shapes(tracer_t process_edge)
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear_shapes()
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -1011,7 +1322,11 @@ STATIC void weak_clear_shapes()
 #ifdef PROCESS_EDGE
       process_edge((uintptr_t) e);
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+      Tracer::mark_cell(e);
+#else /* CXX_TRACER */
       mark_cell(e);
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
       weak_clear_shape_recursive(e->pm);
       pp = &(*pp)->next;
@@ -1047,6 +1362,9 @@ static PropertyMap* get_transition_dest(PropertyMap *pm)
 #ifdef GENERIC_PROCESS_NODE
 static void weak_clear_property_map_recursive(tracer_t process_edge, PropertyMap *pm)
 #else /* GENERIC_PROCESS_NDOE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 static void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -1099,7 +1417,11 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
       process_edge((uintptr_t) next);
 #endif /* MARK_STACK */
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+      Tracer::process_edge((uintptr_t) next);
+#else /* CXX_TRACER */
       process_edge((uintptr_t) next);
+#endif /* CXX_TRACER */
 #ifdef MARK_STACK
       process_mark_stack();
 #endif /* MARK_STACK */
@@ -1109,7 +1431,11 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 #ifdef GENERIC_PROCESS_NODE
       weak_clear_property_map_recursive(process_edge, next);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+      weak_clear_property_map_recursive<Tracer>(next);
+#else /* CXX_TRACER */
       weak_clear_property_map_recursive(next);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NDOE */
     }
   pm->n_transitions = n_transitions;
@@ -1118,6 +1444,9 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 #ifdef GENERIC_PROCESS_NODE
 STATIC void weak_clear_property_maps(tracer_t process_edge)
 #else /* GENERIC_PROCESS_NDOE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear_property_maps()
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -1133,10 +1462,18 @@ STATIC void weak_clear_property_maps()
 #ifdef PROCESS_EDGE
       process_edge((uintptr_t) *pp);
 #else /* PROCESS_EDGE */
+#ifdef CXX_TRACER
+      Tracer::mark_cell(*pp);
+#else /* CXX_TRACER */
       mark_cell(*pp);
+#endif /* CXX_TRACER */
 #endif /* PROCESS_EDGE */
       if (!is_marked_cell(pm)) {
+#ifdef CXX_TRACER
+        Tracer::process_edge((uintptr_t) pm);
+#else /* CXX_TRACER */
         process_edge((uintptr_t) pm);
+#endif /* CXX_TRACER */
 #ifdef MARK_STACK
 #ifdef GENERIC_PROCESS_NODE
         process_mark_stack(process_edge);
@@ -1148,7 +1485,11 @@ STATIC void weak_clear_property_maps()
 #ifdef GENERIC_PROCESS_NODE
       weak_clear_property_map_recursive(process_edge, pm);
 #else /* GENERIC_PROCESS_NDOE */
+#ifdef CXX_TRACER
+      weak_clear_property_map_recursive<Tracer>(pm);
+#else /* CXX_TRACER */
       weak_clear_property_map_recursive(pm);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
       pp = &(*pp)->next;
     }
@@ -1176,14 +1517,25 @@ STATIC void weak_clear(tracer_t process_edge)
   the_context->exhandler_pool = NULL;
 }
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear(void)
 {
 #ifdef HC_SKIP_INTERNAL
   /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
+#ifdef CXX_TRACER
+  weak_clear_property_maps<Tracer>();
+#else /* CXX_TRACER */
   weak_clear_property_maps();
+#endif /* CXX_TRACER */
 #endif /* HC_SKIP_INTERNAL */
 #ifdef WEAK_SHAPE_LIST
+#ifdef CXX_TRACER
+  weak_clear_shapes<Tracer>();
+#else /* CXX_TRACER */
   weak_clear_shapes();
+#endif /* CXX_TRACER */
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable(&string_table);
 

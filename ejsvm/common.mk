@@ -474,7 +474,7 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CFLAGS) $(CFLAGS_VMDL) -o $@ $<
 
 #gc.o:%.o:%.cc $(HFILES)
-$(patsubst %.cc,%.o,$(CPP_FILES)):%.o:%.cc $(HFILES)
+$(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
