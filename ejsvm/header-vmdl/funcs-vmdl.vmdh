@@ -24,3 +24,4 @@ externC (needContext, makeInline) to_double : JSValue -> cdouble
 externC (makeInline) special_to_double : Special  -> cdouble
 externC (makeInline) number_to_cint : Number-> cint
 externC (makeInline) number_to_double : Number -> cdouble
+externC (needContext, makeInline) to_cint : JSValue -> cint

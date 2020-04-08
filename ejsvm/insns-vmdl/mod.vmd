@@ -11,8 +11,8 @@ mod (v1, v2) {
       if (IsFixnumZero(v2)) {
         return Flonum_Nan();
       } else {
-        cint x1 = fixnum_to_cint(v1);
-        cint x2 = fixnum_to_cint(v2);
+        cint x1 = to_cint(v1);
+        cint x2 = to_cint(v2);
         cint s = x1 % x2;
         return cint_to_fixnum(s);
       }

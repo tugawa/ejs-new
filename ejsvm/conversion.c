@@ -282,6 +282,9 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 
 #include "funcs/number_to_double.inc"
 
+
+#include "funcs/to_cint.inc"
+
 /* used in builtin methods */
 cint toInteger(Context *context, JSValue a) {
   cint n;

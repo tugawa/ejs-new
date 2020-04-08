@@ -7,7 +7,7 @@ sub : (JSValue, JSValue) -> JSValue
 sub (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint s = fixnum_to_cint(v1) - fixnum_to_cint(v2);
+      cint s = to_cint(v1) - to_cint(v2);
       return cint_to_number(s);
     }
     case (number v1 && number v2) {

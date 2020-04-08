@@ -8,8 +8,8 @@ mul : (JSValue, JSValue) -> JSValue
 mul (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint n1 = fixnum_to_cint(v1);
-      cint n2 = fixnum_to_cint(v2);
+      cint n1 = to_cint(v1);
+      cint n2 = to_cint(v2);
       if (Half_fixnum_range(n1) && Half_fixnum_range(n2)) {
         cint p = n1 * n2;
         return cint_to_fixnum(p);

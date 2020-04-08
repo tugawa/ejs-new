@@ -701,9 +701,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
             if(expandedNode != null){
                 // INLINE EXPANSION PRINT ******************************************
-                // System.err.println("Function-Inline-Expand:");
-                // System.err.println("Original:"+node.toString());
-                // System.err.println("Expanded:"+expandedNode.toString());
+                 System.err.println("Function-Inline-Expand:");
+                 System.err.println("Original:"+node.toString());
+                 System.err.println("Expanded:"+expandedNode.toString());
                 visit(expandedNode, indent);
                 return;
             }

@@ -24,3 +24,4 @@ to_double (_) accept
 special_to_double (_) unspecified
 number_to_cint (_) accept
 number_to_double (_) accept
+to_cint (_) unspecified

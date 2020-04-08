@@ -266,7 +266,8 @@ FUNC_GENERATED = \
 	funcs/to_double.inc \
 	funcs/special_to_double.inc \
 	funcs/number_to_cint.inc \
-	funcs/number_to_double.inc
+	funcs/number_to_double.inc \
+	funcs/to_cint.inc
 
 INSNS_VMD = \
     insns-vmdl/add.vmd \
@@ -354,7 +355,8 @@ FUNCS_VMD = \
 	funcs-vmdl/to_double.vmd \
 	funcs-vmdl/special_to_double.vmd \
 	funcs-vmdl/number_to_cint.vmd \
-	funcs-vmdl/number_to_double.vmd
+	funcs-vmdl/number_to_double.vmd \
+	funcs-vmdl/to_cint.vmd
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
