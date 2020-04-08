@@ -89,7 +89,7 @@ struct unwind_protect {
   int pc;
   FunctionFrame *lp;   /* catch clause may make a local frame */
   int lcall_stack_ptr;
-  jmp_buf *jmp_buf;
+  jmp_buf *_jmp_buf;
 };
 
 // #define currentFl(c)  (getSp(c) - getFp(c) + 1)
