@@ -178,6 +178,9 @@ template<typename Tracer>
 #endif /* CXX_TRACER */
 STATIC void weak_clear(void);
 #ifdef MARK_STACK
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC_INLINE void process_node(uintptr_t ptr);
 #endif /* MARK_STACK */
 #endif /* GENERIC_PROCESS_NODE */
@@ -301,6 +304,9 @@ STATIC_INLINE int mark_stack_is_empty()
 #ifdef GENERIC_PROCESS_NODE
 STATIC void process_mark_stack(tracer_t process_edge)
 #else /* GENERIC_PROCESS_NDOE */
+#ifdef CXX_TRACER
+template <typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void process_mark_stack()
 #endif /* GENERIC_PROCESS_NODE */
 {
@@ -309,7 +315,11 @@ STATIC void process_mark_stack()
 #ifdef GENERIC_PROCESS_NODE
     process_node(process_edge, ptr);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+    process_node<Tracer>(ptr);
+#else /* CXX_TRACER */
     process_node(ptr);
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
   }
 }
@@ -359,7 +369,11 @@ STATIC void garbage_collection(Context *ctx)
 #ifdef GENERIC_PROCESS_NODE
   process_mark_stack(process_edge_mark);
 #else /* GENERIC_PROECSS_NODE */
+#ifdef CXX_TRACER
+  process_mark_stack<DefaultTracer>();
+#else /* CXX_TRACER */
   process_mark_stack();
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NDOE */
 #endif /* MARK_STACK */
 
@@ -1410,7 +1424,11 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
 #ifdef GENERIC_PROCESS_NODE
         process_mark_stack(process_edge);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+      process_mark_stack<Tracer>();
+#else /* CXX_TRACER */
         process_mark_stack();
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
       }
 #else /* MARK_STACK */
@@ -1423,7 +1441,11 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
       process_edge((uintptr_t) next);
 #endif /* CXX_TRACER */
 #ifdef MARK_STACK
+#ifdef CXX_TRACER
+      process_mark_stack<Tracer>();
+#else /* CXX_TRACER */
       process_mark_stack();
+#endif /* CXX_TRACER */
 #endif /* MARK_STACK */
 #endif /* PROCESS_EDGE */
       p->entry.data.u.pm = next;
@@ -1478,7 +1500,11 @@ STATIC void weak_clear_property_maps()
 #ifdef GENERIC_PROCESS_NODE
         process_mark_stack(process_edge);
 #else /* GENERIC_PROCESS_NODE */
+#ifdef CXX_TRACER
+        process_mark_stack<Tracer>();
+#else /* CXX_TRACER */
         process_mark_stack();
+#endif /* CXX_TRACER */
 #endif /* GENERIC_PROCESS_NODE */
 #endif /* MARK_STACK */
       }
