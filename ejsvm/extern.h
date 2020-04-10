@@ -190,6 +190,7 @@ extern cint toInteger(Context *context, JSValue a);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
 extern JSValue double_to_string(double);
+extern cint to_cint(JSValue);
 
 /*
  * hash.c

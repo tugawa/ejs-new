@@ -856,7 +856,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
-            varmap.put("cint", "int");
+            varmap.put("cint", "cint");
             varmap.put("cdouble", "double");
             varmap.put("cstring", "char*");
             varmap.put("Displacement", "Displacement");

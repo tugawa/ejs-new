@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) to_cint : JSValue -> cint
+(makeInline) to_cint : JSValue -> cint
 to_cint(v){
     top: match(v){
         case(Fixnum v){
