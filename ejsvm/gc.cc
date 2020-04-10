@@ -261,6 +261,7 @@ void try_gc(Context *ctx)
 class DefaultTracer {
 public:
     static void process_edge(uintptr_t ptr);
+    static void process_edge_function_frame(JSValue jsv) { process_edge((uintptr_t) jsv_to_function_frame(jsv)); }
     static void mark_cell(void *ptr) { ::mark_cell(ptr); }
     static bool is_marked_cell(void *ptr) { return ::is_marked_cell(ptr); }
     static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
@@ -968,7 +969,7 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
       return;
     fp = stack[sp--]; /* FP */
 #ifdef CXX_TRACER
-    Tracer::process_edge((uintptr_t) jsv_to_function_frame(stack[sp--])); /* LP */
+    Tracer::process_edge_function_frame(stack[sp--]); /* LP */
 #else /* CXX_TRACER */
     process_edge((uintptr_t) jsv_to_function_frame(stack[sp--])); /* LP */
 #endif /* CXX_TRACER */
