@@ -262,6 +262,7 @@ class DefaultTracer {
 public:
     static void process_edge(uintptr_t ptr);
     static void mark_cell(void *ptr) { ::mark_cell(ptr); }
+    static bool is_marked_cell(void *ptr) { return ::is_marked_cell(ptr); }
     static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
 };
 #endif /* CXX_TRACER */
@@ -869,7 +870,11 @@ STATIC void process_node_Context(Context *context)
 #endif /* CXX_TRACER */
 
   /* process stack */
+#ifdef CXX_TRACER
+  assert(!Tracer::is_marked_cell(context->stack));
+#else /* CXX_TRACER */
   assert(!is_marked_cell(context->stack));
+#endif /* CXX_TRACER */
 #ifdef CXX_TRACER
   Tracer::mark_cell(context->stack);
 #else /* CXX_TRACER */
@@ -1067,6 +1072,9 @@ STATIC void scan_roots(Context *ctx)
  * Unlink the StrCons from the string table.  These StrCons's
  * are collected in the next collection cycle.
  */
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 STATIC void weak_clear_StrTable(StrTable *table)
 {
   size_t i;
@@ -1074,7 +1082,11 @@ STATIC void weak_clear_StrTable(StrTable *table)
     StrCons ** p = table->obvector + i;
     while (*p != NULL) {
       StringCell *cell = jsv_to_normal_string((*p)->str);
+#ifdef CXX_TRACER
+      if (!Tracer::is_marked_cell(cell)) {
+#else /* CXX_TRACER */
       if (!is_marked_cell(cell)) {
+#endif /* CXX_TRACER */
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
       } else
@@ -1084,6 +1096,9 @@ STATIC void weak_clear_StrTable(StrTable *table)
 }
 
 #ifdef WEAK_SHAPE_LIST
+#ifdef CXX_TRACER
+template<typename Tracer>
+#endif /* CXX_TRACER */
 void weak_clear_shape_recursive(PropertyMap *pm)
 {
   HashIterator iter;
@@ -1100,7 +1115,11 @@ void weak_clear_shape_recursive(PropertyMap *pm)
     Shape **p;
     for (p = &pm->shapes; *p != NULL; ) {
       Shape *os = *p;
+#ifdef CXX_TRACER
+      if (Tracer::is_marked_cell(os))
+#else /* CXX_TRACER */
       if (is_marked_cell(os))
+#endif /* CXX_TRACER */
         p = &(*p)->next;
       else {
         Shape *skip = *p;
@@ -1118,7 +1137,11 @@ void weak_clear_shape_recursive(PropertyMap *pm)
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
     if (is_transition(cell->entry.attr))
+#ifdef CXX_TRACER
+      weak_clear_shape_recursive<Tracer>(cell->entry.data.u.pm);
+#else /* CXX_TRACER */
       weak_clear_shape_recursive(cell->entry.data.u.pm);
+#endif /* CXX_TRACER */
 
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
@@ -1131,13 +1154,15 @@ STATIC void weak_clear_shapes()
   PropertyMapList **pp;
   for (pp = &the_context->property_map_roots; *pp != NULL;) {
     PropertyMapList *e = *pp;
-    if (is_marked_cell(e->pm)) {
 #ifdef CXX_TRACER
+    if (Tracer::is_marked_cell(e->pm)) {
       Tracer::mark_cell(e);
+      weak_clear_shape_recursive<Tracer>(e->pm);
 #else /* CXX_TRACER */
+    if (is_marked_cell(e->pm)) {
       mark_cell(e);
-#endif /* CXX_TRACER */
       weak_clear_shape_recursive(e->pm);
+#endif /* CXX_TRACER */
       pp = &(*pp)->next;
     } else
       *pp = (*pp)->next;
@@ -1177,7 +1202,11 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
   HashCell *p;
   int n_transitions = 0;
 
+#ifdef CXX_TRACER
+  assert(Tracer::is_marked_cell(pm));
+#else /* CXX_TRACER */
   assert(is_marked_cell(pm));
+#endif /* CXX_TRACER */
 
   iter = createHashIterator(pm->map);
   while(nextHashCell(pm->map, &iter, &p) != FAIL)
@@ -1189,20 +1218,32 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
        *   2. outgoing edge is exactly 1,
        * then, the node is an internal node to be eliminated.
        */
+#ifdef CXX_TRACER
+      while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
+#else /* CXX_TRACER */
       while (!is_marked_cell(next) && next->n_transitions == 1) {
+#endif /* CXX_TRACER */
 #ifdef VERBOSE_WEAK
         printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
         next = get_transition_dest(next);
       }
+#ifdef CXX_TRACER
+      if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
+#else /* CXX_TRACER */
       if (!is_marked_cell(next) && next->n_transitions == 0) {
+#endif /* CXX_TRACER */
         p->deleted = 1;             /* TODO: use hash_delete */
         p->entry.data.u.pm = NULL;  /* make invariant check success */
         continue;
       }
       n_transitions++;
 #ifdef VERBOSE_WEAK
+#ifdef CXX_TRACER
+      if (Tracer::is_marked_cell(next))
+#else /* CXX_TRACER */
       if (is_marked_cell(next))
+#endif /* CXX_TRACER */
         printf("preserve PropertyMap %p because it has been marked\n", next);
       else
         printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
@@ -1240,9 +1281,17 @@ STATIC void weak_clear_property_maps()
   PropertyMapList **pp;
   for (pp = &the_context->property_map_roots; *pp != NULL; ) {
     PropertyMap *pm = (*pp)->pm;
+#ifdef CXX_TRACER
+    while(!Tracer::is_marked_cell(pm) && pm->n_transitions == 1)
+#else /* CXX_TRACER */
     while(!is_marked_cell(pm) && pm->n_transitions == 1)
+#endif /* CXX_TRACER */
       pm = get_transition_dest(pm);
+#ifdef CXX_TRACER
+    if (!Tracer::is_marked_cell(pm) && pm->n_transitions == 0)
+#else /* CXX_TRACER */
     if (!is_marked_cell(pm) && pm->n_transitions == 0)
+#endif /* CXX_TRACER */
       *pp = (*pp)->next;
     else {
       pm = (*pp)->pm;
@@ -1251,11 +1300,12 @@ STATIC void weak_clear_property_maps()
 #else /* CXX_TRACER */
       mark_cell(*pp);
 #endif /* CXX_TRACER */
-      if (!is_marked_cell(pm)) {
 #ifdef CXX_TRACER
+      if (!Tracer::is_marked_cell(pm)) {
         Tracer::process_edge((uintptr_t) (*pp)->pm);
         pm = (*pp)->pm;
 #else /* CXX_TRACER */
+      if (!is_marked_cell(pm)) {
         process_edge((uintptr_t) pm);
 #endif /* CXX_TRACER */
 #ifdef MARK_STACK
@@ -1301,7 +1351,11 @@ STATIC void weak_clear(void)
   weak_clear_shapes();
 #endif /* CXX_TRACER */
 #endif /* WEAK_SHAPE_LIST */
+#ifdef CXX_TRACER
+  weak_clear_StrTable<Tracer>(&string_table);
+#else /* CXX_TRACER */
   weak_clear_StrTable(&string_table);
+#endif /* CXX_TRACER */
 
   /* clear cache in the context */
   the_context->exhandler_pool = NULL;
