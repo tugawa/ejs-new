@@ -384,7 +384,8 @@ static inline void set_js##OT##_##field(JSValue v, FT val)      \
 
 /* for JSValues */
 #define DEFINE_ACCESSORS_J(OT, index, field)    \
-  DEFINE_ACCESSORS_I(OT, index, JSValue, field)
+  DEFINE_ACCESSORS_I(OT, index, JSValue, field) \
+static const size_t OT##_##field##_index = index;
 
 /* for pointers (references) to (no-JS) heap object  */
 #define DEFINE_ACCESSORS_R(OT, index, FT, field, Tname)         \
@@ -396,7 +397,8 @@ static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
 {                                                               \
   p->eprop[index] = (JSValue) (uintjsv_t) (uintptr_t) val;      \
 }                                                               \
-DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
+DEFINE_COMMON_ACCESSORS(OT, index, FT, field)                   \
+static const size_t OT##_##field##_index = index;
 
 /* for no-heap pointers */
 #define DEFINE_ACCESSORS_P(OT, index, FT, field)                \

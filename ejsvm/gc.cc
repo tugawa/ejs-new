@@ -461,9 +461,9 @@ STATIC_INLINE void process_node(uintptr_t ptr)
           (uint64_t) number_to_double(get_array_ptr_length(p));
         size_t len = a_length < a_size ? a_length : a_size;
 #ifdef CXX_TRACER
-        Tracer::process_edge(get_array_ptr_length(p));
+        Tracer::process_edge((uintptr_t) p->eprop[array_length_index]);
 #else /* CXX_TRACER */
-        process_edge(get_array_ptr_length(p));
+        process_edge((uintptr_t) get_array_ptr_length(p));
 #endif /* CXX_TRACER */
 #ifdef CXX_TRACER
         process_edge_JSValue_array<Tracer>(a_body, 0, len);
@@ -476,13 +476,15 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_FUNCTION:
     {
       JSObject *p = (JSObject *) ptr;
+#ifndef CXX_TRACER
       FunctionFrame *frame = get_function_ptr_environment(p);
+#endif
       /* FunctionTable *ftentry = function_ptr_table_entry(p);
        * scan_function_table_entry(ftentry);
        *    All function table entries are scanned through Context
        */
 #ifdef CXX_TRACER
-      Tracer::process_edge((uintptr_t) frame);
+      Tracer::process_edge((uintptr_t) p->eprop[function_environment_index]);
 #else /* CXX_TRACER */
       process_edge((uintptr_t) frame);
 #endif /* CXX_TRACER */
@@ -493,10 +495,10 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_BOXED_NUMBER:
     {
       JSObject *p = (JSObject *) ptr;
-      JSValue value = get_number_object_ptr_value(p);
 #ifdef CXX_TRACER
-      Tracer::process_edge((uintptr_t) value);
+      Tracer::process_edge((uintptr_t) p->eprop[number_object_value_index]);
 #else /* CXX_TRACER */
+      JSValue value = get_number_object_ptr_value(p);
       process_edge((uintptr_t) value);
 #endif /* CXX_TRACER */
       break;
@@ -504,10 +506,10 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_BOXED_STRING:
     {
       JSObject *p = (JSObject *) ptr;
-      JSValue value = get_string_object_ptr_value(p);
 #ifdef CXX_TRACER
-      Tracer::process_edge((uintptr_t) value);
+      Tracer::process_edge((uintptr_t) p->eprop[string_object_value_index]);
 #else /* CXX_TRACER */
+      JSValue value = get_string_object_ptr_value(p);
       process_edge((uintptr_t) value);
 #endif /* CXX_TRACER */
       break;
@@ -588,9 +590,9 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       HashCell *p = (HashCell *) ptr;
 #ifdef CXX_TRACER
-      Tracer::process_edge(p->entry.key);
+      Tracer::process_edge((uintptr_t) p->entry.key);
 #else /* CXX_TRACER */
-      process_edge(p->entry.key);
+      process_edge((uintptr_t) p->entry.key);
 #endif /* CXX_TRACER */
 #ifndef HC_SKIP_INTERNAL
       /* transition link is weak if HC_SKIP_INTERNAL */
@@ -692,16 +694,17 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     size_t i;
     /* 1. shape */
 #ifdef CXX_TRACER
-    Tracer::process_edge((uintptr_t) os);
+    Tracer::process_edge((uintptr_t) p->shape);
+    os = p->shape;
 #else /* CXX_TRACER */
-    process_edge((uintptr_t) os);
+    process_edge((uintptr_t) p->shape);
 #endif /* CXX_TRACER */
     /* 2. embedded propertyes */
     for (i = os->pm->n_special_props; i < actual_embedded; i++)
 #ifdef CXX_TRACER
-      Tracer::process_edge(p->eprop[i]);
+      Tracer::process_edge((uintptr_t) p->eprop[i]);
 #else /* CXX_TRACER */
-      process_edge(p->eprop[i]);
+      process_edge((uintptr_t) p->eprop[i]);
 #endif /* CXX_TRACER */
     if (n_extension != 0) {
       /* 3. extension */
@@ -807,15 +810,15 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
     process_edge((uintptr_t) p->prev_frame); /* FunctionFrame */
 #endif /* CXX_TRACER */
 #ifdef CXX_TRACER
-  Tracer::process_edge(p->arguments);
+  Tracer::process_edge((uintptr_t) p->arguments);
 #else /* CXX_TRACER */
-  process_edge(p->arguments);
+  process_edge((uintptr_t) p->arguments);
 #endif /* CXX_TRACER */
   for (i = 0; i < p->nlocals; i++)
 #ifdef CXX_TRACER
-    Tracer::process_edge(p->locals[i]);
+    Tracer::process_edge((uintptr_t) p->locals[i]);
 #else /* CXX_TRACER */
-    process_edge(p->locals[i]);
+    process_edge((uintptr_t) p->locals[i]);
 #endif /* CXX_TRACER */
 #ifdef DEBUG
   assert(p->locals[p->nlocals - 1] == JS_UNDEFINED);
@@ -891,9 +894,9 @@ STATIC void scan_function_table_entry(FunctionTable *p)
     size_t i;
     for (i = 0; i < n_constants; i++)
 #ifdef CXX_TRACER
-      Tracer::process_edge(constant_pool[i]);
+      Tracer::process_edge((uintptr_t) constant_pool[i]);
 #else /* CXX_TRACER */
-      process_edge(constant_pool[i]);
+      process_edge((uintptr_t) constant_pool[i]);
 #endif /* CXX_TRACER */
   }
 
@@ -1250,7 +1253,8 @@ STATIC void weak_clear_property_maps()
 #endif /* CXX_TRACER */
       if (!is_marked_cell(pm)) {
 #ifdef CXX_TRACER
-        Tracer::process_edge((uintptr_t) pm);
+        Tracer::process_edge((uintptr_t) (*pp)->pm);
+        pm = (*pp)->pm;
 #else /* CXX_TRACER */
         process_edge((uintptr_t) pm);
 #endif /* CXX_TRACER */
