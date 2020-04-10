@@ -689,7 +689,7 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     Shape *os = p->shape;
     int n_extension = os->n_extension_slots;
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
-    int i;
+    size_t i;
     /* 1. shape */
 #ifdef CXX_TRACER
     Tracer::process_edge((uintptr_t) os);
@@ -798,7 +798,7 @@ template<typename Tracer>
 #endif /* CXX_TRACER */
 STATIC void process_node_FunctionFrame(FunctionFrame *p)
 {
-  size_t i;
+  int i;
 
   if (p->prev_frame != NULL)
 #ifdef CXX_TRACER
@@ -900,7 +900,7 @@ STATIC void scan_function_table_entry(FunctionTable *p)
 #ifdef ALLOC_SITE_CACHE
   /* scan Allocation Sites */
   {
-    size_t i;
+    int i;
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       AllocSite *alloc_site = &insn->alloc_site;
@@ -924,7 +924,7 @@ STATIC void scan_function_table_entry(FunctionTable *p)
 #ifdef INLINE_CACHE
   /* scan Inline Cache */
   {
-    size_t i;
+    int i;
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
