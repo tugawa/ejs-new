@@ -258,6 +258,11 @@ void try_gc(Context *ctx)
  */
 
 #ifdef CXX_TRACER
+#ifndef CXX_TRACER_TYPE
+#define CXX_TRACER_TYPE 0
+#endif
+
+#if CXX_TRACER_TYPE == 0
 #if 0
 #define PTR_TO_ARGTYPE(p) ((uintptr_t)(p))
 #define JSV_TO_ARGTYPE(p) ((uintptr_t)(p))
@@ -274,6 +279,50 @@ public:
     static bool is_marked_cell(void *ptr) { return ::is_marked_cell(ptr); }
     static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
 };
+#elif CXX_TRACER_TYPE == 1
+#define PTR_TO_ARGTYPE(p) reinterpret_cast<uintptr_t*>(static_cast<void*>(&(p)))
+#define JSV_TO_ARGTYPE(p) static_cast<uintptr_t*>(&(p))
+class DefaultTracer {
+public:
+    using ArgType = uintptr_t*;
+    static void process_edge(ArgType ptr);
+    static void process_edge_function_frame(JSValue jsv) { void *p = jsv_to_function_frame(jsv); process_edge(PTR_TO_ARGTYPE(p)); }
+    static void mark_cell(void *ptr) { ::mark_cell(ptr); }
+    static bool is_marked_cell(void *ptr) { return ::is_marked_cell(ptr); }
+    static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
+};
+#elif CXX_TRACER_TYPE == 2 || CXX_TRACER_TYPE == 3
+#if CXX_TRACER_TYPE == 2
+// undefined behavior
+// cite : https://gcc.gnu.org/onlinedocs/gcc-4.4.3/gcc/Optimize-Options.html#index-fstrict_002daliasing-750
+typedef union {
+    void *p;
+    JSValue j;
+    uintptr_t u;
+} CastHelper;
+#define PTR_TO_ARGTYPE(p) (static_cast<CastHelper*>(static_cast<void*>(&(p))))->u
+#define JSV_TO_ARGTYPE(p) (static_cast<CastHelper*>(static_cast<void*>(&(p))))->u
+#else /* CXX_TRACER_TYPE == 2 */
+// undefined behavior
+// cite : https://ja.cppreference.com/w/cpp/language/explicit_cast
+// cite : https://ja.cppreference.com/w/cpp/language/reinterpret_cast
+#define PTR_TO_ARGTYPE(p) reinterpret_cast<uintptr_t &>(p)
+#define JSV_TO_ARGTYPE(p) reinterpret_cast<uintptr_t &>(p)
+#endif /* CXX_TRACER_TYPE == 2 */
+class DefaultTracer {
+public:
+#if CXX_TRACER_TYPE == 2
+    using ArgType = uintptr_t;
+#else /* CXX_TRACER_TYPE == 2 */
+    using ArgType = uintptr_t&;
+#endif /* CXX_TRACER_TYPE == 2 */
+    static void process_edge(ArgType ptr);
+    static void process_edge_function_frame(JSValue jsv) { void *p = jsv_to_function_frame(jsv); process_edge(PTR_TO_ARGTYPE(p)); }
+    static void mark_cell(void *ptr) { ::mark_cell(ptr); }
+    static bool is_marked_cell(void *ptr) { return ::is_marked_cell(ptr); }
+    static bool test_and_mark_cell(void *ptr) { return ::test_and_mark_cell(ptr); }
+};
+#endif
 #endif /* CXX_TRACER */
 
 #ifdef MARK_STACK
@@ -736,11 +785,18 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 }
 
 #ifdef CXX_TRACER
+#if defined CXX_TRACER_TYPE && CXX_TRACER_TYPE == 1
+void DefaultTracer::process_edge(DefaultTracer::ArgType pptr)
+#else /* defined CXX_TRACER_TYPE && CXX_TRACER_TYPE == 1 */
 void DefaultTracer::process_edge(DefaultTracer::ArgType ptr)
+#endif /* defined CXX_TRACER_TYPE && CXX_TRACER_TYPE == 1 */
 #else /* CXX_TRACER */
 STATIC void process_edge(uintptr_t ptr)
 #endif /* CXX_TRACER */
 {
+#if defined CXX_TRACER_TYPE && CXX_TRACER_TYPE == 1
+  uintptr_t ptr = *pptr;
+#endif /* defined CXX_TRACER_TYPE && CXX_TRACER_TYPE == 1 */
   if (is_fixnum(ptr) || is_special(ptr))
     return;
 
