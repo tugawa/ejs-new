@@ -258,8 +258,75 @@ void try_gc(Context *ctx)
 /*
  * GC
  */
-
 #ifdef CXX_TRACER
+#ifdef CXX_TRACER_RV
+class DefaultTracer {
+ public:
+
+  static constexpr bool is_arg_reference() {
+    return true;
+  }
+
+  // define if is_arg_referenec() => false
+  template<typename T>
+  static T *process_edge(T *p);
+  static JSValue process_edge(JSValue v);
+  static void process_edge_function_frame(JSValue v);
+  static void mark_cell(void *p);
+  static bool test_and_mark_cell(void *p);
+
+  // define if is_arg_referenec() => true
+  static void process_edge_function_frame(JSValue *vp) {
+    //process_edge(reinterpret_cast<void **>(static_cast<void *>(vp)));
+    process_edge(reinterpret_cast<void**>(vp));
+  }
+  static void mark_cell(void **p) {
+    ::mark_cell(*p);
+  }
+  static bool test_and_mark_cell(void **p) {
+    return ::test_and_mark_cell(*p);
+  }
+
+  // define regardless of is_arg_reference()
+  static bool is_marked_cell(void *p) { return ::is_marked_cell(p); }
+};
+
+//template<typename T>
+//static inline void **to_voidpp(T** p) { return (void**) p; }
+//static inline JSValue *to_voidpp(JSValue *p) { return p; }
+
+#define PROCESS_EDGE(x) do {                                    \
+    if (Tracer::is_arg_reference())                             \
+      x = Tracer::process_edge((x));                    \
+    else                                                        \
+      Tracer::process_edge((x));                                \
+  } while(0)
+
+#define PROCESS_EDGE_FUNCTION_FRAME(x) do {                     \
+    if (Tracer::is_arg_reference())                             \
+      Tracer::process_edge_function_frame(&(x));                \
+    else                                                        \
+      Tracer::process_edge_function_frame((x));                 \
+  } while(0)
+
+#define MARK_CELL(x) do {                                       \
+    if (Tracer::is_arg_reference())                             \
+      Tracer::mark_cell((void**) &(x));                         \
+    else                                                        \
+      Tracer::mark_cell((x));                                   \
+  } while(0)
+
+#define TEST_AND_MARK_CELL(x) ({                                \
+  bool retval;                                                  \
+  if (Tracer::is_arg_reference())                               \
+    retval = Tracer::test_and_mark_cell((void**) &(x));          \
+  else                                                          \
+    retval = Tracer::test_and_mark_cell((x));                   \
+  retval;                                                       \
+  })
+
+
+#else /* CXX_TRACER_RV */
 class DefaultTracer {
  public:
 
@@ -348,6 +415,7 @@ static inline JSValue *to_voidpp(JSValue *p) { return p; }
     retval = Tracer::test_and_mark_cell((x));                   \
   retval;                                                       \
   })
+#endif /* CXX_TRACER_RV */
 #endif /* CXX_TRACER */
 
 #ifdef MARK_STACK
@@ -809,6 +877,30 @@ STATIC_INLINE void process_node(uintptr_t ptr)
 }
 
 #ifdef CXX_TRACER
+#ifdef CXX_TRACER_RV
+
+template<typename T>
+T *DefaultTracer::process_edge(T *p)
+{
+  if (in_js_space(p) && ::test_and_mark_cell(p))
+    return p;
+#ifdef MARK_STACK
+  mark_stack_push((uintptr_t) p);
+#else /* MARK_STACK */
+  process_node<DefaultTracer>(p);
+#endif /* MARK_STACK */
+  return p;
+}
+
+JSValue DefaultTracer::process_edge(JSValue v)
+{
+  if (is_fixnum(v) || is_special(v))
+    return v;
+  uintptr_t ptr = (uintptr_t) clear_ptag(v);
+  return (JSValue) (uintjsv_t) (uintptr_t) process_edge((void *) ptr);
+}
+
+#else /* CXX_TRACER_RV */
 #ifdef CXX_TRACER_CBV
 void DefaultTracer::process_edge(void *p)
 {
@@ -856,6 +948,7 @@ void DefaultTracer::process_edge(JSValue *vp)
 #endif /* MARK_STACK */
 }
 #endif /* CXX_TRACER_CBV */
+#endif /* CXX_TRACER_RV */
 #else /* CXX_TRACER */
 STATIC void process_edge(uintptr_t ptr)
 {
