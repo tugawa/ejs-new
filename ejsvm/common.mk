@@ -258,6 +258,7 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ifeq ($(GC_CXX),true)
 CXX_FILES = gc.cc
+HFILES    += gc-visitor-inl.h
 else
 CXX_FILES =
 endif
