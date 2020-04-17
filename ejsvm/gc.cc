@@ -226,30 +226,6 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
   return 0;
 }
 
-#ifdef HC_SKIP_INTERNAL
-/*
- * Get the only transision from internal node.
- */
-static PropertyMap* get_transition_dest(PropertyMap *pm)
-{
-  HashIterator iter;
-  HashCell *p;
-
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr)) {
-      PropertyMap *ret = p->entry.data.u.pm;
-#ifdef GC_DEBUG
-      while(nextHashCell(pm->map, &iter, &p) != FAIL)
-        assert(!is_transition(p->entry.attr));
-#endif /* GC_DEBUG */
-      return ret;
-    }
-  abort();
-  return NULL;
-}
-#endif /* HC_SKIP_INTERNAL */
-
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
@@ -265,7 +241,7 @@ STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
   return a;
 }
 
-STATIC void alloc_site_update_info(JSObject *p)
+void alloc_site_update_info(JSObject *p)
 {
   AllocSite *as = p->alloc_site;
   PropertyMap *pm = p->shape->pm;

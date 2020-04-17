@@ -60,6 +60,7 @@ ACCEPTOR STATIC void weak_clear(void);
 
 extern JSValue *gc_root_stack[];
 extern int gc_root_stack_ptr;
+extern void alloc_site_update_info(JSObject *p);
 
 #ifdef MARK_STACK
 STATIC_INLINE void mark_stack_push(uintptr_t ptr);
@@ -769,6 +770,28 @@ ACCEPTOR STATIC void weak_clear_shapes()
 #endif /* WEAK_SHAPE_LIST */
 
 #ifdef HC_SKIP_INTERNAL
+/*
+ * Get the only transision from internal node.
+ */
+STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr)) {
+      PropertyMap *ret = p->entry.data.u.pm;
+#ifdef GC_DEBUG
+      while(nextHashCell(pm->map, &iter, &p) != FAIL)
+        assert(!is_transition(p->entry.attr));
+#endif /* GC_DEBUG */
+      return ret;
+    }
+  abort();
+  return NULL;
+}
+
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 {
   HashIterator iter;
