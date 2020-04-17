@@ -34,6 +34,7 @@ static inline JSValue *to_voidpp(JSValue *p) { return p; }
   })
 #else /* CXX_TRACER */
 #define ACCEPTOR
+STATIC void process_edge(uintptr_t ptr);
 #endif /* CXX_TRACER */
 
 ACCEPTOR STATIC void process_mark_stack();
