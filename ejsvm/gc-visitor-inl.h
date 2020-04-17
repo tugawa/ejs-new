@@ -4,21 +4,21 @@ template<typename T>
 static inline void **to_voidpp(T** p) { return (void**) p; }
 static inline JSValue *to_voidpp(JSValue *p) { return p; }
 #define PROCESS_EDGE(x) do {                                    \
-    if (Tracer::is_arg_reference())                             \
+    if (Tracer::is_pointer_updating())				\
       Tracer::process_edge(to_voidpp(&(x)));                    \
     else                                                        \
       Tracer::process_edge((x));                                \
   } while(0)
 
 #define PROCESS_EDGE_FUNCTION_FRAME(x) do {                     \
-    if (Tracer::is_arg_reference())                             \
+    if (Tracer::is_pointer_updating())				\
       Tracer::process_edge_function_frame(&(x));                \
     else                                                        \
       Tracer::process_edge_function_frame((x));                 \
   } while(0)
 
 #define MARK_CELL(x) do {                                       \
-    if (Tracer::is_arg_reference())                             \
+    if (Tracer::is_pointer_updating())				\
       Tracer::mark_cell((void**) &(x));                         \
     else                                                        \
       Tracer::mark_cell((x));                                   \
@@ -26,8 +26,8 @@ static inline JSValue *to_voidpp(JSValue *p) { return p; }
 
 #define TEST_AND_MARK_CELL(x) ({                                \
   bool retval;                                                  \
-  if (Tracer::is_arg_reference())                               \
-    retval = Tracer::test_and_mark_cell((void**) &(x));          \
+  if (Tracer::is_pointer_updating())				\
+    retval = Tracer::test_and_mark_cell((void**) &(x));         \
   else                                                          \
     retval = Tracer::test_and_mark_cell((x));                   \
   retval;                                                       \

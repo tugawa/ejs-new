@@ -239,26 +239,16 @@ void try_gc(Context *ctx)
 }
 
 
-/*
- * GC
- */
-
 #ifdef CXX_TRACER
-class DefaultTracer {
+class MarkTracer {
  public:
-
-  static constexpr bool is_arg_reference() {
-#ifdef CXX_TRACER_CBV
+  static constexpr bool is_pointer_updating() {
     return false;
-#else /* CXX_TRACER_CBV */
-    return true;
-#endif /* CXX_TRACER_CBV */
   }
 
-  // define if is_arg_referenec() => false
+  // do implement
   static void process_edge(void *p);
   static void process_edge(JSValue v);
-#ifdef CXX_TRACER_CBV
   static void process_edge_function_frame(JSValue v) {
     void *p = jsv_to_function_frame(v);
     process_edge(p);
@@ -269,19 +259,37 @@ class DefaultTracer {
   static bool test_and_mark_cell(void *p) {
     return ::test_and_mark_cell(p);
   }
-#else /* CXX_TRACER_CBV */
+
+  // do not implement
+  static void process_edge(void **pp);
+  static void process_edge(JSValue *vp);
+  static void process_edge_function_frame(JSValue *vp);
+  static void mark_cell(void **ptr);
+  static bool test_and_mark_cell(void **p);
+
+  static bool is_marked_cell(void *p) { return ::is_marked_cell(p); }
+};
+
+class RefMarkTracer {
+ public:
+  static constexpr bool is_pointer_updating() {
+    return true;
+  }
+
+  // do not implement
+  static void process_edge(void *p);
+  static void process_edge(JSValue v);
   static void process_edge_function_frame(JSValue v);
   static void mark_cell(void *p);
   static bool test_and_mark_cell(void *p);
-#endif /* CXX_TRACER_CBV */
 
-  // define if is_arg_referenec() => true
+  // do implement
   static void process_edge(void **pp);
   static void process_edge(JSValue *vp);
-#ifndef CXX_TRACER_CBV
   static void process_edge_function_frame(JSValue *vp) {
-    //process_edge(reinterpret_cast<void **>(static_cast<void *>(vp)));
-    process_edge(reinterpret_cast<void**>(vp));
+    FunctionFrame *frame = jsv_to_function_frame(*vp);
+    process_edge((void **) &frame);
+    *vp = (JSValue) (uintjsv_t) (uintptr_t) frame;
   }
   static void mark_cell(void **p) {
     ::mark_cell(*p);
@@ -289,17 +297,21 @@ class DefaultTracer {
   static bool test_and_mark_cell(void **p) {
     return ::test_and_mark_cell(*p);
   }
-#else /* CXX_TRACER_CBV */
-  static void process_edge_function_frame(JSValue *vp);
-  static void mark_cell(void **ptr);
-  static bool test_and_mark_cell(void **p);
-#endif /* CXX_TRACER_CBV */
 
-  // define regardless of is_arg_reference()
   static bool is_marked_cell(void *p) { return ::is_marked_cell(p); }
 };
 
+#ifdef CXX_TRACER_CBV
+typedef MarkTracer DefaultTracer;
+#else /* CXX_TRACER_CBV */
+typedef RefMarkTracer DefaultTracer;
+#endif /* CXX_TRACER_CBV */
+
 #endif /* CXX_TRACER */
+
+/*
+ * GC
+ */
 
 #ifdef MARK_STACK
 STATIC_INLINE void mark_stack_push(uintptr_t ptr)
