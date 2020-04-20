@@ -37,7 +37,6 @@ static inline JSValue *to_voidpp(JSValue *p) { return p; }
 STATIC void process_edge(uintptr_t ptr);
 #endif /* CXX_TRACER */
 
-ACCEPTOR STATIC void process_mark_stack();
 ACCEPTOR STATIC_INLINE void process_node(uintptr_t ptr);
 ACCEPTOR STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
 ACCEPTOR STATIC void process_edge_HashBody(HashCell **p, size_t length);
@@ -60,25 +59,9 @@ ACCEPTOR STATIC void weak_clear(void);
 
 extern JSValue *gc_root_stack[];
 extern int gc_root_stack_ptr;
+#ifdef ALLOC_SITE_CACHE
 extern void alloc_site_update_info(JSObject *p);
-
-#ifdef MARK_STACK
-STATIC_INLINE void mark_stack_push(uintptr_t ptr);
-STATIC_INLINE uintptr_t mark_stack_pop();
-STATIC_INLINE int mark_stack_is_empty();
-
-ACCEPTOR STATIC void process_mark_stack()
-{
-  while (!mark_stack_is_empty()) {
-    uintptr_t ptr = mark_stack_pop();
-#ifdef CXX_TRACER
-    process_node<Tracer>(ptr);
-#else /* CXX_TRACER */
-    process_node(ptr);
-#endif /* CXX_TRACER */
-  }
-}
-#endif /* MARK_STACK */
+#endif /* ALLOC_SITE_CACHE */
 
 ACCEPTOR STATIC_INLINE void process_node(uintptr_t ptr)
 {
@@ -860,7 +843,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* CXX_TRACER */
 #ifdef MARK_STACK
 #ifdef CXX_TRACER
-      process_mark_stack<Tracer>();
+      Tracer::process_mark_stack();
 #else /* CXX_TRACER */
       process_mark_stack();
 #endif /* CXX_TRACER */
@@ -905,7 +888,7 @@ ACCEPTOR STATIC void weak_clear_property_maps()
         PROCESS_EDGE(pm);
         (*pp)->pm = pm;
 #ifdef MARK_STACK
-        process_mark_stack<Tracer>();
+	Tracer::process_mark_stack();
 #endif /* MARK_STACK */
       }
 #else /* CXX_TRACER */

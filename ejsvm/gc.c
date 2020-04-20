@@ -100,11 +100,11 @@ int gc_root_stack_ptr = 0;
 
 STATIC int gc_disabled = 1;
 
-#ifdef MARK_STACK
+#ifndef CXX_TRACER
 #define MARK_STACK_SIZE 1000 * 1000
 static uintptr_t mark_stack[MARK_STACK_SIZE];
 static int mark_stack_ptr;
-#endif /* MARK_STACK */
+#endif /* CXX_TRACER */
 
 int generation = 0;
 int gc_sec;

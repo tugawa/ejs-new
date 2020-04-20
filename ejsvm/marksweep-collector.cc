@@ -35,12 +35,6 @@ enum gc_phase {
  */
 static enum gc_phase gc_phase = PHASE_INACTIVE;
 
-#ifdef MARK_STACK
-#define MARK_STACK_SIZE 1000 * 1000
-static uintptr_t mark_stack[MARK_STACK_SIZE];
-static int mark_stack_ptr;
-#endif /* MARK_STACK */
-
 /*
  * Tracer
  *
@@ -81,6 +75,30 @@ class MarkTracer {
   static bool test_and_mark_cell(void **p);
 
   static bool is_marked_cell(void *p) { return ::is_marked_cell(p); }
+
+#ifdef MARK_STACK
+#define MARK_STACK_SIZE 1000 * 1000
+  static uintptr_t mark_stack[MARK_STACK_SIZE];
+  static int mark_stack_ptr;
+  
+  static void mark_stack_push(uintptr_t ptr){
+    assert(mark_stack_ptr < MARK_STACK_SIZE);
+    mark_stack[mark_stack_ptr++] = ptr;
+  }
+  static uintptr_t mark_stack_pop(void) {
+    return mark_stack[--mark_stack_ptr];
+  }
+  static bool mark_stack_is_empty(void) {
+    return mark_stack_ptr == 0;
+  }
+  static void process_mark_stack(void) {
+    while (!mark_stack_is_empty()) {
+      uintptr_t ptr = mark_stack_pop();
+      process_node<MarkTracer>(ptr);
+    }
+  }
+#endif /* MARK_STACK */
+
 };
 
 class RefMarkTracer {
@@ -112,12 +130,39 @@ class RefMarkTracer {
   }
 
   static bool is_marked_cell(void *p) { return ::is_marked_cell(p); }
+
+#ifdef MARK_STACK
+#define MARK_STACK_SIZE 1000 * 1000
+  static uintptr_t mark_stack[MARK_STACK_SIZE];
+  static int mark_stack_ptr;
+
+  static void mark_stack_push(uintptr_t ptr){
+    assert(mark_stack_ptr < MARK_STACK_SIZE);
+    mark_stack[mark_stack_ptr++] = ptr;
+  }
+  static uintptr_t mark_stack_pop(void) {
+    return mark_stack[--mark_stack_ptr];
+  }
+  static bool mark_stack_is_empty(void) {
+    return mark_stack_ptr == 0;
+  }
+  static void process_mark_stack(void) {
+    while (!mark_stack_is_empty()) {
+      uintptr_t ptr = mark_stack_pop();
+      process_node<RefMarkTracer>(ptr);
+    }
+  }
+#endif /* MARK_STACK */
 };
 
 #ifdef CXX_TRACER_CBV
 typedef MarkTracer DefaultTracer;
+uintptr_t MarkTracer::mark_stack[MARK_STACK_SIZE];
+int MarkTracer::mark_stack_ptr;
 #else /* CXX_TRACER_CBV */
 typedef RefMarkTracer DefaultTracer;
+uintptr_t RefMarkTracer::mark_stack[MARK_STACK_SIZE];
+int RefMarkTracer::mark_stack_ptr;
 #endif /* CXX_TRACER_CBV */
 
 #endif /* CXX_TRACER */
@@ -126,6 +171,7 @@ typedef RefMarkTracer DefaultTracer;
  * GC
  */
 
+#ifndef CXX_TRACER
 #ifdef MARK_STACK
 STATIC_INLINE void mark_stack_push(uintptr_t ptr)
 {
@@ -142,17 +188,21 @@ STATIC_INLINE int mark_stack_is_empty()
 {
   return mark_stack_ptr == 0;
 }
+
+STATIC void process_mark_stack()
+{
+  while (!mark_stack_is_empty()) {
+    uintptr_t ptr = mark_stack_pop();
+    process_node(ptr);
+  }
+}
 #endif /* MARK_STACK */
+#endif /* CXX_TRACER */
 
 void garbage_collection(Context *ctx)
 {
-  struct rusage ru0, ru1;
-
   /* initialise */
   gc_phase = PHASE_INITIALISE;
-
-  if (cputime_flag == TRUE)
-    getrusage(RUSAGE_SELF, &ru0);
   the_context = ctx;
 
   /* mark */
@@ -165,7 +215,7 @@ void garbage_collection(Context *ctx)
 
 #ifdef MARK_STACK
 #ifdef CXX_TRACER
-  process_mark_stack<DefaultTracer>();
+  DefaultTracer::process_mark_stack();
 #else /* CXX_TRACER */
   process_mark_stack();
 #endif /* CXX_TRACER */
@@ -191,28 +241,11 @@ void garbage_collection(Context *ctx)
   /* finalise */
   gc_phase = PHASE_FINALISE;
 
-  if (cputime_flag == TRUE) {
-    time_t sec;
-    suseconds_t usec;
-
-    getrusage(RUSAGE_SELF, &ru1);
-    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
-    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
-    if (usec < 0) {
-      sec--;
-      usec += 1000000;
-    }
-    gc_sec += sec;
-    gc_usec += usec;
-  }
-
-  generation++;
-  /*  printf("Exit gc, generation = %d\n", generation); */
-
   gc_phase = PHASE_INACTIVE;
 }
 
 #ifdef CXX_TRACER
+#ifdef CXX_TRACER_CBV
 STATIC void MarkTracer::process_edge(void *p)
 {
   if (in_js_space(p) && ::test_and_mark_cell(p))
@@ -220,7 +253,7 @@ STATIC void MarkTracer::process_edge(void *p)
 #ifdef MARK_STACK
   mark_stack_push((uintptr_t) p);
 #else /* MARK_STACK */
-  process_node<DefaultTracer>(p);
+  process_node<MarkTracer>(p);
 #endif /* MARK_STACK */
 }
 
@@ -231,7 +264,7 @@ STATIC void MarkTracer::process_edge(JSValue v)
   uintptr_t ptr = (uintptr_t) clear_ptag(v);
   process_edge((void *) ptr);
 }
-
+#else /* CXX_TRACER_CBV */
 STATIC void RefMarkTracer::process_edge(void **pp)
 {
   void *p = *pp;
@@ -240,7 +273,7 @@ STATIC void RefMarkTracer::process_edge(void **pp)
 #ifdef MARK_STACK
   mark_stack_push((uintptr_t) p);
 #else /* MARK_STACK */
-  process_node<DefaultTracer>(p);
+  process_node<RefMarkTracer>(p);
 #endif /* MARK_STACK */
 }
 
@@ -255,9 +288,10 @@ STATIC void RefMarkTracer::process_edge(JSValue *vp)
 #ifdef MARK_STACK
   mark_stack_push((uintptr_t) p);
 #else /* MARK_STACK */
-  process_node<DefaultTracer>(p);
+  process_node<RefMarkTracer>(p);
 #endif /* MARK_STACK */
 }
+#endif /* CXX_TRACER_CBV */
 #else /* CXX_TRACER */
 STATIC void process_edge(uintptr_t ptr)
 {

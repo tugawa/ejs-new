@@ -127,9 +127,6 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
 STATIC void garbage_collection(Context *ctx);
-#ifdef ALLOC_SITE_CACHE
-STATIC void alloc_site_update_info(JSObject *p);
-#endif /* ALLOC_SITE_CACHE */
 
 void init_memory(size_t bytes)
 {
@@ -190,6 +187,35 @@ FlonumCell *gc_try_alloc_flonum(double x)
 }
 #endif /* FLONUM_SPACE */
 
+void start_garbage_collection(Context *ctx)
+{
+  struct rusage ru0, ru1;
+
+  if (cputime_flag == TRUE)
+    getrusage(RUSAGE_SELF, &ru0);
+
+  garbage_collection(ctx);
+
+  if (cputime_flag == TRUE) {
+    time_t sec;
+    suseconds_t usec;
+
+    getrusage(RUSAGE_SELF, &ru1);
+    sec = ru1.ru_utime.tv_sec - ru0.ru_utime.tv_sec;
+    usec = ru1.ru_utime.tv_usec - ru0.ru_utime.tv_usec;
+    if (usec < 0) {
+      sec--;
+      usec += 1000000;
+    }
+    gc_sec += sec;
+    gc_usec += usec;
+  }
+
+  generation++;
+  /*  printf("Exit gc, generation = %d\n", generation); */
+}
+
+
 void disable_gc(void)
 {
   gc_disabled++;
@@ -199,14 +225,14 @@ void enable_gc(Context *ctx)
 {
   if (--gc_disabled == 0) {
     if (check_gc_request(ctx, 0))
-      garbage_collection(ctx);
+      start_garbage_collection(ctx);
   }
 }
 
 void try_gc(Context *ctx)
 {
   if (check_gc_request(ctx, 0))
-    garbage_collection(ctx);
+    start_garbage_collection(ctx);
 }
 
 STATIC_INLINE int check_gc_request(Context *ctx, int force)
