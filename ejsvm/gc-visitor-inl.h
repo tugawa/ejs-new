@@ -41,7 +41,7 @@ ACCEPTOR STATIC_INLINE void process_node(uintptr_t ptr);
 ACCEPTOR STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
 ACCEPTOR STATIC void process_edge_HashBody(HashCell **p, size_t length);
 ACCEPTOR STATIC void process_node_FunctionFrame(FunctionFrame *p);
-ACCEPTOR STATIC void process_node_Context(Context *context);
+ACCEPTOR STATIC void scan_Context(Context *context);
 ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p);
 ACCEPTOR STATIC void scan_stack(JSValue* stack, int sp, int fp);
 ACCEPTOR STATIC void scan_string_table(StrTable *p);
@@ -186,15 +186,6 @@ ACCEPTOR STATIC_INLINE void process_node(uintptr_t ptr)
       }
       return;
     }
-  case CELLT_CONTEXT:
-#ifdef CXX_TRACER
-    process_node_Context<Tracer>((Context *) ptr);
-#else /* CXX_TRACER */
-    process_node_Context((Context *) ptr);
-#endif /* CXX_TRACER */
-    return;
-  case CELLT_STACK:
-    abort();
   case CELLT_HASHTABLE:
     {
       HashTable *p = (HashTable *) ptr;
@@ -418,7 +409,7 @@ ACCEPTOR STATIC void process_node_FunctionFrame(FunctionFrame *p)
 #endif /* DEBUG */
 }
 
-ACCEPTOR STATIC void process_node_Context(Context *context)
+ACCEPTOR STATIC void scan_Context(Context *context)
 {
   int i;
 
@@ -460,16 +451,6 @@ ACCEPTOR STATIC void process_node_Context(Context *context)
 #endif /* CXX_TRACER */
 
   /* process stack */
-#ifdef CXX_TRACER
-  assert(!Tracer::is_marked_cell(context->stack));
-#else /* CXX_TRACER */
-  assert(!is_marked_cell(context->stack));
-#endif /* CXX_TRACER */
-#ifdef CXX_TRACER
-  MARK_CELL(context->stack);
-#else /* CXX_TRACER */
-  mark_cell(context->stack);
-#endif /* CXX_TRACER */
 #ifdef CXX_TRACER
   scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
 #else /* CXX_TRACER */
@@ -635,11 +616,7 @@ ACCEPTOR STATIC void scan_roots(Context *ctx)
   /*
    * Context
    */
-#ifdef CXX_TRACER
-  PROCESS_EDGE(ctx);
-#else /* CXX_TRACER */
-  process_edge((uintptr_t) ctx); /* Context */
-#endif /* CXX_TRACER */
+  scan_Context<Tracer>(ctx);
 
   /*
    * GC_PUSH'ed
