@@ -139,7 +139,7 @@ int process_options(int ac, char *av[]) {
 }
 
 void print_cputime(time_t sec, suseconds_t usec) {
-  printf("total CPU time = %ld.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
+  printf("total CPU time = %ld.%03d msec, total GC time =  %d.%03d msec (#GC = %d)\n",
          sec * 1000 + usec / 1000, (int)(usec % 1000),
          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
 }
