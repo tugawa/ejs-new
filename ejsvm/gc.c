@@ -401,7 +401,7 @@ STATIC void garbage_collection(Context *ctx)
 
 #ifdef GENERIC_PROCESS_NODE
 STATIC void process_node_FunctionFrame(tracer_t process_edge, FunctionFrame *p);
-STATIC void process_node_Context(tracer_t process_edge, Context *p);
+STATIC void scan_Context(tracer_t process_edge, Context *p);
 STATIC void scan_function_table_entry(tracer_t process_edge, FunctionTable *p);
 STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp);
 STATIC void process_edge_JSValue_array(tracer_t process_edge, JSValue *p, size_t start, size_t length);
@@ -415,7 +415,7 @@ STATIC void process_edge(uintptr_t ptr);
 #endif /* PROCESS_EDGE */
 #endif /* PROCESS_EDGE_FP */
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
-STATIC void process_node_Context(Context *p);
+STATIC void scan_Context(Context *p);
 STATIC void scan_function_table_entry(FunctionTable *p);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
@@ -530,19 +530,6 @@ STATIC_INLINE void process_node(uintptr_t ptr)
         process_edge((uintptr_t) p->next); /* StrCons */
       return;
     }
-  case CELLT_CONTEXT:
-#ifdef GENERIC_PROCESS_NODE
-    process_node_Context(process_edge, (Context *) ptr);
-#else /* GENERIC_PROCESS_NODE */
-    process_node_Context((Context *) ptr);
-#endif /* GENERIC_PROCESS_NODE */
-    return;
-  case CELLT_STACK:
-#ifdef PROCESS_EDGE
-    return;
-#else /* PROCESS_EDGE */
-    abort();
-#endif /* PROCESS_EDGE */
   case CELLT_HASHTABLE:
     {
       HashTable *p = (HashTable *) ptr;
@@ -773,9 +760,9 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
 }
 
 #ifdef GENERIC_PROCESS_NODE
-STATIC void process_node_Context(tracer_t process_edge, Context *context)
+STATIC void scan_Context(tracer_t process_edge, Context *context)
 #else /* GENERIC_PROCESS_NODE */
-STATIC void process_node_Context(Context *context)
+STATIC void scan_Context(Context *context)
 #endif /* GENERIC_PROCESS_NODE */
 {
   int i;
@@ -799,12 +786,6 @@ STATIC void process_node_Context(Context *context)
   process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
-  assert(!is_marked_cell(context->stack));
-#ifdef PROCESS_EDGE
-  process_edge((uintptr_t) context->stack);
-#else /* PROCESS_EDGE */
-  mark_cell(context->stack);
-#endif /* PROCESS_EDGE */
 #ifdef GENERIC_PROCESS_NODE
   scan_stack(process_edge, context->stack, context->spreg.sp, context->spreg.fp);
 #else /* GENERIC_PROCESS_NODE */
@@ -938,7 +919,7 @@ STATIC void scan_roots(Context *ctx)
   /*
    * Context
    */
-  process_edge((uintptr_t) ctx); /* Context */
+  scan_Context(ctx);
 
   /*
    * GC_PUSH'ed

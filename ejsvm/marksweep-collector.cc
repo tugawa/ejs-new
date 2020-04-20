@@ -277,7 +277,7 @@ void RefMarkTracer::process_edge(void **pp)
 #endif /* MARK_STACK */
 }
 
-STATIC void RefMarkTracer::process_edge(JSValue *vp)
+void RefMarkTracer::process_edge(JSValue *vp)
 {
   JSValue v = *vp;
   if (is_fixnum(v) || is_special(v))
