@@ -246,7 +246,7 @@ void garbage_collection(Context *ctx)
 
 #ifdef CXX_TRACER
 #ifdef CXX_TRACER_CBV
-STATIC void MarkTracer::process_edge(void *p)
+void MarkTracer::process_edge(void *p)
 {
   if (in_js_space(p) && ::test_and_mark_cell(p))
     return;
@@ -257,7 +257,7 @@ STATIC void MarkTracer::process_edge(void *p)
 #endif /* MARK_STACK */
 }
 
-STATIC void MarkTracer::process_edge(JSValue v)
+void MarkTracer::process_edge(JSValue v)
 {
   if (is_fixnum(v) || is_special(v))
     return;
@@ -265,7 +265,7 @@ STATIC void MarkTracer::process_edge(JSValue v)
   process_edge((void *) ptr);
 }
 #else /* CXX_TRACER_CBV */
-STATIC void RefMarkTracer::process_edge(void **pp)
+void RefMarkTracer::process_edge(void **pp)
 {
   void *p = *pp;
   if (in_js_space(p) && ::test_and_mark_cell(p))
