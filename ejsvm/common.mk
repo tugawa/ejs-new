@@ -257,8 +257,7 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 ######################################################
 
 ifeq ($(GC_CXX),true)
-CXX_FILES = gc.cc marksweep-collector.cc
-OFILES    += marksweep-collector.o
+CXX_FILES = gc.cc marksweep-collector.cc markcompact-collector.cc
 HFILES    += gc-visitor-inl.h
 else
 CXX_FILES =
@@ -266,13 +265,18 @@ endif
 
 ifeq ($(OPT_GC),native)
     CFLAGS+=-DUSE_NATIVEGC=1
-    OFILES+=freelist-space.o
+    OFILES+=marksweep-collector.o freelist-space.o
     HFILES+=freelist-space.h freelist-space-inl.h
 endif
 ifeq ($(OPT_GC),bibop)
     CFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
-    OFILES+=bibop-space.o
+    OFILES+=marksweep-collector.o bibop-space.o
     HFILES+=bibop-space.h bibop-space-inl.h
+endif
+ifeq ($(OPT_GC),compact)
+    CFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION
+    OFILES+=markcompact-collector.o
+    HFILES+=markcompact-collector.h markcompact-collector-inl.h
 endif
 ifeq ($(OPT_GC),boehmgc)
     CFLAGS+=-DUSE_BOEHMGC=1

@@ -5,14 +5,6 @@
 extern "C" {
 #endif
 
-#if BYTES_IN_GRANULE == 4
-typedef uint32_t granule_t;
-#elif BYTES_IN_GRANULE == 8
-typedef uint64_t granule_t;
-#else /* BYTES_IN_GRANULE */
-#error not implemented
-#endif /* BYTES_IN_GRANULE */
-
 #define LOG_BYTES_IN_PAGE 10
 #define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)

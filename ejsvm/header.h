@@ -64,11 +64,15 @@
 #include "types.h"
 #include "context.h"
 #include "gc.h"
+#ifdef COMPACTION
+#include "markcompact-collector.h"
+#else /* COMPACTION */
 #ifdef BIBOP
 #include "bibop-space.h"
 #else /* BIBOP */
 #include "freelist-space.h"
 #endif /* BIBIOP */
+#endif /* COMPACTION */
 #include "hash.h"
 #include "log.h"
 #include "instructions.h"
@@ -82,11 +86,15 @@
 #include "context-inl.h"
 #include "types-inl.h"
 #include "gc-inl.h"
+#ifdef COMPACTION
+#include "markcompact-collector-inl.h"
+#else /* COMPACTION */
 #ifdef BIBOP
 #include "bibop-space-inl.h"
 #else /* BIBOP */
 #include "freelist-space-inl.h"
 #endif /* BIBOP */
+#endif /* COMPACTION */
 
 #endif /* HEADER_H_ */
 

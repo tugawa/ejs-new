@@ -21,8 +21,10 @@ extern "C" {
 
 #ifdef BIT_ALIGN32
 #define LOG_BYTES_IN_GRANULE  2
+typedef uint32_t granule_t;
 #else /* BIT_ALIGN32 */
 #define LOG_BYTES_IN_GRANULE  3
+typedef uint64_t granule_t;
 #endif /* BIT_ALIGN32 */
 
 #define LOG_BITS_IN_GRANULE  (LOG_BYTES_IN_GRANULE + 3)
