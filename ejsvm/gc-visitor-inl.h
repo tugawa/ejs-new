@@ -12,6 +12,42 @@ template<typename T>
 void *&cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
 JSValue &cast_process_edge_arg(JSValue &x) { return x; }
 
+#ifdef CXX_TRACER_RV
+
+template <typename Tracer, typename T>
+static inline void process_edge_wrapper(T &x) {
+  x = Tracer::process_edge(x);
+}
+template <typename Tracer, typename T>
+static inline void process_weak_edge_wrapper(T &x) {
+  x = Tracer::process_weak_edge(x);
+}
+template <typename Tracer>
+static inline void process_edge_ex_JSValue_array_wrapper(JSValue *&x, size_t s) {
+  x = Tracer::process_edge_ex_JSValue_array(x, s);
+}
+template <typename Tracer>
+static inline void process_edge_ex_ptr_array_wrapper(void **&x, size_t s) {
+  x = Tracer::process_edge_ex_ptr_array(x, s);
+}
+template<typename Tracer>
+static inline void process_edge_function_frame_wrapper(JSValue &x) {
+  x = Tracer::process_edge_function_frame(x);
+}
+
+#define PROCESS_EDGE(x)						\
+  process_edge_wrapper<Tracer>(cast_process_edge_arg(x))
+#define PROCESS_WEAK_EDGE(x)					\
+  process_weak_edge_wrapper<Tracer>(cast_process_edge_arg(x))
+#define PROCESS_EDGE_EX_JSVALUE_ARRAY(x,s)				\
+  process_edge_ex_JSValue_array_wrapper<Tracer>(reinterpret_cast<JSValue *&>(x),(s))
+#define PROCESS_EDGE_EX_PTR_ARRAY(x,s)					\
+  process_edge_ex_ptr_array_wrapper<Tracer>(reinterpret_cast<void **&>(x), (s))
+#define PROCESS_EDGE_FUNCTION_FRAME(x)					\
+  process_edge_function_frame_wrapper<Tracer>(reinterpret_cast<JSValue &>(x))
+
+#else /* CXX_TRACER_RV */
+
 #define PROCESS_EDGE(x) Tracer::process_edge(cast_process_edge_arg(x))
 
 #define PROCESS_WEAK_EDGE(x) Tracer::process_weak_edge(cast_process_edge_arg(x))
@@ -24,7 +60,7 @@ JSValue &cast_process_edge_arg(JSValue &x) { return x; }
 
 #define PROCESS_EDGE_FUNCTION_FRAME(x)					\
   Tracer::process_edge_function_frame(reinterpret_cast<JSValue &>(x))
-
+#endif /* CXX_TRACER_RV */
 
 ACCEPTOR STATIC_INLINE void process_node(uintptr_t ptr);
 ACCEPTOR STATIC_INLINE void process_node(cell_type_t type, uintptr_t ptr);
