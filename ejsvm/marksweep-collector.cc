@@ -46,6 +46,7 @@ static enum gc_phase gc_phase = PHASE_INACTIVE;
  *  process_node_XXX
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
+#ifdef CXX_TRACER_CBV
 class MarkTracer {
  public:
   static void process_edge(JSValue v);
@@ -54,16 +55,20 @@ class MarkTracer {
     void *p = jsv_to_function_frame(v);
     process_edge(p);
   }
-  static void process_edge_ex_JSValue_array(JSValue *p, size_t n) {
+  template <typename T>
+  static void process_edge_ex_JSValue_array(T p_, size_t n) {
+    JSValue *p = (JSValue *) p_;
     if (in_js_space(p) && ::test_and_mark_cell(p))
       return;
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
       process_edge(p[i]);
   }
-  static void process_edge_ex_ptr_array(void **p, size_t n) {
+  template <typename T>
+  static void process_edge_ex_ptr_array(T p_, size_t n) {
+    void **p = (void **) p_;
     if (in_js_space(p) && ::test_and_mark_cell(p))
       return;
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
       if (p[i] != NULL)
 	process_edge(p[i]);
   }
@@ -99,62 +104,8 @@ class MarkTracer {
   }
 #endif /* MARK_STACK */
 };
-
-class RefMarkTracer {
- public:
-  static void process_edge(JSValue &v);
-  static void process_edge(void *&p);
-  static void process_edge_function_frame(JSValue &v) {
-    FunctionFrame *frame = jsv_to_function_frame(v);
-    process_edge(reinterpret_cast<void *&>(frame));
-    v = (JSValue) (uintjsv_t) (uintptr_t) frame;
-  }
-  static void process_edge_ex_JSValue_array(JSValue *&p, size_t n) {
-    if (in_js_space(p) && ::test_and_mark_cell(p))
-      return;
-    for (int i = 0; i < n; i++)
-      process_edge(p[i]);
-  }
-  static void process_edge_ex_ptr_array(void **&p, size_t n) {
-    if (in_js_space(p) && ::test_and_mark_cell(p))
-      return;
-    for (int i = 0; i < n; i++)
-      if (p[i] != NULL)
-	process_edge(p[i]);
-  }
-  static void process_node_JSValue_array(JSValue *&p) { abort(); }
-  static void process_node_ptr_array(void **&p) { abort(); }
-
-  static void process_weak_edge(JSValue &v) {}
-  static void process_weak_edge(void *&p) {}
-  static bool is_marked_cell(void *p) {
-    return ::is_marked_cell(p);
-  }
-  
-#ifdef MARK_STACK
-#define MARK_STACK_SIZE 1000 * 1000
-  static uintptr_t mark_stack[MARK_STACK_SIZE];
-  static int mark_stack_ptr;
-
-  static void mark_stack_push(uintptr_t ptr){
-    assert(mark_stack_ptr < MARK_STACK_SIZE);
-    mark_stack[mark_stack_ptr++] = ptr;
-  }
-  static uintptr_t mark_stack_pop(void) {
-    return mark_stack[--mark_stack_ptr];
-  }
-  static bool mark_stack_is_empty(void) {
-    return mark_stack_ptr == 0;
-  }
-  static void process_mark_stack(void) {
-    while (!mark_stack_is_empty()) {
-      uintptr_t ptr = mark_stack_pop();
-      process_node<RefMarkTracer>(ptr);
-    }
-  }
-#endif /* MARK_STACK */
-};
-
+#else /* CXX_TRACER_CBV */
+#ifdef CXX_TRACER_RV
 class RVTracer {
 public:
   static JSValue process_edge(JSValue v);
@@ -163,20 +114,24 @@ public:
     void *p = jsv_to_function_frame(v);
     return (JSValue) (uintjsv_t) (uintptr_t) process_edge(p);
   }
-  static JSValue *process_edge_ex_JSValue_array(JSValue *p, size_t n) {
+  template <typename T>
+  static T process_edge_ex_JSValue_array(T p_, size_t n) {
+    JSValue *p = (JSValue *) p_;
     if (in_js_space(p) && ::test_and_mark_cell(p))
-      return p;
-    for (int i = 0; i < n; i++)
+      return (T) p;
+    for (size_t i = 0; i < n; i++)
       p[i] = process_edge(p[i]);
-    return p;
+    return (T) p;
   }
-  static void **process_edge_ex_ptr_array(void **p, size_t n) {
+  template <typename T>
+  static T process_edge_ex_ptr_array(T p_, size_t n) {
+    void **p = (void **) p_;
     if (in_js_space(p) && ::test_and_mark_cell(p))
-      return p;
-    for (int i = 0; i < n; i++)
+      return (T) p;
+    for (size_t i = 0; i < n; i++)
       if (p[i] != NULL)
 	p[i] = process_edge(p[i]);
-    return p;
+    return (T) p;
   }
   static JSValue *process_node_JSValue_array(JSValue *p) { abort(); }
   static void **process_node_ptr_array(void **p) { abort(); }
@@ -210,6 +165,69 @@ public:
   }
 #endif /* MARK_STACK */
 };
+#else /* CXX_TRACER_RV */
+class RefMarkTracer {
+ public:
+  static void process_edge(JSValue &v);
+  static void process_edge(void *&p);
+  static void process_edge_function_frame(JSValue &v) {
+    FunctionFrame *frame = jsv_to_function_frame(v);
+    process_edge(reinterpret_cast<void *&>(frame));
+    v = (JSValue) (uintjsv_t) (uintptr_t) frame;
+  }
+  template<typename T>
+  static void process_edge_ex_JSValue_array(T &p_, size_t n) {
+    JSValue *&p = (JSValue *&) p_;
+    if (in_js_space(p) && ::test_and_mark_cell(p))
+      return;
+    for (size_t i = 0; i < n; i++)
+      process_edge(p[i]);
+  }
+  template<typename T>
+  static void process_edge_ex_ptr_array(T &p_, size_t n) {
+    void **&p = (void **&) p_;
+    if (in_js_space(p) && ::test_and_mark_cell(p))
+      return;
+    for (size_t i = 0; i < n; i++)
+      if (p[i] != NULL)
+	process_edge(p[i]);
+  }
+  template <typename T>
+  static void process_node_JSValue_array(T &p) { abort(); }
+  template <typename T>
+  static void process_node_ptr_array(T &p) { abort(); }
+
+  static void process_weak_edge(JSValue &v) {}
+  static void process_weak_edge(void *&p) {}
+  static bool is_marked_cell(void *p) {
+    return ::is_marked_cell(p);
+  }
+  
+#ifdef MARK_STACK
+#define MARK_STACK_SIZE 1000 * 1000
+  static uintptr_t mark_stack[MARK_STACK_SIZE];
+  static int mark_stack_ptr;
+
+  static void mark_stack_push(uintptr_t ptr){
+    assert(mark_stack_ptr < MARK_STACK_SIZE);
+    mark_stack[mark_stack_ptr++] = ptr;
+  }
+  static uintptr_t mark_stack_pop(void) {
+    return mark_stack[--mark_stack_ptr];
+  }
+  static bool mark_stack_is_empty(void) {
+    return mark_stack_ptr == 0;
+  }
+  static void process_mark_stack(void) {
+    while (!mark_stack_is_empty()) {
+      uintptr_t ptr = mark_stack_pop();
+      process_node<RefMarkTracer>(ptr);
+    }
+  }
+#endif /* MARK_STACK */
+};
+#endif /* CXX_TRACER_RV */
+#endif /* CXX_TRACER_CBV */
 
 #ifdef CXX_TRACER_CBV
 typedef MarkTracer DefaultTracer;
@@ -287,7 +305,7 @@ void MarkTracer::process_edge(JSValue v)
   if (is_fixnum(v) || is_special(v))
     return;
   uintptr_t ptr = (uintptr_t) clear_ptag(v);
-  process_edge_ptr((void *) ptr);
+  process_edge((void *) ptr);
 }
 #else /* CXX_TRACER_CBV */
 #ifdef CXX_TRACER_RV

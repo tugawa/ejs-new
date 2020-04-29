@@ -2,12 +2,6 @@
 
 #define ACCEPTOR template<typename Tracer>
 
-//#define PROCESS_EDGE(x)						\
-//  (std::is_same<decltype(x), JSValue>::value ?				\
-//   Tracer::process_edge_JSValue(reinterpret_cast<JSValue &>(x)) :	\
-//   Tracer::process_edge_ptr(reinterpret_cast<void *&>(x)))
-
-
 template<typename T>
 void *&cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
 JSValue &cast_process_edge_arg(JSValue &x) { return x; }
@@ -22,12 +16,12 @@ template <typename Tracer, typename T>
 static inline void process_weak_edge_wrapper(T &x) {
   x = Tracer::process_weak_edge(x);
 }
-template <typename Tracer>
-static inline void process_edge_ex_JSValue_array_wrapper(JSValue *&x, size_t s) {
+template <typename Tracer, typename T>
+static inline void process_edge_ex_JSValue_array_wrapper(T &x, size_t s) {
   x = Tracer::process_edge_ex_JSValue_array(x, s);
 }
-template <typename Tracer>
-static inline void process_edge_ex_ptr_array_wrapper(void **&x, size_t s) {
+template <typename Tracer, typename T>
+static inline void process_edge_ex_ptr_array_wrapper(T &x, size_t s) {
   x = Tracer::process_edge_ex_ptr_array(x, s);
 }
 template<typename Tracer>
@@ -40,9 +34,9 @@ static inline void process_edge_function_frame_wrapper(JSValue &x) {
 #define PROCESS_WEAK_EDGE(x)					\
   process_weak_edge_wrapper<Tracer>(cast_process_edge_arg(x))
 #define PROCESS_EDGE_EX_JSVALUE_ARRAY(x,s)				\
-  process_edge_ex_JSValue_array_wrapper<Tracer>(reinterpret_cast<JSValue *&>(x),(s))
+  process_edge_ex_JSValue_array_wrapper<Tracer>((x),(s))
 #define PROCESS_EDGE_EX_PTR_ARRAY(x,s)					\
-  process_edge_ex_ptr_array_wrapper<Tracer>(reinterpret_cast<void **&>(x), (s))
+  process_edge_ex_ptr_array_wrapper<Tracer>((x), (s))
 #define PROCESS_EDGE_FUNCTION_FRAME(x)					\
   process_edge_function_frame_wrapper<Tracer>(reinterpret_cast<JSValue &>(x))
 
@@ -53,7 +47,7 @@ static inline void process_edge_function_frame_wrapper(JSValue &x) {
 #define PROCESS_WEAK_EDGE(x) Tracer::process_weak_edge(cast_process_edge_arg(x))
 
 #define PROCESS_EDGE_EX_JSVALUE_ARRAY(x,s)				\
-  Tracer::process_edge_ex_JSValue_array(reinterpret_cast<JSValue *&>(x),(s))
+  Tracer::process_edge_ex_JSValue_array((x),(s))
 
 #define PROCESS_EDGE_EX_PTR_ARRAY(x,s)					\
   Tracer::process_edge_ex_ptr_array(reinterpret_cast<void **&>(x),(s))

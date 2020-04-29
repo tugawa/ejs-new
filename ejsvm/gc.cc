@@ -126,7 +126,8 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
  */
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
-void garbage_collection(Context *ctx);
+extern void garbage_collection(Context *ctx);
+void start_garbage_collection(Context *ctx);
 
 void init_memory(size_t bytes)
 {
@@ -147,7 +148,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, cell_type_t type)
 #endif /* DEBUG */
   
   if (check_gc_request(ctx, 0))
-    garbage_collection(ctx);
+    start_garbage_collection(ctx);
   addr = space_alloc(request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
@@ -156,7 +157,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, cell_type_t type)
 #ifdef GC_DEBUG
       printf("emergency GC\n");
 #endif /* GC_DEBUG */
-      garbage_collection(ctx);
+      start_garbage_collection(ctx);
       addr = space_alloc(request_bytes, type);
     }
     if (addr == NULL) {
