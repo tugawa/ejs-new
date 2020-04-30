@@ -3,8 +3,9 @@
 #define ACCEPTOR template<typename Tracer>
 
 template<typename T>
-void *&cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
-JSValue &cast_process_edge_arg(JSValue &x) { return x; }
+static inline void *&
+cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
+static inline JSValue &cast_process_edge_arg(JSValue &x) { return x; }
 
 #ifdef CXX_TRACER_RV
 
