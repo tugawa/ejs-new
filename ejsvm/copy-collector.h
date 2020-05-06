@@ -1,5 +1,5 @@
 typedef struct header_t {
-  size_t size: 16;
+  size_t size: 22;
   cell_type_t type: 8;
   int forwarded: 1;
 } header_t;
