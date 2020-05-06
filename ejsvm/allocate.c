@@ -121,12 +121,13 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   assert(newsize <= ASIZE_LIMIT);
 #endif /* NEW_ASIZE_STRATEGY */
 
-  GC_PUSH(a);
   length = (int32_t) number_to_double(length_value);
   size = get_jsarray_size(a);
   if (size < length)
     length = size;
-  assert(length < newsize);
+  if (length == newsize)
+    return;
+  GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
                                CELLT_ARRAY_DATA);
   GC_POP(a);
