@@ -15,7 +15,9 @@ static inline void gc_push_checked(void *addr)
 
 static inline void gc_pop_checked(void *addr)
 {
+#ifndef NDEBUG
   extern JSValue *gc_root_stack[];
+#endif /* NDEBUG */
   extern int gc_root_stack_ptr;
   assert(gc_root_stack[gc_root_stack_ptr - 1] == (JSValue *) addr);
   --gc_root_stack_ptr;
