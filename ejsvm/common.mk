@@ -250,7 +250,7 @@ INSN_GENERATED = \
 
 INSN_HANDCRAFT =
 
-CFILES = $(patsubst %.o,%.c,$(OFILES))
+CFILES := $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
