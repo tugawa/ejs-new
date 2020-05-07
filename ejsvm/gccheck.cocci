@@ -12,10 +12,22 @@ import os.path
 // type with pointer to object
 
 // --- type list ---
-type_list = ["JSValue", "Object*", "FunctionFrame*", "HiddenClass*", "StrCons*",
-             "ArrayCell*", "BoxedCell*", "BuiltinCell*", "FlonumCell*", "FunctionCell*",
-             "IteratorCell*", "RegexpCell*", "StringCell*", "HashTable*",
-             "HashCell**", "HashCell*", "Map*"]
+type_list = [
+    "JSValue",
+    "StringCell*",
+    "FlonumCell*",
+    "JSObject*",
+    "Iterator*",
+    "PropertyMap*",
+    "PropertyMapList*",
+    "Shape*",
+    "FunctionFrame*",
+    "UnwindProtect*",
+    "HashTable*",
+    "JSValue*",
+    "HashCell*"
+    "HashCell**"
+]
 
 // PUSH function
 push_function = "gc_push_checked"

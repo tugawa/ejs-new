@@ -481,8 +481,6 @@ $(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
 %.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
 
-object.o: object-compat.c
-
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS_VMDL) -o $@ $<
 
