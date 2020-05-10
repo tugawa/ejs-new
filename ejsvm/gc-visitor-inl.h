@@ -97,8 +97,10 @@ class NodeScanner {
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
-    if (p->alloc_site != NULL)
+    if (p->alloc_site != NULL) {
       alloc_site_update_info(p);
+      PROCESS_EDGE(p->alloc_site->pm);
+    }
 #endif /* ALLOC_SITE_CACHE */
   }
   
@@ -469,8 +471,14 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
       if (!Tracer::is_marked_cell(cell)) {
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
-      } else
+      } else {
+	PROCESS_EDGE(*p);
+	PROCESS_EDGE((*p)->str);
+#ifdef MARK_STACK
+	Tracer::process_mark_stack();
+#endif /* MARK_STACK */
         p = &(*p)->next;
+      }
     }
   }
 }
@@ -491,10 +499,13 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
   {
     Shape **p;
     for (p = &pm->shapes; *p != NULL; ) {
-      Shape *os = *p;
-      if (Tracer::is_marked_cell(os))
+      if (Tracer::is_marked_cell(*p)) {
+	PROCESS_EDGE(*p);
+#ifdef MARK_STACK
+	Tracer::process_mark_stack();
+#endif /* MARK_STACK */
         p = &(*p)->next;
-      else {
+      } else {
         Shape *skip = *p;
         *p = skip->next;
 #ifdef DEBUG
@@ -618,6 +629,7 @@ ACCEPTOR STATIC void weak_clear_property_maps()
     else {
       PROCESS_EDGE(*pp);
       PROCESS_EDGE((*pp)->pm);
+      PROCESS_EDGE((*pp)->pm->prev);
 #ifdef MARK_STACK
       Tracer::process_mark_stack();
 #endif /* MARK_STACK */

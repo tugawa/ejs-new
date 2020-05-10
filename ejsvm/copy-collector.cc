@@ -48,35 +48,43 @@ static void scavenge(void);
  *  process_node_XXX
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
+static uintptr_t get_forwarding_pointer(uintptr_t ptr) {
+  return *(uintptr_t *) ptr;
+}
+static void set_forwarding_pointer(uintptr_t ptr, uintptr_t to) {
+  *(uintptr_t *) ptr = to;
+}
+static uintptr_t forward(uintptr_t ptr) {
+  header_t *hdrp = payload_to_header(ptr);
+  if (hdrp->forwarded)
+    return get_forwarding_pointer(ptr);
+  header_t *to_hdrp = copy_object(hdrp);
+  uintptr_t to = (uintptr_t) header_to_payload(to_hdrp);
+  set_forwarding_pointer(ptr, to);
+  hdrp->forwarded = 1;
+  return to;
+}
+
 class CopyTracer {
-  static uintptr_t get_forwarding_pointer(uintptr_t ptr) {
-    return *(uintptr_t *) ptr;
-  }
-  static void set_forwarding_pointer(uintptr_t ptr, uintptr_t to) {
-    *(uintptr_t *) ptr = to;
-  }
-  static uintptr_t forward(uintptr_t ptr) {
-    header_t *hdrp = payload_to_header(ptr);
-    if (hdrp->forwarded)
-      return get_forwarding_pointer(ptr);
-    header_t *to_hdrp = copy_object(hdrp);
-    uintptr_t to = (uintptr_t) header_to_payload(to_hdrp);
-    set_forwarding_pointer(ptr, to);
-    hdrp->forwarded = 1;
-    return to;
+  static bool in_to_space(uintptr_t ptr) {
+    return space.to <= ptr && ptr < space.to + space.bytes;
   }
  public:
   static void process_edge(JSValue &v) {
     if (is_fixnum(v) || is_special(v))
       return;
     uintptr_t ptr = (uintptr_t) clear_ptag(v);
+    assert(!in_to_space(ptr));
     uintptr_t to = forward(ptr);
     PTag tag = get_ptag(v);
     v = put_ptag(to, tag);
   }
   static void process_edge(void *&p) {
-    uintptr_t ptr = forward((uintptr_t) p);
-    p = (void *) ptr;
+    uintptr_t ptr = (uintptr_t) p;
+    if (in_to_space(ptr))
+      return; /* PropertyMap may be in tospace */
+    uintptr_t to = forward(ptr);
+    p = (void *) to;
   }
   static void process_edge_function_frame(JSValue &v) {
     void *p = jsv_to_function_frame(v);
@@ -114,11 +122,39 @@ class CopyTracer {
   }
   static void process_weak_edge(JSValue v) {}
   static void process_weak_edge(void *p) {}
+  static bool is_marked_cell(void *p) { abort(); }
+  static void process_mark_stack(void) {
+    scavenge();
+  }
+};
+
+class CopyWeakTracer {
+  static bool in_to_space(uintptr_t ptr) {
+    return space.to <= ptr && ptr < space.to + space.bytes;
+  }
+public:
+  static void process_edge(JSValue &v) {
+    if (is_fixnum(v) || is_special(v))
+      return;
+    uintptr_t ptr = (uintptr_t) clear_ptag(v);
+    if (in_to_space(ptr))
+      return;
+    uintptr_t to = forward(ptr);
+    PTag tag = get_ptag(v);
+    v = put_ptag(to, tag);
+  }
+  static void process_edge(void *&p) {
+    uintptr_t ptr = (uintptr_t) p;
+    if (in_to_space(ptr))
+      return;
+    uintptr_t to = forward(ptr);
+    p = (void *) to;
+  }
   static bool is_marked_cell(void *p) {
     uintptr_t ptr = (uintptr_t) p;
-    if (space.to <= ptr && ptr < space.to + space.bytes)
+    if (in_to_space(ptr))
       return true;
-    header_t *hdrp = payload_to_header((uintptr_t) p);
+    header_t *hdrp = payload_to_header(ptr);
     return hdrp->forwarded;
   }
   static void process_mark_stack(void) {
@@ -157,9 +193,9 @@ void garbage_collection(Context *ctx)
 
   /* weak */
   gc_phase = PHASE_WEAK;
-  weak_clear<CopyTracer>();
+  weak_clear<CopyWeakTracer>();
 
-  /* sweep */
+  /* flip */
   gc_phase = PHASE_FLIP;
   uintptr_t tmp = space.from;
   space.from = space.to;
