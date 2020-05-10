@@ -1379,11 +1379,6 @@ double cstr_to_double(char* cstr)
 }
 
 #ifdef HC_PROF
-struct root_property_map {
-  /* malloc structure */
-  PropertyMap *pm;
-  struct root_property_map *next;
-};
 /* exprot to GC */
 struct root_property_map *root_property_map;
 

@@ -288,6 +288,14 @@ struct property_map_list {
 };
 #endif /* HC_SKIP_INTERNAL */
 
+#ifdef HC_PROF
+struct root_property_map {
+  /* malloc structure */
+  PropertyMap *pm;
+  struct root_property_map *next;
+};
+#endif /* HC_PROF */
+
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
 #ifndef NO_SHAPE_CACHE

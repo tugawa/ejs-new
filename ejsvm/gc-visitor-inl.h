@@ -460,11 +460,6 @@ ACCEPTOR STATIC void scan_roots(Context *ctx)
    * PropertyMap
    */
   {
-    struct root_property_map {
-      /* malloc structure */
-      PropertyMap *pm;
-      struct root_property_map *next;
-    };
     extern struct root_property_map *root_property_map;
     for (struct root_property_map *e = root_property_map;
 	 e != NULL; e = e->next)
