@@ -474,9 +474,7 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
       } else {
 	PROCESS_EDGE(*p);
 	PROCESS_EDGE((*p)->str);
-#ifdef MARK_STACK
 	Tracer::process_mark_stack();
-#endif /* MARK_STACK */
         p = &(*p)->next;
       }
     }
@@ -501,9 +499,7 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
     for (p = &pm->shapes; *p != NULL; ) {
       if (Tracer::is_marked_cell(*p)) {
 	PROCESS_EDGE(*p);
-#ifdef MARK_STACK
 	Tracer::process_mark_stack();
-#endif /* MARK_STACK */
         p = &(*p)->next;
       } else {
         Shape *skip = *p;
@@ -533,9 +529,7 @@ ACCEPTOR STATIC void weak_clear_shapes()
     PropertyMapList *e = *pp;
     if (Tracer::is_marked_cell(e->pm)) {
       PROCESS_EDGE(e);
-#ifdef MARK_STACK
       Tracer::process_mark_stack();
-#endif /* MARK_STACK */
       *pp = e;
       weak_clear_shape_recursive<Tracer>(e->pm);
       pp = &e->next;
@@ -607,9 +601,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* VERBOSE_WEAK */
       /* Resurrect if it is branching node or terminal node */
       PROCESS_EDGE(next);
-#ifdef MARK_STACK
       Tracer::process_mark_stack();
-#endif /* MARK_STACK */
       p->entry.data.u.pm = next;
       next->prev = pm;
       weak_clear_property_map_recursive<Tracer>(next);
@@ -630,9 +622,7 @@ ACCEPTOR STATIC void weak_clear_property_maps()
       PROCESS_EDGE(*pp);
       PROCESS_EDGE((*pp)->pm);
       PROCESS_EDGE((*pp)->pm->prev);
-#ifdef MARK_STACK
       Tracer::process_mark_stack();
-#endif /* MARK_STACK */
       pm = (*pp)->pm;
       weak_clear_property_map_recursive<Tracer>(pm);
       pp = &(*pp)->next;

@@ -102,6 +102,8 @@ class MarkTracer {
       process_node<MarkTracer>(ptr);
     }
   }
+#else /* MARK_STACK */
+  static void process_mark_stack(void) {}
 #endif /* MARK_STACK */
 };
 #else /* CXX_TRACER_CBV */
@@ -163,6 +165,8 @@ public:
       process_node<RVTracer>(ptr);
     }
   }
+#else /* MARK_STACK */
+  static void process_mark_stack(void) {}
 #endif /* MARK_STACK */
 };
 #else /* CXX_TRACER_RV */
@@ -224,6 +228,8 @@ class RefMarkTracer {
       process_node<RefMarkTracer>(ptr);
     }
   }
+#else /* MARK_STACK */
+  static void process_mark_stack(void) {}
 #endif /* MARK_STACK */
 };
 #endif /* CXX_TRACER_RV */
@@ -264,10 +270,7 @@ void garbage_collection(Context *ctx)
   /* mark */
   gc_phase = PHASE_MARK;
   scan_roots<DefaultTracer>(ctx);
-
-#ifdef MARK_STACK
   DefaultTracer::process_mark_stack();
-#endif /* MARK_STACK */
 
   /* profile */
 #ifdef CHECK_MATURED
