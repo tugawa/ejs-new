@@ -454,6 +454,23 @@ ACCEPTOR STATIC void scan_roots(Context *ctx)
    */
   for (i = 0; i < gc_root_stack_ptr; i++)
     PROCESS_EDGE(*(gc_root_stack[i]));
+
+#ifdef HC_PROF
+  /*
+   * PropertyMap
+   */
+  {
+    struct root_property_map {
+      /* malloc structure */
+      PropertyMap *pm;
+      struct root_property_map *next;
+    };
+    extern struct root_property_map *root_property_map;
+    for (struct root_property_map *e = root_property_map;
+	 e != NULL; e = e->next)
+      PROCESS_EDGE(e->pm);
+  }
+#endif /* HC_PROF */
 }
 
 /*
