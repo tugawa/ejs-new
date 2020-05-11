@@ -323,9 +323,6 @@ STATIC void check_invariant_nobw_space(struct space *space)
     case CELLT_STRING:
     case CELLT_FLONUM:
     case CELLT_ARRAY_DATA:
-    case CELLT_CONTEXT:
-    case CELLT_STACK:
-    case CELLT_HIDDEN_CLASS:
     case CELLT_HASHTABLE:
     case CELLT_HASH_CELL:
       break;

@@ -233,7 +233,7 @@ static void exhandler_throw(Context *context)
   set_pc(context, p->pc);
 
   /* 4. unwind C stack, and go to the entry of vmloop */
-  longjmp(*p->jmp_buf, 1);
+  longjmp(*p->_jmp_buf, 1);
 }
 
 static void lcall_stack_push(Context* context, int pc)

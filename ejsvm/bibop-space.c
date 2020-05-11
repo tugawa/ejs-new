@@ -16,6 +16,37 @@
 static int sizeclass_map[GRANULES_IN_PAGE + 1];
 struct space space;
 
+#ifdef BIBOP_FST_PAGE
+static char is_fixed_size_type[NUM_CELL_TYPES] = {
+ [CELLT_STRING] = 0,
+ [CELLT_FLONUM] = 1,
+ [CELLT_SIMPLE_OBJECT] = 0,
+ [CELLT_ARRAY] = 0,
+ [CELLT_FUNCTION] = 0,
+ [CELLT_BUILTIN] = 0,
+ [CELLT_ITERATOR] = 1,
+#ifdef USE_REGEXP
+ [CELLT_REGEXP] = 0,
+#endif /* USE_REGEXP */
+ [CELLT_BOXED_STRING] = 0,
+ [CELLT_BOXED_NUMBER] = 0,
+ [CELLT_BOXED_BOOLEAN] = 0,
+
+ [CELLT_PROP] = 0,
+ [CELLT_ARRAY_DATA] = 0,
+ [CELLT_BYTE_ARRAY] = 0,
+ [CELLT_FUNCTION_FRAME] = 0,
+ [CELLT_STR_CONS] = 1,
+ [CELLT_HASHTABLE] = 1,
+ [CELLT_HASH_BODY] = 0,
+ [CELLT_HASH_CELL] = 1,
+ [CELLT_PROPERTY_MAP] = 1,
+ [CELLT_SHAPE] = 1,
+ [CELLT_UNWIND] = 1,
+ [CELLT_PROPERTY_MAP_LIST] = 1
+};
+#endif /* BIBOP_FST_PAGE */
+
 #ifdef VERIFY_BIBOP
 static void verify_free_page(free_page_header *ph);
 #endif /* VERIFY_BIBOP */
@@ -397,6 +428,8 @@ page_so_init(page_header_t *xph, unsigned int size, cell_type_t type,
 
 #ifdef USE_FREELIST
 STATIC_INLINE size_t page_sofl_count_live(sofl_page_header *ph)
+  __attribute__((unused));
+STATIC_INLINE size_t page_sofl_count_live(sofl_page_header *ph)
 {
   size_t nblocks = page_sofl_blocks(ph);
   size_t nfree = 0;
@@ -557,10 +590,6 @@ void space_init(size_t bytes)
   for (i = 0; i < NUM_CELL_TYPES; i++)
     for (j = 0; j < NUM_SOBJ_SIZECLASSES; j++)
       space.freelist[i][j] = NULL;
-#ifdef BIBOP_MOBJ
-  for (i = 0; i < NUM_MOBJ_SIZECLASSES; i++)
-    space.mo_freelist[i] = NULL;
-#endif /* BIBOP_MOBJ */
 #ifdef BIBOP_SEGREGATE_1PAGE
   space.single_page_pool = NULL;
 #endif /* BIBOP_SEGREGATE_1PAGE */
@@ -697,9 +726,18 @@ STATIC_INLINE uintptr_t
 alloc_small_object(unsigned int request_granules, cell_type_t type)
 {
   uintptr_t found = 0;
-  int sizeclass_index = sizeclass_map[request_granules];
+  int sizeclass_index;
   so_page_header **pp;
 
+#ifdef BIBOP_FST_PAGE
+  if (is_fixed_size_type[type])
+    sizeclass_index = 0;
+  else
+    sizeclass_index = sizeclass_map[request_granules];
+#else /* BIBOP_FST_PAGE */
+  sizeclass_index = sizeclass_map[request_granules];
+#endif /* BIBOP_FST_PAGE */
+  
   /* find a half-used page */
   for (pp = &space.freelist[type][sizeclass_index]; *pp != NULL; ) {
     struct so_page_header *p = *pp;
@@ -724,7 +762,14 @@ alloc_small_object(unsigned int request_granules, cell_type_t type)
       sobm_page_header *ph = &xph->u.sobm;
 #endif /* BIBOP_FREELIST */
       uintptr_t found;
+#ifdef BIBOP_FST_PAGE
+      if (is_fixed_size_type[type])
+	page_so_init(xph, request_granules, type, 0);
+      else
+	page_so_init(xph, sizeclasses[sizeclass_index], type, 0);
+#else /* BIBOP_FST_PAGE */
       page_so_init(xph, sizeclasses[sizeclass_index], type, 0);
+#endif /* BIBOP_FST_PAGE */
       ph->c.next = space.freelist[type][sizeclass_index];
       space.freelist[type][sizeclass_index] = ph;
       found = alloc_block_in_page(ph);
@@ -865,7 +910,12 @@ STATIC_INLINE int sweep_sobm_page(sobm_page_header *ph)
 #endif /* FLONUM_SPACE */
 #ifndef BIBOP_FREELIST
   if (is_full != ~((granule_t) 0)) {
+#ifdef BIBOP_FST_PAGE
+    int sizeclass_index =
+      is_fixed_size_type[ph->c.type] ? 0 : sizeclass_map[ph->c.size];
+#else /* BIBOP_FST_PAGE */
     int sizeclass_index = sizeclass_map[ph->c.size];
+#endif /* BIBOP_FST_PAGE */
     ph->c.next = space.freelist[ph->c.type][sizeclass_index];
     space.freelist[ph->c.type][sizeclass_index] = ph;
   }
@@ -915,7 +965,12 @@ STATIC_INLINE int sweep_sofl_page(sofl_page_header *ph)
 
   /* 4. link to free page list if non-full */
   if (freelist != 0) {
+#ifdef BIBOP_FST_PAGE
+    int sizeclass_index =
+      is_fixed_size_type[ph->c.type] ? 0 : sizeclass_map[ph->c.size];
+#else /* BIBOP_FST_PAGE */
     int sizeclass_index = sizeclass_map[ph->c.size];
+#endif /* BIBOP_FST_PAGE */
     ph->c.next = space.freelist[ph->c.type][sizeclass_index];
     space.freelist[ph->c.type][sizeclass_index] = ph;
   }

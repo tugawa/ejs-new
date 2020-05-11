@@ -17,21 +17,33 @@ SUPERINSNTYPE = 4
 ## compile flags
 ##
 
-CFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
-# CFLAGS = -Os -DNDEBUG -UDEBUG $(HEAPSIZE)
-# CFLAGS = -O0 -g $(HEAPSIZE)
+# CFLAGS for C compiler and preprocessor
+# CXXFLAGS for C++ compiler
+# CPPFLAGS for C and  C++ compilers and preprocessor
+
+CPPFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
+# CPPFLAGS = -Os -DNDEBUG -UDEBUG $(HEAPSIZE)
+# CPPFLAGS = -O0 -g $(HEAPSIZE)
+CFLAGS =
+CXXFLAGS =
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
+
+##
+## C++
+##
+GC_CXX = true
 
 ##
 ## VMDL
 ##
-USE_VMDL=false
+USE_VMDL = false
 
 ##
 ## commands
 ##
 
 CC = gcc
+CXX = gcc
 SED = gsed
 # SED = sed
 PYTHON = python
@@ -55,9 +67,10 @@ LIBS =
 
 OPT_REGEXP    = none
 # OPT_REGEXP    = oniguruma
-#OPT_GC        = native
-OPT_GC        = bibop
-# OPT_GC        = none
+OPT_GC        = native
+#OPT_GC        = bibop
+#OPT_GC        = copy
+#OPT_GC        = none
 
 ## heap size in bytes
 HEAPSIZE      = -DJS_SPACE_BYTES=10485760
@@ -69,38 +82,38 @@ HEAPSIZE      = -DJS_SPACE_BYTES=10485760
 # INSN32/64    -- instruction size
 # JSVALUE32/64 -- JSValue size  (>= ponter size)
 # ALIGN32/64   -- alignment of heap-allocated data
-#CFLAGS        += -DBIT_INSN32 -DBIT_ALIGN32 -DBIT_JSVALUE32
-CFLAGS        += -DBIT_INSN64 -DBIT_ALIGN64 -DBIT_JSVALUE64
+#CPPFLAGS        += -DBIT_INSN32 -DBIT_ALIGN32 -DBIT_JSVALUE32
+CPPFLAGS        += -DBIT_INSN64 -DBIT_ALIGN64 -DBIT_JSVALUE64
 
 ##
 ## developer options
 ##
 
 ## accept SBC files
-CFLAGS       += -DUSE_SBC
+CPPFLAGS       += -DUSE_SBC
 ## GC collects internal nodes in hidden class graph
-CFLAGS       += -DHC_SKIP_INTERNAL
+CPPFLAGS       += -DHC_SKIP_INTERNAL
 ## cache shapes at allocation site
-CFLAGS       += -DALLOC_SITE_CACHE
+CPPFLAGS       += -DALLOC_SITE_CACHE
 ## GC collects unused shapes (effective if ALLOC_SITE_CACHE is specified)
-CFLAGS       += -DWEAK_SHAPE_LIST
+CPPFLAGS       += -DWEAK_SHAPE_LIST
 ## Do not hold the list of shapes.  Instead, only the largest shape is held.
-#CFLAGS       += -DNO_SHAPE_CACHE
+#CPPFLAGS       += -DNO_SHAPE_CACHE
 ## use inlne cache
-CFLAGS       += -DINLINE_CACHE
+CPPFLAGS       += -DINLINE_CACHE
 
 ## show GC profiling information (make --gc-prof available)
-CFLAGS       += -DGC_PROF
+CPPFLAGS       += -DGC_PROF
 ## show hidden class related profiling information (make --hc-prof available)
-CFLAGS       += -DHC_PROF
+CPPFLAGS       += -DHC_PROF
 ## print flonum usage
-CFLAGS       += -DFLONUM_SPACE
+CPPFLAGS       += -DFLONUM_SPACE
 
 ## use explicit mark stack rather than recursive call
-#CFLAGS      += -DMARK_STACK
+#CPPFLAGS      += -DMARK_STACK
 
 ## array size strategy
-CFLAGS       += -DNEW_ASIZE_STRATEGY
+CPPFLAGS       += -DNEW_ASIZE_STRATEGY
 
 ##
 ## BiBoP options
@@ -109,28 +122,28 @@ CFLAGS       += -DNEW_ASIZE_STRATEGY
 ## page caches the size of bitmaps
 CFALGS       += -DBIBOP_CACHE_BMP_GRANULES
 ## free pages of size one is linked in a separate list
-CFLAGS       += -DBIBOP_SEGREGATE_1PAGE
+CPPFLAGS       += -DBIBOP_SEGREGATE_1PAGE
 ## allocate pages of size one from the bottom of the heap
-CFLAGS       += -DBIBOP_2WAY_ALLOC
+CPPFLAGS       += -DBIBOP_2WAY_ALLOC
 ## link free blocks in a page to form a freelist
-CFLAGS       += -DBIBOP_FREELIST
+CPPFLAGS       += -DBIBOP_FREELIST
 ## use flonum pages as if it is a hashtable to encourage sahreing flonum objects
-#CFLAGS       += -DFLONUM_SPACE
+#CPPFLAGS       += -DFLONUM_SPACE
 ## debug
-CFLAGS       += -DVERIFY_BIBOP
+CPPFLAGS       += -DVERIFY_BIBOP
 
 ##
 ## debug/sanity check options
 ##
 
 ## show values of properties in GETPROP/SETPROP instructions
-#CFLAGS   += -DDEBUG_GETPROP_VALUE
+#CPPFLAGS   += -DDEBUG_GETPROP_VALUE
 
 ## GC reports unmatured (not reached the end of HC
 ## transisiton graph) dead objects
-#CFLAGS   += -DCHECK_MATURED
+#CPPFLAGS   += -DCHECK_MATURED
 
 ## fix rand seed
-CFLAGS    += -DNO_SRAND
+CPPFLAGS    += -DNO_SRAND
 
 include $(EJSVM_DIR)/common.mk

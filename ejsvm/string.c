@@ -118,8 +118,7 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
                            string_value(v2), len2, hash, &v))
     return v;
 
-  /* gc_push_tmp_root(&v1); */
-  /* gc_push_tmp_root(&v2); */
+  GC_PUSH2(v1, v2);
   p = allocate_string(context, len1 + len2);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
@@ -128,10 +127,8 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
   memcpy(p->value + len1, string_value(v2), len2 + 1);
   v = ptr_to_normal_string(p);
   GC_PUSH(v);
-  /* gc_push_tmp_root(&v); */
   string_table_put(context, v, hash);
-  GC_POP(v);
-  /* gc_pop_tmp_root(3); */
+  GC_POP3(v, v2, v1);
   return v;
 }
 

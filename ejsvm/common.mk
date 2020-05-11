@@ -12,6 +12,9 @@ endif
 ifeq ($(CC),cc)
     CC = clang
 endif
+ifeq ($(CXX),cc)
+    CC = clang
+endif
 ifeq ($(SED),)
     SED = gsed
 endif
@@ -19,7 +22,7 @@ ifeq ($(PYTHON),)
     PYTHON = python
 endif
 ifeq ($(CPP_VMDL),)
-    CPP_VMDL=$(CC) $(CFLAGS) -E -x c -P
+    CPP_VMDL=$(CC) $(CPPFLAGS) -E -x c -P
 endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
@@ -85,11 +88,14 @@ endif
 CPP=$(CC) -E
 
 CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-unused-result $(INCLUDES)
+CXXFLAGS = -std=c++11 -Wall $(INCLUDES)
+
+CPPFLAGS +=
 LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
-CFLAGS += -DUSE_VMDL
-CFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
+PPCFLAGS += -DUSE_VMDL
+CPPFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
 endif
 
 ######################################################
@@ -244,35 +250,54 @@ INSN_GENERATED = \
 
 INSN_HANDCRAFT =
 
-CFILES = $(patsubst %.o,%.c,$(OFILES))
+CFILES := $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
+ifeq ($(GC_CXX),true)
+CXX_FILES = gc.cc marksweep-collector.cc markcompact-collector.cc copy-collector.cc
+HFILES    += gc-visitor-inl.h
+MARKSWEEP_COLLECTOR = marksweep-collector.o
+else
+CXX_FILES =
+MARKSWEEP_COLLECTOR =
+endif
+
 ifeq ($(OPT_GC),native)
-    CFLAGS+=-DUSE_NATIVEGC=1
-    OFILES+=freelist-space.o
+    CPPFLAGS+=-DUSE_NATIVEGC=1
+    OFILES+=$(MARKSWEEP_COLLECTOR) freelist-space.o
     HFILES+=freelist-space.h freelist-space-inl.h
 endif
 ifeq ($(OPT_GC),bibop)
-    CFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
-    OFILES+=bibop-space.o
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
+    OFILES+=$(MARKSWEEP_COLLECTOR) bibop-space.o
     HFILES+=bibop-space.h bibop-space-inl.h
 endif
+ifeq ($(OPT_GC),copy)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOPYGC
+    OFILES+=copy-collector.o
+    HFILES+=copy-collector.h
+endif
+ifeq ($(OPT_GC),compact)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION
+    OFILES+=markcompact-collector.o
+    HFILES+=markcompact-collector.h markcompact-collector-inl.h
+endif
 ifeq ($(OPT_GC),boehmgc)
-    CFLAGS+=-DUSE_BOEHMGC=1
+    CPPFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
 endif
 ifeq ($(OPT_REGEXP),oniguruma)
-    CFLAGS+=-DUSE_REGEXP=1
+    CPPFLAGS+=-DUSE_REGEXP=1
     LIBS+=-lonig
 endif
 
 ifeq ($(DATATYPES),)
     GENERATED_HFILES += types-handcraft.h
 else
-    CFLAGS += -DUSE_TYPES_GENERATED=1
+    CPPFLAGS += -DUSE_TYPES_GENERATED=1
     GENERATED_HFILES += types-generated.h
 endif
 
@@ -447,19 +472,26 @@ endif
 
 instructions.h: instructions-opcode.h instructions-table.h
 
+$(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
+	cp $< $@
+
 %.c:: $(EJSVM_DIR)/%.c
 	cp $< $@
 
 %.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
 
-object.o: object-compat.c
-
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
-	$(CC) -c $(CFLAGS) $(CFLAGS_VMDL) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS_VMDL) -o $@ $<
+
+#gc.o:%.o:%.cc $(HFILES)
+$(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
+	echo $(CPPFLAGS)
+	echo $(CXXFLAGS)
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 #### vmgen
 $(VMGEN):
@@ -493,7 +525,7 @@ endif
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
+	$(CPP) $(CPPFLAGS) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
@@ -510,7 +542,7 @@ check: $(CHECKRESULTS)
 #### clean
 
 clean:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
@@ -519,7 +551,7 @@ clean:
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 
 cleanest:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)

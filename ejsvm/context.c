@@ -85,10 +85,8 @@ void init_context(size_t stack_limit, Context **context)
 
 static Context *allocate_context(size_t stack_size)
 {
-  /* GC is not allowed */
-  Context *ctx = (Context *) gc_malloc(NULL, sizeof(Context), CELLT_CONTEXT);
-  ctx->stack = (JSValue *) gc_malloc(NULL, sizeof(JSValue) * stack_size,
-                                     CELLT_STACK);
+  Context *ctx = (Context *) malloc(sizeof(Context));
+  ctx->stack = (JSValue *) malloc(sizeof(JSValue) * stack_size);
   return ctx;
 }
 

@@ -48,6 +48,10 @@ public class VMRepType implements Comparable<VMRepType> {
             return "HTAGV_" + name.substring(5);
         }
 
+        public String getCelltypeName() {
+            return "CELLT_" + name.substring(5);
+        }
+
         @Override
         public String toString() {
             return String.format("%s", getName());

@@ -7,6 +7,10 @@
  * Electro-communications.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef USE_NATIVEGC
 #error Boehm GC is no longer supported
 #endif  /* USE_NATIVEGC */
@@ -17,8 +21,10 @@
 
 #ifdef BIT_ALIGN32
 #define LOG_BYTES_IN_GRANULE  2
+typedef uint32_t granule_t;
 #else /* BIT_ALIGN32 */
 #define LOG_BYTES_IN_GRANULE  3
+typedef uint64_t granule_t;
 #endif /* BIT_ALIGN32 */
 
 #define LOG_BITS_IN_GRANULE  (LOG_BYTES_IN_GRANULE + 3)
@@ -44,7 +50,7 @@ extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
  */
 
 extern void init_memory(size_t);
-extern void *gc_malloc(Context *, uintptr_t, uint32_t);
+extern void *gc_malloc(Context *, uintptr_t, cell_type_t);
 #ifdef FLONUM_SPACE
 extern FlonumCell *gc_try_alloc_flonum(double x);
 #endif /* FLONUM_SPACE */
@@ -82,6 +88,10 @@ static inline cell_type_t gc_obj_header_type(void *p);
 #define GC_POP7(a,b,c,d,e,f,g)   do {GC_POP(a); GC_POP6(b,c,d,e,f,g);} while(0)
 #define GC_POP8(a,b,c,d,e,f,g,h)                        \
   do {GC_POP(a); GC_POP7(b,c,d,e,f,g,h);} while(0)
+
+#ifdef __cplusplus
+}
+#endif
 
 /* Local Variables:      */
 /* mode: c               */

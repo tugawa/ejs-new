@@ -78,7 +78,9 @@
 \otherwise \{
   if (obj == JS_UNDEFINED)
      LOG_EXIT("GETPROP: attempt to get property of `undefined'\n");
+  GC_PUSH(prop);
   obj = to_object(context, obj);
+  GC_POP(prop);
   goto USELABEL(HEAD);
 /* Local Variables:      */
 /* mode: c               */

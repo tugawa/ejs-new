@@ -80,6 +80,13 @@ enum gc_phase {
   PHASE_FINALISE,
 };
 
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
+typedef int (*tracer_t)(uintptr_t ptr);
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+#ifdef PROCESS_EDGE_FP
+tracer_t process_edge;
+#endif /* PROCESS_EDGE_FP */
+
 /*
  * Variables
  */
@@ -93,11 +100,11 @@ int gc_root_stack_ptr = 0;
 
 STATIC int gc_disabled = 1;
 
-#ifdef MARK_STACK
+#ifndef CXX_TRACER
 #define MARK_STACK_SIZE 1000 * 1000
 static uintptr_t mark_stack[MARK_STACK_SIZE];
 static int mark_stack_ptr;
-#endif /* MARK_STACK */
+#endif /* CXX_TRACER */
 
 int generation = 0;
 int gc_sec;
@@ -135,7 +142,7 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 15 */ "STR_CONS",
     /* 16 */ "CONTEXT",
     /* 17 */ "STACK",
-    /* 18 */ "HIDDEN_CLASS",
+    /* 18 */ "" /* was HIDDEN_CLASS */,
     /* 19 */ "HASHTABLE",
     /* 1a */ "HASH_BODY",
     /* 1b */ "HASH_CELL",
@@ -152,12 +159,24 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
 STATIC void garbage_collection(Context *ctx);
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
+STATIC int process_edge_mark(uintptr_t ptr);
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_roots(tracer_t process_edge, Context *ctx);
+STATIC void weak_clear_StrTable(StrTable *table);
+STATIC void weak_clear(tracer_t process_edge);
+#ifdef MARK_STACK
+STATIC_INLINE void process_node(tracer_t process_edge, uintptr_t ptr);
+#endif /* MARK_STACK */
+#else /* GENERIC_PROCESS_NODE */
 STATIC void scan_roots(Context *ctx);
 STATIC void weak_clear_StrTable(StrTable *table);
 STATIC void weak_clear(void);
 #ifdef MARK_STACK
 STATIC_INLINE void process_node(uintptr_t ptr);
 #endif /* MARK_STACK */
+#endif /* GENERIC_PROCESS_NODE */
 #ifdef ALLOC_SITE_CACHE
 STATIC void alloc_site_update_info(JSObject *p);
 #endif /* ALLOC_SITE_CACHE */
@@ -263,11 +282,19 @@ STATIC_INLINE int mark_stack_is_empty()
   return mark_stack_ptr == 0;
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_mark_stack(tracer_t process_edge)
+#else /* GENERIC_PROCESS_NDOE */
 STATIC void process_mark_stack()
+#endif /* GENERIC_PROCESS_NODE */
 {
   while (!mark_stack_is_empty()) {
     uintptr_t ptr = mark_stack_pop();
+#ifdef GENERIC_PROCESS_NODE
+    process_node(process_edge, ptr);
+#else /* GENERIC_PROCESS_NODE */
     process_node(ptr);
+#endif /* GENERIC_PROCESS_NODE */
   }
 }
 #endif /* MARK_STACK */
@@ -302,10 +329,21 @@ STATIC void garbage_collection(Context *ctx)
 
   /* mark */
   gc_phase = PHASE_MARK;
+#ifdef PROCESS_EDGE_FP
+  process_edge = process_edge_mark;
+#endif /* PROCESS_EDGE_FP */
+#ifdef GENERIC_PROCESS_NODE
+  scan_roots(process_edge_mark, ctx);
+#else /* GENERIC_PROCESS_NODE */
   scan_roots(ctx);
+#endif /* GENERIC_PROCESS_NDOE */
 
 #ifdef MARK_STACK
+#ifdef GENERIC_PROCESS_NODE
+  process_mark_stack(process_edge_mark);
+#else /* GENERIC_PROECSS_NODE */
   process_mark_stack();
+#endif /* GENERIC_PROCESS_NDOE */
 #endif /* MARK_STACK */
 
   /* profile */
@@ -315,7 +353,11 @@ STATIC void garbage_collection(Context *ctx)
 
   /* weak */
   gc_phase = PHASE_WEAK;
+#ifdef GENERIC_PROCESS_NODE
+  weak_clear(process_edge_mark);
+#else /* GENERIC_PROCESS_NDOE */
   weak_clear();
+#endif /* GENERIC_PROCESS_NODE */
 
   /* sweep */
   gc_phase = PHASE_SWEEP;
@@ -357,15 +399,34 @@ STATIC void garbage_collection(Context *ctx)
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_node_FunctionFrame(tracer_t process_edge, FunctionFrame *p);
+STATIC void scan_Context(tracer_t process_edge, Context *p);
+STATIC void scan_function_table_entry(tracer_t process_edge, FunctionTable *p);
+STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp);
+STATIC void process_edge_JSValue_array(tracer_t process_edge, JSValue *p, size_t start, size_t length);
+STATIC void process_edge_HashBody(tracer_t process_edge, HashCell **p, size_t length);
+#else /* GENERIC_PROCESS_NODE */
+#ifndef PROCESS_EDGE_FP
+#ifdef PROCESS_EDGE
+STATIC int process_edge(uintptr_t ptr);
+#else /* PROCESS_EDGE */
 STATIC void process_edge(uintptr_t ptr);
-STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
-STATIC void process_edge_HashBody(HashCell **p, size_t length);
+#endif /* PROCESS_EDGE */
+#endif /* PROCESS_EDGE_FP */
 STATIC void process_node_FunctionFrame(FunctionFrame *p);
-STATIC void process_node_Context(Context *p);
+STATIC void scan_Context(Context *p);
 STATIC void scan_function_table_entry(FunctionTable *p);
 STATIC void scan_stack(JSValue* stack, int sp, int fp);
+STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length);
+STATIC void process_edge_HashBody(HashCell **p, size_t length);
+#endif /* GENERIC_PROCESS_NODE */
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC_INLINE void process_node(tracer_t process_edge, uintptr_t ptr)
+#else /* GENERIC_PROCESS_NODE */
 STATIC_INLINE void process_node(uintptr_t ptr)
+#endif /* GENERIC_PROCESS_NDOE */
 {
   /* part of code for processing the node is inlined */
   switch (space_get_cell_type(ptr)) {
@@ -385,7 +446,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
           (uint64_t) number_to_double(get_array_ptr_length(p));
         size_t len = a_length < a_size ? a_length : a_size;
         process_edge(get_array_ptr_length(p));
+#ifdef GENERIC_PROCESS_NODE
+        process_edge_JSValue_array(process_edge, a_body, 0, len);
+#else /* GENERIC_PROCESS_NODE */
         process_edge_JSValue_array(a_body, 0, len);
+#endif /* GENERIC_PROCESS_NODE */
       }
       break;
     }
@@ -432,17 +497,30 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   case CELLT_ITERATOR:
     {
       Iterator *p = (Iterator *) ptr;
-      if (p->size > 0)
+      if (p->size > 0) {
+#ifdef GENERIC_PROCESS_NODE
+        process_edge_JSValue_array(process_edge, p->body, 0, p->size);
+#else /* GENERIC_PROCESS_NODE */
         process_edge_JSValue_array(p->body, 0, p->size);
+#endif /* GENERIC_PROCESS_NODE */
+      }
       return;
     }
   case CELLT_PROP:
   case CELLT_ARRAY_DATA:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
   case CELLT_BYTE_ARRAY:
     return;
   case CELLT_FUNCTION_FRAME:
+#ifdef GENERIC_PROCESS_NODE
+    process_node_FunctionFrame(process_edge, (FunctionFrame *) ptr);
+#else /* GENERIC_PROCESS_NODE */
     process_node_FunctionFrame((FunctionFrame *) ptr);
+#endif /* GENERIC_PROCESS_NODE */
     return;
   case CELLT_STR_CONS:
     {
@@ -452,20 +530,24 @@ STATIC_INLINE void process_node(uintptr_t ptr)
         process_edge((uintptr_t) p->next); /* StrCons */
       return;
     }
-  case CELLT_CONTEXT:
-    process_node_Context((Context *) ptr);
-    return;
-  case CELLT_STACK:
-    abort();
   case CELLT_HASHTABLE:
     {
       HashTable *p = (HashTable *) ptr;
-      if (p->body != NULL)
+      if (p->body != NULL) {
+#ifdef GENERIC_PROCESS_NODE
+        process_edge_HashBody(process_edge, p->body, p->size);
+#else /* GENERIC_PROCESS_NODE */
         process_edge_HashBody(p->body, p->size);
+#endif /* GENERIC_PROCESS_NODE */
+      }
       return;
     }
   case CELLT_HASH_BODY:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
   case CELLT_HASH_CELL:
     {
       HashCell *p = (HashCell *) ptr;
@@ -516,7 +598,11 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   case CELLT_PROPERTY_MAP_LIST:
+#ifdef PROCESS_EDGE
+    return;
+#else /* PROCESS_EDGE */
     abort();
+#endif /* PROCESS_EDGE */
     break;
 #endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
   default:
@@ -538,8 +624,13 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     if (n_extension != 0) {
       /* 3. extension */
       JSValue *extension = jsv_to_extension_prop(p->eprop[actual_embedded]);
+#ifdef GENERIC_PROCESS_NODE
+      process_edge_JSValue_array(process_edge, extension, 0,
+                                 os->pm->n_props - actual_embedded);
+#else /* GENERIC_PROCESS_NODE */
       process_edge_JSValue_array(extension, 0,
                                  os->pm->n_props - actual_embedded);
+#endif /* GENERIC_PROCESS_NODE */
     }
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
@@ -549,6 +640,45 @@ STATIC_INLINE void process_node(uintptr_t ptr)
   }
 }
 
+#ifdef PROCESS_EDGE
+#if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
+STATIC int process_edge_mark(uintptr_t ptr)
+#else /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+STATIC int process_edge(uintptr_t ptr)
+#endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
+{
+#ifdef MUX_TRACER
+  switch (gc_phase) {
+  case PHASE_MARK:
+  case PHASE_WEAK:
+#endif /* MUX_TRACER */    
+  if (is_fixnum(ptr) || is_special(ptr))
+    return 0;
+
+  ptr = ptr & ~TAGMASK;
+  if (in_js_space((void *) ptr) && test_and_mark_cell((void *) ptr))
+    return 0;
+
+#ifdef MARK_STACK
+  mark_stack_push(ptr);
+#else /* MARK_STACK */
+#ifdef GENERIC_PROCESS_NODE
+  process_node(process_edge_mark, ptr);
+#else /* GENERIC_PROCESS_NODE */
+  process_node(ptr);
+#endif /* GENERIC_PROCESS_NODE */
+#endif /* MARK_STACK */
+  return 1;
+#ifdef MUX_TRACER
+  case PHASE_SWEEP:
+    abort();
+  default:
+    break;
+  }
+    return 0;
+#endif /* MUX_TRACER */
+}
+#else /* PROCESS_EDGE */
 STATIC void process_edge(uintptr_t ptr)
 {
   if (is_fixnum(ptr) || is_special(ptr))
@@ -564,29 +694,58 @@ STATIC void process_edge(uintptr_t ptr)
   process_node(ptr);
 #endif /* MARK_STACK */
 }
+#endif /* PROCESS_EDGE */
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_edge_JSValue_array(tracer_t process_edge,
+    JSValue *p, size_t start, size_t length)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void process_edge_JSValue_array(JSValue *p, size_t start, size_t length)
+#endif /* GENERIC_PROCESS_NODE */
 {
   size_t i;
   assert(in_js_space(p));
+#ifdef PROCESS_EDGE
+  if (process_edge((uintptr_t) p)) {
+    for (i = start; i < length; i++)
+      process_edge((uintptr_t) p[i]);
+  }
+#else /* PROCESS_EDGE */
   if (test_and_mark_cell(p))
     return;
   for (i = start; i < length; i++)
     process_edge((uintptr_t) p[i]);
+#endif /* PROCESS_EDGE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_edge_HashBody(tracer_t process_edge, HashCell **p, size_t length)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void process_edge_HashBody(HashCell **p, size_t length)
+#endif /* GENERIC_PROCESS_NODE */
 {
   size_t i;
   assert(in_js_space(p));
+#ifdef PROCESS_EDGE
+  if (process_edge((uintptr_t) p)) {
+    for (i = 0; i < length; i++)
+      if (p[i] != NULL)
+        process_edge((uintptr_t) p[i]);  /* HashCell */
+  }  
+#else /* PROCESS_EDGE */
   if (test_and_mark_cell(p))
     return;
   for (i = 0; i < length; i++)
     if (p[i] != NULL)
       process_edge((uintptr_t) p[i]);  /* HashCell */
+#endif /* PROCESS_EDGE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void process_node_FunctionFrame(tracer_t process_edge, FunctionFrame *p)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void process_node_FunctionFrame(FunctionFrame *p)
+#endif /* GENERIC_PROCESS_NODE */
 {
   size_t i;
 
@@ -600,7 +759,11 @@ STATIC void process_node_FunctionFrame(FunctionFrame *p)
 #endif /* DEBUG */
 }
 
-STATIC void process_node_Context(Context *context)
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_Context(tracer_t process_edge, Context *context)
+#else /* GENERIC_PROCESS_NODE */
+STATIC void scan_Context(Context *context)
+#endif /* GENERIC_PROCESS_NODE */
 {
   int i;
 
@@ -608,8 +771,13 @@ STATIC void process_node_Context(Context *context)
   /* function table is a static data structure
    *   Note: spreg.cf points to internal address of the function table.
    */
-  for (i = 0; i < FUNCTION_TABLE_LIMIT; i++)
+  for (i = 0; i < FUNCTION_TABLE_LIMIT; i++) {
+#ifdef GENERIC_PROCESS_NODE
+    scan_function_table_entry(process_edge, &context->function_table[i]);
+#else /* GENERIC_PROCESS_NODE */
     scan_function_table_entry(&context->function_table[i]);
+#endif /* GENERIC_PROCESS_NODE */
+  }
   process_edge((uintptr_t) context->spreg.lp);  /* FunctionFrame */
   process_edge((uintptr_t) context->spreg.a);
   process_edge((uintptr_t) context->spreg.err);
@@ -618,12 +786,18 @@ STATIC void process_node_Context(Context *context)
   process_edge((uintptr_t) context->lcall_stack);
 
   /* process stack */
-  assert(!is_marked_cell(context->stack));
-  mark_cell(context->stack);
+#ifdef GENERIC_PROCESS_NODE
+  scan_stack(process_edge, context->stack, context->spreg.sp, context->spreg.fp);
+#else /* GENERIC_PROCESS_NODE */
   scan_stack(context->stack, context->spreg.sp, context->spreg.fp);
+#endif /* GENERIC_PROCESS_NODE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_function_table_entry(tracer_t process_edge, FunctionTable *p)
+#else /* GENERIC_PROCESS_NODE */ 
 STATIC void scan_function_table_entry(FunctionTable *p)
+#endif /* GENERIC_PROCESS_NODE */
 {
   /* trace constant pool */
   {
@@ -666,7 +840,11 @@ STATIC void scan_function_table_entry(FunctionTable *p)
 #endif /* INLINE_CACHE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_stack(tracer_t process_edge, JSValue* stack, int sp, int fp)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void scan_stack(JSValue* stack, int sp, int fp)
+#endif /* GENERIC_PROCESS_NODE */
 {
   while (1) {
     while (sp >= fp) {
@@ -682,7 +860,11 @@ STATIC void scan_stack(JSValue* stack, int sp, int fp)
   }
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_string_table(tracer_t process_edge, StrTable *p)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void scan_string_table(StrTable *p)
+#endif /* GENERIC_PROCESS_NODE */
 {
   StrCons **vec = p->obvector;
   size_t length = p->size;
@@ -693,7 +875,11 @@ STATIC void scan_string_table(StrTable *p)
       process_edge((uintptr_t) vec[i]); /* StrCons */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void scan_roots(tracer_t process_edge, Context *ctx)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void scan_roots(Context *ctx)
+#endif /* GENERIC_PROCESS_NODE */
 {
   int i;
 
@@ -724,12 +910,16 @@ STATIC void scan_roots(Context *ctx)
    */
 
   /* string table */
+#ifdef GENERIC_PROCESS_NODE
+  scan_string_table(process_edge, &string_table);
+#else /* GENERIC_PROCESS_NODE */
   scan_string_table(&string_table);
+#endif /* GENERIC_PROCESS_NODE */
 
   /*
    * Context
    */
-  process_edge((uintptr_t) ctx); /* Context */
+  scan_Context(ctx);
 
   /*
    * GC_PUSH'ed
@@ -799,13 +989,21 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void weak_clear_shapes(tracer_t process_edge)
+#else /* GENERIC_PROCESS_NODE */
 STATIC void weak_clear_shapes()
+#endif /* GENERIC_PROCESS_NODE */
 {
   PropertyMapList **pp;
   for (pp = &the_context->property_map_roots; *pp != NULL;) {
     PropertyMapList *e = *pp;
     if (is_marked_cell(e->pm)) {
+#ifdef PROCESS_EDGE
+      process_edge((uintptr_t) e);
+#else /* PROCESS_EDGE */
       mark_cell(e);
+#endif /* PROCESS_EDGE */
       weak_clear_shape_recursive(e->pm);
       pp = &(*pp)->next;
     } else
@@ -837,7 +1035,11 @@ static PropertyMap* get_transition_dest(PropertyMap *pm)
   return NULL;
 }
 
+#ifdef GENERIC_PROCESS_NODE
+static void weak_clear_property_map_recursive(tracer_t process_edge, PropertyMap *pm)
+#else /* GENERIC_PROCESS_NDOE */
 static void weak_clear_property_map_recursive(PropertyMap *pm)
+#endif /* GENERIC_PROCESS_NODE */
 {
   HashIterator iter;
   HashCell *p;
@@ -875,20 +1077,40 @@ static void weak_clear_property_map_recursive(PropertyMap *pm)
                next, next->n_props, next->n_transitions);
 #endif /* VERBOSE_WEAK */
       /* Resurrect if it is branching node or terminal node */
-      if (!is_marked_cell(next)) {
-        process_edge((uintptr_t) next);
+#ifdef PROCESS_EDGE
 #ifdef MARK_STACK
+      if (process_edge((uintptr_t) next)) {
+#ifdef GENERIC_PROCESS_NODE
+        process_mark_stack(process_edge);
+#else /* GENERIC_PROCESS_NODE */
         process_mark_stack();
-#endif /* MARK_STACK */
+#endif /* GENERIC_PROCESS_NODE */
       }
+#else /* MARK_STACK */
+      process_edge((uintptr_t) next);
+#endif /* MARK_STACK */
+#else /* PROCESS_EDGE */
+      process_edge((uintptr_t) next);
+#ifdef MARK_STACK
+      process_mark_stack();
+#endif /* MARK_STACK */
+#endif /* PROCESS_EDGE */
       p->entry.data.u.pm = next;
       next->prev = pm;
+#ifdef GENERIC_PROCESS_NODE
+      weak_clear_property_map_recursive(process_edge, next);
+#else /* GENERIC_PROCESS_NODE */
       weak_clear_property_map_recursive(next);
+#endif /* GENERIC_PROCESS_NDOE */
     }
   pm->n_transitions = n_transitions;
 }
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void weak_clear_property_maps(tracer_t process_edge)
+#else /* GENERIC_PROCESS_NDOE */
 STATIC void weak_clear_property_maps()
+#endif /* GENERIC_PROCESS_NODE */
 {
   PropertyMapList **pp;
   for (pp = &the_context->property_map_roots; *pp != NULL; ) {
@@ -899,14 +1121,26 @@ STATIC void weak_clear_property_maps()
       *pp = (*pp)->next;
     else {
       pm = (*pp)->pm;
+#ifdef PROCESS_EDGE
+      process_edge((uintptr_t) *pp);
+#else /* PROCESS_EDGE */
       mark_cell(*pp);
+#endif /* PROCESS_EDGE */
       if (!is_marked_cell(pm)) {
         process_edge((uintptr_t) pm);
 #ifdef MARK_STACK
+#ifdef GENERIC_PROCESS_NODE
+        process_mark_stack(process_edge);
+#else /* GENERIC_PROCESS_NODE */
         process_mark_stack();
+#endif /* GENERIC_PROCESS_NODE */
 #endif /* MARK_STACK */
       }
+#ifdef GENERIC_PROCESS_NODE
+      weak_clear_property_map_recursive(process_edge, pm);
+#else /* GENERIC_PROCESS_NDOE */
       weak_clear_property_map_recursive(pm);
+#endif /* GENERIC_PROCESS_NODE */
       pp = &(*pp)->next;
     }
   }
@@ -917,6 +1151,22 @@ STATIC void weak_clear_property_maps()
 
 #endif /* HC_PROF */
 
+#ifdef GENERIC_PROCESS_NODE
+STATIC void weak_clear(tracer_t process_edge)
+{
+#ifdef HC_SKIP_INTERNAL
+  /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
+  weak_clear_property_maps(process_edge);
+#endif /* HC_SKIP_INTERNAL */
+#ifdef WEAK_SHAPE_LIST
+  weak_clear_shapes(process_edge);
+#endif /* WEAK_SHAPE_LIST */
+  weak_clear_StrTable(&string_table);
+
+  /* clear cache in the context */
+  the_context->exhandler_pool = NULL;
+}
+#else /* GENERIC_PROCESS_NODE */
 STATIC void weak_clear(void)
 {
 #ifdef HC_SKIP_INTERNAL
@@ -931,6 +1181,7 @@ STATIC void weak_clear(void)
   /* clear cache in the context */
   the_context->exhandler_pool = NULL;
 }
+#endif /* GENERIC_PROCESS_NODE */
 
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)

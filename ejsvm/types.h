@@ -71,9 +71,7 @@ typedef enum cell_type_t {
   CELLT_FUNCTION      = HTAGV_FUNCTION,
   CELLT_BUILTIN       = HTAGV_BUILTIN,
   CELLT_ITERATOR      = HTAGV_ITERATOR,
-#ifdef USE_REGEXP
   CELLT_REGEXP        = HTAGV_REGEXP,
-#endif
   CELLT_BOXED_STRING  = HTAGV_BOXED_STRING,
   CELLT_BOXED_NUMBER  = HTAGV_BOXED_NUMBER,
   CELLT_BOXED_BOOLEAN = HTAGV_BOXED_BOOLEAN,
@@ -83,11 +81,8 @@ typedef enum cell_type_t {
   CELLT_BYTE_ARRAY    = 0x13, /* Array of primitives */
   CELLT_FUNCTION_FRAME= 0x14, /* FunctionFrame */
   CELLT_STR_CONS      = 0x15, /* StrCons */
-  CELLT_CONTEXT       = 0x16, /* Context */
-  CELLT_STACK         = 0x17, /* Array of JSValues */
-#ifdef HIDDEN_CLASS
-  CELLT_HIDDEN_CLASS  = 0x18, /* HiddenClass */
-#endif
+  /* CELLT_CONTEXT       = 0x16, * Context (no longer used)*/
+  /* CELLT_STACK         = 0x17, * Array of JSValues (no longer used) */
   CELLT_HASHTABLE     = 0x19,
   CELLT_HASH_BODY     = 0x1A,
   CELLT_HASH_CELL     = 0x1B,
@@ -165,7 +160,7 @@ typedef uint32_t uintjsv_t;
 typedef int32_t intjsv_t;
 typedef int32_t cint;
 typedef uint32_t cuint;
-#define PRIJSValue "08"PRIx32
+#define PRIJSValue "08" PRIx32
 #else /* BIT_JSVALUE32 */
 #define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
@@ -173,7 +168,7 @@ typedef uint64_t uintjsv_t;
 typedef int64_t intjsv_t;
 typedef int64_t cint;
 typedef uint64_t cuint;
-#define PRIJSValue "016"PRIx64
+#define PRIJSValue "016" PRIx64
 #endif /* BIT_JSVALUE32 */
 
 #define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)
@@ -293,6 +288,15 @@ struct property_map_list {
 };
 #endif /* HC_SKIP_INTERNAL */
 
+#ifdef HC_PROF
+struct root_property_map {
+  /* malloc structure */
+  PropertyMap *pm;
+  struct root_property_map *next;
+};
+extern struct root_property_map *root_property_map;
+#endif /* HC_PROF */
+
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
 #ifndef NO_SHAPE_CACHE
@@ -389,7 +393,8 @@ static inline void set_js##OT##_##field(JSValue v, FT val)      \
 
 /* for JSValues */
 #define DEFINE_ACCESSORS_J(OT, index, field)    \
-  DEFINE_ACCESSORS_I(OT, index, JSValue, field)
+  DEFINE_ACCESSORS_I(OT, index, JSValue, field) \
+static const size_t OT##_##field##_index = index;
 
 /* for pointers (references) to (no-JS) heap object  */
 #define DEFINE_ACCESSORS_R(OT, index, FT, field, Tname)         \
@@ -401,7 +406,8 @@ static inline void set_##OT##_ptr_##field(JSObject *p, FT val)  \
 {                                                               \
   p->eprop[index] = (JSValue) (uintjsv_t) (uintptr_t) val;      \
 }                                                               \
-DEFINE_COMMON_ACCESSORS(OT, index, FT, field)
+DEFINE_COMMON_ACCESSORS(OT, index, FT, field)                   \
+static const size_t OT##_##field##_index = index;
 
 /* for no-heap pointers */
 #define DEFINE_ACCESSORS_P(OT, index, FT, field)                \

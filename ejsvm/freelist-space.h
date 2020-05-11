@@ -1,6 +1,10 @@
 #ifndef FREELIST_SPACE_H
 #define FREELIST_SPACE_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef FLONUM_SPACE
 #error freelist space does not support FLONUM_SPACE.
 #endif /* FLONUM_SPACE */
@@ -105,5 +109,9 @@ extern void space_print_memory_status(void);
 #ifdef GC_DEBUG
 header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* FREELIST_SPACE_H */

@@ -1,15 +1,11 @@
 #ifndef BIBOP_SPACE_H
 #define BIBOP_SPACE_H
 
-#if BYTES_IN_GRANULE == 4
-typedef uint32_t granule_t;
-#elif BYTES_IN_GRANULE == 8
-typedef uint64_t granule_t;
-#else /* BYTES_IN_GRANULE */
-#error not implemented
-#endif /* BYTES_IN_GRANULE */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define LOG_BYTES_IN_PAGE 12
+#define LOG_BYTES_IN_PAGE 10
 #define LOG_GRANULES_IN_PAGE (LOG_BYTES_IN_PAGE - LOG_BYTES_IN_GRANULE)
 #define BYTES_IN_PAGE     (1 << LOG_BYTES_IN_PAGE)
 #define GRANULES_IN_PAGE  (1 << LOG_GRANULES_IN_PAGE)
@@ -21,6 +17,7 @@ typedef uint64_t granule_t;
 #define PAGE_HEADER_LO_SIZE_BITS 32
 #define PAGE_HEADER_SO_BMP_GRANULES_BITS \
   (LOG_GRANULES_IN_PAGE - LOG_BITS_IN_GRANULE + 1)
+
 
 static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2
@@ -178,5 +175,9 @@ static inline page_header_t *payload_to_page_header(uintptr_t ptr);
 #endif /* GC_DEBUG */
 
 extern struct space space;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* BIBOP_SPACE_H */
