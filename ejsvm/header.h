@@ -67,13 +67,14 @@
 
 #ifdef COPYGC
 #include "copy-collector.h"
-#elif defined(COMPACTION)
-#include "markcompact-collector.h"
-#elif defined(BIBOP)
+#else /* MARKSWEEP */
+#include "marksweep-collector.h"
+#ifdef BIBOP
 #include "bibop-space.h"
 #else /* BIBOP */
 #include "freelist-space.h"
 #endif /* BIBIOP */
+#endif /* MARKSWEEP */
 
 #include "hash.h"
 #include "log.h"
@@ -90,13 +91,13 @@
 #include "gc-inl.h"
 
 #ifdef COPYGC
-#elif defined(COMPACTION)
-#include "markcompact-collector-inl.h"
-#elif defined(BIBOP)
+#else /* MARKSWEEP */
+#ifdef BIBOP
 #include "bibop-space-inl.h"
 #else /* BIBOP */
 #include "freelist-space-inl.h"
 #endif /* BIBOP */
+#endif /* MARKSWEEP */
 
 #endif /* HEADER_H_ */
 

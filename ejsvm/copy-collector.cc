@@ -48,9 +48,6 @@ static void scavenge(void);
  *  process_node_XXX
  *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
-static uintptr_t get_forwarding_pointer(uintptr_t ptr) {
-  return *(uintptr_t *) ptr;
-}
 static void set_forwarding_pointer(uintptr_t ptr, uintptr_t to) {
   *(uintptr_t *) ptr = to;
 }
