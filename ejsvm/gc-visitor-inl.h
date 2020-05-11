@@ -460,7 +460,6 @@ ACCEPTOR STATIC void scan_roots(Context *ctx)
    * PropertyMap
    */
   {
-    extern struct root_property_map *root_property_map;
     for (struct root_property_map *e = root_property_map;
 	 e != NULL; e = e->next)
       PROCESS_EDGE(e->pm);

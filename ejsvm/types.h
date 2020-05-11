@@ -294,6 +294,7 @@ struct root_property_map {
   PropertyMap *pm;
   struct root_property_map *next;
 };
+extern struct root_property_map *root_property_map;
 #endif /* HC_PROF */
 
 struct shape {
