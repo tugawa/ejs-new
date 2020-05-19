@@ -102,5 +102,4 @@ static inline int is_marked_cell_header(header_t *hdrp)
   return hdrp->markbit;
 }
 
-
 #endif /* FREELIST_SPACE_INL_H */

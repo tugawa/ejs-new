@@ -31,6 +31,25 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr) {
   return hdrp->type;
 }
 
+static uintptr_t get_forwarding_pointer(uintptr_t ptr) {
+  return *(uintptr_t *) ptr;
+}
+static inline int GC_PM_EQ(PropertyMap *p, PropertyMap *q) {
+  header_t *hdrp;
+  assert(p != NULL);
+  if (p == q)
+    return 1;
+  hdrp = payload_to_header((uintptr_t) p);
+  if (hdrp->forwarded)
+    return get_forwarding_pointer((uintptr_t) p) == (uintptr_t) q;
+  if (q != NULL) {
+    hdrp = payload_to_header((uintptr_t) q);
+    if (hdrp->forwarded)
+      return get_forwarding_pointer((uintptr_t) q) == (uintptr_t) p;
+  }
+  return 0;
+}
+
 #ifdef GC_DEBUG
 extern void space_print_memory_status(void);
 #endif /* GC_DEBUG */

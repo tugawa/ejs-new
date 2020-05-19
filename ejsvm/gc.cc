@@ -256,7 +256,7 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
 #ifdef ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
-  while(a != b && a->prev != NULL) {
+  while(!GC_PM_EQ(a, b) && a->prev != NULL) {
     /* If both a->n_props and b->n_props are 0, rewind `a', so that we can
      * do NULL check only for `a'.
      */
@@ -276,7 +276,7 @@ void alloc_site_update_info(JSObject *p)
   assert(as != NULL);
 
   /* likely case */
-  if (as->pm == pm)
+  if (GC_PM_EQ(pm, as->pm))
     return;
 
   if (as->pm == NULL) {
@@ -292,14 +292,14 @@ void alloc_site_update_info(JSObject *p)
      *   less      poly:LUB      poly:LUB
      */
     PropertyMap *lub = find_lub(pm, as->pm);
-    if (lub == as->pm) {
+    if (GC_PM_EQ(lub, as->pm)) {
       if (as->polymorphic)
         /* keep current as->pm */ ;
       else {
         as->pm = pm;
         as->shape = NULL;
       }
-    } else if (lub == pm)
+    } else if (GC_PM_EQ(lub, pm))
       /* keep current as->pm */  ;
     else {
       as->polymorphic = 1;

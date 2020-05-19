@@ -258,7 +258,7 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ifeq ($(GC_CXX),true)
 CXX_FILES = gc.cc marksweep-collector.cc markcompact-collector.cc copy-collector.cc
-HFILES    += gc-visitor-inl.h
+HFILES    += gc-visitor-inl.h marksweep-collector.h
 MARKSWEEP_COLLECTOR = marksweep-collector.o
 else
 CXX_FILES =
