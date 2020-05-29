@@ -228,6 +228,8 @@ class NodeScanner {
   }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   ACCEPTOR static void scan_PropertyMapList(PropertyMapList *p) {
+    if (p->pm != NULL)
+      PROCESS_WEAK_EDGE(p->pm);
     if (p->next != NULL)
       PROCESS_WEAK_EDGE(p->next);
   }
@@ -483,9 +485,9 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
       } else {
-	PROCESS_EDGE(*p);
-	PROCESS_EDGE((*p)->str);
-	Tracer::process_mark_stack();
+        PROCESS_EDGE(*p);
+        PROCESS_EDGE((*p)->str);
+        Tracer::process_mark_stack();
         p = &(*p)->next;
       }
     }

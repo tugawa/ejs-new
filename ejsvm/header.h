@@ -67,6 +67,10 @@
 
 #ifdef COPYGC
 #include "copy-collector.h"
+#else /* COPYGC */
+#ifdef THREADED
+#include "threaded-freelist-space.h"
+#include "threadedcompact-collector.h"
 #else /* MARKSWEEP */
 #include "marksweep-collector.h"
 #ifdef BIBOP
@@ -75,6 +79,7 @@
 #include "freelist-space.h"
 #endif /* BIBIOP */
 #endif /* MARKSWEEP */
+#endif /* COPYGC */
 
 #include "hash.h"
 #include "log.h"
@@ -91,6 +96,9 @@
 #include "gc-inl.h"
 
 #ifdef COPYGC
+#else /* COPYGC */
+#ifdef THREADED
+#include "threaded-freelist-space-inl.h"
 #else /* MARKSWEEP */
 #ifdef BIBOP
 #include "bibop-space-inl.h"
@@ -98,6 +106,7 @@
 #include "freelist-space-inl.h"
 #endif /* BIBOP */
 #endif /* MARKSWEEP */
+#endif /* COPYGC */
 
 #endif /* HEADER_H_ */
 
