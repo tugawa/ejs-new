@@ -379,6 +379,10 @@ STATIC void garbage_collection(Context *ctx)
     }
     gc_sec += sec;
     gc_usec += usec;
+    if (gc_usec >= 1000000) {
+      gc_usec -= 1000000;
+      ++gc_sec;
+    }
   }
 
   generation++;
