@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.lang.Exception;
 
 import vmdlc.AlphaConvVisitor.DefaultVisitor;
-import vmdlc.InstructionDefinitions;
 import vmdlc.InstructionDefinitions.OperandKinds;
 
 public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {

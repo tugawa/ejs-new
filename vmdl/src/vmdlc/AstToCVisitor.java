@@ -10,7 +10,6 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.lang.FunctionName;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
@@ -74,7 +73,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
     OperandSpecifications opSpec;
-    Main.OutputMode outputMode;
+    Main.CompileMode compileMode;
     
     public static void addCConstant(String name, String cValue){
         cConstTable.put(name, cValue);
@@ -86,16 +85,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         matchStack = new Stack<MatchRecord>();
     }
 
-    public String start(Tree<?> node, OperandSpecifications opSpec, Main.OutputMode outputMode) {
+    public String start(Tree<?> node, OperandSpecifications opSpec, Main.CompileMode compileMode) {
         this.opSpec = opSpec;
-        this.outputMode = outputMode;
+        this.compileMode = compileMode;
         try {
             outStack.push(new StringBuffer());
             for (Tree<?> chunk : node) {
                 visit(chunk, 0);
             }
             StringBuffer sb = outStack.pop();
-            if(!outputMode.isFunctionMode()) sb.append(getEpilogueLabel() + ": ;\n");
+            if(!compileMode.isFunctionMode()) sb.append(getEpilogueLabel() + ": ;\n");
             String program = sb.toString();
             return program;
         } catch (Exception e) {
@@ -160,7 +159,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             currentFunctionName = name;
 
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
-            if(outputMode.isFunctionMode()){
+            if(compileMode.isFunctionMode()){
                 SyntaxTree typeNode = (SyntaxTree)node.get(Symbol.unique("type"));
                 AstType type = AstType.nodeToType(typeNode);
                 if(!(type instanceof AstProductType)){
@@ -221,15 +220,15 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 indent++;
             }
             visit(bodyNode, indent);
-            if(outputMode.isFunctionMode()){
-                print("LOG_EXIT(\"unexpected function execute: "+name+"\\n\");\n");
+            if(compileMode.isFunctionMode()){
+                print("#ifdef DEBUG\nLOG_EXIT(\"unexpected function execute: "+name+"\\n\");\n#endif\n");
                 print("}");
             }
         }
     }
     public class FunctionDefinition extends DefaultVisitor {
         public void accept(Tree<?> node, int indent) throws Exception {
-            if(!outputMode.isFunctionMode()){
+            if(!compileMode.isFunctionMode()){
                 Tree<?> funNameNode = node.get(Symbol.unique("name"));
                 Tree<?> paramsNode = node.get(Symbol.unique("params"));
                 String[] jsvParams = new String[paramsNode.size()];
@@ -292,7 +291,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String[] formalParams = mp.getFormalParams();
             String rawLabel = mp.getLabel();
             String label;
-            if(outputMode.isFunctionMode()){
+            if(compileMode.isFunctionMode()){
                 Integer labelCount = matchLabelGeneratedSizeMap.get(rawLabel);
                 if(labelCount == null){
                     labelCount = 0;
@@ -385,7 +384,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            if (outputMode.isFunctionMode()) {
+            if (compileMode.isFunctionMode()) {
                 printIndent(indent, "return ");
                 for (Tree<?> expr : node) {
                     visit(expr, 0);
@@ -701,9 +700,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
             if(expandedNode != null){
                 // INLINE EXPANSION PRINT ******************************************
-                 System.err.println("Function-Inline-Expand:");
-                 System.err.println("Original:"+node.toString());
-                 System.err.println("Expanded:"+expandedNode.toString());
+                /*
+                System.err.println("Function-Inline-Expand:");
+                System.err.println("Original:"+node.toString());
+                System.err.println("Expanded:"+expandedNode.toString());
+                */
                 visit(expandedNode, indent);
                 return;
             }

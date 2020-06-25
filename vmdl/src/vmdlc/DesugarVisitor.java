@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.lang.Exception;
 
 import vmdlc.DesugarVisitor.DefaultVisitor;
-import vmdlc.ReplaceNameVisitor;
 
 public class DesugarVisitor extends TreeVisitorMap<DefaultVisitor> {
     public DesugarVisitor() {

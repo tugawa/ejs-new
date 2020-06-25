@@ -7,7 +7,9 @@
  * Electro-communications.
  */
 package vmdlc;
+
 import java.io.BufferedReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,13 +24,7 @@ import nez.parser.io.StringSource;
 import nez.ast.Source;
 import nez.ast.SourceError;
 
-
 import type.*;
-import vmdlc.AlphaConvVisitor;
-import vmdlc.AstToCVisitor;
-import vmdlc.DesugarVisitor;
-import vmdlc.SyntaxTree;
-import vmdlc.TypeCheckVisitor;
 
 
 public class Main {
@@ -40,22 +36,28 @@ public class Main {
     static String operandSpecFile;
     static String insnDefFile;
     static String inlineExpansionFile;
+    static String inlineExpansionWriteFile;
     static String functionDependencyFile = "./vmdl_workspace/dependency.ftd";
-    static String argumentSpecificationsFile = "./vmdl_workspace/funcs-need.spec";
+    //static String argumentSpecificationsFile = "./vmdl_workspace/funcs-need.spec";
     static String argumentSpecFile;
     static int typeMapIndex = 1;
-    static OutputMode outputMode = OutputMode.Instruction;
+    //static OutputMode outputMode = null;
+    static BehaviorMode behaviorMode = BehaviorMode.Compile;
+    static CompileMode compileMode = null;
     static boolean generateArgumentSpecMode = false;
 
     static Option option = new Option();
 
-    public static enum OutputMode{
+    public static enum BehaviorMode{
+        Compile, Preprocess, GenFuncSpec;
+    }
+
+    public static enum CompileMode{
         Instruction(false),
-        Function(true),
-        MakeInline(true);
+        Function(true);
 
         private boolean functionMode;
-        private OutputMode(boolean functionMode){
+        private CompileMode(boolean functionMode){
             this.functionMode = functionMode;
         }
         public boolean isFunctionMode(){
@@ -80,13 +82,25 @@ public class Main {
                     throw new Error("Illigal option");
                 }
                 typeMapIndex = num;
-            } else if (opt.equals("--preprocess")) {
-                outputMode = OutputMode.MakeInline;
-            } else if (opt.equals("--useinline")) {
+            } else if (opt.equals("-preprocess")) {
+                if(behaviorMode != BehaviorMode.Compile){
+                    throw new Error("Can not use \"-gen-funcspec\" option simultaneously");
+                }
+                behaviorMode = BehaviorMode.Preprocess;
+            } else if (opt.equals("-write-fi")) {
+                inlineExpansionWriteFile = args[i++];
+            } else if (opt.equals("-write-ftd")) {
+                functionDependencyFile = args[i++];
+            } else if (opt.equals("-func-inline-opt")) {
                 inlineExpansionFile = args[i++];
-            } else if (opt.equals("--genspec")) {
-                generateArgumentSpecMode = true;
-            } else if (opt.equals("-A")) {
+            } else if (opt.equals("-gen-funcspec")) {
+                functionDependencyFile = args[i++];
+                operandSpecFile = args[i++];
+                if(behaviorMode != BehaviorMode.Compile){
+                    throw new Error("Can not use \"-preprocess\" option simultaneously");
+                }
+                behaviorMode = BehaviorMode.GenFuncSpec;
+            } else if (opt.equals("-update-funcspec")) {
                 argumentSpecFile = args[i++];
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
@@ -101,7 +115,7 @@ public class Main {
             }
         }
 
-        if ((dataTypeDefFile == null || sourceFile == null) && !generateArgumentSpecMode) {
+        if ((dataTypeDefFile == null || sourceFile == null) && behaviorMode != BehaviorMode.GenFuncSpec) {
             System.out.println("vmdlc [option] source");
             System.out.println("   -d file   [mandatory] datatype specification file");
             System.out.println("   -o file   operand specification file");
@@ -112,7 +126,14 @@ public class Main {
             System.out.println("              -T1: use Lub");
             System.out.println("              -T2: partly detail");
             System.out.println("              -T3: perfectly detail");
-            System.out.println("   --inline  output inline expansion information");
+            System.out.println("   -preprocess Use preprocess mode");
+            System.out.println("   -gen-funcspec ftdfile file Use generate function spec mode");
+            System.out.println("   -func-inline-opt file Enable unction-inline-expansion");
+            System.out.println("   -write-fi file Generate function-inline-expansion file");
+            System.out.println("                  (Use with preprocess mode)");
+            System.out.println("   -write-ftd file Generate function-type-dependency file");
+            System.out.println("                  (Use with preprocess mode)");
+            System.out.println("   -update-funcspec file Append funcspec file");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
             System.out.println("   -Xcmp:opt_pass [MR:S]");
             System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
@@ -142,41 +163,36 @@ public class Main {
 
     static SyntaxTree parse(String sourceFile) throws IOException {
         Grammar grammar = getGrammar();
-
-        //grammar.dump();
         Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
-
-        //Source source = new StringSource("externC constant cint aaa = \"-1\";");
         Source source = new FileSource(sourceFile);
         SyntaxTree ast = (SyntaxTree) parser.parse(source, new SyntaxTree());
-
         if (parser.hasErrors()) {
             for (SourceError e: parser.getErrors()) {
                 System.out.println(e);
             }
             throw new Error("parse error");
         }
-
         return ast;
     }
 
     public final static void main(String[] args) throws IOException {
         parseOption(args);
 
-        if (dataTypeDefFile == null && !generateArgumentSpecMode)
-            throw new Error("no datatype definition file is specified (-d option)");
-        TypeDefinition.load(dataTypeDefFile);
-
         OperandSpecifications opSpec = new OperandSpecifications();
         if (operandSpecFile != null)
             opSpec.load(operandSpecFile);
 
-        if(generateArgumentSpecMode){
+
+        if(behaviorMode == BehaviorMode.GenFuncSpec){
             TypeDependencyProcessor.load(functionDependencyFile);
             OperandSpecifications argSpec = TypeDependencyProcessor.getExpandSpecifications(opSpec);
-            argSpec.write(argumentSpecificationsFile);
+            argSpec.write(sourceFile);
             return;
         }
+
+        if (dataTypeDefFile == null)
+            throw new Error("no datatype definition file is specified (-d option)");
+        TypeDefinition.load(dataTypeDefFile);
 
         InstructionDefinitions insnDef = new InstructionDefinitions();
         if (insnDefFile != null)
@@ -201,31 +217,35 @@ public class Main {
             InlineFileProcessor.read(inlineExpansionFile, getGrammar());
         }
         String functionName = new ExternProcessVisitor().start(ast);
-        if(outputMode != OutputMode.MakeInline){
+        if(behaviorMode == BehaviorMode.Compile){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
-                outputMode = OutputMode.Instruction;
+                compileMode = CompileMode.Instruction;
             }else{
-                outputMode = OutputMode.Function;
+                compileMode = CompileMode.Function;
             }
         }
         new DesugarVisitor().start(ast);
-        if(!outputMode.isFunctionMode())new AlphaConvVisitor().start(ast, true, insnDef);
+        if(compileMode == CompileMode.Instruction){
+            new AlphaConvVisitor().start(ast, true, insnDef);
+        }
         new DispatchVarCheckVisitor().start(ast);
         new TypeCheckVisitor().start(ast, opSpec,
             TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec);
-        String program;
-        if(outputMode == OutputMode.MakeInline){
-            program = new InlineInfoVisitor().start(ast);
-        }else{
-            program = new AstToCVisitor().start(ast, opSpec, outputMode);
-        }
-        if(outputMode == OutputMode.MakeInline){
+        if(behaviorMode == BehaviorMode.Preprocess){
+            try{
+                FileWriter writer = new FileWriter(inlineExpansionWriteFile);
+                writer.write(new InlineInfoVisitor().start(ast));
+                writer.close();
+            }catch(Exception e){
+                e.printStackTrace();
+            }
             TypeDependencyProcessor.write(functionDependencyFile);
+            return;
         }
+        String program = new AstToCVisitor().start(ast, opSpec, compileMode);
         if(funcSpec != null){
             funcSpec.write(argumentSpecFile);
         }
-
         System.out.println(program);
     }
 

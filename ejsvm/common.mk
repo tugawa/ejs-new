@@ -69,11 +69,12 @@ VMGEN=$(VMGEN_DIR)/vmgen.jar
 VMDL_DIR=$(EJSVM_DIR)/../vmdl
 VMDL=$(VMDL_DIR)/vmdlc.jar
 VMDL_WORKSPACE=vmdl_workspace
-VMDL_INLINE=inlines.inline
-VMDL_ARGSPEC=funcs.spec
-VMDL_FUNCANYSPEC=any.spec
-VMDL_FUNCNEEDSPEC=funcs-need.spec
-VMDL_FUNCDEPENDENCY=dependency.ftd
+VMDL_INLINE=$(VMDL_WORKSPACE)/inlines.inline
+VMDL_FUNCBASESPEC_NAME=funcs.spec
+VMDL_FUNCBASESPEC=$(VMDL_WORKSPACE)/$(VMDL_FUNCBASESPEC_NAME)
+VMDL_FUNCANYSPEC=$(VMDL_WORKSPACE)/any.spec
+VMDL_FUNCNEEDSPEC=$(VMDL_WORKSPACE)/funcs-need.spec
+VMDL_FUNCDEPENDENCY=$(VMDL_WORKSPACE)/dependency.ftd
 
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
@@ -121,7 +122,7 @@ else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
 endif
 
 ifeq ($(USE_VMDL_INLINE_EXPANSION),true)
-	VMDL_INLINE_FLAG=--useinline $(VMDL_WORKSPACE)/$(VMDL_INLINE)
+	VMDL_INLINE_FLAG=-func-inline-opt $(VMDL_INLINE)
 else
 	VMDL_INLINE_FLAG=
 endif
@@ -389,6 +390,18 @@ GCCHECK_PATTERN = ../gccheck.cocci
 
 ######################################################
 
+define vmdl_funcs_preprocess
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) -Xgen:type_label true \
+		-d $(DATATYPES) -o $(VMDL_FUNCANYSPEC) \
+		-i $(EJSVM_DIR)/instructions.def -preprocess \
+		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} \
+		$(1) \
+		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); exit 1)
+
+endef
+
+
+######################################################
 all: ejsvm ejsc.jar ejsi
 
 ejsc.jar: $(EJSC)
@@ -443,35 +456,36 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 
 ifeq ($(USE_VMDL), true)
-$(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC): 
+$(VMDL_FUNCANYSPEC): 
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(EJSVM_DIR)/function-spec/$(VMDL_FUNCANYSPEC) $@
-$(VMDL_WORKSPACE)/$(VMDL_ARGSPEC):
+	cp $(EJSVM_DIR)/function-spec/any.spec $@
+$(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(FUNCTIONSPEC) $@
-$(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC): $(VMDL) $(INSN_GENERATED)  $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY)
+	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
+$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
-	$(FUNCGEN_VMDL) --genspec -d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) || (rm $@; exit 1)
-$(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC)
+	rm -f $(VMDL_INLINE)
+	rm -f $(VMDL_FUNCDEPENDENCY)
+	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD))) \
+		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); exit 1)
+$(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
+ifneq ($(shell ls $(VMDL_WORKSPACE) | grep $(VMDL_FUNCBASESPEC_NAME)),$(VMDL_FUNCBASESPEC_NAME))
 	mkdir -p $(VMDL_WORKSPACE)
-	rm -f $(VMDL_WORKSPACE)/$(VMDL_INLINE)
-	$(foreach FILE_VMD, $(FUNCS_VMD), \
-		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
-		-Xgen:type_label true \
-		-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $(VMDL_WORKSPACE)/$(VMDL_INLINE) &&\
-	) touch $(VMDL_WORKSPACE)/$(VMDL_INLINE) || (rm $(VMDL_WORKSPACE)/$(VMDL_INLINE); rm $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY); exit 1)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC)
+	cp $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
+endif
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
-	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def -A $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) $< > $@ || (rm $@; exit 1)
-$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
+		-update-funcspec $(VMDL_FUNCBASESPEC) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
-	-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	-d $(DATATYPES) -o $(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -483,35 +497,35 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC): 
+$(VMDL_FUNCANYSPEC): 
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(EJSVM_DIR)/function-spec/$(VMDL_FUNCANYSPEC) $@
-$(VMDL_WORKSPACE)/$(VMDL_ARGSPEC):
+	cp $(EJSVM_DIR)/function-spec/any.spec $@
+$(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(FUNCTIONSPEC) $@
-$(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC):  $(VMDL) $(INSN_GENERATED)  $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY)
+	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
+$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
-	$(FUNCGEN_VMDL) --genspec -d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) || (rm $@; exit 1)
-$(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC)
+	rm -f $(VMDL_INLINE)
+	rm -f $(VMDL_FUNCDEPENDENCY)
+	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
+$(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
+ifneq ($(shell ls $(VMDL_WORKSPACE) | grep $(VMDL_FUNCBASESPEC_NAME)),$(VMDL_FUNCBASESPEC_NAME))
 	mkdir -p $(VMDL_WORKSPACE)
-	rm -f $(VMDL_WORKSPACE)/$(VMDL_INLINE)
-	$(foreach FILE_VMD, $(FUNCS_VMD), \
-		$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
-		-Xgen:type_label true \
-		-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCANYSPEC) -i  $(EJSVM_DIR)/instructions.def --preprocess $(FILE_VMD) >> $(VMDL_WORKSPACE)/$(VMDL_INLINE) &&\
-	) touch $(VMDL_WORKSPACE)/$(VMDL_INLINE) || (rm $(VMDL_WORKSPACE)/$(VMDL_INLINE); rm $(VMDL_WORKSPACE)/$(VMDL_FUNCDEPENDENCY); exit 1)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_INLINE) $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC)
+	cp $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
+endif
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def -A $(VMDL_WORKSPACE)/$(VMDL_ARGSPEC) $< > $@ || (rm $@; exit 1)
-$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
+		-update-funcspec $(VMDL_FUNCBASESPEC) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-	-d $(DATATYPES) -o $(VMDL_WORKSPACE)/$(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+	-d $(DATATYPES) -o $(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
