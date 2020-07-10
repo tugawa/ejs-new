@@ -84,13 +84,20 @@ extern void alloc_site_update_info(JSObject *p);
 class NodeScanner {
   ACCEPTOR static void scan_object_properties(JSObject *p) {
     /* 1. shape */
-    PROCESS_EDGE(p->shape);
-    /* 2. embedded propertyes */
+#ifdef THREADED
     Shape *os = p->shape;
+#endif /* THREADED */
+    PROCESS_EDGE(p->shape);
+
+    /* 2. embedded propertyes */
+#ifndef THREADED
+    Shape *os = p->shape;
+#endif /* THREADED */
     int n_extension = os->n_extension_slots;
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
     for (size_t i = os->pm->n_special_props; i < actual_embedded; i++)
       PROCESS_EDGE(p->eprop[i]);
+
     /* 3. extension */
     if (n_extension != 0)
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
@@ -98,7 +105,9 @@ class NodeScanner {
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
     if (p->alloc_site != NULL) {
+#ifndef THREADED
       alloc_site_update_info(p);
+#endif
       PROCESS_EDGE(p->alloc_site->pm);
     }
 #endif /* ALLOC_SITE_CACHE */
@@ -341,6 +350,8 @@ ACCEPTOR STATIC void scan_Context(Context *context)
 
   /* process stack */
   scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
+
+  PROCESS_WEAK_EDGE(context->property_map_roots);
 }
 
 ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
