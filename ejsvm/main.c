@@ -11,6 +11,8 @@
 #define EXTERN
 #include "header.h"
 
+#include "iccprof.h"
+
 /*
  *  phase
  */
@@ -35,6 +37,9 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef ICCPROF
+char *iccprof_name;    /* name of instruction-call-count profile file */
+#endif
 
 /*
 #define DEBUG_TESTTEST
@@ -47,6 +52,9 @@ int obcsbc;
 FILE *log_stream;
 #ifdef PROFILE
 FILE *prof_stream;
+#endif
+#ifdef ICCPROF
+FILE *iccprof_fp;
 #endif
 
 /*
@@ -154,6 +162,9 @@ struct commandline_option  options_table[] = {
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
+#endif
+#ifdef ICCPROF
+  { "--iccprof",  1, NULL,            &iccprof_name },
 #endif
   { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
   { (char *)NULL, 0, NULL,            NULL          }
@@ -336,6 +347,12 @@ int main(int argc, char *argv[]) {
     prof_stream = stdout;
   }
 #endif
+#ifdef ICCPROF
+  if(iccprof_name != NULL){
+    if ((iccprof_fp = fopen(iccprof_name, "w")) == NULL)
+      fprintf(stderr, "Opening prof file %s failed.\n", iccprof_name);
+  }
+#endif
 
   run_phase = PHASE_INIT;
 
@@ -351,6 +368,10 @@ int main(int argc, char *argv[]) {
   init_context(function_table, gconsts.g_global, &context);
   init_builtin(context);
   srand((unsigned)time(NULL));
+
+#ifdef ICCPROF
+  iccprof_init();
+#endif
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -472,6 +493,12 @@ int main(int argc, char *argv[]) {
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
+#endif
+#ifdef ICCPROF
+  if(iccprof_fp != NULL){
+    write_icc_profile(iccprof_fp);
+    fclose(iccprof_fp);
+  }
 #endif
 
   return 0;

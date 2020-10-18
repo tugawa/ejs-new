@@ -38,6 +38,7 @@ public class Main {
     static String inlineExpansionFile;
     static String inlineExpansionWriteFile;
     static String functionDependencyFile = "./vmdl_workspace/dependency.ftd";
+    static String insnCallSpecFile;
     //static String argumentSpecificationsFile = "./vmdl_workspace/funcs-need.spec";
     static String argumentSpecFile;
     static int typeMapIndex = 1;
@@ -45,6 +46,7 @@ public class Main {
     static BehaviorMode behaviorMode = BehaviorMode.Compile;
     static CompileMode compileMode = null;
     static boolean generateArgumentSpecMode = false;
+    static boolean doCaseSplit = false;
 
     static Option option = new Option();
 
@@ -102,6 +104,9 @@ public class Main {
                 behaviorMode = BehaviorMode.GenFuncSpec;
             } else if (opt.equals("-update-funcspec")) {
                 argumentSpecFile = args[i++];
+            } else if (opt.equals("-case-split")) {
+                doCaseSplit = true;
+                insnCallSpecFile = args[i++];
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -128,7 +133,7 @@ public class Main {
             System.out.println("              -T3: perfectly detail");
             System.out.println("   -preprocess Use preprocess mode");
             System.out.println("   -gen-funcspec ftdfile file Use generate function spec mode");
-            System.out.println("   -func-inline-opt file Enable unction-inline-expansion");
+            System.out.println("   -func-inline-opt file Enable function-inline-expansion");
             System.out.println("   -write-fi file Generate function-inline-expansion file");
             System.out.println("                  (Use with preprocess mode)");
             System.out.println("   -write-ftd file Generate function-type-dependency file");
@@ -203,6 +208,12 @@ public class Main {
             funcSpec = new OperandSpecifications();
             funcSpec.load(argumentSpecFile);
         }
+
+        OperandSpecifications insnCallSpec = null;
+        if(doCaseSplit){
+            insnCallSpec = new OperandSpecifications();
+            insnCallSpec.load(insnCallSpecFile);
+        }
         
         if (sourceFile == null)
             throw new Error("no source file is specified");
@@ -211,6 +222,9 @@ public class Main {
         DispatchProcessor.srand(seed);
 
         SyntaxTree ast = parse(sourceFile);
+        //test print
+        //System.err.println(ast);
+        //System.exit(0);
 
         ErrorPrinter.setSource(sourceFile);
         if(inlineExpansionFile != null){
@@ -230,10 +244,10 @@ public class Main {
         }
         new DispatchVarCheckVisitor().start(ast);
         new TypeCheckVisitor().start(ast, opSpec,
-            TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec);
+            TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec, doCaseSplit, insnCallSpec);
         if(behaviorMode == BehaviorMode.Preprocess){
             try{
-                FileWriter writer = new FileWriter(inlineExpansionWriteFile);
+                FileWriter writer = new FileWriter(inlineExpansionWriteFile, true);
                 writer.write(new InlineInfoVisitor().start(ast));
                 writer.close();
             }catch(Exception e){

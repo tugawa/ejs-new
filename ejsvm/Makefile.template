@@ -27,7 +27,9 @@ INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 ## VMDL
 ##
 USE_VMDL=true
-USE_VMDL_INLINE_EXPANSION=true
+USE_VMDL_INLINE_EXPANSION=false
+USE_VMDL_CASE_SPLIT=false
+# ICCSPEC=
 
 ##
 ## commands

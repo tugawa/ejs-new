@@ -46,6 +46,15 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         expandedTree = null;
         cannotExpandFlag = false;
     }
+    
+    public SyntaxTree(Symbol tag, Symbol[] labels, SyntaxTree[] subTree, Object value){
+        super(tag, null, 0, 0, subTree, value);
+        if(labels == null){
+            this.labels = (subTree != null) ? new Symbol[subTree.length] : EmptyLabels;
+        }else{
+            this.labels = labels;
+        }
+    }
 
     @Override
     public SyntaxTree newInstance(Symbol tag, Source source, long pos, int len, int objectsize, Object value) {
@@ -136,17 +145,31 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         expandedTreeCandidate.add(tree);
     }
 
+    //Test Method
+    public Set<SyntaxTree> getExpnadedTreeCandidates(){
+        return expandedTreeCandidate;
+    }
+
     public void setFailToExpansion(){
         cannotExpandFlag = true;
     }
 
     public SyntaxTree getExpanndedTree(){
+        /*
+        System.err.println("original:"+toString());
+        if(expandedTreeCandidate!=null)System.err.println("candidates:"+expandedTreeCandidate.toString());
+        else System.err.println("candidates:null");
+        */
         if(expandedTreeCandidate == null || cannotExpandFlag){
+            //System.err.println("No candidate, or cannnotExpandFalg");
+            //System.err.println("cannnotExpandFalg?="+cannotExpandFlag);
             return null;
         }
         if(expandedTreeCandidate.size() == 1){
+            //System.err.println("Success To Expand");
             return expandedTree;
         }
+        //System.err.println("Fail To Expand due to multiple candidates");
         return null;
     }
 

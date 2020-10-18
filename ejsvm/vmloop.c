@@ -10,6 +10,7 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
+#include "iccprof.h"
 
 static void exhandler_stack_push(Context* context, int pc, int fp);
 static int exhandler_stack_pop(Context* context, int *pc, int *fp);
@@ -56,6 +57,14 @@ static char *typename(JSValue v) {
   (profile_flag == TRUE && insns->logflag == TRUE &&            \
    fprintf(prof_stream, "OPERAND: %s %s %s %s\n", #iname,       \
            typename(v0), typename(v1), typename(v2)))
+//#elif ICCPROF
+//#define INSN_COUNT0(insn)
+//#define INSN_COUNT1(insn, v0) \
+//  ((get_1op_insn_counter(#insn))[icc_value2index(v0)]++)
+//#define INSN_COUNT2(insn, v0, v1) \
+//  ((get_2op_insn_counter(#insn))[icc_value2index(v0)][icc_value2index(v1)]++)
+//#define INSN_COUNT3(insn, v0, v1, v2) \
+//  ((get_3op_insn_counter(#insn))[icc_value2index(v0)][icc_value2index(v1)][icc_value2index(v2)]++)
 #else
 #define INSN_COUNT0(insn)
 #define INSN_COUNT1(insn, v0)

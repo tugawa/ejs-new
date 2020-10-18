@@ -7,6 +7,9 @@
  * Electro-communications.
  */
 
+#ifndef EXTERN_H_
+#define EXTERN_H_
+
 #define FUNCTION_TABLE_LIMIT  (100)
 
 EXTERN FunctionTable function_table[FUNCTION_TABLE_LIMIT];
@@ -352,3 +355,5 @@ extern JSValue nextpropnameidx_helper(JSValue itr);
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* EXTERN_H_ */

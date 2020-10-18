@@ -6,6 +6,9 @@
  * The eJS Project is the successor of the SSJS Project at The University of
  * Electro-communications.
  */
+#ifndef GLOBAL_H_
+#define GLOBAL_H_
+
 
 #define FUNCTION_TABLE_LIMIT  (100)
 
@@ -76,3 +79,5 @@ EXTERN struct global_malloced_objects {
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* GLOBAL_H_ */

@@ -18,6 +18,7 @@ import java.util.Stack;
 import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -121,7 +122,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     OperandSpecifications opSpec;
     boolean inlineExpansionFlag;
     boolean genFunctionDependencyFlag;
+    boolean caseExpansionFlag;
     OperandSpecifications funcSpec = null;
+    SplitCaseSelector splitCaseSelector;
+    OperandSpecifications insnCallSpec = null;
 
     public static enum CheckTypePlicy{
         Lub(new TypeMapSetLub(), new ExprTypeSetLub()),
@@ -149,11 +153,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public void start(Tree<?> node, OperandSpecifications opSpec,
-        CheckTypePlicy policy, boolean inlineExpansionFlag, boolean genFunctionDependencyFlag, OperandSpecifications funcSpec) {
+        CheckTypePlicy policy, boolean inlineExpansionFlag, boolean genFunctionDependencyFlag, OperandSpecifications funcSpec,
+        boolean doCaseSplit, OperandSpecifications insnCallSpec) {
         this.opSpec = opSpec;
         this.inlineExpansionFlag = inlineExpansionFlag;
         this.genFunctionDependencyFlag = genFunctionDependencyFlag;
         this.funcSpec = funcSpec;
+        this.caseExpansionFlag = doCaseSplit;
+        this.insnCallSpec = insnCallSpec;
         try {
             TYPE_MAP  = policy.getTypeMap();
             EXPR_TYPE = policy.getExprTypeSet();
@@ -267,7 +274,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     +FunctionTable.getType(name)+" real types " + funtype);
             }
             
-
             Set<String> domain = new HashSet<String>(dict.getKeys());
 
             Set<TypeMap> newSet = dict.clone().getTypeMapSet();
@@ -279,7 +285,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 String[] jsvParamNames = new String[paramsNode.size()];
                 AstType paramTypes = funtype.getDomain();
                 int nJsvTypes = 0;
-                
+
                 Map<String, AstType> nJsvMap = new HashMap<>();
                 if (paramTypes instanceof AstBaseType) {
                     AstType paramType = paramTypes;
@@ -300,6 +306,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         else
                             nJsvMap.put(paramName, paramType);
                     }
+                }
+                if(caseExpansionFlag){
+                    splitCaseSelector = new SplitCaseSelector(name, paramNames, insnCallSpec);
                 }
                 if(newSet.isEmpty()){
                     newSet.add(new TypeMap());
@@ -399,25 +408,137 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     }
 
+    public class FunctionExpansionPair{
+        private SyntaxTree original;
+        private SyntaxTree expanded;
+
+        public FunctionExpansionPair(SyntaxTree original, SyntaxTree expanded){
+            if(original == null || expanded == null){
+                throw new Error("Illigal FunctionExpansionPair constructor call: original="
+                    +original+" expanded="+expanded);
+            }
+            this.original = original;
+            this.expanded = expanded;
+        }
+
+        public SyntaxTree getOriginal(){
+            return original;
+        }
+
+        public SyntaxTree getExpanded(){
+            return expanded;
+        }
+
+        @Override
+        public String toString(){
+            return "("+original.toString()+",\n "+expanded.toString()+")";
+        }
+
+        @Override
+        public int hashCode(){
+            return original.hashCode() + expanded.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj){
+            if(!(obj instanceof FunctionExpansionPair)) return false;
+            FunctionExpansionPair that = (FunctionExpansionPair)obj;
+            return this.original == that.getOriginal() && 
+                this.expanded.equals(that.getExpanded());
+        }
+    }
+
+    static class InliningStatus{
+        static enum Status{
+            MultiplePass, SinglePass, SinglePassAndFail, AllFail;
+        }
+        Status status;
+        SyntaxTree inliningTo;
+        public InliningStatus(Status status, SyntaxTree to){
+            this.status = status;
+            inliningTo = to;
+        }
+        public void pass(SyntaxTree to){
+            if(status == Status.AllFail){
+                status = Status.SinglePassAndFail;
+                inliningTo = to;
+                return;
+            }
+            if(status == Status.SinglePass && to.equals(inliningTo)){
+                status = Status.SinglePass;
+                return;
+            }
+            status = Status.MultiplePass;
+        }
+        public void fail(){
+            if(status == Status.SinglePass){
+                status = Status.SinglePassAndFail;
+            }
+        }
+        public boolean shouldCaseExpansion(){
+            return (status == Status.MultiplePass || status == Status.SinglePassAndFail);
+        }
+        @Override
+        public String toString(){
+            return status.toString();
+        }
+    }
+    Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap;
+    List<Set<Set<TypeMap>>> caseExpansionConds;
+    boolean functionInliningFailFlag;
+    Map<SyntaxTree, InliningStatus> funcsInliningStatusMap = new HashMap<>(0);
+    
+    //static int count = 0;
     public class Match extends DefaultVisitor {
+        private boolean shouldCaseExpansion(Map<SyntaxTree, InliningStatus> map){
+            for(InliningStatus status : map.values()){
+                if(status.shouldCaseExpansion()) return true;
+            }
+            return false;
+        }
+        private Set<Set<TypeMap>> selectCaseExpandCond(Set<Set<TypeMap>> original){
+            return null;
+        }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            //System.err.println("MATCH START===================================\n===================================");
             MatchProcessor mp = new MatchProcessor(node);
             SyntaxTree labelNode = node.get(Symbol.unique("label"), null);
             String label = labelNode == null ? null : labelNode.toText();
             TypeMapSet outDict = dict.getBottomDict();
             TypeMapSet entryDict;
             TypeMapSet newEntryDict = dict;
+            if(caseExpansionFlag) caseExpansionConds = new ArrayList<>(Collections.nCopies(mp.size(), null));
             do {
                 entryDict = newEntryDict;
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
                 for (int i = 0; i < mp.size(); i++) {
+                    //System.err.println("CASE "+i+" START===================================");
                     TypeMapSet dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
                     if (dictCaseIn.noInformationAbout(mp.getFormalParams())){
                         continue;
                     }
+                    caseExpansionMap = new HashMap<>();
+                    funcsInliningStatusMap = new HashMap<>();
+                    //functionInliningFailFlag = false;
                     SyntaxTree body = mp.getBodyAst(i);
                     TypeMapSet dictCaseOut = visit(body, dictCaseIn);
+                    if(caseExpansionFlag){
+                        Set<Set<TypeMap>> domains = new HashSet<>();
+                        for(Set<TypeMap> v : caseExpansionMap.values()){
+                            Set<TypeMap> domain = new HashSet<>(mp.getFormalParams().length);
+                            for(TypeMap t : v){
+                                domain.add(t.select(Arrays.asList(mp.getFormalParams())));
+                            }
+                            domains.add(domain);
+                        }
+                        Set<Set<TypeMap>> selected = splitCaseSelector.select(ExpandedCaseCondMaker.getExpandedCaseCond(domains));
+                        //System.err.println("*******"+selected.size());
+                        //System.err.println(i+": selected.size()="+selected.size()+", status="+funcsInliningStatusMap.toString());
+                        if(shouldCaseExpansion(funcsInliningStatusMap) && !selected.isEmpty()){
+                            caseExpansionConds.set(i, selected);
+                        }
+                    }
                     outDict = outDict.combine(dictCaseOut);
                 }
                 newEntryDict = matchStack.pop();
@@ -425,6 +546,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             node.setTypeMapSet(entryDict);
             SyntaxTree paramsNode = node.get(Symbol.unique("params"));
             save(paramsNode, outDict);
+            if(caseExpansionFlag){
+                for(int i=0; i<mp.size(); i++){
+                    Set<Set<TypeMap>> cond = caseExpansionConds.get(i);
+                    if(cond != null) mp.setCaseExpansion(i, cond);
+                }
+                if(mp.hasExpand()){
+                    //count++;
+                    //System.err.println("count..."+count);
+                    //System.err.println("Match node is:"+node.toString());
+                    SyntaxTree expandedTree = mp.getCaseExpandedTree();
+                    node.addExpandedTreeCandidate(expandedTree);
+                    return visit(expandedTree, dict);
+                }
+            }
             return outDict;
         }
     }
@@ -879,6 +1014,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     // FunctionCall
     //*********************************
 
+    private enum InliningResult{Pass, Fail;}
+
     public class FunctionCall extends DefaultVisitor {
         private final OperandSpecifications.OperandSpecificationRecord.Behaviour ACCEPT =
             OperandSpecifications.OperandSpecificationRecord.Behaviour.ACCEPT;
@@ -965,6 +1102,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return realTypes;
         }
+        private void updateInlinigStatusMap(SyntaxTree node, SyntaxTree expanded, InliningResult result){
+            InliningStatus status = funcsInliningStatusMap.get(node);
+            if(status==null){
+                status = (result == InliningResult.Pass) ? new InliningStatus(InliningStatus.Status.SinglePass, expanded)
+                     : new InliningStatus(InliningStatus.Status.AllFail, null);
+            }else{
+                if(result == InliningResult.Pass) status.pass(expanded);
+                else status.fail();
+            }
+            funcsInliningStatusMap.put(node, status);
+        }
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree recvNode = node.get(Symbol.unique("recv"));
@@ -1009,9 +1157,29 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if(InlineFileProcessor.isInlineExpandable(functionName)){
                     SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
                     if(!expandedNode.equals(node)){
+                        //System.err.println("pass to expansion:"+node.toString());
+                        updateInlinigStatusMap(node, expandedNode, InliningResult.Pass);
+                        /*
+                        System.err.println("[TCV.FunctionCall] TypeMap :"+dict.toString());
+                        if(node.getExpnadedTreeCandidates() != null) System.err.println("[TCV.FunctionCall] Before cs :"+node.getExpnadedTreeCandidates().toString());
+                        else System.err.println("[TCV.FunctionCall] Before cs :null");
+                        */
                         node.addExpandedTreeCandidate(expandedNode);
+                        //System.err.println("[TCV.FunctionCall] After cs :"+node.getExpnadedTreeCandidates().toString());
+                        FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
+                        Set<TypeMap> request = caseExpansionMap.get(pair);
+                        if(request == null){
+                            request = new HashSet<TypeMap>();
+                        }
+                        request.add(dict);
+                        caseExpansionMap.put(pair, request);
                         visit(expandedNode, dict);
                     }else{
+                        //System.err.println("fail to expansion:"+node.toString());
+                        //System.err.println("expanded:"+expandedNode.toString());
+                        //System.err.println("list:"+argTypeList.toString());
+                        //functionInliningFailFlag = true;
+                        updateInlinigStatusMap(node, null, InliningResult.Fail);
                         node.setFailToExpansion();
                     }
                 }

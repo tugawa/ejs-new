@@ -122,10 +122,18 @@ else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
 endif
 
 ifeq ($(USE_VMDL_INLINE_EXPANSION),true)
-	VMDL_INLINE_FLAG=-func-inline-opt $(VMDL_INLINE)
+	VMDL_OPTION_INLINE=-func-inline-opt $(VMDL_INLINE)
 else
-	VMDL_INLINE_FLAG=
+	VMDL_OPTION_INLINE=
 endif
+
+ifeq ($(USE_VMDL_CASE_SPLIT),true)
+	VMDL_OPTION_CASE_SPLIT=-case-split $(ICCSPEC)
+else
+	VMDL_OPTION_CASE_SPLIT=
+endif
+
+VMDL_OPTION_FLAGS = $(VMDL_OPTION_INLINE) $(VMDL_OPTION_CASE_SPLIT)
 
 GENERATED_HFILES = \
     instructions-opcode.h \
@@ -146,7 +154,8 @@ HFILES = $(GENERATED_HFILES) \
     extern.h \
     log.h \
     gc.h \
-    vmdl-helper.h
+    vmdl-helper.h \
+		iccprof.h
 
 SUPERINSNS = $(shell $(GOTTA) --list-si)
 
@@ -173,6 +182,7 @@ OFILES = \
     vmloop.o \
     gc.o \
     vmdl-helper.o \
+		iccprof.o \
     main.o
 
 ifeq ($(SUPERINSN_MAKEINSN),true)
@@ -470,12 +480,10 @@ $(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); exit 1)
 $(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
-ifneq ($(shell ls $(VMDL_WORKSPACE) | grep $(VMDL_FUNCBASESPEC_NAME)),$(VMDL_FUNCBASESPEC_NAME))
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
-endif
+	cp -n $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
@@ -510,12 +518,10 @@ $(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
 $(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
-ifneq ($(shell ls $(VMDL_WORKSPACE) | grep $(VMDL_FUNCBASESPEC_NAME)),$(VMDL_FUNCBASESPEC_NAME))
 	mkdir -p $(VMDL_WORKSPACE)
-	cp $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
-endif
+	cp -n $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_INLINE_FLAG)\
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
 		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \

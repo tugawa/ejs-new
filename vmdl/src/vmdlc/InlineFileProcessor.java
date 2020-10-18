@@ -129,6 +129,18 @@ public class InlineFileProcessor {
         Set<List<AstType>> needTypes = typeSetListToListSet(argTypes);
         SyntaxTree expandedTree = targetInfo.get(needTypes);
         if(expandedTree == null){
+            /*
+            System.err.println("---------");
+            System.err.println("Expansion information");
+            System.err.println("---------");
+            System.err.println("ORIGINAL:"+original.toString());
+            System.err.println("argTypes:"+argTypes.toString());
+            System.err.println("needTypes:"+needTypes.toString());
+            System.err.println("targetInfo:"+targetInfo.toString());
+            System.err.println("expandedTree:null");
+            System.err.println("result:None");
+            System.err.println("---------");
+            */
             return original;
         }
         SyntaxTree result = getReplacedTree(expandedTree, argStrings, argNodes);
