@@ -19,7 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.lang.Exception;
 import java.lang.Integer;
 
@@ -322,7 +321,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     private static Map<String, Integer> matchLabelGeneratedSizeMap = new HashMap<>();
 
     public class Match extends DefaultVisitor {
-        String iccprofCode = null;
+        private String iccprofCode = null;
 
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
@@ -367,8 +366,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             matchStack.add(new MatchRecord(currentFunctionName, rawLabel, node.getLineNum(), formalParams));
             print(matchStack.peek().getHeadLabel()+":"+"\n");
 
-            /* Insert code for ICCPROF */
-            print(iccprofCode);
+            /* Insert code for ICCPROF (only top level match) */
+            if(rawLabel.equals("top")){
+                print(iccprofCode);
+            }
 
             Set<RuleSet.Rule> rules = new HashSet<RuleSet.Rule>();
             Set<VMDataType[]> acceptInput = new HashSet<>();

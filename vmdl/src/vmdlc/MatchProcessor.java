@@ -195,25 +195,25 @@ public class MatchProcessor {
             }, null);
     }
 
-    
-    private SyntaxTree getCaseNode(int number){
-        SyntaxTree caseBody = caseBodyAsts.get(number).dup();
-        List<List<VMDataType>> vmtVecList = new ArrayList<>();
-        for(VMDataType[] vmtVec : vmtVecCondList.get(number)){
-            vmtVecList.add(Arrays.asList(vmtVec));
+    private void addLabelSuffix(SyntaxTree target, String suffix, String exceptLabel){
+        if(target.is(Symbol.unique("Match")) || target.is(Symbol.unique("Rematch"))){
+            SyntaxTree labelNode = target.get(Symbol.unique("label"), null);
+            if(labelNode != null && !labelNode.toText().equals(exceptLabel)){
+                SyntaxTree addedSuffix = labelNode.dup();
+                addedSuffix.setValue(labelNode.toText()+"_"+suffix);
+                target.set(Symbol.unique("label"), addedSuffix);
+            }
         }
-        if(vmtVecList.size()==0){
-            //Dead case
-            return null;
+        Tree<SyntaxTree>[] subTree = target.getSubTree();
+        if(subTree == null) return;
+        for(Tree<SyntaxTree> child : target.getSubTree()){
+            addLabelSuffix((SyntaxTree)child, suffix, exceptLabel);
         }
-        SyntaxTree caseCond = getTypePattern(vmtVecList, formalParamsList);
-        return new SyntaxTree(Symbol.unique("Case"),
-            new Symbol[]{Symbol.unique("pattern"), Symbol.unique("body")}, 
-            new SyntaxTree[]{caseCond, caseBody}, null);
     }
 
-    private SyntaxTree getCaseNode(int number, Set<TypeMap> typeMaps){
+    private SyntaxTree getReplacedCaseNode(int number, Set<TypeMap> typeMaps, String labelSuffix){
         SyntaxTree caseBody = caseBodyAsts.get(number).dup();
+        addLabelSuffix(caseBody, labelSuffix, label);
         List<List<VMDataType>> vmtVecLists = new ArrayList<>();
         for(TypeMap typeMap : typeMaps){
             List<VMDataType> vmtVecList = new ArrayList<>();
@@ -232,53 +232,13 @@ public class MatchProcessor {
             new Symbol[]{Symbol.unique("pattern"), Symbol.unique("body")}, 
             new SyntaxTree[]{caseCond, caseBody}, null);
     }
-    
-    /*
-    private SyntaxTree getCaseExpandedCasesNode(){
-        int caseSize = caseBodyAsts.size();
-        SyntaxTree expandedCasesNode = matchNode.get(Symbol.unique("cases")).dup();
-        List<SyntaxTree> cases = new ArrayList<>(expandedCasesNode.getSubTree().length*2);
-        for(int i=0; i<caseSize; i++){
-            Set<Set<TypeMap>> expansionCond = caseExpansionConds.get(i);
-            if(expansionCond != null){
-                for(Set<TypeMap> typeMap : expansionCond){
-                    cases.add(getCaseNode(i, typeMap));
-                }
-            }
-            SyntaxTree originalCase = getCaseNode(i);
-            if(originalCase != null){
-                cases.add(originalCase);
-            }
-        }
-        return new SyntaxTree(Symbol.unique("Cases"), null, cases.toArray(new SyntaxTree[0]), null);
-    }*/
-    
 
-    /*
-    private SyntaxTree getCaseNode(int number, Set<TypeMap> typeMaps){
-        SyntaxTree replacedNode = originalCases.get(number).dup();
-        List<List<VMDataType>> vmtVecLists = new ArrayList<>();
-        for(TypeMap typeMap : typeMaps){
-            List<VMDataType> vmtVecList = new ArrayList<>();
-            TypeMap selectedMap = typeMap.select(formalParamsList);
-            for(String var : formalParamsList){
-                Set<VMDataType> types = selectedMap.get(var).getVMDataTypes();
-                if(types.size() != 1){
-                    ErrorPrinter.error("Case condition has non-VMDataType");
-                }
-                vmtVecList.add(types.iterator().next());
-            }
-            vmtVecLists.add(vmtVecList);
-        }
-        if(vmtVecLists.size() == 0) return null;
-        replacedNode.set(Symbol.unique("pattern"), getTypePattern(vmtVecLists, formalParamsList));
-        return replacedNode;
-    }
-*/
+    private static int additionalLabelSuffixNumber = 0;
+
     private SyntaxTree getCaseExpandedCasesNode(){
-        int caseSize = caseBodyAsts.size();
-        List<SyntaxTree> cases = new ArrayList<>(matchNode.get(Symbol.unique("cases")).countSubNodes()*2);
-        for(int i=0; i<caseSize; i++){
+        int originalCaseSize = caseBodyAsts.size();
+        List<SyntaxTree> newCases = new ArrayList<>(matchNode.get(Symbol.unique("cases")).countSubNodes()*2);
+        for(int i=0; i<originalCaseSize; i++){
             Set<Set<TypeMap>> expansionCond = caseExpansionConds.get(i);
             /*
             System.err.println("Case number "+i+" recieves typemaps for:");
@@ -292,15 +252,15 @@ public class MatchProcessor {
                 //System.err.println("Case number "+i+"is expanded for "+expansionCond.size()+" typeMap(s):");
                 for(Set<TypeMap> typeMap : expansionCond){
                     //System.err.println(typeMap.toString());
-                    SyntaxTree replacedNode = getCaseNode(i, typeMap);
+                    SyntaxTree replacedNode = getReplacedCaseNode(i, typeMap, Integer.toString((additionalLabelSuffixNumber++)));
                     if(replacedNode != null){
-                        cases.add(replacedNode);
+                        newCases.add(replacedNode);
                     }
                 }
             }
-            cases.add(originalCases.get(i).dup());
+            newCases.add(originalCases.get(i).dup());
         }
-        return new SyntaxTree(Symbol.unique("Cases"), null, cases.toArray(new SyntaxTree[0]), null);
+        return new SyntaxTree(Symbol.unique("Cases"), null, newCases.toArray(new SyntaxTree[0]), null);
     }
 
     public SyntaxTree getCaseExpandedTree(){
