@@ -184,7 +184,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             builder.append("#endif\n");
             return builder.toString();
         }
-
+        
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> nameNode = node.get(Symbol.unique("name"));
             String name = nameNode.toText();
@@ -367,7 +367,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print(matchStack.peek().getHeadLabel()+":"+"\n");
 
             /* Insert code for ICCPROF (only top level match) */
-            if(rawLabel.equals("top")){
+            if(rawLabel != null && rawLabel.equals("top")){
                 print(iccprofCode);
             }
 

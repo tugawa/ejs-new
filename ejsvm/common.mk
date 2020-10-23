@@ -75,6 +75,7 @@ VMDL_FUNCBASESPEC=$(VMDL_WORKSPACE)/$(VMDL_FUNCBASESPEC_NAME)
 VMDL_FUNCANYSPEC=$(VMDL_WORKSPACE)/any.spec
 VMDL_FUNCNEEDSPEC=$(VMDL_WORKSPACE)/funcs-need.spec
 VMDL_FUNCDEPENDENCY=$(VMDL_WORKSPACE)/dependency.ftd
+VMDL_EXTERN=$(VMDL_WORKSPACE)/vmdl-extern.inc
 
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
@@ -404,7 +405,7 @@ define vmdl_funcs_preprocess
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) -Xgen:type_label true \
 		-d $(DATATYPES) -o $(VMDL_FUNCANYSPEC) \
 		-i $(EJSVM_DIR)/instructions.def -preprocess \
-		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} \
+		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} -write-extern $(VMDL_EXTERN)\
 		$(1) \
 		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); exit 1)
 
@@ -472,10 +473,11 @@ $(VMDL_FUNCANYSPEC):
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
 	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
-$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
+	rm -f $(VMDL_EXTERN)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
 $(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
@@ -510,10 +512,11 @@ $(VMDL_FUNCANYSPEC):
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
 	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
-$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
+	rm -f $(VMDL_EXTERN)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
 $(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
@@ -639,6 +642,8 @@ conversion.o: conversion.c $(FUNCS_FILES)
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
+
+extern.h: $(VMDL_EXTERN)
 
 #### vmgen
 $(VMGEN):

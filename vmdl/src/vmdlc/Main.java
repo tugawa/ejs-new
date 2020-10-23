@@ -38,6 +38,7 @@ public class Main {
     static String inlineExpansionFile;
     static String inlineExpansionWriteFile;
     static String functionDependencyFile = "./vmdl_workspace/dependency.ftd";
+    static String functionExternFile;
     static String insnCallSpecFile;
     //static String argumentSpecificationsFile = "./vmdl_workspace/funcs-need.spec";
     static String argumentSpecFile;
@@ -93,6 +94,8 @@ public class Main {
                 inlineExpansionWriteFile = args[i++];
             } else if (opt.equals("-write-ftd")) {
                 functionDependencyFile = args[i++];
+            } else if (opt.equals("-write-extern")) {
+                functionExternFile = args[i++];
             } else if (opt.equals("-func-inline-opt")) {
                 inlineExpansionFile = args[i++];
             } else if (opt.equals("-gen-funcspec")) {
@@ -137,6 +140,8 @@ public class Main {
             System.out.println("   -write-fi file Generate function-inline-expansion file");
             System.out.println("                  (Use with preprocess mode)");
             System.out.println("   -write-ftd file Generate function-type-dependency file");
+            System.out.println("                  (Use with preprocess mode)");
+            System.out.println("   -write-extrn file Append extern declaration of function to file");
             System.out.println("                  (Use with preprocess mode)");
             System.out.println("   -update-funcspec file Append funcspec file");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
@@ -247,13 +252,22 @@ public class Main {
             TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec, doCaseSplit, insnCallSpec);
         if(behaviorMode == BehaviorMode.Preprocess){
             try{
-                FileWriter writer = new FileWriter(inlineExpansionWriteFile, true);
-                writer.write(new InlineInfoVisitor().start(ast));
-                writer.close();
+                if(inlineExpansionFile != null){
+                    FileWriter fiWriter = new FileWriter(inlineExpansionWriteFile, true);
+                    fiWriter.write(new InlineInfoVisitor().start(ast));
+                    fiWriter.close();
+                }
+                if(functionExternFile != null){
+                    FileWriter externWriter = new FileWriter(functionExternFile, true);
+                    externWriter.write(new ExternDeclarationGenerator().generate(ast));
+                    externWriter.close();
+                }
+                if(functionDependencyFile != null){
+                    TypeDependencyProcessor.write(functionDependencyFile);
+                }
             }catch(Exception e){
                 e.printStackTrace();
             }
-            TypeDependencyProcessor.write(functionDependencyFile);
             return;
         }
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);
