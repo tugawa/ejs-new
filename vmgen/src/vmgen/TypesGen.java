@@ -173,7 +173,20 @@ public class TypesGen {
         sb.append("\n");
         return sb.toString();
     }
-    
+
+    String defineVMRepTypeInfoForGC() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("/* VMRepTypeInfo for GC */\n");
+        for (VMRepType rt: VMRepType.all()) {
+            if (!rt.hasHT())
+                continue;
+
+            sb.append(String.format("#define GC_GET_PTAG_FOR_%s() (%s) \n", rt.getHT(), rt.getPT()));
+        }
+        sb.append("\n");
+        return sb.toString();
+    }
+
     /* not used */
     String defineNeed() {
         StringBuilder sb = new StringBuilder();
@@ -221,6 +234,7 @@ public class TypesGen {
         System.out.println(tg.defineDTFamilyPredicates());
  //       System.out.println(tg.defineTagOperations());
  //       System.out.println(tg.defineNeed());
+        System.out.println(tg.defineVMRepTypeInfoForGC());
         System.out.println(tg.defineVMRepType_LIST());
         System.out.println(TypeDefinition.getQuoted());
     }

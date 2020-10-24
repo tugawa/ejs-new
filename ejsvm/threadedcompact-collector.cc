@@ -439,50 +439,51 @@ static void update_reference(void *ref_, void *addr) {
   cell_type_t type = get_threaded_header_type(hdrp);
   PTag tag = ((PTag) {(uintjsv_t) 0});
 
-  /* ToDo : Generate below code with datatypes.def automatically */
   switch(type) {
     case CELLT_FREE:
       LOG_EXIT("unreachable code.");
       abort();
       break;
 
+    /* User defined types */
     case CELLT_STRING:
-      tag = T_STRING;
+      tag = GC_GET_PTAG_FOR_HTAG_STRING();
       break;
     case CELLT_FLONUM:
-#ifdef BIT_32
-      tag = T_GENERIC;
-#else
-      tag = T_FLONUM;
-#endif
+      tag = GC_GET_PTAG_FOR_HTAG_FLONUM();
       break;
     case CELLT_SIMPLE_OBJECT:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_SIMPLE_OBJECT();
       break;
     case CELLT_ARRAY:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_ARRAY();
       break;
     case CELLT_FUNCTION:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_FUNCTION();
       break;
     case CELLT_BUILTIN:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_BUILTIN();
       break;
     case CELLT_ITERATOR:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_ITERATOR();
       break;
 #ifdef use_regexp
     case CELLT_REGEXP:
+      tag = GC_GET_PTAG_FOR_HTAG_REGEXP();
       LOG_EXIT("Not Implemented");
       break;
 #endif
     case CELLT_BOXED_STRING:
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_STRING();
+      break;
     case CELLT_BOXED_NUMBER:
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_NUMBER();
+      break;
     case CELLT_BOXED_BOOLEAN:
-      tag = T_GENERIC;
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_BOOLEAN();
       break;
 
-
+    /* VM inner defined types */
     case CELLT_PROP:
     case CELLT_ARRAY_DATA:
     case CELLT_BYTE_ARRAY:
