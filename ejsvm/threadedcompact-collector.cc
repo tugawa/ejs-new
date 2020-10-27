@@ -437,7 +437,7 @@ static void thread_reference(void **ref) {
 static void update_reference(void *ref_, void *addr) {
   header_t *hdrp = payload_to_header(ref_);
   cell_type_t type = get_threaded_header_type(hdrp);
-  PTag tag = ((PTag) {(uintjsv_t) 0});
+  uintjsv_t tag = 0;
 
   switch(type) {
     case CELLT_FREE:
@@ -447,40 +447,40 @@ static void update_reference(void *ref_, void *addr) {
 
     /* User defined types */
     case CELLT_STRING:
-      tag = GC_GET_PTAG_FOR_HTAG_STRING();
+      tag = GC_GET_PTAG_FOR_HTAG_STRING().v;
       break;
     case CELLT_FLONUM:
-      tag = GC_GET_PTAG_FOR_HTAG_FLONUM();
+      tag = GC_GET_PTAG_FOR_HTAG_FLONUM().v;
       break;
     case CELLT_SIMPLE_OBJECT:
-      tag = GC_GET_PTAG_FOR_HTAG_SIMPLE_OBJECT();
+      tag = GC_GET_PTAG_FOR_HTAG_SIMPLE_OBJECT().v;
       break;
     case CELLT_ARRAY:
-      tag = GC_GET_PTAG_FOR_HTAG_ARRAY();
+      tag = GC_GET_PTAG_FOR_HTAG_ARRAY().v;
       break;
     case CELLT_FUNCTION:
-      tag = GC_GET_PTAG_FOR_HTAG_FUNCTION();
+      tag = GC_GET_PTAG_FOR_HTAG_FUNCTION().v;
       break;
     case CELLT_BUILTIN:
-      tag = GC_GET_PTAG_FOR_HTAG_BUILTIN();
+      tag = GC_GET_PTAG_FOR_HTAG_BUILTIN().v;
       break;
     case CELLT_ITERATOR:
-      tag = GC_GET_PTAG_FOR_HTAG_ITERATOR();
+      tag = GC_GET_PTAG_FOR_HTAG_ITERATOR().v;
       break;
 #ifdef use_regexp
     case CELLT_REGEXP:
-      tag = GC_GET_PTAG_FOR_HTAG_REGEXP();
+      tag = GC_GET_PTAG_FOR_HTAG_REGEXP().v;
       LOG_EXIT("Not Implemented");
       break;
 #endif
     case CELLT_BOXED_STRING:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_STRING();
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_STRING().v;
       break;
     case CELLT_BOXED_NUMBER:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_NUMBER();
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_NUMBER().v;
       break;
     case CELLT_BOXED_BOOLEAN:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_BOOLEAN();
+      tag = GC_GET_PTAG_FOR_HTAG_BOXED_BOOLEAN().v;
       break;
 
     /* VM inner defined types */
@@ -498,7 +498,7 @@ static void update_reference(void *ref_, void *addr) {
     case CELLT_SHAPE:
     case CELLT_UNWIND:
     case CELLT_PROPERTY_MAP_LIST:
-      tag = ((PTag) {(uintjsv_t) -1});
+      tag = (uintjsv_t) -1;
       break;
 
     default:
@@ -510,8 +510,8 @@ static void update_reference(void *ref_, void *addr) {
   void **ref = (void **) hdrp->threaded;
   while(is_reference(ref)) {
     void **next = (void **) *ref;
-    if (tag.v != ((PTag) {(uintjsv_t) -1}).v)
-      *ref = (void *) put_ptag((uintjsv_t) addr, tag);
+    if (tag != (uintjsv_t) -1)
+      *ref = (void *) put_ptag((uintjsv_t) addr, ((PTag) {tag}));
     else
       *ref = addr;
 

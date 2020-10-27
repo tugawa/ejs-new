@@ -34,7 +34,7 @@ static inline HTag get_htag(JSValue v)
 {
   void *p;
   assert(has_htag(v));
-  p = (void *) (uintptr_t) (uintjsv_t) v;
+  p = (void *) (uintptr_t) clear_ptag(v);
   return (HTag) {gc_obj_header_type(p)};
 }
 
