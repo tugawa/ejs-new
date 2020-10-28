@@ -252,7 +252,7 @@ public class Main {
             TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec, doCaseSplit, insnCallSpec);
         if(behaviorMode == BehaviorMode.Preprocess){
             try{
-                if(inlineExpansionFile != null){
+                if(inlineExpansionWriteFile != null){
                     FileWriter fiWriter = new FileWriter(inlineExpansionWriteFile, true);
                     fiWriter.write(new InlineInfoVisitor().start(ast));
                     fiWriter.close();
