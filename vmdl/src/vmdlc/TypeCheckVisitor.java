@@ -1130,6 +1130,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return realTypes;
         }
         private void updateInlinigStatusMap(SyntaxTree node, SyntaxTree expanded, InliningResult result, Map<SyntaxTree, InliningStatus> funcsInliningStatusMap){
+            if(funcsInliningStatusMap == null) return;
             InliningStatus status = funcsInliningStatusMap.get(node);
             if(status==null){
                 status = (result == InliningResult.Pass) ? new InliningStatus(InliningStatus.Status.SinglePass, expanded)
@@ -1181,8 +1182,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
             }
             if(inlineExpansionFlag){
-                Map<SyntaxTree, InliningStatus> funcsInliningStatusMap = caseSplitDataStack.peek().getFuncsInliningStatusMap();
-                Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = caseSplitDataStack.peek().getCaseExpansionMap();
+                Map<SyntaxTree, InliningStatus> funcsInliningStatusMap = null;
+                Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = null;
+                if(!caseSplitDataStack.empty()){
+                    funcsInliningStatusMap = caseSplitDataStack.peek().getFuncsInliningStatusMap();
+                    caseExpansionMap = caseSplitDataStack.peek().getCaseExpansionMap();
+                }
                 if(InlineFileProcessor.isInlineExpandable(functionName)){
                     SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
                     if(!expandedNode.equals(node)){
@@ -1195,13 +1200,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         */
                         node.addExpandedTreeCandidate(expandedNode);
                         //System.err.println("[TCV.FunctionCall] After cs :"+node.getExpnadedTreeCandidates().toString());
-                        FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
-                        Set<TypeMap> request = caseExpansionMap.get(pair);
-                        if(request == null){
-                            request = new HashSet<TypeMap>();
+                        if(!caseSplitDataStack.empty()){
+                            FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
+                            Set<TypeMap> request = caseExpansionMap.get(pair);
+                            if(request == null){
+                                request = new HashSet<TypeMap>();
+                            }
+                            request.add(dict);
+                            caseExpansionMap.put(pair, request);
                         }
-                        request.add(dict);
-                        caseExpansionMap.put(pair, request);
                         visit(expandedNode, dict);
                     }else{
                         //System.err.println("fail to expansion:"+node.toString());
