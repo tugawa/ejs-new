@@ -40,10 +40,8 @@ public class Main {
     static String functionDependencyFile = "./vmdl_workspace/dependency.ftd";
     static String functionExternFile;
     static String insnCallSpecFile;
-    //static String argumentSpecificationsFile = "./vmdl_workspace/funcs-need.spec";
-    static String argumentSpecFile;
+    static String functionSpecFile;
     static int typeMapIndex = 1;
-    //static OutputMode outputMode = null;
     static BehaviorMode behaviorMode = BehaviorMode.Compile;
     static CompileMode compileMode = null;
     static boolean generateArgumentSpecMode = false;
@@ -81,13 +79,13 @@ public class Main {
                 option.mDisableMatchOptimisation = true;
             } else if(opt.matches("-T.")){
                 Integer num = Integer.parseInt(opt.substring(2));
-                if((num <= 0) || (num > TypeCheckVisitor.CheckTypePlicy.values().length)){
-                    throw new Error("Illigal option");
+                if((num <= 0) || (num > TypeCheckVisitor.TypeCheckPolicy.values().length)){
+                    ErrorPrinter.error("Type analysis option must be T1 to T3");
                 }
                 typeMapIndex = num;
             } else if (opt.equals("-preprocess")) {
                 if(behaviorMode != BehaviorMode.Compile){
-                    throw new Error("Can not use \"-gen-funcspec\" option simultaneously");
+                    ErrorPrinter.error("Can not use \"-gen-funcspec\" and \"-preprocess\" option simultaneously");
                 }
                 behaviorMode = BehaviorMode.Preprocess;
             } else if (opt.equals("-write-fi")) {
@@ -102,11 +100,11 @@ public class Main {
                 functionDependencyFile = args[i++];
                 operandSpecFile = args[i++];
                 if(behaviorMode != BehaviorMode.Compile){
-                    throw new Error("Can not use \"-preprocess\" option simultaneously");
+                    ErrorPrinter.error("Can not use \"-gen-funcspec\" and \"-preprocess\" option simultaneously");
                 }
                 behaviorMode = BehaviorMode.GenFuncSpec;
             } else if (opt.equals("-update-funcspec")) {
-                argumentSpecFile = args[i++];
+                functionSpecFile = args[i++];
             } else if (opt.equals("-case-split")) {
                 doCaseSplit = true;
                 insnCallSpecFile = args[i++];
@@ -125,35 +123,35 @@ public class Main {
 
         if ((dataTypeDefFile == null || sourceFile == null) && behaviorMode != BehaviorMode.GenFuncSpec) {
             System.out.println("vmdlc [option] source");
-            System.out.println("   -d file   [mandatory] datatype specification file");
-            System.out.println("   -o file   operand specification file");
-            System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
-            System.out.println("   -no-match-opt  disable optimisation for match statement");
-            System.out.println("   -i file   instruction defs");
-            System.out.println("   -TX       type analysis processing");
-            System.out.println("              -T1: use Lub");
-            System.out.println("              -T2: partly detail");
-            System.out.println("              -T3: perfectly detail");
-            System.out.println("   -preprocess Use preprocess mode");
-            System.out.println("   -gen-funcspec ftdfile file Use generate function spec mode");
-            System.out.println("   -func-inline-opt file Enable function-inline-expansion");
-            System.out.println("   -write-fi file Generate function-inline-expansion file");
-            System.out.println("                  (Use with preprocess mode)");
-            System.out.println("   -write-ftd file Generate function-type-dependency file");
-            System.out.println("                  (Use with preprocess mode)");
-            System.out.println("   -write-extrn file Append extern declaration of function to file");
-            System.out.println("                  (Use with preprocess mode)");
-            System.out.println("   -update-funcspec file Append funcspec file");
+            System.out.println("   -d file                           [mandatory] datatype specification file");
+            System.out.println("   -o file                           operand specification file");
+            System.out.println("   -g file                           Nez grammar file (default: ejsdl.nez in jar file)");
+            System.out.println("   -no-match-opt                     disable optimisation for match statement");
+            System.out.println("   -i file                           instruction defs");
+            System.out.println("   -TX                               type analysis option");
+            System.out.println("                                       -T1: use Lub");
+            System.out.println("                                       -T2: partly detail");
+            System.out.println("                                       -T3: perfectly detail");
+            System.out.println("   -preprocess                       Use preprocess mode");
+            System.out.println("   -gen-funcspec                     ftdfile file Use generate function spec mode");
+            System.out.println("   -func-inline-opt                  file Enable function-inline-expansion");
+            System.out.println("   -write-fi file                    Generate function-inline-expansion file");
+            System.out.println("                                     (Use with preprocess mode)");
+            System.out.println("   -write-ftd file                   Generate function-type-dependency file");
+            System.out.println("                                     (Use with preprocess mode)");
+            System.out.println("   -write-extrn file                 Append extern declaration of function to file");
+            System.out.println("                                     (Use with preprocess mode)");
+            System.out.println("   -update-funcspec file             Append funcspec file");
             System.out.println("   -Xcmp:verify_diagram [true|false]");
             System.out.println("   -Xcmp:opt_pass [MR:S]");
-            System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
+            System.out.println("   -Xcmp:rand_seed n                 set random seed of dispatch processor");
             System.out.println("   -Xcmp:tree_layer p0:p1:h0:h1");
             System.out.println("   -Xgen:use_goto [true|false]");
             System.out.println("   -Xgen:pad_cases [true|false]");
             System.out.println("   -Xgen:use_default [true|false]");
             System.out.println("   -Xgen:magic_comment [true|false]");
             System.out.println("   -Xgen:debug_comment [true|false]");
-            System.out.println("   -Xgen:label_prefix xxx   set xxx as goto label");
+            System.out.println("   -Xgen:label_prefix xxx            set xxx as goto label");
             System.out.println("   -Xgen:type_label [true|false]");
             System.exit(1);
         }
@@ -178,9 +176,9 @@ public class Main {
         SyntaxTree ast = (SyntaxTree) parser.parse(source, new SyntaxTree());
         if (parser.hasErrors()) {
             for (SourceError e: parser.getErrors()) {
-                System.out.println(e);
+                System.err.println(e);
             }
-            throw new Error("parse error");
+            ErrorPrinter.error("Parse error");
         }
         return ast;
     }
@@ -192,7 +190,6 @@ public class Main {
         if (operandSpecFile != null)
             opSpec.load(operandSpecFile);
 
-
         if(behaviorMode == BehaviorMode.GenFuncSpec){
             TypeDependencyProcessor.load(functionDependencyFile);
             OperandSpecifications argSpec = TypeDependencyProcessor.getExpandSpecifications(opSpec);
@@ -201,7 +198,7 @@ public class Main {
         }
 
         if (dataTypeDefFile == null)
-            throw new Error("no datatype definition file is specified (-d option)");
+            ErrorPrinter.error("no datatype definition file is specified (-d option)");
         TypeDefinition.load(dataTypeDefFile);
 
         InstructionDefinitions insnDef = new InstructionDefinitions();
@@ -209,9 +206,9 @@ public class Main {
             insnDef.load(insnDefFile);
 
         OperandSpecifications funcSpec = null;
-        if (argumentSpecFile != null){
+        if (functionSpecFile != null){
             funcSpec = new OperandSpecifications();
-            funcSpec.load(argumentSpecFile);
+            funcSpec.load(functionSpecFile);
         }
 
         OperandSpecifications insnCallSpec = null;
@@ -221,17 +218,14 @@ public class Main {
         }
         
         if (sourceFile == null)
-            throw new Error("no source file is specified");
+            ErrorPrinter.error("no source file is specified");
 
         Integer seed = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, 0);
         DispatchProcessor.srand(seed);
 
         SyntaxTree ast = parse(sourceFile);
-        //test print
-        //System.err.println(ast);
-        //System.exit(0);
-
         ErrorPrinter.setSource(sourceFile);
+        
         if(inlineExpansionFile != null){
             InlineFileProcessor.read(inlineExpansionFile, getGrammar());
         }
@@ -248,8 +242,13 @@ public class Main {
             new AlphaConvVisitor().start(ast, true, insnDef);
         }
         new DispatchVarCheckVisitor().start(ast);
-        new TypeCheckVisitor().start(ast, opSpec,
-            TypeCheckVisitor.CheckTypePlicy.values()[typeMapIndex-1], (inlineExpansionFile != null), (functionDependencyFile != null), funcSpec, doCaseSplit, insnCallSpec);
+        TypeCheckVisitor.TypeCheckOption typeCheckOption = new TypeCheckVisitor.TypeCheckOption()
+            .setOperandSpec(opSpec).setFunctionSpec(funcSpec).setCaseSplitSpec(insnCallSpec)
+            .setTypeCheckPolicy(TypeCheckVisitor.TypeCheckPolicy.values()[typeMapIndex-1])
+            .setFunctionIniningFlag((inlineExpansionFile != null))
+            .setUpdateFTDFlag((functionDependencyFile != null))
+            .setCaseSplitFlag(doCaseSplit);
+        new TypeCheckVisitor().start(ast, typeCheckOption);
         if(behaviorMode == BehaviorMode.Preprocess){
             try{
                 if(inlineExpansionWriteFile != null){
@@ -272,7 +271,7 @@ public class Main {
         }
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);
         if(funcSpec != null){
-            funcSpec.write(argumentSpecFile);
+            funcSpec.write(functionSpecFile);
         }
         System.out.println(program);
     }

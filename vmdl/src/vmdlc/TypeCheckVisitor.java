@@ -118,23 +118,83 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    MatchStack matchStack;
-    OperandSpecifications opSpec;
-    boolean inlineExpansionFlag;
-    boolean genFunctionDependencyFlag;
-    boolean caseExpansionFlag;
-    OperandSpecifications funcSpec = null;
-    SplitCaseSelector splitCaseSelector;
-    OperandSpecifications insnCallSpec = null;
+    public static class TypeCheckOption{
+        private OperandSpecifications opSpec;
+        private OperandSpecifications funcSpec;
+        private OperandSpecifications caseSplitSpec;
+        private TypeCheckPolicy policy;
+        private boolean functionInliningFlag;
+        private boolean updateFTDFlag;
+        private boolean updateFunctionSpecFlag;
+        private boolean caseSplitFlag;
 
-    public static enum CheckTypePlicy{
+        public TypeCheckOption setOperandSpec(OperandSpecifications opSpec){
+            this.opSpec = opSpec;
+			return this;
+        }
+        public TypeCheckOption setFunctionSpec(OperandSpecifications funcSpec){
+            this.funcSpec = funcSpec;
+            if(funcSpec != null) this.updateFunctionSpecFlag = true;
+			return this;
+        }
+        public TypeCheckOption setCaseSplitSpec(OperandSpecifications caseSplitSpec){
+            this.caseSplitSpec = caseSplitSpec;
+			return this;
+        }
+        public TypeCheckOption setTypeCheckPolicy(TypeCheckPolicy policy){
+            this.policy = policy;
+			return this;
+        }
+        public TypeCheckOption setFunctionIniningFlag(boolean flag){
+            this.functionInliningFlag = flag;
+			return this;
+        }
+        public TypeCheckOption setUpdateFTDFlag(boolean flag){
+            this.updateFTDFlag = flag;
+			return this;
+        }
+        public TypeCheckOption setCaseSplitFlag(boolean flag){
+            this.caseSplitFlag = flag;
+			return this;
+        }
+        public OperandSpecifications getOperandSpec(){
+			return opSpec;
+		}
+        public OperandSpecifications getFunctionSpec(){
+			return funcSpec;
+		}
+        public OperandSpecifications getCaseSplitSpec(){
+			return caseSplitSpec;
+		}
+        public TypeCheckPolicy getTypeCheckPolicy(){
+			return policy;
+		}
+        public boolean doFunctionInlining(){
+			return functionInliningFlag;
+		}
+        public boolean doUpdateFTD(){
+			return updateFTDFlag;
+        }
+        public boolean doUpdateFunctionSpec(){
+			return updateFunctionSpecFlag;
+		}
+        public boolean doCaseSplit(){
+			return caseSplitFlag;
+		}
+    }
+
+    MatchStack matchStack;
+    SplitCaseSelector splitCaseSelector;
+    TypeCheckOption option;
+
+    public static enum TypeCheckPolicy{
         Lub(new TypeMapSetLub(), new ExprTypeSetLub()),
         Half(new TypeMapSetHalf(), new ExprTypeSetDetail()),
         Full(new TypeMapSetFull(), new ExprTypeSetDetail());
 
         private TypeMapSet typeMap;
         private ExprTypeSet exprTypeSet;
-        private CheckTypePlicy(TypeMapSet typeMap, ExprTypeSet exprTypeSet){
+        private TypeCheckPolicy(TypeMapSet typeMap, ExprTypeSet exprTypeSet){
             this.typeMap = typeMap;
             this.exprTypeSet = exprTypeSet;
         }
@@ -152,18 +212,11 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(TypeCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(Tree<?> node, OperandSpecifications opSpec,
-        CheckTypePlicy policy, boolean inlineExpansionFlag, boolean genFunctionDependencyFlag, OperandSpecifications funcSpec,
-        boolean doCaseSplit, OperandSpecifications insnCallSpec) {
-        this.opSpec = opSpec;
-        this.inlineExpansionFlag = inlineExpansionFlag;
-        this.genFunctionDependencyFlag = genFunctionDependencyFlag;
-        this.funcSpec = funcSpec;
-        this.caseExpansionFlag = doCaseSplit;
-        this.insnCallSpec = insnCallSpec;
+    public void start(Tree<?> node, TypeCheckOption option) {
+        this.option = option;
         try {
-            TYPE_MAP  = policy.getTypeMap();
-            EXPR_TYPE = policy.getExprTypeSet();
+            TYPE_MAP  = option.getTypeCheckPolicy().getTypeMap();
+            EXPR_TYPE = option.getTypeCheckPolicy().getExprTypeSet();
             TypeMapSet dict = TYPE_MAP.clone();
             matchStack = new MatchStack();
             for (Tree<?> chunk : node) {
@@ -176,7 +229,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    // Visit for statement
+    // Visit method for statement
     private final TypeMapSet visit(SyntaxTree node, TypeMapSet dict) throws Exception {
         /*
         System.err.println("==================");
@@ -189,7 +242,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         return find(node.getTag().toString()).accept(node, dict);
     }
 
-    // Visit for expression
+    // Visit method for expression
     private final ExprTypeSet visit(SyntaxTree node, TypeMap dict) throws Exception {
         /*
         System.err.println("==================");
@@ -307,8 +360,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                             nJsvMap.put(paramName, paramType);
                     }
                 }
-                if(caseExpansionFlag){
-                    splitCaseSelector = new SplitCaseSelector(name, paramNames, insnCallSpec);
+                if(option.doCaseSplit()){
+                    splitCaseSelector = new SplitCaseSelector(name, paramNames, option.getCaseSplitSpec());
                 }
                 if(newSet.isEmpty()){
                     newSet.add(new TypeMap());
@@ -323,7 +376,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if (nJsvTypes > 0) {
                     String[] jsvParamNamesPacked = new String[nJsvTypes];
                     System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
-                    VMDataTypeVecSet vtvs = opSpec.getAccept(name, jsvParamNamesPacked);
+                    VMDataTypeVecSet vtvs = option.getOperandSpec().getAccept(name, jsvParamNamesPacked);
                     Set<VMDataType[]> tupleSet = vtvs.getTuples();
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
@@ -494,7 +547,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             caseExpansionMap = new HashMap<>();
             funcsInliningStatusMap = new HashMap<>();
         }
-
         public List<Set<Set<TypeMap>>> getCaseExpansionConds(){
             return caseExpansionConds;
         }
@@ -525,7 +577,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            //System.err.println("MATCH START===================================\n===================================");
             MatchProcessor mp = new MatchProcessor(node);
             SyntaxTree labelNode = node.get(Symbol.unique("label"), null);
             String label = labelNode == null ? null : labelNode.toText();
@@ -541,7 +592,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 entryDict = newEntryDict;
                 matchStack.enter(label, mp.getFormalParams(), entryDict);
                 for (int i = 0; i < mp.size(); i++) {
-                    //System.err.println("CASE "+i+" START===================================");
                     TypeMapSet dictCaseIn = entryDict.enterCase(mp.getFormalParams(), mp.getVMDataTypeVecSet(i));
                     if (dictCaseIn.noInformationAbout(mp.getFormalParams())){
                         continue;
@@ -550,7 +600,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     funcsInliningStatusMap = caseSplitData.resetFuncsInliningStatusMap();
                     SyntaxTree body = mp.getBodyAst(i);
                     TypeMapSet dictCaseOut = visit(body, dictCaseIn);
-                    if(caseExpansionFlag){
+                    if(option.doCaseSplit()){
                         Set<Set<TypeMap>> domains = new HashSet<>();
                         for(Set<TypeMap> v : caseExpansionMap.values()){
                             Set<TypeMap> domain = new HashSet<>(mp.getFormalParams().length);
@@ -560,8 +610,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                             domains.add(domain);
                         }
                         Set<Set<TypeMap>> selected = splitCaseSelector.select(ExpandedCaseCondMaker.getExpandedCaseCond(domains));
-                        //System.err.println("*******"+selected.size());
-                        //System.err.println(i+": selected.size()="+selected.size()+", status="+funcsInliningStatusMap.toString());
                         if(shouldCaseExpansion(funcsInliningStatusMap) && !selected.isEmpty()){
                             caseExpansionConds.set(i, selected);
                         }
@@ -573,14 +621,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             node.setTypeMapSet(entryDict);
             SyntaxTree paramsNode = node.get(Symbol.unique("params"));
             save(paramsNode, outDict);
-            if(caseExpansionFlag){
+            if(option.doCaseSplit()){
                 for(int i=0; i<mp.size(); i++){
                     Set<Set<TypeMap>> cond = caseExpansionConds.get(i);
                     if(cond != null) mp.setCaseExpansion(i, cond);
                 }
                 if(mp.hasExpand()){
-                    //System.err.println("Match is expanded.");
-                    //System.err.println("Match node is:"+node.toString());
                     SyntaxTree expandedTree = mp.getCaseExpandedTree();
                     node.addExpandedTreeCandidate(expandedTree);
                     outDict = visit(expandedTree, dict);
@@ -1175,32 +1221,20 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 argTypeList = checkArguments(argTypes, argsNode, dict);
             }
             Set<List<AstType>> argTypess = typeSetListToListSet(argTypeList);
-            if(genFunctionDependencyFlag){
+            if(option.doUpdateFTD()){
                 List<AstType> currentFunctionArgTypes =  getTypeList(currentFunctionArgNames, dict);
                 for(List<AstType> types : argTypess){
                     TypeDependencyProcessor.addDependency(currentFunctionName, currentFunctionArgTypes, functionName, types);
                 }
             }
-            if(inlineExpansionFlag){
-                Map<SyntaxTree, InliningStatus> funcsInliningStatusMap = null;
-                Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = null;
-                if(!caseSplitDataStack.empty()){
-                    funcsInliningStatusMap = caseSplitDataStack.peek().getFuncsInliningStatusMap();
-                    caseExpansionMap = caseSplitDataStack.peek().getCaseExpansionMap();
-                }
+            if(option.doFunctionInlining()){
                 if(InlineFileProcessor.isInlineExpandable(functionName)){
                     SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
                     if(!expandedNode.equals(node)){
-                        //System.err.println("pass to expansion:"+node.toString());
-                        updateInlinigStatusMap(node, expandedNode, InliningResult.Pass, funcsInliningStatusMap);
-                        /*
-                        System.err.println("[TCV.FunctionCall] TypeMap :"+dict.toString());
-                        if(node.getExpnadedTreeCandidates() != null) System.err.println("[TCV.FunctionCall] Before cs :"+node.getExpnadedTreeCandidates().toString());
-                        else System.err.println("[TCV.FunctionCall] Before cs :null");
-                        */
                         node.addExpandedTreeCandidate(expandedNode);
-                        //System.err.println("[TCV.FunctionCall] After cs :"+node.getExpnadedTreeCandidates().toString());
                         if(!caseSplitDataStack.empty()){
+                            updateInlinigStatusMap(node, expandedNode, InliningResult.Pass, caseSplitDataStack.peek().getFuncsInliningStatusMap());
+                            Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = caseSplitDataStack.peek().getCaseExpansionMap();
                             FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
                             Set<TypeMap> request = caseExpansionMap.get(pair);
                             if(request == null){
@@ -1211,16 +1245,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         }
                         visit(expandedNode, dict);
                     }else{
-                        //System.err.println("fail to expansion:"+node.toString());
-                        //System.err.println("expanded:"+expandedNode.toString());
-                        //System.err.println("list:"+argTypeList.toString());
-                        //functionInliningFailFlag = true;
-                        updateInlinigStatusMap(node, null, InliningResult.Fail, funcsInliningStatusMap);
+                        updateInlinigStatusMap(node, null, InliningResult.Fail, null);
                         node.setFailToExpansion();
                     }
                 }
             }
-            if(funcSpec != null){
+            if(option.doUpdateFunctionSpec()){
+                OperandSpecifications funcSpec = option.getFunctionSpec();
                 if(funcSpec.hasName(functionName)){
                     Set<List<String>> vmdTypesNamess = toVMDataTypeNemess(argTypess);
                     for(List<String> typeNames : vmdTypesNamess){
