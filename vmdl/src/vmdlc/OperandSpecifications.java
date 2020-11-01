@@ -254,6 +254,14 @@ public class OperandSpecifications {
         spec.add(0, new OperandSpecificationRecord(insnName, operandTypes, behaviour));
     }
 
+    public void insertRecord(String insnName, VMDataType[] operandTypes, OperandSpecificationRecord.Behaviour behaviour){
+        String[] typeNames = new String[operandTypes.length];
+        for(int i=0; i<operandTypes.length; i++){
+            typeNames[i] = operandTypes[i].toString();
+        }
+        insertRecord(insnName, typeNames, behaviour);
+    }
+
     public void write(FileWriter writer) throws IOException{
         StringBuilder builder = new StringBuilder();
         for(OperandSpecificationRecord record : spec){

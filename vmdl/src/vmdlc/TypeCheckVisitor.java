@@ -15,18 +15,17 @@ import nez.ast.Symbol;
 import java.util.Set;
 import java.util.Map;
 import java.util.Stack;
-import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.AbstractMap.SimpleEntry;
 
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
+import type.AstTypeVec;
 import type.ExprTypeSet;
 import type.ExprTypeSetLub;
 import type.FunctionAnnotation;
@@ -39,6 +38,7 @@ import type.TypeMapSetLub;
 import type.TypeMapSetHalf;
 import type.TypeMapSetFull;
 import type.VMDataType;
+import type.VMDataTypeVec;
 import type.VMDataTypeVecSet;
 
 public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
@@ -259,18 +259,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).saveType(node, dict);
     }
 
-    private final void saveFunction(SyntaxTree node, AstProductType type) throws Exception{
-        find(node.getTag().toString()).saveFunctionType(node, type);
-    }
-
-    private final void notifyNeedContext(SyntaxTree node, boolean flag) throws Exception{
-        find(node.getTag().toString()).notifyContextFlag(node, flag);
-    }
-
-    private final void notifyFunctionInformation(SyntaxTree node, Entry<String, List<String>> entry){
-        find(node.getTag().toString()).notifyCurrentFunction(node, entry);
-    }
-
     public class DefaultVisitor {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             return dict;
@@ -285,30 +273,40 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 save(chunk, dict);
             }
         }
-
-        public void saveFunctionType(SyntaxTree node, AstProductType type) throws Exception {
-            for (SyntaxTree chunk : node) {
-                saveFunction(chunk, type);
-            }
-        }
-
-        public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
-            for (SyntaxTree chunk : node) {
-                notifyNeedContext(chunk, flag);
-            }
-        }
-
-        public void notifyCurrentFunction(SyntaxTree node, Entry<String, List<String>> entry){
-            for (SyntaxTree chunk : node) {
-                notifyFunctionInformation(chunk, entry);
-            }
-        }
     }
 
     //**********************************
     // Statements
     //**********************************
 
+    public class FunctionDefiningInformation{
+        private String name;
+        private List<String> paramNames;
+        private AstProductType type;
+        private boolean needContextFlag;
+
+        public FunctionDefiningInformation(String name, List<String> paramNames, AstProductType type, boolean doNeedContext){
+            this.name = name;
+            this.paramNames = paramNames;
+            this.type = type;
+            this.needContextFlag = doNeedContext;
+        }
+        public String getName(){
+            return name;
+        }
+        public List<String> getParamNames(){
+            return paramNames;
+        }
+        public AstProductType getType(){
+            return type;
+        }
+        public boolean doNeedContext(){
+            return needContextFlag;
+        }
+    }
+
+    FunctionDefiningInformation superFunction;
+    
     public class FunctionMeta extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -411,13 +409,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             newDict.setTypeMapSet(newSet2);
             newDict.setDispatchSet(node.getRematchVarSet());
             SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));
-            saveFunction(body, funtype);
-            notifyNeedContext(body, FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext));
             List<String> argNames = new ArrayList<>(paramsNode.size());
             for(SyntaxTree param : paramsNode){
                 argNames.add(param.toText());
             }
-            notifyFunctionInformation(body, new SimpleEntry<String, List<String>>(name, argNames));
+            superFunction = new FunctionDefiningInformation(name, argNames, funtype,
+                    FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext));
             dict = visit(body, newDict);
             save(nameNode, dict);
             save(nodeName, dict);
@@ -564,6 +561,18 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             funcsInliningStatusMap = new HashMap<>();
             return funcsInliningStatusMap;
         }
+        public void updateInlinigStatusMap(SyntaxTree node, SyntaxTree expanded, InliningResult result){
+            InliningStatus status = funcsInliningStatusMap.get(node);
+            if(status==null){
+                status = (result == InliningResult.Pass)
+                     ? new InliningStatus(InliningStatus.Status.SinglePass, expanded)
+                     : new InliningStatus(InliningStatus.Status.AllFail, null);
+            }else{
+                if(result == InliningResult.Pass) status.pass(expanded);
+                else status.fail();
+            }
+            funcsInliningStatusMap.put(node, status);
+        }
     }
 
     Stack<CaseSplitData> caseSplitDataStack = new Stack<>();
@@ -663,15 +672,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public class Return extends DefaultVisitor {
-        AstProductType functionType;
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            if(functionType == null){
+            AstProductType superFunctionType = superFunction.getType();
+            if(superFunctionType == null){
                 throw new Error("Connnot solve functionType: null");
             }
-            AstType rangeType = functionType.getRange();
+            AstType rangeType = superFunctionType.getRange();
             if(rangeType == null){
-                throw new Error("function range typs null");
+                ErrorPrinter.error("Missing function type declaration");
             }
             if(rangeType != AstType.get("void")){
                 SyntaxTree valNode = node.get(0);
@@ -679,7 +688,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     ExprTypeSet exprTypeSet = visit(valNode, map);
                     for(AstType t : exprTypeSet){
                         if(!(rangeType.isSuperOrEqual(t))){
-                            ErrorPrinter.error("Return type "+t+", function types "+functionType.toString(), valNode);
+                            ErrorPrinter.error("Function must return "+rangeType.toString()+" type, but returning "+t+" type", valNode);
                         }
                     }
                 }
@@ -687,12 +696,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             save(node.get(0), dict);
             return dict;
         }
-
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
-        }
-
-        public void saveFunctionType(SyntaxTree node, AstProductType type) throws Exception {
-            functionType = type;
         }
     }
 
@@ -902,7 +906,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (AstType rt : rightExprTypeSet){
                 AstType result = checker.typeOf(lt, rt);
                 if(result == null){
-                    ErrorPrinter.recursiveError("Illigal types given in operator: "
+                    ErrorPrinter.errorForRecvNode("Illigal types given in operator: "
                         +lt.toString()+","+rt.toString(), node);
                 }
                 resultTypeSet.add(result);
@@ -1092,202 +1096,121 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         private final OperandSpecifications.OperandSpecificationRecord.Behaviour ACCEPT =
             OperandSpecifications.OperandSpecificationRecord.Behaviour.ACCEPT;
-        boolean needContextFlag;
-        String currentFunctionName;
-        List<String> currentFunctionArgNames;
-        private Set<List<AstType>> typeSetListToListSet(List<ExprTypeSet> typesList){
-            int size = typesList.size();
-            if(size == 0) return new HashSet<>();
-            Set<List<AstType>> newSet = typeSetListToListSet(typesList.subList(1, size));
-            Set<AstType> typeSet = typesList.get(0).getTypeSet();
-            for(AstType t : typeSet){
-                List<AstType> elementList = new ArrayList<>();
-                elementList.add(t);
-                newSet.add(elementList);
+        private void typeDeclarationCheck(String functionName, SyntaxTree node){
+            AstType type = FunctionTable.getType(functionName);
+            if(type == null){
+                ErrorPrinter.error("Function not found: "+functionName, node);
             }
-            return newSet;
+            if(!(type instanceof AstProductType)){
+                ErrorPrinter.error("Non function refered as function: "+functionName, node);
+            }
         }
-        private List<AstType> getTypeList(List<String> nameList, TypeMap map){
-            List<AstType> result = new ArrayList<>(nameList.size());
-            for(String name : nameList){
-                result.add(map.get(name));
+        private void needContextCheck(String functionName, SyntaxTree node){
+            if(!FunctionTable.contains(functionName)){
+                ErrorPrinter.error("Function is not found: "+functionName);
             }
-            return result;
+            if(!superFunction.doNeedContext() && FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
+                ErrorPrinter.errorForRecvNode("Call function that need context in function that does not need", node);
+            }
         }
-        private Set<List<String>> astsToVmdNamess(List<AstType> src){
-            int size = src.size();
-            if(size == 0){
-                Set<List<String>> newSet = new HashSet<>(1);
-                newSet.add(Collections.emptyList());
-                return newSet;
-            }
-            Set<List<String>> tailSet = astsToVmdNamess(src.subList(1, size));
-            Set<VMDataType> heads = src.get(0).getVMDataTypes();
-            Set<String> headNames = new HashSet<>();
-            if(heads != null){
-                headNames = new HashSet<>(heads.size());
-                for(VMDataType type : heads){
-                    headNames.add(type.toString());
+        private void argumentSizeCheck(AstTypeVec domain, SyntaxTree argNode, String functionName){
+            if(argNode.size()==0){
+                if(domain.size() != 1 || !domain.contains(AstType.get("void"))){
+                    ErrorPrinter.error("Argument size does not match: "+functionName, argNode);
                 }
             }else{
-                headNames = new HashSet<>(1);
-                headNames.add("-");
-            }
-            Set<List<String>> newSet = new HashSet<>(tailSet.size()*headNames.size());
-            for(String headName : headNames){
-                for(List<String> tail : tailSet){
-                    List<String> newList = new ArrayList<>(tail.size()+1);
-                    newList.add(headName);
-                    newList.addAll(tail);
-                    newSet.add(newList);
+                if(domain.size() != argNode.size()){
+                    ErrorPrinter.error("Argument size does not match: "+functionName, argNode);
                 }
             }
-            return newSet;
         }
-        private Set<List<String>> toVMDataTypeNemess(Set<List<AstType>> src){
-            Set<List<String>> result = new HashSet<>();
-            for(List<AstType> list : src){
-                result.addAll(astsToVmdNamess(list));
+        private List<ExprTypeSet> getRealTypes(AstTypeVec argumentVec, SyntaxTree argumentNode, TypeMap dict) throws Exception{
+            if(argumentNode.size()==0){
+                return Collections.emptyList();
             }
-            return result;
-        }
-        private void checkNeedContext(String functionName, SyntaxTree node){
-            if(!FunctionTable.contains(functionName)){
-                throw new Error("FunctionTable is broken: not has "+functionName);
-            }
-            if(!needContextFlag && FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
-                ErrorPrinter.recursiveError("Call function that need context in function that does not need", node);
-            }
-        }
-        private List<ExprTypeSet> checkArguments(List<AstType> argTypes, SyntaxTree argsNode, TypeMap dict) throws Exception{
-            SyntaxTree[] argNodes = (SyntaxTree[])argsNode.getSubTree();
-            int length = argNodes.length;
-            List<ExprTypeSet> realTypes = new ArrayList<>(length);
+            SyntaxTree[] arguments = (SyntaxTree[])argumentNode.getSubTree();
+            int length = arguments.length;
+            List<ExprTypeSet> realTypesList = new ArrayList<>(length);
             for(int i=0; i<length; i++){
-                ExprTypeSet argRealTypes = visit(argNodes[i], dict);
-                realTypes.add(argRealTypes);
-                for(AstType t : argRealTypes){
-                    if(!argTypes.get(i).isSuperOrEqual(t)){
+                ExprTypeSet realTypes = visit(arguments[i], dict);
+                realTypesList.add(realTypes);
+                for(AstType t : realTypes){
+                    if(!argumentVec.get(i).isSuperOrEqual(t)){
                         ErrorPrinter.error("Argument types "+t.toString()
-                            +", need types "+argTypes.get(i), argNodes[i]);
+                            +", need types "+realTypesList.get(i), arguments[i]);
                     }
                 }
             }
-            return realTypes;
+            return realTypesList;
         }
-        private void updateInlinigStatusMap(SyntaxTree node, SyntaxTree expanded, InliningResult result, Map<SyntaxTree, InliningStatus> funcsInliningStatusMap){
-            if(funcsInliningStatusMap == null) return;
-            InliningStatus status = funcsInliningStatusMap.get(node);
-            if(status==null){
-                status = (result == InliningResult.Pass) ? new InliningStatus(InliningStatus.Status.SinglePass, expanded)
-                     : new InliningStatus(InliningStatus.Status.AllFail, null);
-            }else{
-                if(result == InliningResult.Pass) status.pass(expanded);
-                else status.fail();
+        private void updateFTD(Set<AstTypeVec> argumentVecSet, TypeMap dict, String functionName){
+            AstTypeVec superFunctionArgumetVec =  new AstTypeVec(dict.get(superFunction.getParamNames()));
+            for(AstTypeVec argumentVec : argumentVecSet){
+                TypeDependencyProcessor.addDependency(superFunction.getName(), superFunctionArgumetVec.getList(), functionName, argumentVec.getList());
             }
-            funcsInliningStatusMap.put(node, status);
+        }
+        private void inliningRecord(SyntaxTree node, TypeMap dict, String functionName, List<ExprTypeSet> argTypeList) throws Exception{
+            if(!InlineFileProcessor.isInlineExpandable(functionName)){
+                return;
+            }
+            SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
+            if(expandedNode.equals(node)){
+                node.setFailToExpansion();
+                return;
+            }
+            node.addExpandedTreeCandidate(expandedNode);
+            if(!caseSplitDataStack.empty()){
+                CaseSplitData caseSplitData = caseSplitDataStack.peek();
+                caseSplitData.updateInlinigStatusMap(node, expandedNode, InliningResult.Pass);
+                Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = caseSplitData.getCaseExpansionMap();
+                FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
+                Set<TypeMap> request = caseExpansionMap.get(pair);
+                if(request == null){
+                    request = new HashSet<TypeMap>();
+                }
+                request.add(dict);
+                caseExpansionMap.put(pair, request);
+            }
+            visit(expandedNode, dict);
+        }
+        private void updateFunctionSpec(String functionName, Set<AstTypeVec> calledTypeVecSet){
+            OperandSpecifications funcSpec = option.getFunctionSpec();
+            if(!funcSpec.hasName(functionName)){
+                return;
+            }
+             Set<VMDataTypeVec> vmdtVecSet = AstTypeVec.toVMDataTypeVecSet(calledTypeVecSet);
+             for(VMDataTypeVec vmdtVec : vmdtVecSet){
+                 List<String> vmdtNames = vmdtVec.toStringList();
+                 if(funcSpec.findSpecificationRecord(functionName, vmdtVec.toArray()).behaviour != ACCEPT){
+                     funcSpec.insertRecord(functionName, vmdtNames.toArray(new String[0]), ACCEPT);
+                 }
+             }
         }
         @Override
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
             SyntaxTree recvNode = node.get(Symbol.unique("recv"));
-            String functionName = recvNode.toText();
-            AstType type = FunctionTable.getType(functionName);
-            if(type == null){
-                ErrorPrinter.error("Function not found: "+functionName, recvNode);
-            }
-            if(!(type instanceof AstProductType)){
-                ErrorPrinter.error("Non function refered as function: "+functionName, recvNode);
-            }
-            checkNeedContext(functionName, node);
-            AstProductType functionType = (AstProductType)type;
-            AstType domain = functionType.getDomain();
-            List<AstType> argTypes;
-            if(domain instanceof AstPairType){
-                argTypes = ((AstPairType)domain).getTypes();
-            }else{
-                argTypes = new ArrayList<>();
-                argTypes.add(domain);
-            }
             SyntaxTree argsNode = node.get(Symbol.unique("args"));
-            List<ExprTypeSet> argTypeList = Collections.emptyList();
-            if(argsNode.size()==0){
-                if(argTypes.size() != 1 || !argTypes.contains(AstType.get("void"))){
-                    ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
-                }
-            }else{
-                if(argsNode.size() != argTypes.size()){
-                    ErrorPrinter.error("Argument size does not match: "+functionName, argsNode);
-                }
-                argTypeList = checkArguments(argTypes, argsNode, dict);
-            }
-            Set<List<AstType>> argTypess = typeSetListToListSet(argTypeList);
+            String functionName = recvNode.toText();
+            typeDeclarationCheck(functionName, recvNode);
+            needContextCheck(functionName, node);
+            AstProductType functionType = (AstProductType)FunctionTable.getType(functionName);
+            AstTypeVec argumentTypeVec = new AstTypeVec(functionType.getDomain());
+            argumentSizeCheck(argumentTypeVec, argsNode, functionName);
+            List<ExprTypeSet> argTypeList = getRealTypes(argumentTypeVec, argsNode, dict);
+            Set<AstTypeVec> argumentVecSet = AstTypeVec.toAstTypeVecSet(argTypeList);
             if(option.doUpdateFTD()){
-                List<AstType> currentFunctionArgTypes =  getTypeList(currentFunctionArgNames, dict);
-                for(List<AstType> types : argTypess){
-                    TypeDependencyProcessor.addDependency(currentFunctionName, currentFunctionArgTypes, functionName, types);
-                }
+                updateFTD(argumentVecSet, dict, functionName);
             }
             if(option.doFunctionInlining()){
-                if(InlineFileProcessor.isInlineExpandable(functionName)){
-                    SyntaxTree expandedNode = InlineFileProcessor.inlineExpansion(node, argTypeList);
-                    if(!expandedNode.equals(node)){
-                        node.addExpandedTreeCandidate(expandedNode);
-                        if(!caseSplitDataStack.empty()){
-                            updateInlinigStatusMap(node, expandedNode, InliningResult.Pass, caseSplitDataStack.peek().getFuncsInliningStatusMap());
-                            Map<FunctionExpansionPair, Set<TypeMap>> caseExpansionMap = caseSplitDataStack.peek().getCaseExpansionMap();
-                            FunctionExpansionPair pair = new FunctionExpansionPair(node, expandedNode);
-                            Set<TypeMap> request = caseExpansionMap.get(pair);
-                            if(request == null){
-                                request = new HashSet<TypeMap>();
-                            }
-                            request.add(dict);
-                            caseExpansionMap.put(pair, request);
-                        }
-                        visit(expandedNode, dict);
-                    }else{
-                        updateInlinigStatusMap(node, null, InliningResult.Fail, null);
-                        node.setFailToExpansion();
-                    }
-                }
+                inliningRecord(node, dict, functionName, argTypeList);
             }
             if(option.doUpdateFunctionSpec()){
-                OperandSpecifications funcSpec = option.getFunctionSpec();
-                if(funcSpec.hasName(functionName)){
-                    Set<List<String>> vmdTypesNamess = toVMDataTypeNemess(argTypess);
-                    for(List<String> typeNames : vmdTypesNamess){
-                        List<String> excludeMinus = new ArrayList<>();
-                        for(String name : typeNames){
-                            if(name.equals("-")) continue;
-                            excludeMinus.add(name);
-                        }
-                        int length = excludeMinus.size();
-                        VMDataType[] excludeMinusTypes = new VMDataType[length];
-                        for(int i=0; i<length; i++){
-                            excludeMinusTypes[i] = VMDataType.get(excludeMinus.get(i));
-                        }
-                        if(funcSpec.findSpecificationRecord(functionName, excludeMinusTypes).behaviour != ACCEPT){
-                            String[] typeNamesArray = new String[excludeMinus.size()];
-                            for(int i=0; i<excludeMinus.size(); i++){
-                                typeNamesArray[i] = excludeMinus.get(i);
-                            }
-                            funcSpec.insertRecord(functionName, typeNamesArray, ACCEPT);
-                        }
-                    }
-                }
+                updateFunctionSpec(functionName, argumentVecSet);
             }
             AstType range = functionType.getRange();
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(range);
             return newSet;
-        }
-        @Override
-        public void notifyContextFlag(SyntaxTree node, boolean flag) throws Exception {
-            needContextFlag = flag;
-        }
-        @Override
-        public void notifyCurrentFunction(SyntaxTree node, Entry<String, List<String>> entry) {
-            currentFunctionName = entry.getKey();
-            currentFunctionArgNames = entry.getValue();
         }
     }
 

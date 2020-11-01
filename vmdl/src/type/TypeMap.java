@@ -9,7 +9,9 @@
 package type;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 import java.util.Map.Entry;
@@ -33,6 +35,14 @@ public class TypeMap{
             type = global.get(key);
         }
         return type;
+    }
+
+    public List<AstType> get(List<String> nameList){
+        List<AstType> result = new ArrayList<>(nameList.size());
+        for(String name : nameList){
+            result.add(get(name));
+        }
+        return result;
     }
 
     public void add(String key, AstType value) {

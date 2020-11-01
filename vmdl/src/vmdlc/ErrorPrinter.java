@@ -47,7 +47,7 @@ public class ErrorPrinter{
         System.exit(-1);
     }
 
-    public static void recursiveError(String message, SyntaxTree node){
+    public static void errorForRecvNode(String message, SyntaxTree node){
         int textLength = 0;
         Symbol symbol = node.getTag();
         SyntaxTree n = node;

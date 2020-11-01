@@ -8,12 +8,12 @@ import java.util.Map.Entry;
 import type.VMDataType;
 
 public class InstructionCallCountInfo {
-    private String insnName;
+    //private String insnName;
     private int totalCalled;
     private Map<VMDataType[], Integer> countMap = new HashMap<>();
 
     public InstructionCallCountInfo(String name, int callCount){
-        insnName = name;
+    //  insnName = name;
         totalCalled = callCount;
     }
 
