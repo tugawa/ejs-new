@@ -69,9 +69,15 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
   space->head = (uintptr_t) addr;
   space->begin = (uintptr_t) addr;
   space->tail = (uintptr_t) addr + bytes;
+#ifdef GC_THREADED_BOUNDARY_TAG
+  space->end = (uintptr_t) end_to_footer(space->tail);
+  space->bytes = bytes;
+  space->free_bytes = space->end - space->begin;
+#else /* GC_THREADED_BOUNDARY_TAG */
   space->end = (uintptr_t) addr + bytes;
   space->bytes = bytes;
   space->free_bytes = bytes;
+#endif /* GC_THREADED_BOUNDARY_TAG */
   space->name = name;
 }
 
@@ -138,15 +144,26 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
       return header_to_payload(hdrp);
     }
   } else {
+#ifdef GC_THREADED_BOUNDARY_TAG
+    uintptr_t bytes = (alloc_granules << LOG_BYTES_IN_GRANULE);
+    footer_t *footer = (footer_t *) space->end;
+    header_t *hdrp = (header_t *) (((uintptr_t) footer) - bytes);
+#else /* GC_THREADED_BOUNDARY_TAG */
     uintptr_t bytes = ((alloc_granules + HEADER_GRANULES) << LOG_BYTES_IN_GRANULE);
     header_t *hdrp = (header_t *) (space->end - bytes);
     header_t *footer = end_to_footer(space->end);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
     if (space->begin < (uintptr_t) hdrp) {
       space->end = (uintptr_t) hdrp;
       space->free_bytes -= bytes;
+#ifdef GC_THREADED_BOUNDARY_TAG
+      *((footer_t *) hdrp) = compose_footer(alloc_granules, 0, type);
+      footer->size_hi = alloc_granules;
+#else /* GC_THREADED_BOUNDARY_TAG */
       *hdrp = compose_header(alloc_granules, 0, type);
       *footer = *hdrp;
+#endif /* GC_THREADED_BOUNDARY_TAG */
       return header_to_payload(hdrp);
     }
   }

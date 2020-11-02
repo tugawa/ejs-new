@@ -193,6 +193,7 @@ public:
       return;
 
     assert(in_js_space((void *) p));
+    assert(!in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
@@ -206,6 +207,7 @@ public:
       return;
 
     assert(in_js_space((void *) p));
+    assert(!in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
@@ -288,6 +290,7 @@ public:
     assert(!(in_hc_space(&p) && in_hc_space(p)));
 
     assert(in_js_space((void *) p));
+    assert(!in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
@@ -303,6 +306,7 @@ public:
     assert(!(in_hc_space(&p) && in_hc_space(p)));
 
     assert(in_js_space((void *) p));
+    assert(!in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
@@ -370,6 +374,7 @@ public:
       return;
 
     assert(in_js_space((void *) p));
+    assert(!in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
@@ -385,7 +390,15 @@ public:
     assert(in_js_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
+#ifdef GC_THREADED_BOUNDARY_TAG
+    size_t payload_granules;
+    if (in_hc_space((void *) p))
+      payload_granules = ((footer_t *) hdrp)->size_lo - HEADER_GRANULES;
+    else
+      payload_granules = hdrp->size - HEADER_GRANULES;
+#else /* GC_THREADED_BOUNDARY_TAG */
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
+#endif /* GC_THREADED_BOUNDARY_TAG */
     size_t slots = payload_granules * (BYTES_IN_GRANULE / sizeof(void *));
     for (size_t i = 0; i < slots; i++)
       if (p[i] != NULL)
@@ -615,22 +628,36 @@ static void update_forward_reference(Context *ctx) {
     scan += size << LOG_BYTES_IN_JSVALUE;
   }
 
+#ifdef GC_THREADED_BOUNDARY_TAG
+  scan = (uintptr_t) end_to_footer(js_space.tail);
+#else /* GC_THREADED_BOUNDARY_TAG */
   scan = js_space.tail;
+#endif /* GC_THREADED_BOUNDARY_TAG */
   end = js_space.end;
   free = scan;
 
   while (scan > end) {
+#ifdef GC_THREADED_BOUNDARY_TAG
+    footer_t *footer = (footer_t *) scan;
+    header_t *hdrp = footer_to_header(footer);
+    unsigned int size = footer->size_hi;
+#else /* GC_THREADED_BOUNDARY_TAG */
     header_t *footer = end_to_footer(scan);
     header_t *hdrp = footer_to_header(footer);
     unsigned int size = footer->size;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
     const bool markbit = get_threaded_header_markbit(hdrp);
     if (markbit) {
+#ifdef GC_THREADED_BOUNDARY_TAG
+      free -= size << LOG_BYTES_IN_JSVALUE;
+#else /* GC_THREADED_BOUNDARY_TAG */
       free -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
       footer->markbit = 1;
     }
     else {
       footer->markbit = 0;
+#endif /* GC_THREADED_BOUNDARY_TAG */
     }
 
     if (markbit)
@@ -643,8 +670,16 @@ static void update_forward_reference(Context *ctx) {
       process_node<HCTracer>((uintptr_t) from);
     }
 
+#ifdef GC_THREADED_BOUNDARY_TAG
+    scan -= size << LOG_BYTES_IN_JSVALUE;
+#else /* GC_THREADED_BOUNDARY_TAG */
     scan -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
+#endif /* GC_THREADED_BOUNDARY_TAG */
   }
+
+#ifdef GC_THREADED_BOUNDARY_TAG
+  assert(((footer_t *) scan)->size_hi == 0);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 }
 
 static void update_backward_reference() {
@@ -681,19 +716,37 @@ static void update_backward_reference() {
 
   js_space.begin = free;
 
+#ifdef GC_THREADED_BOUNDARY_TAG
+  scan = (uintptr_t) end_to_footer(js_space.tail);
+#else /* GC_THREADED_BOUNDARY_TAG */
   scan = js_space.tail;
+#endif /* GC_THREADED_BOUNDARY_TAG */
   end = js_space.end;
   free = scan;
 
   while (scan > end) {
+#ifdef GC_THREADED_BOUNDARY_TAG
+    footer_t *footer = (footer_t *) scan;
+    header_t *hdrp = footer_to_header(footer);
+    unsigned int size = footer->size_hi;
+#else /* GC_THREADED_BOUNDARY_TAG */
     header_t *footer = end_to_footer(scan);
     header_t *hdrp = footer_to_header(footer);
     unsigned int size = footer->size;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
+#ifdef GC_THREADED_BOUNDARY_TAG
+    const bool markbit = get_threaded_header_markbit(hdrp);
+#else /* GC_THREADED_BOUNDARY_TAG */
     const bool markbit = footer->markbit == 1;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
     if (markbit)
+#ifdef GC_THREADED_BOUNDARY_TAG
+      free -= size << LOG_BYTES_IN_JSVALUE;
+#else /* GC_THREADED_BOUNDARY_TAG */
       free -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
     if (markbit)
     {
@@ -703,8 +756,12 @@ static void update_backward_reference() {
 
       update_reference(from, to);
       unmark_cell_header(hdrp);
+#ifdef GC_THREADED_BOUNDARY_TAG
+      copy_object_reverse(hdrp, to_hdrp, size);
+#else /* GC_THREADED_BOUNDARY_TAG */
       footer->markbit = 0;
       copy_object_reverse(hdrp, to_hdrp, size + HEADER_GRANULES);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
 #ifdef GC_DEBUG
       {
@@ -714,8 +771,18 @@ static void update_backward_reference() {
 #endif
     }
 
+#ifdef GC_THREADED_BOUNDARY_TAG
+    scan -= size << LOG_BYTES_IN_JSVALUE;
+#else /* GC_THREADED_BOUNDARY_TAG */
     scan -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
+#endif /* GC_THREADED_BOUNDARY_TAG */
   }
+
+#ifdef GC_THREADED_BOUNDARY_TAG
+  assert(((footer_t *) scan)->size_hi == 0);
+
+  ((footer_t *) free)->size_hi = 0;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
   js_space.end = free;
   js_space.free_bytes = js_space.end - js_space.begin;
@@ -735,9 +802,21 @@ static void copy_object(void *from_, void *to_, unsigned int size)
 }
 static void copy_object_reverse(void *from_, void *to_, unsigned int size)
 {
+#ifdef GC_THREADED_BOUNDARY_TAG
+  JSValue *from = (JSValue *) from_ + size;
+  JSValue *to = (JSValue *) to_ + size;
+#else /* GC_THREADED_BOUNDARY_TAG */
   JSValue *from = (JSValue *) from_ + (size - 1);
   JSValue *to = (JSValue *) to_ + (size - 1);
+#endif /* GC_THREADED_BOUNDARY_TAG */
   JSValue *end = (JSValue *) from_;
+
+#ifdef GC_THREADED_BOUNDARY_TAG
+  ((footer_t *) to)->size_hi = ((footer_t *) from)->size_hi;
+
+  --from;
+  --to;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
   while(from >= end) {
     *to = *from;

@@ -42,6 +42,8 @@ extern "C" {
 #define HEADER_GEN_BITS        4
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
+#define HEADER_SIZE_BITS_LO    16
+#define HEADER_SIZE_BITS_HI    16
 #define HEADER_MAGIC           0x18
 #else /* BIT_ALIGN32 */
 #define HEADER_GRANULES        1
@@ -52,6 +54,8 @@ extern "C" {
 #define HEADER_GEN_BITS        4
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
+#define HEADER_SIZE_BITS_LO    16
+#define HEADER_SIZE_BITS_HI    16
 #define HEADER_MAGIC           0x18
 #endif /* BIT_ALIGN32 */
 typedef struct header_t {
@@ -68,6 +72,23 @@ typedef struct header_t {
     };
   };
 } header_t;
+#ifdef GC_THREADED_BOUNDARY_TAG
+typedef struct footer_t {
+  union {
+    header_t as_header;
+    struct {
+      unsigned int d_identifier: HEADER_IDENTIFIER_BITS;
+      cell_type_t  d_type:       HEADER_TYPE_BITS;
+      unsigned int d_markbit:    HEADER_MARKBIT_BITS;
+      unsigned int d_extra:      HEADER_EXTRA_BITS;
+      unsigned int d_magic:      HEADER_MAGIC_BITS;
+      unsigned int d_gen:        HEADER_GEN_BITS;
+      unsigned int size_lo:      HEADER_SIZE_BITS_LO;
+      unsigned int size_hi:      HEADER_SIZE_BITS_HI;
+    };
+  };
+} footer_t;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
 static inline header_t compose_header(size_t granules, size_t extra,
                                       cell_type_t type);
