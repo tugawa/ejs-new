@@ -562,7 +562,9 @@ static void update_forward_reference(Context *ctx);
 static void update_backward_reference();
 static void copy_object(void *from, void *to, unsigned int size);
 static void copy_object_reverse(void *from_, void *to_, unsigned int size);
+#if GC_DEBUG
 static void fill_mem(void *p1, void *p2, JSValue v);
+#endif /* GC_DEBUG */
 
 void garbage_collection(Context *ctx)
 {
@@ -825,6 +827,7 @@ static void copy_object_reverse(void *from_, void *to_, unsigned int size)
   }
 }
 
+#ifdef GC_DEBUG
 static void fill_mem(void *p1, void *p2, JSValue v)
 {
   JSValue *p = (JSValue *) p1;
@@ -834,6 +837,7 @@ static void fill_mem(void *p1, void *p2, JSValue v)
     ++p;
   }
 }
+#endif /* GC_DEBUG */
 
 
 void RefMarkTracer::process_edge(void *&p)
