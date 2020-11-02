@@ -792,6 +792,9 @@ static void update_backward_reference() {
 
 static void copy_object(void *from_, void *to_, unsigned int size)
 {
+  if (from_ == to_)
+    return;
+
   JSValue *from = (JSValue *) from_;
   JSValue *to = (JSValue *) to_;
   JSValue *end = from + size;
@@ -804,6 +807,9 @@ static void copy_object(void *from_, void *to_, unsigned int size)
 }
 static void copy_object_reverse(void *from_, void *to_, unsigned int size)
 {
+  if (from_ == to_)
+    return;
+
 #ifdef GC_THREADED_BOUNDARY_TAG
   JSValue *from = (JSValue *) from_ + size;
   JSValue *to = (JSValue *) to_ + size;
