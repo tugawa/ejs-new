@@ -701,30 +701,32 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     public class Assignment extends DefaultVisitor {
-        private boolean isArrayIndexOrFieldAccess(SyntaxTree varNode){
-            String tag = varNode.getTag().toString();
-            return (tag.equals("LeftHandIndex") || tag.equals("LeftHandField"));
+        private boolean isPureVariable(SyntaxTree varNode){
+            return varNode.getTag().toString().equals("Name");
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
-            boolean ignoreFlag = isArrayIndexOrFieldAccess(leftNode);
+            Set<TypeMap> jsAssigned = new HashSet<>();
             for(TypeMap typeMap : dict){
                 ExprTypeSet leftTypeSet = visit(leftNode, typeMap);
                 for(AstType leftType : leftTypeSet){
-                    if(!ignoreFlag && (leftType instanceof JSValueType)){
-                        ErrorPrinter.error("JSValue variable cannot assign", leftNode);
-                    }
-                    ExprTypeSet exprTypeSet = visit(rightNode, typeMap);
-                    for(AstType type : exprTypeSet){
+                    ExprTypeSet assignTypeSet = visit(rightNode, typeMap);
+                    for(AstType type : assignTypeSet){
                         if(!leftType.isSuperOrEqual(type)){
                             ErrorPrinter.error("Expression types "+type+", need types "+leftType, rightNode);
+                        }
+                        if(isPureVariable(leftNode)){
+                            jsAssigned.addAll(dict.getAssignedSet(typeMap, leftNode.toText(), type));
                         }
                     }
                 }
             }
-            return dict;
+            if(jsAssigned.isEmpty()) return dict;
+            TypeMapSet newSet = TYPE_MAP.clone();
+            newSet.setTypeMapSet(jsAssigned);
+            return newSet;
         }
 
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -736,7 +738,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
-            SyntaxTree exprNode = node.get(Symbol.unique("expr"));
+            SyntaxTree exprNode = (node.has(Symbol.unique("expr"))) ? node.get(Symbol.unique("expr")) : null;
             AstType varType = AstType.nodeToType(typeNode);
             if(varType==null){
                 ErrorPrinter.error("Type not found: "+typeNode.toText(), typeNode);
@@ -744,7 +746,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String varName = varNode.toText();
             Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
-                ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
+                ExprTypeSet exprTypeSet;
+                if(exprNode != null){
+                    exprTypeSet = visit(exprNode, typeMap);
+                }else{
+                    exprTypeSet = EXPR_TYPE.clone();
+                    exprTypeSet.add(varType);
+                }
                 for(AstType type : exprTypeSet){
                     if(!varType.isSuperOrEqual(type)){
                         ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);
@@ -756,7 +764,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             TypeMapSet newTypeMapSet = dict.clone();
             newTypeMapSet.setTypeMapSet(newSet);
-            save(exprNode, dict);
+            if(exprNode != null){
+                save(exprNode, dict);
+            }
             save(varNode, dict);
             return newTypeMapSet;
         }

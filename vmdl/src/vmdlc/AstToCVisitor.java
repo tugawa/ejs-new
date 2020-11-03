@@ -533,12 +533,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> typeNode = node.get(Symbol.unique("type"));
             Tree<?> varNode = node.get(Symbol.unique("var"));
-            Tree<?> exprNode = node.get(Symbol.unique("expr"));
             visit(typeNode, 0);
             print(" ");
             visit(varNode, 0);
-            print(" = ");
-            visit(exprNode, 0);
+            if(node.has(Symbol.unique("expr"))){
+                Tree<?> exprNode = node.get(Symbol.unique("expr"));
+                print(" = ");
+                visit(exprNode, 0);
+            }
             println(";");
         }
     }

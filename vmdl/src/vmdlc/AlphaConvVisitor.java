@@ -129,9 +129,9 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> name = node.get(Symbol.unique("var"));
             dict.internV(name);
 
-            Tree<?> expr = node.get(Symbol.unique("expr"));
-
-            visit(expr, dict);
+            if(node.has(Symbol.unique("expr"))){
+                visit(node.get(Symbol.unique("expr")), dict);
+            }
         }
     }
 
