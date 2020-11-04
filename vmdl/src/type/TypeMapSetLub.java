@@ -62,6 +62,22 @@ public class TypeMapSetLub extends TypeMapSetFull {
         return assignedSet;
     }
     @Override
+    public Set<TypeMap> getAssignedSet(TypeMap typeMap, String[] names, AstType[] types){
+        Set<TypeMap> assignedSet = new HashSet<>();
+        TypeMap temp = typeMap.clone();
+        if(names.length != types.length){
+            throw new Error("Names size and types size don't match");
+        }
+        int length = names.length;
+        for(int i=0; i<length; i++){
+            String name = names[i];
+            AstType type = types[i];
+            temp.assign(name, type);
+        }
+        assignedSet.add(temp);
+        return assignedSet;
+    }
+    @Override
     public TypeMapSet select(Collection<String> domain){
         Set<TypeMap> selectedSet = new HashSet<>();
         for(TypeMap m : typeMapSet){

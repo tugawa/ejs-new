@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
 
-import type.VMDataType;
 import vmdlc.ErrorPrinter;
 import vmdlc.SyntaxTree;
 import nez.ast.Symbol;
@@ -118,6 +117,34 @@ public class AstType {
             result.addAll(child.getVMDataTypes());
         }
         return result;
+    }
+    public Set<AstType> getDetailedTypes(){
+        if(this instanceof JSValueType){
+            Set<VMDataType> vmdts = getVMDataTypes();
+            Set<AstType> astTyped = new HashSet<>(vmdts.size());
+            for(VMDataType vmdt : vmdts){
+                astTyped.add(get(vmdt));
+            }
+            return astTyped;
+        }
+        Set<AstType> newSet = new HashSet<>(1);
+        newSet.add(this);
+        return newSet;
+    }
+    public String getCName(){
+        if(this instanceof AstAliasType){
+            return ((AstAliasType)this).getCTypeName();
+        }
+        if(this instanceof JSValueType){
+            return "JSValue";
+        }
+        if(this.name.equals("cdouble")){
+            return "double";
+        }
+        if(this.name.equals("cstring")){
+            return "char*";
+        }
+        return name;
     }
     static {
         defineType("Top");
@@ -329,6 +356,9 @@ HeapObject
         }
         public ArrayList<AstType> getTypes() {
             return types;
+        }
+        public int size() {
+            return types.size();
         }
         @Override
         public int hashCode(){

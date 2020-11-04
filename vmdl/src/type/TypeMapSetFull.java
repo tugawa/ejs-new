@@ -1,8 +1,10 @@
 package type;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,6 +69,44 @@ public class TypeMapSetFull extends TypeMapSet {
             assignedSet.add(temp);
         }
         return assignedSet;
+    }
+    @Override
+    public Set<TypeMap> getAssignedSet(TypeMap typeMap, String[] names, AstType[] types){
+        if(names.length != types.length){
+            throw new Error("Names size and types size don't match");
+        }
+        int length = names.length;
+        int typeTableSizeSum = 1;
+        int[] typeTableSize = new int[length];
+        for(int i=0; i<length; i++){
+            int size = types[i].getDetailedTypes().size();
+            typeTableSizeSum *= size;
+            typeTableSize[i] = size;
+        }
+        AstType[][] typeTable = new AstType[length][typeTableSizeSum];
+        int repeatSize = 1;
+        for(int i=0; i<length; i++){
+            List<AstType> detailedTypeList = new ArrayList<>(types[i].getDetailedTypes());
+            int loop = 0;
+            int size = detailedTypeList.size();
+            for(int j=0; j<typeTableSizeSum; j++){
+                typeTable[i][j] = detailedTypeList.get(loop);
+                if(j % repeatSize == repeatSize - 1){
+                    loop++;
+                }
+                loop %= size;
+            }
+            repeatSize *= size;
+        }
+        Set<TypeMap> newSet = new HashSet<>(typeTableSizeSum);
+        for(int i=0; i<typeTableSizeSum; i++){
+            TypeMap temp = typeMap.clone();
+            for(int j=0; j<length; j++){
+                temp.assign(names[j], typeTable[j][i]);
+            }
+            newSet.add(temp);
+        }
+        return newSet;
     }
     @Override
     public boolean containsKey(String key){

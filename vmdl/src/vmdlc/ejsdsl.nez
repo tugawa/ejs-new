@@ -89,7 +89,7 @@ DoStep = { $(Expression) #DoStep }
 Rematch = { "rematch" _ $label(LabelName) "(" $(VarName) ("," $(VarName))* ")" ";" #Rematch }
 
 Assignment             = { $left(LeftHandSide) "<-" $right(Expression) ";" #Assignment }
-                       / { $left(Pairs) "<-" $right(FunctionCall) ";" #AssignmentPair }
+                       / { $left(Pairs) "<-" $right(Expression) ";" #AssignmentPair }
 
 Pairs                  = { "(" $(VarName) ( "," $(VarName) )* ")" #Pairs}
 LeftHandSide           = _LeftHandSidePrimitive {$recv _FunctionCall / _Index #LeftHandIndex / _Field #LeftHandField }*

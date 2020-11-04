@@ -494,6 +494,25 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> leftNode = node.get(Symbol.unique("left"));
             Tree<?> rightNode = node.get(Symbol.unique("right"));
             Tree<?> fname = rightNode.get(Symbol.unique("recv"));
+            List<AstType> ftypes = ((AstPairType)FunctionTable.getType(fname.toText()).getRange()).getTypes();
+            Tree<?>[] pairs = new Tree<?>[leftNode.size()];
+            int pairSize = leftNode.size();
+            for(int i=0; i<pairSize; i++){
+                pairs[i] = leftNode.get(i);
+            }
+            println("{");
+            print("struct{");
+            for(int i=0; i<pairSize; i++){
+                print(ftypes.get(i).getCName()+" r"+i+"; ");
+            }
+            print("} __assignment_pair_temp__ = ");
+            visit(rightNode, indent);
+            println(";\n");
+            for(int i=0; i<pairSize; i++){
+                println(pairs[i].toText()+" = __assignment_pair_temp__.r"+i+";");
+            }
+            println("}");
+            /*
             print(fname.toText());
             print("(");
 
@@ -517,6 +536,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
             }
             println(");");
+            */
         }
     }
 

@@ -733,6 +733,42 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class AssignmentPair extends DefaultVisitor {
+        private AstPairType getPairType(AstType expectPairType, int expectLength, SyntaxTree errorMessageNode){
+            if(!(expectPairType instanceof AstPairType)){
+                ErrorPrinter.errorForRecvNode("Function returns a Non-PairType in pair assignment.", errorMessageNode);
+            }
+            AstPairType pairType = (AstPairType)expectPairType;
+            if(pairType.size() != expectLength){
+                ErrorPrinter.errorForRecvNode("Function returns "+pairType.size()+"-length pair, but expects "+expectLength+"-length.", errorMessageNode);
+            }
+            return pairType;
+        }
+        @Override
+        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception{
+            SyntaxTree leftNode = node.get(Symbol.unique("left"));
+            SyntaxTree rightNode = node.get(Symbol.unique("right"));
+            SyntaxTree[] pairsNode = (SyntaxTree[])leftNode.getSubTree();
+            int pairLength = pairsNode.length;
+            String[] names = new String[pairLength];
+            for(int i=0; i<pairLength; i++){
+                names[i] = pairsNode[i].toText();
+            }
+            Set<TypeMap> newSet = new HashSet<>();
+            for(TypeMap typeMap : dict){
+                ExprTypeSet assignTypeSet = visit(rightNode, typeMap);
+                for(AstType type : assignTypeSet){
+                    AstPairType pairType = getPairType(type, pairLength, rightNode);
+                    List<AstType> types = pairType.getTypes();
+                    newSet.addAll(dict.getAssignedSet(typeMap, names, types.toArray(new AstType[0])));
+                }
+            }
+            TypeMapSet newDict = TYPE_MAP.clone();
+            newDict.setTypeMapSet(newSet);
+            return newDict;
+        }
+    }
+
     public class Declaration extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
