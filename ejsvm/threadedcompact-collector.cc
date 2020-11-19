@@ -547,9 +547,13 @@ static bool get_threaded_header_markbit(header_t *hdrp) {
   return hdrp->markbit != 0;
 }
 static unsigned int get_threaded_header_size(header_t *hdrp) {
+#if (HEADER_GRANULES == 1)
+  assert(sizeof(void *) == sizeof(header_t));
+
   while(is_reference((void **) hdrp->threaded)) {
     hdrp = (header_t *) hdrp->threaded;
   }
+#endif /* (HEADER_GRANULES == 1) */
 
   return hdrp->size;
 }
