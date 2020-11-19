@@ -53,12 +53,14 @@ static inline header_t *payload_to_header(void *ptr)
 #ifdef GC_THREADED_BOUNDARY_TAG
 static inline footer_t* header_to_footer(header_t *hdrp)
 {
+  assert(hdrp->identifier == 1);
   unsigned int size = hdrp->size;
   return (footer_t *) ((uintptr_t) hdrp + (size << LOG_BYTES_IN_GRANULE));
 }
 #else /* GC_THREADED_BOUNDARY_TAG */
 static inline header_t* header_to_footer(header_t *hdrp)
 {
+  assert(hdrp->identifier == 1);
   unsigned int size = hdrp->size;
   return (header_t *) ((uintptr_t) hdrp + (size << LOG_BYTES_IN_GRANULE));
 }
@@ -67,12 +69,14 @@ static inline header_t* header_to_footer(header_t *hdrp)
 #ifdef GC_THREADED_BOUNDARY_TAG
 static inline header_t* footer_to_header(footer_t *footer)
 {
+  assert(footer->as_header.identifier == 1);
   unsigned int size = footer->size_hi;
   return (header_t *) ((uintptr_t) footer - (size << LOG_BYTES_IN_GRANULE));
 }
 #else /* GC_THREADED_BOUNDARY_TAG */
 static inline header_t* footer_to_header(header_t *footer)
 {
+  assert(footer->identifier == 1);
   unsigned int size = footer->size;
   return (header_t *) ((uintptr_t) footer - (size << LOG_BYTES_IN_GRANULE));
 }
@@ -93,6 +97,7 @@ static inline header_t* end_to_footer(uintptr_t end)
 #ifdef GC_THREADED_BOUNDARY_TAG
 static inline uintptr_t footer_to_end(footer_t* footer)
 {
+  assert(footer->as_header.identifier == 1);
   return ((uintptr_t) footer) + (HEADER_GRANULES << LOG_BYTES_IN_GRANULE);
 }
 #else /* GC_THREADED_BOUNDARY_TAG */
@@ -100,6 +105,7 @@ static inline uintptr_t footer_to_end(footer_t* footer)
 /* no longer used */
 static inline uintptr_t footer_to_end(header_t* footer)
 {
+  assert(footer->identifier == 1);
   return ((uintptr_t) footer) + (HEADER_GRANULES << LOG_BYTES_IN_GRANULE);
 }
 #endif /* 0 */
@@ -171,6 +177,7 @@ static inline void mark_cell_header(header_t *hdrp)
 #ifdef GC_DEBUG
   {
     header_t *shadow = get_shadow(hdrp);
+    assert(hdrp->identifier == 1);
     assert(hdrp->magic == HEADER_MAGIC);
     assert(hdrp->type == shadow->type);
 #ifdef GC_THREADED_BOUNDARY_TAG
@@ -198,6 +205,7 @@ static inline void unmark_cell_header(header_t *hdrp)
 #ifdef GC_DEBUG
   {
     header_t *shadow = get_shadow(hdrp);
+    assert(hdrp->identifier == 1);
     assert(hdrp->magic == HEADER_MAGIC);
     assert(hdrp->type == shadow->type);
 #ifdef GC_THREADED_BOUNDARY_TAG
@@ -222,6 +230,7 @@ static inline void unmark_cell_header(header_t *hdrp)
 
 static inline int is_marked_cell_header(header_t *hdrp)
 {
+  assert(hdrp->identifier == 1);
   return hdrp->markbit;
 }
 
