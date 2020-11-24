@@ -31,6 +31,7 @@ public class MatchProcessor {
     String label;
     // following two lists share index
     List<Set<VMDataType[]>> vmtVecCondList;
+    Set<VMDataType[]> nonMatchCond;
     List<SyntaxTree> caseBodyAsts;
     List<SyntaxTree> originalCases;
     Map<Integer, Set<Set<TypeMap>>> caseExpansionConds = new HashMap<>();
@@ -78,7 +79,10 @@ public class MatchProcessor {
             }
             System.out.println("======== Condition End ========");
         }
-        vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
+        List<Set<VMDataType[]>> fullCondList = rsb.computeVmtVecCondList(condAstList);
+        vmtVecCondList = fullCondList.subList(0, fullCondList.size()-2);
+        nonMatchCond = fullCondList.get(fullCondList.size()-1);
+
         if (DEBUG) {
             System.out.println("======== Computed Condition Begin ========");
             {
@@ -137,6 +141,10 @@ public class MatchProcessor {
     /* new interface */
     VMDataTypeVecSet getVMDataTypeVecSet(int index) {
         return new VMDataTypeVecSet.BySet(formalParams, vmtVecCondList.get(index));
+    }
+
+    VMDataTypeVecSet getNonMatchCondVecSet(){
+        return new VMDataTypeVecSet.BySet(formalParams, nonMatchCond);
     }
 
     SyntaxTree getBodyAst(int index) {
