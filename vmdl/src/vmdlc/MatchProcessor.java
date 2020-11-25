@@ -80,7 +80,7 @@ public class MatchProcessor {
             System.out.println("======== Condition End ========");
         }
         List<Set<VMDataType[]>> fullCondList = rsb.computeVmtVecCondList(condAstList);
-        vmtVecCondList = fullCondList.subList(0, fullCondList.size()-2);
+        vmtVecCondList = fullCondList.subList(0, fullCondList.size()-1);
         nonMatchCond = fullCondList.get(fullCondList.size()-1);
 
         if (DEBUG) {

@@ -6,6 +6,13 @@ import java.util.Set;
 import java.util.Stack;
 
 public class ControlFlowGraphPrinter {
+    private static String getNodeName(ControlFlowGraphNode node){
+        if(node == ControlFlowGraphNode.enter)
+            return node+"(Enter)";
+        if(node == ControlFlowGraphNode.exit)
+            return node+"(Exit)";
+        return node+"";
+    }
     public static void print(ControlFlowGraphNode enter){
         Set<ControlFlowGraphNode> printed = new HashSet<>();
         Stack<ControlFlowGraphNode> stack = new Stack<>();
@@ -23,19 +30,19 @@ public class ControlFlowGraphPrinter {
             for(ControlFlowGraphNode o : nexts){
                 stack.push(o);
             }
-            System.out.println("Name:"+target);
+            System.out.println("Name:"+getNodeName(target));
             System.out.println("Next:");
             for(ControlFlowGraphNode o : nexts){
-                System.out.println(o);
+                System.out.println(getNodeName(o));
             }
             Collection<ControlFlowGraphNode> prevs = target.getPrev();
             System.out.println("Prev:");
             for(ControlFlowGraphNode o : prevs){
-                System.out.println(o);
+                System.out.println(getNodeName(o));
             }
             System.out.println("Codes:");
-            for(SyntaxTree o : target){
-                System.out.println(o.toString());
+            for(SyntaxTree stmt : target){
+                System.out.println(stmt.toText());
             }
             System.out.println("------------");
         }

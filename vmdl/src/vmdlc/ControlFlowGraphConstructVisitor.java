@@ -16,16 +16,16 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     static class MatchStack{
         static class MatchRecord{
             private String label;
-            private ControlFlowGraphNode top;
-            public MatchRecord(String label, ControlFlowGraphNode top){
+            private ControlFlowGraphNode branchPoint;
+            public MatchRecord(String label, ControlFlowGraphNode branchPoint){
                 this.label = label;
-                this.top = top;
+                this.branchPoint = branchPoint;
             }
             public String getLabel(){
                 return label;
             }
-            public ControlFlowGraphNode getTop(){
-                return top;
+            public ControlFlowGraphNode getBranchPointNode(){
+                return branchPoint;
             }
         }
 
@@ -183,22 +183,23 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             MatchProcessor mp = new MatchProcessor(node);
-            ControlFlowGraphNode top = new ControlFlowGraphNode();
+            ControlFlowGraphNode branchPoint = new ControlFlowGraphNode();
             ControlFlowGraphNode after = new ControlFlowGraphNode();
             TypeMapSet dict = node.getTypeMapSet();
             Set<VMDataType[]> nonMatchConds = dict.filterTypeVecs(mp.getFormalParams(), mp.getNonMatchCondVecSet().getTuples());
             if(!nonMatchConds.isEmpty()){
-                top.makeEdgeTo(after);
+                branchPoint.makeEdgeTo(after);
             }
-            from.makeEdgeTo(top);
-            matchStack.push(mp.getLabel(), top);
+            from.makeEdgeTo(branchPoint);
+            matchStack.push(mp.getLabel(), branchPoint);
             for(int i=0; i<mp.size(); i++){
-                if(dict.filterTypeVecs(mp.getFormalParams(), mp.getVmtVecCond(i)).isEmpty()) continue;
+                Set<VMDataType[]> filtered = dict.filterTypeVecs(mp.getFormalParams(), mp.getVmtVecCond(i));
+                if(filtered.isEmpty()) continue;
                 SyntaxTree body = mp.getBodyAst(i);
                 ControlFlowGraphNode caseBody = new ControlFlowGraphNode();
-                top.makeEdgeTo(caseBody);
+                branchPoint.makeEdgeTo(caseBody);
                 ControlFlowGraphNode ret = visit(body, caseBody);
-                if(ret == top || ret == ControlFlowGraphNode.exit) continue;
+                if(ret == branchPoint || ret == ControlFlowGraphNode.exit) continue;
                 ret.makeEdgeTo(after);
             }
             return after;
@@ -211,21 +212,22 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             if(matchStack.isEmpty()){
                 throw new Error("matchStack is empty");
             }
-            ControlFlowGraphNode top = matchStack.peek().getTop();
-            from.makeEdgeTo(top);
-            return top;
+            ControlFlowGraphNode branchPoint = matchStack.peek().getBranchPointNode();
+            from.makeEdgeTo(branchPoint);
+            return branchPoint;
         }
     }
 
     public class Return extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            from.addStatement(node);
             from.makeEdgeTo(ControlFlowGraphNode.exit);
             return ControlFlowGraphNode.exit;
         }
     }
 
-    public class Declaration extends DefaultVisitor{
+    public class Statements extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             if(from == ControlFlowGraphNode.exit){
@@ -236,36 +238,11 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         }
     }
 
-    public class Assignment extends DefaultVisitor{
-        @Override
-        public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            if(from == ControlFlowGraphNode.exit){
-                ErrorPrinter.error("Dead code.", node);
-            }
-            from.addStatement(node);
-            return from;
-        }
-    }
+    public class Declaration extends Statements{}
 
-    public class AssignmentPair extends DefaultVisitor{
-        @Override
-        public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            if(from == ControlFlowGraphNode.exit){
-                ErrorPrinter.error("Dead code.", node);
-            }
-            from.addStatement(node);
-            return from;
-        }
-    }
+    public class Assignment extends Statements{}
 
-    public class ExpressionStatement extends DefaultVisitor{
-        @Override
-        public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            if(from == ControlFlowGraphNode.exit){
-                ErrorPrinter.error("Dead code.", node);
-            }
-            from.addStatement(node);
-            return from;
-        }
-    }
+    public class AssignmentPair extends Statements{}
+
+    public class ExpressionStatement extends Statements{}
 }
