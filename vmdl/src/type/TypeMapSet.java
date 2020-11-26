@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 public abstract class TypeMapSet implements Iterable<TypeMap>{
     protected Set<TypeMap> typeMapSet;
@@ -76,5 +77,18 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
             return map;
         }
         return null;
+    }
+
+    public Collection<String> typeOf(Class<?> type){
+        TypeMapSetLub lubed = new TypeMapSetLub(typeMapSet);
+        Collection<String> ret = new HashSet<>();
+        TypeMap typeMap = lubed.getOne();
+        Set<Entry<String, AstType>> entrySet = typeMap.entrySet();
+        for(Entry<String, AstType> entry : entrySet){
+            if(type.isInstance(entry.getValue())){
+                ret.add(entry.getKey());
+            }
+        }
+        return ret;
     }
 }

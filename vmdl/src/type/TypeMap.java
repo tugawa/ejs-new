@@ -156,4 +156,8 @@ public class TypeMap{
             return false;
         }
     }
+
+    public Set<Entry<String, AstType>> entrySet(){
+        return dict.entrySet();
+    }
 }

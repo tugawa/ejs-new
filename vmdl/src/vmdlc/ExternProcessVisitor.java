@@ -8,6 +8,7 @@ import nez.ast.Symbol;
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import type.AstType;
+import type.CConstantTable;
 import type.FunctionAnnotation;
 import type.FunctionTable;
 import type.TypeMap;
@@ -74,7 +75,7 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
                 ErrorPrinter.error("Function is not function type", (SyntaxTree)typeNode);
             }
             if(!FunctionTable.contains(name)){
-                FunctionTable.add(name, (AstProductType)type, annotations);
+                FunctionTable.put(name, (AstProductType)type, annotations);
             }
         }
     }
@@ -108,7 +109,7 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             if(FunctionTable.contains(name)){
                 ErrorPrinter.error("Double define: "+name, (SyntaxTree)node);
             }
-            FunctionTable.add(name, (AstProductType)type, annotations);
+            FunctionTable.put(name, (AstProductType)type, annotations);
         }
     }
 
@@ -164,7 +165,8 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             if(!isAdded){
                 ErrorPrinter.error("Double define: "+varName, (SyntaxTree)node);
             }
-            AstToCVisitor.addCConstant(varName, cValue);
+            //AstToCVisitor.addCConstant(varName, cValue);
+            CConstantTable.put(varName, cValue);
         }
     }
 }

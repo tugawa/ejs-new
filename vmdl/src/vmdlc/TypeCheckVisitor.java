@@ -830,7 +830,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             SyntaxTree condNode = node.get(Symbol.unique("cond"));
             save(condNode, resultDict);
-
+            node.setTypeMapSet(dict);
             return resultDict;
         }
 
@@ -880,6 +880,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 SyntaxTree blockNode = node.get(Symbol.unique("block"));
                 doDict = visit(blockNode, doDict);
             } while (!doDict.equals(savedDict));
+            node.setTypeMapSet(dict);
             return dict;
         }
     }

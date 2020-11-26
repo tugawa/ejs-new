@@ -270,7 +270,8 @@ public class Main {
             return;
         }
         ControlFlowGraphNode enter = new ControlFlowGraphConstructVisitor().start(ast);
-        ControlFlowGraphPrinter.print(enter);
+        //ControlFlowGraphPrinter.print(enter);
+        new VarInitCheckVisitor().start(enter);
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);
         if(funcSpec != null){
             funcSpec.write(functionSpecFile);

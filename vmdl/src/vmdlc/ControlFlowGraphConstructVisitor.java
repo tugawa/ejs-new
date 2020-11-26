@@ -1,6 +1,9 @@
 package vmdlc;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
@@ -9,6 +12,7 @@ import nez.ast.Symbol;
 import nez.ast.TreeVisitorMap;
 import type.TypeMapSet;
 import type.VMDataType;
+import type.AstType.JSValueType;
 import vmdlc.ControlFlowGraphConstructVisitor.DefaultVisitor;
 
 public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisitor> {
@@ -94,10 +98,10 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         private ControlFlowGraphNode genParamIntro(SyntaxTree node){
             SyntaxTree functionDefinition = node.get(Symbol.unique("definition"));
             SyntaxTree params = functionDefinition.get(Symbol.unique("params"));
-            if(params == null) return null;
+            if(params == null || params.size() == 0) return null;
             SyntaxTree type = node.get(Symbol.unique("type"));
             SyntaxTree domain = type.get(0);
-            ControlFlowGraphNode intro = new ControlFlowGraphNode();
+            ControlFlowGraphNode intro = new ControlFlowGraphNode(Collections.emptySet(), Collections.emptySet());
             if(domain.is(Symbol.unique("TypePair"))){
                 int size = params.size();
                 for(int i=0; i<size; i++){
@@ -136,16 +140,19 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class If extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            TypeMapSet dict = node.getTypeMapSet();
+            Collection<String> locals = dict.getKeys();
+            Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
-            ControlFlowGraphNode afterCFGN = new ControlFlowGraphNode();
-            ControlFlowGraphNode thenCFGN = new ControlFlowGraphNode();
+            ControlFlowGraphNode afterCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
+            ControlFlowGraphNode thenCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
             ControlFlowGraphNode afterThen = visit(thenNode, from);
             if(afterThen != ControlFlowGraphNode.exit){
                 thenCFGN.makeEdgeTo(afterCFGN);
             }
             if (node.has(Symbol.unique("else"))) {
                 SyntaxTree elseNode = node.get(Symbol.unique("else"));
-                ControlFlowGraphNode elseCFGN = new ControlFlowGraphNode();
+                ControlFlowGraphNode elseCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
                 ControlFlowGraphNode afterElse = visit(elseNode, from);
                 if(afterElse != ControlFlowGraphNode.exit){
                     elseCFGN.makeEdgeTo(afterCFGN);
@@ -163,18 +170,24 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
                 new Symbol[]{Symbol.unique("type"), Symbol.unique("var"), Symbol.unique("expr")},
                 new SyntaxTree[]{type, name, expr}, null);
         }
-        private ControlFlowGraphNode genDoInitDeclaration(SyntaxTree node){
-            SyntaxTree init = node.get(Symbol.unique("init"));
-            ControlFlowGraphNode intro = new ControlFlowGraphNode();
-            intro.addStatement(genDeclaration(init.get(Symbol.unique("type")), init.get(Symbol.unique("var")), init.get(Symbol.unique("expr"))));
-            return intro;
-        }
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            TypeMapSet dict = node.getTypeMapSet();
+            Collection<String> locals = dict.getKeys();
+            Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
             SyntaxTree blockNode = node.get(Symbol.unique("block"));
-            ControlFlowGraphNode intro = genDoInitDeclaration(node);
+            SyntaxTree init = node.get(Symbol.unique("init"));
+            ControlFlowGraphNode intro = new ControlFlowGraphNode(locals, jsTypeVars);
+            SyntaxTree typeNode = init.get(Symbol.unique("type"));
+            SyntaxTree nameNode = init.get(Symbol.unique("var"));
+            intro.addStatement(genDeclaration(typeNode, nameNode, init.get(Symbol.unique("expr"))));
             from.makeEdgeTo(intro);
-            ControlFlowGraphNode after = visit(blockNode, intro);
+            Collection<String> afterIntroLocals = new HashSet<>(locals);
+            afterIntroLocals.add(nameNode.toText());
+            ControlFlowGraphNode body = new ControlFlowGraphNode(afterIntroLocals, jsTypeVars);
+            intro.makeEdgeTo(body);
+            body.makeEdgeTo(body);
+            ControlFlowGraphNode after = visit(blockNode, body);
             return after;
         }
     }
@@ -183,9 +196,11 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             MatchProcessor mp = new MatchProcessor(node);
-            ControlFlowGraphNode branchPoint = new ControlFlowGraphNode();
-            ControlFlowGraphNode after = new ControlFlowGraphNode();
             TypeMapSet dict = node.getTypeMapSet();
+            Collection<String> locals = dict.getKeys();
+            Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
+            ControlFlowGraphNode branchPoint = new ControlFlowGraphNode(locals, jsTypeVars);
+            ControlFlowGraphNode after = new ControlFlowGraphNode(locals, jsTypeVars);
             Set<VMDataType[]> nonMatchConds = dict.filterTypeVecs(mp.getFormalParams(), mp.getNonMatchCondVecSet().getTuples());
             if(!nonMatchConds.isEmpty()){
                 branchPoint.makeEdgeTo(after);
@@ -196,7 +211,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
                 Set<VMDataType[]> filtered = dict.filterTypeVecs(mp.getFormalParams(), mp.getVmtVecCond(i));
                 if(filtered.isEmpty()) continue;
                 SyntaxTree body = mp.getBodyAst(i);
-                ControlFlowGraphNode caseBody = new ControlFlowGraphNode();
+                ControlFlowGraphNode caseBody = new ControlFlowGraphNode(locals, jsTypeVars);
                 branchPoint.makeEdgeTo(caseBody);
                 ControlFlowGraphNode ret = visit(body, caseBody);
                 if(ret == branchPoint || ret == ControlFlowGraphNode.exit) continue;

@@ -9,9 +9,9 @@ import type.AstType.AstProductType;
 public class FunctionTable{
     private static Map<String, FunctionInfo> functionMap = new HashMap<>();
 
-    public static void add(String name, AstProductType type, Set<FunctionAnnotation> annotations){
+    public static void put(String name, AstProductType type, Set<FunctionAnnotation> annotations){
         if(functionMap.get(name) != null){
-            throw new Error("Double define");
+            throw new Error("Double define"+name);
         }
         functionMap.put(name, new FunctionInfo(type, annotations));
     }

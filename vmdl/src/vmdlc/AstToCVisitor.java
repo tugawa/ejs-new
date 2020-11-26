@@ -28,6 +28,7 @@ import dispatch.DispatchProcessor;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
 import type.AstType;
+import type.CConstantTable;
 import type.ExprTypeSet;
 import type.FunctionAnnotation;
 import type.FunctionTable;
@@ -68,16 +69,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             return matchLabel != null && matchLabel.equals(label);
         }
     }
-    private static Map<String, String> cConstTable = new HashMap<>();
     Stack<StringBuffer> outStack;
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
     OperandSpecifications opSpec;
     Main.CompileMode compileMode;
-    
-    public static void addCConstant(String name, String cValue){
-        cConstTable.put(name, cValue);
-    }
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -923,8 +919,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             String name = node.toText();
-            if(cConstTable.containsKey(name)){
-                print(cConstTable.get(name));
+            if(CConstantTable.contains(name)){
+                print(CConstantTable.get(name));
             }else{
                 print(name);
             }
