@@ -32,7 +32,7 @@ public class ErrorPrinter{
         StringBuilder builder = new StringBuilder();
         builder.append("[error] ");
         builder.append(message);
-        System.err.print(builder.toString());
+        System.err.println(builder.toString());
         System.exit(-1);
     }
 
@@ -43,7 +43,7 @@ public class ErrorPrinter{
         for(int i=0; i<line-1; i++){
             column -= codes.get(i).length() + 1;
         }
-        System.err.print(getErrorText(message, line, column, textLength));
+        System.err.println(getErrorText(message, line, column, textLength));
         System.exit(-1);
     }
 

@@ -10,6 +10,7 @@ import java.util.Stack;
 
 import nez.ast.Symbol;
 import nez.ast.TreeVisitorMap;
+import type.AstType;
 import type.TypeMapSet;
 import type.VMDataType;
 import type.AstType.JSValueType;
@@ -101,7 +102,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             if(params == null || params.size() == 0) return null;
             SyntaxTree type = node.get(Symbol.unique("type"));
             SyntaxTree domain = type.get(0);
-            ControlFlowGraphNode intro = new ControlFlowGraphNode(Collections.emptySet(), Collections.emptySet());
+            ControlFlowGraphNode intro = new ControlFlowGraphNode(new HashSet<>(params.size()), new HashSet<>(params.size()));
             if(domain.is(Symbol.unique("TypePair"))){
                 int size = params.size();
                 for(int i=0; i<size; i++){
@@ -146,16 +147,18 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             ControlFlowGraphNode afterCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
             ControlFlowGraphNode thenCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
-            ControlFlowGraphNode afterThen = visit(thenNode, from);
+            from.makeEdgeTo(thenCFGN);
+            ControlFlowGraphNode afterThen = visit(thenNode, thenCFGN);
             if(afterThen != ControlFlowGraphNode.exit){
-                thenCFGN.makeEdgeTo(afterCFGN);
+                afterThen.makeEdgeTo(afterCFGN);
             }
             if (node.has(Symbol.unique("else"))) {
                 SyntaxTree elseNode = node.get(Symbol.unique("else"));
                 ControlFlowGraphNode elseCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
-                ControlFlowGraphNode afterElse = visit(elseNode, from);
+                from.makeEdgeTo(elseCFGN);
+                ControlFlowGraphNode afterElse = visit(elseNode, elseCFGN);
                 if(afterElse != ControlFlowGraphNode.exit){
-                    elseCFGN.makeEdgeTo(afterCFGN);
+                    afterElse.makeEdgeTo(afterCFGN);
                 }
             }else{
                 from.makeEdgeTo(afterCFGN);
@@ -242,6 +245,25 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         }
     }
 
+    public class Declaration extends DefaultVisitor{
+        @Override
+        public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            if(from == ControlFlowGraphNode.exit){
+                ErrorPrinter.error("Dead code.", node);
+            }
+            from.addStatement(node);
+            SyntaxTree type = node.get(Symbol.unique("type"));
+            SyntaxTree var = node.get(Symbol.unique("var"));
+            String varName = var.toText();
+            if(AstType.nodeToType(type) instanceof JSValueType){
+                from.addJSTypeLocals(varName);
+            }else{
+                from.addLocals(varName);
+            }
+            return from;
+        }
+    }
+
     public class Statements extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
@@ -252,8 +274,6 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             return from;
         }
     }
-
-    public class Declaration extends Statements{}
 
     public class Assignment extends Statements{}
 

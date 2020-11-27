@@ -37,6 +37,7 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
     public abstract void setDispatchSet(Set<String> set);
     public abstract Set<String> getDispatchSet();
     public abstract Set<TypeMap> getAddedSet(TypeMap typeMap, String name, AstType type);
+    public abstract Set<TypeMap> getReservedSet(TypeMap typeMap, String name, AstType type);
     public abstract Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type);
     public abstract Set<TypeMap> getAssignedSet(TypeMap typeMap, String[] names, AstType[] types);
     public abstract boolean containsKey(String key);

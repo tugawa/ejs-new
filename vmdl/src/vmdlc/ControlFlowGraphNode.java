@@ -9,19 +9,21 @@ import java.util.List;
 
 
 public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
-    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(Collections.emptySet(), Collections.emptySet());
-    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(Collections.emptySet(), Collections.emptySet());
+    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0));
+    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0));
 
     private Collection<ControlFlowGraphNode> next = new HashSet<>();
     private Collection<ControlFlowGraphNode> prev = new HashSet<>();
     private List<SyntaxTree> statementList = new ArrayList<>();
-    private Collection<String> validVars;
+    private Collection<String> headLocals;
+    private Collection<String> tailLocals;
     private Collection<String> jsTypeVars;
 
     private Collection<String> initialized = null;
 
-    public ControlFlowGraphNode(Collection<String> validVars, Collection<String> jsTypeVars){
-        this.validVars = validVars;
+    public ControlFlowGraphNode(Collection<String> headLocals, Collection<String> jsTypeVars){
+        this.headLocals = headLocals;
+        this.tailLocals = headLocals;
         this.jsTypeVars = jsTypeVars;
     }
     public void makeEdgeTo(ControlFlowGraphNode node){
@@ -43,11 +45,15 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public void addStatement(SyntaxTree node){
         statementList.add(node);
     }
-    public void setValidVars(Collection<String> c){
-        this.validVars = c;
+    public void addLocals(String name){
+        if(tailLocals == headLocals){
+            tailLocals = new HashSet<>(headLocals);
+        }
+        tailLocals.add(name);
     }
-    public void setJSTypeVars(Collection<String> c){
-        this.jsTypeVars = c;
+    public void addJSTypeLocals(String name){
+        addLocals(name);
+        jsTypeVars.add(name);
     }
     public void setInitialized(Collection<String> c){
         this.initialized = c;
@@ -61,14 +67,18 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public Collection<String> getJSTypeVars(){
         return jsTypeVars;
     }
-    public Collection<String> selectValid(Collection<String> c){
+    public Collection<String> selectValidAtHead(Collection<String> c){
         Collection<String> ret = new HashSet<>();
         for(String s : c){
-            if(validVars.contains(s)){
+            if(headLocals.contains(s)){
                 ret.add(s);
             }
         }
         return ret;
+    }
+    public SyntaxTree getHeadStatement(){
+        if(statementList.isEmpty()) return null;
+        return statementList.get(0);
     }
     @Override
     public Iterator<SyntaxTree> iterator(){

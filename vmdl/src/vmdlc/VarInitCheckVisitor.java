@@ -57,12 +57,16 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             while(!stack.isEmpty()){
                 CFGNRecord record = stack.pop();
                 ControlFlowGraphNode target = record.getNode();
-                Collection<String> recordedInitialized = target.selectValid(record.getInitialized());
+                Collection<String> recordedInitialized = target.selectValidAtHead(record.getInitialized());
                 Collection<String> jsTypeVars = new HashSet<>(target.getJSTypeVars());
                 if(target.isSetInitialized()){
                     Collection<String> expectedInitialized = target.getInitialized();
                     if(recordedInitialized.equals(expectedInitialized)) continue;
-                    ErrorPrinter.error("Illigal initialize state");
+                    SyntaxTree targetHead = target.getHeadStatement();
+                    if(targetHead == null)
+                        ErrorPrinter.error("Illigal initialize state");
+                    else
+                        ErrorPrinter.error("Illigal initialize state", targetHead);
                 }else{
                     target.setInitialized(new HashSet<>(recordedInitialized));
                 }
@@ -143,6 +147,13 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class ExpressinStatement extends DefaultVisitor{
+        @Override
+        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+            System.err.println(node.toString());
+        }
+    }
+
     public class Name extends DefaultVisitor{
         private boolean isExternC(String name){
             return CConstantTable.contains(name);
@@ -151,7 +162,6 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
             /* Check if is the variable initialized */
             String name = node.toText();
-            //if(initialized.contains(name) || FunctionTable.contains(name)) return;
             if(initialized.contains(name) || isExternC(name)) return;
             ErrorPrinter.error("Variable must be initialized before use.", node);
         }

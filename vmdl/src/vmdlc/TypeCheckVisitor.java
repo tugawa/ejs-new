@@ -782,13 +782,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String varName = varNode.toText();
             Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
-                ExprTypeSet exprTypeSet;
-                if(exprNode != null){
-                    exprTypeSet = visit(exprNode, typeMap);
-                }else{
-                    exprTypeSet = EXPR_TYPE.clone();
-                    exprTypeSet.add(varType);
+                if(exprNode == null){
+                    Set<TypeMap> reservedSet = dict.getReservedSet(typeMap, varName, varType);
+                    newSet.addAll(reservedSet);
+                    continue;
                 }
+                ExprTypeSet exprTypeSet;
+                exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
                     if(!varType.isSuperOrEqual(type)){
                         ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);

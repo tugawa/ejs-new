@@ -46,6 +46,14 @@ public class TypeMapSetFull extends TypeMapSet {
         return addedSet;
     }
     @Override
+    public Set<TypeMap> getReservedSet(TypeMap typeMap, String name, AstType type){
+        Set<TypeMap> reservedSet = new HashSet<>();
+        TypeMap temp = typeMap.clone();
+        temp.add(name, type);
+        reservedSet.add(temp);
+        return reservedSet;
+    }
+    @Override
     public Set<TypeMap> getAddedSet(TypeMap typeMap, Map<String, AstType> map){
         Set<TypeMap> tempSet = new HashSet<>();
         tempSet.add(typeMap);

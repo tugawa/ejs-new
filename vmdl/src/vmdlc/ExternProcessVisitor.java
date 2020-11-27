@@ -165,7 +165,6 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             if(!isAdded){
                 ErrorPrinter.error("Double define: "+varName, (SyntaxTree)node);
             }
-            //AstToCVisitor.addCConstant(varName, cValue);
             CConstantTable.put(varName, cValue);
         }
     }
