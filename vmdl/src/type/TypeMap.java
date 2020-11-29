@@ -120,6 +120,20 @@ public class TypeMap{
         return false;
     }
 
+    public boolean isBottomMap(){
+        boolean hasBOT = false;
+        for (AstType t: dict.values()){
+            if (t != AstType.BOT){
+                if(hasBOT){
+                    System.err.println("internalWarning: TypeMap has a mixture of Bot and non-BOT types.");
+                }
+                return false;
+            }
+            hasBOT = true;
+        }
+        return true;
+    }
+
     public static boolean addGlobal(String key, AstType value) {
         if(global.get(key) != null){
             return false;

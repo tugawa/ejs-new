@@ -25,6 +25,9 @@ public class TypeMapSetFull extends TypeMapSet {
         return Collections.emptySet();
     }
     protected Set<AstType> getTypeSet(String name, AstType type){
+        if(type == AstType.BOT){
+            System.err.println("Internal Warning: add variable "+name+" types BOT");
+        }
         Set<AstType> set = AstType.getChildren(type);
         if(set == null){
             set = new HashSet<>();
@@ -69,6 +72,9 @@ public class TypeMapSetFull extends TypeMapSet {
     }
     @Override
     public Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type){
+        if(type == AstType.BOT){
+            System.err.println("Internal Warning: assign the BOT type to "+name);
+        }
         Set<TypeMap> assignedSet = new HashSet<>();
         Set<AstType> assignTypes = getTypeSet(name, type);
         for(AstType t : assignTypes){
@@ -87,6 +93,9 @@ public class TypeMapSetFull extends TypeMapSet {
         int typeTableSizeSum = 1;
         int[] typeTableSize = new int[length];
         for(int i=0; i<length; i++){
+            if(types[i] == AstType.BOT){
+                System.err.println("Internal Warning: assign the BOT type to "+names[i]);
+            }
             int size = types[i].getDetailedTypes().size();
             typeTableSizeSum *= size;
             typeTableSize[i] = size;
@@ -163,16 +172,25 @@ public class TypeMapSetFull extends TypeMapSet {
     @Override
     public TypeMapSet combine(TypeMapSet that){
         Set<TypeMap> newTypeMapSet = new HashSet<>();
-        Set<TypeMap> thatTypeMapSet = that.getTypeMapSet();
-        for(TypeMap m : typeMapSet){
-            newTypeMapSet.add(m.clone());
+        boolean thisIsBottomSet = this.isBottomSet();
+        boolean thatIsBottomSet = that.isBottomSet();
+        if(thisIsBottomSet && thatIsBottomSet){
+            return getBottomDict();
         }
-        for(TypeMap m : thatTypeMapSet){
-            newTypeMapSet.add(m.clone());
+        Set<TypeMap> thatTypeMapSet = that.getTypeMapSet();
+        if(!thisIsBottomSet){
+            for(TypeMap m : typeMapSet){
+                newTypeMapSet.add(m.clone());
+            }
+        }
+        if(!thatIsBottomSet){
+            for(TypeMap m : thatTypeMapSet){
+                newTypeMapSet.add(m.clone());
+            }
         }
         return new TypeMapSetFull(newTypeMapSet);
     }
-    private Set<TypeMap> getBottedSet(String[] varNames){
+    private Set<TypeMap> getBottomSet(String[] varNames){
         Set<TypeMap> newSet = new HashSet<>();
         for(TypeMap map : typeMapSet){
             TypeMap bottedMap = map.clone();
@@ -202,7 +220,7 @@ public class TypeMapSetFull extends TypeMapSet {
             }
         }
         if(newSet.isEmpty()){
-            newSet = getBottedSet(varNames);
+            newSet = getBottomSet(varNames);
         }
         return new TypeMapSetFull(newSet);
     }

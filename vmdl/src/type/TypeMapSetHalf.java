@@ -30,6 +30,9 @@ public class TypeMapSetHalf extends TypeMapSetFull {
     }
     @Override
     protected Set<AstType> getTypeSet(String name, AstType type){
+        if(type == AstType.BOT){
+            System.err.println("Internal Warning: add variable "+name+" types BOT");
+        }
         Set<AstType> set;
         if(dispatchSet.contains(name)){
             set = super.getTypeSet(name, type);
@@ -62,6 +65,9 @@ public class TypeMapSetHalf extends TypeMapSetFull {
         AstType[][] typeTable = new AstType[length][typeTableSizeSum];
         int repeatSize = 1;
         for(int i=0; i<length; i++){
+            if(types[i] == AstType.BOT){
+                System.err.println("Internal Warning: assign the BOT type to "+names[i]);
+            }
             List<AstType> detailedTypeList;
             if(dispatchSet.contains(names[i])){
                 detailedTypeList = new ArrayList<>(types[i].getDetailedTypes());
@@ -129,6 +135,11 @@ public class TypeMapSetHalf extends TypeMapSetFull {
     @Override
     public TypeMapSet combine(TypeMapSet that){
         Set<TypeMap> newSet = new HashSet<>();
+        boolean thisIsBottomSet = this.isBottomSet();
+        boolean thatIsBottomSet = that.isBottomSet();
+        if(thisIsBottomSet && thatIsBottomSet){
+            return getBottomDict();
+        }
         Map<String, AstType> thisLubMap = new HashMap<>();
         Map<String, AstType> thatLubMap = new HashMap<>();
         for(String name : getKeys()){
@@ -139,31 +150,35 @@ public class TypeMapSetHalf extends TypeMapSetFull {
             if(dispatchSet.contains(name)) continue;
             thatLubMap.put(name, lub(that.typeMapSet, name));
         }
-        for(TypeMap map : this){
-            TypeMap newMap = new TypeMap();
-            for(String name : map.keySet()){
-                AstType type;
-                if(dispatchSet.contains(name)){
-                    type = map.get(name);
-                }else{
-                    type = map.get(name).lub(thatLubMap.get(name));
+        if(!thisIsBottomSet){
+            for(TypeMap map : this){
+                TypeMap newMap = new TypeMap();
+                for(String name : map.keySet()){
+                    AstType type;
+                    if(dispatchSet.contains(name)){
+                        type = map.get(name);
+                    }else{
+                        type = map.get(name).lub(thatLubMap.get(name));
+                    }
+                    newMap.add(name, type);
                 }
-                newMap.add(name, type);
+                newSet.add(newMap);
             }
-            newSet.add(newMap);
         }
-        for(TypeMap map : that){
-            TypeMap newMap = new TypeMap();
-            for(String name : map.keySet()){
-                AstType type;
-                if(dispatchSet.contains(name)){
-                    type = map.get(name);
-                }else{
-                    type = map.get(name).lub(thisLubMap.get(name));
+        if(!thatIsBottomSet){
+            for(TypeMap map : that){
+                TypeMap newMap = new TypeMap();
+                for(String name : map.keySet()){
+                    AstType type;
+                    if(dispatchSet.contains(name)){
+                        type = map.get(name);
+                    }else{
+                        type = map.get(name).lub(thisLubMap.get(name));
+                    }
+                    newMap.add(name, type);
                 }
-                newMap.add(name, type);
+                newSet.add(newMap);
             }
-            newSet.add(newMap);
         }
         return new TypeMapSetHalf(newSet, cloneDispatchSet());
     }

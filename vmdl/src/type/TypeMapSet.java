@@ -92,4 +92,13 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
         }
         return ret;
     }
+
+    public boolean isBottomSet(){
+        if(typeMapSet.size() > 1) return false;
+        if(typeMapSet.size() == 0) return true;
+        for(TypeMap map : typeMapSet){
+            if(map.isBottomMap()) return true;
+        }
+        return false;
+    }
 }

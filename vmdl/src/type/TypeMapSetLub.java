@@ -36,6 +36,9 @@ public class TypeMapSetLub extends TypeMapSetFull {
 
     @Override
     public Set<TypeMap> getAddedSet(TypeMap typeMap, String name, AstType type){
+        if(type == AstType.BOT){
+            System.err.println("Internal Warning: add variable "+name+" types BOT");
+        }
         Set<TypeMap> addedSet = new HashSet<>();
         TypeMap temp = typeMap.clone();
         temp.add(name, type);
@@ -48,6 +51,9 @@ public class TypeMapSetLub extends TypeMapSetFull {
         TypeMap temp = typeMap.clone();
         for(String name : map.keySet()){
             AstType type = map.get(name);
+            if(type == AstType.BOT){
+                System.err.println("Internal Warning: add variable "+name+" types BOT");
+            }
             temp.add(name, type);
         }
         addedSet.add(temp);
@@ -55,6 +61,9 @@ public class TypeMapSetLub extends TypeMapSetFull {
     }
     @Override
     public Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type){
+        if(type == AstType.BOT){
+            System.err.println("Internal Warning: assign the BOT type to "+name);
+        }
         Set<TypeMap> assignedSet = new HashSet<>();
         TypeMap temp = typeMap.clone();
         temp.assign(name, type);
@@ -70,6 +79,9 @@ public class TypeMapSetLub extends TypeMapSetFull {
         }
         int length = names.length;
         for(int i=0; i<length; i++){
+            if(types[i] == AstType.BOT){
+                System.err.println("Internal Warning: assign the BOT type to "+names[i]);
+            }
             String name = names[i];
             AstType type = types[i];
             temp.assign(name, type);
