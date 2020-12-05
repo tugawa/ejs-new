@@ -74,6 +74,11 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     @Override
     protected SyntaxTree dupImpl() {
         SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue());
+        t.exprTypeSet = exprTypeSet;
+        t.rematchVarSet = rematchVarSet;
+        t.expandedTreeCandidate = expandedTreeCandidate;
+        t.expandedTree = expandedTree;
+        t.cannotExpandFlag = cannotExpandFlag;
         return t;
     }
 
