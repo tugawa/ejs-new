@@ -474,6 +474,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Assignment extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedTree != null){
+                visit(expandedTree, indent);
+                return;
+            }
             printIndent(indent, "");
             Tree<?> leftNode = node.get(Symbol.unique("left"));
             Tree<?> rightNode = node.get(Symbol.unique("right"));
@@ -486,6 +491,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class AssignmentPair extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedTree != null){
+                visit(expandedTree, indent);
+                return;
+            }
             printIndent(indent, "");
             Tree<?> leftNode = node.get(Symbol.unique("left"));
             Tree<?> rightNode = node.get(Symbol.unique("right"));
@@ -539,6 +549,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class ExpressionStatement extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedTree != null){
+                visit(expandedTree, indent);
+                return;
+            }
             printIndent(indent, "");
             visit(node.get(0), indent);
             println(";");
@@ -547,6 +562,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Declaration extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedTree != null){
+                visit(expandedTree, indent);
+                return;
+            }
             Tree<?> typeNode = node.get(Symbol.unique("type"));
             Tree<?> varNode = node.get(Symbol.unique("var"));
             visit(typeNode, 0);

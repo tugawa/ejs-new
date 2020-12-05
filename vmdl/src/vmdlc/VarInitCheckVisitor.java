@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Stack;
 
 import nez.ast.Symbol;
+import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import type.AstType;
 import type.CConstantTable;
@@ -147,10 +148,22 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    /*
     public class ExpressinStatement extends DefaultVisitor{
         @Override
         public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
-            System.err.println(node.toString());
+        }
+    }
+    */
+
+    public class Rematch extends DefaultVisitor{
+        @Override
+        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+            Tree<SyntaxTree>[] subTree = node.getSubTree();
+            int size = subTree.length;
+            for(int i=1; i<size; i++){ // skip subTree[0] (label node)
+                visit((SyntaxTree)subTree[i], initialized, jsTypeVars);
+            }
         }
     }
 

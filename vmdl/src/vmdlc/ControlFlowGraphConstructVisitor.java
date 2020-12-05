@@ -95,7 +95,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
                 new Symbol[]{Symbol.unique("type"), Symbol.unique("var"), Symbol.unique("expr")},
                 new SyntaxTree[]{type, name, null}, null);
         }
-        private ControlFlowGraphNode genParamIntro(SyntaxTree node){
+        private ControlFlowGraphNode genParamIntro(SyntaxTree node) throws Exception{
             SyntaxTree functionDefinition = node.get(Symbol.unique("definition"));
             SyntaxTree params = functionDefinition.get(Symbol.unique("params"));
             if(params == null || params.size() == 0) return null;
@@ -105,10 +105,14 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             if(domain.is(Symbol.unique("TypePair"))){
                 int size = params.size();
                 for(int i=0; i<size; i++){
-                    intro.addStatement(genPhantomDeclaration(domain.get(i), params.get(i)));
+                    SyntaxTree phantomDeclaration = genPhantomDeclaration(domain.get(i), params.get(i));
+                    visit(phantomDeclaration, intro);
+                    intro.addStatement(phantomDeclaration);
                 }
             }else{
-                intro.addStatement(genPhantomDeclaration(domain, params.get(0)));
+                SyntaxTree phantomDeclaration = genPhantomDeclaration(domain, params.get(0));
+                visit(phantomDeclaration, intro);
+                intro.addStatement(phantomDeclaration);
             }
             return intro;
         }
@@ -230,6 +234,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
                 throw new Error("matchStack is empty");
             }
             ControlFlowGraphNode branchPoint = matchStack.peek().getBranchPointNode();
+            from.addStatement(node);
             from.makeEdgeTo(branchPoint);
             return branchPoint;
         }

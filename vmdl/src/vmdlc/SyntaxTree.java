@@ -142,6 +142,11 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         return rematchVarSet;
     }
 
+    public void clearExpandedTreeCandidate(){
+        if(expandedTreeCandidate == null) return;
+        expandedTreeCandidate.clear();
+    }
+
     public void addExpandedTreeCandidate(SyntaxTree tree){
         if(expandedTreeCandidate == null){
             expandedTreeCandidate = new HashSet<>();

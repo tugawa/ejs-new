@@ -8,8 +8,8 @@ import java.util.List;
 
 
 public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
-    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0));
-    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0));
+    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
+    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
 
     private Collection<ControlFlowGraphNode> next = new HashSet<>();
     private Collection<ControlFlowGraphNode> prev = new HashSet<>();
@@ -19,11 +19,17 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     private Collection<String> jsTypeVars;
 
     private Collection<String> initialized = null;
+    private Collection<String> headLive = null;
+    private Collection<String> tailLive = null;
 
     public ControlFlowGraphNode(Collection<String> headLocals, Collection<String> jsTypeVars){
         this.headLocals = headLocals;
         this.tailLocals = headLocals;
         this.jsTypeVars = jsTypeVars;
+    }
+    private ControlFlowGraphNode setLiveEmpty(){
+        this.headLive = new HashSet<>(0);
+        return this;
     }
     public void makeEdgeTo(ControlFlowGraphNode node){
         this.addNext(node);
@@ -63,6 +69,24 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public Collection<String> getInitialized(){
         return initialized;
     }
+    public void setHeadLive(Collection<String> c){
+        this.headLive = c;
+    }
+    public void setTailLive(Collection<String> c){
+        this.tailLive = c;
+    }
+    public boolean hasHeadLive(){
+        return headLive != null;
+    }
+    public boolean hasTailLive(){
+        return tailLive != null;
+    }
+    public Collection<String> getHeadLive(){
+        return headLive;
+    }
+    public Collection<String> getTailLive(){
+        return tailLive;
+    }
     public Collection<String> getJSTypeVars(){
         return jsTypeVars;
     }
@@ -82,5 +106,8 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     @Override
     public Iterator<SyntaxTree> iterator(){
         return statementList.iterator();
+    }
+    public List<SyntaxTree> getStatementList(){
+        return statementList;
     }
 }

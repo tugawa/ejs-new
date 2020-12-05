@@ -1,5 +1,6 @@
 package type;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -8,6 +9,12 @@ import type.AstType.AstProductType;
 
 public class FunctionTable{
     private static Map<String, FunctionInfo> functionMap = new HashMap<>();
+
+    static{
+        AstProductType type = new AstProductType(AstType.get("Top"), AstType.get("void"));
+        put("GC_PUSH", type, Collections.emptySet());
+        put("GC_POP", type, Collections.emptySet());
+    }
 
     public static void put(String name, AstProductType type, Set<FunctionAnnotation> annotations){
         if(functionMap.get(name) != null){

@@ -122,8 +122,8 @@ externC is_fixnum_range_cint : cint -> cint
 externC get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
 externC (needContext) invoke_function0 : (JSValue, JSValue, cint) -> JSValue
 externC (needContext) invoke_builtin0 : (JSValue, JSValue, cint) -> JSValue
-externC GC_PUSH : JSValue -> void
-externC GC_POP : JSValue -> void
+//externC GC_PUSH : JSValue -> void
+//externC GC_POP : JSValue -> void
 externC false_true : cint -> Special
 
 externC isnan : cdouble -> cint
