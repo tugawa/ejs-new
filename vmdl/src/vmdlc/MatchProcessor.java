@@ -168,39 +168,22 @@ public class MatchProcessor {
     private SyntaxTree getTypePatternSub(List<VMDataType> vmtVec, List<String> paramList){
         int dimension = vmtVec.size();
         if(dimension == 1){
-            return new SyntaxTree(Symbol.unique("TypePattern"),
-                new Symbol[]{
-                    Symbol.unique("type"), Symbol.unique("var")
-                }, 
-                new SyntaxTree[]{
-                    new SyntaxTree(Symbol.unique("JSValueTypeName"), null, null, AstType.get(vmtVec.get(0)).toString()),
-                    new SyntaxTree(Symbol.unique("Name"), null, null, paramList.get(0))
-                }, null);
+            return ASTHelper.generateTypePattern(AstType.get(vmtVec.get(0)).toString(), paramList.get(0));
         }
-        return new SyntaxTree(Symbol.unique("AndPattern"), null, 
-            new SyntaxTree[]{
-                getTypePatternSub(vmtVec.subList(0, dimension-1), paramList), //give full paramList(Not subList...?)
-                new SyntaxTree(Symbol.unique("TypePattern"),
-                    new Symbol[]{
-                        Symbol.unique("type"), Symbol.unique("var")
-                    }, 
-                    new SyntaxTree[]{
-                        new SyntaxTree(Symbol.unique("JSValueTypeName"), null, null, AstType.get(vmtVec.get(dimension-1)).toString()),
-                        new SyntaxTree(Symbol.unique("Name"), null, null, paramList.get(dimension-1))
-                    }, null)
-            }, null);
+        SyntaxTree recvLeft = getTypePatternSub(vmtVec.subList(0, dimension-1), paramList);
+        SyntaxTree right = ASTHelper.generateTypePattern(AstType.get(vmtVec.get(dimension-1)).toString(), paramList.get(dimension-1));
+        return ASTHelper.generateAndPattern(recvLeft, right);
     }
+
 
     private SyntaxTree getTypePattern(List<List<VMDataType>> vmtVecList, List<String> paramList){
         int dimension = vmtVecList.size();
         if(dimension == 1){
             return getTypePatternSub(vmtVecList.get(0), paramList);
         }
-        return new SyntaxTree(Symbol.unique("OrPattern"), null, 
-            new SyntaxTree[]{
-                getTypePattern(vmtVecList.subList(0, dimension-1), paramList),
-                getTypePatternSub(vmtVecList.get(dimension-1), paramList)
-            }, null);
+        SyntaxTree recvLeft = getTypePattern(vmtVecList.subList(0, dimension-1), paramList);
+        SyntaxTree right = getTypePatternSub(vmtVecList.get(dimension-1), paramList);
+        return ASTHelper.generateOrPattern(recvLeft, right);
     }
 
     private void addLabelSuffix(SyntaxTree target, String suffix, String exceptLabel){
@@ -236,9 +219,7 @@ public class MatchProcessor {
             vmtVecLists.add(vmtVecList);
         }
         SyntaxTree caseCond = getTypePattern(vmtVecLists, formalParamsList);
-        return new SyntaxTree(Symbol.unique("Case"),
-            new Symbol[]{Symbol.unique("pattern"), Symbol.unique("body")}, 
-            new SyntaxTree[]{caseCond, caseBody}, null);
+        return ASTHelper.generateCase(caseCond, caseBody);
     }
 
     private static int additionalLabelSuffixNumber = 0;
@@ -268,7 +249,7 @@ public class MatchProcessor {
             }
             newCases.add(originalCases.get(i).dup());
         }
-        return new SyntaxTree(Symbol.unique("Cases"), null, newCases.toArray(new SyntaxTree[0]), null);
+        return ASTHelper.generateCases(newCases.toArray(new SyntaxTree[0]));
     }
 
     public SyntaxTree getCaseExpandedTree(){

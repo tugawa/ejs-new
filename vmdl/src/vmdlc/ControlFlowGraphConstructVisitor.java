@@ -91,9 +91,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
 
     public class FunctionMeta extends DefaultVisitor{
         private SyntaxTree genPhantomDeclaration(SyntaxTree type, SyntaxTree name){
-            return new SyntaxTree(Symbol.unique("Declaration"),
-                new Symbol[]{Symbol.unique("type"), Symbol.unique("var"), Symbol.unique("expr")},
-                new SyntaxTree[]{type, name, null}, null);
+            return ASTHelper.generateDeclaration(type, name, null);
         }
         private ControlFlowGraphNode genParamIntro(SyntaxTree node) throws Exception{
             SyntaxTree functionDefinition = node.get(Symbol.unique("definition"));
@@ -171,11 +169,6 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     }
 
     public class Do extends DefaultVisitor{
-        private SyntaxTree genDeclaration(SyntaxTree type, SyntaxTree name, SyntaxTree expr){
-            return new SyntaxTree(Symbol.unique("Declaration"),
-                new Symbol[]{Symbol.unique("type"), Symbol.unique("var"), Symbol.unique("expr")},
-                new SyntaxTree[]{type, name, expr}, null);
-        }
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             TypeMapSet dict = node.getTypeMapSet();
@@ -186,7 +179,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             ControlFlowGraphNode intro = new ControlFlowGraphNode(locals, jsTypeVars);
             SyntaxTree typeNode = init.get(Symbol.unique("type"));
             SyntaxTree nameNode = init.get(Symbol.unique("var"));
-            intro.addStatement(genDeclaration(typeNode, nameNode, init.get(Symbol.unique("expr"))));
+            intro.addStatement(ASTHelper.generateDeclaration(typeNode, nameNode, init.get(Symbol.unique("expr"))));
             from.makeEdgeTo(intro);
             Collection<String> afterIntroLocals = new HashSet<>(locals);
             afterIntroLocals.add(nameNode.toText());

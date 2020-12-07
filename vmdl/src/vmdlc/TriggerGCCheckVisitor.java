@@ -22,15 +22,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         private Map<String, SyntaxTree> gcPopMap = new HashMap<>();
 
         public SyntaxTree genFunctionCall(String functionName, String arg){
-            return new SyntaxTree(Symbol.unique("ExpressionStatement"), null,
-                new SyntaxTree[]{
-                    new SyntaxTree(Symbol.unique("FunctionCall"),
-                        new Symbol[]{ Symbol.unique("recv"), Symbol.unique("args") },
-                        new SyntaxTree[]{ 
-                            new SyntaxTree(Symbol.unique("Name"), null, null, functionName),
-                            new SyntaxTree(Symbol.unique("ArgList"), null, new SyntaxTree[]{ new SyntaxTree(Symbol.unique("Name"), null, null, arg) }, functionName),
-                        }, null)
-                }, null);
+            return ASTHelper.generateExpressionStatement(ASTHelper.generateFunctionCall(functionName, new SyntaxTree[]{ASTHelper.generateName(arg)}));
         }
         public SyntaxTree getGCPushExprStmt(String name){
             SyntaxTree exprStmt = gcPushMap.get(name);
@@ -119,9 +111,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 stmts[size+1+i] = gcFunctionGenerator.getGCPopExprStmt(liveList.get(i));
             }
             stmts[size] = node.dup();
-            SyntaxTree expanded = new SyntaxTree(Symbol.unique("Block"), null, stmts, null);
             node.clearExpandedTreeCandidate();
-            node.addExpandedTreeCandidate(expanded);
+            node.addExpandedTreeCandidate(ASTHelper.generateBlock(stmts));
         }
     }
 
