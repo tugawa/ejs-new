@@ -86,6 +86,17 @@ class NodeScanner {
     /* 1. shape */
 #ifdef THREADED
     Shape *os = p->shape;
+
+#ifdef ALLOC_SITE_CACHE
+    /* 4. allocation site cache */
+    /* update allocation site cache first, before thread p->shape */
+    if (gc_phase == PHASE_MARK) {
+      if (p->alloc_site != NULL) {
+        alloc_site_update_info(p);
+        PROCESS_EDGE(p->alloc_site->pm);
+      }
+    }
+#endif /* ALLOC_SITE_CACHE */
 #endif /* THREADED */
     PROCESS_EDGE(p->shape);
 
@@ -102,15 +113,15 @@ class NodeScanner {
     if (n_extension != 0)
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
 				    os->pm->n_props - actual_embedded);
+#ifndef THREADED
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
     if (p->alloc_site != NULL) {
-#ifndef THREADED
       alloc_site_update_info(p);
-#endif
       PROCESS_EDGE(p->alloc_site->pm);
     }
 #endif /* ALLOC_SITE_CACHE */
+#endif /* THREADED */
   }
   
  public:

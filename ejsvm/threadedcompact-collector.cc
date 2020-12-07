@@ -15,9 +15,6 @@
 #include "log.h"
 
 
-static Context *the_context;
-#include "gc-visitor-inl.h"
-
 #ifdef CXX_TRACER_CBV
 #error "Threaded compactor does not except macro; CXX_TRACER_CBV."
 #endif /* CXX_TRACER_CBV */
@@ -43,6 +40,9 @@ enum gc_phase {
  * Variables
  */
 static enum gc_phase gc_phase = PHASE_INACTIVE;
+
+static Context *the_context;
+#include "gc-visitor-inl.h"
 
 /*
  * Tracer
