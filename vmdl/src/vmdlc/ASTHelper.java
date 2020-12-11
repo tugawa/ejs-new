@@ -19,7 +19,7 @@ public class ASTHelper {
         return new SyntaxTree(Symbol.unique("CType"), null, null, name);
     }
     public static SyntaxTree generateJSValueType(String name){
-        return new SyntaxTree(Symbol.unique("JSValueType"), null, null, name);
+        return new SyntaxTree(Symbol.unique("JSValueTypeName"), null, null, name);
     }
     public static SyntaxTree generateUserTypeName(String name){
         return new SyntaxTree(Symbol.unique("UserTypeName"), null, null, name);
@@ -44,6 +44,9 @@ public class ASTHelper {
         }
         // really?
         return generateUserTypeName(name);
+    }
+    public static SyntaxTree generateType(AstType t){
+        return generateType(t.toString());
     }
 
     //*********************************
@@ -87,6 +90,23 @@ public class ASTHelper {
     public static SyntaxTree generateDeclaration(String type, String var, SyntaxTree expr){
         return generateDeclaration(generateType(type), generateName(var), expr);
     }
+    public static SyntaxTree generateDeclaration(AstType type, String var, SyntaxTree expr){
+        return generateDeclaration(generateType(type), generateName(var), expr);
+    }
+    public static SyntaxTree generateDeclaration(SyntaxTree type, SyntaxTree var){
+        return new SyntaxTree(Symbol.unique("Declaration"),
+            new Symbol[]{Symbol.unique("type"), Symbol.unique("var")},
+            new SyntaxTree[]{type, var}, null);
+    }
+
+    //Assignment
+
+    public static SyntaxTree generateAssignment(SyntaxTree left, SyntaxTree right){
+        return new SyntaxTree(Symbol.unique("Assignment"),
+            new Symbol[]{Symbol.unique("left"), Symbol.unique("right")},
+            new SyntaxTree[]{left, right}, null);
+    }
+
 
     // ExpressionStatement
 

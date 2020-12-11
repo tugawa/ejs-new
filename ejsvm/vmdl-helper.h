@@ -116,6 +116,7 @@
   JSValue* stack = &get_stack(context, 0);			\
   restore_special_registers(context, stack, fp - 4);
 
+/*
 #define Newframe(frame_len)						\
   FunctionFrame* fr = new_frame(context, get_cf(context),		\
 				get_lp(context), frame_len);		\
@@ -131,6 +132,26 @@
     array_body_index(args, i) = regbase[i + 2];				\
   fframe_arguments(fr) = args;						\
   fframe_locals_idx(fr, 0) = args;
+*/
+
+#define Newframe(frame_len, make_arguments)						\
+  save_context(); \
+  FunctionFrame* fr = new_frame(context, get_cf(context),		\
+	get_lp(context), frame_len);		\
+  set_lp(context, fr); \
+  update_context(); \
+  if(make_arguments){  \
+    int num_of_args = get_ac(context);					\
+    save_context();							\
+    JSValue args = new_normal_array_with_size(context, num_of_args);	\
+    update_context();							\
+    int i;								\
+    for (i = 0; i < num_of_args; i++)					\
+      array_body_index(args, i) = regbase[i + 2];				\
+    fframe_arguments(fr) = args;						\
+    fframe_locals_idx(fr, 0) = args; \
+  }
+
 
 #define Throw(context)							\
   int newpc, handler_fp;					\

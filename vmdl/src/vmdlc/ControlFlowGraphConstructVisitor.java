@@ -91,7 +91,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
 
     public class FunctionMeta extends DefaultVisitor{
         private SyntaxTree genPhantomDeclaration(SyntaxTree type, SyntaxTree name){
-            return ASTHelper.generateDeclaration(type, name, null);
+            return ASTHelper.generateDeclaration(type, name, SyntaxTree.PHANTOM_NODE);
         }
         private ControlFlowGraphNode genParamIntro(SyntaxTree node) throws Exception{
             SyntaxTree functionDefinition = node.get(Symbol.unique("definition"));
@@ -132,6 +132,9 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class Block extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            if(!from.isSetBelongingBlock()){
+                from.setBelongingBlock(node);
+            }
             for(SyntaxTree seq : node){
                 from = visit(seq, from);
             }

@@ -29,6 +29,8 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     SyntaxTree expandedTree;
     boolean cannotExpandFlag;
 
+    public static final SyntaxTree PHANTOM_NODE = new SyntaxTree(Symbol.unique("None"), null, null, null);
+
     public SyntaxTree() {
         super();
         exprTypeSet = null;

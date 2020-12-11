@@ -111,7 +111,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             if(!node.has(Symbol.unique("expr"))) return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             /* expr is null when the declaration is introduce part of FunctionMeta */
-            if(expr != null){
+            if(expr != SyntaxTree.PHANTOM_NODE){
                 visit(expr, initialized, jsTypeVars);
             }
             initialized.add(varName);

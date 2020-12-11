@@ -130,7 +130,10 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             dict.internV(name);
 
             if(node.has(Symbol.unique("expr"))){
-                visit(node.get(Symbol.unique("expr")), dict);
+                Tree<?> expr = node.get(Symbol.unique("expr"));
+                if(expr != SyntaxTree.PHANTOM_NODE){
+                    visit(expr, dict);
+                }
             }
         }
     }

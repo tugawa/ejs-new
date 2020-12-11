@@ -22,6 +22,8 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     private Collection<String> headLive = null;
     private Collection<String> tailLive = null;
 
+    private SyntaxTree belongingBlock;
+
     public ControlFlowGraphNode(Collection<String> headLocals, Collection<String> jsTypeVars){
         this.headLocals = headLocals;
         this.tailLocals = headLocals;
@@ -102,6 +104,15 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public SyntaxTree getHeadStatement(){
         if(statementList.isEmpty()) return null;
         return statementList.get(0);
+    }
+    public boolean isSetBelongingBlock(){
+        return belongingBlock != null;
+    }
+    public SyntaxTree getBelongingBlock(){
+        return belongingBlock;
+    }
+    public void setBelongingBlock(SyntaxTree node){
+        belongingBlock = node;
     }
     @Override
     public Iterator<SyntaxTree> iterator(){

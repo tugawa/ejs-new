@@ -308,9 +308,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Block extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
+            if(expandedNode != null){
+                visit(expandedNode, indent);
+                return;
+            }
+            printIndentln(indent, "{");
             for (Tree<?> seq : node) {
                 visit(seq, indent + 1);
             }
+            printIndentln(indent, "}");
         }
     }
 
@@ -569,13 +576,16 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             Tree<?> typeNode = node.get(Symbol.unique("type"));
             Tree<?> varNode = node.get(Symbol.unique("var"));
+            printIndent(indent, "");
             visit(typeNode, 0);
             print(" ");
             visit(varNode, 0);
             if(node.has(Symbol.unique("expr"))){
                 Tree<?> exprNode = node.get(Symbol.unique("expr"));
-                print(" = ");
-                visit(exprNode, 0);
+                if(exprNode != SyntaxTree.PHANTOM_NODE){
+                    print(" = ");
+                    visit(exprNode, 0);
+                }
             }
             println(";");
         }

@@ -78,6 +78,11 @@ public class AstType {
         vmtToType.put(vmt,  t);
         putChild(parent, AstType.get(vmt));
     }
+    public static void defineRelocatableType(String name) {
+        AstBaseType t = new AstBaseType(name, null);
+        t.setRelocatable(true);
+        definedTypes.put(name, t);
+    }
     public static AstMappingType defineMappingType(String name) {
         AstMappingType type = new AstMappingType(name);
         definedMappingTypes.put(name, type);
@@ -149,7 +154,7 @@ public class AstType {
     static {
         defineType("Top");
         defineType("void");
-        defineType("HeapObject");
+        defineRelocatableType("HeapObject");
         defineType("cint");
         defineType("cdouble");
         defineType("cstring");
@@ -233,13 +238,16 @@ public class AstType {
     public static class AstBaseType extends AstType {
         AstBaseType parent;
         int depth;
+        boolean relocatableFlag;
 
         private AstBaseType(String _name) {
             name = _name;
+            relocatableFlag = false;
         }
 
         private AstBaseType(String _name, AstBaseType _parent) {
-            name = _name;;
+            name = _name;
+            relocatableFlag = false;
             parent = _parent;
             depth = 0;
             for (AstBaseType t = parent; t != null; t = t.parent)
@@ -250,6 +258,13 @@ public class AstType {
             return name;
         }
 
+        public boolean isRelocatable(){
+            return relocatableFlag;
+        }
+
+        public void setRelocatable(boolean flag){
+            relocatableFlag = flag;
+        }
         
     }
     public AstType lub(AstType that) {
@@ -305,6 +320,7 @@ public class AstType {
 
         private JSValueType(String name, AstBaseType parent) {
             super(name, parent);
+            setRelocatable(true);
         }
     }
 
