@@ -18,7 +18,7 @@ public class FunctionTable{
 
     public static void put(String name, AstProductType type, Set<FunctionAnnotation> annotations){
         if(functionMap.get(name) != null){
-            throw new Error("Double define"+name);
+            System.err.println("InternalWarning: Duplicate Function define: "+name);
         }
         functionMap.put(name, new FunctionInfo(type, annotations));
     }
@@ -30,16 +30,10 @@ public class FunctionTable{
     public static AstProductType getType(String name){
         FunctionInfo info = functionMap.get(name);
         if(info == null){
-            throw new Error("No such name:"+name);
+            throw new Error("Cannot find function: "+name);
         }
         return info.type;
     }
-
-    /*
-    public static Set<FunctionAnnotation> getAnnotations(String name){
-        return functionMap.get(name).annotations;
-    }
-    */
 
     public static boolean hasAnnotations(String name, FunctionAnnotation annotation){
         return functionMap.get(name).annotations.contains(annotation);

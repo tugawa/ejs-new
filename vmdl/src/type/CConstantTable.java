@@ -8,7 +8,7 @@ public class CConstantTable {
 
     public static void put(String name, String cValue){
         if(constantMap.get(name) != null){
-            throw new Error("Double define:"+name);
+            System.err.println("InternalWarning: Duplicate CConstant define: "+name);
         }
         constantMap.put(name, cValue);
     }

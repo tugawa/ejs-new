@@ -319,7 +319,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree nodeName = node.get(Symbol.unique("name"));
             SyntaxTree nameNode = definition.get(Symbol.unique("name"));
             String name = nameNode.toText();
-            //Functions are already defined in FunctionCpnstructVisitor
+            /* All Functions have been defined in ExternProcessVisitor */
             if(!FunctionTable.getType(name).equals(funtype)){
                 throw new Error("FunctionTable is broken: FunctionTable types "
                     +FunctionTable.getType(name)+" real types " + funtype);
@@ -653,7 +653,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String label = labelNode.toText();
             TypeMapSet matchDict = matchStack.getDict(label);
             if (matchDict == null){
-                ErrorPrinter.error("Labeled Match not found: "+label, labelNode);
+                ErrorPrinter.error("Cannot find match: "+label, labelNode);
             }
             Set<String> domain = matchDict.getKeys();
             String[] matchParams = matchStack.getParams(label);
@@ -777,7 +777,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree exprNode = (node.has(Symbol.unique("expr"))) ? node.get(Symbol.unique("expr")) : null;
             AstType varType = AstType.nodeToType(typeNode);
             if(varType==null){
-                ErrorPrinter.error("Type not found: "+typeNode.toText(), typeNode);
+                ErrorPrinter.error("Cannot find type: "+typeNode.toText(), typeNode);
             }
             String varName = varNode.toText();
             Set<TypeMap> newSet = new HashSet<>();
@@ -791,7 +791,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
                     if(!varType.isSuperOrEqual(type)){
-                        ErrorPrinter.error("Expression types "+type+", need types "+varType, exprNode);
+                        ErrorPrinter.error("Type error: "+type+" is incompatible with "+varType, exprNode);
                     }
                     TypeMap temp = typeMap.clone();
                     Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, type);
@@ -1144,17 +1144,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         private final OperandSpecifications.OperandSpecificationRecord.Behaviour ACCEPT =
             OperandSpecifications.OperandSpecificationRecord.Behaviour.ACCEPT;
         private void typeDeclarationCheck(String functionName, SyntaxTree node){
-            AstType type = FunctionTable.getType(functionName);
-            if(type == null){
-                ErrorPrinter.error("Function not found: "+functionName, node);
+            if(!FunctionTable.contains(functionName)){
+                ErrorPrinter.error("Cannot find function: "+functionName, node);
             }
+            AstType type = FunctionTable.getType(functionName);
             if(!(type instanceof AstProductType)){
-                ErrorPrinter.error("Non function refered as function: "+functionName, node);
+                ErrorPrinter.error("The symbol is not function: "+functionName, node);
             }
         }
         private void needContextCheck(String functionName, SyntaxTree node){
             if(!FunctionTable.contains(functionName)){
-                ErrorPrinter.error("Function is not found: "+functionName);
+                ErrorPrinter.error("Cannot find function: "+functionName);
             }
             if(!superFunction.doNeedContext() && FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
                 ErrorPrinter.errorForRecvNode("Call function that need context in function that does not need", node);
@@ -1308,12 +1308,12 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             ExprTypeSet fieldTypeSet = EXPR_TYPE.clone();
             for(AstType type : recvTypeSet){
                 if(!(type instanceof AstMappingType)){
-                    ErrorPrinter.error("Non mappingobject refered as mappingobject: "+type.toString(), recvNode);
+                    ErrorPrinter.error("The symbol is not MappingObject: "+type.toString(), recvNode);
                 }
                 AstMappingType mappingType = (AstMappingType) type;
                 AstType fieldType = mappingType.getFieldType(fieldName);
                 if(fieldType == null){
-                    ErrorPrinter.error("Field not found: "+fieldName, fieldNode);
+                    ErrorPrinter.error("Cannot find field: "+fieldName, fieldNode);
                 }
                 fieldTypeSet.add(fieldType);
             }
@@ -1386,7 +1386,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public ExprTypeSet accept(SyntaxTree node, TypeMap dict) throws Exception {
             String name = node.toText();
             if (!dict.containsKey(name)) {
-                ErrorPrinter.error("Name not found: "+name, node);
+                ErrorPrinter.error("Cannot find symbol: "+name, node);
             }
             ExprTypeSet newSet = EXPR_TYPE.clone();
             newSet.add(dict.get(name));
