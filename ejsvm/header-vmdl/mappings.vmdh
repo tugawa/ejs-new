@@ -1,4 +1,4 @@
-externC mapping global_constant_objects {
+externC mapping {
   embedded JSValue g_identity;
   embedded SimpleObject g_object;
   embedded SimpleObject g_object_proto;
@@ -45,6 +45,6 @@ externC mapping global_constant_objects {
 
   embedded SimpleObject g_global;
   embedded SimpleObject g_math;
-};
+} : global_constant_objects
 
-externC constant global_constant_objects gconsts = "gconsts";
+externC constant gconsts = "gconsts" : global_constant_objects

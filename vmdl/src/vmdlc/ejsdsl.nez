@@ -152,7 +152,7 @@ Arguments     = $(Expression) ( "," $(Expression) )* #Arguments
 ////////////////////////////////
 //// ExternC
 ////////////////////////////////
-CValue     = '"' { StringContent* #CValue } '"'
+CValue     = '"' { StringContent* #CValue } '"' _
 StringContent = ESCAPE
               / &'\\\n' . . / ![\"\n\\] .
 
@@ -160,9 +160,9 @@ ExternC = "externC" _ CTypeDefinition
         / "externC" _ CFunctionDefinition
         / "externC" _ CConstantDefinition
         / "externC" _ CVariableDefinition
-CTypeDefinition = { "type" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CTypeDef }
+CTypeDefinition = { "type" _ $var(VarName) "=" $value(CValue) ":" $type(TypeName) #CTypeDef }
                 / { ObjectMapping #CObjectmapping }
-ObjectMapping   = "mapping" _ $type(TypeName) "{" $members(ObjectMembers) "}" ";"
+ObjectMapping   = "mapping" _ "{" $members(ObjectMembers) "}" ":" $type(TypeName)
 ObjectMembers   = { $(ObjectMember)* #Members }
 ObjectMember    = { $annotations(ObjectMemberAnnotation)*
                     $type(TypeName)
@@ -180,7 +180,7 @@ TypePair = { "(" $(Type) ( "," $(Type) )* ")" #TypePair }
          / "(" { #TypePair } _ ")"
 TypeProduct = "->" $(Type)
 
-CConstantDefinition = { "constant" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CConstantDef }
+CConstantDefinition = { "constant" _ $var(VarName) "=" $value(CValue) ":" $type(TypeName) #CConstantDef }
 
 CVariableDefinition = { "variable" _ $var(VarName) ":" $type(TypeName) #CVariableDef }
 

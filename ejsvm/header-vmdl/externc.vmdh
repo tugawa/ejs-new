@@ -1,13 +1,13 @@
-externC constant Special JS_TRUE = "JS_TRUE";
-externC constant Special JS_FALSE = "JS_FALSE";
-externC constant Special JS_NULL = "JS_NULL";
-externC constant Special JS_UNDEFINED = "JS_UNDEFINED";
-externC constant Fixnum FIXNUM_ZERO = "FIXNUM_ZERO";
-externC constant Fixnum FIXNUM_ONE = "FIXNUM_ONE";
-externC constant cstring EMPTY_CSTRING = "\"\"";
-externC constant JSValue EMPTY_JSVALUE = "JS_NULL";
-externC constant cint HINT_STRING = "HINT_STRING";
-externC constant cdouble NAN = "NAN";
+externC constant JS_TRUE = "JS_TRUE" : Special
+externC constant JS_FALSE = "JS_FALSE" : Special
+externC constant JS_NULL = "JS_NULL" : Special
+externC constant JS_UNDEFINED = "JS_UNDEFINED" : Special
+externC constant FIXNUM_ZERO = "FIXNUM_ZERO" : Fixnum
+externC constant FIXNUM_ONE = "FIXNUM_ONE" : Fixnum
+externC constant EMPTY_CSTRING = "\"\"" : cstring
+externC constant EMPTY_JSVALUE = "JS_NULL" : JSValue
+externC constant HINT_STRING = "HINT_STRING" : cint
+externC constant NAN = "NAN" : cdouble
 
 externC cint_to_double : cint -> cdouble
 externC double_to_cint : cdouble -> cint
