@@ -147,7 +147,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 List<SyntaxTree> stmts = target.getStatementList();
                 int size = stmts.size();
                 for(int i=size-1; i>=0; i--){
-                    visit(stmts.get(i), newTailLive, jsTypeVars);
+                    SyntaxTree stmt = stmts.get(i);
+                    if(!hasTriggerGC(stmt)) continue;
+                    visit(stmt, newTailLive, jsTypeVars);
                 }
                 Collection<ControlFlowGraphNode> prevs = target.getPrev();
                 for(ControlFlowGraphNode prev : prevs){
@@ -298,6 +300,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             if(!isCConstant(name) && jsTypeVars.contains(name)){
                 live.add(name);
             }
+        }
+        @Override
+        public boolean findTriggerGC(SyntaxTree node) throws Exception{
+            return false;
         }
     }
 
