@@ -94,7 +94,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return map.entrySet();
         }
         public static SyntaxTree generateExpandedBlock(SyntaxTree original, BlockExpansionRequsets requests){
-            if(original.size() == 0) return original;
+            if(original == null || original.size() == 0) return original;
             SyntaxTree[] originalStmts = (SyntaxTree[]) original.getSubTree();
             int originalSize = originalStmts.length;
             int additionalSize = requests.requestSize() - requests.size();
