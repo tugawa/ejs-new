@@ -9,6 +9,7 @@ import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import type.AstType;
 import type.CConstantTable;
+import type.CVariableTable;
 import type.AstType.JSValueType;
 import vmdlc.VarInitCheckVisitor.DefaultVisitor;
 import vmdlc.VarInitCheckVisitor.CFGNStack.CFGNRecord;
@@ -169,7 +170,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class Name extends DefaultVisitor{
         private boolean isExternC(String name){
-            return CConstantTable.contains(name);
+            return CConstantTable.contains(name) || CVariableTable.contains(name);
         }
         @Override
         public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{

@@ -159,6 +159,7 @@ StringContent = ESCAPE
 ExternC = "externC" _ CTypeDefinition
         / "externC" _ CFunctionDefinition
         / "externC" _ CConstantDefinition
+        / "externC" _ CVariableDefinition
 CTypeDefinition = { "type" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CTypeDef }
                 / { ObjectMapping #CObjectmapping }
 ObjectMapping   = "mapping" _ $type(TypeName) "{" $members(ObjectMembers) "}" ";"
@@ -180,6 +181,8 @@ TypePair = { "(" $(Type) ( "," $(Type) )* ")" #TypePair }
 TypeProduct = "->" $(Type)
 
 CConstantDefinition = { "constant" _ $type(TypeName) $var(VarName) "=" $value(CValue) ";" #CConstantDef }
+
+CVariableDefinition = { "variable" _ $var(VarName) ":" $type(TypeName) #CVariableDef }
 
 ////////////////////////////////
 //// Utilities
@@ -251,6 +254,7 @@ Boolean = { "true" #True } _
 KEYWORD = "#include"
         / "type"
         / "constant"
+        / "variable"
         / "mapping"
         / "return"
         / "externC"
@@ -303,6 +307,7 @@ Ctypes = 'cint'
 "," = ',' _
 "->" = '->' _
 "constant" = 'constant' !W
+"variable" = 'variable' !W
 "embedded" = 'embedded' !W
 "match" = 'match' !W
 "case" = 'case' !W

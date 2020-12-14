@@ -222,4 +222,11 @@ public class InlineInfoVisitor extends TreeVisitorMap<DefaultVisitor> {
             return true;
         }
     }
+
+    public class CVariableDef extends DefaultVisitor {
+        @Override
+        public boolean accept(Tree<?> node, TypeMapSetFull dict) throws Exception {
+            return true;
+        }
+    }
 }

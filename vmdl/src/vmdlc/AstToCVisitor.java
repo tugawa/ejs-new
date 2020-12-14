@@ -305,6 +305,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class CVariableDef extends DefaultVisitor {
+        public void accept(Tree<?> node, int indent) throws Exception {
+        }
+    }
+
     public class Block extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {

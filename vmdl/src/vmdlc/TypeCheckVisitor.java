@@ -913,6 +913,13 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class CVariableDef extends DefaultVisitor {
+        @Override
+        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            return dict;
+        }
+    }
+
     //**********************************
     // Expressions
     //**********************************

@@ -9,6 +9,7 @@ import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
 import type.AstType;
 import type.CConstantTable;
+import type.CVariableTable;
 import type.FunctionAnnotation;
 import type.FunctionTable;
 import type.TypeMap;
@@ -163,9 +164,24 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             String cValue = valueNode.toText().replace("\\\"", "\"").replace("\\\\", "\\");
             boolean isAdded = TypeMap.addGlobal(varName, type);
             if(!isAdded){
-                ErrorPrinter.error("Double define: "+varName, (SyntaxTree)node);
+                ErrorPrinter.error("Duplicate define: "+varName, (SyntaxTree)node);
             }
             CConstantTable.put(varName, cValue);
+        }
+    }
+
+    public class CVariableDef extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node) throws Exception {
+            Tree<?> typeNode = node.get(Symbol.unique("type"));
+            Tree<?> varNode = node.get(Symbol.unique("var"));
+            AstType type = AstType.nodeToType((SyntaxTree)typeNode);
+            String varName = varNode.toText();
+            boolean isAdded = TypeMap.addGlobal(varName, type);
+            if(!isAdded){
+                ErrorPrinter.error("Duplicate define: "+varName, (SyntaxTree)node);
+            }
+            CVariableTable.put(varName, type);
         }
     }
 }
