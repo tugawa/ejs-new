@@ -194,6 +194,21 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         }
     }
 
+    public class While extends DefaultVisitor{
+        @Override
+        public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+            TypeMapSet dict = node.getTypeMapSet();
+            Collection<String> locals = dict.getKeys();
+            Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
+            SyntaxTree blockNode = node.get(Symbol.unique("block"));
+            ControlFlowGraphNode body = new ControlFlowGraphNode(locals, jsTypeVars);
+            from.makeEdgeTo(body);
+            body.makeEdgeTo(body);
+            ControlFlowGraphNode after = visit(blockNode, body);
+            return after;
+        }
+    }
+
     public class Match extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{

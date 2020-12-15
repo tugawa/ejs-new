@@ -885,6 +885,31 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class While extends DefaultVisitor {
+        @Override
+        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            SyntaxTree cond = node.get(Symbol.unique("cond"));
+            final AstType T_CINT = AstType.get("cint");
+            for(TypeMap typeMap : dict){
+                ExprTypeSet exprTypeSet = visit(cond, typeMap);
+                for(AstType type : exprTypeSet){
+                    if(type != T_CINT){
+                        ErrorPrinter.error("incompatible types: expect cint type", node);
+                    }
+                }
+            }
+            TypeMapSet whileDict = dict;
+            TypeMapSet savedDict;
+            do {
+                savedDict = whileDict.clone();
+                SyntaxTree block = node.get(Symbol.unique("block"));
+                whileDict = visit(block, whileDict);
+            } while (!whileDict.equals(savedDict));
+            node.setTypeMapSet(dict);
+            return dict;
+        }
+    }
+
     public class CTypeDef extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {

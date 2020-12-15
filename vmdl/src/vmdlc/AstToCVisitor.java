@@ -601,15 +601,25 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> condNode = node.get(Symbol.unique("cond"));
             Tree<?> thenNode = node.get(Symbol.unique("then"));
             printIndent(indent, "if (");
-            visit(condNode, indent + 1);
-            println(") {");
-            visit(thenNode, indent + 1);
-            printIndentln(indent, "}");
+            visit(condNode, indent);
+            if(thenNode.is(Symbol.unique("Block"))){
+                println(")");
+                visit(thenNode, indent);
+            }else{
+                println(") {");
+                visit(thenNode, indent + 1);
+                printIndentln(indent, "}");
+            }
             if (node.has(Symbol.unique("else"))) {
                 Tree<?> elseNode = node.get(Symbol.unique("else"));
-                printIndentln(indent, "else {");
-                visit(elseNode, indent + 1);
-                printIndentln(indent, "}");
+                if(thenNode.is(Symbol.unique("Block"))){
+                    printIndentln(indent, "else");
+                    visit(elseNode, indent);
+                }else{
+                    printIndentln(indent, "else {");
+                    visit(elseNode, indent + 1);
+                    printIndentln(indent, "}");
+                }
             }
         }
     }
@@ -631,9 +641,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(varNode, 0);
             print("+=");
             visit(stepNode, 0);
-            println(") {");
-            visit(blockNode, indent + 1);
-            printIndentln(indent, "}");
+            println(")");
+            visit(blockNode, indent);
         }
     }
     public class DoInit extends DefaultVisitor {
@@ -647,6 +656,17 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(varNode, 0);
             print("=");
             visit(exprNode, 0);
+        }
+    }
+    public class While extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> condNode = node.get(Symbol.unique("cond"));
+            Tree<?> blockNode = node.get(Symbol.unique("block"));
+            printIndent(indent, "while (");
+            visit(condNode, 0);
+            println(")");
+            visit(blockNode, indent);
         }
     }
     public class Rematch extends DefaultVisitor {

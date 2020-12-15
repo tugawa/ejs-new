@@ -178,7 +178,7 @@ public class Main {
             for (SourceError e: parser.getErrors()) {
                 System.err.println(e);
             }
-            ErrorPrinter.error("Parse error");
+            System.exit(-1);
         }
         return ast;
     }
