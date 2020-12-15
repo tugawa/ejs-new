@@ -37,6 +37,13 @@ public class ErrorPrinter{
     }
 
     public static void error(String message, SyntaxTree node){
+        if(node.has(Symbol.unique("recv")))
+            errorForRecvNode(message, node);
+        else
+            errorPlain(message, node);
+    }
+
+    public static void errorPlain(String message, SyntaxTree node){
         int line = node.getLineNum();
         long column = node.getSourcePosition();
         int textLength = node.toText().length();
