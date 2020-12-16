@@ -169,4 +169,16 @@ public class ASTHelper {
         return new SyntaxTree(Symbol.unique(""), , , null);
     }
     */
+
+    //*********************************
+    // Specials
+    //*********************************
+
+    static SyntaxTree EMPTY_ARGLIST = generateArgList(null);
+    static SyntaxTree BUILTIN_PROLOGUE = generateFunctionCall("builtin_prologue", EMPTY_ARGLIST);
+
+    static {
+        EMPTY_ARGLIST.setValue("()");
+    }
+
 }

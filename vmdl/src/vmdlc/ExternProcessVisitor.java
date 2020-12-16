@@ -69,6 +69,9 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             if(annotations.contains(FunctionAnnotation.vmInstruction) && annotations.contains(FunctionAnnotation.makeInline)){
                 ErrorPrinter.error("Function has annotations of \"vmInstruction\" and \"makeInline\"", (SyntaxTree)node);
             }
+            if(annotations.contains(FunctionAnnotation.builtinFunction) && !annotations.contains(FunctionAnnotation.needContext)){
+                ErrorPrinter.error("BuiltinFunction requires \"needContext\" annotation", (SyntaxTree)annotationsNode);
+            }
             String name = nameNode.toText();
             currentFunctionName = name;
             AstType type = AstType.nodeToType((SyntaxTree)typeNode);

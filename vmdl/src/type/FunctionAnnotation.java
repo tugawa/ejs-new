@@ -8,7 +8,8 @@ public enum FunctionAnnotation {
     triggerGC(),
     tailCall(),
     noIncPC(),
-    makeInline();
+    makeInline(),
+    builtinFunction();
 
     private FunctionAnnotation(){
     }

@@ -11,9 +11,11 @@ public class FunctionTable{
     private static Map<String, FunctionInfo> functionMap = new HashMap<>();
 
     static{
-        AstProductType type = new AstProductType(AstType.get("Top"), AstType.get("void"));
-        put("GC_PUSH", type, Collections.emptySet());
-        put("GC_POP", type, Collections.emptySet());
+        AstProductType topToVoidType = new AstProductType(AstType.get("Top"), AstType.get("void"));
+        AstProductType voidToVoidType = new AstProductType(AstType.get("Top"), AstType.get("void"));
+        put("GC_PUSH", topToVoidType, Collections.emptySet());
+        put("GC_POP", topToVoidType, Collections.emptySet());
+        put("builtin_prologue", voidToVoidType, Collections.emptySet());
     }
 
     public static void put(String name, AstProductType type, Set<FunctionAnnotation> annotations){

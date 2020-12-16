@@ -55,7 +55,8 @@ public class Main {
 
     public static enum CompileMode{
         Instruction(false),
-        Function(true);
+        Function(true),
+        Builtin(true);
 
         private boolean functionMode;
         private CompileMode(boolean functionMode){
@@ -233,6 +234,8 @@ public class Main {
         if(behaviorMode == BehaviorMode.Compile){
             if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.vmInstruction)){
                 compileMode = CompileMode.Instruction;
+            }else if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.builtinFunction)){
+                compileMode = CompileMode.Builtin;
             }else{
                 compileMode = CompileMode.Function;
             }
@@ -247,7 +250,8 @@ public class Main {
             .setTypeCheckPolicy(TypeCheckVisitor.TypeCheckPolicy.values()[typeMapIndex-1])
             .setFunctionIniningFlag((inlineExpansionFile != null))
             .setUpdateFTDFlag((functionDependencyFile != null))
-            .setCaseSplitFlag(doCaseSplit);
+            .setCaseSplitFlag(doCaseSplit)
+            .setCompileMode(compileMode);
         new TypeCheckVisitor().start(ast, typeCheckOption);
         if(behaviorMode == BehaviorMode.Preprocess){
             try{
@@ -271,7 +275,7 @@ public class Main {
         }
         ControlFlowGraphNode enter = new ControlFlowGraphConstructVisitor().start(ast);
         new VarInitCheckVisitor().start(enter);
-        new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit);
+        new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit, compileMode);
         // For Test
         //ControlFlowGraphPrinter.print(enter);
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);

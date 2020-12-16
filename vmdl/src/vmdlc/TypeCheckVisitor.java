@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import vmdlc.Main.CompileMode;
 import vmdlc.TypeCheckVisitor.DefaultVisitor;
 import type.AstType.*;
 import type.AstType;
@@ -127,6 +128,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         private boolean updateFTDFlag;
         private boolean updateFunctionSpecFlag;
         private boolean caseSplitFlag;
+        private CompileMode compileMode;
 
         public TypeCheckOption setOperandSpec(OperandSpecifications opSpec){
             this.opSpec = opSpec;
@@ -157,6 +159,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             this.caseSplitFlag = flag;
 			return this;
         }
+        public TypeCheckOption setCompileMode(CompileMode mode){
+            this.compileMode = mode;
+            return this;
+        }
         public OperandSpecifications getOperandSpec(){
 			return opSpec;
 		}
@@ -180,7 +186,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 		}
         public boolean doCaseSplit(){
 			return caseSplitFlag;
-		}
+        }
+        public CompileMode getCompileMode(){
+            return compileMode;
+        }
     }
 
     MatchStack matchStack;
@@ -308,29 +317,48 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     FunctionDefiningInformation superFunction;
     
     public class FunctionMeta extends DefaultVisitor {
+        private final boolean isFormBuiltinFunctionParams(SyntaxTree paramNode){
+            if(paramNode.size() < 2) return false;
+            Tree<?>[] params = paramNode.getSubTree();
+            if(!params[0].toText().equals("fp")) return false;
+            if(!params[1].toText().equals("na")) return false;
+            if(paramNode.size() == 2) return true;
+            if(!params[2].toText().equals("args")) return false;
+            return true;
+        }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            SyntaxTree type = node.get(Symbol.unique("type"));
-            AstProductType funtype = (AstProductType) AstType.nodeToType((SyntaxTree) type);
-
-
-            SyntaxTree definition = node.get(Symbol.unique("definition"));
-
-            SyntaxTree nodeName = node.get(Symbol.unique("name"));
-            SyntaxTree nameNode = definition.get(Symbol.unique("name"));
+            SyntaxTree typeNode = node.get(Symbol.unique("type"));
+            SyntaxTree nameNode = node.get(Symbol.unique("name"));
+            SyntaxTree definitionNode = node.get(Symbol.unique("definition"));
+            AstProductType funtype = (AstProductType) AstType.nodeToType(typeNode);
             String name = nameNode.toText();
+            if(!name.equals(definitionNode.get(Symbol.unique("name")).toText()))
+                ErrorPrinter.error("Function name does not match", definitionNode.get(Symbol.unique("name")));
             /* All Functions have been defined in ExternProcessVisitor */
             if(!FunctionTable.getType(name).equals(funtype)){
                 throw new Error("FunctionTable is broken: FunctionTable types "
                     +FunctionTable.getType(name)+" real types " + funtype);
             }
-            
             Set<String> domain = new HashSet<String>(dict.getKeys());
-
             Set<TypeMap> newSet = dict.clone().getTypeMapSet();
             Set<TypeMap> newSet2 = new HashSet<>();
             /* add non-JSValue parameters */
-            SyntaxTree paramsNode = definition.get(Symbol.unique("params"));
+            SyntaxTree paramsNode = definitionNode.get(Symbol.unique("params"));
+            if(option.getCompileMode() == CompileMode.Builtin){
+                if(paramsNode == null){
+                    ErrorPrinter.error("BuiltinFunctions requires parameters");
+                }
+                if(!AstType.isBuiltinFunctionType(funtype)){
+                    ErrorPrinter.error("BuiltinFunctions must be (cint, cint, JSValue[]) -> JSValue or (cint, cint) -> JSValue type", typeNode);
+                }
+                if(!isFormBuiltinFunctionParams(paramsNode)){
+                    ErrorPrinter.error("BuiltinFunction parameter must be (fp, na, args) or (fp, na)", paramsNode);
+                }
+            }
+            if(funtype.parameterSize() != paramsNode.size()){
+                ErrorPrinter.error("Parameters number does not match", paramsNode);
+            }
             if (paramsNode != null && paramsNode.size() != 0) {
                 String[] paramNames = new String[paramsNode.size()];
                 String[] jsvParamNames = new String[paramsNode.size()];
@@ -408,7 +436,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             TypeMapSet newDict = TYPE_MAP.clone();
             newDict.setTypeMapSet(newSet2);
             newDict.setDispatchSet(node.getRematchVarSet());
-            SyntaxTree body = (SyntaxTree) definition.get(Symbol.unique("body"));
+            SyntaxTree body = definitionNode.get(Symbol.unique("body"));
             List<String> argNames = new ArrayList<>(paramsNode.size());
             for(SyntaxTree param : paramsNode){
                 argNames.add(param.toText());
@@ -417,7 +445,6 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext));
             dict = visit(body, newDict);
             save(nameNode, dict);
-            save(nodeName, dict);
             save(paramsNode, dict);
             return dict.select(domain);
         }
@@ -791,7 +818,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 exprTypeSet = visit(exprNode, typeMap);
                 for(AstType type : exprTypeSet){
                     if(!varType.isSuperOrEqual(type)){
-                        ErrorPrinter.error("Type error: "+type+" is incompatible with "+varType, exprNode);
+                            ErrorPrinter.error("Type error: "+type+" is incompatible with "+varType, exprNode);
                     }
                     TypeMap temp = typeMap.clone();
                     Set<TypeMap> addedSet = dict.getAddedSet(temp, varName, type);

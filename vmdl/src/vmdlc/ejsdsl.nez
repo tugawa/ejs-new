@@ -283,6 +283,7 @@ Annotation = { 'vmInstruction' } !W _
            / { 'tailCall' } !W _
            / { 'noIncPC' } !W _
            / { 'makeInline' } !W _
+           / { 'builtinFunction' } !W _
 
 ObjectMemberAnnotation = { "embedded" } _
 

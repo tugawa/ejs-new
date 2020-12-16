@@ -9,10 +9,12 @@
 package type;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import vmdlc.ErrorPrinter;
@@ -46,6 +48,7 @@ public class AstType {
     static Map<String, AstMappingType> definedMappingTypes = new HashMap<>();
     static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<>();
     static Map<AstBaseType, Set<AstType>> childrenMap = new HashMap<>();
+    static Set<AstProductType> builtinFunctionTypes = new HashSet<>(2);
     static void defineType(String name) {
         defineType(name, null);
     }
@@ -136,6 +139,12 @@ public class AstType {
         newSet.add(this);
         return newSet;
     }
+    public static boolean isBuiltinFunctionType(AstType type){
+        for(AstProductType t : builtinFunctionTypes){
+            if(t.equals(type)) return true;
+        }
+        return false;
+    }
     public String getCName(){
         if(this instanceof AstAliasType){
             return ((AstAliasType)this).getCTypeName();
@@ -179,6 +188,9 @@ public class AstType {
         defineJSValueVMType("StringObject", jsObjType, VMDataType.get("string_object"));
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
         defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
+        AstType cintType = AstType.get("cint");
+        builtinFunctionTypes.add(new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, new AstArrayType(jsValType) })), jsValType));
+        builtinFunctionTypes.add(new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType })), jsValType));
     }
 
     String name;
@@ -353,8 +365,8 @@ HeapObject
      */
 
     public static class AstPairType extends AstType {
-        ArrayList<AstType> types;
-        public AstPairType(ArrayList<AstType> _types) {
+        List<AstType> types;
+        public AstPairType(List<AstType> _types) {
             types = _types;
         }
         public String toString() {
@@ -370,7 +382,7 @@ HeapObject
             sb.append(")");
             return sb.toString();
         }
-        public ArrayList<AstType> getTypes() {
+        public List<AstType> getTypes() {
             return types;
         }
         public int size() {
@@ -407,6 +419,13 @@ HeapObject
         }
         public AstType getRange() {
             return range;
+        }
+        public int parameterSize(){
+            if(domain instanceof AstBaseType)
+                return 1;
+            if(domain instanceof AstPairType)
+                return ((AstPairType)domain).getTypes().size();
+            throw new Error("Domain type of AstProductType is illigal state: "+domain.toString());
         }
         @Override
         public int hashCode(){

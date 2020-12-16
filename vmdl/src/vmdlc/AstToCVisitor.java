@@ -23,7 +23,7 @@ import java.lang.Exception;
 import java.lang.Integer;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
-
+import vmdlc.Main.CompileMode;
 import dispatch.DispatchProcessor;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
@@ -206,7 +206,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             if(compileMode.isFunctionMode()){
                 String typeString;
-                if(AstType.get("JSValue").isSuperOrEqual(funType.getRange())){
+                if(compileMode == Main.CompileMode.Builtin){
+                    typeString = "void";
+                }else if(AstType.get("JSValue").isSuperOrEqual(funType.getRange())){
                     typeString = "JSValue";
                 }else{
                     typeString = funType.getRange().toString();
@@ -224,51 +226,75 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                         print(", ");
                     }
                 }
-                int i=0;
-                while(true){
-                    AstType varType = varTypes.get(i);
-                    String varName = paramsNode.get(i).toText();
-                    AstType realVarType;
-                    String typeName;
-                    if(varType instanceof AstAliasType){
-                        realVarType = AstType.get(((AstAliasType)varType).getCTypeName());
-                    }else{
-                        realVarType = varType;
+                if(compileMode == Main.CompileMode.Builtin){
+                    print("cint fp, cint na");
+                }else{
+                    int i=0;
+                    while(true){
+                        AstType varType = varTypes.get(i);
+                        String varName = paramsNode.get(i).toText();
+                        AstType realVarType;
+                        String typeName;
+                        if(varType instanceof AstAliasType){
+                            realVarType = AstType.get(((AstAliasType)varType).getCTypeName());
+                        }else{
+                            realVarType = varType;
+                        }
+                        if(AstType.get("JSValue").isSuperOrEqual(realVarType)){
+                            typeName = "JSValue";
+                        }else{
+                            typeName = realVarType.toString();
+                        }
+                        print(typeName+" "+varName);
+                        i++;
+                        if(i>=size) break;
+                        print(", ");
                     }
-                    if(AstType.get("JSValue").isSuperOrEqual(realVarType)){
-                        typeName = "JSValue";
-                    }else{
-                        typeName = realVarType.toString();
-                    }
-                    print(typeName+" "+varName);
-                    i++;
-                    if(i>=size) break;
-                    print(", ");
                 }
-                println(") {");
-                indent++;
+                println(")");
+                //indent++;
             }
             if(!compileMode.isFunctionMode()){
                 notifyICCProfCode(bodyNode, genICCProfCode(name, varTypes, paramsNode));
             }
-            visit(bodyNode, indent);
-            if(compileMode.isFunctionMode()){
-                print("#ifdef DEBUG\nLOG_EXIT(\"unexpected function execute: "+name+"\\n\");\n#endif\n");
-                print("}");
+            // TODO: Change the policy of LOG_EXIT generation 
+            if(compileMode == CompileMode.Function){
+                SyntaxTree blockNode = ((SyntaxTree)bodyNode).get(Symbol.unique("body"));
+                SyntaxTree[] originalStmts = (SyntaxTree[])blockNode.getSubTree();
+                SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
+                int length = originalStmts.length;
+                for(int i=0; i<length; i++){
+                    expandedStmts[i] = originalStmts[i];
+                }
+                expandedStmts[length] = new SyntaxTree(Symbol.unique("IfdefDebug"), null, null, name);
+                SyntaxTree newBodyNode = (SyntaxTree)bodyNode.dup();
+                newBodyNode.set(Symbol.unique("body"), ASTHelper.generateBlock(expandedStmts));
+                bodyNode = newBodyNode;
             }
+            visit(bodyNode, indent);
+        }
+    }
+    public class IfdefDebug extends DefaultVisitor {
+        @Override
+        public void accept(Tree<?> node, int indent) throws Exception {
+            String name = (String)node.getValue();
+            printIndentln(indent, "#ifdef DEBUG");
+            printIndentln(indent, "LOG_EXIT(\"unexpected function execute: "+name+"\\n\");");
+            printIndentln(indent, "#endif");
         }
     }
     public class FunctionDefinition extends DefaultVisitor {
+        @Override
         public void accept(Tree<?> node, int indent) throws Exception {
+            Tree<?> paramsNode = node.get(Symbol.unique("params"));
             if(!compileMode.isFunctionMode()){
                 Tree<?> funNameNode = node.get(Symbol.unique("name"));
-                Tree<?> paramsNode = node.get(Symbol.unique("params"));
                 String[] jsvParams = new String[paramsNode.size()];
                 int jsvNum = 0;
 
                 for (int i = 0; i < paramsNode.size(); i++) {
                     String paramName = paramsNode.get(i).toText();
-                    // JSValue parameter's name starts with v as defined in InstructionDefinitions.java
+                    /* JSValue parameter's name starts with v as defined in InstructionDefinitions.java */
                     if (paramName.startsWith("v")) {
                         jsvParams[jsvNum++] = paramName;
                     }
@@ -281,6 +307,17 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 println(");");
             }
             Tree<?> bodyNode = node.get(Symbol.unique("body"));
+            // TODO: Improve judgement to generate builtin_plorogue
+            if(compileMode == Main.CompileMode.Builtin && paramsNode.size() == 3){
+                SyntaxTree[] originalStmts = (SyntaxTree[])((SyntaxTree)bodyNode).getSubTree();
+                SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
+                expandedStmts[0] = ASTHelper.generateExpressionStatement(ASTHelper.BUILTIN_PROLOGUE);
+                int length = originalStmts.length;
+                for(int i=0; i<length; i++){
+                    expandedStmts[i+1] = originalStmts[i];
+                }
+                bodyNode = ASTHelper.generateBlock(expandedStmts);
+            }
             visit(bodyNode, indent);
         }
     }
@@ -324,6 +361,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             printIndentln(indent, "}");
         }
+
     }
 
     private static Map<String, Integer> matchLabelGeneratedSizeMap = new HashMap<>();
@@ -466,7 +504,13 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            if (compileMode.isFunctionMode()) {
+            if(compileMode == Main.CompileMode.Builtin){
+                printIndent(indent, "set_a(context, ");
+                for (Tree<?> expr : node) {
+                    visit(expr, 0);
+                }
+                println(");");
+            }else if (compileMode.isFunctionMode()) {
                 printIndent(indent, "return ");
                 for (Tree<?> expr : node) {
                     visit(expr, 0);

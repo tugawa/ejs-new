@@ -16,6 +16,7 @@ import nez.ast.TreeVisitorMap;
 import type.CConstantTable;
 import type.FunctionAnnotation;
 import type.FunctionTable;
+import vmdlc.Main.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
 import vmdlc.TriggerGCCheckVisitor.BlockExpansionMap.BlockExpansionRequsets;
 
@@ -118,12 +119,14 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     GCFunctionGenerator gcFunctionGenerator = new GCFunctionGenerator();
     BlockExpansionMap blockExpansionMap = new BlockExpansionMap();
     BlockExpansionRequsets currentRequestHandler;
+    CompileMode compileMode;
 
     public TriggerGCCheckVisitor() {
         init(TriggerGCCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(ControlFlowGraphNode node) {
+    public void start(ControlFlowGraphNode node, CompileMode compileMode) {
+        this.compileMode = compileMode;
         try {
             Queue<ControlFlowGraphNode> queue = new ArrayDeque<>();
             queue.add(node);
@@ -195,6 +198,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Statements extends DefaultVisitor{
         public void pushPopGenerate(SyntaxTree node, Collection<String> live){
             List<String> liveList = new ArrayList<>(live);
+            if(compileMode == CompileMode.Builtin){
+                liveList.remove("args");
+            }
             int size = liveList.size();
             SyntaxTree[] stmts = new SyntaxTree[size*2+1];
             for(int i=0; i<size; i++){
