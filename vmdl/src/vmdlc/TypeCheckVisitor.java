@@ -404,6 +404,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     System.arraycopy(jsvParamNames, 0, jsvParamNamesPacked, 0, nJsvTypes);
                     VMDataTypeVecSet vtvs = option.getOperandSpec().getAccept(name, jsvParamNamesPacked);
                     Set<VMDataType[]> tupleSet = vtvs.getTuples();
+                    if(tupleSet == null){
+                        ErrorPrinter.error("Cannot find operand specification: "+name);
+                    }
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
                     Set<Map<String, AstType>> jsvMapSet = new HashSet<>();

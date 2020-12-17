@@ -13,9 +13,12 @@ import java.util.Map.Entry;
 
 import nez.ast.Symbol;
 import nez.ast.TreeVisitorMap;
+import type.AstType;
 import type.CConstantTable;
+import type.CVariableTable;
 import type.FunctionAnnotation;
 import type.FunctionTable;
+import type.AstType.AstBaseType;
 import vmdlc.Main.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
 import vmdlc.TriggerGCCheckVisitor.BlockExpansionMap.BlockExpansionRequsets;
@@ -151,7 +154,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 int size = stmts.size();
                 for(int i=size-1; i>=0; i--){
                     SyntaxTree stmt = stmts.get(i);
-                    if(!hasTriggerGC(stmt)) continue;
+                    if(!hasTriggerGC(stmt)){
+                        collect(stmt, newTailLive, jsTypeVars);
+                        continue;
+                    }
                     visit(stmt, newTailLive, jsTypeVars);
                 }
                 Collection<ControlFlowGraphNode> prevs = target.getPrev();
@@ -181,6 +187,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         return find(node.getTag().toString()).findTriggerGC(node);
     }
 
+    private final void collect(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        find(node.getTag().toString()).addLive(node, live, jsTypeVars);
+    }
+
     public class DefaultVisitor{
         public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
             for(SyntaxTree chunk : node){
@@ -192,6 +202,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 if(hasTriggerGC(chunk)) return true;
             }
             return false;
+        }
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            for(SyntaxTree chunk : node){
+                collect(chunk, live, jsTypeVars);
+            }
         }
     }
 
@@ -211,6 +226,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             stmts[size] = nestSolved;
             node.clearExpandedTreeCandidate();
             node.addExpandedTreeCandidate(ASTHelper.generateBlock(stmts));
+        }
+        public void liveCollect(SyntaxTree expr, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            collect(expr, live, jsTypeVars);
         }
     }
 
@@ -257,6 +275,12 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(expr, live, jsTypeVars);
             pushPopGenerate(node, live);
         }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            if(!node.has(Symbol.unique("expr"))) return;
+            SyntaxTree expr = node.get(Symbol.unique("expr"));
+            liveCollect(expr, live, jsTypeVars);
+        }
     }
 
     public class Assignment extends Statements{
@@ -268,6 +292,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             String varName = var.toText();
             live.remove(varName);
             pushPopGenerate(node, live);
+        }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            SyntaxTree expr = node.get(Symbol.unique("right"));
+            liveCollect(expr, live, jsTypeVars);
         }
     }
 
@@ -283,6 +312,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             pushPopGenerate(node, live);
         }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            SyntaxTree expr = node.get(Symbol.unique("right"));
+            liveCollect(expr, live, jsTypeVars);
+        }
     }
 
     public class ExpressionStatement extends Statements{
@@ -293,23 +327,40 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             pushPopGenerate(node, live);
         }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            SyntaxTree expr = node.get(0);
+            liveCollect(expr, live, jsTypeVars);
+        }
     }
 
     public class Name extends DefaultVisitor{
         private boolean isCConstant(String name){
             return CConstantTable.contains(name);
         }
+        private boolean isRelocatableExternC(String name){
+            if(!CVariableTable.contains(name)) return false;
+            AstType type = CVariableTable.get(name);
+            if(!(type instanceof AstBaseType)) return false;
+            return ((AstBaseType)type).isRelocatable();
+        }
         @Override
         public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
             String name = node.toText();
-            // TODO: add condition that is variable externC when externC variable is implemented.
-            if(!isCConstant(name) && jsTypeVars.contains(name)){
+            if(!isCConstant(name) && (jsTypeVars.contains(name) || isRelocatableExternC(name))){
                 live.add(name);
             }
         }
         @Override
         public boolean findTriggerGC(SyntaxTree node) throws Exception{
             return false;
+        }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            String name = node.toText();
+            if(!isCConstant(name) && (jsTypeVars.contains(name) || isRelocatableExternC(name))){
+                live.add(name);
+            }
         }
     }
 
@@ -329,6 +380,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public boolean findTriggerGC(SyntaxTree node) throws Exception{
             String functionName = node.get(Symbol.unique("recv")).toText();
             return FunctionTable.hasAnnotations(functionName, FunctionAnnotation.triggerGC);
+        }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+            SyntaxTree args = node.get(Symbol.unique("args"));
+            visit(args, live, jsTypeVars);
         }
     }
 }

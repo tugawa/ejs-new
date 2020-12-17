@@ -260,6 +260,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             // TODO: Change the policy of LOG_EXIT generation 
             if(compileMode == CompileMode.Function){
                 SyntaxTree blockNode = ((SyntaxTree)bodyNode).get(Symbol.unique("body"));
+                while(blockNode.hasExpandedTree()){
+                    blockNode = blockNode.getExpandedTree();
+                }
                 SyntaxTree[] originalStmts = (SyntaxTree[])blockNode.getSubTree();
                 SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
                 int length = originalStmts.length;
@@ -306,9 +309,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 println(");");
             }
-            Tree<?> bodyNode = node.get(Symbol.unique("body"));
+            SyntaxTree bodyNode = (SyntaxTree) node.get(Symbol.unique("body"));
             // TODO: Improve judgement to generate builtin_plorogue
             if(compileMode == Main.CompileMode.Builtin && paramsNode.size() == 3){
+                while(bodyNode.hasExpandedTree()){
+                    bodyNode = bodyNode.getExpandedTree();
+                }
                 SyntaxTree[] originalStmts = (SyntaxTree[])((SyntaxTree)bodyNode).getSubTree();
                 SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
                 expandedStmts[0] = ASTHelper.generateExpressionStatement(ASTHelper.BUILTIN_PROLOGUE);
@@ -350,7 +356,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Block extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedNode = ((SyntaxTree)node).getExpandedTree();
             if(expandedNode != null){
                 visit(expandedNode, indent);
                 return;
@@ -371,7 +377,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedNode = ((SyntaxTree)node).getExpandedTree();
             if(expandedNode != null){
                 // INLINE EXPANSION PRINT ******************************************
                 /*
@@ -530,7 +536,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Assignment extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpandedTree();
             if(expandedTree != null){
                 visit(expandedTree, indent);
                 return;
@@ -547,7 +553,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class AssignmentPair extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpandedTree();
             if(expandedTree != null){
                 visit(expandedTree, indent);
                 return;
@@ -605,7 +611,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class ExpressionStatement extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpandedTree();
             if(expandedTree != null){
                 visit(expandedTree, indent);
                 return;
@@ -618,7 +624,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Declaration extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedTree = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedTree = ((SyntaxTree)node).getExpandedTree();
             if(expandedTree != null){
                 visit(expandedTree, indent);
                 return;
@@ -888,7 +894,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionCall extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            SyntaxTree expandedNode = ((SyntaxTree)node).getExpanndedTree();
+            SyntaxTree expandedNode = ((SyntaxTree)node).getExpandedTree();
             if(expandedNode != null){
                 // INLINE EXPANSION PRINT ******************************************
                 /*

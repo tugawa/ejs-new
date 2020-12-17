@@ -80,6 +80,8 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
             }
             if(!FunctionTable.contains(name)){
                 FunctionTable.put(name, (AstProductType)type, annotations);
+            }else{
+                ErrorPrinter.error("The function is already defined (Maybe externC): "+name, (SyntaxTree)nameNode);
             }
         }
     }
@@ -111,7 +113,7 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
                 ErrorPrinter.error("Function is not function type", (SyntaxTree)typeNode);
             }
             if(FunctionTable.contains(name)){
-                ErrorPrinter.error("Double define: "+name, (SyntaxTree)node);
+                ErrorPrinter.error("The function is already defined: "+name, (SyntaxTree)node);
             }
             FunctionTable.put(name, (AstProductType)type, annotations);
         }

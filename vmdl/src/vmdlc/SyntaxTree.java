@@ -166,7 +166,7 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         cannotExpandFlag = true;
     }
 
-    public SyntaxTree getExpanndedTree(){
+    public SyntaxTree getExpandedTree(){
         /*
         System.err.println("original:"+toString());
         if(expandedTreeCandidate!=null)System.err.println("candidates:"+expandedTreeCandidate.toString());
@@ -183,6 +183,10 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         }
         //System.err.println("Fail To Expand due to multiple candidates");
         return null;
+    }
+
+    public boolean hasExpandedTree(){
+        return getExpandedTree() != null;
     }
 
     @Override
