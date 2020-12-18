@@ -540,8 +540,9 @@ static cell_type_t get_threaded_header_type(header_t *hdrp) {
   return hdrp->type;
 }
 static bool get_threaded_header_markbit(header_t *hdrp) {
-  while(is_reference((void **) hdrp->threaded)) {
-    hdrp = (header_t *) hdrp->threaded;
+  /* If header is threaded, it must be marked */
+  if (is_reference((void **) hdrp->threaded)) {
+    return true;
   }
 
   return hdrp->markbit != 0;
