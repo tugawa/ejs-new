@@ -1,14 +1,12 @@
 #ifndef FREELIST_SPACE_INL_H
 #define FREELIST_SPACE_INL_H
 
-static inline header_t compose_header(size_t granules, size_t extra,
-                                      cell_type_t type)
+static inline header_t compose_header(size_t granules, cell_type_t type)
 {
   header_t hdr;
   hdr.identifier = 1;
   hdr.type = type;
   hdr.markbit = 0;
-  hdr.extra = extra;
   hdr.magic = HEADER_MAGIC;
 #ifdef GC_DEBUG
   hdr.gen = generation;
@@ -27,7 +25,6 @@ static inline footer_t compose_footer(size_t granules, size_t extra,
   footer.as_header.identifier = 1;
   footer.as_header.type = type;
   footer.as_header.markbit = 0;
-  footer.as_header.extra = extra;
   footer.as_header.magic = HEADER_MAGIC;
 #ifdef GC_DEBUG
   footer.as_header.gen = generation;

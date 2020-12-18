@@ -56,7 +56,7 @@ STATIC_INLINE size_t get_payload_granules(header_t *hdrp) __attribute((unused));
 STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 {
   header_t hdr = *hdrp;
-  return hdr.size - hdr.extra - HEADER_GRANULES;
+  return hdr.size - HEADER_GRANULES;
 }
 
 /*
@@ -140,7 +140,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
     if (next < space->end) {
       space->begin = next;
       space->free_bytes -= bytes;
-      *hdrp = compose_header(alloc_granules, 0, type);
+      *hdrp = compose_header(alloc_granules, type);
       return header_to_payload(hdrp);
     }
   } else {
@@ -161,7 +161,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
       *((footer_t *) hdrp) = compose_footer(alloc_granules, 0, type);
       footer->size_hi = alloc_granules;
 #else /* GC_THREADED_BOUNDARY_TAG */
-      *hdrp = compose_header(alloc_granules, 0, type);
+      *hdrp = compose_header(alloc_granules, type);
       *footer = *hdrp;
 #endif /* GC_THREADED_BOUNDARY_TAG */
       return header_to_payload(hdrp);

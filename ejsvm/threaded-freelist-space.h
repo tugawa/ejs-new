@@ -38,8 +38,7 @@ extern "C" {
 #define HEADER_IDENTIFIER_BITS 1
 #define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
 #define HEADER_MARKBIT_BITS    1
-#define HEADER_EXTRA_BITS      3
-#define HEADER_GEN_BITS        4
+#define HEADER_GEN_BITS        7
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
 #define HEADER_SIZE_BITS_LO    16
@@ -50,8 +49,7 @@ extern "C" {
 #define HEADER_IDENTIFIER_BITS 1
 #define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
 #define HEADER_MARKBIT_BITS    1
-#define HEADER_EXTRA_BITS      3
-#define HEADER_GEN_BITS        4
+#define HEADER_GEN_BITS        7
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
 #define HEADER_SIZE_BITS_LO    16
@@ -65,7 +63,6 @@ typedef struct header_t {
       unsigned int identifier: HEADER_IDENTIFIER_BITS;
       cell_type_t  type:       HEADER_TYPE_BITS;
       unsigned int markbit:    HEADER_MARKBIT_BITS;
-      unsigned int extra:      HEADER_EXTRA_BITS;
       unsigned int magic:      HEADER_MAGIC_BITS;
       unsigned int gen:        HEADER_GEN_BITS;
       unsigned int size:       HEADER_SIZE_BITS;
@@ -80,7 +77,6 @@ typedef struct footer_t {
       unsigned int d_identifier: HEADER_IDENTIFIER_BITS;
       cell_type_t  d_type:       HEADER_TYPE_BITS;
       unsigned int d_markbit:    HEADER_MARKBIT_BITS;
-      unsigned int d_extra:      HEADER_EXTRA_BITS;
       unsigned int d_magic:      HEADER_MAGIC_BITS;
       unsigned int d_gen:        HEADER_GEN_BITS;
       unsigned int size_lo:      HEADER_SIZE_BITS_LO;
@@ -90,8 +86,7 @@ typedef struct footer_t {
 } footer_t;
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
-static inline header_t compose_header(size_t granules, size_t extra,
-                                      cell_type_t type);
+static inline header_t compose_header(size_t granules, cell_type_t type);
 
 /*
  *  Types
