@@ -172,9 +172,10 @@ ObjectMember    = { $annotations(ObjectMemberAnnotation)*
                     $var(VarName)#Member ";" }
 
 Annotations = { "(" $(Annotation) ( "," $(Annotation) )* ")" #Annotations }
+            / "(" _ ")"
             / _
 
-CFunctionDefinition = { $annotations(Annotations) $name(FunctionName) ":" $type(Type) #CFunction }
+CFunctionDefinition = { $annotations(Annotations) _ "function"? _ $name(FunctionName) ":" $type(Type) #CFunction }
 Type = { $(TypePair) (TypeProduct)+ #TypeProduct }
      / TypePair
      / {$(TypeName) (TypeProduct)+ #TypeProduct}
@@ -255,6 +256,7 @@ Boolean = { "true" #True } _
 ////////////////////////////////
 
 KEYWORD = "#include"
+        / "function"
         / "type"
         / "constant"
         / "variable"
@@ -311,6 +313,7 @@ Ctypes = 'cint'
 ":" = ':' _
 "," = ',' _
 "->" = '->' _
+"function" = 'function' !W
 "constant" = 'constant' !W
 "variable" = 'variable' !W
 "embedded" = 'embedded' !W
