@@ -64,6 +64,7 @@ typedef struct instruction    Instruction;
  */
 #define LOG_MAX_NUM_CELL_TYPES 6
 typedef enum cell_type_t {
+  CELLT_FREE          = 0x00,
   CELLT_STRING        = HTAGV_STRING,
   CELLT_FLONUM        = HTAGV_FLONUM,
   CELLT_SIMPLE_OBJECT = HTAGV_SIMPLE_OBJECT,

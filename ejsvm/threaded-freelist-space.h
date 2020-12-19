@@ -92,8 +92,6 @@ static inline header_t compose_header(size_t granules, cell_type_t type);
  *  Types
  */
 
-#define CELLT_FREE          (0xff)
-
 /* |----------->       <-------------|  */
 /* head      begin    end          tail */
 struct space {
