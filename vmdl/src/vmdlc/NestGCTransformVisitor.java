@@ -260,7 +260,7 @@ public class NestGCTransformVisitor extends TreeVisitorMap<DefaultVisitor> {
             if(!(rangeType instanceof AstBaseType)){
                 throw new Error("The range type of FunctionCall "+node.get(Symbol.unique("recv")).toText()+" is "+rangeType.toString()+", AstBaseType is expected");
             }
-            if(!((AstBaseType)rangeType).isRelocatable()){
+            if(!((AstBaseType)rangeType).isRequiredGCPushPop()){
                 //return node;
                 return super.accept(node, triggerGCFlag);
             }

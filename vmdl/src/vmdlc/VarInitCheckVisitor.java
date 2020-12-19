@@ -10,6 +10,8 @@ import nez.ast.TreeVisitorMap;
 import type.AstType;
 import type.CConstantTable;
 import type.CVariableTable;
+import type.TypeMap;
+import type.TypeMapSet;
 import type.AstType.JSValueType;
 import vmdlc.VarInitCheckVisitor.DefaultVisitor;
 import vmdlc.VarInitCheckVisitor.CFGNStack.CFGNRecord;
@@ -60,7 +62,6 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 CFGNRecord record = stack.pop();
                 ControlFlowGraphNode target = record.getNode();
                 Collection<String> recordedInitialized = target.selectValidAtHead(record.getInitialized());
-                Collection<String> jsTypeVars = new HashSet<>(target.getJSTypeVars());
                 if(target.isSetInitialized()){
                     Collection<String> expectedInitialized = target.getInitialized();
                     if(recordedInitialized.equals(expectedInitialized)) continue;
@@ -74,7 +75,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 Collection<String> newInitialized = new HashSet<>(recordedInitialized);
                 for(SyntaxTree stmt : target){
-                    visit(stmt, newInitialized, jsTypeVars);
+                    visit(stmt, newInitialized);
                 }
                 Collection<ControlFlowGraphNode> nexts = target.getNext();
                 for(ControlFlowGraphNode next : nexts){
@@ -88,32 +89,35 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    private final void visit(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
-        find(node.getTag().toString()).accept(node, initialized, jsTypeVars);
+    private final void visit(SyntaxTree node, Collection<String> initialized) throws Exception{
+        find(node.getTag().toString()).accept(node, initialized);
     }
 
     public class DefaultVisitor{
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        protected boolean isJSValueType(String name, TypeMapSet dict){
+            for(TypeMap typeMap : dict){
+                AstType type = typeMap.get(name);
+                if(type instanceof JSValueType) return true;
+            }
+            return false;
+        }
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             for(SyntaxTree chunk : node){
-                visit(chunk, initialized, jsTypeVars);
+                visit(chunk, initialized);
             }
         }
     }
 
     public class Declaration extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
-            SyntaxTree type = node.get(Symbol.unique("type"));
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("var"));
             String varName = var.toText();
-            if(AstType.nodeToType(type) instanceof JSValueType){
-                jsTypeVars.add(varName);
-            }
             if(!node.has(Symbol.unique("expr"))) return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             /* expr is null when the declaration is introduce part of FunctionMeta */
             if(expr != SyntaxTree.PHANTOM_NODE){
-                visit(expr, initialized, jsTypeVars);
+                visit(expr, initialized);
             }
             initialized.add(varName);
         }
@@ -121,12 +125,12 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class Assignment extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("left"));
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, initialized, jsTypeVars);
+            visit(expr, initialized);
             String varName = var.toText();
-            if(initialized.contains(varName) && jsTypeVars.contains(varName)){
+            if(initialized.contains(varName) && isJSValueType(varName, node.getTypeMapSet())){
                 ErrorPrinter.error("Duplicate variable initalization", node);
             }
             initialized.add(varName);
@@ -135,13 +139,13 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class AssignmentPair extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             SyntaxTree pair = node.get(Symbol.unique("left"));
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, initialized, jsTypeVars);
+            visit(expr, initialized);
             for(SyntaxTree var : pair){
                 String varName = var.toText();
-                if(initialized.contains(varName) && jsTypeVars.contains(varName)){
+                if(initialized.contains(varName) && isJSValueType(varName, node.getTypeMapSet())){
                     ErrorPrinter.error("Duplicate variable initalization", node);
                 }
                 initialized.add(varName);
@@ -152,18 +156,18 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     /*
     public class ExpressinStatement extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
         }
     }
     */
 
     public class Rematch extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             Tree<SyntaxTree>[] subTree = node.getSubTree();
             int size = subTree.length;
             for(int i=1; i<size; i++){ // skip subTree[0] (label node)
-                visit((SyntaxTree)subTree[i], initialized, jsTypeVars);
+                visit((SyntaxTree)subTree[i], initialized);
             }
         }
     }
@@ -173,7 +177,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return CConstantTable.contains(name) || CVariableTable.contains(name);
         }
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             /* Check if is the variable initialized */
             String name = node.toText();
             if(initialized.contains(name) || isExternC(name)) return;
@@ -183,15 +187,15 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class FieldAccess extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
         }
     }
     
     public class FunctionCall extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> initialized, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
             SyntaxTree args = node.get(Symbol.unique("args"));
-            visit(args, initialized, jsTypeVars);
+            visit(args, initialized);
         }
     }
 }

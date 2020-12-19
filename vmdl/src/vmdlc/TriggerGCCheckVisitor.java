@@ -15,9 +15,10 @@ import nez.ast.Symbol;
 import nez.ast.TreeVisitorMap;
 import type.AstType;
 import type.CConstantTable;
-import type.CVariableTable;
 import type.FunctionAnnotation;
 import type.FunctionTable;
+import type.TypeMap;
+import type.TypeMapSet;
 import type.AstType.AstBaseType;
 import vmdlc.Main.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
@@ -123,19 +124,21 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     BlockExpansionMap blockExpansionMap = new BlockExpansionMap();
     BlockExpansionRequsets currentRequestHandler;
     CompileMode compileMode;
+    Collection<AstType> exceptType;
 
     public TriggerGCCheckVisitor() {
         init(TriggerGCCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(ControlFlowGraphNode node, CompileMode compileMode) {
+    public void start(ControlFlowGraphNode node, CompileMode compileMode, Collection<AstType> exceptType) {
         this.compileMode = compileMode;
+        this.exceptType = exceptType;
         try {
             Queue<ControlFlowGraphNode> queue = new ArrayDeque<>();
             queue.add(node);
             while(!queue.isEmpty()){
                 ControlFlowGraphNode target = queue.remove();
-                Collection<String> jsTypeVars = target.getJSTypeVars();
+        
                 Collection<String> newTailLive = new HashSet<>();
                 Collection<ControlFlowGraphNode> nexts = target.getNext();
                 for(ControlFlowGraphNode cfgn : nexts){
@@ -155,10 +158,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 for(int i=size-1; i>=0; i--){
                     SyntaxTree stmt = stmts.get(i);
                     if(!hasTriggerGC(stmt)){
-                        collect(stmt, newTailLive, jsTypeVars);
+                        collect(stmt, newTailLive);
                         continue;
                     }
-                    visit(stmt, newTailLive, jsTypeVars);
+                    visit(stmt, newTailLive);
                 }
                 Collection<ControlFlowGraphNode> prevs = target.getPrev();
                 for(ControlFlowGraphNode prev : prevs){
@@ -179,22 +182,35 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    private final void visit(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
-        find(node.getTag().toString()).accept(node, live, jsTypeVars);
+    private final void visit(SyntaxTree node, Collection<String> live) throws Exception{
+        find(node.getTag().toString()).accept(node, live);
+    }
+
+    private final void visit(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        find(node.getTag().toString()).accept(node, live, dict);
     }
 
     private final boolean hasTriggerGC(SyntaxTree node) throws Exception{
         return find(node.getTag().toString()).findTriggerGC(node);
     }
 
-    private final void collect(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
-        find(node.getTag().toString()).addLive(node, live, jsTypeVars);
+    private final void collect(SyntaxTree node, Collection<String> live) throws Exception{
+        find(node.getTag().toString()).addLive(node, live);
+    }
+
+    private final void collect(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        find(node.getTag().toString()).addLive(node, live, dict);
     }
 
     public class DefaultVisitor{
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             for(SyntaxTree chunk : node){
-                visit(chunk, live, jsTypeVars);
+                visit(chunk, live);
+            }
+        }
+        public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+            for(SyntaxTree chunk : node){
+                visit(chunk, live, dict);
             }
         }
         public boolean findTriggerGC(SyntaxTree node) throws Exception{
@@ -203,9 +219,14 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return false;
         }
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
             for(SyntaxTree chunk : node){
-                collect(chunk, live, jsTypeVars);
+                collect(chunk, live);
+            }
+        }
+        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+            for(SyntaxTree chunk : node){
+                collect(chunk, live, dict);
             }
         }
     }
@@ -227,8 +248,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             node.clearExpandedTreeCandidate();
             node.addExpandedTreeCandidate(ASTHelper.generateBlock(stmts));
         }
-        public void liveCollect(SyntaxTree expr, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
-            collect(expr, live, jsTypeVars);
+        public void liveCollect(SyntaxTree expr, Collection<String> live, TypeMapSet dict) throws Exception{
+            collect(expr, live, dict);
         }
     }
 
@@ -260,7 +281,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             currentRequestHandler.put(node, declarationSeparated);
         }
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("var"));
             String varName = var.toText();
             if(!node.has(Symbol.unique("expr"))){
@@ -272,40 +293,40 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             live.remove(varName);
             if(expr == SyntaxTree.PHANTOM_NODE) return;
-            visit(expr, live, jsTypeVars);
+            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
             if(!node.has(Symbol.unique("expr"))) return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
-            liveCollect(expr, live, jsTypeVars);
+            liveCollect(expr, live, node.getTailDict());
         }
     }
 
     public class Assignment extends Statements{
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("left"));
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, jsTypeVars);
+            visit(expr, live, node.getTailDict());
             String varName = var.toText();
             live.remove(varName);
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            liveCollect(expr, live, jsTypeVars);
+            liveCollect(expr, live, node.getTailDict());
         }
     }
 
     public class AssignmentPair extends Statements{
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree pair = node.get(Symbol.unique("left"));
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, jsTypeVars);
+            visit(expr, live, node.getTailDict());
             for(SyntaxTree var : pair){
                 String varName = var.toText();
                 live.remove(varName);
@@ -313,24 +334,63 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            liveCollect(expr, live, jsTypeVars);
+            liveCollect(expr, live, node.getTailDict());
         }
     }
 
     public class ExpressionStatement extends Statements{
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             for(SyntaxTree chunk : node){
-                visit(chunk, live, jsTypeVars);
+                visit(chunk, live, node.getTailDict());
             }
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree expr = node.get(0);
-            liveCollect(expr, live, jsTypeVars);
+            liveCollect(expr, live, node.getTailDict());
+        }
+    }
+
+    private static class DataLocation{
+        private static enum Location{
+            VMHeap(true), ExemptedVMHeap(false), NonVMHeap(false);
+
+            private boolean requireGCPushPopFlag;
+
+            private Location(boolean requireGCPushPop){
+                requireGCPushPopFlag = requireGCPushPop;
+            }
+            public boolean isRequiredGCPushPop(){
+                return requireGCPushPopFlag;
+            }
+        }
+
+        private Location location = Location.ExemptedVMHeap;
+
+        public void setLocationToVMHeap(){
+            if(location == Location.NonVMHeap)
+                throw new Error("Illigal data location specification: cannot set to VMHeap");
+            location = Location.VMHeap;
+        }
+        public void setLocationToNonVMHeap(){
+            if(location == Location.VMHeap)
+                throw new Error("Illigal data location specification: cannot set to Non-VMHeap");
+            location = Location.NonVMHeap;
+        }
+        public boolean isRequiredGCPushPop(){
+            return location.isRequiredGCPushPop();
+        }
+    }
+
+    public class Return extends DefaultVisitor{
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree expr = node.get(0);
+            collect(expr, live, node.getTypeMapSet());
         }
     }
 
@@ -338,16 +398,25 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         private boolean isCConstant(String name){
             return CConstantTable.contains(name);
         }
-        private boolean isRelocatableExternC(String name){
-            if(!CVariableTable.contains(name)) return false;
-            AstType type = CVariableTable.get(name);
-            if(!(type instanceof AstBaseType)) return false;
-            return ((AstBaseType)type).isRelocatable();
+        private boolean isRequiredGCPushPop(String name, TypeMapSet dict){
+            DataLocation dataLocation = new DataLocation();
+            for(TypeMap typeMap : dict){
+                AstType t = typeMap.get(name);
+                if(!(t instanceof AstBaseType))
+                    throw new Error("non-AstBaseType variable: "+name);
+                AstBaseType type = (AstBaseType)t;
+                if(exceptType.contains(type)) continue;
+                if(type.isRequiredGCPushPop())
+                    dataLocation.setLocationToVMHeap();
+                else
+                    dataLocation.setLocationToNonVMHeap();
+            }
+            return dataLocation.isRequiredGCPushPop();
         }
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             String name = node.toText();
-            if(!isCConstant(name) && (jsTypeVars.contains(name) || isRelocatableExternC(name))){
+            if(!isCConstant(name) && isRequiredGCPushPop(name, dict)){
                 live.add(name);
             }
         }
@@ -356,25 +425,25 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return false;
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
-            String name = node.toText();
-            if(!isCConstant(name) && (jsTypeVars.contains(name) || isRelocatableExternC(name))){
-                live.add(name);
-            }
+        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+            accept(node, live, dict);
         }
     }
 
     public class FieldAccess extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
         }
     }
     
     public class FunctionCall extends DefaultVisitor{
         @Override
-        public void accept(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             SyntaxTree args = node.get(Symbol.unique("args"));
-            visit(args, live, jsTypeVars);
+            visit(args, live, dict);
         }
         @Override
         public boolean findTriggerGC(SyntaxTree node) throws Exception{
@@ -382,9 +451,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return FunctionTable.hasAnnotations(functionName, FunctionAnnotation.triggerGC);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, Collection<String> jsTypeVars) throws Exception{
+        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             SyntaxTree args = node.get(Symbol.unique("args"));
-            visit(args, live, jsTypeVars);
+            visit(args, live, dict);
         }
     }
 }

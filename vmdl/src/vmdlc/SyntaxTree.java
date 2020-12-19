@@ -22,7 +22,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class SyntaxTree extends Tree<SyntaxTree> {
-    TypeMapSet dict;
+    TypeMapSet headDict;
+    TypeMapSet tailDict;
     ExprTypeSet exprTypeSet;
     Set<String> rematchVarSet;
     Set<SyntaxTree> expandedTreeCandidate;
@@ -129,11 +130,20 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     }
 
     public void setTypeMapSet(TypeMapSet dict) {
-        this.dict = dict;
+        this.headDict = dict;
     }
     
     public TypeMapSet getTypeMapSet() {
-        return dict;
+        return headDict;
+    }
+
+    
+    public void setTailDict(TypeMapSet dict) {
+        this.tailDict = dict;
+    }
+    
+    public TypeMapSet getTailDict() {
+        return tailDict;
     }
 
     public void setRematchVarSet(Set<String> set){
@@ -167,21 +177,12 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     }
 
     public SyntaxTree getExpandedTree(){
-        /*
-        System.err.println("original:"+toString());
-        if(expandedTreeCandidate!=null)System.err.println("candidates:"+expandedTreeCandidate.toString());
-        else System.err.println("candidates:null");
-        */
         if(expandedTreeCandidate == null || cannotExpandFlag){
-            //System.err.println("No candidate, or cannnotExpandFalg");
-            //System.err.println("cannnotExpandFalg?="+cannotExpandFlag);
             return null;
         }
         if(expandedTreeCandidate.size() == 1){
-            //System.err.println("Success To Expand");
             return expandedTree;
         }
-        //System.err.println("Fail To Expand due to multiple candidates");
         return null;
     }
 

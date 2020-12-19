@@ -81,9 +81,9 @@ public class AstType {
         vmtToType.put(vmt,  t);
         putChild(parent, AstType.get(vmt));
     }
-    public static void defineRelocatableType(String name) {
+    public static void defineRequireGCPushPopType(String name) {
         AstBaseType t = new AstBaseType(name, null);
-        t.setRelocatable(true);
+        t.setRequireGCPushPop(true);
         definedTypes.put(name, t);
     }
     public static AstMappingType defineMappingType(String name) {
@@ -163,7 +163,7 @@ public class AstType {
     static {
         defineType("Top");
         defineType("void");
-        defineRelocatableType("HeapObject");
+        defineRequireGCPushPopType("HeapObject");
         defineType("cint");
         defineType("cdouble");
         defineType("cstring");
@@ -250,16 +250,16 @@ public class AstType {
     public static class AstBaseType extends AstType {
         AstBaseType parent;
         int depth;
-        boolean relocatableFlag;
+        boolean requireGCPushPopFlag;
 
         private AstBaseType(String _name) {
             name = _name;
-            relocatableFlag = false;
+            requireGCPushPopFlag = false;
         }
 
         private AstBaseType(String _name, AstBaseType _parent) {
             name = _name;
-            relocatableFlag = false;
+            requireGCPushPopFlag = false;
             parent = _parent;
             depth = 0;
             for (AstBaseType t = parent; t != null; t = t.parent)
@@ -270,12 +270,12 @@ public class AstType {
             return name;
         }
 
-        public boolean isRelocatable(){
-            return relocatableFlag;
+        public boolean isRequiredGCPushPop(){
+            return requireGCPushPopFlag;
         }
 
-        public void setRelocatable(boolean flag){
-            relocatableFlag = flag;
+        public void setRequireGCPushPop(boolean flag){
+            requireGCPushPopFlag = flag;
         }
         
     }
@@ -332,7 +332,7 @@ public class AstType {
 
         private JSValueType(String name, AstBaseType parent) {
             super(name, parent);
-            setRelocatable(true);
+            setRequireGCPushPop(true);
         }
     }
 

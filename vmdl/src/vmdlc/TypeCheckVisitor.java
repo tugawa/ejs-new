@@ -356,8 +356,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     ErrorPrinter.error("BuiltinFunction parameter must be (fp, na, args) or (fp, na)", paramsNode);
                 }
             }
-            if(funtype.parameterSize() != paramsNode.size()){
-                ErrorPrinter.error("Parameters number does not match", paramsNode);
+            if(funtype.parameterSize() != paramsNode.size() && funtype.getDomain() != AstType.get("void")){
+                ErrorPrinter.error("Parameters number does not match", node);
             }
             if (paramsNode != null && paramsNode.size() != 0) {
                 String[] paramNames = new String[paramsNode.size()];
@@ -704,6 +704,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            node.setTypeMapSet(dict);
             AstProductType superFunctionType = superFunction.getType();
             if(superFunctionType == null){
                 throw new Error("Connnot solve functionType: null");
@@ -730,12 +731,22 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class ExpressionStatement extends DefaultVisitor {
+        @Override
+        public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            node.setTypeMapSet(dict);
+            node.setTailDict(dict);
+            return dict;
+        }
+    }
+
     public class Assignment extends DefaultVisitor {
         private boolean isPureVariable(SyntaxTree varNode){
             return varNode.getTag().toString().equals("Name");
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            node.setTypeMapSet(dict);
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
             Set<TypeMap> jsAssigned = new HashSet<>();
@@ -753,10 +764,15 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
-            if(jsAssigned.isEmpty()) return dict;
-            TypeMapSet newSet = TYPE_MAP.clone();
-            newSet.setTypeMapSet(jsAssigned);
-            return newSet;
+            TypeMapSet ret;
+            if(jsAssigned.isEmpty()){
+                ret = dict;
+            }else{
+                ret = TYPE_MAP.clone();
+                ret.setTypeMapSet(jsAssigned);
+            }
+            node.setTailDict(ret);
+            return ret;
         }
 
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -776,6 +792,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception{
+            node.setTypeMapSet(dict);
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
             SyntaxTree[] pairsNode = (SyntaxTree[])leftNode.getSubTree();
@@ -793,15 +810,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     newSet.addAll(dict.getAssignedSet(typeMap, names, types.toArray(new AstType[0])));
                 }
             }
-            TypeMapSet newDict = TYPE_MAP.clone();
-            newDict.setTypeMapSet(newSet);
-            return newDict;
+            TypeMapSet ret = TYPE_MAP.clone();
+            ret.setTypeMapSet(newSet);
+            node.setTailDict(ret);
+            return ret;
         }
     }
 
     public class Declaration extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            node.setTypeMapSet(dict);
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree exprNode = (node.has(Symbol.unique("expr"))) ? node.get(Symbol.unique("expr")) : null;
@@ -828,13 +847,14 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     newSet.addAll(addedSet);
                 }
             }
-            TypeMapSet newTypeMapSet = dict.clone();
-            newTypeMapSet.setTypeMapSet(newSet);
+            TypeMapSet ret = dict.clone();
+            ret.setTypeMapSet(newSet);
             if(exprNode != null){
                 save(exprNode, dict);
             }
             save(varNode, dict);
-            return newTypeMapSet;
+            node.setTailDict(ret);
+            return ret;
         }
         @Override
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
@@ -880,37 +900,37 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
             AstType varType = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
-            Set<TypeMap> doSet = new HashSet<>();
+            node.setTypeMapSet(dict);
+            Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
-                ExprTypeSet limitExprTypeSet = visit(limitNode.get(0), typeMap);
-                ExprTypeSet stepExprTypeSet = visit(stepNode.get(0), typeMap);
                 for(AstType t : exprTypeSet){
                     if(!(varType.isSuperOrEqual(t))){
                         ErrorPrinter.error("Expression types "+t+", need types "+varType, exprNode);
                     }
-                    doSet.addAll(dict.getAddedSet(typeMap, varName, t));
+                    newSet.addAll(dict.getAddedSet(typeMap, varName, t));
                 }
+                ExprTypeSet limitExprTypeSet = visit(limitNode.get(0), typeMap);
                 for(AstType t : limitExprTypeSet){
                     if(!(varType.isSuperOrEqual(t))){
                         ErrorPrinter.error("Expression types "+t+", need types "+varType, limitNode.get(0));
                     }
                 }
+                ExprTypeSet stepExprTypeSet = visit(stepNode.get(0), typeMap);
                 for(AstType t : stepExprTypeSet){
                     if(!(varType.isSuperOrEqual(t))){
                         ErrorPrinter.error("Expression types "+t+", need types "+varType, stepNode.get(0));
                     }
                 }
             }
-            TypeMapSet doDict = dict.clone();
-            doDict.setTypeMapSet(doSet);
+            TypeMapSet loopDict = TYPE_MAP.clone();
+            loopDict.setTypeMapSet(newSet);
             TypeMapSet savedDict;
             do {
-                savedDict = doDict.clone();
+                savedDict = loopDict.clone();
                 SyntaxTree blockNode = node.get(Symbol.unique("block"));
-                doDict = visit(blockNode, doDict);
-            } while (!doDict.equals(savedDict));
-            node.setTypeMapSet(dict);
+                loopDict = visit(blockNode, loopDict);
+            } while (!loopDict.equals(savedDict));
             return dict;
         }
     }

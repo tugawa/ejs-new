@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-
 public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
     public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
@@ -36,6 +35,11 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     public void makeEdgeTo(ControlFlowGraphNode node){
         this.addNext(node);
         node.addPrev(this);
+    }
+    public void makeEdgeFrom(ControlFlowGraphNode[] nodes){
+        for(ControlFlowGraphNode node: nodes){
+            node.makeEdgeTo(this);
+        }
     }
     public void addNext(ControlFlowGraphNode node){
         this.next.add(node);
@@ -88,9 +92,6 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
     }
     public Collection<String> getTailLive(){
         return tailLive;
-    }
-    public Collection<String> getJSTypeVars(){
-        return jsTypeVars;
     }
     public Collection<String> selectValidAtHead(Collection<String> c){
         Collection<String> ret = new HashSet<>();

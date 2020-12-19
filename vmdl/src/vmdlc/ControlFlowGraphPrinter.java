@@ -44,8 +44,6 @@ public class ControlFlowGraphPrinter {
             for(SyntaxTree stmt : target){
                 System.out.println(stmt.toText());
             }
-            System.out.println("JsTypeVars:");
-            System.out.println(target.getJSTypeVars());
             System.out.println("Initialized:");
             System.out.println(target.getInitialized());
             System.out.println("headLive:");
