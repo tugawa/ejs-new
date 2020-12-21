@@ -316,7 +316,7 @@ class BCBuilder {
     }
 
     // optimisation method
-    void optimisation(String optPass, boolean verbose, Main.Info info) {
+    void optimisation(String optPass, boolean verbose, boolean timeOptimization, Main.Info info) {
         for (String opt: optPass.split(":")) {
             if (opt.equals(""))
                 continue;
@@ -377,6 +377,10 @@ class BCBuilder {
                     System.out.println("====== AFTER "+opt+" Optimization ("+(endTime - startTime)+" ms) ======");
                     System.out.println(fb);
                 }
+            }
+            if (timeOptimization) {
+                long endTime = System.currentTimeMillis();
+                System.out.println("====== "+opt+" took "+(endTime - startTime)+" ms");
             }
         }
     }
