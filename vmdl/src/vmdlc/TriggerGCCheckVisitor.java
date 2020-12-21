@@ -403,7 +403,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for(TypeMap typeMap : dict){
                 AstType t = typeMap.get(name);
                 if(!(t instanceof AstBaseType))
-                    throw new Error("non-AstBaseType variable: "+name);
+                    //throw new Error("non-AstBaseType variable: "+name);
+                    return false;
                 AstBaseType type = (AstBaseType)t;
                 if(exceptType.contains(type)) continue;
                 if(type.isRequiredGCPushPop())
