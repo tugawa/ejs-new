@@ -72,7 +72,7 @@ VMDL=$(VMDL_DIR)/vmdlc.jar
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
 
-INSNGEN_VMGEN=java -cp $(VMGEN) vmgen.InsnGen
+INSNGEN_VMGEN=java -Xss1M -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
