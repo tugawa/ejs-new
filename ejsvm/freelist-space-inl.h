@@ -41,10 +41,7 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr)
 
 static inline int space_check_gc_request()
 {
-  if (js_space.free_bytes <
-      js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
-    return 1;
-  return 0;
+  return (js_space.free_bytes < js_space.threshold_bytes);
 }
 
 static inline void mark_cell(void *p)

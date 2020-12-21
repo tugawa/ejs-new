@@ -181,9 +181,9 @@ STATIC_INLINE void process_node(uintptr_t ptr);
 STATIC void alloc_site_update_info(JSObject *p);
 #endif /* ALLOC_SITE_CACHE */
 
-void init_memory(size_t bytes)
+void init_memory(size_t bytes, size_t threshold_bytes)
 {
-  space_init(bytes);
+  space_init(bytes, threshold_bytes);
   gc_root_stack_ptr = 0;
   gc_disabled = 1;
   generation = 1;

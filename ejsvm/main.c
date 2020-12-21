@@ -58,8 +58,10 @@ FILE *prof_stream;
 int regstack_limit = STACK_LIMIT; /* size of register stack in # of JSValues */
 #ifdef JS_SPACE_BYTES
 int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
+int gc_threshold = GET_GC_THRESHOLD(JS_SPACE_BYTES);
 #else /* JS_SPACE_BYTES */
 int heap_limit = 1 * 1024 * 1024;
+int gc_threshold = GET_GC_THRESHOLD(1 * 1024 * 1024);
 #endif /* JS_SPACE_BYTES */
 
 #ifdef CALC_CALL
@@ -101,6 +103,7 @@ struct commandline_option  options_table[] = {
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
   { "-m",         1, &heap_limit,     NULL          },
+  { "--threshold",1, &gc_threshold,   NULL          },
   { "-s",         1, &regstack_limit, NULL          },
   { (char *)NULL, 0, NULL,            NULL          }
 };
@@ -123,6 +126,9 @@ int process_options(int ac, char *av[]) {
             p = av[k];
             if (o->flagvar != NULL) *(o->flagvar) = atoi(p);
             else if (o->strvar != NULL) *(o->strvar) = p;
+
+            if (o->flagvar == &heap_limit)
+              gc_threshold = GET_GC_THRESHOLD(heap_limit);
           }
           break;
         } else
@@ -318,7 +324,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory(heap_limit);
+  init_memory(heap_limit, gc_threshold);
 
   init_string_table(STRING_TABLE_SIZE);
   init_context(regstack_limit, &context);

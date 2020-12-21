@@ -10,9 +10,9 @@ extern "C" {
 #endif /* FLONUM_SPACE */
 
 #ifdef EXCESSIVE_GC
-#define GC_THREASHOLD_SHIFT 4
+#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) - ((heap_limit) >> 4))
 #else  /* EXCESSIVE_GC */
-#define GC_THREASHOLD_SHIFT 1
+#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) >> 1)
 #endif /* EXCESSIVE_GC */
 
 /*
@@ -101,6 +101,7 @@ struct space {
   uintptr_t end;
   size_t bytes;
   size_t free_bytes;
+  size_t threshold_bytes;
   char *name;
 };
 
@@ -117,7 +118,7 @@ static inline int is_marked_cell_header(header_t *hdrp);
 static inline void mark_cell(void *p);
 static inline int is_marked_cell(void *p);
 static inline  int test_and_mark_cell(void *p);
-extern void space_init(size_t bytes);
+extern void space_init(size_t bytes, size_t threshold_bytes);
 extern void *space_alloc(uintptr_t request_bytes, cell_type_t type);
 extern void sweep(void);
 static inline int space_check_gc_request();

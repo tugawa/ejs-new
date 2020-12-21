@@ -34,7 +34,7 @@ STATIC struct space debug_js_shadow;
  * prototype
  */
 /* space */
-STATIC void create_space(struct space *space, size_t bytes, char* name);
+STATIC void create_space(struct space *space, size_t bytes, size_t threshold_bytes, char* name);
 #ifdef GC_DEBUG
 STATIC header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
@@ -62,7 +62,7 @@ STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 /*
  *  Space
  */
-STATIC void create_space(struct space *space, size_t bytes, char *name)
+STATIC void create_space(struct space *space, size_t bytes, size_t threshold_bytes, char *name)
 {
   uintptr_t addr;
   addr = (uintptr_t) malloc(bytes);
@@ -78,6 +78,7 @@ STATIC void create_space(struct space *space, size_t bytes, char *name)
   space->bytes = bytes;
   space->free_bytes = bytes;
 #endif /* GC_THREADED_BOUNDARY_TAG */
+  space->threshold_bytes = threshold_bytes;
   space->name = name;
 }
 
@@ -187,11 +188,11 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
  * GC interface
  */
 
-void space_init(size_t bytes)
+void space_init(size_t bytes, size_t threshold_bytes)
 {
-  create_space(&js_space, bytes, "js_space");
+  create_space(&js_space, bytes, threshold_bytes, "js_space");
 #ifdef GC_DEBUG
-  create_space(&debug_js_shadow, bytes, "debug_js_shadow");
+  create_space(&debug_js_shadow, bytes, threshold_bytes, "debug_js_shadow");
 #endif /* GC_DEBUG */
 }
 

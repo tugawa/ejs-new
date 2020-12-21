@@ -18,6 +18,7 @@ extern "C" {
 #define PAGE_HEADER_SO_BMP_GRANULES_BITS \
   (LOG_GRANULES_IN_PAGE - LOG_BITS_IN_GRANULE + 1)
 
+#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) >> 3)
 
 static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2
@@ -64,6 +65,7 @@ struct space {
   uintptr_t addr, end;
   int num_pages;
   int num_free_pages;
+  int num_threshold_pages;
   struct free_page_header *page_pool;
 #ifdef BIBOP_FREELIST
   struct sofl_page_header *freelist[NUM_CELL_TYPES][NUM_SOBJ_SIZECLASSES];
@@ -154,7 +156,7 @@ struct page_header_t {
 extern void mark_cell(void *p);
 extern int is_marked_cell(void *p);
 extern int test_and_mark_cell(void *p);
-extern void space_init(size_t bytes);
+extern void space_init(size_t bytes, size_t threashold_bytes);
 extern void *space_alloc(uintptr_t request_bytes, cell_type_t type);
 extern void sweep(void);
 static inline int space_check_gc_request();
