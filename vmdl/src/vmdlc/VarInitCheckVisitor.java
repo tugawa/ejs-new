@@ -153,13 +153,13 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
-    /*
-    public class ExpressinStatement extends DefaultVisitor{
+    public class SpecialExpression extends DefaultVisitor{
         @Override
         public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
+            SyntaxTree expr = node.get(0);
+            visit(expr, initialized);
         }
     }
-    */
 
     public class Rematch extends DefaultVisitor{
         @Override

@@ -160,6 +160,7 @@ public class ASTHelper {
     }
 
     // Cases
+
     public static SyntaxTree generateCases(SyntaxTree[] cases){
         return new SyntaxTree(Symbol.unique("Cases"), null, cases, null);
     }
@@ -179,6 +180,12 @@ public class ASTHelper {
 
     static {
         EMPTY_ARGLIST.setValue("()");
+    }
+
+    // Special Expression
+    /* NOTE: Special Expression is used to wrap expression which is a condition node of if statement, etc. */
+    public static SyntaxTree generateSpecialExpression(SyntaxTree expression){
+        return new SyntaxTree(Symbol.unique("SpecialExpression"), null, new SyntaxTree[]{ expression }, null);
     }
 
 }

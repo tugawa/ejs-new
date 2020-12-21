@@ -148,10 +148,17 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             TypeMapSet dict = node.getTypeMapSet();
             Collection<String> locals = dict.getKeys();
             Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
+            SyntaxTree condNode = node.get(Symbol.unique("cond"));
+            SyntaxTree wrappedCondNode = ASTHelper.generateSpecialExpression(condNode);
+            wrappedCondNode.setTypeMapSet(dict);
+            wrappedCondNode.setTailDict(dict);
+            ControlFlowGraphNode condCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
+            condCFGN.addStatement(wrappedCondNode);
+            from.makeEdgeTo(condCFGN);
             SyntaxTree thenNode = node.get(Symbol.unique("then"));
             ControlFlowGraphNode afterCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
             ControlFlowGraphNode thenCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
-            from.makeEdgeTo(thenCFGN);
+            condCFGN.makeEdgeTo(thenCFGN);
             ControlFlowGraphNode afterThen = visit(thenNode, thenCFGN);
             if(afterThen != ControlFlowGraphNode.exit){
                 afterThen.makeEdgeTo(afterCFGN);
@@ -159,13 +166,13 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             if (node.has(Symbol.unique("else"))) {
                 SyntaxTree elseNode = node.get(Symbol.unique("else"));
                 ControlFlowGraphNode elseCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
-                from.makeEdgeTo(elseCFGN);
+                condCFGN.makeEdgeTo(elseCFGN);
                 ControlFlowGraphNode afterElse = visit(elseNode, elseCFGN);
                 if(afterElse != ControlFlowGraphNode.exit){
                     afterElse.makeEdgeTo(afterCFGN);
                 }
             }else{
-                from.makeEdgeTo(afterCFGN);
+                condCFGN.makeEdgeTo(afterCFGN);
             }
             return afterCFGN;
         }
@@ -183,11 +190,23 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             SyntaxTree typeNode = init.get(Symbol.unique("type"));
             SyntaxTree nameNode = init.get(Symbol.unique("var"));
             intro.addStatement(ASTHelper.generateDeclaration(typeNode, nameNode, init.get(Symbol.unique("expr"))));
+            SyntaxTree limitNode = node.get(Symbol.unique("limit"));
+            SyntaxTree wrappedLimitNode = ASTHelper.generateSpecialExpression(limitNode);
+            wrappedLimitNode.setTypeMapSet(dict);
+            wrappedLimitNode.setTailDict(dict);
+            SyntaxTree stepNode = node.get(Symbol.unique("step"));
+            SyntaxTree wrappedStepNode = ASTHelper.generateSpecialExpression(stepNode);
+            wrappedStepNode.setTypeMapSet(dict);
+            wrappedStepNode.setTailDict(dict);
+            ControlFlowGraphNode wrappedCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
+            wrappedCFGN.addStatement(wrappedLimitNode);
+            wrappedCFGN.addStatement(wrappedStepNode);
             from.makeEdgeTo(intro);
+            intro.makeEdgeTo(wrappedCFGN);
             Collection<String> afterIntroLocals = new HashSet<>(locals);
             afterIntroLocals.add(nameNode.toText());
             ControlFlowGraphNode body = new ControlFlowGraphNode(afterIntroLocals, jsTypeVars);
-            intro.makeEdgeTo(body);
+            wrappedCFGN.makeEdgeTo(body);
             body.makeEdgeTo(body);
             ControlFlowGraphNode after = visit(blockNode, body);
             return after;
@@ -200,9 +219,16 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             TypeMapSet dict = node.getTypeMapSet();
             Collection<String> locals = dict.getKeys();
             Collection<String> jsTypeVars = dict.typeOf(JSValueType.class);
+            SyntaxTree condNode = node.get(Symbol.unique("cond"));
+            SyntaxTree wrappedCondNode = ASTHelper.generateSpecialExpression(condNode);
+            wrappedCondNode.setTypeMapSet(dict);
+            wrappedCondNode.setTailDict(dict);
+            ControlFlowGraphNode condCFGN = new ControlFlowGraphNode(locals, jsTypeVars);
+            condCFGN.addStatement(wrappedCondNode);
+            from.makeEdgeTo(condCFGN);
             SyntaxTree blockNode = node.get(Symbol.unique("block"));
             ControlFlowGraphNode body = new ControlFlowGraphNode(locals, jsTypeVars);
-            from.makeEdgeTo(body);
+            condCFGN.makeEdgeTo(body);
             body.makeEdgeTo(body);
             ControlFlowGraphNode after = visit(blockNode, body);
             return after;

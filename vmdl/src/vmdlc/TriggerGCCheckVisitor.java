@@ -356,6 +356,20 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 
+    public class SpecialExpression extends Statements{
+        @Override
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree expr = node.get(0);
+            visit(expr, live, node.getTailDict());
+            /* I hope implement GC_PUSH/POP process */
+        }
+        @Override
+        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree expr = node.get(0);
+            liveCollect(expr, live, node.getTailDict());
+        }
+    }
+
     private static class DataLocation{
         private static enum Location{
             VMHeap(true), ExemptedVMHeap(false), NonVMHeap(false);
