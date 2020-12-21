@@ -63,7 +63,6 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
         }
         static class BlockExpansionRequsets{
-            //List<BlockExpansionRequest> requests = new ArrayList<>();
             Map<SyntaxTree, SyntaxTree[]> requests = new HashMap<>();
 
             public void put(SyntaxTree target, SyntaxTree[] stmts){
@@ -130,9 +129,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         init(TriggerGCCheckVisitor.class, new DefaultVisitor());
     }
 
-    public void start(ControlFlowGraphNode node, CompileMode compileMode, Collection<AstType> exceptType) {
+    public void start(ControlFlowGraphNode node, CompileMode compileMode) {
         this.compileMode = compileMode;
-        this.exceptType = exceptType;
+        exceptType = new HashSet<>();
+        exceptType.add(AstType.get("Fixnum"));
+        exceptType.add(AstType.get("Special"));
         try {
             Queue<ControlFlowGraphNode> queue = new ArrayDeque<>();
             queue.add(node);

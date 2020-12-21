@@ -13,8 +13,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collection;
-import java.util.HashSet;
 
 import dispatch.DispatchProcessor;
 import nez.ParserGenerator;
@@ -48,7 +46,6 @@ public class Main {
     static CompileMode compileMode = null;
     static boolean generateArgumentSpecMode = false;
     static boolean doCaseSplit = false;
-    static Collection<AstType> noGCPushPopTypes = new HashSet<>();
 
     static Option option = new Option();
 
@@ -112,15 +109,6 @@ public class Main {
             } else if (opt.equals("-case-split")) {
                 doCaseSplit = true;
                 insnCallSpecFile = args[i++];
-            } else if (opt.equals("-no-gc-push-pop")) {
-                String[] specifications = args[i++].split(":");
-                for(String specification : specifications){
-                    AstType type = AstType.get(specification);
-                    if(type == null){
-                        ErrorPrinter.error("Cannot find type in -no-gc-push-pop: "+specification);
-                    }
-                    noGCPushPopTypes.add(type);
-                }
             } else if (opt.equals("-i")) {
                 insnDefFile = args[i++];
             } else if (opt.startsWith("-X")) {
@@ -287,7 +275,7 @@ public class Main {
         }
         ControlFlowGraphNode enter = new ControlFlowGraphConstructVisitor().start(ast);
         new VarInitCheckVisitor().start(enter);
-        new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit, compileMode, noGCPushPopTypes);
+        new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit, compileMode);
         // For Test
         //ControlFlowGraphPrinter.print(enter);
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);
