@@ -41,16 +41,14 @@ public class ControlFlowGraph {
         private BitSet pred = new BitSet(nodes.length);
         private BitSet succ = new BitSet(nodes.length);
         private BCode bcode;
-        private int index;
-        CFGNode(int index, BCode bcode) {
-            this.index = index;
+        CFGNode(BCode bcode) {
             this.bcode = bcode;
         }
         void addPred(CFGNode n) {
-            pred.set(n.index);
+            pred.set(n.getIndex());
         }
         void addSucc(CFGNode n) {
-            succ.set(n.index);
+            succ.set(n.getIndex());
         }
         public BCode getBCode() {
             return bcode;
@@ -61,6 +59,9 @@ public class ControlFlowGraph {
         public CFGNodeIterator getSuccs() {
             return new CFGNodeIterator(succ);
         }
+        public int getIndex() {
+            return bcode.getAddress();
+        }
     }
     private HashMap<BCode, CFGNode> cfg = new HashMap<BCode, CFGNode>();
     private CFGNode[] nodes;
@@ -69,7 +70,7 @@ public class ControlFlowGraph {
         nodes = new CFGNode[bcodes.size()];
         for (int i = 0; i < bcodes.size(); i++) {
             BCode bc = bcodes.get(i);
-            CFGNode cfgNode = new CFGNode(i, bc);
+            CFGNode cfgNode = new CFGNode(bc);
             nodes[i] = cfgNode;
             cfg.put(bc, cfgNode);
         }

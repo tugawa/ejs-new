@@ -111,7 +111,7 @@ class BCBuilder {
         void assignAddress() {
             for (int i = 0; i < bcodes.size(); i++) {
                 BCode bcode = bcodes.get(i);
-                bcode.number = i;
+                bcode.address = i;
             }
         }
 
@@ -174,7 +174,7 @@ class BCBuilder {
             if (logging)
                 sb.append(" logging\n");
             for (BCode i: bcodes)
-                sb.append(i.number).append(": ").append(i).append("\n");
+                sb.append(i.address).append(": ").append(i).append("\n");
             return sb.toString();
         }
     }
