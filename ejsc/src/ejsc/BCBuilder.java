@@ -333,9 +333,9 @@ class BCBuilder {
                     System.out.println(fb);
                 }
 
+                fb.assignAddress();
                 switch (opt) {
                 case "const": {
-                    fb.assignAddress();
                     ConstantPropagation cp = new ConstantPropagation(fb.bcodes, info);
                     fb.bcodes = cp.exec();
                     break;
@@ -346,13 +346,11 @@ class BCBuilder {
                     break;
                 }
                 case "copy": {
-                    fb.assignAddress();
                     CopyPropagation cp = new CopyPropagation(fb.bcodes);
                     cp.exec();
                     break;
                 }
                 case "rie": {
-                    fb.assignAddress();
                     RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes, info);
                     fb.bcodes = rie.exec();
                     break;
