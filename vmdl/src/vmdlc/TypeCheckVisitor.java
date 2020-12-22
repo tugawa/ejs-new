@@ -356,7 +356,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
             }
             if(funtype.parameterSize() != paramsNode.size() && funtype.getDomain() != AstType.get("void")){
-                ErrorPrinter.error("Parameters number does not match", node);
+                ErrorPrinter.error("Parameter size does not match", paramsNode);
             }
             if (paramsNode != null && paramsNode.size() != 0) {
                 String[] paramNames = new String[paramsNode.size()];
@@ -417,6 +417,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                         jsvMapSet.add(tempMap);
                     } else {
                         for (VMDataType[] vec : tupleSet) {
+                            if(vec.length != nJsvTypes){
+                                String sizeMessage = (nJsvTypes < vec.length) ? "few" : "much";
+                                ErrorPrinter.error("too "+sizeMessage+" parameters compared with operand specification", typeNode);
+                            }
                             Map<String, AstType> tempMap = new HashMap<>();
                             for (int i = 0; i < length; i++) {
                                 tempMap.put(variableStrings[i], AstType.get(vec[i]));
