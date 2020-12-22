@@ -139,11 +139,11 @@ public class AstType {
         newSet.add(this);
         return newSet;
     }
+
+    static final AstProductType BUILTINFUNCTION_TYPE;
+
     public static boolean isBuiltinFunctionType(AstType type){
-        for(AstProductType t : builtinFunctionTypes){
-            if(t.equals(type)) return true;
-        }
-        return false;
+        return BUILTINFUNCTION_TYPE.equals(type);
     }
     public String getCName(){
         if(this instanceof AstAliasType){
@@ -189,8 +189,7 @@ public class AstType {
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
         defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
         AstType cintType = AstType.get("cint");
-        builtinFunctionTypes.add(new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, new AstArrayType(jsValType) })), jsValType));
-        builtinFunctionTypes.add(new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType })), jsValType));
+        BUILTINFUNCTION_TYPE = new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, new AstArrayType(jsValType) })), jsValType);
     }
 
     String name;

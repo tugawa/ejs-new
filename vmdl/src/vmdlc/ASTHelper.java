@@ -165,12 +165,6 @@ public class ASTHelper {
         return new SyntaxTree(Symbol.unique("Cases"), null, cases, null);
     }
 
-    /*
-    public static SyntaxTree generate(){
-        return new SyntaxTree(Symbol.unique(""), , , null);
-    }
-    */
-
     //*********************************
     // Specials
     //*********************************

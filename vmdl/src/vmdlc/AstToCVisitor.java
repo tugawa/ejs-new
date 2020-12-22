@@ -310,8 +310,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 println(");");
             }
             SyntaxTree bodyNode = (SyntaxTree) node.get(Symbol.unique("body"));
-            // TODO: Improve judgement to generate builtin_plorogue
-            if(compileMode == Main.CompileMode.Builtin && paramsNode.size() == 3){
+            if(compileMode == Main.CompileMode.Builtin){
                 while(bodyNode.hasExpandedTree()){
                     bodyNode = bodyNode.getExpandedTree();
                 }

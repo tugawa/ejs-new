@@ -318,11 +318,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     
     public class FunctionMeta extends DefaultVisitor {
         private final boolean isFormBuiltinFunctionParams(SyntaxTree paramNode){
-            if(paramNode.size() < 2) return false;
+            if(paramNode.size() != 3) return false;
             Tree<?>[] params = paramNode.getSubTree();
             if(!params[0].toText().equals("fp")) return false;
             if(!params[1].toText().equals("na")) return false;
-            if(paramNode.size() == 2) return true;
             if(!params[2].toText().equals("args")) return false;
             return true;
         }
@@ -350,10 +349,10 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     ErrorPrinter.error("BuiltinFunctions requires parameters");
                 }
                 if(!AstType.isBuiltinFunctionType(funtype)){
-                    ErrorPrinter.error("BuiltinFunctions must be (cint, cint, JSValue[]) -> JSValue or (cint, cint) -> JSValue type", typeNode);
+                    ErrorPrinter.error("BuiltinFunctions must be (cint, cint, JSValue[]) -> JSValue type", typeNode);
                 }
                 if(!isFormBuiltinFunctionParams(paramsNode)){
-                    ErrorPrinter.error("BuiltinFunction parameter must be (fp, na, args) or (fp, na)", paramsNode);
+                    ErrorPrinter.error("BuiltinFunction parameter must be (fp, na, args)", paramsNode);
                 }
             }
             if(funtype.parameterSize() != paramsNode.size() && funtype.getDomain() != AstType.get("void")){
