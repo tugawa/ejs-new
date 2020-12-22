@@ -63,7 +63,6 @@ public class ControlFlowGraph {
             return bcode.getAddress();
         }
     }
-    private HashMap<BCode, CFGNode> cfg = new HashMap<BCode, CFGNode>();
     private CFGNode[] nodes;
 
     ControlFlowGraph(List<BCode> bcodes) {
@@ -72,18 +71,15 @@ public class ControlFlowGraph {
             BCode bc = bcodes.get(i);
             CFGNode cfgNode = new CFGNode(bc);
             nodes[i] = cfgNode;
-            cfg.put(bc, cfgNode);
         }
         for (int i = 0; i < bcodes.size(); i++) {
             BCode bc = bcodes.get(i);
             CFGNode cfgNode = nodes[i];
-            if (bc.isFallThroughInstruction() && i + 1 < bcodes.size()) {
-                BCode destBC = bcodes.get(i + 1);
-                makeEdge(cfgNode, cfg.get(destBC));
-            }
+            if (bc.isFallThroughInstruction() && i + 1 < bcodes.size())
+                makeEdge(cfgNode, nodes[i + 1]);
             BCode destBC = bc.getBranchTarget();
             if (destBC != null)
-                makeEdge(cfgNode, cfg.get(destBC));
+                makeEdge(cfgNode, nodes[destBC.getAddress()]);
         }
     }
 
@@ -92,11 +88,11 @@ public class ControlFlowGraph {
         to.addPred(from);
     }
 
-    public Collection<CFGNode> getNodes() {
-        return cfg.values();
+    public CFGNode[] getNodes() {
+        return nodes;
     }
 
     public CFGNode get(BCode bc) {
-        return cfg.get(bc);
+        return nodes[bc.getAddress()];
     }
 }
