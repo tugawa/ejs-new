@@ -7,55 +7,86 @@
  * Electro-communications.
  */
 package ejsc;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 
 public class ControlFlowGraph {
-    static class CFGNode {
-        private HashSet<CFGNode> pred = new HashSet<CFGNode>();
-        private HashSet<CFGNode> succ = new HashSet<CFGNode>();
+    class CFGNodeIterator implements Iterator<CFGNode>, Iterable<CFGNode> {
+        private BitSet set;
+        private int nextIndex;
+        private CFGNodeIterator(BitSet set) {
+            this.set = set;
+            this.nextIndex = set.nextSetBit(0);
+        }
+        @Override
+        public boolean hasNext() {
+            return nextIndex != -1;
+        }
+        @Override
+        public CFGNode next() {
+            CFGNode n = nodes[nextIndex];
+            nextIndex = set.nextSetBit(nextIndex + 1);
+            return n;
+        }
+        @Override
+        public Iterator<CFGNode> iterator() {
+            return this;
+        }
+    }
+
+    class CFGNode {
+        private BitSet pred = new BitSet(nodes.length);
+        private BitSet succ = new BitSet(nodes.length);
         private BCode bcode;
-        CFGNode(BCode bcode) {
+        private int index;
+        CFGNode(int index, BCode bcode) {
+            this.index = index;
             this.bcode = bcode;
         }
         void addPred(CFGNode n) {
-            pred.add(n);
+            pred.set(n.index);
         }
         void addSucc(CFGNode n) {
-            succ.add(n);
+            succ.set(n.index);
         }
         public BCode getBCode() {
             return bcode;
         }
-        public HashSet<CFGNode> getPreds() {
-            return pred;
+        public CFGNodeIterator getPreds() {
+            return new CFGNodeIterator(pred);
         }
-        public HashSet<CFGNode> getSuccs() {
-            return succ;
+        public CFGNodeIterator getSuccs() {
+            return new CFGNodeIterator(succ);
         }
     }
     private HashMap<BCode, CFGNode> cfg = new HashMap<BCode, CFGNode>();
+    private CFGNode[] nodes;
 
     ControlFlowGraph(List<BCode> bcodes) {
-        for (BCode bc: bcodes)
-            cfg.put(bc, new CFGNode(bc));
+        nodes = new CFGNode[bcodes.size()];
         for (int i = 0; i < bcodes.size(); i++) {
             BCode bc = bcodes.get(i);
-            CFGNode cfgNode = cfg.get(bc);
+            CFGNode cfgNode = new CFGNode(i, bc);
+            nodes[i] = cfgNode;
+            cfg.put(bc, cfgNode);
+        }
+        for (int i = 0; i < bcodes.size(); i++) {
+            BCode bc = bcodes.get(i);
+            CFGNode cfgNode = nodes[i];
             if (bc.isFallThroughInstruction() && i + 1 < bcodes.size()) {
                 BCode destBC = bcodes.get(i + 1);
-                makeEdge(cfgNode, destBC);
+                makeEdge(cfgNode, cfg.get(destBC));
             }
             BCode destBC = bc.getBranchTarget();
             if (destBC != null)
-                makeEdge(cfgNode, destBC);
+                makeEdge(cfgNode, cfg.get(destBC));
         }
     }
 
-    private void makeEdge(CFGNode from, BCode toBC) {
-        CFGNode to = cfg.get(toBC);
+    private void makeEdge(CFGNode from, CFGNode to) {
         from.addSucc(to);
         to.addPred(from);
     }
