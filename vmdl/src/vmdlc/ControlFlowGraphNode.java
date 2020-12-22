@@ -7,15 +7,14 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
-    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
-    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0), new HashSet<>(0)).setLiveEmpty();
+    public static ControlFlowGraphNode enter = new ControlFlowGraphNode(new HashSet<>(0)).setLiveEmpty();
+    public static ControlFlowGraphNode exit = new ControlFlowGraphNode(new HashSet<>(0)).setLiveEmpty();
 
     private Collection<ControlFlowGraphNode> next = new HashSet<>();
     private Collection<ControlFlowGraphNode> prev = new HashSet<>();
     private List<SyntaxTree> statementList = new ArrayList<>();
     private Collection<String> headLocals;
     private Collection<String> tailLocals;
-    private Collection<String> jsTypeVars;
 
     private Collection<String> initialized = null;
     private Collection<String> headLive = null;
@@ -23,10 +22,9 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
 
     private SyntaxTree belongingBlock;
 
-    public ControlFlowGraphNode(Collection<String> headLocals, Collection<String> jsTypeVars){
+    public ControlFlowGraphNode(Collection<String> headLocals){
         this.headLocals = headLocals;
         this.tailLocals = headLocals;
-        this.jsTypeVars = jsTypeVars;
     }
     private ControlFlowGraphNode setLiveEmpty(){
         this.headLive = new HashSet<>(0);
@@ -61,10 +59,6 @@ public class ControlFlowGraphNode implements Iterable<SyntaxTree>{
             tailLocals = new HashSet<>(headLocals);
         }
         tailLocals.add(name);
-    }
-    public void addJSTypeLocals(String name){
-        addLocals(name);
-        jsTypeVars.add(name);
     }
     public void setInitialized(Collection<String> c){
         this.initialized = c;

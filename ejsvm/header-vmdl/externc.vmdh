@@ -131,6 +131,9 @@ externC isinf : cdouble -> cint
 externC GetProp : (JSValue, JSValue, JSValue) -> cint
 externC (needContext) print_value_simple : JSValue -> void
 externC PutLnChar : void -> void
+externC (needContext) AllocateJSArray : cint -> JSValue[]
+externC AllocateCintArray : cint -> cint[]
+externC AllocateCdoubleArray : cint -> cdouble[]
 
 #include "../header-vmdl/funcs-vmdl.vmdh"
 

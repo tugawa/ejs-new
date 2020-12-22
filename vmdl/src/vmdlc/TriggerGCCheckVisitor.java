@@ -19,6 +19,7 @@ import type.FunctionAnnotation;
 import type.FunctionTable;
 import type.TypeMap;
 import type.TypeMapSet;
+import type.AstType.AstArrayType;
 import type.AstType.AstBaseType;
 import vmdlc.Main.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
@@ -413,16 +414,22 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         private boolean isCConstant(String name){
             return CConstantTable.contains(name);
         }
+        private boolean isRequiredGCPushPop(AstType type){
+            if(type instanceof AstArrayType){
+                if(type == AstType.ARGS) return false;
+                AstType elementType = ((AstArrayType)type).getElementType();
+                return isRequiredGCPushPop(elementType);
+            }
+            if(!(type instanceof AstBaseType)) return false;
+            AstBaseType bType = (AstBaseType) type;
+            return bType.isRequiredGCPushPop();
+        }
         private boolean isRequiredGCPushPop(String name, TypeMapSet dict){
             DataLocation dataLocation = new DataLocation();
             for(TypeMap typeMap : dict){
-                AstType t = typeMap.get(name);
-                if(!(t instanceof AstBaseType))
-                    //throw new Error("non-AstBaseType variable: "+name);
-                    return false;
-                AstBaseType type = (AstBaseType)t;
+                AstType type = typeMap.get(name);
                 if(exceptType.contains(type)) continue;
-                if(type.isRequiredGCPushPop())
+                if(isRequiredGCPushPop(type))
                     dataLocation.setLocationToVMHeap();
                 else
                     dataLocation.setLocationToNonVMHeap();

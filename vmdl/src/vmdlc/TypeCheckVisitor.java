@@ -735,6 +735,9 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             node.setTypeMapSet(dict);
             node.setTailDict(dict);
+            for(TypeMap typeMap : dict){
+                visit(node.get(0), typeMap);
+            }
             return dict;
         }
     }
@@ -1265,7 +1268,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 for(AstType t : realTypes){
                     if(!argumentVec.get(i).isSuperOrEqual(t)){
                         ErrorPrinter.error("Argument types "+t.toString()
-                            +", need types "+realTypesList.get(i), arguments[i]);
+                            +", need types "+argumentVec.get(i), arguments[i]);
                     }
                 }
             }

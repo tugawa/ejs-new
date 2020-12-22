@@ -141,7 +141,7 @@ public class AstType {
         return newSet;
     }
 
-    static final Args ARGS;
+    public static final Args ARGS;
     static final AstProductType BUILTINFUNCTION_TYPE;
 
     public static boolean isBuiltinFunctionType(AstType type){
@@ -226,6 +226,7 @@ public class AstType {
     }
 
     public boolean isSuperOrEqual(AstType t) {
+        if(this == get("Top")) return true; /* The Top type is the top of type hierarchy (EVEN ARRAY TYPE) */
         if(t == AstType.BOT) return true;
         if(!(t instanceof AstBaseType) || !(this instanceof AstBaseType)){
             return t.equals(this);

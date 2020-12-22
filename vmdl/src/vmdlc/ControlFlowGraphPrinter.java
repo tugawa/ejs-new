@@ -42,7 +42,7 @@ public class ControlFlowGraphPrinter {
             }
             System.out.println("Codes:");
             for(SyntaxTree stmt : target){
-                System.out.println(stmt.toText());
+                System.out.println(stmt.toString());
             }
             System.out.println("Initialized:");
             System.out.println(target.getInitialized());

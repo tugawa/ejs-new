@@ -1078,7 +1078,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             visit(node.get(Symbol.unique("type")), indent);
-            print("[]");
+            print("*");
         }
     }
     public class ArrayIndex extends DefaultVisitor{

@@ -103,6 +103,9 @@
 #define CstrToString(cstr)         cstr_to_string(NULL, (cstr))
 #define GetProp(v1, v2, v3)        get_prop((v1), (v2), &(v3))
 #define PutLnChar()                putchar('\n')
+#define AllocateJSArray(context, size)  ((JSValue *)gc_malloc((context), sizeof(JSValue) * (size), HTAG_ARRAY_DATA))
+#define AllocateCintArray(size)  ((cint *)malloc(sizeof(cint) * (size))
+#define AllocateCdoubleArray(size)  ((double *)malloc(sizeof(double) * (size))
 
 #define Pophandler()					\
   int newpc, handler_fp;				\

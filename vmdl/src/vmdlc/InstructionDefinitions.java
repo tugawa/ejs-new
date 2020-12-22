@@ -83,7 +83,7 @@ public class InstructionDefinitions {
             String insnName = record[0];
             InsnType insnType = InsnType.valueOf(record[1]);
 
-            OperandKinds[] operandKinds = new OperandKinds[record.length];
+            OperandKinds[] operandKinds = new OperandKinds[record.length-2];
             for (int i = 2; i < record.length; i++) {
                 operandKinds[i-2] = OperandKinds.getValue(record[i]);
             }
@@ -101,6 +101,9 @@ public class InstructionDefinitions {
     }
 
     public OperandKinds[] getKinds(String insnName) {
+        if(!map.containsKey(insnName)){
+            ErrorPrinter.error("Cannot find operand specification: "+insnName);
+        }
         return map.get(insnName).operandKinds;
     }
 }
