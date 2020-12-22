@@ -510,11 +510,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             if(compileMode == Main.CompileMode.Builtin){
-                printIndent(indent, "set_a(context, ");
+                printIndentln(indent, "{");
+                printIndent(indent+1, "set_a(context, ");
                 for (Tree<?> expr : node) {
                     visit(expr, 0);
                 }
                 println(");");
+                printIndentln(indent+1, "return;");
+                printIndentln(indent, "}");
             }else if (compileMode.isFunctionMode()) {
                 printIndent(indent, "return ");
                 for (Tree<?> expr : node) {
