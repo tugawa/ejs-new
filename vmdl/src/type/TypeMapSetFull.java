@@ -29,7 +29,7 @@ public class TypeMapSetFull extends TypeMapSet {
             System.err.println("Internal Warning: add variable "+name+" types BOT");
         }
         Set<AstType> set = AstType.getChildren(type);
-        if(set == null){
+        if(set.equals(Collections.emptySet())){
             set = new HashSet<>();
         }
         if(set.isEmpty()){

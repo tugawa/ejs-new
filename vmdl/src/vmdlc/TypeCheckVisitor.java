@@ -349,7 +349,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     ErrorPrinter.error("BuiltinFunctions requires parameters");
                 }
                 if(!AstType.isBuiltinFunctionType(funtype)){
-                    ErrorPrinter.error("BuiltinFunctions must be (cint, cint, JSValue[]) -> JSValue type", typeNode);
+                    ErrorPrinter.error("BuiltinFunctions must be (cint, cint, Args) -> JSValue type", typeNode);
                 }
                 if(!isFormBuiltinFunctionParams(paramsNode)){
                     ErrorPrinter.error("BuiltinFunction parameter must be (fp, na, args)", paramsNode);

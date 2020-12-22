@@ -98,6 +98,7 @@ public class AstType {
         if(name.endsWith("[]")){
             return new AstArrayType(get(name.substring(0, name.length()-2)));
         }
+        if(name.equals("Args")) return ARGS;
         AstBaseType type = definedTypes.get(name);
         if(type != null) return type;
         return definedMappingTypes.get(name);
@@ -140,6 +141,7 @@ public class AstType {
         return newSet;
     }
 
+    static final Args ARGS;
     static final AstProductType BUILTINFUNCTION_TYPE;
 
     public static boolean isBuiltinFunctionType(AstType type){
@@ -189,7 +191,9 @@ public class AstType {
         defineJSValueVMType("NumberObject", jsObjType, VMDataType.get("number_object"));
         defineJSValueVMType("BooleanObject", jsObjType, VMDataType.get("boolean_object"));
         AstType cintType = AstType.get("cint");
-        BUILTINFUNCTION_TYPE = new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, new AstArrayType(jsValType) })), jsValType);
+        ARGS = new Args();
+        //BUILTINFUNCTION_TYPE = new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, new AstArrayType(jsValType) })), jsValType);
+        BUILTINFUNCTION_TYPE = new AstProductType(new AstPairType(Arrays.asList(new AstType[]{ cintType, cintType, ARGS })), jsValType);
     }
 
     String name;
@@ -483,6 +487,16 @@ HeapObject
             if(obj == null) return false;
             if(!(obj instanceof AstArrayType)) return false;
             return elementType.equals(((AstArrayType)obj).elementType);
+        }
+    }
+
+    public static class Args extends AstArrayType{
+        public Args(){
+            super(get("JSValue"));
+        }
+        @Override
+        public String toString(){
+            return "Args";
         }
     }
 

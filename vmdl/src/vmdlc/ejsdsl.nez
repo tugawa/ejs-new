@@ -295,6 +295,7 @@ Ctypes = 'cint'
        / 'Displacement'
        / 'Subscript'
        / 'HeapObject'
+       / 'Args'
 
 ////////////////////////////////
 //// Symbols

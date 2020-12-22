@@ -1061,6 +1061,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             varmap.put("cstring", "char*");
             varmap.put("Displacement", "Displacement");
             varmap.put("Subscript", "Subscript");
+            varmap.put("Args", "JSValue[]");
             //NOTE: HeapObject cannnot print
             print(varmap.get(node.toText()));
         }
