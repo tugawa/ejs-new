@@ -8,6 +8,7 @@ externC constant EMPTY_CSTRING = "\"\"" : cstring
 externC constant EMPTY_JSVALUE = "JS_NULL" : JSValue
 externC constant HINT_STRING = "HINT_STRING" : cint
 externC constant NAN = "NAN" : cdouble
+externC constant SUCCESS = "SUCCESS" : cint
 
 externC cint_to_double : cint -> cdouble
 externC double_to_cint : cdouble -> cint
@@ -91,7 +92,7 @@ externC Nextpropnameidx : JSValue -> JSValue
 externC (needContext) New_normal_object : void -> JSObject
 externC (needContext) Initialize_new_object : (JSValue, JSValue) -> JSObject
 externC JS_undefined : void -> JSObject
-externC Newframe : cint -> void
+externC Newframe : (cint, cint) -> void
 externC Makearguments : void -> void
 
 externC Nop : void -> void

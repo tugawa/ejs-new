@@ -236,7 +236,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Statements extends DefaultVisitor{
         public void pushPopGenerate(SyntaxTree node, Collection<String> live){
             List<String> liveList = new ArrayList<>(live);
-            if(compileMode == CompileMode.Builtin){
+            if(compileMode.isBuiltinFunctionMode()){
                 liveList.remove("args");
             }
             int size = liveList.size();

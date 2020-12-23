@@ -49,13 +49,14 @@ public class AstType {
     static Map<VMDataType, JSValueVMType> vmtToType = new HashMap<>();
     static Map<AstBaseType, Set<AstType>> childrenMap = new HashMap<>();
     static Set<AstProductType> builtinFunctionTypes = new HashSet<>(2);
-    static void defineType(String name) {
-        defineType(name, null);
+    static AstBaseType defineType(String name) {
+        return defineType(name, null);
     }
-    static void defineType(String name, AstBaseType parent) {
+    static AstBaseType defineType(String name, AstBaseType parent) {
         AstBaseType t = new AstBaseType(name, parent);
         definedTypes.put(name, t);
         putChild(parent, t);
+        return t;
     }
     static void defineJSValueType(String name, AstBaseType parent) {
         AstBaseType t = new JSValueType(name, parent);
@@ -167,8 +168,8 @@ public class AstType {
         defineType("void");
         defineRequireGCPushPopType("HeapObject");
         defineType("cint");
-        defineType("cdouble");
-        defineType("cstring");
+        defineType("cdouble").setCCodeName("double");
+        defineType("cstring").setCCodeName("char*");
         defineType("Displacement");
         defineType("Subscript");
         defineJSValueType("JSValue", null);
@@ -255,33 +256,37 @@ public class AstType {
         AstBaseType parent;
         int depth;
         boolean requireGCPushPopFlag;
+        String cCodeName;
 
         private AstBaseType(String _name) {
             name = _name;
             requireGCPushPopFlag = false;
+            cCodeName = _name;
         }
-
         private AstBaseType(String _name, AstBaseType _parent) {
             name = _name;
             requireGCPushPopFlag = false;
+            cCodeName = _name;
             parent = _parent;
             depth = 0;
             for (AstBaseType t = parent; t != null; t = t.parent)
                 depth++;
         }
-        
         public String toString() {
             return name;
         }
-
         public boolean isRequiredGCPushPop(){
             return requireGCPushPopFlag;
         }
-
         public void setRequireGCPushPop(boolean flag){
             requireGCPushPopFlag = flag;
         }
-        
+        public void setCCodeName(String name){
+            cCodeName = name;
+        }
+        public String getCCodeName(){
+            return cCodeName;
+        }
     }
     public AstType lub(AstType that) {
         if (!(this instanceof AstBaseType) || !(that instanceof AstBaseType)) {
@@ -333,10 +338,13 @@ public class AstType {
         public static JSValueType get(String name) {
             return (JSValueType) AstType.get(name);
         }
-
         private JSValueType(String name, AstBaseType parent) {
             super(name, parent);
             setRequireGCPushPop(true);
+        }
+        @Override
+        public String getCCodeName(){
+            return "JSValue";
         }
     }
 

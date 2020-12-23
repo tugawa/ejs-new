@@ -54,16 +54,20 @@ public class Main {
     }
 
     public static enum CompileMode{
-        Instruction(false),
-        Function(true),
-        Builtin(true);
+        Instruction(false, false), Function(true, false), Builtin(true, true);
 
         private boolean functionMode;
-        private CompileMode(boolean functionMode){
+        private boolean builtinFunctionMode;
+
+        private CompileMode(boolean functionMode, boolean builtinFunctionMode){
             this.functionMode = functionMode;
+            this.builtinFunctionMode = builtinFunctionMode;
         }
         public boolean isFunctionMode(){
             return functionMode;
+        }
+        public boolean isBuiltinFunctionMode(){
+            return builtinFunctionMode;
         }
     };
 
@@ -277,7 +281,7 @@ public class Main {
         new VarInitCheckVisitor().start(enter);
         new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit, compileMode);
         // For Test
-        ControlFlowGraphPrinter.print(enter);
+        //ControlFlowGraphPrinter.print(enter);
         String program = new AstToCVisitor().start(ast, opSpec, compileMode);
         if(funcSpec != null){
             funcSpec.write(functionSpecFile);

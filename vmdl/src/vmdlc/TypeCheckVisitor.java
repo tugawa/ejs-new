@@ -344,7 +344,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             Set<TypeMap> newSet2 = new HashSet<>();
             /* add non-JSValue parameters */
             SyntaxTree paramsNode = definitionNode.get(Symbol.unique("params"));
-            if(option.getCompileMode() == CompileMode.Builtin){
+            if(option.getCompileMode() != null && option.getCompileMode().isBuiltinFunctionMode()){
                 if(paramsNode == null){
                     ErrorPrinter.error("BuiltinFunctions requires parameters");
                 }

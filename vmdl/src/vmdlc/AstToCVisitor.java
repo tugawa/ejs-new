@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.lang.Exception;
 import java.lang.Integer;
 
@@ -35,6 +36,7 @@ import type.FunctionTable;
 import type.TypeMapSet;
 import type.VMDataType;
 import type.AstType.AstAliasType;
+import type.AstType.AstBaseType;
 import type.AstType.AstMappingType;
 import type.AstType.AstPairType;
 import type.AstType.AstProductType;
@@ -73,7 +75,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     Stack<MatchRecord> matchStack;
     String currentFunctionName;
     OperandSpecifications opSpec;
-    Main.CompileMode compileMode;
+    CompileMode compileMode;
 
     public AstToCVisitor() {
         init(AstToCVisitor.class, new DefaultVisitor());
@@ -81,7 +83,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         matchStack = new Stack<MatchRecord>();
     }
 
-    public String start(Tree<?> node, OperandSpecifications opSpec, Main.CompileMode compileMode) {
+    public String start(Tree<?> node, OperandSpecifications opSpec, CompileMode compileMode) {
         this.opSpec = opSpec;
         this.compileMode = compileMode;
         try {
@@ -159,7 +161,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     public class FunctionMeta extends DefaultVisitor {
-        private String genICCProfCode(String insnName, List<AstType> types, Tree<?> paramsNode){
+        private final String generateICCProfCode(String insnName, List<AstType> types, Tree<?> paramsNode){
             StringBuilder builder = new StringBuilder();
             int size = types.size();
             int jsvSize = 0;
@@ -180,100 +182,96 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             builder.append("#endif\n");
             return builder.toString();
         }
-        
+        private final List<AstType> toAstTypeList(AstProductType functionType, SyntaxTree typeNode){
+            List<AstType> varTypes;
+            AstType domainType = functionType.getDomain();
+            if(domainType instanceof AstPairType){
+                AstPairType d = (AstPairType) domainType;
+                varTypes = d.getTypes();
+            }else{
+                varTypes = new ArrayList<>(1);
+                varTypes.add(domainType);
+            }
+            for(AstType t : varTypes){
+                if(!(t instanceof AstBaseType))
+                    ErrorPrinter.error("illigal patameter types", typeNode);
+            }
+            if(varTypes.size() == 1 && varTypes.get(0) == AstType.get("void"))
+            varTypes = Collections.emptyList();
+            return varTypes;
+        }
+        private final String getTypeString(CompileMode mode, AstProductType functionType){
+            if(mode.isBuiltinFunctionMode())
+                return "void";
+            AstType rangeType = functionType.getRange();
+            if(rangeType instanceof AstBaseType)
+                return ((AstBaseType)rangeType).getCCodeName();
+            if(rangeType instanceof AstPairType){
+
+            }
+            throw new Error("InternalError: cannot generate range type C code: "+rangeType.toString());
+        }
+        private final String getParameterString(CompileMode mode, List<AstType> parameterTypes, SyntaxTree paramsNode, String functionName){
+            if(mode.isBuiltinFunctionMode())
+                return "Context* context, cint fp, cint na";
+            List<String> parameters;
+            int size = paramsNode.size();
+            if(FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
+                parameters = new ArrayList<>(size+1);
+                parameters.add("Context* context");
+            }else{
+                parameters = new ArrayList<>(size);
+            }
+            for(int i=0; i<size; i++){
+                String typeString = ((AstBaseType)parameterTypes.get(i)).getCCodeName();
+                String nameString = paramsNode.get(i).toText();
+                parameters.add(typeString+" "+nameString);
+            }
+            return String.join(", ", parameters.toArray(new String[0]));
+        }
+        // TODO: Change the policy of LOG_EXIT generation
+        private final Tree<?> insertLOG_EXIT(CompileMode mode, Tree<?> definitionNode, String functionName){
+            if(!compileMode.isFunctionMode()) return definitionNode;
+            SyntaxTree blockNode = ((SyntaxTree)definitionNode).get(Symbol.unique("body"));
+            while(blockNode.hasExpandedTree()){
+                blockNode = blockNode.getExpandedTree();
+            }
+            SyntaxTree[] originalStmts = (SyntaxTree[])blockNode.getSubTree();
+            SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
+            int length = originalStmts.length;
+            for(int i=0; i<length; i++){
+                expandedStmts[i] = originalStmts[i];
+            }
+            expandedStmts[length] = new SyntaxTree(Symbol.unique("IfdefDebug"), null, null, functionName);
+            SyntaxTree newDefinitionNode = (SyntaxTree)definitionNode.dup();
+            newDefinitionNode.set(Symbol.unique("body"), ASTHelper.generateBlock(expandedStmts));
+            return newDefinitionNode;
+        }
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> nameNode = node.get(Symbol.unique("name"));
-            String name = nameNode.toText();
-            currentFunctionName = name;
-
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
-
             SyntaxTree typeNode = (SyntaxTree)node.get(Symbol.unique("type"));
             SyntaxTree paramsNode = ((SyntaxTree)bodyNode).get(Symbol.unique("params"));
             AstType type = AstType.nodeToType(typeNode);
             if(!(type instanceof AstProductType)){
                 throw new Error("Function is not function type");
             }
-            AstProductType funType = (AstProductType)type;
-            AstType funDomainType = funType.getDomain();
-            List<AstType> varTypes;
-            if(funDomainType instanceof AstPairType){
-                AstPairType d = (AstPairType) funDomainType;
-                varTypes = d.getTypes();
-            }else{
-                varTypes = new ArrayList<>(1);
-                varTypes.add(funDomainType);
-            }
+            AstProductType functionType = (AstProductType)type;
+            List<AstType> varTypes = toAstTypeList(functionType, typeNode);
+            String name = nameNode.toText();
+            currentFunctionName = name;
             if(compileMode.isFunctionMode()){
-                String typeString;
-                if(compileMode == Main.CompileMode.Builtin){
-                    typeString = "void";
-                }else if(AstType.get("JSValue").isSuperOrEqual(funType.getRange())){
-                    typeString = "JSValue";
-                }else{
-                    typeString = funType.getRange().toString();
-                    if(typeString.equals("cdouble")) typeString = "double";
-                    else if(typeString.equals("cstring")) typeString = "char*";
-                }
+                String typeString = getTypeString(compileMode, functionType);
                 print(typeString+" "+name+" (");
-                int size = paramsNode.size();
                 if(!FunctionTable.contains(name)){
-                    throw new Error("FunctionTable is broken: not has "+name);
+                    throw new Error("InternalError: cannot find in FunctionTable: "+name);
                 }
-                if(FunctionTable.hasAnnotations(name, FunctionAnnotation.needContext)){
-                    print("Context* context");
-                    if(size != 0){
-                        print(", ");
-                    }
-                }
-                if(compileMode == Main.CompileMode.Builtin){
-                    print("cint fp, cint na");
-                }else{
-                    int i=0;
-                    while(true){
-                        AstType varType = varTypes.get(i);
-                        String varName = paramsNode.get(i).toText();
-                        AstType realVarType;
-                        String typeName;
-                        if(varType instanceof AstAliasType){
-                            realVarType = AstType.get(((AstAliasType)varType).getCTypeName());
-                        }else{
-                            realVarType = varType;
-                        }
-                        if(AstType.get("JSValue").isSuperOrEqual(realVarType)){
-                            typeName = "JSValue";
-                        }else{
-                            typeName = realVarType.toString();
-                        }
-                        print(typeName+" "+varName);
-                        i++;
-                        if(i>=size) break;
-                        print(", ");
-                    }
-                }
+                print(getParameterString(compileMode, varTypes, paramsNode, name));
                 println(")");
-                //indent++;
             }
-            if(!compileMode.isFunctionMode()){
-                notifyICCProfCode(bodyNode, genICCProfCode(name, varTypes, paramsNode));
-            }
-            // TODO: Change the policy of LOG_EXIT generation 
-            if(compileMode == CompileMode.Function){
-                SyntaxTree blockNode = ((SyntaxTree)bodyNode).get(Symbol.unique("body"));
-                while(blockNode.hasExpandedTree()){
-                    blockNode = blockNode.getExpandedTree();
-                }
-                SyntaxTree[] originalStmts = (SyntaxTree[])blockNode.getSubTree();
-                SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
-                int length = originalStmts.length;
-                for(int i=0; i<length; i++){
-                    expandedStmts[i] = originalStmts[i];
-                }
-                expandedStmts[length] = new SyntaxTree(Symbol.unique("IfdefDebug"), null, null, name);
-                SyntaxTree newBodyNode = (SyntaxTree)bodyNode.dup();
-                newBodyNode.set(Symbol.unique("body"), ASTHelper.generateBlock(expandedStmts));
-                bodyNode = newBodyNode;
-            }
+            bodyNode = insertLOG_EXIT(compileMode, bodyNode, name);
+            if(!compileMode.isFunctionMode())
+                notifyICCProfCode(bodyNode, generateICCProfCode(name, varTypes, paramsNode));
             visit(bodyNode, indent);
         }
     }
@@ -310,7 +308,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 println(");");
             }
             SyntaxTree bodyNode = (SyntaxTree) node.get(Symbol.unique("body"));
-            if(compileMode == Main.CompileMode.Builtin){
+            if(compileMode.isBuiltinFunctionMode()){
                 while(bodyNode.hasExpandedTree()){
                     bodyNode = bodyNode.getExpandedTree();
                 }
@@ -378,24 +376,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(Tree<?> node, int indent) throws Exception {
             SyntaxTree expandedNode = ((SyntaxTree)node).getExpandedTree();
             if(expandedNode != null){
-                // INLINE EXPANSION PRINT ******************************************
-                /*
-                System.err.println("Function-Inline-Expand:");
-                System.err.println("Original:"+node.toString());
-                System.err.println("Expanded:"+expandedNode.toString());
-                */
-                /*
-                MatchProcessor emp = new MatchProcessor((SyntaxTree) node);
-                emp.printCaseCond();
-                System.err.println("======================");
-                */
                 visit(expandedNode, indent);
                 return;
             }
             MatchProcessor mp = new MatchProcessor((SyntaxTree) node);
-            //Case Test print
-            //mp.printCaseCond();
-            //System.err.println("===========\n"+node.toString()+"\n===========");
             String[] formalParams = mp.getFormalParams();
             String rawLabel = mp.getLabel();
             String label;
@@ -437,13 +421,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 /* action */
                 outStack.push(new StringBuffer());
                 Tree<?> stmt = mp.getBodyAst(i);
-                /*
-                System.err.println("---------------\nMatch case (No."+i+"):\n"+stmt.toString()+"("+stmt+")"+"\n[");
-                for(VMDataType[] vec : vmtVecs){
-                    System.err.println(Arrays.toString(vec)+",");
-                }
-                System.err.println("]\n---------------");
-                */
                 visit(stmt, 0);
                 String action = outStack.pop().toString();
 
@@ -509,7 +486,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            if(compileMode == Main.CompileMode.Builtin){
+            if(compileMode.isBuiltinFunctionMode()){
                 printIndentln(indent, "{");
                 printIndent(indent+1, "set_a(context, ");
                 for (Tree<?> expr : node) {
@@ -582,31 +559,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 println(pairs[i].toText()+" = __assignment_pair_temp__.r"+i+";");
             }
             println("}");
-            /*
-            print(fname.toText());
-            print("(");
-
-            for (Tree<?> child : rightNode) {
-                if (child.is(Symbol.unique("ArgList"))) {
-                    int i = 0;
-                    for (i = 0; i < child.size(); i++) {
-                        visit(child.get(i), 0);
-                        print(", ");
-                    }
-                    int j = 0;
-                    for (j = 0; j < leftNode.size() - 1; j++) {
-                        print("&");
-                        visit(leftNode.get(j), 0);
-                        print(", ");
-                    }
-                    print("&");
-                    visit(leftNode.get(j), 0);
-
-                    break;
-                }
-            }
-            println(");");
-            */
         }
     }
 
