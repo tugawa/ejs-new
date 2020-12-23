@@ -937,6 +937,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 SyntaxTree blockNode = node.get(Symbol.unique("block"));
                 loopDict = visit(blockNode, loopDict);
             } while (!loopDict.equals(savedDict));
+            initNode.setTypeMapSet(dict);
+            initNode.setTailDict(dict);
             return dict;
         }
     }

@@ -140,7 +140,6 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             queue.add(node);
             while(!queue.isEmpty()){
                 ControlFlowGraphNode target = queue.remove();
-        
                 Collection<String> newTailLive = new HashSet<>();
                 Collection<ControlFlowGraphNode> nexts = target.getNext();
                 for(ControlFlowGraphNode cfgn : nexts){
@@ -165,6 +164,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                     visit(stmt, newTailLive);
                 }
+                target.setHeadLive(newTailLive);
                 Collection<ControlFlowGraphNode> prevs = target.getPrev();
                 for(ControlFlowGraphNode prev : prevs){
                     if(prev == ControlFlowGraphNode.enter) continue;
