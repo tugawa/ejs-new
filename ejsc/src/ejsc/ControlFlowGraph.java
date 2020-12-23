@@ -92,6 +92,33 @@ public class ControlFlowGraph {
         return nodes;
     }
 
+    class DescendingNodeIterator implements Iterable<CFGNode>, Iterator<CFGNode> {
+        private int index;
+
+        private DescendingNodeIterator() {
+            index = nodes.length;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return index > 0;
+        }
+
+        @Override
+        public CFGNode next() {
+            return nodes[--index];
+        }
+
+        @Override
+        public Iterator<CFGNode> iterator() {
+            return this;
+        }
+    }
+
+    public Iterable<CFGNode> getNodeDesc() {
+        return new DescendingNodeIterator();
+    }
+
     public CFGNode get(BCode bc) {
         return nodes[bc.getAddress()];
     }

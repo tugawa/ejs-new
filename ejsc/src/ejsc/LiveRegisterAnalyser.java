@@ -30,7 +30,7 @@ public class LiveRegisterAnalyser {
         boolean fixPoint = false;
         while (!fixPoint) {
             fixPoint = true;
-            for (ControlFlowGraph.CFGNode n: cfg.getNodes()) {
+            for (ControlFlowGraph.CFGNode n: cfg.getNodeDesc()) {
                 BCode bc = n.getBCode();
                 Set<Register> in = inMap.get(bc);
                 Set<Register> out = outMap.get(bc);
