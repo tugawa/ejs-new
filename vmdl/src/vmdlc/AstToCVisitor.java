@@ -404,7 +404,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print(matchStack.peek().getHeadLabel()+":"+"\n");
 
             /* Insert code for ICCPROF (only top level match) */
-            if(rawLabel != null && rawLabel.equals("top")){
+            if(compileMode == CompileMode.Instruction && rawLabel != null && rawLabel.equals("top")){
                 print(iccprofCode);
             }
 
