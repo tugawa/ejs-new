@@ -2,7 +2,7 @@ package vmdlc;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -90,7 +90,9 @@ public class Option {
         }
     }
 
-    private final static Map<String, OptionItem> options = new HashMap<>();
+    /* Commandline arguments setting */
+
+    private final static Map<String, OptionItem> options = new LinkedHashMap<>();
 
     static {
         options.put("-d", new OptionItem("-d file", "[mandatory] Datatype specification file", (args, self) -> {
