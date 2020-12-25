@@ -22,7 +22,7 @@ import dispatch.DecisionDiagram.TagPairNode.TagPair;
 import type.VMRepType;
 import type.VMRepType.HT;
 import type.VMRepType.PT;
-import vmdlc.Option;
+import vmdlc.XOption;
 
 class CodeGenerateVisitor extends NodeVisitor<Void> {
     static boolean USE_GOTO = true;
@@ -50,7 +50,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
         }
     }
 
-    Option option;
+    XOption option;
     StringBuffer sb = new StringBuffer();
     Macro tagMacro;
     String[] varNames;
@@ -58,21 +58,21 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
     Map<Node, Set<String>> typeLabels;
     String labelPrefix;
 
-    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
+    public CodeGenerateVisitor(String[] varNames, Macro tagMacro, XOption option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
         this.varNames = varNames;
         this.tagMacro = tagMacro;
         this.typeLabels = typeLabels;
         this.option = option;
-        USE_GOTO = option.getOption(Option.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
-        PAD_CASES = option.getOption(Option.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
-        USE_DEFAULT = option.getOption(Option.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
-        DEBUG_COMMENT = option.getOption(Option.AvailableOptions.GEN_DEBUG_COMMENT, DEBUG_COMMENT);
+        USE_GOTO = option.getOption(XOption.AvailableOptions.GEN_USE_GOTO, USE_GOTO);
+        PAD_CASES = option.getOption(XOption.AvailableOptions.GEN_PAD_CASES, PAD_CASES);
+        USE_DEFAULT = option.getOption(XOption.AvailableOptions.GEN_USE_DEFAULT, USE_DEFAULT);
+        DEBUG_COMMENT = option.getOption(XOption.AvailableOptions.GEN_DEBUG_COMMENT, DEBUG_COMMENT);
         this.labelPrefix = labelPrefix;
     }
 
     @Override
     public String toString() {
-        if (option.getOption(Option.AvailableOptions.GEN_MAGIC_COMMENT, false)) {
+        if (option.getOption(XOption.AvailableOptions.GEN_MAGIC_COMMENT, false)) {
             return sb.toString() +
                     "/* Local Variables: */\n" +
                     "/* mode: c */\n" +

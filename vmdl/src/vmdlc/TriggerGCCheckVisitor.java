@@ -21,7 +21,7 @@ import type.TypeMap;
 import type.TypeMapSet;
 import type.AstType.AstArrayType;
 import type.AstType.AstBaseType;
-import vmdlc.Main.CompileMode;
+import vmdlc.Option.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
 import vmdlc.TriggerGCCheckVisitor.BlockExpansionMap.BlockExpansionRequsets;
 

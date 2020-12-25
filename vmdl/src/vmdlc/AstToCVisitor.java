@@ -24,7 +24,7 @@ import java.lang.Exception;
 import java.lang.Integer;
 
 import vmdlc.AstToCVisitor.DefaultVisitor;
-import vmdlc.Main.CompileMode;
+import vmdlc.Option.CompileMode;
 import dispatch.DispatchProcessor;
 import dispatch.DispatchPlan;
 import dispatch.RuleSet;
@@ -60,11 +60,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             this.opNames = opNames;
         }
         String getHeadLabel() {
-            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            String labelPrefix = Main.option.getXOption().getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, functionName);
             return "MATCH_HEAD_"+labelPrefix+"_"+name;
         }
         String getTailLabel() {
-            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, functionName);
+            String labelPrefix = Main.option.getXOption().getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, functionName);
             return "MATCH_TAIL_"+labelPrefix+"_"+name;
         }
         boolean hasMatchLabelOf(String label) {
@@ -138,7 +138,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     private String getEpilogueLabel() {
-        String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+        String labelPrefix = Main.option.getXOption().getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
         return "L"+labelPrefix+"_EPILOGUE";
     }
 
@@ -192,10 +192,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 varTypes = new ArrayList<>(1);
                 varTypes.add(domainType);
             }
+            /*
             for(AstType t : varTypes){
                 if(!(t instanceof AstBaseType))
                     ErrorPrinter.error("illigal patameter types", typeNode);
             }
+            */
             if(varTypes.size() == 1 && varTypes.get(0) == AstType.get("void"))
             varTypes = Collections.emptyList();
             return varTypes;
@@ -223,7 +225,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 parameters = new ArrayList<>(size);
             }
             for(int i=0; i<size; i++){
-                String typeString = ((AstBaseType)parameterTypes.get(i)).getCCodeName();
+                String typeString = parameterTypes.get(i).getCCodeName();
                 String nameString = paramsNode.get(i).toText();
                 parameters.add(typeString+" "+nameString);
             }
@@ -411,7 +413,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             for (int i = 0; i < mp.size(); i++) {
                 Set<VMDataType[]> vmtVecs = mp.getVmtVecCond(i);
-                if (!Main.option.disableMatchOptimisation())
+                if (!Main.option.getXOption().disableMatchOptimisation())
                     vmtVecs = dict.filterTypeVecs(formalParams, vmtVecs);
                 if (vmtVecs.size() == 0)
                     continue;
@@ -467,11 +469,11 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             RuleSet rs = new RuleSet(formalParams, rules);
 
-            DispatchPlan dp = new DispatchPlan(Main.option);
+            DispatchPlan dp = new DispatchPlan(Main.option.getXOption());
             DispatchProcessor dispatchProcessor = new DispatchProcessor();
-            String labelPrefix = Main.option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+            String labelPrefix = Main.option.getXOption().getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
-            String s = dispatchProcessor.translate(rs, dp, Main.option, currentFunctionName, label);
+            String s = dispatchProcessor.translate(rs, dp, Main.option.getXOption(), currentFunctionName, label);
             println(s);
 
             println(matchStack.pop().getTailLabel()+": ;");

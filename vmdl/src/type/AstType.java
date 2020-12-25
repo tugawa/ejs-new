@@ -252,6 +252,10 @@ public class AstType {
         return this==obj;
     }
 
+    public String getCCodeName(){
+        return toString();
+    }
+
     public static class AstBaseType extends AstType {
         AstBaseType parent;
         int depth;
@@ -284,6 +288,7 @@ public class AstType {
         public void setCCodeName(String name){
             cCodeName = name;
         }
+        @Override
         public String getCCodeName(){
             return cCodeName;
         }
@@ -473,6 +478,11 @@ HeapObject
         public String getCTypeName(){
             return cTypeName;
         }
+
+        @Override
+        public String getCCodeName(){
+            return getCTypeName();
+        }
     }
 
     public static class AstArrayType extends AstType{
@@ -497,6 +507,10 @@ HeapObject
             if(!(obj instanceof AstArrayType)) return false;
             return elementType.equals(((AstArrayType)obj).elementType);
         }
+        @Override
+        public String getCCodeName(){
+            return elementType.getCCodeName()+"*";
+        }
     }
 
     public static class Args extends AstArrayType{
@@ -505,6 +519,10 @@ HeapObject
         }
         @Override
         public String toString(){
+            return "Args";
+        }
+        @Override
+        public String getCCodeName(){
             return "Args";
         }
     }
