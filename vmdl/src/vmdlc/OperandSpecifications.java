@@ -13,7 +13,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.regex.Pattern;
 import type.AstType;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
+import vmdlc.OperandSpecifications.OperandSpecificationRecord.Behaviour;
 
 
 public class OperandSpecifications {
@@ -62,6 +65,24 @@ public class OperandSpecifications {
         public OperandSpecificationRecord clone(){
             return new OperandSpecificationRecord(insnName, operandTypes.clone(), behaviour);
         }
+
+        public Behaviour getBehavior(){
+            return behaviour;
+        }
+
+        @Override
+        public int hashCode(){
+            return insnName.hashCode() + operandTypes.hashCode() + behaviour.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj){
+            if(!(obj instanceof OperandSpecificationRecord)) return false;
+            OperandSpecificationRecord that = (OperandSpecificationRecord) obj;
+            return this.insnName.equals(that.insnName) &&
+                Arrays.equals(this.operandTypes, that.operandTypes) &&
+                this.behaviour == that.behaviour;
+        }
     }
     List<OperandSpecificationRecord> spec;
     Map<String, Integer> arities;
@@ -84,6 +105,7 @@ public class OperandSpecifications {
         arities = new HashMap<String, Integer>();
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
+            if(line.isBlank()) continue;
             if (line.startsWith("#"))
                 continue;
             Matcher matcher = splitter.matcher(line);
@@ -262,6 +284,10 @@ public class OperandSpecifications {
         insertRecord(insnName, typeNames, behaviour);
     }
 
+    public void insertRecord(OperandSpecificationRecord record){
+        spec.add(0, record);
+    }
+
     public void write(FileWriter writer) throws IOException{
         StringBuilder builder = new StringBuilder();
         for(OperandSpecificationRecord record : spec){
@@ -281,6 +307,15 @@ public class OperandSpecifications {
         }
     }
 
+    public void print(PrintStream stream){
+        StringBuilder builder = new StringBuilder();
+        for(OperandSpecificationRecord record : spec){
+            builder.append(record.toString());
+            builder.append('\n');
+        }
+        stream.print(builder.toString());
+    }
+
     public boolean hasName(String name){
         return (arities.get(name) != null);
     }
@@ -293,6 +328,10 @@ public class OperandSpecifications {
             result.put(name, acceptTypess);
         }
         return result;
+    }
+
+    public List<OperandSpecificationRecord> getOperandSpecificationRecord(){
+        return spec;
     }
 
     @Override
@@ -318,6 +357,23 @@ public class OperandSpecifications {
         }
         builder.append("]");
         return builder.toString();
+    }
+
+    public static OperandSpecifications merge(List<OperandSpecifications> opSpecs){
+        if(opSpecs.isEmpty()) return new OperandSpecifications();
+        OperandSpecifications merged = opSpecs.get(0).clone();
+        List<OperandSpecifications> cdr = opSpecs.subList(1, opSpecs.size());
+        for(OperandSpecifications target : cdr){
+            List<OperandSpecificationRecord> mergedRecords = merged.getOperandSpecificationRecord();
+            List<OperandSpecificationRecord> targetRecords = target.getOperandSpecificationRecord();
+            for(OperandSpecificationRecord record : targetRecords){
+                boolean isAccept = record.getBehavior() == Behaviour.ACCEPT;
+                boolean isRecordMerged = mergedRecords.contains(record);
+                if(!isAccept|| isRecordMerged) continue;
+                merged.insertRecord(record);
+            }
+        }
+        return merged;
     }
     //Never used
     /*

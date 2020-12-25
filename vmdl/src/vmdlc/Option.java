@@ -1,6 +1,7 @@
 package vmdlc;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ public class Option {
     private OperandSpecifications argumentSpec = new OperandSpecifications();
     private OperandSpecifications requiringFunctionSpec;
     private OperandSpecifications caseSplittingSpec;
+    private List<OperandSpecifications> mergeTargets;
     InstructionDefinitions instructionDefinitions = new InstructionDefinitions();
     private String vmdlGrammarFile;
     private String functionTypeDependencyFile;
@@ -33,7 +35,7 @@ public class Option {
     private XOption xOption = new XOption();
 
     public static enum ProcessMode {
-        Compile, Preprocess, GenFuncSpec;
+        Compile, Preprocess, GenFuncSpec, MergeFuncSpec;
     }
 
     public static enum CompileMode {
@@ -186,6 +188,21 @@ public class Option {
                 self.caseSplittingSpec.load(caseSplittingSpecFile);
                 return 2;
             }));
+        options.put("-merge-funcspec", new OptionItem("-merge-funcspec file1 file2 ...", "Generate merged function specification files",
+            (args, self) -> {
+                if (self.processMode != ProcessMode.Compile) {
+                    ErrorPrinter.error("Cannot specify modes at the same time");
+                }
+                self.processMode = ProcessMode.MergeFuncSpec;
+                self.mergeTargets = new ArrayList<>(args.size()-1);
+                List<String> files = args.subList(1, args.size());
+                for(String file : files){
+                    OperandSpecifications spec = new OperandSpecifications();
+                    spec.load(file);
+                    self.mergeTargets.add(spec);
+                }
+                return args.size();
+            }));
     }
 
     public void parseOption(String[] args) throws IOException {
@@ -215,7 +232,7 @@ public class Option {
     }
 
     private boolean isIncorrectCommandlineArgument(){
-        return (!typeDefinitionSetFlag || sourceFile == null) && processMode != ProcessMode.GenFuncSpec;
+        return (!typeDefinitionSetFlag || sourceFile == null) && (processMode != ProcessMode.GenFuncSpec && processMode != ProcessMode.MergeFuncSpec);
     }
 
     private void printDescription(){
@@ -358,6 +375,10 @@ public class Option {
 
     public OperandSpecifications getRequiringFunctionSpec(){
         return requiringFunctionSpec;
+    }
+
+    public List<OperandSpecifications> getMergeTargets(){
+        return mergeTargets;
     }
 
     public InstructionDefinitions getInstructionDefinitions(){

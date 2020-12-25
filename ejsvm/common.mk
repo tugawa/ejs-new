@@ -84,6 +84,7 @@ INSNGEN_VMGEN=java -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
 FUNCGEN_VMDL=$(INSNGEN_VMDL)
+SPECGEN_VMDL=$(INSNGEN_VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
 
@@ -190,185 +191,102 @@ ifeq ($(SUPERINSN_MAKEINSN),true)
     INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
 endif
 
-INSN_GENERATED = \
-    insns/add.inc \
-    insns/bitand.inc \
-    insns/bitor.inc \
-    insns/call.inc \
-    insns/div.inc \
-    insns/eq.inc \
-    insns/equal.inc \
-    insns/getprop.inc \
-    insns/leftshift.inc \
-    insns/lessthan.inc \
-    insns/lessthanequal.inc \
-    insns/mod.inc \
-    insns/mul.inc \
-    insns/new.inc \
-    insns/rightshift.inc \
-    insns/setprop.inc \
-    insns/sub.inc \
-    insns/tailcall.inc \
-    insns/unsignedrightshift.inc \
-    insns/error.inc \
-    insns/fixnum.inc \
-    insns/geta.inc \
-    insns/getarg.inc \
-    insns/geterr.inc \
-    insns/getglobal.inc \
-    insns/getglobalobj.inc \
-    insns/getlocal.inc \
-    insns/instanceof.inc \
-    insns/isobject.inc \
-    insns/isundef.inc \
-    insns/jump.inc \
-    insns/jumpfalse.inc \
-    insns/jumptrue.inc \
-    insns/localcall.inc \
-    insns/makeclosure.inc \
-    insns/makeiterator.inc \
-    insns/move.inc \
-    insns/newframe.inc \
-    insns/nextpropnameidx.inc \
-    insns/not.inc \
-    insns/number.inc \
-    insns/pushhandler.inc \
-    insns/seta.inc \
-    insns/setarg.inc \
-    insns/setarray.inc \
-    insns/setfl.inc \
-    insns/setglobal.inc \
-    insns/setlocal.inc \
-    insns/specconst.inc \
-    insns/typeof.inc \
-    insns/end.inc \
-    insns/localret.inc \
-    insns/nop.inc \
-    insns/pophandler.inc \
-    insns/poplocal.inc \
-    insns/ret.inc \
-    insns/throw.inc \
-    insns/unknown.inc
-
 INSN_HANDCRAFT =
 
-FUNC_GENERATED = \
-	funcs/string_to_boolean.inc \
-	funcs/string_to_number.inc \
-	funcs/string_to_object.inc \
-	funcs/special_to_boolean.inc \
-	funcs/special_to_number.inc \
-	funcs/special_to_object.inc \
-	funcs/special_to_string.inc \
-	funcs/fixnum_to_string.inc \
-	funcs/fixnum_to_boolean.inc \
-	funcs/fixnum_to_object.inc \
-	funcs/flonum_to_string.inc \
-	funcs/flonum_to_boolean.inc \
-	funcs/flonum_to_object.inc \
-	funcs/number_to_string.inc \
-	funcs/object_to_string.inc \
-	funcs/object_to_boolean.inc \
-	funcs/object_to_number.inc \
-	funcs/object_to_primitive.inc \
-	funcs/to_string.inc \
-	funcs/to_boolean.inc \
-	funcs/to_number.inc \
-	funcs/to_object.inc \
-	funcs/to_double.inc \
-	funcs/special_to_double.inc \
-	funcs/number_to_cint.inc \
-	funcs/number_to_double.inc \
-	funcs/to_cint.inc
+FUNCS = \
+	string_to_boolean \
+	string_to_number \
+	string_to_object \
+	special_to_boolean \
+	special_to_number \
+	special_to_object \
+	special_to_string \
+	fixnum_to_string \
+	fixnum_to_boolean \
+	fixnum_to_object \
+	flonum_to_string \
+	flonum_to_boolean \
+	flonum_to_object \
+	number_to_string \
+	object_to_string \
+	object_to_boolean \
+	object_to_number \
+	object_to_primitive \
+	to_string \
+	to_boolean \
+	to_number \
+	to_object \
+	to_double \
+	special_to_double \
+	number_to_cint \
+	number_to_double \
+	to_cint
 
-INSNS_VMD = \
-    insns-vmdl/add.vmd \
-    insns-vmdl/bitand.vmd \
-    insns-vmdl/bitor.vmd \
-    insns-vmdl/call.vmd \
-    insns-vmdl/div.vmd \
-    insns-vmdl/eq.vmd \
-    insns-vmdl/equal.vmd \
-    insns-vmdl/getprop.vmd \
-    insns-vmdl/leftshift.vmd \
-    insns-vmdl/lessthan.vmd \
-    insns-vmdl/lessthanequal.vmd \
-    insns-vmdl/mod.vmd \
-    insns-vmdl/mul.vmd \
-    insns-vmdl/new.vmd \
-    insns-vmdl/rightshift.vmd \
-    insns-vmdl/setprop.vmd \
-    insns-vmdl/sub.vmd \
-    insns-vmdl/tailcall.vmd \
-    insns-vmdl/unsignedrightshift.vmd \
-    insns-vmdl/error.vmd \
-    insns-vmdl/fixnum.vmd \
-    insns-vmdl/geta.vmd \
-    insns-vmdl/getarg.vmd \
-    insns-vmdl/geterr.vmd \
-    insns-vmdl/getglobal.vmd \
-    insns-vmdl/getglobalobj.vmd \
-    insns-vmdl/getlocal.vmd \
-    insns-vmdl/instanceof.vmd \
-    insns-vmdl/isobject.vmd \
-    insns-vmdl/isundef.vmd \
-    insns-vmdl/jump.vmd \
-    insns-vmdl/jumpfalse.vmd \
-    insns-vmdl/jumptrue.vmd \
-    insns-vmdl/localcall.vmd \
-    insns-vmdl/makeclosure.vmd \
-    insns-vmdl/makeiterator.vmd \
-    insns-vmdl/move.vmd \
-    insns-vmdl/newframe.vmd \
-    insns-vmdl/nextpropnameidx.vmd \
-    insns-vmdl/not.vmd \
-    insns-vmdl/number.vmd \
-    insns-vmdl/pushhandler.vmd \
-    insns-vmdl/seta.vmd \
-    insns-vmdl/setarg.vmd \
-    insns-vmdl/setarray.vmd \
-    insns-vmdl/setfl.vmd \
-    insns-vmdl/setglobal.vmd \
-    insns-vmdl/setlocal.vmd \
-    insns-vmdl/specconst.vmd \
-    insns-vmdl/typeof.vmd \
-    insns-vmdl/end.vmd \
-    insns-vmdl/localret.vmd \
-    insns-vmdl/nop.vmd \
-    insns-vmdl/pophandler.vmd \
-    insns-vmdl/poplocal.vmd \
-    insns-vmdl/ret.vmd \
-    insns-vmdl/throw.vmd \
-    insns-vmdl/unknown.vmd
+INSNS = \
+    add \
+    bitand \
+    bitor \
+    call \
+    div \
+    eq \
+    equal \
+    getprop \
+    leftshift \
+    lessthan \
+    lessthanequal \
+    mod \
+    mul \
+    new \
+    rightshift \
+    setprop \
+    sub \
+    tailcall \
+    unsignedrightshift \
+    error \
+    fixnum \
+    geta \
+    getarg \
+    geterr \
+    getglobal \
+    getglobalobj \
+    getlocal \
+    instanceof \
+    isobject \
+    isundef \
+    jump \
+    jumpfalse \
+    jumptrue \
+    localcall \
+    makeclosure \
+    makeiterator \
+    move \
+    newframe \
+    nextpropnameidx \
+    not \
+    number \
+    pushhandler \
+    seta \
+    setarg \
+    setarray \
+    setfl \
+    setglobal \
+    setlocal \
+    specconst \
+    typeof \
+    end \
+    localret \
+    nop \
+    pophandler \
+    poplocal \
+    ret \
+    throw \
+    unknown
 
-FUNCS_VMD = \
-	funcs-vmdl/string_to_boolean.vmd \
-	funcs-vmdl/string_to_number.vmd \
-	funcs-vmdl/string_to_object.vmd \
-	funcs-vmdl/special_to_boolean.vmd \
-	funcs-vmdl/special_to_number.vmd \
-	funcs-vmdl/special_to_object.vmd \
-	funcs-vmdl/special_to_string.vmd \
-	funcs-vmdl/fixnum_to_string.vmd \
-	funcs-vmdl/fixnum_to_boolean.vmd \
-	funcs-vmdl/fixnum_to_object.vmd \
-	funcs-vmdl/flonum_to_string.vmd \
-	funcs-vmdl/flonum_to_boolean.vmd \
-	funcs-vmdl/flonum_to_object.vmd \
-	funcs-vmdl/number_to_string.vmd \
-	funcs-vmdl/object_to_string.vmd \
-	funcs-vmdl/object_to_boolean.vmd \
-	funcs-vmdl/object_to_number.vmd \
-	funcs-vmdl/object_to_primitive.vmd \
-	funcs-vmdl/to_string.vmd \
-	funcs-vmdl/to_boolean.vmd \
-	funcs-vmdl/to_number.vmd \
-	funcs-vmdl/to_object.vmd \
-	funcs-vmdl/to_double.vmd \
-	funcs-vmdl/special_to_double.vmd \
-	funcs-vmdl/number_to_cint.vmd \
-	funcs-vmdl/number_to_double.vmd \
-	funcs-vmdl/to_cint.vmd
+INSN_GENERATED = $(patsubst %,insns/%.inc,$(INSNS))
+FUNC_GENERATED = $(patsubst %,funcs/%.inc,$(FUNCS))
+INSNS_VMD = $(patsubst %,insns-vmdl/%.vmd,$(INSNS))
+FUNCS_VMD = $(patsubst %,funcs-vmdl/%.vmd,$(FUNCS))
+REQUIRED_FUNCSPECS = $(patsubst %,$(VMDL_WORKSPACE)/%_require.spec,$(INSNS))
 
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
@@ -407,7 +325,7 @@ define vmdl_funcs_preprocess
 		-i $(EJSVM_DIR)/instructions.def -preprocess \
 		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} -write-extern $(VMDL_EXTERN)\
 		$(1) \
-		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); exit 1)
+		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); rm $(VMDL_EXTERN); exit 1)
 
 endef
 
@@ -473,23 +391,26 @@ $(VMDL_FUNCANYSPEC):
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
 	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
-$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL_INLINE)
+$(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
 	rm -f $(VMDL_EXTERN)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
-$(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
+$(VMDL_FUNCBASESPEC): $(VMDL) $(REQUIRED_FUNCSPECS)
+	$(SPECGEN_VMDL) -merge-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
+$(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp -n $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
+	cp -n $(FUNCTIONSPEC) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
 		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
-		-update-funcspec $(VMDL_FUNCBASESPEC) $< > $@ || (rm $@; exit 1)
+		-update-funcspec $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@) $< > $@ || (rm $@; exit 1)
 $(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
@@ -512,22 +433,25 @@ $(VMDL_FUNCANYSPEC):
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
 	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
-$(VMDL_INLINE) $(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL_INLINE)
+$(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
 	rm -f $(VMDL_EXTERN)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
-$(VMDL_FUNCBASESPEC): $(INSN_GENERATED)
+$(VMDL_FUNCBASESPEC): $(VMDL) $(REQUIRED_FUNCSPECS)
+	$(SPECGEN_VMDL) -merge-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
+$(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp -n $(FUNCTIONSPEC) $(VMDL_FUNCBASESPEC)
+	cp -n $(FUNCTIONSPEC) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
 		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
-		-update-funcspec $(VMDL_FUNCBASESPEC) $< > $@ || (rm $@; exit 1)
+		-update-funcspec $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@) $< > $@ || (rm $@; exit 1)
 $(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
 	mkdir -p funcs
 	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \

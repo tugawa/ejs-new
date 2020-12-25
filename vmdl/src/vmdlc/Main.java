@@ -135,15 +135,9 @@ public class Main {
         OperandSpecifications argSpec = TypeDependencyProcessor.getExpandSpecifications(option.getArgumentSpec());
         argSpec.write(option.getSourceFile());
     }
-    private final static void genFuncSpecMode() throws IOException{
-        generateRequiringFunctionSpec();
-    }
-    private final static void preprocessMode() throws IOException{
-        optionCheck();
-        initialize();
-        preprocess();
-        typeCheck();
-        writeProfiledData(ast);
+    private final static void generateMergedFunctionSpec(){
+        OperandSpecifications merged = OperandSpecifications.merge(option.getMergeTargets());
+        merged.print(System.out);
     }
     private final static void compileMode() throws IOException{
         optionCheck();
@@ -154,6 +148,19 @@ public class Main {
         dataFlowAnalysis();
         String program = generateCode();
         System.out.println(program);
+    }
+    private final static void preprocessMode() throws IOException{
+        optionCheck();
+        initialize();
+        preprocess();
+        typeCheck();
+        writeProfiledData(ast);
+    }
+    private final static void genFuncSpecMode() throws IOException{
+        generateRequiringFunctionSpec();
+    }
+    private final static void mergeFunctionSpecMode() throws IOException{
+        generateMergedFunctionSpec();
     }
     public final static void main(String[] args) throws IOException {
         option.parseOption(args);
@@ -166,6 +173,9 @@ public class Main {
                 break;
             case Compile:
                 compileMode();
+                break;
+            case MergeFuncSpec:
+                mergeFunctionSpecMode();
                 break;
             default:
                 throw new Error("InternalError: Unknown mode: "+option.getProcessMode());
