@@ -4,5 +4,5 @@
 geta : void -> JSValue
 
 geta () {
-    return Get_a();
+    return get_a();
 }

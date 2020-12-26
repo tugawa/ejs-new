@@ -9,7 +9,7 @@ mod (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
       if (IsFixnumZero(v2)) {
-        return Flonum_Nan();
+        return gconsts.g_flonum_nan;
       } else {
         cint x1 = to_cint(v1);
         cint x2 = to_cint(v2);
@@ -21,10 +21,10 @@ mod (v1, v2) {
       cdouble x1 = to_double(v1);
       cdouble x2 = to_double(v2);
       if (IsFlonumInfinity(double_to_flonum(x1)) || x2 == 0.0f) {
-        return Flonum_Nan();
+        return gconsts.g_flonum_nan;
       } else {
         cdouble d = x1 / x2;
-        cdouble d2 = d >= 0.0 ? Floor(d) : Ceil(d);
+        cdouble d2 = d >= 0.0 ? floor(d) : ceil(d);
         cdouble d3 = x1 - (d2 * x2);
         return double_to_number(d3);
       }
@@ -38,7 +38,7 @@ mod (v1, v2) {
       rematch top(v1, u2);
     }
     case (true) {
-      return Flonum_Nan();
+      return gconsts.g_flonum_nan;
     }
   }
 }

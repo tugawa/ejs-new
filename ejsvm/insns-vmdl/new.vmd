@@ -1,18 +1,18 @@
 #include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
-new : JSValue -> JSObject
+new : JSValue -> JSValue
 
 new (con) {
   top: match (con) {
     case (Function con) {
-      Save_context();
-      JSValue o = New_normal_object();
-      Update_context();
-      return Initialize_new_object(con, o);
+      save_context();
+      JSValue o = new_normal_object();
+      update_context();
+      return initialize_new_object(con, o);
     }
     case (true) {
-      return JS_undefined();
+      return JS_UNDEFINED;
     }
   }
 }

@@ -15,13 +15,13 @@ call (fn, nargs) {
   top: match (fn) {
     case (Function fn) {
       Call_function(fn, nargs, sendp);
-      Update_context();
-      Next_insn_noincpc();
+      update_context();
+      NEXT_INSN_NOINCPC();
     }
     case (Builtin fn) {
       Call_builtin(fn, nargs, sendp, newp);
-      Update_context();
-      Next_insn_incpc();
+      update_context();
+      NEXT_INSN_INCPC();
     }
   }
 }

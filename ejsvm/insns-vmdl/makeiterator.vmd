@@ -5,8 +5,8 @@ makeiterator : JSValue -> JSValue
 
 makeiterator (obj) {
     if (Isobject(obj)) {
-        return New_normal_iterator(obj);
+        return new_normal_iterator(obj);
     } else {
-        Logexit("makeiterator: not an object\n");
+        LOG_EXIT("makeiterator: not an object\n");
     }
 }

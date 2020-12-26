@@ -10,11 +10,11 @@ div (v1, v2) {
       cint n1 = to_cint(v1);
       if (IsFixnumZero(v2)) {
           if (n1 > 0) {
-              return Flonum_Infinity();
+              return gconsts.g_flonum_infinity;
           } else if (n1 == 0) {
-              return Flonum_Nan();
+              return gconsts.g_flonum_nan;
           } else {
-              return Flonum_NegInfinity();
+              return gconsts.g_flonum_negative_infinity;
           }
       } else {
         cint n2 = to_cint(v2);
@@ -27,9 +27,9 @@ div (v1, v2) {
       cdouble x2 = to_double(v2);
       cdouble d = x1 / x2;
       if (IsFlonumInfinity(double_to_flonum(d))) {
-          return d > 0.0 ? Flonum_Infinity() : Flonum_NegInfinity();
+          return d > 0.0 ? gconsts.g_flonum_infinity : gconsts.g_flonum_negative_infinity;
       } else if (IsFlonumNan(double_to_flonum(d))) {
-          return Flonum_Nan();
+          return gconsts.g_flonum_nan;
       } else {
           return double_to_number(d);
       }

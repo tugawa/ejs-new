@@ -33,13 +33,7 @@
 #define IsFlonumNegInfinity(v) ((v) == gconsts.g_flonum_negative_infinity)
 #define IsFlonumNan(v)         ((v) == gconsts.g_flonum_nan)
 #define IsFixnumZero(v)        ((v) == cint_to_fixnum((cint)0))
-#define Fixnum_Zero()          FIXNUM_ZERO
-#define Flonum_Infinity()      gconsts.g_flonum_infinity
-#define Flonum_NegInfinity()   gconsts.g_flonum_negative_infinity
-#define Flonum_Nan()           gconsts.g_flonum_nan
 
-#define Floor(d)  floor((d))
-#define Ceil(d)   ceil((d))
 #define LogicalRightShift(v1, v2)   ((uint32_t)(v1) >> (uint32_t)(v2))
 
 #define Get_opcode()    get_opcode(insn)
@@ -58,17 +52,7 @@
   tailcall_function(context, (fn), (n), (sendp))
 #define Tailcall_builtin(context,fn, n, sendp)			\
   tailcall_builtin(context, (fn), (n), (sendp), FALSE)
-#define Update_context()          update_context()
-#define Save_context()            save_context()
-#define New_normal_object(context)       new_normal_object((context))
-#define New_normal_function(ss)   new_normal_function((context), ss)
-#define Initialize_new_object(context,con, o)   initialize_new_object((context), con, o)
-#define Next_insn_noincpc()       NEXT_INSN_NOINCPC()
-#define Next_insn_incpc()         NEXT_INSN_INCPC()
-#define JS_undefined()            JS_UNDEFINED
 
-#define Get_a(context)                     get_a((context))
-#define Get_err(context)                   get_err((context))
 #define Get_global(context,v1)              get_global_helper((context), v1)
 #define Get_globalobj(context)             ((context)->global)
 #define Instanceof(v1, v2)          instanceof_helper(v1, v2)
@@ -82,9 +66,6 @@
 #define Not(obj)                    true_false(obj == JS_FALSE || obj == FIXNUM_ZERO || obj == gconsts.g_flonum_nan || obj == gconsts.g_string_empty)
 #define Get_literal(d1)             get_literal(insns, d1)
 
-#define New_normal_iterator(context,obj)  new_normal_iterator((context), obj)
-#define Logexit(str)                LOG_EXIT(str)
-
 #define Getarguments(context,link, index)  getarguments_helper((context), link, index)
 #define Getlocal(context,link, index)      getlocal_helper((context), link, index)
 #define Localret()                 localret_helper(context, pc)
@@ -97,11 +78,8 @@
 #define Setglobal(str, src)        setglobal_helper(context, str, src)
 #define Setlocal(link, index, v)   setlocal_helper(context, link, index, v)
 
-#define Strtol(p, q, n)            strtol((p), &(q), n)
-#define Strtod(p, q)               strtod((p), &(q))
 #define IsEmptyCstring(str)        ((str)[0] == '\0')
 #define CstrToString(cstr)         cstr_to_string(NULL, (cstr))
-#define GetProp(v1, v2, v3)        get_prop((v1), (v2), &(v3))
 #define PutLnChar()                putchar('\n')
 #define AllocateJSArray(context, size)  ((JSValue *)gc_malloc((context), sizeof(JSValue) * (size), HTAG_ARRAY_DATA))
 #define AllocateCintArray(size)  ((cint *)malloc(sizeof(cint) * (size))

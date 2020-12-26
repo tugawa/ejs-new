@@ -33,7 +33,7 @@ unsignedrightshift (v1, v2) {
     case (number v2) {
       Number u1 = to_number(v1);
       if (IsFlonumInfinity(u1) || IsFlonumNegInfinity(u1) || IsFlonumNan(u1)) {
-        Fixnum w1 = Fixnum_Zero();
+        Fixnum w1 = FIXNUM_ZERO;
         rematch top(w1, v2);
       } else {
         rematch top(u1, v2);
@@ -43,7 +43,7 @@ unsignedrightshift (v1, v2) {
       Number u1 = to_number(v1);
       Number u2 = to_number(v2);
       if (IsFlonumInfinity(u1) || IsFlonumNegInfinity(u1) || IsFlonumNan(u1)) {
-        Fixnum w1 = Fixnum_Zero();
+        Fixnum w1 = FIXNUM_ZERO;
         rematch top(w1, u2);
       } else {
         rematch top(u1, u2);
