@@ -300,6 +300,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree var = node.get(Symbol.unique("var"));
+            String varName = var.toText();
+            live.remove(varName);
             if(!node.has(Symbol.unique("expr"))) return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             liveCollect(expr, live, node.getTailDict());
@@ -318,6 +321,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree var = node.get(Symbol.unique("left"));
+            String varName = var.toText();
+            live.remove(varName);
             SyntaxTree expr = node.get(Symbol.unique("right"));
             liveCollect(expr, live, node.getTailDict());
         }
@@ -337,6 +343,11 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            SyntaxTree pair = node.get(Symbol.unique("left"));
+            for(SyntaxTree var : pair){
+                String varName = var.toText();
+                live.remove(varName);
+            }
             SyntaxTree expr = node.get(Symbol.unique("right"));
             liveCollect(expr, live, node.getTailDict());
         }

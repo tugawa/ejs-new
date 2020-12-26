@@ -398,10 +398,10 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             TypeMapSet dict = ((SyntaxTree) node).getTypeMapSet();
 
-            println("/* "+dict.toString()+" */");
+            printIndentln(indent, "/* "+dict.toString()+" */");
 
             matchStack.add(new MatchRecord(currentFunctionName, rawLabel, node.getLineNum(), formalParams));
-            print(matchStack.peek().getHeadLabel()+":"+"\n");
+            printIndent(indent, matchStack.peek().getHeadLabel()+":"+"\n");
 
             /* Insert code for ICCPROF (only top level match) */
             if(compileMode == CompileMode.Instruction && rawLabel != null && rawLabel.equals("top")){
@@ -423,7 +423,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 /* action */
                 outStack.push(new StringBuffer());
                 Tree<?> stmt = mp.getBodyAst(i);
-                visit(stmt, 0);
+                visit(stmt, indent);
                 String action = outStack.pop().toString();
 
                 /* OperandDataTypes set */
@@ -451,6 +451,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             /* print error types (NOT in accept types) */
             Set<VMDataType[]> errorInput = opSpec.getErrorOperands(currentFunctionName);
+            if(errorInput == null) errorInput = Collections.emptySet();
             Set<RuleSet.OperandDataTypes> errorConditions = new HashSet<RuleSet.OperandDataTypes>();
             NEXT_DTS: for (VMDataType[] dts: errorInput) {
                 int length = dts.length;
@@ -474,7 +475,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             String labelPrefix = Main.option.getXOption().getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
             dispatchProcessor.setLabelPrefix(labelPrefix + "_"+ matchStack.peek().name + "_");
             String s = dispatchProcessor.translate(rs, dp, Main.option.getXOption(), currentFunctionName, label);
-            println(s);
+            printIndentln(indent, s);
 
             println(matchStack.pop().getTailLabel()+": ;");
         }
@@ -635,10 +636,14 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> limitNode = node.get(Symbol.unique("limit"));
             Tree<?> stepNode = node.get(Symbol.unique("step"));
             Tree<?> blockNode = node.get(Symbol.unique("block"));
-            printIndent(indent, "for (");
+            printIndentln(indent, "{");
+            for (int i = 0; i < indent+1; i++) {
+                print("  ");
+            }
             visit(initNode, 0);
+            println("; ");
+            printIndent(indent+1, "for (;");
             Tree<?> varNode = initNode.get(Symbol.unique("var"));
-            print("; ");
             visit(varNode, 0);
             print("<=");
             visit(limitNode, 0);
@@ -647,7 +652,8 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             print("+=");
             visit(stepNode, 0);
             println(")");
-            visit(blockNode, indent);
+            visit(blockNode, indent+1);
+            printIndentln(indent, "}");
         }
     }
     public class DoInit extends DefaultVisitor {

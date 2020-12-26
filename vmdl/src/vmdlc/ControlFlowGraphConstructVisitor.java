@@ -207,8 +207,8 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             intro.makeEdgeTo(wrappedCFGN);
             ControlFlowGraphNode body = new ControlFlowGraphNode(afterIntroLocals);
             wrappedCFGN.makeEdgeTo(body);
-            body.makeEdgeTo(body);
             ControlFlowGraphNode after = visit(blockNode, body);
+            after.makeEdgeTo(body);
             return after;
         }
     }
@@ -228,8 +228,8 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             SyntaxTree blockNode = node.get(Symbol.unique("block"));
             ControlFlowGraphNode body = new ControlFlowGraphNode(locals);
             condCFGN.makeEdgeTo(body);
-            body.makeEdgeTo(body);
             ControlFlowGraphNode after = visit(blockNode, body);
+            after.makeEdgeTo(body);
             return after;
         }
     }
