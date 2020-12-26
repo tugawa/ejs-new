@@ -55,12 +55,14 @@ externC (needContext, triggerGC) new_normal_string_object : JSValue -> StringObj
 externC (needContext, triggerGC) new_normal_number_object : JSValue -> NumberObject
 externC (needContext, triggerGC) new_normal_function : Subscript -> JSValue
 externC (needContext, triggerGC) new_normal_iterator : JSValue -> JSValue
+externC (needContext, triggerGC) new_normal_array : void -> Array
 
 externC get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
 externC (needContext) invoke_function0 : (JSValue, JSValue, cint) -> JSValue
 externC (needContext) invoke_builtin0 : (JSValue, JSValue, cint) -> JSValue
 
 externC GetProp : (JSValue, JSValue) -> (cint, JSValue)
+externC array_length : Array -> cint
 
 externC Lcall_stack_push : void -> void
 externC Localret : void -> Displacement
