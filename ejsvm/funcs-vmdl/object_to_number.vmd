@@ -4,16 +4,24 @@
 
 (needContext, makeInline) object_to_number : JSValue -> Number
 object_to_number(v){
-    top: match(v){
+    match(v){
         case(object v){
-            JSValue f1 = EMPTY_JSVALUE;
-            if(GetProp(v, gconsts.g_string_valueof, f1) == SUCCESS){
-                GC_PUSH(v);
-                getPropLevel: match(f1){
-                    case(Function f1){
-                        JSValue invoked = invoke_function0(v, f1, true);
-                        GC_POP(v);
-                        invokedFunction: match(invoked){
+            JSValue f1;
+            cint result;
+            (result, f1) <- GetProp(v, gconsts.g_string_valueof);
+            if(result == SUCCESS){
+                match(f1){
+                    case(Function f1 || Builtin f1){
+                        JSValue invoked;
+                        match(f1){
+                            case(Function f1){
+                                invoked <- invoke_function0(v, f1, true);
+                            }
+                            case(Builtin f1){
+                                invoked <- invoke_builtin0(v, f1, true);
+                            }
+                        }
+                        match(invoked){
                             case(number invoked){
                                 return invoked;
                             }
@@ -24,35 +32,25 @@ object_to_number(v){
                                 return special_to_number(invoked);
                             }
                         }
-                    }
-                    case(Builtin f1){
-                        JSValue invoked = invoke_builtin0(v, f1, true);
-                        GC_POP(v);
-                        invokedFunction: match(invoked){
-                            case(number invoked){
-                                return invoked;
-                            }
-                            case(String invoked){
-                                return string_to_number(invoked);
-                            }
-                            case(Special invoked){
-                                return special_to_number(invoked);
-                            }
-                        }
-                    }
-                    case(true){
-                        GC_POP(v);
+                        
                     }
                 }
             }
-            JSValue f2 = EMPTY_JSVALUE;
-            if(GetProp(v, gconsts.g_string_tostring, f2) == SUCCESS){
-                GC_PUSH(v);
-                getPropLevel: match(f2){
-                    case(Function f2){
-                        JSValue invoked = invoke_function0(v, f2, true);
-                        GC_POP(v);
-                        invokedFunction: match(invoked){
+            JSValue f2;
+            (result, f2) <- GetProp(v, gconsts.g_string_tostring);
+            if(result == SUCCESS){
+                match(f2){
+                    case(Function f2 || Builtin f2){
+                        JSValue invoked;
+                        match(f2){
+                            case(Function f2){
+                                invoked <- invoke_function0(v, f2, true);
+                            }
+                            case(Builtin f2){
+                                invoked <- invoke_builtin0(v, f2, true);
+                            }
+                        }
+                        match(invoked){
                             case(number invoked){
                                 return invoked;
                             }
@@ -63,33 +61,14 @@ object_to_number(v){
                                 return special_to_number(invoked);
                             }
                         }
-                    }
-                    case(Builtin f2){
-                        JSValue invoked = invoke_builtin0(v, f2, true);
-                        GC_POP(v);
-                        invokedFunction: match(invoked){
-                            case(number invoked){
-                                return invoked;
-                            }
-                            case(String invoked){
-                                return string_to_number(invoked);
-                            }
-                            case(Special invoked){
-                                return special_to_number(invoked);
-                            }
-                        }
-                    }
-                    case(true){
-                        GC_POP(v);
+                        
                     }
                 }
             }
-            GC_PUSH(f2);
             print_value_simple(v);
             PutLnChar();
             print_value_simple(f2);
             PutLnChar();
-            GC_POP(f2);
             type_error_exception("neither valueOf nor to_string returned a number in object_to_number");
             return FIXNUM_ZERO; 
         }

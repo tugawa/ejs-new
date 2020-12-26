@@ -532,6 +532,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
     public class AssignmentPair extends DefaultVisitor {
+        private final String getStructTypeName(String functionName){
+            return functionName+"_rettype";
+        }
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             SyntaxTree expandedTree = ((SyntaxTree)node).getExpandedTree();
@@ -550,11 +553,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 pairs[i] = leftNode.get(i);
             }
             println("{");
-            print("struct{");
-            for(int i=0; i<pairSize; i++){
-                print(ftypes.get(i).getCName()+" r"+i+"; ");
-            }
-            print("} __assignment_pair_temp__ = ");
+            print("struct "+getStructTypeName(fname.toText())+" __assignment_pair_temp__ = ");
             visit(rightNode, indent);
             println(";\n");
             for(int i=0; i<pairSize; i++){

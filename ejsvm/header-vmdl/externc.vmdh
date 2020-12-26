@@ -116,9 +116,8 @@ externC (needContext) new_normal_boolean_object : JSValue -> BooleanObject
 externC (needContext) new_normal_string_object : JSValue -> StringObject
 externC (needContext) new_normal_number_object : JSValue -> NumberObject
 externC is_string : JSValue -> cint
-externC IsEmptyCstring : cstring -> cint
-externC Strtol : (cstring, cstring, cint) -> cint
-externC Strtod : (cstring, cstring) -> cdouble
+externC Strtol : (cstring, cint) -> (cint, cstring)
+externC Strtod : (cstring) -> (cdouble, cstring)
 externC is_fixnum_range_cint : cint -> cint
 externC get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
 externC (needContext) invoke_function0 : (JSValue, JSValue, cint) -> JSValue
@@ -127,9 +126,7 @@ externC (needContext) invoke_builtin0 : (JSValue, JSValue, cint) -> JSValue
 //externC GC_POP : JSValue -> void
 externC false_true : cint -> Special
 
-externC isnan : cdouble -> cint
-externC isinf : cdouble -> cint
-externC GetProp : (JSValue, JSValue, JSValue) -> cint
+externC GetProp : (JSValue, JSValue) -> (cint, JSValue)
 externC (needContext) print_value_simple : JSValue -> void
 externC PutLnChar : void -> void
 externC (needContext) AllocateJSArray : cint -> JSValue[]

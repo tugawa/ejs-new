@@ -107,6 +107,15 @@
 #define AllocateCintArray(size)  ((cint *)malloc(sizeof(cint) * (size))
 #define AllocateCdoubleArray(size)  ((double *)malloc(sizeof(double) * (size))
 
+struct Strtol_rettype{cint r0;/* return value of strtol */ char* r1; /* endptr of strtol */};
+extern struct Strtol_rettype Strtol(char*, int);
+
+struct Strtod_rettype{double r0;/* return value of strtod */ char* r1; /* endptr of strtod */};
+extern struct Strtod_rettype Strtod(char*);
+
+struct GetProp_rettype{cint r0;/* return value of get_prop */ JSValue r1; /* obtained JSValue of get_prop */};
+extern struct GetProp_rettype GetProp(JSValue, JSValue);
+
 #define Pophandler()					\
   int newpc, handler_fp;				\
   exhandler_stack_pop(context, &newpc, &handler_fp);

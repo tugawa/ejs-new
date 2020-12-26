@@ -120,6 +120,23 @@ JSValue nextpropnameidx_helper(JSValue itr) {
   return res;
 }
 
+struct Strtol_rettype Strtol(char *s, int base){
+  struct Strtol_rettype ret;
+  ret.r0 = strtol(s, &ret.r1, base);
+  return ret;
+}
+
+struct Strtod_rettype Strtod(char *s){
+  struct Strtod_rettype ret;
+  ret.r0 = strtod(s, &ret.r1);
+  return ret;
+}
+
+struct GetProp_rettype GetProp(JSValue obj, JSValue name){
+  struct GetProp_rettype ret;
+  ret.r0 = get_prop(obj, name, &ret.r1);
+  return ret;
+}
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */

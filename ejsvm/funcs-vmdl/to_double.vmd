@@ -14,11 +14,13 @@ to_double(v){
         }
         case(String v){
             cstring p = string_to_cstr(v);
-            cstring q = EMPTY_CSTRING;
             if(IsEmptyCstring(p)) return 0.0;
-            cint n = Strtol(p, q, 10);
+            cstring q;
+            cint n;
+            (n, q) <- Strtol(p, 10);
             if(p != q && IsEmptyCstring(q)) return cint_to_double(n);
-            cdouble d = Strtod(p, q);
+            cdouble d;
+            (d, q) <- Strtod(p);
             if(p != q && IsEmptyCstring(q)) return d;
             return NAN;
         }

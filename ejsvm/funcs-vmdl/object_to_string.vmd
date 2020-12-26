@@ -9,11 +9,9 @@ object_to_string(v){
         case(object v){
             JSValue f1 = get_prop_prototype_chain(v, gconsts.g_string_tostring);
             if(f1 != JS_UNDEFINED){
-                GC_PUSH(v);
                 toStringLevel: match(f1){
                     case(Function f1){
                         JSValue invoked = invoke_function0(v, f1, true);
-                        GC_POP(v);
                         invokedFunction: match(invoked){
                             case(String invoked){
                                 return invoked;
@@ -31,7 +29,6 @@ object_to_string(v){
                     }
                     case(Builtin f1){
                         JSValue invoked = invoke_builtin0(v, f1, true);
-                        GC_POP(v);
                         invokedBuiltin: match(invoked){
                             case(String invoked){
                                 return invoked;
@@ -47,18 +44,13 @@ object_to_string(v){
                             }
                         }
                     }
-                    case(true){
-                        GC_POP(v);
-                    }
                 }
             }
             JSValue f2 = get_prop_prototype_chain(v, gconsts.g_string_valueof);
-            GC_PUSH(v);
             if(f2 != JS_UNDEFINED){
                 toStringLevel: match(f2){
                     case(Function f2){
                         JSValue invoked = invoke_function0(v, f2, true);
-                        GC_POP(v);
                         invokedFunction: match(invoked){
                             case(String invoked){
                                 return invoked;
@@ -76,7 +68,6 @@ object_to_string(v){
                     }
                     case(Builtin f2){
                         JSValue invoked = invoke_builtin0(v, f2, true);
-                        GC_POP(v);
                         invokedBuiltin: match(invoked){
                             case(String invoked){
                                 return invoked;

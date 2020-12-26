@@ -6,11 +6,12 @@ string_to_number(v){
     top: match(v){
         case(String v){
             cstring p = string_to_cstr(v);
-            cstring q = EMPTY_CSTRING;
             if(IsEmptyCstring(p)){
                 return FIXNUM_ZERO;
             }
-            cint n = Strtol(p, q, 10);
+            cstring q;
+            cint n;
+            (n, q) <- Strtol(p, 10);
             if(p != q){
                 if(IsEmptyCstring(q)){
                     if (is_fixnum_range_cint(n)){
@@ -20,7 +21,8 @@ string_to_number(v){
                     }
                 }
             }
-            cdouble d = Strtod(p, q);
+            cdouble d;
+            (d, q) <- Strtod(p);
             if(p != q){
                 if(IsEmptyCstring(q)){
                     return double_to_flonum(d);
@@ -29,7 +31,7 @@ string_to_number(v){
             return gconsts.g_flonum_nan;
         }
         case(true){
-            type_error("string expected in strint_to_number");
+            type_error("string expected in string_to_number");
             return gconsts.g_flonum_nan;
         }
     }

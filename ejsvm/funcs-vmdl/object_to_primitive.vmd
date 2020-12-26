@@ -11,13 +11,9 @@ object_to_primitive(v, hint){
             JSValue snd = (hint == HINT_STRING) ? gconsts.g_string_valueof : gconsts.g_string_tostring;
             JSValue f1 = get_prop_prototype_chain(v, fst);
             if(f1 != JS_UNDEFINED){
-                GC_PUSH(v);
-                GC_PUSH(snd);
                 toStringLevel: match(f1){
                     case(Function f1){
                         JSValue invoked = invoke_function0(v, f1, true);
-                        GC_POP(snd);
-                        GC_POP(v);
                         invokedFunction: match(invoked){
                             case(primitive invoked){
                                 return invoked;
@@ -26,17 +22,11 @@ object_to_primitive(v, hint){
                     }
                     case(Builtin f1){
                         JSValue invoked = invoke_builtin0(v, f1, true);
-                        GC_POP(snd);
-                        GC_POP(v);
                         invokedBuiltin: match(invoked){
                             case(primitive invoked){
                                 return invoked;
                             }
                         }
-                    }
-                    case(true){
-                        GC_POP(snd);
-                        GC_POP(v);
                     }
                 }
             }
