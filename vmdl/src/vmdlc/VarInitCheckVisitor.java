@@ -130,7 +130,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree expr = node.get(Symbol.unique("right"));
             visit(expr, initialized);
             String varName = var.toText();
-            if(initialized.contains(varName) && isJSValueType(varName, node.getTypeMapSet())){
+            if(initialized.contains(varName) && isJSValueType(varName, node.getHeadDict())){
                 ErrorPrinter.error("Duplicate variable initalization", node);
             }
             initialized.add(varName);
@@ -145,7 +145,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             visit(expr, initialized);
             for(SyntaxTree var : pair){
                 String varName = var.toText();
-                if(initialized.contains(varName) && isJSValueType(varName, node.getTypeMapSet())){
+                if(initialized.contains(varName) && isJSValueType(varName, node.getHeadDict())){
                     ErrorPrinter.error("Duplicate variable initalization", node);
                 }
                 initialized.add(varName);

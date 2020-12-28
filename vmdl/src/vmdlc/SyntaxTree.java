@@ -129,14 +129,13 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         return exprTypeSet;
     }
 
-    public void setTypeMapSet(TypeMapSet dict) {
+    public void setHeadDict(TypeMapSet dict) {
         this.headDict = dict;
     }
     
-    public TypeMapSet getTypeMapSet() {
+    public TypeMapSet getHeadDict() {
         return headDict;
     }
-
     
     public void setTailDict(TypeMapSet dict) {
         this.tailDict = dict;

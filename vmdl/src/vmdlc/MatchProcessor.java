@@ -229,18 +229,8 @@ public class MatchProcessor {
         List<SyntaxTree> newCases = new ArrayList<>(matchNode.get(Symbol.unique("cases")).countSubNodes()*2);
         for(int i=0; i<originalCaseSize; i++){
             Set<Set<TypeMap>> expansionCond = caseExpansionConds.get(i);
-            /*
-            System.err.println("Case number "+i+" recieves typemaps for:");
-            System.err.print("{");
-            for(VMDataType[] vec : vmtVecCondList.get(i)){
-                System.err.print(Arrays.toString(vec)+" ");
-            }
-            System.err.println("}");
-            */
             if(expansionCond != null){
-                //System.err.println("Case number "+i+"is expanded for "+expansionCond.size()+" typeMap(s):");
                 for(Set<TypeMap> typeMap : expansionCond){
-                    //System.err.println(typeMap.toString());
                     SyntaxTree replacedNode = getReplacedCaseNode(i, typeMap, Integer.toString((additionalLabelSuffixNumber++)));
                     if(replacedNode != null){
                         newCases.add(replacedNode);
@@ -270,7 +260,6 @@ public class MatchProcessor {
         int size = vmtVecCondList.size();
         for(int i=0; i<size; i++){
             Set<VMDataType[]> set = vmtVecCondList.get(i);
-        //for(Set<VMDataType[]> set : vmtVecCondList){
             for(VMDataType[] vec : set){
                 System.err.println(Arrays.toString(vec));
             }

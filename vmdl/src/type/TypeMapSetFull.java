@@ -26,7 +26,7 @@ public class TypeMapSetFull extends TypeMapSet {
     }
     protected Set<AstType> getTypeSet(String name, AstType type){
         if(type == AstType.BOT){
-            System.err.println("Internal Warning: add variable "+name+" types BOT");
+            System.err.println("InternalWarning: add variable "+name+" types BOT");
         }
         Set<AstType> set = AstType.getChildren(type);
         if(set == null || set.equals(Collections.emptySet())){
@@ -73,7 +73,7 @@ public class TypeMapSetFull extends TypeMapSet {
     @Override
     public Set<TypeMap> getAssignedSet(TypeMap typeMap, String name, AstType type){
         if(type == AstType.BOT){
-            System.err.println("Internal Warning: assign the BOT type to "+name);
+            System.err.println("InternalWarning: assign the BOT type to "+name);
         }
         Set<TypeMap> assignedSet = new HashSet<>();
         Set<AstType> assignTypes = getTypeSet(name, type);
@@ -94,7 +94,7 @@ public class TypeMapSetFull extends TypeMapSet {
         int[] typeTableSize = new int[length];
         for(int i=0; i<length; i++){
             if(types[i] == AstType.BOT){
-                System.err.println("Internal Warning: assign the BOT type to "+names[i]);
+                System.err.println("InternalWarning: assign the BOT type to "+names[i]);
             }
             int size = types[i].getDetailedTypes().size();
             typeTableSizeSum *= size;

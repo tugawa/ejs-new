@@ -396,7 +396,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 label = "";
             }
 
-            TypeMapSet dict = ((SyntaxTree) node).getTypeMapSet();
+            TypeMapSet dict = ((SyntaxTree) node).getHeadDict();
 
             printIndentln(indent, "/* "+dict.toString()+" */");
 

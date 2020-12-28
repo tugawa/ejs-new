@@ -660,7 +660,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 newEntryDict = matchStack.pop();
             } while (!entryDict.equals(newEntryDict));
-            node.setTypeMapSet(entryDict);
+            node.setHeadDict(entryDict);
             SyntaxTree paramsNode = node.get(Symbol.unique("params"));
             save(paramsNode, outDict);
             if(option.doCaseSplit()){
@@ -707,7 +707,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             AstProductType superFunctionType = superFunction.getType();
             if(superFunctionType == null){
                 throw new Error("Connnot solve functionType: null");
@@ -738,7 +738,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class ExpressionStatement extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             node.setTailDict(dict);
             for(TypeMap typeMap : dict){
                 visit(node.get(0), typeMap);
@@ -753,7 +753,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
             Set<TypeMap> jsAssigned = new HashSet<>();
@@ -789,17 +789,17 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class AssignmentPair extends DefaultVisitor {
         private AstPairType getPairType(AstType expectPairType, int expectLength, SyntaxTree errorMessageNode){
             if(!(expectPairType instanceof AstPairType)){
-                ErrorPrinter.errorForRecvNode("Function returns a Non-PairType in pair assignment.", errorMessageNode);
+                ErrorPrinter.error("Function returns a Non-PairType in pair assignment.", errorMessageNode);
             }
             AstPairType pairType = (AstPairType)expectPairType;
             if(pairType.size() != expectLength){
-                ErrorPrinter.errorForRecvNode("Function returns "+pairType.size()+"-length pair, but expects "+expectLength+"-length.", errorMessageNode);
+                ErrorPrinter.error("Function returns "+pairType.size()+"-length pair, but expects "+expectLength+"-length.", errorMessageNode);
             }
             return pairType;
         }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception{
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             SyntaxTree leftNode = node.get(Symbol.unique("left"));
             SyntaxTree rightNode = node.get(Symbol.unique("right"));
             SyntaxTree[] pairsNode = (SyntaxTree[])leftNode.getSubTree();
@@ -827,7 +827,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Declaration extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
             SyntaxTree varNode = node.get(Symbol.unique("var"));
             SyntaxTree exprNode = (node.has(Symbol.unique("expr"))) ? node.get(Symbol.unique("expr")) : null;
@@ -887,7 +887,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             SyntaxTree condNode = node.get(Symbol.unique("cond"));
             save(condNode, resultDict);
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             return resultDict;
         }
 
@@ -907,7 +907,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             SyntaxTree exprNode = initNode.get(Symbol.unique("expr"));
             AstType varType = AstType.nodeToType(typeNode);
             String varName = varNode.toText();
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             Set<TypeMap> newSet = new HashSet<>();
             for(TypeMap typeMap : dict){
                 ExprTypeSet exprTypeSet = visit(exprNode, typeMap);
@@ -938,7 +938,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 SyntaxTree blockNode = node.get(Symbol.unique("block"));
                 loopDict = visit(blockNode, loopDict);
             } while (!loopDict.equals(savedDict));
-            initNode.setTypeMapSet(dict);
+            initNode.setHeadDict(dict);
             initNode.setTailDict(dict);
             return dict;
         }
@@ -964,7 +964,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 SyntaxTree block = node.get(Symbol.unique("block"));
                 whileDict = visit(block, whileDict);
             } while (!whileDict.equals(savedDict));
-            node.setTypeMapSet(dict);
+            node.setHeadDict(dict);
             return dict;
         }
     }
@@ -1044,7 +1044,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             for (AstType rt : rightExprTypeSet){
                 AstType result = checker.typeOf(lt, rt);
                 if(result == null){
-                    ErrorPrinter.errorForRecvNode("Illigal types given in operator: "
+                    ErrorPrinter.error("Illigal types given in operator: "
                         +lt.toString()+","+rt.toString(), node);
                 }
                 resultTypeSet.add(result);
@@ -1248,7 +1248,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 ErrorPrinter.error("Cannot find function: "+functionName);
             }
             if(!superFunction.doNeedContext() && FunctionTable.hasAnnotations(functionName, FunctionAnnotation.needContext)){
-                ErrorPrinter.errorForRecvNode("Call function that need context in function that does not need", node);
+                ErrorPrinter.error("Call function that need context in function that does not need", node);
             }
         }
         private void argumentSizeCheck(AstTypeVec domain, SyntaxTree argNode, String functionName){

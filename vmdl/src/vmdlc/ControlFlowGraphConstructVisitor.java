@@ -81,6 +81,13 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         return find(node.getTag().toString()).accept(node, from);
     }
 
+    private final SyntaxTree wrapExpressionSyntaxTree(SyntaxTree node, TypeMapSet dict){
+        SyntaxTree wrapped = ASTHelper.generateSpecialExpression(node);
+        wrapped.setHeadDict(dict);
+        wrapped.setTailDict(dict);
+        return wrapped;
+    }
+
     public class DefaultVisitor{
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             return from;
@@ -143,12 +150,10 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class If extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            TypeMapSet dict = node.getTypeMapSet();
+            TypeMapSet dict = node.getHeadDict();
             Collection<String> locals = dict.getKeys();
             SyntaxTree condNode = node.get(Symbol.unique("cond"));
-            SyntaxTree wrappedCondNode = ASTHelper.generateSpecialExpression(condNode);
-            wrappedCondNode.setTypeMapSet(dict);
-            wrappedCondNode.setTailDict(dict);
+            SyntaxTree wrappedCondNode = wrapExpressionSyntaxTree(condNode, dict);
             ControlFlowGraphNode condCFGN = new ControlFlowGraphNode(locals);
             condCFGN.addStatement(wrappedCondNode);
             from.makeEdgeTo(condCFGN);
@@ -178,7 +183,7 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class Do extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            TypeMapSet dict = node.getTypeMapSet();
+            TypeMapSet dict = node.getHeadDict();
             Collection<String> locals = dict.getKeys();
             SyntaxTree blockNode = node.get(Symbol.unique("block"));
             SyntaxTree init = node.get(Symbol.unique("init"));
@@ -187,17 +192,13 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             SyntaxTree typeNode = init.get(Symbol.unique("type"));
             SyntaxTree nameNode = init.get(Symbol.unique("var"));
             SyntaxTree introNode = ASTHelper.generateDeclaration(typeNode, nameNode, init.get(Symbol.unique("expr")));
-            introNode.setTypeMapSet(dict);
+            introNode.setHeadDict(dict);
             introNode.setTailDict(afterInitDict);
             intro.addStatement(introNode);
             SyntaxTree limitNode = node.get(Symbol.unique("limit"));
-            SyntaxTree wrappedLimitNode = ASTHelper.generateSpecialExpression(limitNode);
-            wrappedLimitNode.setTypeMapSet(afterInitDict);
-            wrappedLimitNode.setTailDict(afterInitDict);
+            SyntaxTree wrappedLimitNode = wrapExpressionSyntaxTree(limitNode, afterInitDict);
             SyntaxTree stepNode = node.get(Symbol.unique("step"));
-            SyntaxTree wrappedStepNode = ASTHelper.generateSpecialExpression(stepNode);
-            wrappedStepNode.setTypeMapSet(afterInitDict);
-            wrappedStepNode.setTailDict(afterInitDict);
+            SyntaxTree wrappedStepNode = wrapExpressionSyntaxTree(stepNode, afterInitDict);
             Collection<String> afterIntroLocals = new HashSet<>(locals);
             afterIntroLocals.add(nameNode.toText());
             ControlFlowGraphNode wrappedCFGN = new ControlFlowGraphNode(afterIntroLocals);
@@ -216,12 +217,10 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class While extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            TypeMapSet dict = node.getTypeMapSet();
+            TypeMapSet dict = node.getHeadDict();
             Collection<String> locals = dict.getKeys();
             SyntaxTree condNode = node.get(Symbol.unique("cond"));
-            SyntaxTree wrappedCondNode = ASTHelper.generateSpecialExpression(condNode);
-            wrappedCondNode.setTypeMapSet(dict);
-            wrappedCondNode.setTailDict(dict);
+            SyntaxTree wrappedCondNode = wrapExpressionSyntaxTree(condNode, dict);
             ControlFlowGraphNode condCFGN = new ControlFlowGraphNode(locals);
             condCFGN.addStatement(wrappedCondNode);
             from.makeEdgeTo(condCFGN);
@@ -238,21 +237,16 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
             MatchProcessor mp = new MatchProcessor(node);
-            TypeMapSet dict = node.getTypeMapSet();
+            TypeMapSet dict = node.getHeadDict();
             Collection<String> locals = dict.getKeys();
             ControlFlowGraphNode branchPoint = new ControlFlowGraphNode(locals);
             SyntaxTree paramNode = node.get(Symbol.unique("params"));
-            for(SyntaxTree parameter : paramNode){
-                SyntaxTree wrapped = ASTHelper.generateSpecialExpression(parameter);
-                wrapped.setTypeMapSet(dict);
-                wrapped.setTailDict(dict);
-                branchPoint.addStatement(wrapped);
-            }
+            for(SyntaxTree parameter : paramNode)
+                branchPoint.addStatement(wrapExpressionSyntaxTree(parameter, dict));
             ControlFlowGraphNode after = new ControlFlowGraphNode(locals);
             Set<VMDataType[]> nonMatchConds = dict.filterTypeVecs(mp.getFormalParams(), mp.getNonMatchCondVecSet().getTuples());
-            if(!nonMatchConds.isEmpty()){
+            if(!nonMatchConds.isEmpty())
                 branchPoint.makeEdgeTo(after);
-            }
             from.makeEdgeTo(branchPoint);
             matchStack.push(mp.getLabel(), branchPoint);
             for(int i=0; i<mp.size(); i++){

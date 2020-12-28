@@ -42,27 +42,13 @@ public class ExpandedCaseCondMaker {
       duplicationList.add(new Duplication(entry.getKey(), entry.getValue()));
     }
     Collections.sort(duplicationList);
-    //test print
-    /*
-    System.err.println("Duplication table:");
-    for(Duplication d : duplicationList)
-      System.err.println(d.toString());
-    */
     int length = duplicationList.size();
     for(int i=0; i<length;){
-      //System.err.println(">number "+i+".");
       Duplication dup = duplicationList.get(i);
       int size = dup.getSetSize();
       if(size <= 1) break;
       Set<TypeMap> clip = new HashSet<>(1);
       Set<Set<TypeMap>> includes = dup.getIncludes();
-      /*
-      TypeMap typeMap = dup.getTypeMap();
-      for(Set<TypeMap> e : includes){
-        e.remove(typeMap);
-      }
-      clip.add(typeMap);
-      */
       for(int j=i; j<length; j++, i++){
         Duplication nextDup = duplicationList.get(j);
         int nextDupSize = nextDup.getSetSize();
@@ -70,13 +56,11 @@ public class ExpandedCaseCondMaker {
         Set<Set<TypeMap>> nextDupIncludes = nextDup.getIncludes();
         if(!(includes.equals(nextDupIncludes))) break;
         TypeMap nextDupTypeMap = nextDup.getTypeMap();
-        //System.err.println(">"+nextDupTypeMap.toString()+" is removed.");
         for(Set<TypeMap> e : nextDupIncludes){
           e.remove(nextDupTypeMap);
         }
         clip.add(nextDupTypeMap);
       }
-      //System.err.println(">conds adds clip of "+clip.toString()+".");
       conds.add(clip);
     }
     Set<Set<TypeMap>> emptyRemovedConds = new HashSet<>(conds.size());
@@ -84,10 +68,6 @@ public class ExpandedCaseCondMaker {
       if(set.isEmpty()) continue;
         emptyRemovedConds.add(set);
     }
-    /*
-    System.err.println("input:\n"+source.toString());
-    System.err.println("result:\n"+emptyRemovedConds.toString());
-    */
     return emptyRemovedConds;
   }
 

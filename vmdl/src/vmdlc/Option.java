@@ -209,11 +209,11 @@ public class Option {
         List<String> argList = Arrays.asList(args);
         while (argList.size() > 0) {
             String key = argList.get(0);
-            int comsumed;
+            int consumed;
             if (!options.containsKey(key)) {
                 if (key.startsWith("-X")) {
-                    comsumed = xOption.addOption(key, argList.toArray(new String[0]), 1);
-                    if (comsumed == -1)
+                    consumed = xOption.addOption(key, argList.toArray(new String[0]), 1);
+                    if (consumed == -1)
                         break;
                 } else {
                     sourceFile = key;
@@ -221,9 +221,9 @@ public class Option {
                 }
             } else {
                 OptionItem item = options.get(key);
-                comsumed = item.getFunction().apply(argList, this);
+                consumed = item.getFunction().apply(argList, this);
             }
-            argList = argList.subList(comsumed, argList.size());
+            argList = argList.subList(consumed, argList.size());
         }
         if(isIncorrectCommandlineArgument()){
             printDescription();
@@ -267,7 +267,7 @@ public class Option {
             for(int i=1; i<descriptions.length; i++)
                 System.err.println(space+descriptions[i]);
         }
-        /* Print description of xOption */
+        /* Print xOption description */
         System.out.println(leftSpace+"-Xcmp:verify_diagram [true|false]");
         System.out.println(leftSpace+"-Xcmp:opt_pass [MR:S]");
         System.out.println(leftSpace+"-Xcmp:rand_seed n                 set random seed of dispatch processor");

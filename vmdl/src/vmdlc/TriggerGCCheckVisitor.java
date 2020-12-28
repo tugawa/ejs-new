@@ -158,11 +158,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 int size = stmts.size();
                 for(int i=size-1; i>=0; i--){
                     SyntaxTree stmt = stmts.get(i);
-                    if(!hasTriggerGC(stmt)){
-                        collect(stmt, newTailLive);
-                        continue;
-                    }
-                    visit(stmt, newTailLive);
+                    if(hasTriggerGC(stmt))
+                        visit(stmt, newTailLive);
+                    else
+                        update(stmt, newTailLive);
                 }
                 target.setHeadLive(newTailLive);
                 Collection<ControlFlowGraphNode> prevs = target.getPrev();
@@ -196,12 +195,12 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         return find(node.getTag().toString()).findTriggerGC(node);
     }
 
-    private final void collect(SyntaxTree node, Collection<String> live) throws Exception{
-        find(node.getTag().toString()).addLive(node, live);
+    private final void update(SyntaxTree node, Collection<String> live) throws Exception{
+        find(node.getTag().toString()).updateLive(node, live);
     }
 
-    private final void collect(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
-        find(node.getTag().toString()).addLive(node, live, dict);
+    private final void update(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        find(node.getTag().toString()).updateLive(node, live, dict);
     }
 
     public class DefaultVisitor{
@@ -221,14 +220,14 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return false;
         }
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
             for(SyntaxTree chunk : node){
-                collect(chunk, live);
+                update(chunk, live);
             }
         }
-        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             for(SyntaxTree chunk : node){
-                collect(chunk, live, dict);
+                update(chunk, live, dict);
             }
         }
     }
@@ -250,8 +249,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             node.clearExpandedTreeCandidate();
             node.addExpandedTreeCandidate(ASTHelper.generateBlock(stmts));
         }
-        public void liveCollect(SyntaxTree expr, Collection<String> live, TypeMapSet dict) throws Exception{
-            collect(expr, live, dict);
+        public void updateLive(SyntaxTree expr, Collection<String> live, TypeMapSet dict) throws Exception{
+            update(expr, live, dict);
         }
     }
 
@@ -282,74 +281,73 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             declarationSeparated[1] = ASTHelper.generateBlock(stmts);
             currentRequestHandler.put(node, declarationSeparated);
         }
-        @Override
-        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+        private final void updateCollection(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("var"));
             String varName = var.toText();
-            if(!node.has(Symbol.unique("expr"))){
-                if(live.contains(varName)){
-                    throw new Error("Illigal live variable analysis status");
-                }
-                return;
-            }
-            SyntaxTree expr = node.get(Symbol.unique("expr"));
+            if(!node.has(Symbol.unique("expr")) && live.contains(varName))
+                throw new Error("Illigal live variable analysis status");
             live.remove(varName);
+        }
+        @Override
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
+            if(!node.has(Symbol.unique("expr")))
+                return;
+            SyntaxTree expr = node.get(Symbol.unique("expr"));
             if(expr == SyntaxTree.PHANTOM_NODE) return;
             visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
-            SyntaxTree var = node.get(Symbol.unique("var"));
-            String varName = var.toText();
-            live.remove(varName);
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
             if(!node.has(Symbol.unique("expr"))) return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
-            liveCollect(expr, live, node.getTailDict());
+            updateLive(expr, live, node.getTailDict());
         }
     }
 
     public class Assignment extends Statements{
-        @Override
-        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+        private final void updateCollection(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("left"));
-            SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, node.getTailDict());
             String varName = var.toText();
             live.remove(varName);
+        }
+        @Override
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
+            SyntaxTree expr = node.get(Symbol.unique("right"));
+            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
-            SyntaxTree var = node.get(Symbol.unique("left"));
-            String varName = var.toText();
-            live.remove(varName);
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            liveCollect(expr, live, node.getTailDict());
+            updateLive(expr, live, node.getTailDict());
         }
     }
 
     public class AssignmentPair extends Statements{
-        @Override
-        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+        private final void updateCollection(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree pair = node.get(Symbol.unique("left"));
-            SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, node.getTailDict());
             for(SyntaxTree var : pair){
                 String varName = var.toText();
                 live.remove(varName);
             }
+        }
+        @Override
+        public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
+            SyntaxTree expr = node.get(Symbol.unique("right"));
+            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
-            SyntaxTree pair = node.get(Symbol.unique("left"));
-            for(SyntaxTree var : pair){
-                String varName = var.toText();
-                live.remove(varName);
-            }
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
+            updateCollection(node, live);
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            liveCollect(expr, live, node.getTailDict());
+            updateLive(expr, live, node.getTailDict());
         }
     }
 
@@ -362,23 +360,21 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             pushPopGenerate(node, live);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree expr = node.get(0);
-            liveCollect(expr, live, node.getTailDict());
+            updateLive(expr, live, node.getTailDict());
         }
     }
 
     public class SpecialExpression extends Statements{
         @Override
         public void accept(SyntaxTree node, Collection<String> live) throws Exception{
-            SyntaxTree expr = node.get(0);
-            visit(expr, live, node.getTailDict());
-            /* I hope implement GC_PUSH/POP process */
+            ErrorPrinter.error("triggerGC annotated functions cannot be called here.", node.get(0));
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree expr = node.get(0);
-            liveCollect(expr, live, node.getTailDict());
+            updateLive(expr, live, node.getTailDict());
         }
     }
 
@@ -415,10 +411,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class Return extends DefaultVisitor{
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
             if(node.size() == 0) return;
             SyntaxTree expr = node.get(0);
-            collect(expr, live, node.getTypeMapSet());
+            update(expr, live, node.getHeadDict());
         }
     }
 
@@ -460,7 +456,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return false;
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             accept(node, live, dict);
         }
     }
@@ -470,7 +466,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
         }
     }
     
@@ -486,7 +482,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             return FunctionTable.hasAnnotations(functionName, FunctionAnnotation.triggerGC);
         }
         @Override
-        public void addLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
+        public void updateLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
             SyntaxTree args = node.get(Symbol.unique("args"));
             visit(args, live, dict);
         }

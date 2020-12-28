@@ -31,7 +31,7 @@ public class TypeMapSetHalf extends TypeMapSetFull {
     @Override
     protected Set<AstType> getTypeSet(String name, AstType type){
         if(type == AstType.BOT){
-            System.err.println("Internal Warning: add variable "+name+" types BOT");
+            System.err.println("InternalWarning: add variable "+name+" types BOT");
         }
         Set<AstType> set;
         if(dispatchSet.contains(name)){
@@ -66,7 +66,7 @@ public class TypeMapSetHalf extends TypeMapSetFull {
         int repeatSize = 1;
         for(int i=0; i<length; i++){
             if(types[i] == AstType.BOT){
-                System.err.println("Internal Warning: assign the BOT type to "+names[i]);
+                System.err.println("InternalWarning: assign the BOT type to "+names[i]);
             }
             List<AstType> detailedTypeList;
             if(dispatchSet.contains(names[i])){

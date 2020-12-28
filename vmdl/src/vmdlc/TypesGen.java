@@ -52,7 +52,7 @@ public class TypesGen {
 
     String minimumRepresentation(Collection<VMRepType> dts, Collection<VMRepType> among) {
         if (!among.containsAll(dts))
-            throw new Error("Internal error");
+            throw new Error("InternalError");
 
         if (dts.containsAll(among))
             return "1";
