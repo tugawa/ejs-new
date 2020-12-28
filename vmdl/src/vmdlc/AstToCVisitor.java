@@ -547,7 +547,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> leftNode = node.get(Symbol.unique("left"));
             Tree<?> rightNode = node.get(Symbol.unique("right"));
             Tree<?> fname = rightNode.get(Symbol.unique("recv"));
-            List<AstType> ftypes = ((AstPairType)FunctionTable.getType(fname.toText()).getRange()).getTypes();
             Tree<?>[] pairs = new Tree<?>[leftNode.size()];
             int pairSize = leftNode.size();
             for(int i=0; i<pairSize; i++){

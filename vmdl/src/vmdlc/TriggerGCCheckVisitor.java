@@ -416,6 +416,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Return extends DefaultVisitor{
         @Override
         public void addLive(SyntaxTree node, Collection<String> live) throws Exception{
+            if(node.size() == 0) return;
             SyntaxTree expr = node.get(0);
             collect(expr, live, node.getTypeMapSet());
         }

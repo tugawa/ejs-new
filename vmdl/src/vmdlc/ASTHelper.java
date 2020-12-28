@@ -177,7 +177,7 @@ public class ASTHelper {
     }
 
     // Special Expression
-    /* NOTE: Special Expression is used to wrap expression which is a condition node of if statement, etc. */
+    /* NOTE: Special Expression is used to wrap expressions which like a condition node of if statement, etc. */
     public static SyntaxTree generateSpecialExpression(SyntaxTree expression){
         return new SyntaxTree(Symbol.unique("SpecialExpression"), null, new SyntaxTree[]{ expression }, null);
     }

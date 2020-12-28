@@ -241,6 +241,13 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
             TypeMapSet dict = node.getTypeMapSet();
             Collection<String> locals = dict.getKeys();
             ControlFlowGraphNode branchPoint = new ControlFlowGraphNode(locals);
+            SyntaxTree paramNode = node.get(Symbol.unique("params"));
+            for(SyntaxTree parameter : paramNode){
+                SyntaxTree wrapped = ASTHelper.generateSpecialExpression(parameter);
+                wrapped.setTypeMapSet(dict);
+                wrapped.setTailDict(dict);
+                branchPoint.addStatement(wrapped);
+            }
             ControlFlowGraphNode after = new ControlFlowGraphNode(locals);
             Set<VMDataType[]> nonMatchConds = dict.filterTypeVecs(mp.getFormalParams(), mp.getNonMatchCondVecSet().getTuples());
             if(!nonMatchConds.isEmpty()){

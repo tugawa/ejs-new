@@ -727,7 +727,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     }
                 }
             }
-            save(node.get(0), dict);
+            if(node.size() > 0)
+                save(node.get(0), dict);
             return dict;
         }
         public void saveType(SyntaxTree node, TypeMapSet dict) throws Exception {
