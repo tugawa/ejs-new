@@ -48,13 +48,14 @@ externC NEXT_INSN_NOINCPC : void -> void
 externC NEXT_INSN_INCPC : void -> void
 
 externC (needContext, triggerGC) new_normal_object : void -> JSObject
+externC (needContext) Create_simple_object_with_constructor : Function -> JSObject
 externC (needContext) initialize_new_object : (JSValue, JSValue) -> JSObject
 
 externC (needContext, triggerGC) new_normal_boolean_object : JSValue -> BooleanObject
 externC (needContext, triggerGC) new_normal_string_object : JSValue -> StringObject
 externC (needContext, triggerGC) new_normal_number_object : JSValue -> NumberObject
 externC (needContext, triggerGC) new_normal_function : Subscript -> JSValue
-externC (needContext, triggerGC) new_normal_iterator : JSValue -> JSValue
+externC (needContext, triggerGC) New_iterator : JSValue -> JSValue
 externC (needContext, triggerGC) new_normal_array : void -> Array
 
 externC get_prop_prototype_chain : (JSValue, JSValue) -> JSValue
@@ -85,17 +86,19 @@ externC Seta : JSValue -> void
 externC Setarg : (cint, Subscript, JSValue) -> void
 externC Setarray : (JSValue, Subscript, JSValue) -> void
 externC Setfl : cint -> void
-externC Setglobal : (JSValue, JSValue) -> void
+externC Setglobal : (String, JSValue) -> void
 externC Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) Throw : void -> void
 externC NotImplemented : void -> void
 externC Newframe : (cint, cint) -> void
 externC Jump : Displacement -> void
+externC (needContext) Makeclosure : cint -> Function
 externC Nextpropnameidx : JSValue -> JSValue
 externC (needContext, triggerGC) get_a : void -> JSValue
 externC (needContext, triggerGC) Getarguments: (cint, Subscript) -> JSValue
 externC (needContext, triggerGC) get_err : void -> JSValue
-externC (needContext, triggerGC) Get_global : JSValue -> JSValue
+externC (needContext, triggerGC) Get_global : String -> JSValue
+externC (needContext, triggerGC) Get_prop_object_inl : (JSObject, JSValue) -> JSValue
 externC (needContext) Get_globalobj : void -> JSValue
 externC (needContext, triggerGC) Getlocal: (cint, Subscript) -> JSValue
 

@@ -15,39 +15,17 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import ejsc.CodeBuffer.SpecialValue;
 import specfile.SpecFile;
-
 
 public class OBCFileComposer extends OutputFileComposer {
     static final boolean DEBUG = false;
 
-    static final boolean BIG_ENDIAN        = true;
+    static final boolean BIG_ENDIAN = true;
 
-    static final byte OBC_FILE_MAGIC       = (byte) 0xec;
-
-    static final int FIELD_VALUE_TRUE      = 0x1e;
-    static final int FIELD_VALUE_FALSE     = 0x0e;
-    static final int FIELD_VALUE_NULL      = 0x06;
-    static final int FIELD_VALUE_UNDEFINED = 0x16;
+    static final byte OBC_FILE_MAGIC = (byte) 0xec;
 
     static class OBCInstruction {
-        static final int INSTRUCTION_BYTES = 8;
-        static final int OPCODE_OFFSET = 16 * 3;
-        static final int OPCODE_BITS   = 16;
-        static final long OPCODE_MASK  = ((1L << OPCODE_BITS) - 1) << OPCODE_OFFSET;
-        static final int A_OFFSET      = 16 * 2;
-        static final int A_BITS        = 16;
-        static final long A_MASK       = ((1L << A_BITS) - 1) << A_OFFSET;
-        static final int B_OFFSET      = 16 * 1;
-        static final int B_BITS        = 16;
-        static final long B_MASK       = ((1L << B_BITS) - 1) << B_OFFSET;
-        static final int BB_OFFSET     = 0;
-        static final int BB_BITS       = 32;
-        static final long BB_MASK      = ((1L << BB_BITS) - 1) << BB_OFFSET;
-        static final int C_OFFSET      = 0;
-        static final int C_BITS        = 16;
-        static final long C_MASK       = ((1L << C_BITS) - 1) << C_OFFSET;
-
         enum Format {
             ABC,
             AB
@@ -77,32 +55,39 @@ public class OBCFileComposer extends OutputFileComposer {
 
         /**
          * Returns binary representation of the instruction.
+         * 
          * @return binary representation of this instruction.
          */
-        byte[] getBytes() {
-            long insn = ((long) opcode) << OPCODE_OFFSET;
+        byte[] getBytes(InstructionBinaryFormat f) {
+            long insn = ((long) opcode) << f.opcodeOffset();
             switch (format) {
             case ABC:
-                insn |= (((long) a) << A_OFFSET) & A_MASK;
-                insn |= (((long) b) << B_OFFSET) & B_MASK;
-                insn |= (((long) c) << C_OFFSET) & C_MASK;
+                insn |= (((long) a) << f.aOffset()) & f.aMask();
+                insn |= (((long) b) << f.bOffset()) & f.bMask();
+                insn |= (((long) c) << f.cOffset()) & f.cMask();
                 break;
             case AB:
-                insn |= (((long) a) << A_OFFSET) & A_MASK;
-                insn |= (((long) b) << BB_OFFSET) & BB_MASK;
+                insn |= (((long) a) << f.aOffset()) & f.aMask();
+                insn |= (((long) b) << f.bbOffset()) & f.bbMask();
                 break;
             default:
-                throw new Error("Unknown instruction format");    
+                throw new Error("Unknown instruction format");
             }
 
             if (DEBUG)
-                System.out.println(String.format("insn: %016x  %s", insn, insnName));
-
-            if (BIG_ENDIAN)
-                insn = Long.reverseBytes(insn);                
-            byte[] bytes = new byte[INSTRUCTION_BYTES];
-            for (int i = 0; i < INSTRUCTION_BYTES; i++)
+                System.out.print("insn: ");
+            if (BIG_ENDIAN) {
+                insn = Long.reverseBytes(insn);
+                insn >>>= 8 * (8 - f.instructionBytes());
+            }
+            byte[] bytes = new byte[f.instructionBytes()];
+            for (int i = 0; i < f.instructionBytes(); i++) {
                 bytes[i] = (byte) (insn >> (8 * i));
+                if (DEBUG)
+                System.out.print(String.format(" %02x", bytes[i]));
+            }
+            if (DEBUG)
+                System.out.println(String.format(" %s", insnName));
             return bytes;
         }
     }
@@ -128,7 +113,7 @@ public class OBCFileComposer extends OutputFileComposer {
 
             constants = new ConstantTable();
             instructions = new ArrayList<OBCInstruction>(bcodes.size());
-            for (BCode bc: bcodes)
+            for (BCode bc : bcodes)
                 bc.emit(this);
         }
 
@@ -157,37 +142,29 @@ public class OBCFileComposer extends OutputFileComposer {
                 int index = constants.lookup(s);
                 return index;
             } else if (src instanceof SpecialOperand) {
-                SpecialOperand.V v = ((SpecialOperand) src).get();
-                switch (v) {
-                case TRUE:
-                    return FIELD_VALUE_TRUE;
-                case FALSE:
-                    return FIELD_VALUE_FALSE;
-                case NULL:
-                    return FIELD_VALUE_NULL;
-                case UNDEFINED:
-                    return FIELD_VALUE_UNDEFINED;
-                default:
-                    throw new Error("Unknown special");
-                }
+                SpecialValue v = ((SpecialOperand) src).get();
+                return format.specialFieldValue(v);
             } else
                 throw new Error("Unknown source operand");
         }
 
         @Override
         public void addFixnumSmallPrimitive(String insnName, boolean log, Register dst, int n) {
-            int opcode = getOpcode(insnName);
-            int a = dst.getRegisterNumber();
-            int b = n;
-            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
-            instructions.add(insn);
+            if (format.inFixnumRange(n)) {
+                int opcode = getOpcode(insnName);
+                int a = dst.getRegisterNumber();
+                int b = n;
+                OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
+                instructions.add(insn);
+            } else
+                addNumberBigPrimitive("number", log, dst, (double) n);  // TODO: do not use "number"
         }
         @Override
         public void addNumberBigPrimitive(String insnName, boolean log, Register dst, double n) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(n);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
             instructions.add(insn);
 
         }
@@ -196,26 +173,14 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
             int b = constants.lookup(s);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, b, 0);
+            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
             instructions.add(insn);
         }
         @Override
         public void addSpecialSmallPrimitive(String insnName, boolean log, Register dst, SpecialValue v) {
             int opcode = getOpcode(insnName);
             int a = dst.getRegisterNumber();
-            int b;
-            switch (v) {
-            case TRUE:
-                b = FIELD_VALUE_TRUE; break;
-            case FALSE:
-                b = FIELD_VALUE_FALSE; break;
-            case NULL:
-                b = FIELD_VALUE_NULL; break;
-            case UNDEFINED:
-                b = FIELD_VALUE_UNDEFINED; break;
-            default:
-                throw new Error("Unknown special");
-            }
+            int b = format.specialFieldValue(v);
             OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, b);
             instructions.add(insn);
         }
@@ -330,7 +295,7 @@ public class OBCFileComposer extends OutputFileComposer {
             int opcode = getOpcode(insnName, fun);
             int a = fieldBitsOf(fun);
             OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, nargs, 0);
-            instructions.add(insn);                    
+            instructions.add(insn);
         }
         @Override
         public void addRXCall(String insnName, boolean log, Register dst, SrcOperand fun) {
@@ -343,25 +308,25 @@ public class OBCFileComposer extends OutputFileComposer {
         @Override
         public void addUncondJump(String insnName, boolean log, int disp) {
             int opcode = getOpcode(insnName);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, disp, 0, 0);
+            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, 0, disp);
             instructions.add(insn);
         }
         @Override
         public void addCondJump(String insnName, boolean log, SrcOperand test, int disp) {
             int opcode = getOpcode(insnName, test);
             int a = fieldBitsOf(test);
-            OBCInstruction insn = OBCInstruction.createABC(insnName, opcode, a, disp,  0);
+            OBCInstruction insn = OBCInstruction.createAB(insnName, opcode, a, disp);
             instructions.add(insn);
         }
     }
 
     List<OBCFunction> obcFunctions;
 
-    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec) {
-        super(spec);
+    OBCFileComposer(BCBuilder compiledFunctions, int functionNumberOffset, SpecFile spec, boolean insn32, boolean align32) {
+        super(spec, insn32, align32);
         List<BCBuilder.FunctionBCBuilder> fbs = compiledFunctions.getFunctionBCBuilders();
         obcFunctions = new ArrayList<OBCFunction>(fbs.size());
-        for (BCBuilder.FunctionBCBuilder fb: fbs) {
+        for (BCBuilder.FunctionBCBuilder fb : fbs) {
             OBCFunction out = new OBCFunction(fb, functionNumberOffset);
             obcFunctions.add(out);
         }
@@ -378,8 +343,8 @@ public class OBCFileComposer extends OutputFileComposer {
             System.out.println(String.format("short: %04x", v));
         if (BIG_ENDIAN)
             v = Integer.reverseBytes(v << 16);
-        out.write((byte)(v & 0xff));
-        out.write((byte)((v >> 8) & 0xff));
+        out.write((byte) (v & 0xff));
+        out.write((byte) ((v >> 8) & 0xff));
     }
 
     private void outputLong(OutputStream out, long v) throws IOException {
@@ -393,11 +358,13 @@ public class OBCFileComposer extends OutputFileComposer {
 
     /**
      * Output instruction to the file.
-     * @param fileName file name to be output to.
+     * 
+     * @param fileName
+     *            file name to be output to.
      */
     void output(String fileName) {
         try {
-            FileOutputStream out = new FileOutputStream(fileName);            
+            FileOutputStream out = new FileOutputStream(fileName);
 
             outputByte(out, OBC_FILE_MAGIC);
             outputByte(out, spec.getFingerprint());
@@ -406,7 +373,7 @@ public class OBCFileComposer extends OutputFileComposer {
             outputShort(out, obcFunctions.size());
 
             /* Function */
-            for (OBCFunction fun: obcFunctions) {
+            for (OBCFunction fun : obcFunctions) {
                 /* Function header */
                 outputShort(out, fun.callEntry);
                 outputShort(out, fun.sendEntry);
@@ -415,14 +382,14 @@ public class OBCFileComposer extends OutputFileComposer {
                 outputShort(out, fun.constants.size());
 
                 /* Instructions */
-                for (OBCInstruction insn: fun.instructions)
-                    out.write(insn.getBytes());               
+                for (OBCInstruction insn : fun.instructions)
+                    out.write(insn.getBytes(format));
 
                 /* Constant pool */
-                for (Object v: fun.constants.getConstants()) {
+                for (Object v : fun.constants.getConstants()) {
                     if (v instanceof Double) {
                         long bits = Double.doubleToLongBits((Double) v);
-                        outputShort(out, 8);  // size
+                        outputShort(out, 8); // size
                         outputLong(out, bits);
                     } else if (v instanceof String) {
                         String s = (String) v;

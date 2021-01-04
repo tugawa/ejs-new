@@ -8,9 +8,9 @@ ENTER_INSN(__LINE__);
   JSValue p, ret;
 
   ret = JS_FALSE;
-  if (is_object(v1) && is_object(v2) &&
-      get_prop(v2, gconsts.g_string_prototype, &p) == SUCCESS) {
-    while (get___proto__(v1, &v1) == SUCCESS)
+  if (is_jsobject(v1) && (is_function(v2) || is_builtin(v2)) &&
+      (p = get_prop(v2, gconsts.g_string_prototype)) != JS_EMPTY) {
+    while ((v1 = get_prop(v1, gconsts.g_string___proto__)) != JS_EMPTY)
       if (v1 == p) {
         ret = JS_TRUE;
         break;

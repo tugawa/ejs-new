@@ -12,17 +12,17 @@ endif
 ifeq ($(CC),cc)
     CC = clang
 endif
+ifeq ($(CXX),cc)
+    CC = clang
+endif
 ifeq ($(SED),)
     SED = gsed
-endif
-ifeq ($(RUBY),)
-    RUBY = ruby
 endif
 ifeq ($(PYTHON),)
     PYTHON = python
 endif
 ifeq ($(CPP_VMDL),)
-    CPP_VMDL=$(CC) -E -x c -P
+    CPP_VMDL=$(CC) $(CPPFLAGS) -E -x c -P
 endif
 ifeq ($(COCCINELLE),)
     COCCINELLE = spatch
@@ -86,12 +86,27 @@ INSNGEN_VMDL=java -jar $(VMDL)
 FUNCGEN_VMDL=$(INSNGEN_VMDL)
 SPECGEN_VMDL=$(INSNGEN_VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
+
+ifeq ($(USE_VMDL),true)
 SPECGEN=java -cp $(VMDL) vmdlc.SpecFileGen
+SPECGEN_JAR=$(VMDL)
+else
+SPECGEN=java -cp $(VMGEN) vmgen.SpecFileGen
+SPECGEN_JAR=$(VMGEN)
+endif
 
 CPP=$(CC) -E
 
-CFLAGS += -std=gnu89 -Wall -Wno-unused-label -DUSER_DEF $(INCLUDES)
+CFLAGS += -std=gnu89 -Wall -Wno-unused-label -Wno-unused-result $(INCLUDES)
+CXXFLAGS = -std=c++11 -Wall $(INCLUDES)
+
+CPPFLAGS +=
 LIBS   += -lm
+
+ifeq ($(USE_VMDL),true)
+PPCFLAGS += -DUSE_VMDL
+CPPFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
+endif
 
 ######################################################
 # superinstructions
@@ -141,7 +156,6 @@ GENERATED_HFILES = \
     instructions-opcode.h \
     instructions-table.h \
     instructions-label.h \
-    cell-header.h \
     specfile-fingerprint.h
 
 HFILES = $(GENERATED_HFILES) \
@@ -156,8 +170,13 @@ HFILES = $(GENERATED_HFILES) \
     extern.h \
     log.h \
     gc.h \
-    vmdl-helper.h \
-		iccprof.h
+    context-inl.h \
+    types-inl.h \
+    gc-inl.h
+ifeq ($(USE_VMDL),true)
+    HFILES += vmdl-helper.h
+    HFILES += iccprof.h
+endif
 
 SUPERINSNS = $(shell $(GOTTA) --list-si)
 
@@ -172,6 +191,8 @@ OFILES = \
     builtin-regexp.o \
     builtin-string.o \
     builtin-function.o \
+    builtin-performance.o \
+    cstring.o \
     call.o \
     codeloader.o \
     context.o \
@@ -183,9 +204,11 @@ OFILES = \
     operations.o \
     vmloop.o \
     gc.o \
-    vmdl-helper.o \
-		iccprof.o \
     main.o
+ifeq ($(USE_VMDL),true)
+OFILES += vmdl-helper.o
+OFILES += iccprof.o
+endif
 
 ifeq ($(SUPERINSN_MAKEINSN),true)
     INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
@@ -295,27 +318,53 @@ FUNCS_FILES = $(FUNC_GENERATED)
 
 ######################################################
 
+ifeq ($(GC_CXX),true)
+CXX_FILES = gc.cc marksweep-collector.cc markcompact-collector.cc copy-collector.cc
+HFILES    += gc-visitor-inl.h marksweep-collector.h
+MARKSWEEP_COLLECTOR = marksweep-collector.o
+else
+CXX_FILES =
+MARKSWEEP_COLLECTOR =
+endif
+
 ifeq ($(OPT_GC),native)
-    CFLAGS+=-DUSE_NATIVEGC=1
+    CPPFLAGS+=-DUSE_NATIVEGC=1
+    OFILES+=$(MARKSWEEP_COLLECTOR) freelist-space.o
+    HFILES+=freelist-space.h freelist-space-inl.h
+endif
+ifeq ($(OPT_GC),bibop)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
+    OFILES+=$(MARKSWEEP_COLLECTOR) bibop-space.o
+    HFILES+=bibop-space.h bibop-space-inl.h
+endif
+ifeq ($(OPT_GC),copy)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOPYGC
+    OFILES+=copy-collector.o
+    HFILES+=copy-collector.h
+endif
+ifeq ($(OPT_GC),compact)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION
+    OFILES+=markcompact-collector.o
+    HFILES+=markcompact-collector.h markcompact-collector-inl.h
 endif
 ifeq ($(OPT_GC),boehmgc)
-    CFLAGS+=-DUSE_BOEHMGC=1
+    CPPFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
 endif
 ifeq ($(OPT_REGEXP),oniguruma)
-    CFLAGS+=-DUSE_REGEXP=1
+    CPPFLAGS+=-DUSE_REGEXP=1
     LIBS+=-lonig
 endif
 
 ifeq ($(DATATYPES),)
     GENERATED_HFILES += types-handcraft.h
 else
-    CFLAGS += -DUSE_TYPES_GENERATED=1
+    CPPFLAGS += -DUSE_TYPES_GENERATED=1
     GENERATED_HFILES += types-generated.h
 endif
 
 CHECKFILES_DIR = checkfiles
-GCCHECK_PATTERN = ../gccheck.cocci
+GCCHECK_PATTERN = $(EJSVM_DIR)/gccheck.cocci
 
 ######################################################
 
@@ -352,15 +401,16 @@ instructions-label.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC)
 	$(GOTTA) --gen-insn-label -o $@
 
 vmloop-cases.inc: $(EJSVM_DIR)/instructions.def
-	cp $(EJSVM_DIR)/gen-vmloop-cases-nonaka.rb ./gen-vmloop-cases-nonaka.rb
 	$(GOTTA) --gen-vmloop-cases -o $@
 
 ifeq ($(SUPERINSNTYPE),)
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(VMDL)
+ejsvm.spec: $(EJSVM_DIR)/instructions.def $(SPECGEN_JAR)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
+specfile-fingerprint.h: ejsvm.spec
+	touch $@
 else
-ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(VMDL)
+ejsvm.spec specfile-fingerprint.h: $(EJSVM_DIR)/instructions.def $(SUPERINSNSPEC) $(SPECGEN_JAR)
 	$(SPECGEN) --insndef $(EJSVM_DIR)/instructions.def\
 		--sispec $(SUPERINSNSPEC) -o ejsvm.spec\
 		--fingerprint specfile-fingerprint.h
@@ -370,7 +420,7 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 
-insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd
+insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/insns-vmdl/externc.vmdh
 	mkdir -p insns-vmdl
 	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
 
@@ -545,10 +595,10 @@ endif
 endif
 endif
 
-cell-header.h: $(EJSVM_DIR)/cell-header.def
-	$(RUBY) $< > $@
-
 instructions.h: instructions-opcode.h instructions-table.h
+
+$(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
+	cp $< $@
 
 %.c:: $(EJSVM_DIR)/%.c $(FUNCS_FILES)
 	cp $< $@
@@ -556,16 +606,20 @@ instructions.h: instructions-opcode.h instructions-table.h
 %.h:: $(EJSVM_DIR)/%.h
 	cp $< $@
 
-codeloader.o: specfile-fingerprint.h
-
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS_VMDL) -o $@ $<
+
+#gc.o:%.o:%.cc $(HFILES)
+$(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
+	echo $(CPPFLAGS)
+	echo $(CXXFLAGS)
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
 conversion.o: conversion.c $(FUNCS_FILES)
 	$(CC) -c $(CFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 extern.h: $(VMDL_EXTERN)
 
@@ -579,7 +633,7 @@ $(VMDL):
 
 #### ejsc
 $(EJSC): $(VMGEN) ejsvm.spec
-	(cd $(EJSC_DIR); ant -Dspecfile=$(PWD)/ejsvm.spec)
+	(cd $(EJSC_DIR); ant clean; ant -Dspecfile=$(CURDIR)/ejsvm.spec)
 
 #### ejsi
 $(EJSI):
@@ -601,7 +655,7 @@ endif
 
 $(CHECKFILES):$(CHECKFILES_DIR)/%.c: %.c $(HFILES)
 	mkdir -p $(CHECKFILES_DIR)
-	$(CPP) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
+	$(CPP) $(CPPFLAGS) $(CFLAGS) -DCOCCINELLE_CHECK=1 $< > $@ || (rm $@; exit 1)
 
 $(CHECKFILES_DIR)/vmloop.c: vmloop-cases.inc $(INSN_FILES)
 
@@ -618,7 +672,7 @@ check: $(CHECKRESULTS)
 #### clean
 
 clean:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -rf funcs
 	rm -f *.checkresult
@@ -627,10 +681,10 @@ clean:
 	rm -rf insns-vmdl
 	rm -rf funcs-vmdl
 	rm -rf vmdl_workspace
-	rm -f ejsvm ejsvm.spec
+	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 
 cleanest:
-	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.h
+	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
 	rm -rf funcs
 	rm -f *.checkresult

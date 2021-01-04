@@ -12,6 +12,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import ejsc.CodeBuffer.SpecialValue;
+
 interface CodeBuffer {
     enum SpecialValue {
         TRUE,
@@ -81,11 +83,14 @@ public abstract class BCode {
         this.dst = dst;
     }
 
+    void addLabel(Label label) {
+        label.replaceDestBCode(this);
+        labels.add(label);
+    }
+
     void addLabels(List<Label> labels) {
-        for (Label l: labels) {
-            l.replaceDestBCode(this);
-            this.labels.add(l);
-        }
+        for (Label l: labels)
+            addLabel(l);
     }
 
     ArrayList<Label> getLabels() {
@@ -190,12 +195,15 @@ public abstract class BCode {
 }
 
 class Register {
-    int n;
+    private int n;
     Register(int n) {
         this.n = n;
     }
     public int getRegisterNumber() {
         return n;
+    }
+    public void setRegisterNumber(int n) {
+        this.n = n;
     }
     public String toString() {
         return Integer.toString(n);
@@ -289,17 +297,11 @@ class StringOperand extends SrcOperand {
 }
 
 class SpecialOperand extends SrcOperand {
-    enum V {
-        TRUE,
-        FALSE,
-        NULL,
-        UNDEFINED
-    }
-    V x;
-    SpecialOperand(V x) {
+    SpecialValue x;
+    SpecialOperand(SpecialValue x) {
         this.x = x;
     }
-    V get() {
+    SpecialValue get() {
         return x;
     }
     @Override
@@ -322,6 +324,23 @@ class SpecialOperand extends SrcOperand {
 /*
  * BCode
  */
+abstract class CauseExceptionBCode extends BCode {
+    CauseExceptionBCode(String name, Label exceptionDest) {
+        super(name);
+        this.exceptionDest = exceptionDest;
+    }
+    CauseExceptionBCode(String name, Register dst, Label exceptionDest) {
+        super(name, dst);
+        this.exceptionDest = exceptionDest;
+    }
+
+    Label exceptionDest;
+    final public BCode getBranchTarget() {
+        if (exceptionDest == null)
+            return null;
+        return exceptionDest.getDestBCode();
+    }
+}
 
 /* SMALLPRIMITIVE */
 class IFixnum extends BCode {
@@ -359,11 +378,7 @@ class IString extends BCode {
     String str;
     IString(Register dst, String str) {
         super("string", dst);
-        // TODO: check string format.  Too many backslashes?
         this.str = str;
-        this.str = this.str.replaceAll("\n", "\\\\n");
-        this.str = this.str.replaceAll(" ", "\\\\s");
-        this.str = this.str.replaceAll("\"", "\\\\\"");
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -432,13 +447,13 @@ class IRegexp extends BCode {
     }
 }
 /* THREEOP */
-class IAdd extends BCode {
+class IAdd extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IAdd(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IAdd(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IAdd(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("add", dst);
+    IAdd(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("add", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -451,13 +466,13 @@ class IAdd extends BCode {
     }
 }
 /* THREEOP */
-class ISub extends BCode {
+class ISub extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    ISub(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    ISub(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    ISub(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("sub", dst);
+    ISub(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("sub", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -470,13 +485,13 @@ class ISub extends BCode {
     }
 }
 /* THREEOP */
-class IMul extends BCode {
+class IMul extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IMul(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IMul(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IMul(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("mul", dst);
+    IMul(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("mul", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -489,13 +504,13 @@ class IMul extends BCode {
     }
 }
 /* THREEOP */
-class IDiv extends BCode {
+class IDiv extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IDiv(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IDiv(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IDiv(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("div", dst);
+    IDiv(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("div", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -508,13 +523,13 @@ class IDiv extends BCode {
     }
 }
 /* THREEOP */
-class IMod extends BCode {
+class IMod extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IMod(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IMod(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IMod(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("mod", dst);
+    IMod(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("mod", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -527,13 +542,13 @@ class IMod extends BCode {
     }
 }
 /* THREEOP */
-class IBitor extends BCode {
+class IBitor extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IBitor(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IBitor(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IBitor(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("bitor", dst);
+    IBitor(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("bitor", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -546,13 +561,13 @@ class IBitor extends BCode {
     }
 }
 /* THREEOP */
-class IBitand extends BCode {
+class IBitand extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IBitand(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IBitand(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IBitand(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("bitand", dst);
+    IBitand(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("bitand", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -565,13 +580,13 @@ class IBitand extends BCode {
     }
 }
 /* THREEOP */
-class ILeftshift extends BCode {
+class ILeftshift extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    ILeftshift(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    ILeftshift(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    ILeftshift(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("leftshift", dst);
+    ILeftshift(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("leftshift", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -584,13 +599,13 @@ class ILeftshift extends BCode {
     }
 }
 /* THREEOP */
-class IRightshift extends BCode {
+class IRightshift extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IRightshift(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IRightshift(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IRightshift(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("rightshift", dst);
+    IRightshift(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("rightshift", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -603,13 +618,13 @@ class IRightshift extends BCode {
     }
 }
 /* THREEOP */
-class IUnsignedrightshift extends BCode {
+class IUnsignedrightshift extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IUnsignedrightshift(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IUnsignedrightshift(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IUnsignedrightshift(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("unsignedrightshift", dst);
+    IUnsignedrightshift(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("unsignedrightshift", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -622,13 +637,13 @@ class IUnsignedrightshift extends BCode {
     }
 }
 /* THREEOP */
-class IEqual extends BCode {
+class IEqual extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    IEqual(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    IEqual(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    IEqual(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("equal", dst);
+    IEqual(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("equal", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -660,13 +675,13 @@ class IEq extends BCode {
     }
 }
 /* THREEOP */
-class ILessthan extends BCode {
+class ILessthan extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    ILessthan(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    ILessthan(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    ILessthan(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("lessthan", dst);
+    ILessthan(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("lessthan", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -679,13 +694,13 @@ class ILessthan extends BCode {
     }
 }
 /* THREEOP */
-class ILessthanequal extends BCode {
+class ILessthanequal extends CauseExceptionBCode {
     SrcOperand src1, src2;
-    ILessthanequal(Register dst, Register src1, Register src2) {
-        this(dst, new RegisterOperand(src1), new RegisterOperand(src2));
+    ILessthanequal(Register dst, Register src1, Register src2, Label exceptionDest) {
+        this(dst, new RegisterOperand(src1), new RegisterOperand(src2), exceptionDest);
     }
-    ILessthanequal(Register dst, SrcOperand src1, SrcOperand src2) {
-        super("lessthanequal", dst);
+    ILessthanequal(Register dst, SrcOperand src1, SrcOperand src2, Label exceptionDest) {
+        super("lessthanequal", dst, exceptionDest);
         this.src1 = src1;
         this.src2 = src2;
     }
@@ -698,13 +713,13 @@ class ILessthanequal extends BCode {
     }
 }
 /* TWOOP */
-class INot extends BCode {
+class INot extends CauseExceptionBCode {
     SrcOperand src;
-    INot(Register dst, Register src) {
-        this(dst, new RegisterOperand(src));
+    INot(Register dst, Register src, Label exceptionDest) {
+        this(dst, new RegisterOperand(src), exceptionDest);
     }
-    INot(Register dst, SrcOperand src) {
-        super("not", dst);
+    INot(Register dst, SrcOperand src, Label exceptionDest) {
+        super("not", dst, exceptionDest);
         this.src = src;
     }
     @Override
@@ -758,14 +773,27 @@ class INewframe extends BCode {
         return super.toString(name, len, makeArguments ? 1 : 0);
     }
 }
-/* TWOOP */
-class IGetglobal extends BCode {
-    SrcOperand varName;
-    IGetglobal(Register dst, Register name) {
-        this(dst, new RegisterOperand(name));
+/* ZEROOP */
+class IExitframe extends BCode {
+    IExitframe() {
+        super("exitframe");
     }
-    IGetglobal(Register dst, SrcOperand name) {
-        super("getglobal", dst);
+    @Override
+    public void emit(CodeBuffer buf) {
+        buf.addZeroOp(name, logging);
+    }
+    public String toString() {
+        return super.toString(name);
+    }
+}
+/* TWOOP */
+class IGetglobal extends CauseExceptionBCode {
+    SrcOperand varName;
+    IGetglobal(Register dst, Register name, Label exceptionDest) {
+        this(dst, new RegisterOperand(name), exceptionDest);
+    }
+    IGetglobal(Register dst, SrcOperand name, Label exceptionDest) {
+        super("getglobal", dst, exceptionDest);
         this.varName = name;
     }
     @Override
@@ -777,13 +805,13 @@ class IGetglobal extends BCode {
     }
 }
 /* TWOOP */
-class ISetglobal extends BCode {
+class ISetglobal extends CauseExceptionBCode {
     SrcOperand varName, src;
-    ISetglobal(Register name, Register src) {
-        this(new RegisterOperand(name), new RegisterOperand(src));
+    ISetglobal(Register name, Register src, Label exceptionDest) {
+        this(new RegisterOperand(name), new RegisterOperand(src), exceptionDest);
     }
-    ISetglobal(SrcOperand name, SrcOperand src) {
-        super("setglobal");
+    ISetglobal(SrcOperand name, SrcOperand src, Label exceptionDest) {
+        super("setglobal", exceptionDest);
         this.varName = name;
         this.src = src;
     }
@@ -906,28 +934,6 @@ class ISetprop extends BCode {
     }
     public String toString() {
         return super.toString("setprop", obj, prop, src);
-    }
-}
-/* THREEOP */
-class ISetarray extends BCode {
-    SrcOperand ary;
-    int n;
-    SrcOperand src;
-    ISetarray(Register ary, int n, Register src) {
-        this(new RegisterOperand(ary), n, new RegisterOperand(src));
-    }
-    ISetarray(SrcOperand ary, int n, SrcOperand src) {
-        super("setarray");
-        this.ary = ary;
-        this.n = n;
-        this.src = src;
-    }
-    @Override
-    public void emit(CodeBuffer buf) {
-        buf.addXIXThreeOp(name, logging, ary, n, src);
-    }
-    public String toString() {
-        return super.toString(name, ary, n, src);
     }
 }
 /* MAKECLOSUREOP */
@@ -1216,10 +1222,10 @@ class IJumpfalse extends BCode {
     }
 }
 /* ONEOP */
-class IThrow extends BCode {
+class IThrow extends CauseExceptionBCode {
     SrcOperand reg;
-    IThrow(Register reg) {
-        super("throw");
+    IThrow(Register reg, Label exceptionDest) {
+        super("throw", exceptionDest);
         this.reg = new RegisterOperand(reg);
     }
     @Override
@@ -1240,6 +1246,9 @@ class IPushhandler extends BCode {
     IPushhandler(Label label) {
         super("pushhandler");
         this.label = label;
+    }
+    public Label getHandlerLabel() {
+        return label;
     }
     @Override
     public void emit(CodeBuffer buf) {
@@ -1356,14 +1365,14 @@ class MSetfl extends BCode {
     }
 }
 
-class MCall extends BCode {
+class MCall extends CauseExceptionBCode {
     SrcOperand receiver;
     SrcOperand function;
     SrcOperand[] args;
     boolean isNew;
     boolean isTail;
-    MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-        super("@Mcall");
+    MCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail, Label exceptionDest) {
+        super("@Mcall", exceptionDest);
         this.receiver = receiver == null ? null : new RegisterOperand(receiver);
         this.function = new RegisterOperand(function);
         this.args = new SrcOperand[args.length];
@@ -1387,7 +1396,7 @@ class MCall extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        throw new Error("attempt to emit a macro instruction MSetfl");
+        throw new Error("attempt to emit a macro instruction MCall");
     }
     @Override
     public String toString() {
@@ -1413,7 +1422,7 @@ class MParameter extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        throw new Error("attempt to emit a macro instruction MSetfl");
+        throw new Error("attempt to emit a macro instruction MParameter");
     }
     @Override
     public String toString() {

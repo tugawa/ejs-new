@@ -1,4 +1,4 @@
-\inst jumptrue (Value v, Displacement d)
+\inst jumptrue (Value v, InstructionDisplacement d)
 
 \otherwise \{
 /*

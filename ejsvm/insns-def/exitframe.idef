@@ -1,0 +1,6 @@
+\inst exitframe ()
+
+\otherwise \{
+  FunctionFrame *fr = get_lp(context);
+  set_lp(context, fframe_prev(fr));
+\}

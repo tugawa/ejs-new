@@ -6,27 +6,26 @@
  */
 {
   Register dst = r0;
-  Tag tag;
-  cint x1, x2;
+  int32_t x1, x2;
 
-  switch (tag = TAG_PAIR(get_tag(v1), get_tag(v2))) {
+  switch (TAG_PAIR_VARS(v1, v2)) {
   case TP_FIXFIX:
-    regbase[dst] = v1 & v2;
+    regbase[dst] = (JSValue) (((uintjsv_t) v1) & ((uintjsv_t) v2));
     break;
   case TP_FIXFLO:
-    x1 = fixnum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    regbase[dst] = cint_to_fixnum(x1 & x2);
+    x1 = (int32_t) fixnum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    regbase[dst] = small_cint_to_fixnum((cint) (x1 & x2));
     break;
   case TP_FLOFIX:
-    x1 = flonum_to_cint(v1);
-    x2 = fixnum_to_cint(v2);
-    regbase[dst] = cint_to_fixnum(x1 & x2);
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) fixnum_to_cint(v2);
+    regbase[dst] = small_cint_to_fixnum((cint) (x1 & x2));
     break;
   case TP_FLOFLO:
-    x1 = flonum_to_cint(v1);
-    x2 = flonum_to_cint(v2);
-    regbase[dst] = cint_to_fixnum(x1 & x2);
+    x1 = (int32_t) flonum_to_cint(v1);
+    x2 = (int32_t) flonum_to_cint(v2);
+    regbase[dst] = int32_to_number(context, x1 & x2);
     break;
   default:
     regbase[dst] = slow_bitand(context, v1, v2);

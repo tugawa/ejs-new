@@ -36,6 +36,7 @@ makeclosure (-,-) accept
 makeiterator (-,_) accept
 move (-,_) accept
 newframe (-,-) accept
+exitframe () accept
 nextpropnameidx (-,_) accept
 not (-,_) accept
 number (-,-) accept
@@ -54,5 +55,5 @@ nop () accept
 pophandler () accept
 poplocal () accept
 ret () accept
-throw () accept
+throw (_) accept
 unknown () accept

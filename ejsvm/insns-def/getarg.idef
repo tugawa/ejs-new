@@ -14,5 +14,5 @@
     fr = fframe_prev(fr);
   }
   arguments = fframe_arguments(fr);
-  dst = get_array_prop(context, arguments, int_to_fixnum(index));
+  dst = get_array_element(context, arguments, index);
 \}

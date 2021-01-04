@@ -9,25 +9,22 @@
   int num_of_args, i;
   JSValue args;
 
-  /*
-     allocates a new function frame into which arguments array is stored
-   */
-  // However, is it correct?
-  // fr = new_frame(get_cf(context), fframe_prev(get_lp(context))); ???
   save_context();
   fr = new_frame(context, get_cf(context), get_lp(context), frame_len);
   set_lp(context, fr);
   update_context();
 
   if (make_arguments) {
+    JSValue *body;
     num_of_args = get_ac(context);
     save_context();
-    args = new_normal_array_with_size(context, num_of_args);
+    args = new_array_object(context, DEBUG_NAME("arguments"),
+                            gshapes.g_shape_Array, num_of_args);
     update_context();
 
-    for (i = 0; i < num_of_args; i++) {
-      array_body_index(args, i) = regbase[i + 2];
-    }
+    body = get_jsarray_body(args);
+    for (i = 0; i < num_of_args; i++)
+      body[i] = regbase[i + 2];
     fframe_arguments(fr) = args;
     fframe_locals_idx(fr, 0) = args;
   }

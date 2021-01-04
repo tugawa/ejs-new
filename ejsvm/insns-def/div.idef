@@ -1,7 +1,7 @@
 \inst div (Register dst, Value v1, Value v2)
 
 \when v1:fixnum && v2:fixnum \{
-  int n1, n2, s;
+  cint n1, n2, s;
   n1 = fixnum_to_cint(v1);
   if (v2 == FIXNUM_ZERO) {
     if (n1 > 0) dst = gconsts.g_flonum_infinity;
@@ -10,7 +10,8 @@
   } else {
     n2 = fixnum_to_cint(v2);
     s = n1/ n2;
-    dst = (n1 == n2 * s) ? cint_to_fixnum(s) : double_to_flonum((double) n1 / (double) n2);
+    dst = ((n1 == n2 * s) ? cint_to_number(context, s) :
+           double_to_flonum(context, (double) n1 / (double) n2));
   }
 \}
 
@@ -20,7 +21,7 @@
   double d = x1 / x2;
   if (isinf(d)) dst = d > 0 ? gconsts.g_flonum_infinity : gconsts.g_flonum_negative_infinity;
   else if (isnan(d)) dst = gconsts.g_flonum_nan;
-  else dst = double_to_number(d);
+  else dst = double_to_number(context, d);
 \}
 
 \when v1:fixnum || v1:flonum \{

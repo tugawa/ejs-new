@@ -5,8 +5,8 @@ makeclosure : Subscript -> JSValue
 
 makeclosure (s1) {
     Subscript ss = s1 + 1;
-    save_context();
-    JSValue result = new_normal_function(ss);
-    update_context();
+    Save_context();
+    Function result = Makeclosure(ss);
+    Update_context();
     return result;
 }

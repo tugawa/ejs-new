@@ -62,11 +62,14 @@ def var_prefix(kind):
     return "v"
   elif kind == "Subscript":
     return "s"
-  elif kind == "Displacement":
+  elif kind == "InstructionDisplacement":
+    return "d"
+  elif kind == "ConstantDisplacement":
     return "d"
   elif kind == "int":
     return "i"
   else:
+    print(kind)
     raise Exception
 
 def var_name(kind, n):
@@ -80,8 +83,11 @@ def macro_postfix(kind):
     return "value"
   elif kind == "Subscript":
     return "subscr"
-  elif kind == "Displacement":
-    return "disp"
+## *Displacement does not appear in generic case.
+#  elif kind == "InstructionDisplacement":
+#    return "instruction_disp"
+#  elif kind == "ConstantDisplacement":
+#    return "constant_disp"
   elif kind == "int":
     return "int"
   else:
@@ -100,7 +106,7 @@ def ordinal(n):
 def gen_vardecl(kind, n):
   vname = var_name(kind, n)
   gen_indent(2)
-  ofile.write(kind + " " + vname + ";\n")
+  ofile.write(kind + " " + vname + " __attribute__((unused));\n")
 
 def gen_var_assignment(n, kind, jsv_kind = None):
   if not jsv_kind: jsv_kind = "_"
@@ -108,11 +114,11 @@ def gen_var_assignment(n, kind, jsv_kind = None):
   vname = var_name(kind, n)
   if kind == "JSValue" and jsv_kind != "_":
     if jsv_kind in ["fixnum"]:
-      right = "cint_to_fixnum(get_" + ord + "_operand_int(insn))"
+      right = "small_cint_to_fixnum(get_" + ord + "_operand_int(insn))"
     elif jsv_kind in ["special"]:
       right = "get_" + ord + "_operand_int(insn)"
     elif jsv_kind in ["string", "flonum"]:
-      right = "get_literal(insns, get_" + ord + "_operand_disp(insn))"
+      right = "get_literal(insns, get_" + ord + "_operand_constant_disp(insn))"
     else:
       sys.stderr.write(">>>"+kind+","+jsv_kind+"<<<\n")
   else:
@@ -130,15 +136,22 @@ def gen_assignment(kind, n):
   ord = ordinal(n)
   vname = var_name(kind, n)
   gen_indent(2)
-  ofile.write(kind + " " + vname + " = get_" + ord + "_operand_" + post + "(insn);\n")
+  ofile.write(kind + " " + vname + " __attribute__((unused)) = get_" + ord + "_operand_" + post + "(insn);\n")
 
 def gen_assignment_smallprimitive(kind):
   gen_indent(2)
-  ofile.write("int64_t i1 = get_small_immediate(insn);\n")
+  ofile.write("SmallPrimitive i1 __attribute__((unused)) =" +
+              "get_small_immediate(insn);\n")
 
 def gen_assignment_bigprimitive(kind):
   gen_indent(2)
-  ofile.write("Displacement d1 = get_big_disp(insn);\n")
+  ofile.write("ConstantDisplacement d1 __attribute__((unused)) =" +
+              "get_big_constant_disp(insn);\n")
+
+def gen_assignment_instruction_displacement(kind, n):
+  vname = var_name(kind, n)
+  gen_indent(2)
+  ofile.write("InstructionDisplacement " + vname + " = get_operand_instruction_disp(insn);\n");
 
 def gen_include(insn, *, uselabel = None, deflabel = None):
   if not uselabel: uselabel = insn
@@ -226,13 +239,13 @@ def anyop(insninfo, sinsns, sitype):
 
 def uncondjump(insn, op0):
   gen_prologue(insn)
-  gen_assignment(op0, 0)
+  gen_assignment_instruction_displacement(op0, 0)
   gen_epilogue(insn, insn == "pushhandler")
 
 def condjump(insn, op0, op1):
   gen_prologue(insn)
   gen_assignment(op0, 0)
-  gen_assignment(op1, 1)
+  gen_assignment_instruction_displacement(op1, 1)
   gen_epilogue(insn, True)
 
 def getvar(insn, op0, op1, op2):

@@ -50,6 +50,8 @@ public class Main {
         boolean optHelp = false;
         String  optBc = "";
         boolean optOutOBC = false;
+        boolean optOutInsn32 = false;
+        boolean optOutAlign32 = false;  // should be read from SpecFile
         OptLocals optLocals = OptLocals.NONE;
 
         static Info parseOption(String[] args) throws IOException {
@@ -113,7 +115,16 @@ public class Main {
                     case "--out-obc":
                         info.optOutOBC = true;
                         break;
-
+                    case "--out-bit32":
+                        info.optOutAlign32 = true;
+                        info.optOutInsn32 = true;
+                        break;
+                    case "--out-align32":
+                        info.optOutAlign32 = true;
+                        break;
+                    case "--out-insn32":
+                        info.optOutInsn32 = true;
+                        break;
                     case "--spec":
                         info.spec = SpecFile.loadFromFile(args[++i]);
                         break;
@@ -195,9 +206,6 @@ public class Main {
 
             // normalize ESTree.
             new ESTreeNormalizer().normalize(ast);
-            //            if (info.optPrintESTree) {
-            //                System.out.println(ast.getEsTree());
-            //            }
 
             // convert ESTree into iAST.
             IASTGenerator iastgen = new IASTGenerator();
@@ -209,19 +217,15 @@ public class Main {
             new IASTPrinter().print(iast);
         }
 
-        // iAST level optimisation
-        if (info.optLocals != Info.OptLocals.NONE) {
-            // iAST newargs analyzer
-            NewargsAnalyzer analyzer = new NewargsAnalyzer(info.optLocals);
-            analyzer.analyze(iast);
-            if (info.optPrintAnalyzer) {
-                new IASTPrinter().print(iast);
-            }
+        // resolve variables
+        ResolveVariables.execute(info.optLocals, iast);
+        if (info.optPrintAnalyzer) {
+            new IASTPrinter().print(iast);
         }
 
         // convert iAST into low level code.
-        CodeGenerator codegen = new CodeGenerator(info);
-        BCBuilder bcBuilder = codegen.compile((IASTProgram) iast);
+        BCBuilder bcBuilder = CodeGenerator.compile((IASTProgram) iast);
+
         bcBuilder.optimisation(info.optBc, info.optPrintOptimisation, info);
 
         bcBuilder.assignAddress();
@@ -245,10 +249,10 @@ public class Main {
         bcBuilder.assignFunctionIndex(true);
 
         if (info.optOutOBC) {
-            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec);
+            OBCFileComposer obc = new OBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutInsn32, info.optOutAlign32);
             obc.output(info.outputFileName);
         } else {
-            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec);
+            SBCFileComposer sbc = new SBCFileComposer(bcBuilder, info.baseFunctionNumber, info.spec, info.optOutInsn32, info.optOutAlign32);
             sbc.output(info.outputFileName);
         }
     }

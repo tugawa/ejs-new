@@ -22,14 +22,17 @@ FunctionFrame *new_frame(Context *ctx, FunctionTable *ft,
   JSValue *locals;
   int i;
 
-  nl++;   /* GC_DEBUG (canary; search GC_DEBUG in gc.c) */
+#ifdef DEBUG
+  nl++;
+#endif /* DEBUG */
   GC_PUSH(env);
   frame = (FunctionFrame *)
     gc_malloc(ctx, sizeof(FunctionFrame) + BYTES_IN_JSVALUE * nl,
-              HTAG_FUNCTION_FRAME);
+              CELLT_FUNCTION_FRAME);
   GC_POP(env);
   frame->prev_frame = env;
   frame->arguments = JS_UNDEFINED;
+  frame->nlocals = nl;
   locals = frame->locals;
   for (i = 0; i < nl; i++)
     locals[i] = JS_UNDEFINED;
@@ -52,42 +55,68 @@ void init_special_registers(SpecialRegisters *spreg){
 
 void reset_context(Context *ctx, FunctionTable *ftab) {
   init_special_registers(&(ctx->spreg));
-  // ctx->function_table = ftab;
   ctx->function_table = function_table;
   set_cf(ctx, ftab);
-  /*
-   * It seems that existing frame in the lp register can be reused,
-   * but for simplicity, we allocate a new frame.
-   */
   set_lp(ctx, new_frame(NULL, ftab, NULL, 0));
+
+  ctx->global = gconsts.g_global;
+  ctx->exhandler_stack_top = NULL;
+  ctx->exhandler_pool = NULL;
+  ctx->lcall_stack = new_array_object(NULL, DEBUG_NAME("allocate_context"),
+                                      gshapes.g_shape_Array, 0);
+  ctx->lcall_stack_ptr = 0;
 }
 
 /*
- * initializes the outer-most context.
- * This function is call only once from the main function before entering
- * the loop.
+ * Create context with minimum initialisation to create objects.
+ * Note that global objects are not created because their creation needs
+ * context.  Bottom half of initialisation is done in reset_context.
  */
-void init_context(FunctionTable *ftab, JSValue glob, Context **context) {
+void init_context(size_t stack_limit, Context **context)
+{
   Context *c;
 
-  c = allocate_context(STACK_LIMIT);
+  c = allocate_context(stack_limit);
   *context = c;
-  c->global = glob;
-  reset_context(c, ftab);
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
+  c->property_map_roots = NULL;
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 }
 
 static Context *allocate_context(size_t stack_size)
 {
-  /* GC is not allowed */
-  Context *ctx = (Context *) gc_malloc_critical(sizeof(Context), HTAG_CONTEXT);
-  ctx->stack = (JSValue *) gc_malloc_critical(sizeof(JSValue) * stack_size,
-                                              HTAG_STACK);
-  ctx->exhandler_stack = new_array(NULL, 0, 0);
-  ctx->exhandler_stack_ptr = 0;
-  ctx->lcall_stack = new_array(NULL, 0, 0);
-  ctx->lcall_stack_ptr = 0;
+  Context *ctx = (Context *) malloc(sizeof(Context));
+  ctx->stack = (JSValue *) malloc(sizeof(JSValue) * stack_size);
   return ctx;
 }
+
+static void print_single_frame(Context *ctx, int index)
+{
+  fprintf(log_stream,
+          "  #%d %p LP:%p, PC: %d, SP:%d, FP:%d (#i = %d, #c = %d)\n",
+          index,
+          ctx->spreg.cf,
+          ctx->spreg.lp,
+          ctx->spreg.pc,
+          ctx->spreg.sp,
+          ctx->spreg.fp,
+          ctx->spreg.cf->n_insns,
+          ctx->spreg.cf->n_constants);
+}
+
+void print_backtrace(Context *ctx)
+{
+  JSValue *stack = &get_stack(ctx, 0);
+  int i = 0;
+  fprintf(log_stream, "backtrace:\n");
+  print_single_frame(ctx, i++);
+  while (ctx->spreg.fp != 0) {
+    ctx->spreg.sp = ctx->spreg.fp - 5;
+    restore_special_registers(ctx, stack, ctx->spreg.fp - 4);
+    print_single_frame(ctx, i++);
+  };
+}
+
 
 
 /*
@@ -109,9 +138,9 @@ void check_stack_invariant(Context *ctx)
 {
   int sp = get_sp(ctx);
   int fp = get_fp(ctx);
-  int pc = get_pc(ctx);
-  FunctionTable *cf = get_cf(ctx);
-  FunctionFrame *lp = get_lp(ctx);
+  int pc __attribute__((unused)) = get_pc(ctx);
+  FunctionTable *cf __attribute__((unused)) = get_cf(ctx);
+  FunctionFrame *lp __attribute__((unused)) = get_lp(ctx);
   int i;
 
   assert(is_valid_JSValue(get_global(ctx)));
@@ -123,10 +152,10 @@ void check_stack_invariant(Context *ctx)
     if (fp == 0)
       break;
     sp = fp - 1;
-    fp = get_stack(ctx, sp); sp--;
-    lp = (FunctionFrame *) get_stack(ctx, sp); sp--;
-    pc = get_stack(ctx, sp); sp--;
-    cf = (FunctionTable *) get_stack(ctx, sp); sp--;
+    fp = (int) (intjsv_t) get_stack(ctx, sp); sp--;
+    lp = jsv_to_function_frame(get_stack(ctx, sp)); sp--;
+    pc = (int) (intjsv_t) get_stack(ctx, sp); sp--;
+    cf = (FunctionTable *) jsv_to_noheap_ptr(get_stack(ctx, sp)); sp--;
   }
 }
 

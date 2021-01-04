@@ -14,11 +14,36 @@ import ejsc.ast_node.*;
 import ejsc.ast_node.Node.*;
 
 public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
+    public class SetOwnerFunction extends IASTBaseVisitor {
+        private IASTFunctionExpression owner;
+        private IASTNode.ScopeHolder innerMostScope;
+        public SetOwnerFunction(IASTFunctionExpression owner, IASTNode.ScopeHolder innerMostScope) {
+            this.owner = owner;
+            this.innerMostScope = innerMostScope;
+        }
+        public Object visitNode(IASTNode node) {
+            node.setOwner(owner, innerMostScope);
+            return null;
+        }
+        public Object visitFunctionExpression(IASTFunctionExpression node) {
+            node.body.accept(new SetOwnerFunction(node, node));
+            visitNode(node);
+            return null;
+        }
+        public Object visitTryCatchStatement(IASTTryCatchStatement node) {
+            node.body.accept(this);
+            node.handler.accept(new SetOwnerFunction(owner, node));
+            visitNode(node);
+            return null;
+        }
+    }
 
     public IASTGenerator() {};
 
     public IASTFunctionExpression gen(Node estree) {
-        return (IASTFunctionExpression) visitProgram((Program) estree);
+        IASTFunctionExpression program = (IASTFunctionExpression) visitProgram((Program) estree);
+        program.accept(new SetOwnerFunction(null, null));
+        return program;
     }
 
     List<String> hoistDeclarations(IStatement nd) {
@@ -167,7 +192,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
         List<String> params = new ArrayList<String>();
         List<String> locals = new ArrayList<String>();
         IASTBlockStatement block = new IASTBlockStatement(stmts);
-        IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block, node.getLogging());
+        IASTFunctionExpression func = new IASTFunctionExpression(params, locals, block, true, node.getLogging());
         return func;
     }
     protected IASTNode visitExpressionStatement(ExpressionStatement node) {
@@ -296,23 +321,19 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
         return new IASTForStatement(init, test, update, body);
     }
     protected IASTNode visitForInStatement(ForInStatement node) {
-        String v = null;
-        IASTExpression obj = null;
-        IASTStatement body = null;
+        IASTExpression obj = (IASTExpression) node.getRight().accept(this);
+        IASTStatement body = (IASTStatement) node.getBody().accept(this);
         if (node.getPatternLeft() != null) {
-            v = ((IIdentifier) node.getPatternLeft()).getName();
-            // v = ((IIdentifier) node.getValDeclLeft()).getName();
+            IASTIdentifier id = (IASTIdentifier) ((IIdentifier) node.getPatternLeft()).accept(this);
+            return new IASTForInStatement(id, obj, body);
         } else if (node.getValDeclLeft() != null) {
             List<IVariableDeclarator> varDecls = node.getValDeclLeft().getDeclarations();
             if (varDecls.size() == 1) {
-                v = ((IIdentifier) varDecls.get(0).getId()).getName();
-            } else {
-                // what behavior???
+                IASTIdentifier id = (IASTIdentifier) ((IIdentifier) varDecls.get(0).getId()).accept(this);
+                return new IASTForInStatement(id, obj, body);
             }
         }
-        obj = (IASTExpression) node.getRight().accept(this);
-        body = (IASTStatement) node.getBody().accept(this);
-        return new IASTForInStatement(v, obj, body);
+        throw new Error("unexpected shape of AST");
     }
     protected IASTNode visitFunctionDeclaration(FunctionDeclaration node) {
         IASTIdentifier id = (IASTIdentifier) node.getId().accept(this);
@@ -322,7 +343,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
         }
         List<String> locals = hoistDeclarations(node.getBody());
         IASTStatement body = (IASTStatement) node.getBody().accept(this);
-        IASTFunctionExpression func = new IASTFunctionExpression(params, locals, body, node.getLogging());
+        IASTFunctionExpression func = new IASTFunctionExpression(params, locals, body, false, node.getLogging());
         IASTBinaryExpression assign = new IASTBinaryExpression(
                 IASTBinaryExpression.Operator.ASSIGN, id, func);
         return new IASTExpressionStatement(assign);
@@ -378,7 +399,7 @@ public class IASTGenerator extends ESTreeBaseVisitor<IASTNode> {
         }
         List<String> locals = hoistDeclarations(node.getBody());
         IASTBlockStatement body = (IASTBlockStatement) node.getBody().accept(this);
-        return new IASTFunctionExpression(params, locals, body, node.getLogging());
+        return new IASTFunctionExpression(params, locals, body, false, node.getLogging());
     }
     protected IASTNode visitUnaryExpression(UnaryExpression node) {
         IASTUnaryExpression.Operator operator = null;

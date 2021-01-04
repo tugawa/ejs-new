@@ -23,6 +23,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <setjmp.h>
 
 #ifdef USE_BOEHMGC
 #include <gc.h>
@@ -31,11 +32,11 @@
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif /* __USE_GNU */
-
-typedef uint64_t JSValue;
-
-#define BYTES_IN_JSVALUE (sizeof(JSValue))
-#define BITS_IN_JSVALUE  (BYTES_IN_JSVALUE * 8)
+#ifdef DEBUG
+#define DEBUG_NAME(name) name
+#else /* DEBUG */
+#define DEBUG_NAME(name) ""
+#endif /* DEBUG */
 
 #ifdef USE_BOEHMGC
 /* #define malloc(n) GC_malloc(n) */
@@ -60,16 +61,43 @@ typedef uint64_t JSValue;
 #define FILE_SBC   2
 
 #include "prefix.h"
+#include "types.h"
+#include "context.h"
+#include "gc.h"
+
+#ifdef COPYGC
+#include "copy-collector.h"
+#else /* MARKSWEEP */
+#include "marksweep-collector.h"
+#ifdef BIBOP
+#include "bibop-space.h"
+#else /* BIBOP */
+#include "freelist-space.h"
+#endif /* BIBIOP */
+#endif /* MARKSWEEP */
+
+#include "hash.h"
 #include "log.h"
 #include "instructions.h"
-#include "context.h"
-#include "hash.h"
-#include "types.h"
-#include "gc.h"
 #include "builtin.h"
 #include "globals.h"
 #include "extern.h"
+#ifdef USE_VMDL
 #include "vmdl-helper.h"
+#endif /* USE_VMDL */
+
+#include "context-inl.h"
+#include "types-inl.h"
+#include "gc-inl.h"
+
+#ifdef COPYGC
+#else /* MARKSWEEP */
+#ifdef BIBOP
+#include "bibop-space-inl.h"
+#else /* BIBOP */
+#include "freelist-space-inl.h"
+#endif /* BIBOP */
+#endif /* MARKSWEEP */
 
 #endif /* HEADER_H_ */
 

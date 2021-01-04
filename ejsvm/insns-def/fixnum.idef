@@ -8,5 +8,5 @@
   $dst = imm
  */
 
-  dst = cint_to_fixnum((cint) num);
+  dst = small_cint_to_fixnum((cint) num);
 \}

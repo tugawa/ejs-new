@@ -6,10 +6,10 @@ new : JSValue -> JSValue
 new (con) {
   top: match (con) {
     case (Function con) {
-      save_context();
-      JSValue o = new_normal_object();
-      update_context();
-      return initialize_new_object(con, o);
+      Save_context();
+      JSObject o = Create_simple_object_with_constructor(con);
+      Update_context();
+      return o;
     }
     case (true) {
       return JS_UNDEFINED;

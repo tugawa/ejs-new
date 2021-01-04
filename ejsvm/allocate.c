@@ -11,85 +11,99 @@
 #define EXTERN extern
 #include "header.h"
 
-/*
- * a counter for debugging
- */
-#ifdef DEBUG
-int count = 0;
-#endif /* DEBUG */
 
-#ifdef need_flonum
+#ifdef FLONUM_PROF
+
+#define LOG_DOUBLE_HASH_SIZE 11
+#define DOUBLE_HASH_SIZE (1 << LOG_DOUBLE_HASH_SIZE)
+#define DOUBLE_HASH_FLUSH_THREASHOLD  10
+
+struct double_hash_record {
+  double v;
+  int c;
+};
+
+static struct double_hash_record double_hash[DOUBLE_HASH_SIZE];
+static int double_hash_used;
+
+void double_hash_flush()
+{
+  int i;
+  printf("used: %d\n", double_hash_used);
+  double_hash_used = 0;
+  for (i = 0; i < DOUBLE_HASH_SIZE; i++) {
+    if (double_hash[i].c != 0) {
+      printf("%lf %d\n", double_hash[i].v, double_hash[i].c);
+      double_hash[i].c = 0;
+    }
+  }
+}
+
+static inline int double_hash_key(double v)
+{
+  unsigned long long key = *(unsigned long long*)&v;
+  key ^= key >> 12;
+  key ^= key >> 32;
+  key ^= key >> (52 - LOG_DOUBLE_HASH_SIZE);
+  key &= (DOUBLE_HASH_SIZE - 1);
+  return (int) key;
+}
+
+static void double_hash_put(double v)
+{
+  int key = double_hash_key(v);
+  int i;
+  for (i = 0; i < DOUBLE_HASH_FLUSH_THREASHOLD; i++) {
+    if (double_hash[key].c == 0) {
+      double_hash[key].v = v;
+      double_hash[key].c = 1;
+      double_hash_used++;
+      return;
+    } else if (double_hash[key].v == v) {
+      double_hash[key].c++;
+      return;
+    }
+    key = (key + DOUBLE_HASH_FLUSH_THREASHOLD + 1) & (DOUBLE_HASH_SIZE - 1);
+  }
+  double_hash_flush();
+  double_hash_put(v);
+}
+#endif /* FLONUM_PROF */
+
 /*
  * allocates a flonum
- * Note that the return value does not have a pointer tag.
  */
-FlonumCell *allocate_flonum(double d)
+FlonumCell *allocate_flonum(Context *ctx, double d)
 {
-  FlonumCell *n =
-    (FlonumCell *) gc_jsalloc_critical(sizeof(FlonumCell), HTAG_FLONUM);
-  n->value = d;
-  return n;
+  FlonumCell *p;
+#ifdef FLONUM_PROF
+  double_hash_put(d);
+#endif /* FLONUM_PROF */
+#ifdef FLONUM_SPACE
+  p = gc_try_alloc_flonum(d);
+  if (p != NULL)
+    return p;
+#endif /* FLONUM_SPACE */
+  p = (FlonumCell *) gc_malloc(ctx, sizeof(FlonumCell), HTAG_FLONUM.v);
+  set_normal_flonum_ptr_value(p, d);
+  return p;
 }
-#endif /* need_flonum */
 
 /*
  * allocates a string
  * It takes only the string length (excluding the last null character).
- * Note that the return value does not have a pointer tag.
  */
-StringCell *allocate_string(uint32_t length)
+StringCell *allocate_string(Context *ctx, uint32_t length)
 {
   /* plus 1 for the null terminater,
    * minus BYTES_IN_JSVALUE becasue StringCell has payload of
    * BYTES_IN_JSVALUE for placeholder */
-  uintptr_t size = sizeof(StringCell) + (length + 1 - BYTES_IN_JSVALUE);
-  StringCell *v =
-    (StringCell *) gc_jsalloc_critical(size, HTAG_STRING);
+  uint32_t size = sizeof(StringCell) + length + 1 - BYTES_IN_JSVALUE;
+  StringCell *p = (StringCell *) gc_malloc(ctx, size, HTAG_STRING.v);
 #ifdef STROBJ_HAS_HASH
-  v->length = length;
+  set_normal_string_ptr_length(p, length);
 #endif
-  return v;
-}
-
-/*
- * allocates a simple object
- * Note that the return value does not have a pointer tag.
- */
-Object *allocate_simple_object(Context *ctx)
-{
-  Object *object = (Object *) gc_jsalloc(ctx, sizeof(Object), HTAG_SIMPLE_OBJECT);
-  return object;
-}
-
-/*
- * allocates an array
- * Note that the return value does not have a pointer tag.
- */
-ArrayCell *allocate_array(Context *ctx) {
-  ArrayCell *array =
-    (ArrayCell *) gc_jsalloc(ctx, sizeof(ArrayCell), HTAG_ARRAY);
-  return array;
-}
-
-/*
- * allocates an array body
- *   size : number of elements in the body (size >= len)
- *   len  : length of the array, i.e., subscripts that are less than len
- *          are acrutally used
- */
-void allocate_array_data(Context *ctx, JSValue a, int size, int len)
-{
-  JSValue *body;
-  int i;
-
-  GC_PUSH(a);
-  body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-                               HTAG_ARRAY_DATA);
-  GC_POP(a);
-  for (i = 0; i < len; i++) body[i] = JS_UNDEFINED; 
-  array_body(a) = body;
-  array_size(a) = size;
-  array_length(a) = len;
+  return p;
 }
 
 /*
@@ -99,69 +113,50 @@ void allocate_array_data(Context *ctx, JSValue a, int size, int len)
 void reallocate_array_data(Context *ctx, JSValue a, int newsize)
 {
   JSValue *body, *oldbody;
-
+  JSValue length_value = get_jsarray_length(a);
+  int32_t size, length;
   int i;
 
+#ifndef NEW_ASIZE_STRATEGY
+  assert(newsize <= ASIZE_LIMIT);
+#endif /* NEW_ASIZE_STRATEGY */
+
+  length = (int32_t) number_to_double(length_value);
+  size = get_jsarray_size(a);
+  if (size < length)
+    length = size;
+  if (length == newsize)
+    return;
   GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize,
-                               HTAG_ARRAY_DATA);
+                               CELLT_ARRAY_DATA);
   GC_POP(a);
-  oldbody = array_body(a);
-  for (i = 0; i < array_length(a); i++) body[i] = oldbody[i];
-  array_body(a) = body;
-  array_size(a) = newsize;
-}
-
-/*
- * allocates a function
- */
-FunctionCell *allocate_function(void) {
-  FunctionCell *function =
-    (FunctionCell *) gc_jsalloc_critical(sizeof(FunctionCell), HTAG_FUNCTION);
-  return function;
-}
-
-/*
- * allocates a builtin
- */
-BuiltinCell *allocate_builtin(void) {
-  BuiltinCell *builtin =
-    (BuiltinCell *) gc_jsalloc_critical(sizeof(BuiltinCell), HTAG_BUILTIN);
-  return builtin;
-}
-
-JSValue *allocate_prop_table(int size) {
-  JSValue *table = (JSValue*) gc_malloc_critical(sizeof(JSValue) * size,
-                                                 HTAG_PROP);
-  size_t i;
-  for (i = 0; i < size; i++)  /* initialise for GC */
-    table[i] = JS_UNDEFINED;
-  return table;
-}
-
-JSValue *reallocate_prop_table(Context *ctx, JSValue *oldtab, int oldsize, int newsize) {
-  JSValue *table;
-
-  gc_push_tmp_root(oldtab);
-  table  = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * newsize, HTAG_PROP);
-  gc_pop_tmp_root(1);
-  size_t i;
-  for (i = 0; i < oldsize; i++)
-    table[i] = oldtab[i];
+  oldbody = get_jsarray_body(a);
+  for (i = 0; i < length; i++)
+    body[i] = oldbody[i];
   for (; i < newsize; i++)
-    table[i] = JS_UNDEFINED;
-  return table;
+    body[i] = JS_UNDEFINED;
+  set_jsarray_body(a, body);
+  set_jsarray_size(a, newsize);
+}
+
+/*
+ * allocates a ByteArray
+ */
+ByteArray allocate_byte_array(Context *ctx, size_t size)
+{
+  return (ByteArray) gc_malloc(ctx, size, CELLT_BYTE_ARRAY);
 }
 
 /*
  * allocates an iterator
  */
-Iterator *allocate_iterator(void) {
+Iterator *allocate_iterator(Context *ctx) {
   Iterator *iter =
-    (Iterator *) gc_jsalloc_critical(sizeof(Iterator), HTAG_ITERATOR);
-  iterator_body(iter) = NULL;
-  iterator_size(iter) = 0;
-  iterator_index(iter) = 0;
+    (Iterator *) gc_malloc(ctx, sizeof(Iterator), HTAG_ITERATOR.v);
+  set_normal_iterator_ptr_body(iter, NULL);
+  set_normal_iterator_ptr_size(iter, 0);
+  set_normal_iterator_ptr_index(iter, 0);
   return iter;
 }
 
@@ -176,35 +171,12 @@ void allocate_iterator_data(Context *ctx, JSValue a, int size)
   int i;
   GC_PUSH(a);
   body = (JSValue *) gc_malloc(ctx, sizeof(JSValue) * size,
-                               HTAG_ARRAY_DATA);
+                               CELLT_ARRAY_DATA);
   GC_POP(a);
   for (i = 0; i < size; i++) body[i] = JS_UNDEFINED; 
-  iterator_body(a) = body;
-  iterator_size(a) = size;
-  iterator_index(a) = 0;
-}
-
-/*
- * allocates a regexp
- */
-#ifdef USE_REGEXP
-#ifdef need_normal_regexp
-RegexpCell *allocate_regexp(void)
-{
-  RegexpCell *regexp =
-    (RegexpCell *) gc_jsalloc_critical(sizeof(RegexpCell), HTAG_REGEXP);
-  return regexp;
-}
-#endif /* need_normal_regexp */
-#endif
-
-/*
- *  allocates a boxed object
- */
-BoxedCell *allocate_boxed(Context *ctx, uint32_t type)
-{
-  BoxedCell *box = (BoxedCell *) gc_jsalloc(ctx, sizeof(BoxedCell), type);
-  return box;
+  set_jsnormal_iterator_body(a, body);
+  set_jsnormal_iterator_size(a, size);
+  set_jsnormal_iterator_index(a, 0);
 }
 
 /* Local Variables:      */

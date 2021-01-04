@@ -10,8 +10,10 @@ ENTER_INSN(__LINE__);
 
   oldfl = get_sp(context) - fp + 1;
   // printf("fp = %d, newfl = %d, fp + newfl = %d\n", fp, newfl, fp + newfl);
-  if (fp + newfl > STACK_LIMIT)
-    LOG_EXIT("register stack overflow\n");
+  if (fp + newfl > regstack_limit) {
+    save_context();
+    LOG_EXIT2(context, "register stack overflow\n");
+  }
   set_sp(context, fp + newfl - 1);
   while (++oldfl <= newfl)
     regbase[oldfl] = JS_UNDEFINED;

@@ -36,16 +36,21 @@ BUILTIN_FUNCTION(object_constr)
     if (is_object(arg))
       ret = arg;
     else if (is_number(arg))
-      ret = new_normal_number_object(context, arg);
+      ret = new_number_object(context, DEBUG_NAME("obect_constr"),
+                              gshapes.g_shape_Number, arg);
     else if (is_boolean(arg))
-      ret = new_normal_boolean_object(context, arg);
+      ret = new_boolean_object(context, DEBUG_NAME("object_constr"),
+                               gshapes.g_shape_Boolean, arg);
     else if (is_string(arg))
-      ret = new_normal_string_object(context, arg);
+      ret = new_string_object(context, DEBUG_NAME("object_constr"),
+                              gshapes.g_shape_String, arg);
     else
-      ret = new_normal_object(context);
+      ret = new_simple_object(context, DEBUG_NAME("object_constr"),
+                              gshapes.g_shape_Object);
     GC_POP(arg);
   } else
-    ret = new_normal_object(context);
+    ret = new_simple_object(context, DEBUG_NAME("object_constr"),
+                            gshapes.g_shape_Object);
   GC_PUSH(ret);
   set_a(context, ret);
   GC_POP(ret);
@@ -56,61 +61,28 @@ BUILTIN_FUNCTION(object_toString)
   set_a(context, gconsts.g_string_objtostr);
 }
 
-ObjBuiltinProp object_funcs[] = {
-  { "toString",       object_toString,       0, ATTR_DE },
-  { NULL,             NULL,                  0, ATTR_DE }
+/*
+ * property table
+ */
+/* prototype */
+ObjBuiltinProp ObjectPrototype_builtin_props[] = {
+  { "toString", object_toString,  0, ATTR_DE }
 };
-
-void init_builtin_object(Context *ctx)
-{
-  JSValue obj, proto;
-
-  obj = new_normal_builtin_with_constr(ctx, object_constr, object_constr, 0);
-  // new_builtin_with_constr(ctx, object_constr, object_constr, 0, HSIZE_NORMAL, PSIZE_NORMAL);
-  GC_PUSH(obj);
-  gconsts.g_object = obj;
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object", obj_hidden_class(obj));
-#endif
-#endif
-  proto = gconsts.g_object_proto;
-  GC_PUSH(proto);
-  set_prototype_de(ctx, obj, proto);
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_object", obj_hidden_class(obj));
-#endif
-#endif
-
-  /*
-   * not implemented yet
-   * set_obj_cstr_prop(g_object_proto, "hasOwnPropaty",
-   *            new_builtin(objectProtoHasOwnPropaty, 0), ATTR_DE);
-   */
-  /*
-   * The next line is unnecessary because init_builtin_function has
-   * been already called and gconsts.g_function_proto has been
-   * properly set.
-   *
-   * gconsts.g_function_proto = new_normal_object(ctx);
-   */
-  {
-    ObjBuiltinProp *p = object_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name, 
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(proto, obj);
-#ifdef HIDDEN_CLASS
-#ifdef HIDDEN_DEBUG
-  print_hidden_class("g_function_proto",
-                     obj_hidden_class(gconsts.g_function_proto));
-#endif
-#endif
-}
+ObjDoubleProp  ObjectPrototype_double_props[] = {};
+ObjGconstsProp ObjectPrototype_gconsts_props[] = {
+  { "__property_map__", (JSValue *)&gpms.g_property_map_Object, ATTR_ALL },
+};
+/* constructor */
+ObjBuiltinProp ObjectConstructor_builtin_props[] = {};
+ObjDoubleProp  ObjectConstructor_double_props[] = {};
+ObjGconstsProp ObjectConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Object,  ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Object_builtin_props[] = {};
+ObjDoubleProp  Object_double_props[] = {};
+ObjGconstsProp Object_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Object);
 
 /* Local Variables:      */
 /* mode: c               */

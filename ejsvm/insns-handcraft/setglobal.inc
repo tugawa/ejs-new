@@ -7,7 +7,9 @@
 {
   JSValue str = v0;
   JSValue src = v1;
-  if (set_prop_none(context, context->global, str, src) == FAIL)
-    LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
+  if (!is_string(str))
+    LOG_EXIT("SETGLOBAL %"PRIJSValue" : name is not a string\n", str);
+  else
+    set_prop(context, context->global, str, src, ATTR_NONE);
 }
 

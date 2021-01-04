@@ -12,12 +12,13 @@
 #include "header.h"
 #include "iccprof.h"
 
-static void exhandler_stack_push(Context* context, int pc, int fp);
-static int exhandler_stack_pop(Context* context, int *pc, int *fp);
+static void exhandler_throw(Context *context);
 static void lcall_stack_push(Context* context, int pc);
 static int lcall_stack_pop(Context* context, int *pc);
 
+#ifdef DEBUG
 extern void print_bytecode(Instruction *, int);
+#endif /* DEBUG */
 
 #define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
@@ -82,7 +83,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
   curfn->ilabel_created = true;
 }
 
-#define STRCON(x,y)  x #y
 #define INCPC()      do { pc++; insns++; } while (0)
 #define PRINTPC()    fprintf(stderr, "pc:%d\n", pc)
 
@@ -96,17 +96,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     }                                                   \
   } while (0)
 #else /* DEBUG */
-/*
- * #define INSNLOAD()                                                   \
- *   do {                                                               \
- *     insn = insns->code;                                              \
- *     if (trace_flag == TRUE) {                                        \
- *       printf("pc = %d, insn = %s, fp = %d\n",                        \
- *              pc, insn_nemonic(get_opcode(insn)), fp);                \
- *       fflush(stdout);                                                \
- *     }                                                                \
- *   } while (0)
- */
 #define INSNLOAD() (insn = insns->code)
 #endif /* DEBUG */
 
@@ -114,11 +103,11 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 #define ENTER_INSN(x)                                                   \
   do {                                                                  \
     if (insns->logflag == TRUE) headcount = 0, insns->count++;          \
-    asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t));     \
+    asm volatile("#enter insn, loc = " #x "\n\t");                      \
   } while (0)
 #else
-#define ENTER_INSN(x)                                                   \
-  asm volatile(STRCON(STRCON("#enter insn, loc = ", (x)), \n\t))
+#define ENTER_INSN(x)                           \
+      asm volatile("#enter insn, loc = " #x "\n\t")
 #endif
 
 #ifdef USE_ASM2
@@ -133,12 +122,11 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 
 #define GET_NEXT_INSN_ADDR(ins)  (jump_table[get_opcode(ins)])
 
-#define INSN_PRINT(x)                                           \
-  asm volatile(STRCON(STRCON("#jump, loc = ", (x)), \n\t))
+#define INSN_PRINT(x)                           \
+  asm volatile("#jump, loc = " #x "\n\t")
 
 #define NEXT_INSN_ASM(addr)                             \
   asm("jmp *%0\n\t# -- inserted main.c" : : "A" (addr))
-
 
 #ifdef USE_ASM
 
@@ -146,17 +134,23 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     INCPC();                                    \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
-      } while (0)
-
+  } while (0)
 #define NEXT_INSN_NOINCPC() do {                \
     INSNLOAD();                                 \
     NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(insn))     \
-      } while (0)
+  } while (0)
 
-#else
+#else /* USE_ASM */
 
-#define NEXT_INSN_INCPC()   do { INCPC(); INSNLOAD(); NEXT_INSN(); } while(0)
-#define NEXT_INSN_NOINCPC() do { INSNLOAD(); NEXT_INSN(); } while(0)
+#define NEXT_INSN_INCPC()   do {                                \
+    INCPC();                                                    \
+    INSNLOAD();                                                 \
+    NEXT_INSN();                                                \
+  } while(0)
+#define NEXT_INSN_NOINCPC() do {                \
+    INSNLOAD();                                 \
+    NEXT_INSN();                                \
+  } while(0)
 
 #endif /* USE_ASM */
 
@@ -169,7 +163,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
 
 #define update_context() do {                           \
     curfn = get_cf(context);                            \
-    codesize = ftab_n_insns(curfn);                     \
     pc = get_pc(context);                               \
     fp = get_fp(context);                               \
     insns = curfn->insns + pc;                          \
@@ -192,7 +185,6 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
  */
 int vmrun_threaded(Context* context, int border) {
   FunctionTable *curfn;
-  int codesize;
   int pc;
   int fp;
   Instruction *insns;
@@ -204,17 +196,17 @@ int vmrun_threaded(Context* context, int border) {
   };
 #ifdef PROFILE
   int headcount = 0;
-#endif
+#endif /* PROFILE */
+  jmp_buf jmp_buf;
+  int gc_root_sp;
 
+  gc_root_sp = gc_save_root_stack();
+  if (!setjmp(jmp_buf))
+    gc_restore_root_stack(gc_root_sp);
   update_context();
-  /*
-   * if (get_lp(context) != NULL)
-   *   locals = get_lp(context)->locals;
-   */
 
-  /*
-   * goes to the first instruction
-   */
+  /* load the first instruction (or the current instruction, if
+   * an unwind protect is being executed), and jump to its code */
 #ifdef USE_ASM
   INSNLOAD();
   NEXT_INSN_ASM(GET_NEXT_INSN_ADDR(curfn->start[pc]));
@@ -223,42 +215,41 @@ int vmrun_threaded(Context* context, int border) {
   INSNLOAD();
   NEXT_INSN();
 #endif
-
 #include "vmloop-cases.inc"
 }
 
-static void exhandler_stack_push(Context* context, int pc, int fp)
+static void exhandler_throw(Context *context)
 {
-  cint sp = context->exhandler_stack_ptr;
+  UnwindProtect *p = context->exhandler_stack_top;
+  JSValue *stack = &get_stack(context, 0);
+  int fp;
 
-  set_array_index_value(context, context->exhandler_stack, sp++,
-                        cint_to_number((cint) pc), FALSE);
-  set_array_index_value(context, context->exhandler_stack, sp++,
-                        cint_to_number((cint) fp), FALSE);
-  context->exhandler_stack_ptr = sp;
-}
+  if (p == NULL)
+    LOG_EXIT("uncaught exception");
 
-static int exhandler_stack_pop(Context* context, int *pc, int *fp)
-{
-  cint sp = context->exhandler_stack_ptr;
-  JSValue v;
-  if (sp < 2)
-    return -1;
-  sp--;
-  v = get_array_prop(context, context->exhandler_stack, cint_to_number(sp));
-  *fp = number_to_cint(v);
-  sp--;
-  v = get_array_prop(context, context->exhandler_stack, cint_to_number(sp));
-  *pc = number_to_cint(v);
-  context->exhandler_stack_ptr = sp;
-  return 0;
+  /* 1. unwind function frame, restore FP, and CF */
+  context->exhandler_stack_top = p->prev;
+  for (fp = get_fp(context); fp != p->fp; fp = get_fp(context)) {
+    restore_special_registers(context, stack, fp - 4);
+    set_sp(context, fp - 5);
+  }
+
+  /* 2. restore LP and local call stack*/
+  set_lp(context, p->lp);
+  context->lcall_stack_ptr = p->lcall_stack_ptr;
+
+  /* 3. set PC to the handler address */
+  set_pc(context, p->pc);
+
+  /* 4. unwind C stack, and go to the entry of vmloop */
+  longjmp(*p->_jmp_buf, 1);
 }
 
 static void lcall_stack_push(Context* context, int pc)
 {
-  set_array_index_value(context, context->lcall_stack,
-                        context->lcall_stack_ptr++,
-                        cint_to_number((cint) pc), FALSE);
+  set_array_element(context, context->lcall_stack,
+                    context->lcall_stack_ptr++,
+                    cint_to_number(context, (cint) pc));
 }
 
 static int lcall_stack_pop(Context* context, int *pc)
@@ -268,7 +259,7 @@ static int lcall_stack_pop(Context* context, int *pc)
     return -1;
   context->lcall_stack_ptr--;
   v = get_array_prop(context, context->lcall_stack,
-                     cint_to_number((cint) context->lcall_stack_ptr));
+                     cint_to_number(context, (cint) context->lcall_stack_ptr));
   *pc = number_to_cint(v);
   return 0;
 }

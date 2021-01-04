@@ -27,9 +27,9 @@ int lastprint_flag;    /* prints the result of the last expression */
 int all_flag;          /* all flag values are true */
 int cputime_flag;      /* prints the cpu time */
 int repl_flag;         /* for REPL */
-#ifdef HIDDEN_CLASS
+#ifdef HC_PROF
 int hcprint_flag;      /* prints all transitive hidden classes */
-#endif
+#endif /* HC_PROF */
 #ifdef PROFILE
 int profile_flag;      /* print the profile information */
 char *poutput_name;    /* name of logging file */
@@ -39,7 +39,10 @@ int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
 #ifdef ICCPROF
 char *iccprof_name;    /* name of instruction-call-count profile file */
-#endif
+#endif /* ICCPROF */
+#ifdef GC_PROF
+int gcprof_flag;       /* print GC profile information */
+#endif /* GC_PROF */
 
 /*
 #define DEBUG_TESTTEST
@@ -55,86 +58,23 @@ FILE *prof_stream;
 #endif
 #ifdef ICCPROF
 FILE *iccprof_fp;
-#endif
+#endif /* ICCPROF */
 
 /*
  * parameter
  */
-int regstack_limit = STACK_LIMIT; /* size of register stack (not used yet) */
+int regstack_limit = STACK_LIMIT; /* size of register stack in # of JSValues */
+#ifdef JS_SPACE_BYTES
+int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
+#else /* JS_SPACE_BYTES */
+int heap_limit = 1 * 1024 * 1024;
+#endif /* JS_SPACE_BYTES */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
 #endif
 
 #define pp(v) (print_value_verbose(cxt, (v)), putchar('\n'))
-
-/*
- * Debug function
- */
-#ifdef DEBUG_TESTTEST
-static void testtest(Context *cxt) {
-  JSValue v, p;
-  printf("Testtest: cxt->global = %016lx, gconsts.g_global = %016lx\n",
-         cxt->global, gconsts.g_global);
-  printf("Testtest: g_object = %016lx, g_object_proto = %016lx\n",
-         gconsts.g_object, gconsts.g_object_proto);
-
-  if (get_prop(cxt->global, cstr_to_string("Object"), &v) == SUCCESS)
-    printf("Testtest: global[Object] = %016lx\n", v);
-  else
-    printf("Testtest: global[Object] = not found\n");
-
-  if (get_prop(v, cstr_to_string("prototype"), &p) == SUCCESS)
-    printf("Testtest: Object[prototype] = %016lx\n", p);
-  else
-    printf("Testtest: Object[prototype] = not found\n");
-
-  v = new_simple_object(cxt);
-  set_obj_cstr_prop(v, "foo", cint_to_fixnum(9999), ATTR_DE);
-  set_obj_cstr_prop(gconsts.g_global, "soko", v, ATTR_DE);
-  set_obj_cstr_prop(gconsts.g_global, "goyo", cint_to_fixnum(8888), ATTR_DE);
-  v = JS_UNDEFINED; pp(v);
-  v = JS_NULL; pp(v);
-  v = JS_TRUE; pp(v);
-  v = JS_FALSE; pp(v);
-  v = cint_to_fixnum((cint)100); pp(v);
-  v = double_to_flonum((double)3.1415); pp(v);
-
-  v = special_to_string(JS_UNDEFINED); printf("undefined -> string: "); pp(v);
-  v = special_to_string(JS_NULL); printf("null -> string: "); pp(v);
-  v = special_to_string(JS_TRUE); printf("true -> string: "); pp(v);
-  v = special_to_string(JS_FALSE); printf("false -> string: "); pp(v);
-  v = fixnum_to_string(FIXNUM_ZERO); printf("0 -> string: "); pp(v);
-  v = fixnum_to_string(FIXNUM_ONE); printf("1 -> string: "); pp(v);
-  v = flonum_to_string(gconsts.g_flonum_nan); printf("NaN -> string: "); pp(v);
-  v = flonum_to_string(gconsts.g_flonum_infinity);
-  printf("Infinity -> string: "); pp(v);
-  v = flonum_to_string(gconsts.g_flonum_negative_infinity);
-  printf("-Infinity -> string: "); pp(v);
-
-  v = special_to_number(JS_UNDEFINED); printf("undefined -> number: "); pp(v);
-  v = special_to_number(JS_NULL); printf("null -> number: "); pp(v);
-  v = special_to_number(JS_TRUE); printf("true -> number: "); pp(v);
-  v = special_to_number(JS_FALSE); printf("false -> number: "); pp(v);
-  v = string_to_number(cstr_to_string("")); printf("\"\" -> number: "); pp(v);
-  v = string_to_number(cstr_to_string("1.2"));
-  printf("\"1.2\" -> number: "); pp(v);
-  v = string_to_number(cstr_to_string("one"));
-  printf("\"one\" -> number: "); pp(v);
-
-  v = special_to_boolean(JS_UNDEFINED);
-  printf("undefined -> boolean: "); pp(v);
-  v = special_to_boolean(JS_NULL); printf("null -> boolean: "); pp(v);
-  /*
-   *  v = string_to_boolean(cstr_to_boolean(""));
-   *  printf("\"\" -> boolean: "); pp(v);
-   *  v = string_to_boolean(cstr_to_boolean("1.2"));
-   *  printf("\"1.2\" -> boolean: "); pp(v);
-   *  v = string_to_boolean(cstr_to_boolean("one"));
-   *  printf("\"one\" -> boolean: "); pp(v);
-   */
-}
-#endif
 
 /*
  * processes command line options
@@ -148,25 +88,31 @@ struct commandline_option {
 
 struct commandline_option  options_table[] = {
   { "-l",         0, &lastprint_flag, NULL          },
+#ifdef DEBUG
   { "-f",         0, &ftable_flag,    NULL          },
+#endif /* DEBUG */
   { "-t",         0, &trace_flag,     NULL          },
   { "-a",         0, &all_flag,       NULL          },
   { "-u",         0, &cputime_flag,   NULL          },
   { "-R",         0, &repl_flag,      NULL          },
-#ifdef HIDDEN_CLASS
-  { "-h",         0, &hcprint_flag,   NULL          },
-#endif
+#ifdef HC_PROF
+  { "--hc-prof",  0, &hcprint_flag,   NULL          },
+#endif /* HC_PROF */
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
   { "--coverage", 0, &coverage_flag,  NULL          },
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
-#endif
+#endif /* PROFILE */
 #ifdef ICCPROF
   { "--iccprof",  1, NULL,            &iccprof_name },
-#endif
-  { "-s",         1, &regstack_limit, NULL          },  /* not used yet */
+#endif /* ICCPROF */
+#ifdef GC_PROF
+  { "--gc-prof",  0, &gcprof_flag,    NULL          },
+#endif /* GC_PROF */
+  { "-m",         1, &heap_limit,     NULL          },
+  { "-s",         1, &regstack_limit, NULL          },
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -204,14 +150,52 @@ int process_options(int ac, char *av[]) {
 }
 
 void print_cputime(time_t sec, suseconds_t usec) {
-  printf("total CPU time = %ld.%d msec, total GC time =  %d.%d msec (#GC = %d)\n",
+  printf("total CPU time = %ld.%03d msec, total GC time =  %d.%03d msec (#GC = %d)\n",
          sec * 1000 + usec / 1000, (int)(usec % 1000),
          gc_sec * 1000 + gc_usec / 1000, gc_usec % 1000, generation - 1);
-#ifdef HIDDEN_CLASS
-  printf("n_hc = %d, n_enter_hc = %d, n_exit_hc = %d\n",
-         n_hc, n_enter_hc, n_exit_hc);
-#endif
 }
+
+#ifdef GC_PROF
+void print_gc_prof()
+{
+  int i;
+  uint64_t total_live_bytes = 0;
+  uint64_t total_live_count = 0;
+
+  for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
+    total_live_bytes += pertype_live_bytes[i];
+    total_live_count += pertype_live_count[i];
+  }
+
+  printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
+  printf("%"PRId64" %"PRId64" ",
+         generation > 1 ? total_live_bytes / (generation - 1) : 0,
+         generation > 1 ? total_live_count / (generation - 1) : 0);
+  for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
+    printf(" %"PRId64" ", pertype_alloc_bytes[i]);
+    printf(" %"PRId64" ", pertype_alloc_count[i]);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+  }
+  printf("\n");
+
+  printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
+  printf("total alloc count = %"PRId64"\n", total_alloc_count);
+  for (i = 0; i < 255; i++)
+    if (pertype_alloc_count[i] > 0) {
+      printf("  type %02x ", i);
+      printf("a.bytes = %7"PRId64" ", pertype_alloc_bytes[i]);
+      printf("a.count = %5"PRId64" ", pertype_alloc_count[i]);
+      printf("l.bytes = %7"PRId64" ",
+             generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
+      printf("l.count = %4"PRId64" ",
+             generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+      printf("%s\n", CELLT_NAME(i));
+    }
+}
+#endif /* GC_PROF */
 
 #ifdef PROFILE
 void print_coverage(FunctionTable *ft, int n) {
@@ -257,10 +241,6 @@ void print_icount(FunctionTable *ft, int n) {
   free(ic);
 }
 #endif
-
-#ifndef NDEBUG
-void **stack_start;
-#endif /* NDEBUG */
 
 #if defined(USE_OBC) && defined(USE_SBC)
 /*
@@ -310,10 +290,6 @@ int main(int argc, char *argv[]) {
 #endif /* USE_PAPI */
 
 
-#ifndef NDEBUG
-  stack_start = (void **) &fp;
-#endif /* NDEBUG */
-
   repl_flag = lastprint_flag = ftable_flag = trace_flag = all_flag = FALSE;
 #ifdef PROFILE
   poutput_name = NULL;
@@ -352,26 +328,29 @@ int main(int argc, char *argv[]) {
     if ((iccprof_fp = fopen(iccprof_name, "w")) == NULL)
       fprintf(stderr, "Opening prof file %s failed.\n", iccprof_name);
   }
-#endif
+#endif /* ICCPROF */
 
   run_phase = PHASE_INIT;
 
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory();
+  init_memory(heap_limit);
 
   init_string_table(STRING_TABLE_SIZE);
+  init_context(regstack_limit, &context);
   init_global_constants();
-  init_global_malloc_objects();
-  init_global_objects();
-  init_context(function_table, gconsts.g_global, &context);
-  init_builtin(context);
+  init_meta_objects(context);
+  init_global_objects(context);
+  reset_context(context, function_table);
+  context->global = gconsts.g_global;
+#ifndef NO_SRAND
   srand((unsigned)time(NULL));
+#endif /* NO_SRAND */
 
 #ifdef ICCPROF
   iccprof_init();
-#endif
+#endif /* ICCPROF */
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -416,6 +395,7 @@ int main(int argc, char *argv[]) {
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru0);
 
     reset_context(context, &function_table[base_function]);
+    enable_gc(context);
     vmrun_threaded(context, 0);
 
     if (cputime_flag == TRUE) getrusage(RUSAGE_SELF, &ru1);
@@ -464,7 +444,14 @@ int main(int argc, char *argv[]) {
     LOG("%"PRId64"\n", callcount);
 #endif
 
-    if (cputime_flag == TRUE) {
+#ifdef FLONUM_PROF
+    {
+      extern void double_hash_flush(void);
+      double_hash_flush();
+    }
+#endif /* FLONUM_PROF */
+
+  if (cputime_flag == TRUE) {
       time_t sec;
       suseconds_t usec;
 
@@ -476,30 +463,35 @@ int main(int argc, char *argv[]) {
       }
       print_cputime(sec, usec);
     }
-    
+
+#ifdef GC_PROF
+    if (gcprof_flag == TRUE)
+      print_gc_prof();
+#endif /* GC_PROF */
+
     if (repl_flag == TRUE) {
       printf("\xff");
       fflush(stdout);
     }
   }
-#ifdef PROFILE
-#ifdef HIDDEN_CLASS
+#ifdef HC_PROF
   if (hcprint_flag == TRUE)
-    print_all_hidden_class();
-#endif
+    hcprof_print_all_hidden_class();
+#endif /* HC_PROF */
+#ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
   if (icount_flag == TRUE)
     print_icount(function_table, n);
   if (prof_stream != NULL)
     fclose(prof_stream);
-#endif
+#endif /* PROFILE */
 #ifdef ICCPROF
   if(iccprof_fp != NULL){
     write_icc_profile(iccprof_fp);
     fclose(iccprof_fp);
   }
-#endif
+#endif /* ICCPROF */
 
   return 0;
 }
@@ -517,7 +509,8 @@ void print_value_verbose(Context *context, JSValue v) {
 
 void print_value(Context *context, JSValue v, int verbose) {
   if (verbose)
-    printf("%016"PRIx64" (tag = %d, type = %s): ", v, get_tag(v), type_name(v));
+    printf("%"PRIJSValue" (tag = %d, type = %s): ",
+           v, get_ptag(v).v, type_name(v));
 
   if (is_string(v))
     /* do nothing */;
@@ -536,12 +529,10 @@ void print_value(Context *context, JSValue v, int verbose) {
   else if (is_iterator(v))
     v = cstr_to_string(NULL, "iterator");
 #ifdef USE_REGEXP
-#ifdef need_regexp
   else if (is_regexp(v)) {
     printf("/%s/", regexp_pattern(v));
     return;
   }
-#endif /* need_regexp */
 #endif
   else if (is_string_object(v))
     v = cstr_to_string(NULL, "boxed-string");

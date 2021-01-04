@@ -17,10 +17,9 @@ public class IASTPrinter extends IASTBaseVisitor {
     public static final String KEY_PROGRAMS          = "programs";
     public static final String KEY_PARAMS            = "params";
     public static final String KEY_LOCALS            = "locals";
-    public static final String KEY_INNER_USED_LOCALS = "innerUsedLocals";
     public static final String KEY_BODY              = "body";
     public static final String KEY_NEED_ARGUMENTS    = "needArguments";
-    public static final String KEY_NEED_FRAME        = "needFrame";
+    public static final String KEY_FRAME_SIZE        = "frameSize";
     public static final String KEY_STMTS             = "stmts";
     public static final String KEY_VALUE             = "value";
     public static final String KEY_TEST              = "test";
@@ -240,7 +239,7 @@ public class IASTPrinter extends IASTBaseVisitor {
         JsonObjectBuilder jb = Json.createObjectBuilder();
         jb.add(KEY_NAME, "ForInStatement");
         // var
-        jb.add(KEY_VAR, node.var);
+        jb.add(KEY_VAR, node.var.id);
         // object
         jb.add(KEY_OBJECT, (JsonObject) node.object.accept(this));
         // body
@@ -305,27 +304,24 @@ public class IASTPrinter extends IASTBaseVisitor {
         jb.add(KEY_NAME, "FunctionExpression");
         // params
         JsonArrayBuilder jaParams = Json.createArrayBuilder();
-        for (String param : node.params) {
-            jaParams.add(param);
+        for (IASTNode.VarDecl param : node.params) {
+            jaParams.add(param.getName());
         }
         jb.add(KEY_PARAMS, jaParams);
         // locals
         JsonArrayBuilder jaLocals = Json.createArrayBuilder();
-        for (String local : node.locals) {
-            jaLocals.add(local);
+        for (IASTNode.VarDecl local : node.locals) {
+            jaLocals.add(local.getName());
         }
         jb.add(KEY_LOCALS, jaLocals);
         // innerUsedLocals
         JsonArrayBuilder jaInnerUseLocals = Json.createArrayBuilder();
-        for (String local : node.innerUsedLocals) {
-            jaInnerUseLocals.add(local);
-        }
-        jb.add(KEY_INNER_USED_LOCALS, jaInnerUseLocals);
+
         // body
         jb.add(KEY_BODY, (JsonObject) node.body.accept(this));
         // needArguments and needFrame
-        jb.add(KEY_NEED_ARGUMENTS, node.needArguments);
-        jb.add(KEY_NEED_FRAME, node.needFrame);
+        jb.add(KEY_NEED_ARGUMENTS, node.needArguments());
+        jb.add(KEY_FRAME_SIZE, node.frameSize());
         return jb.build();
     }
     public Object visitOperatorExpression(IASTOperatorExpression node) {

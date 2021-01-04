@@ -11,13 +11,7 @@
 #define EXTERN extern
 #include "header.h"
 
-#ifdef need_flonum
-
-#define set_a_number(x)                                         \
-  (set_a(context,                                               \
-         (isnan((x))? gconsts.g_flonum_nan:                     \
-          (is_fixnum_range_double((x))? double_to_fixnum((x)):  \
-           double_to_flonum((x))))))
+#define set_a_number(x) set_a(context, double_to_number(context, (x)))
 
 void math_func(Context *context, int fp, double (*fn)(double)) {
   JSValue v;
@@ -31,7 +25,7 @@ void math_func(Context *context, int fp, double (*fn)(double)) {
     return;
   }
   /* v is either fixnum or flonum */
-  x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+  x = number_to_double(v);
   x = (*fn)(x);
   set_a_number(x);
 }
@@ -48,7 +42,7 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
     set_a(context, v1);
     return;
   }
-  x1 = is_fixnum(v1)? fixnum_to_double(v1): flonum_to_double(v1);
+  x1 = number_to_double(v1);
 
   v2 = args[2];
   if (!is_number(v2)) v2 = to_number(context, v2);
@@ -56,7 +50,7 @@ void math_func2(Context *context, int fp, double (*fn)(double, double)) {
     set_a(context, v2);
     return;
   }
-  x2 = is_fixnum(v2)? fixnum_to_double(v2): flonum_to_double(v2);
+  x2 = number_to_double(v2);
 
   x1 = (*fn)(x1, x2);
   set_a_number(x1);
@@ -145,7 +139,7 @@ BUILTIN_FUNCTION(math_max)
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
     /* v is either fixnum or flonum */
-    x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+    x = number_to_double(v);
     if (r < x) r = x;
   }
   set_a_number(r);
@@ -164,7 +158,7 @@ BUILTIN_FUNCTION(math_min)
     if (!is_number(v)) v = to_number(context, v);
     if (is_nan(v)) r = NAN;
     /* v is either fixnum or flonum */
-    x = is_fixnum(v)? fixnum_to_double(v): flonum_to_double(v);
+    x = number_to_double(v);
     if (x < r) r = x;
   }
   set_a_number(r);
@@ -183,7 +177,12 @@ BUILTIN_FUNCTION(math_random)
   set_a_number(x);
 }
 
-ObjBuiltinProp math_funcs[] = {
+/*
+ * property table
+ */
+
+/* instance */
+ObjBuiltinProp Math_builtin_props[] = {
   { "abs",    math_abs,    1, ATTR_DE },
   { "sqrt",   math_sqrt,   1, ATTR_DE },
   { "sin",    math_sin,    1, ATTR_DE },
@@ -202,10 +201,8 @@ ObjBuiltinProp math_funcs[] = {
   { "min",    math_min,    0, ATTR_DE },
   { "pow",    math_pow,    2, ATTR_DE },
   { "random", math_random, 0, ATTR_DE },
-  { NULL,     NULL,        0, ATTR_DE }
 };
-
-ObjDoubleProp math_values[] = {
+ObjDoubleProp  Math_double_props[] = {
   { "E",         2.7182818284590452354, ATTR_ALL },
   { "LN10",      2.302585092994046,     ATTR_ALL },
   { "LN2",       0.6931471805599453,    ATTR_ALL },
@@ -214,34 +211,9 @@ ObjDoubleProp math_values[] = {
   { "PI",        3.1415926535897932,    ATTR_ALL },
   { "SQRT1_2",   0.7071067811865476,    ATTR_ALL },
   { "SQRT2",     1.4142135623730951,    ATTR_ALL },
-  { NULL,        0.0,                   ATTR_ALL }
 };
-
-void init_builtin_math(Context *ctx)
-{
-  JSValue math;
-
-  math = gconsts.g_math;
-  GC_PUSH(math);
-  {
-    ObjDoubleProp *p = math_values;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, math, p->name, double_to_flonum(p->value), p->attr);
-      p++;
-    }
-  }
-  {
-    ObjBuiltinProp *p = math_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, math, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP(math);
-}
-
-#endif /* need_flonum */
+ObjGconstsProp Math_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_I(Math);
 
 /* Local Variables:      */
 /* mode: c               */

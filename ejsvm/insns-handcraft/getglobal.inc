@@ -7,13 +7,13 @@
 {
   JSValue str = v1;
   JSValue ret;
-
-  if (get_prop(context->global, str, &ret) == FAIL)
-    LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
-  /*
-  printf("getglobal: dst = %d, str = %s, ret = ", dst, string_to_cstr(str));
-  print_value_verbose(context, ret); putchar('\n');
-  */
-  regbase[r0] = ret;
+  if (!is_string(str))
+    LOG_EXIT("GETGLOBAL: name is no a string\n");
+  else {
+    ret = get_prop(context->global, str);
+    if (ret == JS_EMPTY)
+      LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
+    regbase[r0] = ret;
+  }
 }
 

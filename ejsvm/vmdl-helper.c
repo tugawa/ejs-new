@@ -10,32 +10,40 @@
 #define EXTERN
 #include "header.h"
 
-JSValue initialize_new_object(Context* context, JSValue con, JSValue o) {
-  JSValue p;
-  get_prop(con, gconsts.g_string_prototype, &p);
-  if (!is_object(p)) p = gconsts.g_object_proto;
-  set___proto___all(context, o, p);
-  return o;
-}
-
 JSValue get_global_helper(Context* context, JSValue str) {
   JSValue ret;
 
-  if (get_prop(context->global, str, &ret) == FAIL) {
+  ret = get_prop(context->global, str);
+  if (ret == JS_EMPTY)
     LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(str));
-  }
   return ret;
 }
 
+#ifdef INLINE_CACHE
+/* Implementation of the branch of GETPROP instruction where obj is
+ * a JSObject and INLINE_CACHE is enabled.
+ */
+JSValue get_prop_object_inl_helper(Context* context, InlineCache* ic,
+                                   JSValue obj, JSValue prop)
+{
+  JSValue ret;
+  assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
+  if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+    ret = remove_jsobject_tag(obj)->eprop[ic->index];
+  else
+    ret = get_object_prop(context, obj, prop, ic);
+  return ret;
+}
+#endif /* INLINE_CACHE */
+
 JSValue instanceof_helper(JSValue v1, JSValue v2) {
   JSValue p;
-  if (get_prop(v2, gconsts.g_string_prototype, &p) == SUCCESS) {
-    while (get___proto__(v1, &v1) == SUCCESS) {
-      if (v1 == p) {
-	return JS_TRUE;
-      }
-    }
-  }
+
+  p = get_prop(v2, gconsts.g_string_prototype);
+  if (is_jsobject(p))
+    while ((v1 = get_prop(v1, gconsts.g_string___proto__)) != JS_EMPTY)
+      if (v1 == p)
+        return JS_TRUE;
   return JS_FALSE;
 }
 
@@ -67,7 +75,8 @@ Displacement localret_helper(Context* context, int pc) {
   } else {
     context->lcall_stack_ptr--;
     v = get_array_prop(context, context->lcall_stack,
-		       cint_to_number((cint) context->lcall_stack_ptr));
+		       cint_to_number(context,
+                                      (cint) context->lcall_stack_ptr));
     newpc = number_to_cint(v);
   }
   disp = (Displacement) (newpc - pc);
@@ -101,8 +110,7 @@ void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl) {
 }
 
 void setglobal_helper(Context* context, JSValue str, JSValue src) {
-  if (set_prop_none(context, context->global, str, src) == FAIL)
-    LOG_EXIT("SETGLOBAL: setting a value of %s failed\n", string_to_cstr(str));
+  set_prop(context, context->global, str, src, ATTR_NONE);
 }
 
 void setlocal_helper(Context* context, int link, Subscript index, JSValue v2) {

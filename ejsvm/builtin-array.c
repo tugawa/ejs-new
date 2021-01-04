@@ -11,29 +11,11 @@
 #define EXTERN extern
 #include "header.h"
 
-#define not_implemented(s)                                              \
-  LOG_EXIT("%s is not implemented yet\n", (s)); set_a(context, JS_UNDEFINED)
-
 #define INSERTION_SORT_THRESHOLD (20) /* must >= 1 */
 void asort(Context*, JSValue, cint, cint, JSValue);
 void quickSort(Context*, JSValue, cint, cint, JSValue);
 void insertionSort(Context*, JSValue, cint, cint, JSValue);
 void swap(JSValue*, JSValue*);
-
-/*
- * computes the asize for a given n
- */
-cint compute_asize(cint n) {
-  cint s, news;
-
-  s = ASIZE_INIT;
-  while (s < n) {
-    news = increase_asize(s);
-    if (s == news) return n;
-    s = news;
-  }
-  return s;
-}
 
 /*
  * constructor for array
@@ -44,41 +26,43 @@ BUILTIN_FUNCTION(array_constr)
   cint size, length;
 
   builtin_prologue();
-  rsv = new_normal_array(context); /* this sets the `length' property to 0 */
-  GC_PUSH(rsv);
-  if (na == 0) {
-    allocate_array_data(context, rsv, ASIZE_INIT, 0);
-    set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
-  } else if (na == 1) {
-    JSValue n = args[1];  /* GC: n is used in uninterraptible section */
-    if (is_fixnum(n) && 0 <= (length = fixnum_to_cint(n))) {
-      size = compute_asize(length);
-      allocate_array_data(context, rsv, size, length);
-      /*
-       * printf("array_constr: length = %ld, size = %ld,
-       *        rsv = %lx\n", length, size, rsv);
-       */
-      set_prop_none(context, rsv, gconsts.g_string_length,
-                    cint_to_fixnum(length));
-    } else {
-      allocate_array_data(context, rsv, ASIZE_INIT, 0);
-      set_prop_none(context, rsv, gconsts.g_string_length, FIXNUM_ZERO);
-    }
+
+  /* compute sizes */
+  if (na == 0)
+    length = 0;
+  else if (na == 1) {
+    JSValue n = args[1];
+    if (!is_fixnum(n) || (length = fixnum_to_cint(n)) < 0)
+      length = 0;
   } else {
     /*
      * na >= 2, e.g., Array(2,4,5,1)
      * This means that the array's length is four whose elements are
      * 2, 4, 5, and 1.
      */
-    int i;
     length = na;
-    size = compute_asize(length);
-    allocate_array_data(context, rsv, size, length);
-    set_prop_none(context, rsv, gconsts.g_string_length, cint_to_fixnum(length));
-    for (i = 0; i < length; i++)
-      array_body_index(rsv, i) = args[i + 1];
   }
+  size = length;
+
+  /* allocate the array */
+#ifdef ALLOC_SITE_CACHE
+  rsv = create_array_object(context, DEBUG_NAME("array_ctor"), size);
+#else /* ALLOC_SITE_CACHE */
+  rsv = new_array_object(context, DEBUG_NAME("array_ctor"),
+                         gshapes.g_shape_Array, size);
+#endif /* ALLOC_SITE_CACHE */
+  GC_PUSH(rsv);
+  set_jsarray_length(rsv, cint_to_number(context, length));
   GC_POP(rsv);
+
+  /* fill elements if supplied */
+  if (na >= 2) {
+    int i;
+    JSValue *body = get_jsarray_body(rsv);
+    for (i = 0; i < length; i++)
+      body[i] = args[i + 1];
+  }
+  /* set as the return value */
   set_a(context, rsv);
 }
 
@@ -123,22 +107,23 @@ BUILTIN_FUNCTION(array_concat)
   cint n, k, i, len;
 
   builtin_prologue();
-  a = new_normal_array(context);
+  a = new_array_object(context, DEBUG_NAME("array_concat"),
+                       gshapes.g_shape_Array, 0);
   n = 0;
   GC_PUSH(a);
   for (i = 0; i <= na; i++) {
     e = args[i];
     if (is_array(e)) {
       k = 0;
-      len = array_length(e);
+      len = number_to_cint(get_jsarray_length(e));
       if (n + len > MAX_ARRAY_LENGTH)
         /* This should be improved */
         LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
       while (k < len) {
         if (has_array_element(e, k)) {
           GC_PUSH(e);
-          subElement = get_array_prop(context, e, cint_to_fixnum(k));
-          set_array_prop(context, a, cint_to_fixnum(n), subElement);
+          subElement = get_array_element(context, a, k);
+          set_array_prop(context, a, cint_to_number(context, n), subElement);
           GC_POP(e);
         }
         n++;
@@ -148,13 +133,14 @@ BUILTIN_FUNCTION(array_concat)
       if (n > MAX_ARRAY_LENGTH)
         /* This should be improved */
         LOG_EXIT("New array length is more than VM limit (MAX_ARRAY_LENGTH)");
-      set_array_prop(context, a, cint_to_fixnum(n), e);
+      set_array_prop(context, a, cint_to_number(context, n), e);
       n++;
     }
   }
   /* is the two lines below necessary? */
-  array_length(a) = n;
-  set_prop_none(context, a, gconsts.g_string_length, cint_to_fixnum(n));
+  set_jsarray_length(a, n);
+  set_prop_direct(context, a, gconsts.g_string_length,
+                  cint_to_number(context, n), ATTR_NONE);
   GC_POP(a);
   set_a(context, a);
   return;
@@ -167,21 +153,22 @@ BUILTIN_FUNCTION(array_pop)
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a) - 1;    /* len >= -1 */
+  len = number_to_cint(get_jsarray_length(a)) - 1;    /* len >= -1 */
   if (len < 0) {
     set_a(context, JS_UNDEFINED);
     return;
   }
 
-  flen = cint_to_fixnum(len);
-  if (len < array_size(a))
-    ret = array_body_index(a, len);
-  else
+  flen = cint_to_number(context, len);
+  if (len < get_jsarray_size(a)) {
+    JSValue *body = get_jsarray_body(a);
+    ret = body[len];
+  } else
     ret = get_prop_prototype_chain(a, fixnum_to_string(flen));
   delete_array_element(a, len);
-  array_length(a) = len;
+  set_jsarray_length(a, len);
   GC_PUSH(ret);
-  set_prop_none(context, a, gconsts.g_string_length, flen);
+  set_prop_direct(context, a, gconsts.g_string_length, flen, ATTR_NONE);
   GC_POP(ret);
   set_a(context, ret);
   return;
@@ -191,21 +178,21 @@ BUILTIN_FUNCTION(array_push)
 {
   JSValue a, ret;
   cint len;
-  int i;
+  cint i;
 
   builtin_prologue();
   a = args[0];
-  len = array_length(a);
+  len = number_to_cint(get_jsarray_length(a));
   /*
    * The following for-loop is very inefficient.
    * This is for simplicity of implementation.
    */
   GC_PUSH(a);
   for (i = 1; i <= na; i++)
-    set_array_prop(context, a, cint_to_fixnum(len++), args[i]);
+    set_array_prop(context, a, cint_to_number(context, len++), args[i]);
   GC_POP(a);
   ret = (len <= MAX_ARRAY_LENGTH)?
-    cint_to_fixnum(len): cint_to_fixnum(MAX_ARRAY_LENGTH);
+    cint_to_number(context, len): cint_to_number(context, MAX_ARRAY_LENGTH);
   set_a(context, ret);
   return;
 }
@@ -217,7 +204,7 @@ BUILTIN_FUNCTION(array_reverse)
   JSValue lowerValue, upperValue;
 
   builtin_prologue();
-  len = array_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   mid = len / 2;
 
   lowerValue = JS_NULL;
@@ -228,18 +215,22 @@ BUILTIN_FUNCTION(array_reverse)
     upperExists = has_array_element(args[0], upper);
 
     if (lowerExists)
-      lowerValue = get_array_prop(context, args[0], cint_to_fixnum(lower));
+      lowerValue = get_array_element(context, args[0], lower);
     if (upperExists)
-      upperValue = get_array_prop(context, args[0], cint_to_fixnum(upper));
+      upperValue = get_array_element(context, args[0], upper);
 
     if (lowerExists && upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+      set_array_prop(context, args[0], cint_to_number(context, lower),
+                     upperValue);
+      set_array_prop(context, args[0], cint_to_number(context, upper),
+                     lowerValue);
     } else if (!lowerExists && upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(lower), upperValue);
+      set_array_prop(context, args[0], cint_to_number(context, lower),
+                     upperValue);
       delete_array_element(args[0], upper);
     } else if (lowerExists && !upperExists) {
-      set_array_prop(context, args[0], cint_to_fixnum(upper), lowerValue);
+      set_array_prop(context, args[0], cint_to_number(context, upper),
+                     lowerValue);
       delete_array_element(args[0], lower);
     } else {
       /* No action is required */
@@ -256,41 +247,33 @@ BUILTIN_FUNCTION(array_shift)
   cint len, from, to;
 
   builtin_prologue();
-  len = array_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   if (len <= 0) {
     set_a(context, JS_UNDEFINED);
     return;
   }
 
-  first = get_array_prop(context, args[0], cint_to_fixnum(0));
+  first = get_array_element(context, args[0], 0);
+  assert(first != JS_EMPTY);
   GC_PUSH(first);
   for (from = 1; from < len; from++) {
     to = from - 1;
     if (has_array_element(args[0], from)) {
-      fromVal = get_array_prop(context, args[0], cint_to_fixnum(from));
-      set_array_prop(context, args[0], cint_to_fixnum(to), fromVal);
+      fromVal = get_array_element(context, args[0], from);
+      set_array_prop(context, args[0], cint_to_number(context, to), fromVal);
     } else {
       delete_array_element(args[0], to);
     }
   }
   delete_array_element(args[0], len - 1);
   /* should reallocate (shorten) body array here? */
-  array_length(args[0]) = --len;
-  set_prop_none(context, args[0], gconsts.g_string_length, cint_to_fixnum(len));
+  set_jsarray_length(args[0], --len);
+  set_prop_direct(context, args[0], gconsts.g_string_length,
+                  cint_to_number(context, len), ATTR_NONE);
   GC_POP(first);
   set_a(context, first);
   return;
 }
-
-
-/*
- * ProtoUnShift
- * http://www.tohoho-web.com/js/array.htm#unshift
- *
- * ProtoSplice
- * http://www.tohoho-web.com/js/array.htm#splice
- */
-
 
 BUILTIN_FUNCTION(array_slice)
 {
@@ -303,7 +286,7 @@ BUILTIN_FUNCTION(array_slice)
   start = (na >= 1)? args[1]: 0;
   end = (na >= 2)? args[2]: JS_UNDEFINED;
 
-  len = array_length(args[0]);
+  len = number_to_cint(get_jsarray_length(args[0]));
   GC_PUSH2(o, end);
   relativeStart = toInteger(context, start);
   GC_POP(end);
@@ -318,15 +301,14 @@ BUILTIN_FUNCTION(array_slice)
   else final = min(relativeEnd, len);
 
   count = max(final - k, 0);
-  a = new_normal_array_with_size(context, count);
+  a = new_array_object(context, DEBUG_NAME("array_slice"),
+                       gshapes.g_shape_Array, count);
   GC_PUSH(a);
-  set_prop_all(context, a, gconsts.g_string___proto__, gconsts.g_array_proto);
-
   n = 0;
   while (k < final) {
     if (has_array_element(o,k)) {
-      kValue = get_array_prop(context, o, cint_to_fixnum(k));
-      set_array_prop(context, a, cint_to_fixnum(n), kValue);
+      kValue = get_array_element(context, o, k);
+      set_array_prop(context, a, cint_to_number(context, n), kValue);
     }
     k++;
     n++;
@@ -358,7 +340,7 @@ cint sortCompare(Context *context, JSValue x, JSValue y, JSValue comparefn) {
     GC_POP(y);
     return -1;
   } else if (is_function(comparefn) ||
-             (is_builtin(comparefn) && builtin_n_args(comparefn) >= 2)) {
+             (is_builtin(comparefn) && get_jsbuiltin_nargs(comparefn) >= 2)) {
     /*
      * printf(">> sortCompare(%d,%d)\n",fixnum_to_cint(x),
      *        fixnum_to_cint(y));
@@ -438,13 +420,13 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
   cint i, j;
   GC_PUSH2(array, comparefn);
   for (i = l; i <= r; i++) {
-    tmp = get_array_prop(context, array, cint_to_fixnum(i)); /* tmp = a[i] */
+    tmp = get_array_element(context, array, i); /* tmp = a[i] */
     GC_PUSH(tmp);
     for (j = i - 1; l <= j; j--) {
-      aj = get_array_prop(context, array, cint_to_fixnum(j));
+      aj = get_array_element(context, array, j);
       GC_PUSH(aj);
       if (sortCompare(context, aj, tmp, comparefn) > 0)
-        set_array_prop(context, array, cint_to_fixnum(j + 1), aj);
+        set_array_prop(context, array, cint_to_number(context, j + 1), aj);
       /* a[j+1] = a[j] */
       else {
         GC_POP(aj);
@@ -453,7 +435,7 @@ void insertionSort(Context* context, JSValue array, cint l, cint r, JSValue comp
       GC_POP(aj);
     }
     GC_POP(tmp);
-    set_array_prop(context, array, cint_to_fixnum(j + 1), tmp);
+    set_array_prop(context, array, cint_to_number(context, j + 1), tmp);
     /* a[j+1] = tmp; */
   }
   GC_POP2(comparefn, array);
@@ -466,12 +448,10 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
   JSValue v0, v1, v2;
   cint m = l + ((r - l) / 2);
   GC_PUSH2(array, comparefn);
-  v0 = get_array_prop(context, array, cint_to_fixnum(l));
-  GC_PUSH(v0);
-  v1 = get_array_prop(context, array, cint_to_fixnum(m));
-  GC_PUSH(v1);
-  v2 = get_array_prop(context, array, cint_to_fixnum(r));
-  GC_PUSH(v2);
+  v0 = get_array_element(context, array, l);
+  v1 = get_array_element(context, array, m);
+  v2 = get_array_element(context, array, r);
+  GC_PUSH3(v0, v1, v2);
   /* Sort v0 v1 v2 */
   if (sortCompare(context, v0, v1, comparefn) > 0)  /* v0 < v1 */
     swap(&v0, &v1);
@@ -487,26 +467,37 @@ void quickSort(Context* context, JSValue array, cint l, cint r, JSValue comparef
    */
   p = v1;
   GC_PUSH(p);
-  set_array_prop(context, array, cint_to_fixnum(l), v0); /* a[l] = v0 */
-  set_array_prop(context, array, cint_to_fixnum(r), v2); /* a[r] = v2 */
-  set_array_prop(context, array, cint_to_fixnum(m),
-                 get_array_prop(context, array, cint_to_fixnum(l+1)));
+  /* a[l] = v0 */
+  set_array_prop(context, array, cint_to_number(context, l), v0);
+ /* a[r] = v2 */
+  set_array_prop(context, array, cint_to_number(context, r), v2);
   /* a[m] = a[l+1] */
-  set_array_prop(context, array, cint_to_fixnum(l+1), v1); /* a[l+1] = v1(=p) */
+  set_array_prop(context, array, cint_to_number(context, m),
+                 get_array_element(context, array, l+1));
+ /* a[l+1] = v1(=p) */
+  set_array_prop(context, array, cint_to_number(context, l+1), v1);
   i = l+2;
   j = r-1;
   /* Sorting (from i to j) */
   while (1) {
-    while (i < r && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(i)), comparefn) > 0) i++;
-    while (l < j && sortCompare(context, p, get_array_prop(context, array, cint_to_fixnum(j)), comparefn) < 0) j--;
-    if (i >= j) break;
+    while (i < r && sortCompare(context, p,
+                                get_array_element(context, array, i),
+                                comparefn) > 0)
+      i++;
+    while (l < j && sortCompare(context, p,
+                                get_array_element(context, array, j),
+                                comparefn) < 0)
+      j--;
+    if (i >= j)
+      break;
     /* Exchange a[i] and a[j] */
-    tmp = get_array_prop(context, array, cint_to_fixnum(i));
+    tmp = get_array_element(context, array, i);
+    assert(tmp != JS_EMPTY);
     GC_PUSH(tmp);
-    set_array_prop(context, array, cint_to_fixnum(i),
-                   get_array_prop(context, array, cint_to_fixnum(j)));
+    set_array_prop(context, array, cint_to_number(context, i),
+                   get_array_element(context, array, j));
     GC_POP(tmp);
-    set_array_prop(context, array, cint_to_fixnum(j), tmp);
+    set_array_prop(context, array, cint_to_number(context, j), tmp);
     i++;
     j--;
   }
@@ -540,7 +531,7 @@ BUILTIN_FUNCTION(array_sort)
   builtin_prologue();
   obj = args[0];
   comparefn = args[1];
-  len = array_length(obj);
+  len = number_to_cint(get_jsarray_length(obj));
   GC_PUSH(obj);
   asort(context, obj, 0, len - 1, comparefn);
   GC_POP(obj);
@@ -557,15 +548,16 @@ BUILTIN_FUNCTION(array_debugarray)
 
   builtin_prologue();
   a = args[0];
-  size = array_size(a);
-  length = array_length(a);
+  size = get_jsarray_size(a);
+  length = number_to_cint(get_jsarray_length(a));
   to = length < size? length: size;
-  printf("debugarray: size = %"PRId64", length = %"PRId64", to = %"PRId64"\n",
-         size, length, to);
+  printf("debugarray: size = %lld length = %lld, to = %lld\n",
+         (long long) size, (long long) length, (long long) to);
   GC_PUSH(a);
   for (i = 0; i < to; i++) {
+    JSValue *body = get_jsarray_body(a);
     printf("i = %d: ", i);
-    print_value_simple(context, array_body_index(a, i));
+    print_value_simple(context, body[i]);
     printf("\n");
   }
   GC_POP(a);
@@ -573,7 +565,12 @@ BUILTIN_FUNCTION(array_debugarray)
   return;
 }
 
-ObjBuiltinProp array_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp ArrayPrototype_builtin_props[] = {
   { "toString",       array_toString,       0, ATTR_DE },
   { "toLocaleString", array_toLocaleString, 0, ATTR_DE },
   { "join",           array_join,           1, ATTR_DE },
@@ -585,29 +582,24 @@ ObjBuiltinProp array_funcs[] = {
   { "slice",          array_slice,          2, ATTR_DE },
   { "sort",           array_sort,           1, ATTR_DE },
   { "debugarray",     array_debugarray,     0, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
 };
-
-void init_builtin_array(Context *ctx)
-{
-  JSValue proto;
-
-  gconsts.g_array =
-    new_normal_builtin_with_constr(ctx, array_constr, array_constr, 0);
-  proto = new_big_predef_object(ctx);
-  GC_PUSH(proto);
-  gconsts.g_array_proto = proto;
-  set_prototype_all(ctx, gconsts.g_array, proto);
-  {
-    ObjBuiltinProp *p = array_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  GC_POP(proto);
-}
+ObjDoubleProp  ArrayPrototype_double_props[] = {
+  { "length",   0, ATTR_DDDE, 2},
+};
+ObjGconstsProp ArrayPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp ArrayConstructor_builtin_props[] = {};
+ObjDoubleProp  ArrayConstructor_double_props[] = {};
+ObjGconstsProp ArrayConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Array,  ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Array_builtin_props[] = {};
+ObjDoubleProp  Array_double_props[] = {
+  { "length",    0, ATTR_DDDE, 2 },  /* placeholder */
+};
+ObjGconstsProp Array_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Array);
 
 /* Local Variables:      */
 /* mode: c               */

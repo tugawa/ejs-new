@@ -67,7 +67,8 @@ public class SpecFile {
         new OperandType("JSValue");
         new OperandType("Register");
         new OperandType("int");
-        new OperandType("Displacement");
+        new OperandType("InstructionDisplacement");
+        new OperandType("ConstantDisplacement");
         new OperandType("Subscript");
     }
 

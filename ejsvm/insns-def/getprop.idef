@@ -1,17 +1,91 @@
 \inst getprop (Register dst, Value obj, Value prop)
 
+\when obj:array && prop:fixnum \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("getprop: array (prop = fixnum(%lld))\n", fixnum_to_cint(prop));
+#endif /* DEBUG_GETPROP_VALUE */
+  dst = get_array_element(context, obj, fixnum_to_cint(prop));
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag) {
+    printf("getprop: ");
+    print_value(context, dst, 1);
+    printf("\n");
+  }
+#endif /* DEBUG_GETPROP_VALUE */
+\}
+
 \when obj:array \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("getprop: array (prop = %"PRIJSValue")\n", prop);
+#endif /* DEBUG_GETPROP_VALUE */
   dst = get_array_prop(context, obj, prop);
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag) {
+    printf("getprop: ");
+    print_value(context, dst, 1);
+    printf("\n");
+  }
+#endif /* DEBUG_GETPROP_VALUE */
+\}
+
+\when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) && prop:string\{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("getprop: object (prop = %s)\n", string_to_cstr(prop));
+#endif /* DEBUG_GETPROP_VALUE */
+#ifdef INLINE_CACHE
+  {
+    InlineCache *ic = &insns->inl_cache;
+    assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
+    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+      dst = jsv_to_jsobject(obj)->eprop[ic->index];
+    else
+      dst = get_object_prop(context, obj, prop, ic);
+  }
+#else /* INLINE_CACHE */
+  dst = get_object_prop(context, obj, prop);
+#endif /* INLINE_CACHE */
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag) {
+    printf("getprop: ");
+    print_value(context, dst, 1);
+    printf("\n");
+  }
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \when (obj:regexp || obj:number_object || obj:boolean_object || obj:string_object || obj:builtin || obj:simple_object || obj:function) \{
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag)
+    printf("getprop: object (prop = %"PRIJSValue")\n", prop);
+#endif /* DEBUG_GETPROP_VALUE */
+#ifdef INLINE_CACHE
+  dst = get_object_prop(context, obj, prop, NULL);
+#else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);
+#endif /* INLINE_CACHE */
+#ifdef DEBUG_GETPROP_VALUE
+  if (trace_flag) {
+    printf("getprop: ");
+    print_value(context, dst, 1);
+    printf("\n");
+  }
+#endif /* DEBUG_GETPROP_VALUE */
 \}
 
 \otherwise \{
   if (obj == JS_UNDEFINED)
-     LOG_EXIT("GETPROP: !!!!\n");
+     LOG_EXIT("GETPROP: attempt to get property of `undefined'\n");
+  GC_PUSH(prop);
   obj = to_object(context, obj);
+  GC_POP(prop);
   goto USELABEL(HEAD);
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}
 

@@ -27,23 +27,23 @@
 
 \when v1:string && v2:fixnum \{
 DEFLABEL(STRFIX):
-  v1 = string_to_number(v1);
+  v1 = string_to_number(context, v1);
   dst = true_false(v1 == v2);
 \}
 
 \when v1:string && v2:flonum \{
-  v1 = string_to_number(v1);
+  v1 = string_to_number(context, v1);
   goto USELABEL(HEAD);
 \}
 
 \when v1:fixnum && v2:string \{
 DEFLABEL(FIXSTR):
-  v2 = string_to_number(v2);
+  v2 = string_to_number(context, v2);
   dst = true_false(v1 == v2);
 \}
 
 \when v1:flonum && v2:string \{
-  v2 = string_to_number(v2);
+  v2 = string_to_number(context, v2);
   goto USELABEL(HEAD);
 \}
 

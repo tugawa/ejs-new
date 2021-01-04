@@ -1,7 +1,7 @@
 \inst lessthanequal (Register dst, Value v1, Value v2)
 
 \when v1:fixnum && v2:fixnum \{
-  dst = true_false((int64_t) v1 <= (int64_t) v2);
+  dst = true_false(((intjsv_t) v1) <= ((intjsv_t) v2));
 \}
 
 \when (v1:fixnum && v2:flonum) || (v1:flonum && v2:fixnum) || (v1:flonum && v2:flonum) \{

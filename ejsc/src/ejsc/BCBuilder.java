@@ -16,11 +16,11 @@ class BCBuilder {
             return new MSetfl();
         }
 
-        MCall createMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
+        MCall createMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail, Label exceptionDest) {
             int nArgs = args.length;
             if (numberOfArgumentRegisters < nArgs)
                 numberOfArgumentRegisters = nArgs;
-            return new MCall(receiver, function, args, isNew, isTail);
+            return new MCall(receiver, function, args, isNew, isTail, exceptionDest);
         }
 
         Label callEntry;
@@ -277,8 +277,8 @@ class BCBuilder {
         push(fbStack.getFirst().createMSetfl());
     }
 
-    void pushMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail) {
-        push(fbStack.getFirst().createMCall(receiver, function, args,  isNew, isTail));
+    void pushMCall(Register receiver, Register function, Register[] args, boolean isNew, boolean isTail, Label exceptionDest) {
+        push(fbStack.getFirst().createMCall(receiver, function, args,  isNew, isTail, exceptionDest));
     }
 
     BCode getLastBCode() {

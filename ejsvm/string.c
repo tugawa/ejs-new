@@ -74,7 +74,7 @@ void string_table_put(Context *context, JSValue v, uint32_t hash)
   
   /* gc_push_tmp_root(&v); */
   GC_PUSH(v);
-  c = (StrCons*) gc_malloc(context, sizeof(StrCons), HTAG_STR_CONS);
+  c = (StrCons*) gc_malloc(context, sizeof(StrCons), CELLT_STR_CONS);
   c->str = v;
   GC_POP(v);
   index = hash % string_table.size;
@@ -118,20 +118,17 @@ JSValue string_concat_ool(Context *context, JSValue v1, JSValue v2)
                            string_value(v2), len2, hash, &v))
     return v;
 
-  /* gc_push_tmp_root(&v1); */
-  /* gc_push_tmp_root(&v2); */
-  p = allocate_string(len1 + len2);
+  GC_PUSH2(v1, v2);
+  p = allocate_string(context, len1 + len2);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, string_value(v1), len1);
   memcpy(p->value + len1, string_value(v2), len2 + 1);
-  v = put_normal_string_tag(p);
+  v = ptr_to_normal_string(p);
   GC_PUSH(v);
-  /* gc_push_tmp_root(&v); */
   string_table_put(context, v, hash);
-  GC_POP(v);
-  /* gc_pop_tmp_root(3); */
+  GC_POP3(v, v2, v1);
   return v;
 }
 
@@ -149,12 +146,12 @@ JSValue cstr_to_string_ool(Context *context, const char *s)
   if (string_table_lookup(s, len, hash, &v))
     return v;
 
-  p = allocate_string(len);
+  p = allocate_string(context, len);
 #ifdef STROBJ_HAS_HASH
   p->hash = hash;
 #endif /* STROBJ_HAS_HASH */
   memcpy(p->value, s, len + 1);
-  v = put_normal_string_tag(p);
+  v = ptr_to_normal_string(p);
   /* gc_push_tmp_root(&v); */
   GC_PUSH(v);
   string_table_put(context, v, hash);
@@ -192,6 +189,63 @@ JSValue ejs_embedded_string_concat(Context *ctx, JSValue str1, JSValue str2)
   return v;
 }
 #endif /* need_embedded_string */
+
+JSValue string_to_upper_lower_case(Context *ctx, JSValue str, int upper)
+{
+  const char *src;
+  ByteArray buf;
+  size_t len, i;
+
+  assert(is_string(str));
+
+  len = string_length(str);
+
+  GC_PUSH(str);
+  buf = allocate_byte_array(ctx, len + 1);
+  GC_POP(str);
+
+  src = string_value(str);
+  if (upper == TRUE)
+    for (i = 0; i < len; i++)
+      buf[i] = toupper(src[i]);
+  else
+    for (i = 0; i < len; i++)
+      buf[i] = tolower(src[i]);
+  buf[i] = '\0';
+
+  return cstr_to_string(ctx, buf);
+}
+
+JSValue string_make_substring(Context *ctx, JSValue str, cint from, cint len)
+{
+  ByteArray buf;
+  const char *src;
+  int i, j;
+
+  assert(is_string(str));
+
+  GC_PUSH(str);
+  buf = allocate_byte_array(ctx, len + 1);
+  GC_POP(str);
+
+  src = string_value(str);
+  for (i = from, j = 0; j < len; i++, j++)
+    buf[j] = src[i];
+  buf[j] = '\0';
+
+  return cstr_to_string(ctx, buf);
+}
+
+cint string_char_code_at(JSValue str, cint pos)
+{
+  const char *cstr;
+  assert(is_string(str));
+  assert(0 <= pos);
+  assert(pos < string_length(str));
+
+  cstr = string_value(str);
+  return cstr[pos];
+}
 
 /* Local Variables:      */
 /* mode: c               */

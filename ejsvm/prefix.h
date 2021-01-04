@@ -19,6 +19,16 @@
 #define DEBUG_PRINT
 #endif
 
+#ifndef NDEBUG
+#define GC_DEBUG 1
+#define STATIC        /* make symbols global for debugger */
+#define STATIC_INLINE /* make symbols global for debugger */
+#else
+#undef GC_DEBUG
+#define STATIC static
+#define STATIC_INLINE static inline
+#endif
+
 #define STROBJ_HAS_HASH
 
 /* #define CALC_TIME */

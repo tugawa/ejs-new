@@ -7,8 +7,15 @@
  * Electro-communications.
  */
 
+struct property_map;
+
 typedef JSValue HashKey;
-typedef uint64_t HashData;
+typedef struct {
+  union {
+    uint64_t index;
+    struct property_map *pm;
+  } u;
+} HashData;
 typedef uint16_t Attribute;
 
 /* Attributes */
@@ -30,6 +37,11 @@ typedef uint16_t Attribute;
 #define is_transition(p)  ((p) & ATTR_TRANSITION)
 #endif
 
+#define ATTR_SYS (0x10)
+#define is_system_prop(p) ((p) & ATTR_SYS)
+
+#define ATTR_SYSTEM (0x17) /* ReadOnly, DontDelete, DontEnum, SystemUse */
+
 typedef struct hash_entry {
   HashKey key;       /* key */
   HashData data;     /* value */
@@ -47,12 +59,12 @@ typedef struct hash_iterator {
   HashCell *p;
 } HashIterator;
 
-typedef struct hash_table {
+struct hash_table {
   HashCell **body;
   unsigned int size;
   unsigned int entry_count;
   unsigned int filled;
-} HashTable;
+};
 
 typedef HashTable Map;
 

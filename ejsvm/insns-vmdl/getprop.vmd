@@ -10,7 +10,11 @@ getprop (obj, index) {
       return getArrayProp(obj, index);
     }
     case (object obj) {
+#ifdef INLINE_CACHE
+      return Get_prop_object_inl(obj, index);
+#else /* INLINE_CACHE */
       return getObjectProp(obj, index);
+#endif /* INLINE_CACHE */
     }
     case (true) {
       JSValue obj2 = to_object(obj);

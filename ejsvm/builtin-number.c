@@ -19,11 +19,12 @@ BUILTIN_FUNCTION(number_constr)
   JSValue rsv;
 
   builtin_prologue();
-  rsv = new_normal_number_object(context, FIXNUM_ZERO);
+  rsv = new_number_object(context, DEBUG_NAME("number_constr"),
+                          gshapes.g_shape_Number, FIXNUM_ZERO);
   GC_PUSH(rsv);
   /* set___proto___all(context, rsv, gconsts.g_number_proto); */
   if (na > 0)
-    number_object_value(rsv) = to_number(context, args[1]);
+    set_jsnumber_object_value(rsv, to_number(context, args[1]));
   set_a(context, rsv);
   GC_POP(rsv);
 }
@@ -50,15 +51,15 @@ BUILTIN_FUNCTION(number_toString)
   rsv = args[0];
   if (is_number_object(rsv)) {
     if (na == 0 || args[1] == FIXNUM_TEN || args[1] == JS_UNDEFINED)
-      set_a(context, number_to_string(number_object_value(rsv)));
+      set_a(context, number_to_string(get_jsnumber_object_value(rsv)));
     else {
 
       if(!is_fixnum(args[1])){
         LOG_ERR("args[1] is not a fixnum.");
         set_a(context, JS_UNDEFINED); }
 
-      int n = (int)fixnum_to_int(args[1]);
-      JSValue v = number_object_value(rsv);
+      cint n = (int)fixnum_to_cint(args[1]);
+      JSValue v = get_jsnumber_object_value(rsv);
       char map[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
       int i, ff, acc;
@@ -73,10 +74,10 @@ BUILTIN_FUNCTION(number_toString)
        * divides the number into numeric and decimal parts
        */
       if(is_fixnum(v)) {
-        numeric = (int)fixnum_to_int(v);
+        numeric = (int) fixnum_to_cint(v);
         decimal = 0.0;
       }else{
-        numeric = (int)(flonum_to_double(v));
+        numeric = (int) flonum_to_double(v);
         decimal = flonum_to_double(v) - numeric; }
 
       /*
@@ -127,58 +128,40 @@ BUILTIN_FUNCTION(number_valueOf)
   builtin_prologue();
   rsv = args[0];
   if (is_number_object(rsv))
-    set_a(context, number_object_value(rsv));
+    set_a(context, get_jsnumber_object_value(rsv));
   else
     LOG_EXIT("Receiver of valueOf is not a Number instance\n");
 }
 
-ObjBuiltinProp number_funcs[] = {
+/*
+ * property table
+ */
+
+/* prototype */
+ObjBuiltinProp NumberPrototype_builtin_props[] = {
   { "valueOf",        number_valueOf,       0, ATTR_DE },
   { "toString",       number_toString,      0, ATTR_DE },
-  { NULL,             NULL,                 0, ATTR_DE }
 };
-
-ObjDoubleProp number_values[] = {
+ObjDoubleProp  NumberPrototype_double_props[] = {
+};
+ObjGconstsProp NumberPrototype_gconsts_props[] = {};
+/* constructor */
+ObjBuiltinProp NumberConstructor_builtin_props[] = {};
+ObjDoubleProp  NumberConstructor_double_props[] = {
   { "MAX_VALUE", DBL_MAX,               ATTR_ALL },
   { "MIN_VALUE", DBL_MIN,               ATTR_ALL },
-  { NULL,        0.0,                   ATTR_ALL }
 };
-
-void init_builtin_number(Context *ctx)
-{
-  JSValue n, proto;
-
-  
-  n = new_normal_builtin_with_constr(ctx, number_constr_nonew, number_constr, 1);
-  GC_PUSH(n);
-  gconsts.g_number = n;
-  proto = new_number_object(ctx, FIXNUM_ZERO, HSIZE_NORMAL, PSIZE_NORMAL);
-  GC_PUSH(proto);
-  gconsts.g_number_proto = proto;
-  set___proto___all(ctx, proto, gconsts.g_object_proto);
-
-  set_prototype_de(ctx, n, proto);
-  set_obj_cstr_prop(ctx, n, "INFINITY", gconsts.g_flonum_infinity, ATTR_ALL);
-  set_obj_cstr_prop(ctx, n, "NEGATIVE_INFINITY",
-                    gconsts.g_flonum_negative_infinity, ATTR_ALL);
-  set_obj_cstr_prop(ctx, n, "NaN", gconsts.g_flonum_nan, ATTR_ALL);
-  {
-    ObjBuiltinProp *p = number_funcs;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, proto, p->name,
-                        new_normal_builtin(ctx, p->fn, p->na), p->attr);
-      p++;
-    }
-  }
-  {
-    ObjDoubleProp *p = number_values;
-    while (p->name != NULL) {
-      set_obj_cstr_prop(ctx, n, p->name, double_to_flonum(p->value), p->attr);
-      p++;
-    }
-  }
-  GC_POP2(proto, n);
-}
+ObjGconstsProp NumberConstructor_gconsts_props[] = {
+  { "prototype", &gconsts.g_prototype_Number,  ATTR_ALL },
+  { "INFINITY",  &gconsts.g_flonum_infinity,   ATTR_ALL },
+  { "NEGATIVE_INFINITY", &gconsts.g_flonum_negative_infinity, ATTR_ALL },
+  { "NaN",       &gconsts.g_flonum_nan,        ATTR_ALL },
+};
+/* instance */
+ObjBuiltinProp Number_builtin_props[] = {};
+ObjDoubleProp  Number_double_props[] = {};
+ObjGconstsProp Number_gconsts_props[] = {};
+DEFINE_PROPERTY_TABLE_SIZES_PCI(Number);
 
 /* Local Variables:      */
 /* mode: c               */
