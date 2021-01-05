@@ -47,6 +47,7 @@ public class Main {
         boolean optPrintAnalyzer = false;
         boolean optPrintLowLevelCode = false;
         boolean optPrintOptimisation = false;
+        boolean optTimeOptimisation = false;
         boolean optHelp = false;
         String  optBc = "";
         boolean optOutOBC = false;
@@ -73,6 +74,9 @@ public class Main {
                         break;
                     case "--show-opt":
                         info.optPrintOptimisation = true;
+                        break;
+                    case "--time-opt":
+                        info.optTimeOptimisation = true;
                         break;
                     case "--help":
                         info.optHelp = true;
@@ -226,7 +230,7 @@ public class Main {
         // convert iAST into low level code.
         BCBuilder bcBuilder = CodeGenerator.compile((IASTProgram) iast);
 
-        bcBuilder.optimisation(info.optBc, info.optPrintOptimisation, info);
+        bcBuilder.optimisation(info.optBc, info.optPrintOptimisation, info.optTimeOptimisation, info);
 
         bcBuilder.assignAddress();
 

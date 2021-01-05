@@ -30,7 +30,7 @@ public class LiveRegisterAnalyser {
         boolean fixPoint = false;
         while (!fixPoint) {
             fixPoint = true;
-            for (ControlFlowGraph.CFGNode n: cfg.getNodes()) {
+            for (ControlFlowGraph.CFGNode n: cfg.getNodeDesc()) {
                 BCode bc = n.getBCode();
                 Set<Register> in = inMap.get(bc);
                 Set<Register> out = outMap.get(bc);
@@ -54,7 +54,7 @@ public class LiveRegisterAnalyser {
     public void print(List<BCode> bcodes) {
         System.out.println("----- Live Register Analyser begin -----");
         for (BCode bc: bcodes) {
-            System.out.println(bc.number + ": "+bc+" "+showRegs(getLiveRegisters(bc)));
+            System.out.println(bc.getAddress() + ": "+bc+" "+showRegs(getLiveRegisters(bc)));
         }
         System.out.println("----- Live Register Analyser end -----");
     }
