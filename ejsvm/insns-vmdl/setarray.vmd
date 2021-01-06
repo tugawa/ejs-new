@@ -1,8 +1,0 @@
-#include "../header-vmdl/externc.vmdh"
-
-(vmInstruction, needContext, tailCall)
-setarray : (JSValue, Subscript, JSValue) -> void
-
-setarray (dst, index, src) {
-    Setarray(dst, index, src);
-}

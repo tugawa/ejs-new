@@ -6,10 +6,8 @@
 object_to_number(v){
     match(v){
         case(object v){
-            JSValue f1;
-            cint result;
-            (result, f1) <- GetProp(v, gconsts.g_string_valueof);
-            if(result == SUCCESS){
+            JSValue f1 = GetProp(v, gconsts.g_string_valueof);
+            if(f1 != JS_EMPTY){
                 match(f1){
                     case(Function f1 || Builtin f1){
                         JSValue invoked;
@@ -36,9 +34,8 @@ object_to_number(v){
                     }
                 }
             }
-            JSValue f2;
-            (result, f2) <- GetProp(v, gconsts.g_string_tostring);
-            if(result == SUCCESS){
+            JSValue f2 = GetProp(v, gconsts.g_string_tostring);
+            if(f2 != JS_EMPTY){
                 match(f2){
                     case(Function f2 || Builtin f2){
                         JSValue invoked;

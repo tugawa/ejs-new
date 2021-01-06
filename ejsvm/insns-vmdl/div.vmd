@@ -19,7 +19,7 @@ div (v1, v2) {
       } else {
         cint n2 = to_cint(v2);
         cint s = n1 / n2;
-        return (n1 == n2 * s) ? cint_to_fixnum(s) : double_to_flonum(to_double(v1) / to_double(v2));
+        return (n1 == n2 * s) ? cint_to_number(s) : double_to_flonum(to_double(v1) / to_double(v2));
       }
     }
     case (Fixnum v1 && Flonum v2 || Flonum v1 && Fixnum v2 || Flonum v1 && Flonum v2) {

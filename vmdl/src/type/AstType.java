@@ -170,7 +170,8 @@ public class AstType {
         defineType("cint");
         defineType("cdouble").setCCodeName("double");
         defineType("cstring").setCCodeName("char*");
-        defineType("Displacement");
+        defineType("ConstantDisplacement");
+        defineType("InstructionDisplacement");
         defineType("Subscript");
         defineJSValueType("JSValue", null);
         JSValueType jsValType = (JSValueType) AstType.get("JSValue");

@@ -183,7 +183,7 @@ extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
 /* JSValue special_to_object(JSValue v); */
-extern JSValue string_to_number(JSValue);
+extern JSValue string_to_number(Context *, JSValue);
 /* JSValue string_to_boolean(JSValue v); */
 /* JSValue string_to_object(JSValue v); */
 extern JSValue fixnum_to_string(JSValue);
@@ -423,7 +423,7 @@ extern JSValue getarguments_helper(Context* context, int link, Subscript index);
 extern JSValue getlocal_helper(Context* context, int link, Subscript index);
 extern InstructionDisplacement localret_helper(Context* context, int pc);
 extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
-extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
+extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl, FunctionTable *curfn, int pc);
 extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
 extern JSValue nextpropnameidx_helper(JSValue itr);
 

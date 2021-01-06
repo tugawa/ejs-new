@@ -3,3 +3,4 @@ pattern ffss v = Fixnum v || Flonum v || Special v || String v
 pattern object v = SimpleObject v || Array v || Function v || Builtin v || Iterator v || Regexp v || StringObject v || NumberObject v || BooleanObject v
 pattern number v = Fixnum v || Flonum v
 pattern primitive v = Fixnum v || Special v
+pattern callable v = Function v || Builtin v

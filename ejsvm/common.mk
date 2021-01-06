@@ -104,7 +104,7 @@ CPPFLAGS +=
 LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
-PPCFLAGS += -DUSE_VMDL
+CPPFLAGS += -DUSE_VMDL
 CPPFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
 endif
 
@@ -290,7 +290,6 @@ INSNS = \
     pushhandler \
     seta \
     setarg \
-    setarray \
     setfl \
     setglobal \
     setlocal \
@@ -303,7 +302,8 @@ INSNS = \
     poplocal \
     ret \
     throw \
-    unknown
+    unknown \
+	exitframe
 
 INSN_GENERATED = $(patsubst %,insns/%.inc,$(INSNS))
 FUNC_GENERATED = $(patsubst %,funcs/%.inc,$(FUNCS))
@@ -314,7 +314,10 @@ REQUIRED_FUNCSPECS = $(patsubst %,$(VMDL_WORKSPACE)/%_require.spec,$(INSNS))
 CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
-FUNCS_FILES = $(FUNC_GENERATED)
+FUNCS_FILES =
+ifeq ($(USE_VMDL),true)
+FUNCS_FILES += $(FUNC_GENERATED)
+endif
 
 ######################################################
 
@@ -420,7 +423,7 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 
-insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/insns-vmdl/externc.vmdh
+insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/header-vmdl/externc.vmdh
 	mkdir -p insns-vmdl
 	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
 
@@ -616,12 +619,14 @@ $(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
 conversion.o: conversion.c $(FUNCS_FILES)
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
+ifeq ($(USE_VMDL),true)
 extern.h: $(VMDL_EXTERN)
+endif
 
 #### vmgen
 $(VMGEN):

@@ -4,6 +4,6 @@
 localret : void -> void
 
 localret () {
-    Displacement disp = Localret();
+    InstructionDisplacement disp = Localret();
     Jump(disp);
 }

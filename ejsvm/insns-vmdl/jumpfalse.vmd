@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
-jumpfalse : (JSValue, Displacement) -> void
+jumpfalse : (JSValue, InstructionDisplacement) -> void
 
 jumpfalse (v0, d1) {
     if (v0 == JS_FALSE || to_boolean(v0) == JS_FALSE) {

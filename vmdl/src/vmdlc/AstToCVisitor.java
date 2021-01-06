@@ -1014,10 +1014,12 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
             HashMap<String, String> varmap = new HashMap<String, String>();
+            //TODO: use CCodeName instead of varmap
             varmap.put("cint", "cint");
             varmap.put("cdouble", "double");
             varmap.put("cstring", "char*");
-            varmap.put("Displacement", "Displacement");
+            varmap.put("ConstantDisplacement", "ConstantDisplacement");
+            varmap.put("InstructionDisplacement", "InstructionDisplacement");
             varmap.put("Subscript", "Subscript");
             varmap.put("Args", "JSValue[]");
             //NOTE: HeapObject cannnot print

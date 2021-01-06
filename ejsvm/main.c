@@ -11,7 +11,9 @@
 #define EXTERN
 #include "header.h"
 
+#ifdef ICC_PROF
 #include "iccprof.h"
+#endif /* ICC_PROF */
 
 /*
  *  phase

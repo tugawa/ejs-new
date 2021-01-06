@@ -11,9 +11,17 @@
 //#define toString(context,v)        to_string((context), (v))
 /* #define FlonumToCdouble(f) to_double(context, (f)) */
 #define getArrayProp(context,v1,v2)      get_array_prop((context), (v1), (v2))
+
+#ifdef INLINE_CACHE
+#define getObjectProp(context,v1,v2)     get_object_prop((context), (v1), (v2), NULL)
+#else /* INLINE_CACHE */
 #define getObjectProp(context,v1,v2)     get_object_prop((context), (v1), (v2))
+#endif /* INLINE_CACHE */
 #define SetArrayProp(context,v1,v2,v3)   set_array_prop((context), (v1), (v2), (v3))
 #define SetObjectProp(context,v1,v2,v3)  set_object_prop((context), (v1), (v2), (v3))
+#ifdef INLINE_CACHE
+#define SetObjectPropInl(context,v1,v2,v3)  set_object_prop_inl((context), (v1), (v2), (v3), &insns->inl_cache)
+#endif /* INLINE_CACHE */
 
 #define cint_to_double(x) ((double)(x))
 #define double_to_cint(x) ((cint)(x))
@@ -32,10 +40,11 @@
 #define IsFlonumInfinity(v)    ((v) == gconsts.g_flonum_infinity)
 #define IsFlonumNegInfinity(v) ((v) == gconsts.g_flonum_negative_infinity)
 #define IsFlonumNan(v)         ((v) == gconsts.g_flonum_nan)
-#define IsFixnumZero(v)        ((v) == cint_to_fixnum((cint)0))
+#define IsFixnumZero(v)        ((v) == small_cint_to_fixnum((cint)0))
 
 #define LogicalRightShift(v1, v2)   ((uint32_t)(v1) >> (uint32_t)(v2))
 
+#define GetProp(v1, v2) get_prop((v1), (v2))
 #define Get_opcode()    get_opcode(insn)
 #define IsSend(op)      (((op) != CALL)? TRUE : FALSE)
 #define IsTailSend(op)  (((op) == TAILSEND)? TRUE : FALSE)
@@ -53,20 +62,21 @@
 #define Tailcall_builtin(context,fn, n, sendp)			\
   tailcall_builtin(context, (fn), (n), (sendp), FALSE)
 #ifdef ALLOC_SITE_CACHE
-#define Create_simple_object_with_constructor(con)                      \
+#define Create_simple_object_with_constructor(context, con)                      \
   create_simple_object_with_constructor(context, con, &insns->alloc_site)
 #else /* ALLOC_SITE_CACHE */
-#define Create_simple_object_with_constructor(con)                      \
+#define Create_simple_object_with_constructor(context, con)                      \
   create_simple_object_with_constructor(context, con)
 #endif /* ALLOC_SITE_CACHE */
 extern JSValue get_global_helper(Context* context, JSValue str);
 #define Get_global(context,v1)              get_global_helper((context), v1)
 #ifdef INLINE_CACHE
 extern JSValue get_prop_object_inl_helper(Context *, InlineCache *, JSValue, JSValue);
-#define Get_prop_object_inl(obj, prop)                           \
+#define Get_prop_object_inl(context, obj, prop)                           \
   get_prop_object_inl_helper(context, &insns->inl_cache, obj, prop)
 #endif /* INLINE_CACHE */
-#define Get_globalobj(context)             ((context)->global)
+#define GetProp(v1, v2)             get_prop((v1), (v2))
+#define Get_globalobj(context)      ((context)->global)
 #define Instanceof(v1, v2)          instanceof_helper(v1, v2)
 #define Isundefined(v1)             true_false(is_undefined((v1)))
 #define Isobject(v1)                is_object((v1))
@@ -78,16 +88,14 @@ extern JSValue get_prop_object_inl_helper(Context *, InlineCache *, JSValue, JSV
 #define Not(obj)                    true_false(obj == JS_FALSE || obj == FIXNUM_ZERO || obj == gconsts.g_flonum_nan || obj == gconsts.g_string_empty)
 #define Get_literal(d1)             get_literal(insns, d1)
 
-#define New_iterator(obj)                  new_iterator(context, obj)
 #define Getarguments(context,link, index)  getarguments_helper((context), link, index)
 #define Getlocal(context,link, index)      getlocal_helper((context), link, index)
 #define Localret()                 localret_helper(context, pc)
-#define Pushhandler(d0)            exhandler_stack_push(context, pc + d0, fp)
 
 #define Seta(v0)                   set_a(context, v0)
 #define Setarg(i0, s1, v2)         setarg_helper(context, i0, s1, v2)
 #define Setarray(dst, index, src)  (array_body_index(v0, s1) = v2)
-#define Setfl(i0)                  setfl_helper(context, regbase, fp, i0)
+#define Setfl(i0)                  setfl_helper(context, regbase, fp, i0, curfn, pc)
 extern void setglobal_helper(Context* context, JSValue str, JSValue src);
 #define Setglobal(str, src)        setglobal_helper(context, str, src)
 #define Setlocal(link, index, v)   setlocal_helper(context, link, index, v)
@@ -99,18 +107,54 @@ extern void setglobal_helper(Context* context, JSValue str, JSValue src);
 #define AllocateCintArray(size)  ((cint *)malloc(sizeof(cint) * (size))
 #define AllocateCdoubleArray(size)  ((double *)malloc(sizeof(double) * (size))
 
+#define NewSimpleObject(context, name, os)     new_simple_object((context), (name), (os))
+#define NewBooleanObject(context, name, os, v) new_boolean_object((context), (name), (os), (v))
+#define NewStringObject(context, name, os, v)  new_string_object((context), (name), (os), (v))
+#define NewNumberObject(context, name, os, v)  new_number_object((context), (name), (os), (v))
+
+#define int32_to_cint(v)             ((cint)(v))
+#define cint_to_int32(v)             ((int32_t)(v))
+#define cint_to_uint32(v)            ((uint32_t)(v))
+#define fixnum_to_intjsv_t(v)        ((intjsv_t)(v))
+
 struct Strtol_rettype{cint r0;/* return value of strtol */ char* r1; /* endptr of strtol */};
 extern struct Strtol_rettype Strtol(char*, int);
 
 struct Strtod_rettype{double r0;/* return value of strtod */ char* r1; /* endptr of strtod */};
 extern struct Strtod_rettype Strtod(char*);
 
-struct GetProp_rettype{cint r0;/* return value of get_prop */ JSValue r1; /* obtained JSValue of get_prop */};
-extern struct GetProp_rettype GetProp(JSValue, JSValue);
+//struct GetProp_rettype{cint r0;/* return value of get_prop */ JSValue r1; /* obtained JSValue of get_prop */};
+//extern struct GetProp_rettype GetProp(JSValue, JSValue);
 
-#define Pophandler()					\
-  int newpc, handler_fp;				\
-  exhandler_stack_pop(context, &newpc, &handler_fp);
+#define Pophandler()					              \
+  UnwindProtect *p;                         \
+  p = context->exhandler_stack_top;         \
+  if (p != NULL) {                          \
+    context->exhandler_stack_top = p->prev; \
+    p->prev = context->exhandler_pool;      \
+    context->exhandler_pool = p;            \
+  }
+
+#define Pushhandler(d0)                                             \
+  UnwindProtect *p;                                                 \
+                                                                    \
+  if (context->exhandler_pool != NULL) {                            \
+    p = context->exhandler_pool;                                    \
+    context->exhandler_pool = p->prev;                              \
+  } else {                                                          \
+    save_context();                                                 \
+    p = (UnwindProtect *) gc_malloc(context, sizeof(UnwindProtect), \
+                                    CELLT_UNWIND);                  \
+    update_context();                                               \
+  }                                                                 \
+  p->fp = fp;                                                       \
+  p->pc = pc + d0;                                                  \
+  p->lp = get_lp(context);                                          \
+  p->lcall_stack_ptr = context->lcall_stack_ptr;                    \
+  p->_jmp_buf = &jmp_buf;                                           \
+  p->prev = context->exhandler_stack_top;                           \
+  context->exhandler_stack_top = p;                                 \
+
 #define Poplocal()				\
   int newpc;					\
   lcall_stack_pop(context, &newpc);
@@ -120,56 +164,40 @@ extern struct GetProp_rettype GetProp(JSValue, JSValue);
   JSValue* stack = &get_stack(context, 0);			\
   restore_special_registers(context, stack, fp - 4);
 
-/*
-#define Newframe(frame_len)						\
-  FunctionFrame* fr = new_frame(context, get_cf(context),		\
-				get_lp(context), frame_len);		\
-  set_lp(context, fr);
-
-#define Makearguments(make_arguments)					\
-  int num_of_args = get_ac(context);					\
-  save_context();							\
-  JSValue args = new_array_object(context, DEBUG_NAME("arguments"),     \
-                                  gconsts.g_shape_Array, num_of_args);  \
-  update_context();							\
-  int i;								\
-  for (i = 0; i < num_of_args; i++)					\
-    array_body(args)[i] = regbase[i + 2];				\
-  fframe_arguments(fr) = args;						\
-  fframe_locals_idx(fr, 0) = args;
-*/
-
-#define Newframe(frame_len, make_arguments)						\
-  save_context(); \
-  FunctionFrame* fr = new_frame(context, get_cf(context),		\
-	get_lp(context), frame_len);		\
-  set_lp(context, fr); \
-  update_context(); \
-  if(make_arguments){  \
-    int num_of_args = get_ac(context);					\
-    save_context();							\
-    JSValue args = new_normal_array_with_size(context, num_of_args);	\
-    update_context();							\
-    int i;								\
-    for (i = 0; i < num_of_args; i++)					\
-      array_body_index(args, i) = regbase[i + 2];				\
-    fframe_arguments(fr) = args;						\
-    fframe_locals_idx(fr, 0) = args; \
+#define Newframe(i0, i1)						\
+  int frame_len = (i0);                                                 \
+  int make_arguments = (i1);                                            \
+  FunctionFrame *fr;                                                    \
+  int num_of_args, i;                                                   \
+  JSValue args;                                                         \
+                                                                        \
+  save_context();                                                       \
+  fr = new_frame(context, get_cf(context), get_lp(context), frame_len); \
+  set_lp(context, fr);                                                  \
+  update_context();                                                     \
+                                                                        \
+  if (make_arguments) {                                                 \
+    JSValue *body;                                                      \
+    num_of_args = get_ac(context);                                      \
+    save_context();                                                     \
+    args = new_array_object(context, DEBUG_NAME("arguments"),           \
+                            gshapes.g_shape_Array, num_of_args);        \
+    update_context();                                                   \
+                                                                        \
+    body = get_jsarray_body(args);                                      \
+    for (i = 0; i < num_of_args; i++) {                                 \
+      body[i] = regbase[i + 2];                                         \
+    }                                                                   \
+    fframe_arguments(fr) = args;                                        \
+    fframe_locals_idx(fr, 0) = args;                                    \
   }
 
+#define Exitframe(context) \
+  FunctionFrame *fr = get_lp(context); \
+  set_lp(context, fframe_prev(fr));
 
-#define Throw(context)							\
-  int newpc, handler_fp;					\
-  exhandler_stack_pop(context, &newpc, &handler_fp);		\
-  while (handler_fp != fp) {					\
-    JSValue *stack = &get_stack(context, 0);			\
-    restore_special_registers(context, stack, fp - 4);		\
-    set_sp(context, fp - 5);					\
-    update_context();						\
-  }								\
-  Displacement disp = (Displacement) (newpc - pc);		\
-  set_pc_relative(disp);
-
+#define Makeclosure(context, ss) \
+  new_function_object(context, DEBUG_NAME("insn:makeclosure"), gshapes.g_shape_Function, ss);
 
 #define NotImplemented()            NOT_IMPLEMENTED()
 #define Nextpropnameidx(ite)        nextpropnameidx_helper(ite)

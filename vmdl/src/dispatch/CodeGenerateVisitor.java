@@ -208,7 +208,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 
         for (Node child: childToTags.keySet()) {
             for (PT tag: childToTags.get(child)) {
-                sb.append("case "+tag.getName()+":\n");
+                sb.append("case "+tag.getValueName()+":\n");
                 if (PAD_CASES) {
                     for (int v = tag.getValue() - 1; v >= 0; v--) {
                         if (tagValues.contains(v))
@@ -267,7 +267,7 @@ class CodeGenerateVisitor extends NodeVisitor<Void> {
 
         for (Node child: childToTags.keySet()) {
             for (HT tag: childToTags.get(child))  {
-                sb.append("case "+tag.getName()+":\n");
+                sb.append("case "+tag.getValueName()+":\n");
                 if (PAD_CASES) {
                     for (int v = tag.getValue() - 1; v >= 0; v--) {
                         if (tagValues.contains(v))

@@ -141,6 +141,8 @@ static inline JSValue cint_to_number(Context *ctx, cint n)
     return cint_to_flonum(ctx, n);
 }
 
+#ifndef USE_VMDL
+
 static inline double number_to_double(JSValue v)
 {
   if (is_fixnum(v))
@@ -148,6 +150,8 @@ static inline double number_to_double(JSValue v)
   else
     return flonum_to_double(v);
 }
+
+#endif /* USE_VMDL */
 
 static inline JSValue double_to_number(Context *ctx, double n)
 {

@@ -7,13 +7,13 @@
 to_double(v){
     top: match(v){
         case(Fixnum v){
-            return cint_to_double(fixnum_to_cint(v));
+            return fixnum_to_double(v);
         }
         case(Flonum v){
             return flonum_to_double(v);
         }
         case(String v){
-            cstring p = string_to_cstr(v);
+            cstring p = string_value(v);
             if(IsEmptyCstring(p)) return 0.0;
             cstring q;
             cint n;

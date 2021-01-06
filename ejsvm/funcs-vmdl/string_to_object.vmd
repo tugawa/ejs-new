@@ -1,11 +1,10 @@
 #include "../header-vmdl/externc.vmdh"
 
-
 (needContext, makeInline) string_to_object : String -> JSValue
 string_to_object(v){
     top: match(v){
         case(String v){
-            return new_normal_string_object(v);
+            return NewStringObject("string_to_object", gshapes.g_shape_String , v);
         }
         case(true){
             type_error("string expected in string_to_object");

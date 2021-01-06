@@ -12,9 +12,9 @@ mul (v1, v2) {
       cint n2 = to_cint(v2);
       if (Half_fixnum_range(n1) && Half_fixnum_range(n2)) {
         cint p = n1 * n2;
-        return cint_to_fixnum(p);
+        return small_cint_to_fixnum(p);
       } else {
-        cdouble d = cint_to_double(n1 * n2);
+        cdouble d = cint_to_double(n1) * cint_to_double(n2);
         return double_to_number(d);
       }
     }

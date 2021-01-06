@@ -47,4 +47,17 @@ externC mapping {
   embedded SimpleObject g_math;
 } : global_constant_objects
 
+externC type ShapePtr = "Shape*" : cint
+
+externC mapping  {
+  embedded ShapePtr g_shape_Object;
+  embedded ShapePtr g_shape_Function;
+  embedded ShapePtr g_shape_Builtin;
+  embedded ShapePtr g_shape_Array;
+  embedded ShapePtr g_shape_Number;
+  embedded ShapePtr g_shape_String;
+  embedded ShapePtr g_shape_Boolean;
+} : global_object_shapes
+
 externC constant gconsts = "gconsts" : global_constant_objects
+externC constant gshapes = "gshapes" : global_object_shapes

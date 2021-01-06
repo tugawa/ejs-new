@@ -1,6 +1,5 @@
 #include "../header-vmdl/externc.vmdh"
 
-
 (needContext, makeInline) special_to_object : Special-> JSValue
 special_to_object(v){
     top: match(v){
@@ -14,7 +13,7 @@ special_to_object(v){
                 return JS_UNDEFINED;
             }
             if(v == JS_TRUE || v == JS_FALSE){
-                return new_normal_boolean_object(v);
+                return NewBooleanObject("special_to_object", gshapes.g_shape_Boolean , v);
             }
         }
         case(true){

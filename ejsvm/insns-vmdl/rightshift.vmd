@@ -3,29 +3,29 @@
 #include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
-rightshift : (JSValue, JSValue) -> Fixnum
+rightshift : (JSValue, JSValue) -> Number
 
 rightshift (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint x1 = ((to_cint(v1) << 32) >> 32);
-      cint x2 = to_cint(v2);
-      return cint_to_fixnum(x1 >> x2);
+      int32_t x1 = cint_to_int32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return small_cint_to_fixnum(int32_to_cint(x1 >> x2));
     }
     case (Fixnum v1 && Flonum v2) {
-      cint x1 = ((to_cint(v1) << 32) >> 32);
-      cint x2 = to_cint(v2);
-      return cint_to_fixnum(x1 >> x2);
+      int32_t x1 = cint_to_int32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return small_cint_to_fixnum(int32_to_cint(x1 >> x2));
     }
     case (Flonum v1 && Fixnum v2) {
-      cint x1 = ((to_cint(v1) << 32) >> 32);
-      cint x2 = to_cint(v2);
-      return cint_to_fixnum(x1 >> x2);
+      int32_t x1 = cint_to_int32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return int32_to_number(x1 >> x2);
     }
     case (Flonum v1 && Flonum v2) {
-      cint x1 = ((to_cint(v1) << 32) >> 32);
-      cint x2 = to_cint(v2);
-      return cint_to_fixnum(x1 >> x2);
+      int32_t x1 = cint_to_int32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return int32_to_number(x1 >> x2);
     }
     case (number v1) {
       Number u2 = to_number(v2);

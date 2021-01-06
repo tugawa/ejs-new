@@ -3,6 +3,8 @@ package type;
 import java.util.HashMap;
 import java.util.Map;
 
+import type.AstType.AstAliasType;
+
 public class OperatorTypeChecker{
   private AstType[]   unaryOperatorTypeTable;
   private AstType[][] binaryOperatorTypeTable;
@@ -10,16 +12,19 @@ public class OperatorTypeChecker{
   protected static final AstType T_CINT         = AstType.get("cint");
   protected static final AstType T_CDOUBLE      = AstType.get("cdouble");
   protected static final AstType T_SUBSCRIPT    = AstType.get("Subscript");
-  protected static final AstType T_DISPLACEMENT = AstType.get("Displacement");
+  protected static final AstType T_CDISPLACEMENT = AstType.get("ConstantDisplacement");
+  protected static final AstType T_IDISPLACEMENT = AstType.get("InstructionDisplacement");
   private static final int CINT         = 0;
   private static final int CDOUBLE      = 1;
   private static final int SUBSCRIPT    = 2;
-  private static final int DISPLACEMENT = 3;
+  private static final int CDISPLACEMENT = 3;
+  private static final int IDISPLACEMENT = 3;
   static{
     numberMap.put(T_CINT, CINT);
     numberMap.put(T_CDOUBLE, CDOUBLE);
     numberMap.put(T_SUBSCRIPT, SUBSCRIPT);
-    numberMap.put(T_DISPLACEMENT, DISPLACEMENT);
+    numberMap.put(T_CDISPLACEMENT, CDISPLACEMENT);
+    numberMap.put(T_IDISPLACEMENT, IDISPLACEMENT);
   }
   private static final int typeSize =  numberMap.keySet().size();
   public static final OperatorTypeChecker PLUS = new OperatorTypeChecker().unaryOperator();
@@ -86,8 +91,10 @@ public class OperatorTypeChecker{
     ADD.add(CDOUBLE, CDOUBLE, T_CDOUBLE);
     ADD.add(CINT, SUBSCRIPT, T_SUBSCRIPT);
     ADD.add(SUBSCRIPT, CINT, T_SUBSCRIPT);
-    ADD.add(CINT, DISPLACEMENT, T_DISPLACEMENT);
-    ADD.add(DISPLACEMENT, CINT, T_DISPLACEMENT);
+    ADD.add(CINT, CDISPLACEMENT, T_CDISPLACEMENT);
+    ADD.add(CDISPLACEMENT, CINT, T_CDISPLACEMENT);
+    ADD.add(CINT, IDISPLACEMENT, T_IDISPLACEMENT);
+    ADD.add(IDISPLACEMENT, CINT, T_IDISPLACEMENT);
     // SUB
     SUB.add(CINT, CINT, T_CINT);
     SUB.add(CINT, CDOUBLE, T_CDOUBLE);
@@ -95,8 +102,10 @@ public class OperatorTypeChecker{
     SUB.add(CDOUBLE, CDOUBLE, T_CDOUBLE);
     SUB.add(CINT, SUBSCRIPT, T_SUBSCRIPT);
     SUB.add(SUBSCRIPT, CINT, T_SUBSCRIPT);
-    SUB.add(CINT, DISPLACEMENT, T_DISPLACEMENT);
-    SUB.add(DISPLACEMENT, CINT, T_DISPLACEMENT);
+    SUB.add(CINT, CDISPLACEMENT, T_CDISPLACEMENT);
+    SUB.add(CDISPLACEMENT, CINT, T_CDISPLACEMENT);
+    SUB.add(CINT, IDISPLACEMENT, T_IDISPLACEMENT);
+    SUB.add(IDISPLACEMENT, CINT, T_IDISPLACEMENT);
     SUB.add(SUBSCRIPT, SUBSCRIPT, T_SUBSCRIPT);
     //MUL, DIV
     MUL.add(CINT, CINT, T_CINT);
@@ -113,7 +122,8 @@ public class OperatorTypeChecker{
     LESSTHAN_EQUALS.add(CINT, CINT, T_CINT);
     LESSTHAN_EQUALS.add(CDOUBLE, CDOUBLE, T_CINT);
     LESSTHAN_EQUALS.add(SUBSCRIPT, SUBSCRIPT, T_CINT);
-    LESSTHAN_EQUALS.add(DISPLACEMENT, DISPLACEMENT, T_CINT);
+    LESSTHAN_EQUALS.add(CDISPLACEMENT, CDISPLACEMENT, T_CINT);
+    LESSTHAN_EQUALS.add(IDISPLACEMENT, IDISPLACEMENT, T_CINT);
     // LEFT_SHIFT, RIGHT_SHIFT
     LEFT_SHIFT.add(CINT, CINT, T_CINT);
     // NOTE: EQUALS and NOT_EQUALS defined in EqualsOperatorTypeChecker
@@ -127,6 +137,10 @@ public class OperatorTypeChecker{
     return unaryOperatorTypeTable[index];
   }
   public AstType typeOf(AstType ltype, AstType rtype){
+    if(ltype instanceof AstAliasType)
+      ltype = ((AstAliasType)ltype).getRealType();
+    if(rtype instanceof AstAliasType)
+      rtype = ((AstAliasType)rtype).getRealType();
     Integer lindex = numberMap.get(ltype);
     Integer rindex = numberMap.get(rtype);
     if(lindex == null || rindex == null){

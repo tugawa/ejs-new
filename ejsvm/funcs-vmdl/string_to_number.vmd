@@ -1,11 +1,11 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) string_to_number : String -> Number
+(needContext, makeInline) string_to_number : String -> Number
 string_to_number(v){
     top: match(v){
         case(String v){
-            cstring p = string_to_cstr(v);
+            cstring p = string_value(v);
             if(IsEmptyCstring(p)){
                 return FIXNUM_ZERO;
             }
@@ -14,11 +14,7 @@ string_to_number(v){
             (n, q) <- Strtol(p, 10);
             if(p != q){
                 if(IsEmptyCstring(q)){
-                    if (is_fixnum_range_cint(n)){
-                        return cint_to_fixnum(n);
-                    }else{
-                        return double_to_flonum(cint_to_double(n));
-                    }
+                    return cint_to_number(n);
                 }
             }
             cdouble d;

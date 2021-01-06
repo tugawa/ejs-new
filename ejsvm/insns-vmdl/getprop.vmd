@@ -6,17 +6,25 @@
 getprop : (JSValue, JSValue) -> JSValue
 getprop (obj, index) {
   top: match (obj, index) {
-    case (Array obj) {
+    case (Array obj && Fixnum index) {
+      return get_array_element(obj, fixnum_to_cint(index));
+    }
+        case (Array obj) {
       return getArrayProp(obj, index);
     }
-    case (object obj) {
+    case (object obj && String index) {
 #ifdef INLINE_CACHE
       return Get_prop_object_inl(obj, index);
 #else /* INLINE_CACHE */
       return getObjectProp(obj, index);
 #endif /* INLINE_CACHE */
     }
+    case (object obj) {
+      return getObjectProp(obj, index);
+    }
     case (true) {
+      if (obj == JS_UNDEFINED)
+        LOG_EXIT("GETPROP: attempt to get property of `undefined'\n");
       JSValue obj2 = to_object(obj);
       rematch top (obj2, index);
     }

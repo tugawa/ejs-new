@@ -37,12 +37,12 @@ public class DispatchProcessor {
     class TagMacro extends CodeGenerateVisitor.Macro {        
         @Override
         String getPTCode(String var) {
-            return (UNSIGNED ? "(unsigned int) " : "")+"get_tag("+var+")";
+            return (UNSIGNED ? "(unsigned int) " : "")+"get_ptag("+var+").v";
         }
 
         @Override
         String getHTCode(String var) {
-            return (UNSIGNED ? "(unsigned int) " : "")+"gc_obj_header_type((void*) clear_tag("+var+"))";
+            return (UNSIGNED ? "(unsigned int) " : "")+"get_htag("+var+").v";
         }
 
         @Override

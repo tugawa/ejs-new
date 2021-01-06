@@ -35,7 +35,8 @@ public class InstructionDefinitions {
         Register("r"),
         JSValue("v"),
         Subscript("s"),
-        Displacement("d"),
+        InstructionDisplacement("d"),
+        ConstantDisplacement("d"),
         Int("i"),
         LABELONLY("");
         private final String varPrefix;

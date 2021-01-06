@@ -1,5 +1,5 @@
 externC (makeInline) string_to_boolean : String -> Special
-externC (makeInline) string_to_number : String -> Number
+externC (needContext, makeInline) string_to_number : String -> Number
 externC (needContext, makeInline)  string_to_object : String -> JSValue
 externC (makeInline) special_to_boolean : Special -> Special
 externC (makeInline) special_to_number : Special -> Number

@@ -14,7 +14,7 @@ mod (v1, v2) {
         cint x1 = to_cint(v1);
         cint x2 = to_cint(v2);
         cint s = x1 % x2;
-        return cint_to_fixnum(s);
+        return cint_to_number(s);
       }
     }
     case (number v1 && number v2) {
@@ -38,7 +38,9 @@ mod (v1, v2) {
       rematch top(v1, u2);
     }
     case (true) {
-      return gconsts.g_flonum_nan;
+      Number u1 = to_number(v1);
+      Number u2 = to_number(v2);
+      rematch top(u1, u2);
     }
   }
 }
