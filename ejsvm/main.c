@@ -11,10 +11,6 @@
 #define EXTERN
 #include "header.h"
 
-#ifdef ICC_PROF
-#include "iccprof.h"
-#endif /* ICC_PROF */
-
 /*
  *  phase
  */
@@ -39,9 +35,9 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
-#ifdef ICCPROF
+#ifdef ICC_PROF
 char *iccprof_name;    /* name of instruction-call-count profile file */
-#endif /* ICCPROF */
+#endif /* ICC_PROF */
 #ifdef GC_PROF
 int gcprof_flag;       /* print GC profile information */
 #endif /* GC_PROF */
@@ -58,9 +54,9 @@ FILE *log_stream;
 #ifdef PROFILE
 FILE *prof_stream;
 #endif
-#ifdef ICCPROF
+#ifdef ICC_PROF
 FILE *iccprof_fp;
-#endif /* ICCPROF */
+#endif /* ICC_PROF */
 
 /*
  * parameter
@@ -107,9 +103,9 @@ struct commandline_option  options_table[] = {
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif /* PROFILE */
-#ifdef ICCPROF
+#ifdef ICC_PROF
   { "--iccprof",  1, NULL,            &iccprof_name },
-#endif /* ICCPROF */
+#endif /* ICC_PROF */
 #ifdef GC_PROF
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
@@ -325,12 +321,12 @@ int main(int argc, char *argv[]) {
     prof_stream = stdout;
   }
 #endif
-#ifdef ICCPROF
+#ifdef ICC_PROF
   if(iccprof_name != NULL){
     if ((iccprof_fp = fopen(iccprof_name, "w")) == NULL)
       fprintf(stderr, "Opening prof file %s failed.\n", iccprof_name);
   }
-#endif /* ICCPROF */
+#endif /* ICC_PROF */
 
   run_phase = PHASE_INIT;
 
@@ -350,9 +346,6 @@ int main(int argc, char *argv[]) {
   srand((unsigned)time(NULL));
 #endif /* NO_SRAND */
 
-#ifdef ICCPROF
-  iccprof_init();
-#endif /* ICCPROF */
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -488,12 +481,12 @@ int main(int argc, char *argv[]) {
   if (prof_stream != NULL)
     fclose(prof_stream);
 #endif /* PROFILE */
-#ifdef ICCPROF
+#ifdef ICC_PROF
   if(iccprof_fp != NULL){
     write_icc_profile(iccprof_fp);
     fclose(iccprof_fp);
   }
-#endif /* ICCPROF */
+#endif /* ICC_PROF */
 
   return 0;
 }

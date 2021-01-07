@@ -13,7 +13,8 @@ public class SplitCaseSelector {
 
   public SplitCaseSelector(String insnName, String[] formalParams, OperandSpecifications spec){
     Set<VMDataType[]> primitiveEnableConds = spec.getAccept(insnName, formalParams).getTuples();
-    enableConds = new HashSet<>(primitiveEnableConds.size()+1, 1.0f);
+    if(primitiveEnableConds == null) return;
+    enableConds = new HashSet<>(primitiveEnableConds.size()+1);
     for(VMDataType[] vec : primitiveEnableConds){
       TypeMap typeMap = new TypeMap();
       int length = vec.length;

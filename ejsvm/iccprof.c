@@ -1,30 +1,94 @@
-#ifdef ICCPROF
+/*
+ * eJS Project
+ * Kochi University of Technology
+ * The University of Electro-communications
+ *
+ * The eJS Project is the successor of the SSJS Project at The University of
+ * Electro-communications.
+ */
 
-#include "iccprof.h"
+#include "prefix.h"
+#define EXTERN extern
+#include "header.h"
 
-char *one_op_names[] = { "call", "new", "tailcall", "getglobal", "isobject", "isundef", "jumpfalse",
-  "jumptrue", "makeiterator", "move", "nextpropnameidx", "not", "seta", "setarg", "setlocal" };
-char *two_op_names[] = {"add", "bitand", "bitor", "div", "eq", "equal", "getprop", "leftshift", "lessthan",
-  "lessthanequal","mod", "mul", "rightshift", "sub", "unsignedrightshift", "instanceof", "setarray", "setglobal" };
-char *three_op_names[] = { "setprop" };
+#ifdef USE_REGEXP
+#define TYPE_SIZE 13
+#else /* USE_REGEXP */
+#define TYPE_SIZE 12
+#endif /* USE_REGEXP */
+
+typedef struct instruction_record{
+  char *name;
+  int8_t operand_size;
+  int64_t *table;
+  struct instruction_record *next;
+}InstructionRecord;
+
+InstructionRecord *recordList = NULL;
+
+void init_instruction_record(char *name, InstructionRecord *record){
+  record->name = name;
+  record->operand_size = 0;
+  record->table = NULL;
+  record->next = NULL;
+}
+
+InstructionRecord *new_instruction_record(char *name, InstructionRecord *prev){
+  InstructionRecord *ret;
+  ret = (InstructionRecord *)malloc(sizeof(InstructionRecord));
+  if(ret == NULL)
+    LOG_EXIT("Fail to allocate memory at new_instruction_record()");
+  prev->next = ret;
+  init_instruction_record(name, ret);
+  return ret;
+}
+
+InstructionRecord *new_instruction_record_with_no_prev(char *name){
+  InstructionRecord *ret;
+  ret = (InstructionRecord *)malloc(sizeof(InstructionRecord));
+  if(ret == NULL)
+    LOG_EXIT("Fail to allocate memory at new_instruction_record()");
+  init_instruction_record(name, ret);
+  return ret;
+}
+
+InstructionRecord *get_instruction_record_inner(char *name, InstructionRecord *record){
+  if(strcmp(record->name, name) == 0)
+    return record;
+  if(record->next == NULL){
+    record->next = new_instruction_record(name, record);
+    return record->next;
+  }
+  return get_instruction_record_inner(name, record->next);
+}
+
+InstructionRecord *get_instruction_record(char *name){
+  if(recordList == NULL){
+    recordList = new_instruction_record_with_no_prev(name);
+    return recordList;
+  }
+  return get_instruction_record_inner(name, recordList);
+}
 
 int icc_value2index(JSValue value){
-  switch (get_tag(value)){
-    case T_FIXNUM: return 0;
-    case T_FLONUM: return 1;
-    case T_STRING: return 2;
-    case T_SPECIAL: return 3;
-    case T_GENERIC:
-      switch (HEADER0_GET_TYPE(((header_t *) value)[-1])){
-        case HTAG_SIMPLE_OBJECT: return 4;
-        case HTAG_ARRAY: return 5;
-        case HTAG_FUNCTION: return 6;
-        case HTAG_BUILTIN: return 7;
-        case HTAG_ITERATOR: return 8;
-        case HTAG_REGEXP: return 9;
-        case HTAG_BOXED_STRING: return 10;
-        case HTAG_BOXED_NUMBER: return 11;
-        case HTAG_BOXED_BOOLEAN: return 12;
+  switch (get_ptag(value).v){
+    case TV_FIXNUM: return 0;
+    case TV_FLONUM: return 1;
+    case TV_STRING: return 2;
+    case TV_SPECIAL: return 3;
+    case TV_GENERIC:
+      switch (get_htag(value).v){
+        case HTAGV_SIMPLE_OBJECT: return 4;
+        case HTAGV_ARRAY: return 5;
+        case HTAGV_FUNCTION: return 6;
+        case HTAGV_BUILTIN: return 7;
+        case HTAGV_ITERATOR: return 8;
+        case HTAGV_BOXED_STRING: return 9;
+        case HTAGV_BOXED_NUMBER: return 10;
+        case HTAGV_BOXED_BOOLEAN: return 11;
+#ifdef USE_REGEXP
+        case HTAGV_REGEXP: return 12;
+#endif /* USE_REGEXP */
         default: break;
       }
     default: break;
@@ -45,10 +109,12 @@ char *icc_index2type_name(int index){
       case 6: return "function";
       case 7: return "builtin";
       case 8: return "iterator";
-      case 9: return "regexp";
-      case 10: return "string_object";
-      case 11: return "number_object";
-      case 12: return "boolean_object";
+      case 9: return "string_object";
+      case 10: return "number_object";
+      case 11: return "boolean_object";
+#ifdef USE_REGEXP
+      case 12: return "regexp";
+#endif /* USE_REGEXP */
       default: break;
     }
   fprintf(stderr, "Illigal value in icc_index2type_name");
@@ -56,170 +122,80 @@ char *icc_index2type_name(int index){
   return NULL;
 }
 
-long *get_1op_insn_counter(char *iname){
-  if(strcmp(iname, "call") == 0) return icc_call;
-  if(strcmp(iname, "new") == 0) return icc_new;
-  if(strcmp(iname, "tailcall") == 0) return icc_tailcall;
-  if(strcmp(iname, "getglobal") == 0) return icc_getglobal;
-  if(strcmp(iname, "isobject") == 0) return icc_isobject;
-  if(strcmp(iname, "isundef") == 0) return icc_isundef;
-  if(strcmp(iname, "jumpfalse") == 0) return icc_jumpfalse;
-  if(strcmp(iname, "jumptrue") == 0) return icc_jumptrue;
-  if(strcmp(iname, "makeiterator") == 0) return icc_makeiterator;
-  if(strcmp(iname, "move") == 0) return icc_move;
-  if(strcmp(iname, "nextpropnameidx") == 0) return icc_nextpropnameidx;
-  if(strcmp(iname, "not") == 0) return icc_not;
-  if(strcmp(iname, "seta") == 0) return icc_seta;
-  if(strcmp(iname, "setarg") == 0) return icc_setarg;
-  if(strcmp(iname, "setlocal") == 0) return icc_setlocal;
-  fprintf(stderr, "Illigal value in get_1op_insn_counter: %s", iname);
-  assert(0);
-  return NULL;
-}
-long **get_2op_insn_counter(char *iname){
-  if(strcmp(iname, "add") == 0) return icc_add;
-  if(strcmp(iname, "bitand") == 0) return icc_bitand;
-  if(strcmp(iname, "bitor") == 0) return icc_bitor;
-  if(strcmp(iname, "div") == 0) return icc_div;
-  if(strcmp(iname, "eq") == 0) return icc_eq;
-  if(strcmp(iname, "equal") == 0) return icc_equal;
-  if(strcmp(iname, "getprop") == 0) return icc_getprop;
-  if(strcmp(iname, "leftshift") == 0) return icc_leftshift;
-  if(strcmp(iname, "lessthan") == 0) return icc_lessthan;
-  if(strcmp(iname, "lessthanequal") == 0) return icc_lessthanequal;
-  if(strcmp(iname, "mod") == 0) return icc_mod;
-  if(strcmp(iname, "mul") == 0) return icc_mul;
-  if(strcmp(iname, "rightshift") == 0) return icc_rightshift;
-  if(strcmp(iname, "sub") == 0) return icc_sub;
-  if(strcmp(iname, "unsignedrightshift") == 0) return icc_unsignedrightshift;
-  if(strcmp(iname, "instanceof") == 0) return icc_instanceof;
-  if(strcmp(iname, "setarray") == 0) return icc_setarray;
-  if(strcmp(iname, "setglobal") == 0) return icc_setglobal;
-  fprintf(stderr, "Illigal value in get_2op_insn_counter: %s", iname);
-  assert(0);
-  return NULL;
+void icc_alloc_table(InstructionRecord *record, int operand_size){
+  record->operand_size = operand_size;
+  int size = TYPE_SIZE;
+  int i;
+  for(i=1; i<operand_size; i++)
+    size *= TYPE_SIZE;
+  record->table = (int64_t *)malloc(sizeof(int64_t)*size);
+  if(record->table == NULL)
+    LOG_EXIT("Fail to allocate memory at icc_inc_record1()");
+  for(i=0; i<size; i++)
+    record->table[i] = 0;
 }
 
-long ***get_3op_insn_counter(char *iname){
-  if(strcmp(iname, "setprop") == 0) return icc_setprop;
-  fprintf(stderr, "Illigal value in get_3op_insn_counter: %s", iname);
-  assert(0);
-  return NULL;
+void icc_inc_record1(char *name, JSValue v1){
+  InstructionRecord *record = get_instruction_record(name);
+  if(record->table == NULL)
+    icc_alloc_table(record, 1);
+  record->table[icc_value2index(v1)]++;
 }
 
-void iccprof_init(){
-  int i,j,k,l;
+void icc_inc_record2(char *name, JSValue v1, JSValue v2){
+  InstructionRecord *record = get_instruction_record(name);
+  if(record->table == NULL)
+    icc_alloc_table(record, 2);
+  record->table[icc_value2index(v1)+icc_value2index(v2)*TYPE_SIZE]++;
+}
 
-  for(i=0; i<ONE_OP_SIZE; i++){
-    if((one_ops[i] = (long *)malloc(TYPE_SIZE * sizeof(long))) == NULL){
-      fprintf(stderr, "Fail to allocate memory in iccprof_init");
-      return;
-    }
-    for(j=0; j<TYPE_SIZE; j++){
-      one_ops[i][j] = 0;
-    }
-  }
-  for(i=0; i<TWO_OP_SIZE; i++){
-    if((two_ops[i] = (long **)malloc(TYPE_SIZE * sizeof(long*))) == NULL){
-      fprintf(stderr, "Fail to allocate memory in iccprof_init");
-      return;
-    }
-    for(j=0; j<TYPE_SIZE; j++){
-      if((two_ops[i][j] = (long *)malloc(TYPE_SIZE * sizeof(long))) == NULL){
-        fprintf(stderr, "Fail to allocate memory in iccprof_init");
-        return;
+void icc_inc_record3(char *name, JSValue v1, JSValue v2, JSValue v3){
+  InstructionRecord *record = get_instruction_record(name);
+  if(record->table == NULL)
+    icc_alloc_table(record, 3);
+  record->table[icc_value2index(v1)+icc_value2index(v2)*TYPE_SIZE+icc_value2index(v3)*TYPE_SIZE*TYPE_SIZE]++;
+}
+
+void print_instruction_record(FILE *fp, InstructionRecord *record){
+  int i, j ,k;
+  fprintf(fp, "#INSN %s %d\n", record->name, record->operand_size);
+  switch(record->operand_size){
+    case 1:
+      for(i=0; i<TYPE_SIZE; i++){
+        if(record->table[i] == 0) continue; /* Skips no called. */
+        fprintf(fp, "#OPRN %s %ld\n", icc_index2type_name(i), record->table[i]);
       }
-      for(k=0; k<TYPE_SIZE; k++){
-        two_ops[i][j][k] = 0;
-      }
-    }
-  }
-  for(i=0; i<THREE_OP_SIZE; i++){
-    if((three_ops[i] = (long ***)malloc(TYPE_SIZE * sizeof(long**))) == NULL){
-      fprintf(stderr, "Fail to allocate memory in iccprof_init");
-      return;
-    }
-    for(j=0; j<TYPE_SIZE; j++){
-      if((three_ops[i][j] = (long **)malloc(TYPE_SIZE * sizeof(long*))) == NULL){
-        fprintf(stderr, "Fail to allocate memory in iccprof_init");
-        return;
-      }
-      for(k=0; k<TYPE_SIZE; k++){
-        if((three_ops[i][j][k] = (long *)malloc(TYPE_SIZE * sizeof(long))) == NULL){
-          fprintf(stderr, "Fail to allocate memory in iccprof_init");
-          return;
-        }
-        for(l=0; l<TYPE_SIZE; l++){
-          three_ops[i][j][k][l] = 0;
+      break;
+    case 2:
+      for(j=0; j<TYPE_SIZE; j++){
+        for(i=0; i<TYPE_SIZE; i++){
+          if(record->table[i+TYPE_SIZE*j] == 0) continue; /* Skips no called. */
+          fprintf(fp, "#OPRN %s,%s %ld\n", icc_index2type_name(i), icc_index2type_name(j), record->table[i+TYPE_SIZE*j]);
         }
       }
-    }
+      break;
+    case 3:
+      for(k=0; k<TYPE_SIZE; k++){
+        for(j=0; j<TYPE_SIZE; j++){
+          for(i=0; i<TYPE_SIZE; i++){
+            if(record->table[i+TYPE_SIZE*j+TYPE_SIZE*TYPE_SIZE*k] == 0) continue; /* Skips no called. */
+            fprintf(fp, "#OPRN %s,%s,%s %ld\n", icc_index2type_name(i), icc_index2type_name(j), icc_index2type_name(k), 
+              record->table[i+TYPE_SIZE*j+TYPE_SIZE*TYPE_SIZE*k]);
+          }
+        }
+      }
+      break;
+    default:
+      LOG_EXIT("Instruction records are expected less than 4 operands.");
   }
-
-  icc_call = one_ops[0];
-  icc_new = one_ops[1];
-  icc_tailcall = one_ops[2];
-  icc_getglobal = one_ops[3];
-  icc_isobject = one_ops[4];
-  icc_isundef = one_ops[5];
-  icc_jumpfalse = one_ops[6];
-  icc_jumptrue = one_ops[7];
-  icc_makeiterator = one_ops[8];
-  icc_move = one_ops[9];
-  icc_nextpropnameidx = one_ops[10];
-  icc_not = one_ops[11];
-  icc_seta = one_ops[12];
-  icc_setarg = one_ops[13];
-  icc_setlocal = one_ops[14];
-  icc_add = two_ops[0];
-  icc_bitand = two_ops[1];
-  icc_bitor = two_ops[2];
-  icc_div = two_ops[3];
-  icc_eq = two_ops[4];
-  icc_equal = two_ops[5];
-  icc_getprop = two_ops[6];
-  icc_leftshift = two_ops[7];
-  icc_lessthan = two_ops[8];
-  icc_lessthanequal = two_ops[9];
-  icc_mod = two_ops[10];
-  icc_mul = two_ops[11];
-  icc_rightshift = two_ops[12];
-  icc_sub = two_ops[13];
-  icc_unsignedrightshift = two_ops[14];
-  icc_instanceof = two_ops[15];
-  icc_setarray = two_ops[16];
-  icc_setglobal = two_ops[17];
-  icc_setprop = three_ops[0];
 }
+
+void write_icc_profile_inner(FILE *fp, InstructionRecord *record){
+  if(record == NULL) return;
+  print_instruction_record(fp, record);
+  write_icc_profile_inner(fp, record->next);
+}
+
 void write_icc_profile(FILE *fp){
-  int i,j,k,l;
-
-  for(i=0; i<ONE_OP_SIZE; i++){
-    fprintf(fp, "#INSN %s\n", one_op_names[i]);
-    for(j=0; j<TYPE_SIZE; j++){
-      if(one_ops[i][j] == 0) continue; /* Skip 0 times called. */
-      fprintf(fp, "#OPRN %s %ld\n", icc_index2type_name(j), one_ops[i][j]);
-    }
-  }
-  for(i=0; i<TWO_OP_SIZE; i++){
-    fprintf(fp, "#INSN %s\n", two_op_names[i]);
-    for(j=0; j<TYPE_SIZE; j++){
-      for(k=0; k<TYPE_SIZE; k++){
-        if(two_ops[i][j][k] == 0) continue; /* Skip 0 times called. */
-        fprintf(fp, "#OPRN %s,%s %ld\n", icc_index2type_name(j), icc_index2type_name(k), two_ops[i][j][k]);
-      }
-    }
-  }
-  for(i=0; i<THREE_OP_SIZE; i++){
-    fprintf(fp, "#INSN %s\n", three_op_names[i]);
-    for(j=0; j<TYPE_SIZE; j++){
-      for(k=0; k<TYPE_SIZE; k++){
-        for(l=0; l<TYPE_SIZE; l++){
-          if(three_ops[i][j][k][l] == 0) continue; /* Skip 0 times called. */
-          fprintf(fp, "#OPRN %s,%s,%s %ld\n", icc_index2type_name(j), icc_index2type_name(k), icc_index2type_name(l), three_ops[i][j][k][l]);
-        }
-      }
-    }
-  }
+  write_icc_profile_inner(fp, recordList);
 }
-#endif

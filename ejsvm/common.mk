@@ -106,6 +106,9 @@ LIBS   += -lm
 ifeq ($(USE_VMDL),true)
 CPPFLAGS += -DUSE_VMDL
 CPPFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
+ifeq ($(ICC_PROF),true)
+CPPFLAGS += -DICC_PROF
+endif
 endif
 
 ######################################################
@@ -175,7 +178,6 @@ HFILES = $(GENERATED_HFILES) \
     gc-inl.h
 ifeq ($(USE_VMDL),true)
     HFILES += vmdl-helper.h
-    HFILES += iccprof.h
 endif
 
 SUPERINSNS = $(shell $(GOTTA) --list-si)
@@ -207,7 +209,9 @@ OFILES = \
     main.o
 ifeq ($(USE_VMDL),true)
 OFILES += vmdl-helper.o
+ifeq ($(ICC_PROF),true)
 OFILES += iccprof.o
+endif
 endif
 
 ifeq ($(SUPERINSN_MAKEINSN),true)
@@ -618,7 +622,7 @@ $(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
 	echo $(CXXFLAGS)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
-conversion.o: conversion.c $(FUNCS_FILES)
+conversion.o: conversion.c $(FUNCS_FILES) $(HFILES)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)

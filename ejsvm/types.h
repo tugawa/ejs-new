@@ -50,7 +50,6 @@ typedef struct inline_cache InlineCache;
 /* instruction.h */
 typedef struct instruction    Instruction;
 
-
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */

@@ -41,6 +41,7 @@ USE_VMDL=false
 USE_VMDL_INLINE_EXPANSION=false
 USE_VMDL_CASE_SPLIT=false
 # ICCSPEC=
+ICC_PROF=false
 
 ##
 ## commands

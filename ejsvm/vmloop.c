@@ -10,9 +10,6 @@
 #include "prefix.h"
 #define EXTERN
 #include "header.h"
-#ifdef ICC_PROF
-#include "iccprof.h"
-#endif /* ICC_PROF */
 
 static void exhandler_throw(Context *context);
 static void lcall_stack_push(Context* context, int pc);

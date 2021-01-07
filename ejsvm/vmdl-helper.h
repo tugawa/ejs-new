@@ -20,6 +20,7 @@
 #define SetArrayProp(context,v1,v2,v3)   set_array_prop((context), (v1), (v2), (v3))
 #define SetObjectProp(context,v1,v2,v3)  set_object_prop((context), (v1), (v2), (v3))
 #ifdef INLINE_CACHE
+extern void set_object_prop_inl(Context *ctx, JSValue obj, JSValue prop, JSValue val, InlineCache *ic);
 #define SetObjectPropInl(context,v1,v2,v3)  set_object_prop_inl((context), (v1), (v2), (v3), &insns->inl_cache)
 #endif /* INLINE_CACHE */
 

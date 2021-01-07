@@ -40,6 +40,7 @@ import type.AstType.AstBaseType;
 import type.AstType.AstMappingType;
 import type.AstType.AstPairType;
 import type.AstType.AstProductType;
+import type.AstType.JSValueType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;
@@ -163,23 +164,22 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class FunctionMeta extends DefaultVisitor {
         private final String generateICCProfCode(String insnName, List<AstType> types, Tree<?> paramsNode){
             StringBuilder builder = new StringBuilder();
-            int size = types.size();
             int jsvSize = 0;
-
-            builder.append("#ifdef ICCPROF\n");
-            builder.append("icc_");
-            builder.append(insnName);
-            for(int i=0; i<size; i++){
-                if(AstType.get("JSValue").isSuperOrEqual(types.get(i))){
-                    jsvSize++;
-                    builder.append("[icc_value2index(");
-                    builder.append(paramsNode.get(i).toText());
-                    builder.append(")]");
-                }
-            }
+            for(AstType type : types)
+                if(AstType.get("JSValue").isSuperOrEqual(type)) jsvSize++;
             if(jsvSize==0) return "";
-            builder.append("++;\n");
-            builder.append("#endif\n");
+            builder.append("#ifdef ICC_PROF\n");
+            builder.append("icc_inc_record");
+            builder.append(jsvSize);
+            builder.append("(\"");
+            builder.append(insnName);
+            builder.append('\"');
+            for(int i=0; i<jsvSize; i++){
+                builder.append(", ");
+                builder.append(paramsNode.get(i).toText());
+            }
+            builder.append(");\n");
+            builder.append("#endif /* ICC_PROF */\n");
             return builder.toString();
         }
         private final List<AstType> toAstTypeList(AstProductType functionType, SyntaxTree typeNode){

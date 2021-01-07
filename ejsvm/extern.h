@@ -427,6 +427,16 @@ extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl, 
 extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
 extern JSValue nextpropnameidx_helper(JSValue itr);
 
+/*
+ * iccprof.c
+ */
+#ifdef ICC_PROF
+extern void icc_inc_record1(char *name, JSValue v1);
+extern void icc_inc_record2(char *name, JSValue v1, JSValue v2);
+extern void icc_inc_record3(char *name, JSValue v1, JSValue v2, JSValue v3);
+extern void write_icc_profile(FILE *fp);
+#endif /* ICC_PROF */
+
 #ifdef __cplusplus
 }
 #endif
