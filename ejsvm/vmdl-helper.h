@@ -127,78 +127,90 @@ extern struct Strtod_rettype Strtod(char*);
 //struct GetProp_rettype{cint r0;/* return value of get_prop */ JSValue r1; /* obtained JSValue of get_prop */};
 //extern struct GetProp_rettype GetProp(JSValue, JSValue);
 
-#define Pophandler()					              \
-  UnwindProtect *p;                         \
-  p = context->exhandler_stack_top;         \
-  if (p != NULL) {                          \
-    context->exhandler_stack_top = p->prev; \
-    p->prev = context->exhandler_pool;      \
-    context->exhandler_pool = p;            \
-  }
+#define Pophandler()					                \
+  do {                                        \
+    UnwindProtect *p;                         \
+    p = context->exhandler_stack_top;         \
+    if (p != NULL) {                          \
+      context->exhandler_stack_top = p->prev; \
+      p->prev = context->exhandler_pool;      \
+      context->exhandler_pool = p;            \
+    }                                         \
+  } while(0)
 
-#define Pushhandler(d0)                                             \
-  UnwindProtect *p;                                                 \
-                                                                    \
-  if (context->exhandler_pool != NULL) {                            \
-    p = context->exhandler_pool;                                    \
-    context->exhandler_pool = p->prev;                              \
-  } else {                                                          \
-    save_context();                                                 \
-    p = (UnwindProtect *) gc_malloc(context, sizeof(UnwindProtect), \
-                                    CELLT_UNWIND);                  \
-    update_context();                                               \
-  }                                                                 \
-  p->fp = fp;                                                       \
-  p->pc = pc + d0;                                                  \
-  p->lp = get_lp(context);                                          \
-  p->lcall_stack_ptr = context->lcall_stack_ptr;                    \
-  p->_jmp_buf = &jmp_buf;                                           \
-  p->prev = context->exhandler_stack_top;                           \
-  context->exhandler_stack_top = p;                                 \
+#define Pushhandler(d0)                                               \
+  do {                                                                \
+    UnwindProtect *p;                                                 \
+                                                                      \
+    if (context->exhandler_pool != NULL) {                            \
+      p = context->exhandler_pool;                                    \
+      context->exhandler_pool = p->prev;                              \
+    } else {                                                          \
+      save_context();                                                 \
+      p = (UnwindProtect *) gc_malloc(context, sizeof(UnwindProtect), \
+                                      CELLT_UNWIND);                  \
+      update_context();                                               \
+    }                                                                 \
+    p->fp = fp;                                                       \
+    p->pc = pc + d0;                                                  \
+    p->lp = get_lp(context);                                          \
+    p->lcall_stack_ptr = context->lcall_stack_ptr;                    \
+    p->_jmp_buf = &jmp_buf;                                           \
+    p->prev = context->exhandler_stack_top;                           \
+    context->exhandler_stack_top = p;                                 \
+  } while(0)
 
-#define Poplocal()				\
-  int newpc;					\
-  lcall_stack_pop(context, &newpc);
+#define Poplocal()				            \
+  do {                                \
+    int newpc;					              \
+    lcall_stack_pop(context, &newpc); \
+  } while(0)
 
-#define Ret()							\
-  if (fp == border) return 1;					\
-  JSValue* stack = &get_stack(context, 0);			\
-  restore_special_registers(context, stack, fp - 4);
+#define Ret()							                           \
+do {                                                 \
+  if (fp == border) return 1;					               \
+  JSValue* stack = &get_stack(context, 0);			     \
+  restore_special_registers(context, stack, fp - 4); \
+} while(0)
 
-#define Newframe(i0, i1)						\
-  int frame_len = (i0);                                                 \
-  int make_arguments = (i1);                                            \
-  FunctionFrame *fr;                                                    \
-  int num_of_args, i;                                                   \
-  JSValue args;                                                         \
-                                                                        \
-  save_context();                                                       \
-  fr = new_frame(context, get_cf(context), get_lp(context), frame_len); \
-  set_lp(context, fr);                                                  \
-  update_context();                                                     \
-                                                                        \
-  if (make_arguments) {                                                 \
-    JSValue *body;                                                      \
-    num_of_args = get_ac(context);                                      \
-    save_context();                                                     \
-    args = new_array_object(context, DEBUG_NAME("arguments"),           \
-                            gshapes.g_shape_Array, num_of_args);        \
-    update_context();                                                   \
-                                                                        \
-    body = get_jsarray_body(args);                                      \
-    for (i = 0; i < num_of_args; i++) {                                 \
-      body[i] = regbase[i + 2];                                         \
-    }                                                                   \
-    fframe_arguments(fr) = args;                                        \
-    fframe_locals_idx(fr, 0) = args;                                    \
-  }
+#define Newframe(i0, i1)						                                      \
+  do {                                                                    \
+    int frame_len = (i0);                                                 \
+    int make_arguments = (i1);                                            \
+    FunctionFrame *fr;                                                    \
+    int num_of_args, i;                                                   \
+    JSValue args;                                                         \
+                                                                          \
+    save_context();                                                       \
+    fr = new_frame(context, get_cf(context), get_lp(context), frame_len); \
+    set_lp(context, fr);                                                  \
+    update_context();                                                     \
+                                                                          \
+    if (make_arguments) {                                                 \
+      JSValue *body;                                                      \
+      num_of_args = get_ac(context);                                      \
+      save_context();                                                     \
+      args = new_array_object(context, DEBUG_NAME("arguments"),           \
+                              gshapes.g_shape_Array, num_of_args);        \
+      update_context();                                                   \
+                                                                          \
+      body = get_jsarray_body(args);                                      \
+      for (i = 0; i < num_of_args; i++) {                                 \
+        body[i] = regbase[i + 2];                                         \
+      }                                                                   \
+      fframe_arguments(fr) = args;                                        \
+      fframe_locals_idx(fr, 0) = args;                                    \
+    }                                                                     \
+  } while(0)
 
-#define Exitframe(context) \
-  FunctionFrame *fr = get_lp(context); \
-  set_lp(context, fframe_prev(fr));
+#define Exitframe(context)               \
+  do {                                   \
+    FunctionFrame *fr = get_lp(context); \
+    set_lp(context, fframe_prev(fr));    \
+  } while(0)
 
 #define Makeclosure(context, ss) \
-  new_function_object(context, DEBUG_NAME("insn:makeclosure"), gshapes.g_shape_Function, ss);
+  new_function_object((context), DEBUG_NAME("insn:makeclosure"), gshapes.g_shape_Function, (ss))
 
 #define NotImplemented()            NOT_IMPLEMENTED()
 #define Nextpropnameidx(ite)        nextpropnameidx_helper(ite)

@@ -192,12 +192,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 varTypes = new ArrayList<>(1);
                 varTypes.add(domainType);
             }
-            /*
-            for(AstType t : varTypes){
-                if(!(t instanceof AstBaseType))
-                    ErrorPrinter.error("illigal patameter types", typeNode);
-            }
-            */
             if(varTypes.size() == 1 && varTypes.get(0) == AstType.get("void"))
             varTypes = Collections.emptyList();
             return varTypes;
@@ -231,24 +225,6 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
             return String.join(", ", parameters.toArray(new String[0]));
         }
-        // TODO: Change the policy of LOG_EXIT generation
-        private final Tree<?> insertLOG_EXIT(CompileMode mode, Tree<?> definitionNode, String functionName){
-            if(!compileMode.isFunctionMode()) return definitionNode;
-            SyntaxTree blockNode = ((SyntaxTree)definitionNode).get(Symbol.unique("body"));
-            while(blockNode.hasExpandedTree()){
-                blockNode = blockNode.getExpandedTree();
-            }
-            SyntaxTree[] originalStmts = (SyntaxTree[])blockNode.getSubTree();
-            SyntaxTree[] expandedStmts = new SyntaxTree[originalStmts.length + 1];
-            int length = originalStmts.length;
-            for(int i=0; i<length; i++){
-                expandedStmts[i] = originalStmts[i];
-            }
-            expandedStmts[length] = new SyntaxTree(Symbol.unique("IfdefDebug"), null, null, functionName);
-            SyntaxTree newDefinitionNode = (SyntaxTree)definitionNode.dup();
-            newDefinitionNode.set(Symbol.unique("body"), ASTHelper.generateBlock(expandedStmts));
-            return newDefinitionNode;
-        }
         public void accept(Tree<?> node, int indent) throws Exception {
             Tree<?> nameNode = node.get(Symbol.unique("name"));
             Tree<?> bodyNode = node.get(Symbol.unique("definition"));
@@ -271,19 +247,9 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                 print(getParameterString(compileMode, varTypes, paramsNode, name));
                 println(")");
             }
-            bodyNode = insertLOG_EXIT(compileMode, bodyNode, name);
             if(!compileMode.isFunctionMode())
                 notifyICCProfCode(bodyNode, generateICCProfCode(name, varTypes, paramsNode));
             visit(bodyNode, indent);
-        }
-    }
-    public class IfdefDebug extends DefaultVisitor {
-        @Override
-        public void accept(Tree<?> node, int indent) throws Exception {
-            String name = (String)node.getValue();
-            printIndentln(indent, "#ifdef DEBUG");
-            printIndentln(indent, "LOG_EXIT(\"unexpected function execute: "+name+"\\n\");");
-            printIndentln(indent, "#endif");
         }
     }
     public class FunctionDefinition extends DefaultVisitor {
@@ -1013,17 +979,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Ctype extends DefaultVisitor {
         @Override
         public void accept(Tree<?> node, int indent) throws Exception {
-            HashMap<String, String> varmap = new HashMap<String, String>();
-            //TODO: use CCodeName instead of varmap
-            varmap.put("cint", "cint");
-            varmap.put("cdouble", "double");
-            varmap.put("cstring", "char*");
-            varmap.put("ConstantDisplacement", "ConstantDisplacement");
-            varmap.put("InstructionDisplacement", "InstructionDisplacement");
-            varmap.put("Subscript", "Subscript");
-            varmap.put("Args", "JSValue[]");
-            //NOTE: HeapObject cannnot print
-            print(varmap.get(node.toText()));
+            print(AstType.get(node.toText()).getCCodeName());
         }
     }
     public class CValue extends DefaultVisitor {

@@ -524,7 +524,7 @@ HeapObject
         }
         @Override
         public String getCCodeName(){
-            return "Args";
+            return "JSValue[]";
         }
     }
 

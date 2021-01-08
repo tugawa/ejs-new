@@ -12,6 +12,7 @@ externC constant JS_EMPTY = "JS_EMPTY" : Special
 externC constant FIXNUM_ZERO = "FIXNUM_ZERO" : Fixnum
 externC constant FIXNUM_ONE = "FIXNUM_ONE" : Fixnum
 externC constant HINT_STRING = "HINT_STRING" : cint
+externC constant HINT_NUMBER = "HINT_NUMBER" : cint
 externC constant NAN = "NAN" : cdouble
 externC constant SUCCESS = "SUCCESS" : cint
 
@@ -34,6 +35,9 @@ externC IsTailSend : cint -> cint
 externC IsNewSend : cint -> cint
 externC is_string : JSValue -> cint
 externC is_fixnum_range_cint : cint -> cint
+externC is_null : JSValue -> cint
+externC is_nan : JSValue -> cint
+externC is_undefined : JSValue -> cint
 
 externC true_false : cint -> Special
 externC false_true : cint -> Special

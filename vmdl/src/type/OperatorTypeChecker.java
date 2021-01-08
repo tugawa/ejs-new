@@ -154,6 +154,7 @@ public class OperatorTypeChecker{
 class EqualsOperatorTypeChecker extends OperatorTypeChecker{
   @Override
   public AstType typeOf(AstType ltype, AstType rtype){
+    /*
     AstType result;
     if(ltype.isSuperOrEqual(rtype) || rtype.isSuperOrEqual(ltype)){
       result = AstType.get("cint");
@@ -161,5 +162,7 @@ class EqualsOperatorTypeChecker extends OperatorTypeChecker{
       result = null;
     }
     return result;
+    */
+    return AstType.get("cint");
   }
 }
