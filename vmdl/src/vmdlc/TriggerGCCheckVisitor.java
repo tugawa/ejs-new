@@ -98,6 +98,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public Set<Entry<SyntaxTree, BlockExpansionRequsets>> entrySet(){
             return map.entrySet();
         }
+        public Set<SyntaxTree> keySet(){
+            return map.keySet();
+        }
         public static SyntaxTree generateExpandedBlock(SyntaxTree original, BlockExpansionRequsets requests){
             if(original == null || original.size() == 0) return original;
             SyntaxTree[] originalStmts = (SyntaxTree[]) original.getSubTree();
@@ -122,7 +125,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     GCFunctionGenerator gcFunctionGenerator = new GCFunctionGenerator();
     BlockExpansionMap blockExpansionMap = new BlockExpansionMap();
-    BlockExpansionRequsets currentRequestHandler;
+    BlockExpansionRequsets currentRequests;
     CompileMode compileMode;
     Collection<AstType> exceptType;
 
@@ -149,10 +152,12 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 }
                 if(target.hasTailLive() && target.getTailLive().equals(newTailLive)) continue;
                 target.setTailLive(new HashSet<>(newTailLive));
-                currentRequestHandler = new BlockExpansionRequsets();
+                currentRequests = new BlockExpansionRequsets();
                 SyntaxTree belongingBlock = target.getBelongingBlock();
                 if(belongingBlock != null){
-                    blockExpansionMap.put(target.getBelongingBlock(), currentRequestHandler);
+                    if(blockExpansionMap.keySet().contains(belongingBlock))
+                        currentRequests = blockExpansionMap.get(belongingBlock);
+                    blockExpansionMap.put(target.getBelongingBlock(), currentRequests);
                 }
                 List<SyntaxTree> stmts = target.getStatementList();
                 int size = stmts.size();
@@ -279,7 +284,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             stmts[size] = nestSolved;
             declarationSeparated[0] = clipDeclaration(node);
             declarationSeparated[1] = ASTHelper.generateBlock(stmts);
-            currentRequestHandler.put(node, declarationSeparated);
+            currentRequests.put(node, declarationSeparated);
         }
         private final void updateCollection(SyntaxTree node, Collection<String> live) throws Exception{
             SyntaxTree var = node.get(Symbol.unique("var"));
@@ -415,6 +420,15 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             if(node.size() == 0) return;
             SyntaxTree expr = node.get(0);
             update(expr, live, node.getHeadDict());
+        }
+    }
+
+    public class Rematch extends DefaultVisitor{
+        @Override
+        public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
+            int size = node.size();
+            for(int i=1; i<size; i++)
+                update(node.get(i), live, node.getHeadDict());
         }
     }
 

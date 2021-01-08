@@ -50,6 +50,8 @@ public class ControlFlowGraphPrinter {
             System.out.println(target.getHeadLive());
             System.out.println("tailLive:");
             System.out.println(target.getTailLive());
+            System.out.println("belonging:");
+            System.out.println(target.getBelongingBlock());
             System.out.println("------------");
         }
     }

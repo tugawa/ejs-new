@@ -682,6 +682,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class Rematch extends DefaultVisitor {
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
+            node.setHeadDict(dict);
             SyntaxTree labelNode = node.get(Symbol.unique("label"));
             String label = labelNode.toText();
             TypeMapSet matchDict = matchStack.getDict(label);

@@ -137,10 +137,10 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     public class Block extends DefaultVisitor{
         @Override
         public ControlFlowGraphNode accept(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
-            if(!from.isSetBelongingBlock()){
-                from.setBelongingBlock(node);
-            }
             for(SyntaxTree seq : node){
+                if(from.getBelongingBlock() != node){
+                    from.setBelongingBlock(node);
+                }
                 from = visit(seq, from);
             }
             return from;
