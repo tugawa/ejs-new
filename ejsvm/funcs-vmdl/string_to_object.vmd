@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(needContext, makeInline) string_to_object : String -> JSValue
+(needContext, triggerGC, makeInline) string_to_object : String -> JSValue
 string_to_object(v){
     top: match(v){
         case(String v){

@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(needContext, makeInline) flonum_to_object : Flonum -> JSValue
+(needContext, triggerGC, makeInline) flonum_to_object : Flonum -> JSValue
 flonum_to_object(v){
     top: match(v){
         case(Flonum v){

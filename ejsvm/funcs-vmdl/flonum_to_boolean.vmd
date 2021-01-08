@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) flonum_to_boolean : Flonum -> Special
+(makeInline) flonum_to_boolean : Flonum -> Special
 flonum_to_boolean(v){
     top: match(v){
         case(Flonum v){

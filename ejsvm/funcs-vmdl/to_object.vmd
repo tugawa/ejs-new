@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) to_object : JSValue -> JSValue
+(needContext, triggerGC, makeInline) to_object : JSValue -> JSValue
 to_object(v){
     top: match(v){
         case(String v){

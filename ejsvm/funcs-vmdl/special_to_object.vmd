@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(needContext, makeInline) special_to_object : Special-> JSValue
+(needContext, triggerGC, makeInline) special_to_object : Special-> JSValue
 special_to_object(v){
     top: match(v){
         case(Special v){

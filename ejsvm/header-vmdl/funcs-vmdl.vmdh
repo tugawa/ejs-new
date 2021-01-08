@@ -1,26 +1,26 @@
 externC (makeInline) string_to_boolean : String -> Special
-externC (needContext, makeInline) string_to_number : String -> Number
-externC (needContext, makeInline)  string_to_object : String -> JSValue
+externC (needContext, triggerGC, makeInline) string_to_number : String -> Number
+externC (needContext, triggerGC, makeInline)  string_to_object : String -> JSValue
 externC (makeInline) special_to_boolean : Special -> Special
 externC (makeInline) special_to_number : Special -> Number
-externC (needContext, makeInline) special_to_object : Special-> JSValue
+externC (needContext, triggerGC, makeInline) special_to_object : Special-> JSValue
 externC (makeInline) special_to_string : Special-> String
 externC (makeInline) fixnum_to_string : Fixnum-> String
 externC (makeInline) fixnum_to_boolean : Fixnum -> Special
-externC (needContext, makeInline) fixnum_to_object : Fixnum -> JSValue
+externC (needContext, triggerGC, makeInline) fixnum_to_object : Fixnum -> JSValue
 externC (makeInline) flonum_to_string : Flonum -> String
 externC (makeInline) flonum_to_boolean : Flonum -> Special
-externC (needContext, makeInline) flonum_to_object : Flonum -> JSValue
+externC (needContext, triggerGC, makeInline) flonum_to_object : Flonum -> JSValue
 externC (makeInline) number_to_string : Number -> String
 externC (needContext, makeInline) object_to_string : JSValue -> String
 externC (makeInline) object_to_boolean : JSValue -> Special
-externC (needContext, makeInline) object_to_number : JSValue -> Number
+externC (needContext, triggerGC, makeInline) object_to_number : JSValue -> Number
 externC (needContext, makeInline) object_to_primitive : (JSValue, cint) -> JSValue
 externC (needContext, makeInline) to_string : JSValue -> String
 externC (makeInline) to_boolean : JSValue -> Special
-externC (needContext, makeInline) to_number : JSValue -> Number
-externC (needContext, makeInline) to_object : JSValue -> JSValue
-externC (needContext, makeInline) to_double : JSValue -> cdouble
+externC (needContext, triggerGC, makeInline) to_number : JSValue -> Number
+externC (needContext, triggerGC, makeInline) to_object : JSValue -> JSValue
+externC (needContext, triggerGC, makeInline) to_double : JSValue -> cdouble
 externC (makeInline) special_to_double : Special  -> cdouble
 externC (makeInline) number_to_cint : Number-> cint
 externC (makeInline) number_to_double : Number -> cdouble

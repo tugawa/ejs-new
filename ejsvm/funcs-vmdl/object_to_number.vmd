@@ -2,7 +2,7 @@
 
 #include "../header-vmdl/externc.vmdh"
 
-(needContext, makeInline) object_to_number : JSValue -> Number
+(needContext, triggerGC, makeInline) object_to_number : JSValue -> Number
 object_to_number(v){
     match(v){
         case(object v){
