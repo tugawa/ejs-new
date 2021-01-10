@@ -87,6 +87,9 @@ typedef struct footer_t {
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
 static inline header_t compose_header(size_t granules, cell_type_t type);
+#ifdef GC_THREADED_BOUNDARY_TAG
+static inline footer_t compose_footer(size_t granules, cell_type_t type);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
 /*
  *  Types

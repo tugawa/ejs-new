@@ -12,17 +12,6 @@
 #include "header.h"
 
 /*
- * If the remaining room is smaller than a certain size,
- * we do not use the remainder for efficiency.  Rather,
- * we add it below the chunk being allocated.  In this case,
- * the size in the header includes the extra words.
- *
- * MINIMUM_FREE_CHECK_GRANULES >= HEADER_GRANULES + roundup(pointer granules)
- * MINIMUM_FREE_CHUNK_GRANULES <= 2^HEADER_EXTRA_BITS
- */
-#define MINIMUM_FREE_CHUNK_GRANULES 4
-
-/*
  * Variables
  */
 struct space js_space;
@@ -80,6 +69,11 @@ STATIC void create_space(struct space *space, size_t bytes, size_t threshold_byt
 #endif /* GC_THREADED_BOUNDARY_TAG */
   space->threshold_bytes = threshold_bytes;
   space->name = name;
+
+#ifdef GC_THREADED_BOUNDARY_TAG
+  footer_t *footer = (footer_t *)space->end;
+  *footer = compose_footer(0, CELLT_FREE);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 }
 
 #ifdef GC_DEBUG
@@ -159,7 +153,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
       space->end = (uintptr_t) hdrp;
       space->free_bytes -= bytes;
 #ifdef GC_THREADED_BOUNDARY_TAG
-      *((footer_t *) hdrp) = compose_footer(alloc_granules, 0, type);
+      *((footer_t *) hdrp) = compose_footer(alloc_granules, type);
       footer->size_hi = alloc_granules;
 #else /* GC_THREADED_BOUNDARY_TAG */
       *hdrp = compose_header(alloc_granules, type);

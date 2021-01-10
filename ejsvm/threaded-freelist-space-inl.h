@@ -18,8 +18,7 @@ static inline header_t compose_header(size_t granules, cell_type_t type)
 }
 
 #ifdef GC_THREADED_BOUNDARY_TAG
-static inline footer_t compose_footer(size_t granules, size_t extra,
-                                      cell_type_t type)
+static inline footer_t compose_footer(size_t granules, cell_type_t type)
 {
   footer_t footer;
   footer.as_header.identifier = 1;
@@ -181,12 +180,10 @@ static inline void mark_cell_header(header_t *hdrp)
       assert(footer->size_lo == shadow_footer->size_lo);
     }
     else {
-      assert(hdrp->size - hdrp->extra ==
-            shadow->size - shadow->extra);
+      assert(hdrp->size == shadow->size);
     }
 #else /* GC_THREADED_BOUNDARY_TAG */
-    assert(hdrp->size - hdrp->extra ==
-           shadow->size - shadow->extra);
+    assert(hdrp->size == shadow->size);
 #endif /* GC_THREADED_BOUNDARY_TAG */
     assert(hdrp->gen == shadow->gen);
   }
@@ -209,12 +206,10 @@ static inline void unmark_cell_header(header_t *hdrp)
       assert(footer->size_lo == shadow_footer->size_lo);
     }
     else {
-      assert(hdrp->size - hdrp->extra ==
-            shadow->size - shadow->extra);
+      assert(hdrp->size == shadow->size);
     }
 #else /* GC_THREADED_BOUNDARY_TAG */
-    assert(hdrp->size - hdrp->extra ==
-           shadow->size - shadow->extra);
+    assert(hdrp->size == shadow->size);
 #endif /* GC_THREADED_BOUNDARY_TAG */
     assert(hdrp->gen == shadow->gen);
   }
