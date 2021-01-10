@@ -134,7 +134,7 @@ static cell_type_t get_threaded_header_type(header_t *hdrp);
 static bool get_threaded_header_markbit(header_t *hdrp);
 static unsigned int get_threaded_header_size(header_t *hdrp);
 
-class RootTracer {
+class ThreadTracer {
 public:
   static void process_edge(JSValue &v) {
     if (is_fixnum(v) || is_special(v))
@@ -206,196 +206,15 @@ public:
     if (p == NULL)
       return;
 
-    assert(in_js_space((void *) p));
-    assert(!in_hc_space((void *) p));
-
-    header_t *hdrp = payload_to_header(p);
-    size_t payload_granules = hdrp->size - HEADER_GRANULES;
-    size_t slots = payload_granules * (BYTES_IN_GRANULE / sizeof(void *));
-    for (size_t i = 0; i < slots; i++)
-      if (p[i] != NULL)
-        thread_reference(&p[i]);
-  }
-  static void process_weak_edge(JSValue &v) { process_edge(v); }
-  static void process_weak_edge(void *&p) { process_edge(p); }
-};
-class ObjTracer {
-public:
-  static void process_edge(JSValue &v) {
-    if (is_fixnum(v) || is_special(v))
-      return;
-
-    assert(!(in_hc_space(&v) && in_hc_space((void *) clear_ptag(v))));
-
-    uintjsv_t ptr = clear_ptag(v);
-    if ((void *) ptr == NULL)
-      return;
-
-    v = (JSValue) ptr;
-
-    assert(in_js_space((void *) v));
-
-    thread_reference((void **) &v);
-  }
-  static void process_edge(void *&p) {
-    if (p == NULL)
-      return;
-
-    assert(!(in_hc_space(&p) && in_hc_space(p)));
+    assert(gc_phase == PHASE_FWDREF);
+    assert(!in_js_space((void *) &p) || in_hc_space((void *) &p));
 
     assert(in_js_space((void *) p));
-
-    thread_reference(&p);
-  }
-  static void process_edge_function_frame(JSValue &v) {
-#if 0
-    void *p = jsv_to_function_frame(v);
-    thread_reference(&p);
-#endif
-    if ((void *) v == NULL)
-      return;
-
-    assert(!(in_hc_space(&v) && in_hc_space((void *) clear_ptag(v))));
-
-    assert(in_obj_space((void *) v));
-
-    thread_reference((void **) &v);
-  }
-  template <typename T>
-  static void process_edge_ex_JSValue_array(T &p, size_t n) {
-    if ((void *) p == NULL)
-      return;
-
-    assert(!(in_hc_space(&p) && in_hc_space((void *) p)));
-
-    assert(in_obj_space((void *) p));
-
-    thread_reference((void **) &p);
-  }
-  template <typename T>
-  static void process_edge_ex_ptr_array(T &p, size_t n) {
-    if ((void *) p == NULL)
-      return;
-
-    assert(!(in_hc_space(&p) && in_hc_space(p)));
-
-    assert(in_js_space((void *) p));
-
-    thread_reference((void **) &p);
-  }
-  static void process_node_JSValue_array(JSValue *p) {
-    if (p == NULL)
-      return;
-
-    assert(!(in_hc_space(&p) && in_hc_space(p)));
-
-    assert(in_js_space((void *) p));
-    assert(!in_hc_space((void *) p));
-
-    header_t *hdrp = payload_to_header(p);
-    size_t payload_granules = hdrp->size - HEADER_GRANULES;
-    size_t slots = payload_granules <<
-      (LOG_BYTES_IN_GRANULE - LOG_BYTES_IN_JSVALUE);
-    for (size_t i = 0; i < slots; i++)
-      process_edge(p[i]);
-  }
-  static void process_node_ptr_array(void **&p) {
-    if (p == NULL)
-      return;
-
-    assert(!(in_hc_space(&p) && in_hc_space(p)));
-
-    assert(in_js_space((void *) p));
-    assert(!in_hc_space((void *) p));
-
-    header_t *hdrp = payload_to_header(p);
-    size_t payload_granules = hdrp->size - HEADER_GRANULES;
-    size_t slots = payload_granules * (BYTES_IN_GRANULE / sizeof(void *));
-    for (size_t i = 0; i < slots; i++)
-      if (p[i] != NULL)
-        thread_reference(&p[i]);
-  }
-  static void process_weak_edge(JSValue &v) { process_edge(v); }
-  static void process_weak_edge(void *&p) { process_edge(p); }
-};
-class HCTracer {
-public:
-  static void process_edge(JSValue &v) {
-    if (is_fixnum(v) || is_special(v))
-      return;
-
-    uintjsv_t ptr = clear_ptag(v);
-    v = (JSValue) ptr;
-
-    assert(in_js_space((void *) v));
-
-    thread_reference((void **) &v);
-  }
-  static void process_edge(void *&p) {
-    if (p == NULL)
-      return;
-
-    assert(in_js_space((void *) p));
-
-    thread_reference(&p);
-  }
-  static void process_edge_function_frame(JSValue &v) {
-#if 0
-    void *p = jsv_to_function_frame(v);
-    thread_reference(&p);
-#endif
-    if ((void *) v == NULL)
-      return;
-
-    assert(in_obj_space((void *) v));
-
-    thread_reference((void **) &v);
-  }
-  template <typename T>
-  static void process_edge_ex_JSValue_array(T &p, size_t n) {
-    if ((void *) p == NULL)
-      return;
-
-    assert(in_obj_space((void *) p));
-
-    thread_reference((void **) &p);
-  }
-  template <typename T>
-  static void process_edge_ex_ptr_array(T &p, size_t n) {
-    if ((void *) p == NULL)
-      return;
-
-    assert(in_js_space((void *) p));
-
-    thread_reference((void **) &p);
-  }
-  static void process_node_JSValue_array(JSValue *p) {
-    if (p == NULL)
-      return;
-
-    assert(in_js_space((void *) p));
-    assert(!in_hc_space((void *) p));
-
-    header_t *hdrp = payload_to_header(p);
-    size_t payload_granules = hdrp->size - HEADER_GRANULES;
-    size_t slots = payload_granules <<
-      (LOG_BYTES_IN_GRANULE - LOG_BYTES_IN_JSVALUE);
-    for (size_t i = 0; i < slots; i++)
-      process_edge(p[i]);
-  }
-  static void process_node_ptr_array(void **&p) {
-    if (p == NULL)
-      return;
-
-    assert(in_js_space((void *) p));
+    assert(in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
 #ifdef GC_THREADED_BOUNDARY_TAG
-    size_t payload_granules;
-    if (in_hc_space((void *) p))
-      payload_granules = ((footer_t *) hdrp)->size_lo - HEADER_GRANULES;
-    else
-      payload_granules = hdrp->size - HEADER_GRANULES;
+    size_t payload_granules = ((footer_t *) hdrp)->size_lo - HEADER_GRANULES;
 #else /* GC_THREADED_BOUNDARY_TAG */
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
 #endif /* GC_THREADED_BOUNDARY_TAG */
@@ -610,7 +429,7 @@ void garbage_collection(Context *ctx)
 }
 
 static void update_forward_reference(Context *ctx) {
-  scan_roots<RootTracer>(ctx);
+  scan_roots<ThreadTracer>(ctx);
 
   uintptr_t scan = js_space.head;
   uintptr_t end = js_space.begin;
@@ -627,7 +446,7 @@ static void update_forward_reference(Context *ctx) {
       void *to = header_to_payload(to_hdrp);
 
       update_reference(from, to);
-      process_node<ObjTracer>((uintptr_t) from);
+      process_node<ThreadTracer>((uintptr_t) from);
 
       free += size << LOG_BYTES_IN_JSVALUE;
     }
@@ -674,7 +493,7 @@ static void update_forward_reference(Context *ctx) {
       void *to = header_to_payload(to_hdrp);
 
       update_reference(from, to);
-      process_node<HCTracer>((uintptr_t) from);
+      process_node<ThreadTracer>((uintptr_t) from);
     }
 
 #ifdef GC_THREADED_BOUNDARY_TAG
