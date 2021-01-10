@@ -83,27 +83,18 @@ extern void alloc_site_update_info(JSObject *p);
 
 class NodeScanner {
   ACCEPTOR static void scan_object_properties(JSObject *p) {
-    /* 1. shape */
 #ifdef THREADED
     Shape *os = p->shape;
-
-#ifdef ALLOC_SITE_CACHE
-    /* 4. allocation site cache */
-    /* update allocation site cache first, before thread p->shape */
-    if (gc_phase == PHASE_MARK) {
-      if (p->alloc_site != NULL) {
-        alloc_site_update_info(p);
-        PROCESS_EDGE(p->alloc_site->pm);
-      }
-    }
-#endif /* ALLOC_SITE_CACHE */
 #endif /* THREADED */
+
+    /* 1. shape */
     PROCESS_EDGE(p->shape);
 
-    /* 2. embedded propertyes */
 #ifndef THREADED
     Shape *os = p->shape;
 #endif /* THREADED */
+
+    /* 2. embedded propertyes */
     int n_extension = os->n_extension_slots;
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
     for (size_t i = os->pm->n_special_props; i < actual_embedded; i++)
@@ -113,15 +104,14 @@ class NodeScanner {
     if (n_extension != 0)
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
 				    os->pm->n_props - actual_embedded);
-#ifndef THREADED
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
-    if (p->alloc_site != NULL) {
-      alloc_site_update_info(p);
-      PROCESS_EDGE(p->alloc_site->pm);
-    }
+    if (gc_phase == PHASE_MARK)
+      if (p->alloc_site != NULL) {
+        alloc_site_update_info(p);
+        PROCESS_EDGE(p->alloc_site->pm);
+      }
 #endif /* ALLOC_SITE_CACHE */
-#endif /* THREADED */
   }
   
  public:
