@@ -787,16 +787,33 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
 JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
 #endif /* ALLOC_SITE_CACHE */
 {
-  JSValue prototype, obj;
-  Shape *os;
-
+  JSValue prototype;
   assert(is_function(ctor));
 
   prototype = get_prop(ctor, gconsts.g_string_prototype);
-  GC_PUSH(prototype);
   if (!is_jsobject(prototype))
     prototype = gconsts.g_prototype_Object;
 
+#ifdef ALLOC_SITE_CACHE
+  return create_simple_object_with_prototype(ctx, prototype, as);
+#else /* ALLOC_SITE_CACHE */
+  return create_simple_object_with_prototype(ctx, prototype);
+#endif /* ALLOC_SITE_CACHE */
+}
+
+#ifdef ALLOC_SITE_CACHE
+JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype,
+                                            AllocSite *as)
+#else /* ALLOC_SITE_CACHE */
+JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
+#endif /* ALLOC_SITE_CACHE */
+{
+  JSValue obj;
+  Shape *os;
+
+  assert(is_jsobject(prototype));
+
+  GC_PUSH(prototype);
 #ifdef ALLOC_SITE_CACHE
   os = get_cached_shape(ctx, as, prototype, OBJECT_SPECIAL_PROPS);
   if (os == NULL)

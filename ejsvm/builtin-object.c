@@ -44,13 +44,28 @@ BUILTIN_FUNCTION(object_constr)
     else if (is_string(arg))
       ret = new_string_object(context, DEBUG_NAME("object_constr"),
                               gshapes.g_shape_String, arg);
-    else
-      ret = new_simple_object(context, DEBUG_NAME("object_constr"),
-                              gshapes.g_shape_Object);
+    else {
+#ifdef ALLOC_SITE_CACHE
+        AllocSite *as = &context->spreg.cf->insns[context->spreg.pc].alloc_site;
+        ret = create_simple_object_with_prototype(context,
+                                                  gconsts.g_prototype_Object,
+                                                  as);
+#else /* ALLOC_SITE_CACHE */
+        ret = new_simple_object(context, DEBUG_NAME("object_constr"),
+                                gshapes.g_shape_Object);
+#endif /* ALLOC_SITE_CACHE */
+    }
     GC_POP(arg);
-  } else
+  } else {
+#ifdef ALLOC_SITE_CACHE
+    AllocSite *as = &context->spreg.cf->insns[context->spreg.pc].alloc_site;
+    ret = create_simple_object_with_prototype(context,
+                                              gconsts.g_prototype_Object, as);
+#else /* ALLOC_SITE_CACHE */
     ret = new_simple_object(context, DEBUG_NAME("object_constr"),
                             gshapes.g_shape_Object);
+#endif /* ALLOC_SITE_CACHE */
+  }
   GC_PUSH(ret);
   set_a(context, ret);
   GC_POP(ret);
@@ -70,7 +85,7 @@ ObjBuiltinProp ObjectPrototype_builtin_props[] = {
 };
 ObjDoubleProp  ObjectPrototype_double_props[] = {};
 ObjGconstsProp ObjectPrototype_gconsts_props[] = {
-  { "__property_map__", (JSValue *)&gpms.g_property_map_Object, ATTR_ALL },
+  { "__property_map__", (JSValue *)&gpms.g_property_map_Object, ATTR_SYSTEM },
 };
 /* constructor */
 ObjBuiltinProp ObjectConstructor_builtin_props[] = {};
