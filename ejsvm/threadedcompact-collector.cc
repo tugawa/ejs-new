@@ -46,84 +46,8 @@ static Context *the_context;
 
 /*
  * Tracer
- *
- *  process_edge, process_edge_XXX
- *    If the destination node is not marked, mark it and process the
- *    destination node. XXX is specialised version for type XXX.
- *  scan_XXX
- *    Scan static structure XXX.
- *  process_node_XXX
- *    Scan object of type XXX in the heap.  Move it if nencessary.
  */
-class RefMarkTracer {
- public:
-  static void process_edge(JSValue &v);
-  static void process_edge(void *&p);
-  static void process_edge_function_frame(JSValue &v) {
-    FunctionFrame *frame = jsv_to_function_frame(v);
-    process_edge(reinterpret_cast<void *&>(frame));
-    v = (JSValue) (uintjsv_t) (uintptr_t) frame;
-  }
-  template<typename T>
-  static void process_edge_ex_JSValue_array(T &p_, size_t n) {
-    JSValue *&p = (JSValue *&) p_;
-
-    if (in_js_space(p) && ::test_and_mark_cell(p))
-      return;
-    for (size_t i = 0; i < n; i++)
-      process_edge(p[i]);
-  }
-  template<typename T>
-  static void process_edge_ex_ptr_array(T &p_, size_t n) {
-    void **&p = (void **&) p_;
-    if (in_js_space(p) && ::test_and_mark_cell(p))
-      return;
-    for (size_t i = 0; i < n; i++)
-      if (p[i] != NULL)
-        process_edge(p[i]);
-  }
-  template <typename T>
-  static void process_node_JSValue_array(T &p) { abort(); }
-  template <typename T>
-  static void process_node_ptr_array(T &p) { abort(); }
-
-  static void process_weak_edge(JSValue &v) {}
-  static void process_weak_edge(void *&p) {}
-  static bool is_marked_cell(void *p) {
-    return ::is_marked_cell(p);
-  }
-
-#ifdef MARK_STACK
-#define MARK_STACK_SIZE 1000 * 1000
-  static uintptr_t mark_stack[MARK_STACK_SIZE];
-  static int mark_stack_ptr;
-
-  static void mark_stack_push(uintptr_t ptr){
-    assert(mark_stack_ptr < MARK_STACK_SIZE);
-    mark_stack[mark_stack_ptr++] = ptr;
-  }
-  static uintptr_t mark_stack_pop(void) {
-    return mark_stack[--mark_stack_ptr];
-  }
-  static bool mark_stack_is_empty(void) {
-    return mark_stack_ptr == 0;
-  }
-  static void process_mark_stack(void) {
-    while (!mark_stack_is_empty()) {
-      uintptr_t ptr = mark_stack_pop();
-      process_node<RefMarkTracer>(ptr);
-    }
-  }
-#else /* MARK_STACK */
-  static void process_mark_stack(void) {}
-#endif /* MARK_STACK */
-};
-typedef RefMarkTracer DefaultTracer;
-
-#ifdef MARK_STACK
-uintptr_t RefMarkTracer::mark_stack[MARK_STACK_SIZE];
-int RefMarkTracer::mark_stack_ptr;
-#endif /* MARK_STACK */
+#include "mark-tracer.h"
 
 
 static bool is_reference(void **pptr);
@@ -668,45 +592,4 @@ static void fill_mem(void *p1, void *p2, JSValue v)
   }
 }
 #endif /* GC_DEBUG */
-
-
-void RefMarkTracer::process_edge(void *&p)
-{
-#ifdef GC_DEBUG
-  if (!is_reference((void **) p)) {
-    printf("threaded pointer!!; at %p is 0x%016" PRIx64 "\n", &p, (uintptr_t) p);
-    fflush(stdout);
-    abort();
-  }
-#endif
-
-  if (p == NULL)
-    return;
-
-  if (in_js_space(p) && ::test_and_mark_cell(p))
-    return;
-#ifdef MARK_STACK
-  mark_stack_push((uintptr_t) p);
-#else /* MARK_STACK */
-  process_node<RefMarkTracer>((uintptr_t) p);
-#endif /* MARK_STACK */
-}
-
-void RefMarkTracer::process_edge(JSValue &v)
-{
-  if (is_fixnum(v) || is_special(v))
-    return;
-
-  void *p = (void *)(uintptr_t) clear_ptag(v);
-  if (p == NULL)
-    return;
-
-  if (in_js_space(p) && ::test_and_mark_cell(p))
-    return;
-#ifdef MARK_STACK
-  mark_stack_push((uintptr_t) p);
-#else /* MARK_STACK */
-  process_node<RefMarkTracer>((uintptr_t) p);
-#endif /* MARK_STACK */
-}
 

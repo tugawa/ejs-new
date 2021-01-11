@@ -263,13 +263,13 @@ ifeq ($(OPT_GC),native)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DMARKSWEEP -DFREELIST
     CXX_FILES+=marksweep-collector.cc
     OFILES+=marksweep-collector.o freelist-space.o
-    HFILES+=marksweep-collector.h freelist-space.h freelist-space-inl.h
+    HFILES+=marksweep-collector.h freelist-space.h freelist-space-inl.h mark-tracer.h
 endif
 ifeq ($(OPT_GC),bibop)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DMARKSWEEP -DBIBOP
     CXX_FILES+=marksweep-collector.cc
     OFILES+=marksweep-collector.o bibop-space.o
-    HFILES+=marksweep-collector.h bibop-space.h bibop-space-inl.h
+    HFILES+=marksweep-collector.h bibop-space.h bibop-space-inl.h mark-tracer.h
 endif
 ifeq ($(OPT_GC),copy)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOPYGC
@@ -281,12 +281,12 @@ ifeq ($(OPT_GC),threaded)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DTHREADED
     CXX_FILES+=threadedcompact-collector.cc
     OFILES+=threadedcompact-collector.o threaded-freelist-space.o
-    HFILES+=threadedcompact-collector.h threaded-freelist-space.h threaded-freelist-space-inl.h
+    HFILES+=threadedcompact-collector.h threaded-freelist-space.h threaded-freelist-space-inl.h mark-tracer.h
 endif
 ifeq ($(OPT_GC),compact)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION
     OFILES+=markcompact-collector.o
-    HFILES+=markcompact-collector.h markcompact-collector-inl.h
+    HFILES+=markcompact-collector.h markcompact-collector-inl.h mark-tracer
 endif
 else
 CXX_FILES =
