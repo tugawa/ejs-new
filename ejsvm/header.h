@@ -65,21 +65,22 @@
 #include "context.h"
 #include "gc.h"
 
+#ifdef MARKSWEEP
+#include "marksweep-collector.h"
+#endif /* MARKSWEEP */
+#ifdef FREELIST
+#include "freelist-space.h"
+#endif /* FREELIST */
+#ifdef BIBOP
+#include "bibop-space.h"
+#endif /* BIBOP */
 #ifdef COPYGC
 #include "copy-collector.h"
-#else /* COPYGC */
+#endif /* COPYGC */
 #ifdef THREADED
 #include "threaded-freelist-space.h"
 #include "threadedcompact-collector.h"
-#else /* MARKSWEEP */
-#include "marksweep-collector.h"
-#ifdef BIBOP
-#include "bibop-space.h"
-#else /* BIBOP */
-#include "freelist-space.h"
-#endif /* BIBIOP */
-#endif /* MARKSWEEP */
-#endif /* COPYGC */
+#endif /* THREADED */
 
 #include "hash.h"
 #include "log.h"
@@ -95,18 +96,15 @@
 #include "types-inl.h"
 #include "gc-inl.h"
 
-#ifdef COPYGC
-#else /* COPYGC */
-#ifdef THREADED
-#include "threaded-freelist-space-inl.h"
-#else /* MARKSWEEP */
+#ifdef FREELIST
+#include "freelist-space-inl.h"
+#endif /* FREELIST */
 #ifdef BIBOP
 #include "bibop-space-inl.h"
-#else /* BIBOP */
-#include "freelist-space-inl.h"
 #endif /* BIBOP */
-#endif /* MARKSWEEP */
-#endif /* COPYGC */
+#ifdef THREADED
+#include "threaded-freelist-space-inl.h"
+#endif /* THREADED */
 
 #endif /* HEADER_H_ */
 

@@ -257,31 +257,29 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 ######################################################
 
 ifeq ($(GC_CXX),true)
-CXX_FILES = gc.cc marksweep-collector.cc markcompact-collector.cc threadedcompact-collector.cc copy-collector.cc
-HFILES    += gc-visitor-inl.h marksweep-collector.h
-MARKSWEEP_COLLECTOR = marksweep-collector.o
-else
-CXX_FILES =
-MARKSWEEP_COLLECTOR =
-endif
-
+CXX_FILES = gc.cc
+HFILES    += gc-visitor-inl.h
 ifeq ($(OPT_GC),native)
-    CPPFLAGS+=-DUSE_NATIVEGC=1
-    OFILES+=$(MARKSWEEP_COLLECTOR) freelist-space.o
-    HFILES+=freelist-space.h freelist-space-inl.h
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DMARKSWEEP -DFREELIST
+    CXX_FILES+=marksweep-collector.cc
+    OFILES+=marksweep-collector.o freelist-space.o
+    HFILES+=marksweep-collector.h freelist-space.h freelist-space-inl.h
 endif
 ifeq ($(OPT_GC),bibop)
-    CPPFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
-    OFILES+=$(MARKSWEEP_COLLECTOR) bibop-space.o
-    HFILES+=bibop-space.h bibop-space-inl.h
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DMARKSWEEP -DBIBOP
+    CXX_FILES+=marksweep-collector.cc
+    OFILES+=marksweep-collector.o bibop-space.o
+    HFILES+=marksweep-collector.h bibop-space.h bibop-space-inl.h
 endif
 ifeq ($(OPT_GC),copy)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOPYGC
+    CXX_FILES+=copy-collector.cc
     OFILES+=copy-collector.o
     HFILES+=copy-collector.h
 endif
 ifeq ($(OPT_GC),threaded)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DTHREADED
+    CXX_FILES+=threadedcompact-collector.cc
     OFILES+=threadedcompact-collector.o threaded-freelist-space.o
     HFILES+=threadedcompact-collector.h threaded-freelist-space.h threaded-freelist-space-inl.h
 endif
@@ -290,6 +288,18 @@ ifeq ($(OPT_GC),compact)
     OFILES+=markcompact-collector.o
     HFILES+=markcompact-collector.h markcompact-collector-inl.h
 endif
+else
+CXX_FILES =
+ifeq ($(OPT_GC),native)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DFREELIST
+    OFILES+=freelist-space.o
+    HFILES+=freelist-space.h freelist-space-inl.h
+endif
+ifeq ($(OPT_GC),bibop)
+    CPPFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
+    OFILES+=bibop-space.o
+    HFILES+=bibop-space.h bibop-space-inl.h
+endif
 ifeq ($(OPT_GC),boehmgc)
     CPPFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
@@ -297,6 +307,7 @@ endif
 ifeq ($(OPT_REGEXP),oniguruma)
     CPPFLAGS+=-DUSE_REGEXP=1
     LIBS+=-lonig
+endif
 endif
 
 ifeq ($(DATATYPES),)
@@ -491,8 +502,6 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 
 #gc.o:%.o:%.cc $(HFILES)
 $(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
-	echo $(CPPFLAGS)
-	echo $(CXXFLAGS)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
 %.o: %.c $(HFILES)
