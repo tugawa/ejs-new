@@ -106,7 +106,9 @@ class NodeScanner {
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
+#ifdef THREADED
     if (gc_phase == PHASE_MARK)
+#endif /* THREADED */
       if (p->alloc_site != NULL) {
         alloc_site_update_info(p);
         PROCESS_EDGE(p->alloc_site->pm);
