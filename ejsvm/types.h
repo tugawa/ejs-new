@@ -278,6 +278,11 @@ struct property_map {
 #ifdef HC_PROF
   uint32_t n_enter;
   uint32_t n_leave;
+#ifdef DUMP_HCG
+  int function_no;
+  int insn_no;
+  int is_entry;
+#endif /* DUMP_HCG */
 #endif /* HC_PROF */
 };
 

@@ -51,8 +51,7 @@ BUILTIN_FUNCTION(object_constr)
                                                   gconsts.g_prototype_Object,
                                                   as);
 #else /* ALLOC_SITE_CACHE */
-        ret = new_simple_object(context, DEBUG_NAME("object_constr"),
-                                gshapes.g_shape_Object);
+        ret = create_simple_object_with_prototype(context, gconsts.g_prototype_Object);
 #endif /* ALLOC_SITE_CACHE */
     }
     GC_POP(arg);
@@ -62,8 +61,7 @@ BUILTIN_FUNCTION(object_constr)
     ret = create_simple_object_with_prototype(context,
                                               gconsts.g_prototype_Object, as);
 #else /* ALLOC_SITE_CACHE */
-    ret = new_simple_object(context, DEBUG_NAME("object_constr"),
-                            gshapes.g_shape_Object);
+        ret = create_simple_object_with_prototype(context, gconsts.g_prototype_Object);
 #endif /* ALLOC_SITE_CACHE */
   }
   GC_PUSH(ret);

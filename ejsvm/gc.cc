@@ -254,6 +254,11 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
 }
 
 #ifdef ALLOC_SITE_CACHE
+#ifdef DUMP_HCG
+void alloc_site_update_info(JSObject *p) {
+  /* do nothing: preserve all initial hidden class for each allocation site */
+}
+#else /* DUMP_HCG */
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
   while(!GC_PM_EQ(a, b) && a->prev != NULL) {
@@ -308,6 +313,7 @@ void alloc_site_update_info(JSObject *p)
     }
   }
 }
+#endif /* DUMP_HCG */
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef GC_DEBUG

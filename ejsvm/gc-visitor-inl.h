@@ -99,7 +99,12 @@ class NodeScanner {
     /* 4. allocation site cache */
     if (p->alloc_site != NULL) {
       alloc_site_update_info(p);
-      PROCESS_EDGE(p->alloc_site->pm);
+#ifdef DUMP_HCG
+      if (p->alloc_site->pm != NULL)
+	PROCESS_EDGE(p->alloc_site->pm);
+#else /* DUMP_HCG */
+	PROCESS_EDGE(p->alloc_site->pm);
+#endif /* DUMP_HCG */
     }
 #endif /* ALLOC_SITE_CACHE */
   }

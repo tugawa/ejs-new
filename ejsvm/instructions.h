@@ -237,6 +237,9 @@ struct instruction {
 #ifdef INLINE_CACHE
   InlineCache inl_cache;
 #endif /* INLINE_CACHE */
+#ifdef LOAD_HCG
+  PropertyMap *loaded_pm;
+#endif /* LOAD_HCG */
 #ifdef PROFILE
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */

@@ -560,6 +560,16 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->n_leave = 0;
   if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
+#ifdef DUMP_HCG
+  if (ctx == NULL) {
+    m->function_no = -1;
+    m->insn_no = -1;
+  } else {
+    m->function_no = (int) (ctx->spreg.cf - ctx->function_table);
+    m->insn_no = ctx->spreg.pc;
+  }
+  m->is_entry = 0;
+#endif /* DUMP_HCG */
 #endif /* HC_PROF */
 
 #ifdef HC_SKIP_INTERNAL
@@ -822,9 +832,9 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
   if (os == NULL)
 #endif /* ALLOC_SITE_CACHE */
     {
+      JSValue retv;
       PropertyMap *pm;
 #ifdef ALLOC_SITE_CACHE
-      JSValue retv;
       /* 1. If alloc_site_cache does not match and `prototype' is valid, 
        *    find the property map */
       if (as->pm != NULL &&
@@ -832,35 +842,36 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
           != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
       }
-      else
 #else /* ALLOC_SITE_CACHE */
-      JSValue retv;
       /* 1. If `prototype' is valid, find the property map */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
-      if (retv != JS_EMPTY)
+      if (retv != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
-      else
+      }
 #endif /* ALLOC_SITE_CACHE */
-        {
-          /* 2. If there is not, create it. */
-          int n_props = 0;
-          int n_embedded = OBJECT_SPECIAL_PROPS + 1;/* at least 1 normal slot */
-          pm = new_property_map(ctx, DEBUG_NAME("(new)"),
-                                OBJECT_SPECIAL_PROPS, n_props,
-                                OBJECT_USPECIAL_PROPS, prototype,
-                                gpms.g_property_map_root);
-          GC_PUSH(pm);
-          pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                        pm, n_embedded, 0);
-          assert(Object_num_builtin_props +
-                 Object_num_double_props + Object_num_gconsts_props == 0);
+      else {
+        /* 2. If there is not, create it. */
+        int n_props = 0;
+        int n_embedded = OBJECT_SPECIAL_PROPS + 1;/* at least 1 normal slot */
+        pm = new_property_map(ctx, DEBUG_NAME("(new)"),
+                              OBJECT_SPECIAL_PROPS, n_props,
+                              OBJECT_USPECIAL_PROPS, prototype,
+                              gpms.g_property_map_root);
+#ifdef DUMP_HCG
+        pm->is_entry = 1;
+#endif /* DUMP_HCG */
+        GC_PUSH(pm);
+        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
+                                      pm, n_embedded, 0);
+        assert(Object_num_builtin_props +
+               Object_num_double_props + Object_num_gconsts_props == 0);
 
-          /* 3. Create a link from the prototype object to the PM so that
-           *    this function can find it in the following calls. */
-          set_prop(ctx, prototype, gconsts.g_string___property_map__,
-                   (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
-          GC_POP(pm);
-        }
+        /* 3. Create a link from the prototype object to the PM so that
+         *    this function can find it in the following calls. */
+        set_prop(ctx, prototype, gconsts.g_string___property_map__,
+                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
+        GC_POP(pm);
+      }
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
        *    because the PM is an entrypoint. */
       os = pm->shapes;
@@ -1503,6 +1514,54 @@ void hcprof_print_all_hidden_class(void)
   for (e = root_property_map; e != NULL; e = e->next)
     print_property_map_recursive(NULL, e->pm);
 }
+
+
+#ifdef DUMP_HCG
+static void dump_property_map_recursive(FILE *fp, char *prop_name,
+                                        PropertyMap *pm)
+{
+  HashIterator iter;
+  HashCell *p;
+
+  fprintf(fp, "HC");
+  fprintf(fp, " %p", pm);
+  fprintf(fp, " %p", pm->prev);
+  /*  fprintf(fp, " %c", prop_name == NULL ? 'E' : 'N'); */
+  fprintf(fp, " %c", pm->is_entry ? 'E' : 'N');
+  fprintf(fp, " %d", pm->function_no);
+  fprintf(fp, " %d", pm->insn_no);
+  fprintf(fp, " %s", prop_name == NULL ? "(entry)" : prop_name);
+  fprintf(fp, " J");
+  fprintf(fp, " %d", pm->n_enter);
+  fprintf(fp, " %d", pm->n_leave);
+#ifdef DEBUG
+  fprintf(fp, " %s", pm->name);
+#else /* DEBUG */
+  fprintf(fp, " noname");
+#endif /* DEBUG */
+  fprintf(fp, " %d", pm->n_props);
+  fprintf(fp, "\n");
+
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (is_transition(p->entry.attr))
+      dump_property_map_recursive(fp, string_to_cstr(p->entry.key),
+                                  p->entry.data.u.pm);
+}
+
+void dump_hidden_classes(char *outfile)
+{
+  struct root_property_map *e;
+  FILE *fp;
+  fp = fopen(outfile, "w");
+  if (fp == NULL)
+    LOG_EXIT("cannot open HC dump file");
+  for (e = root_property_map; e != NULL; e = e->next)
+    dump_property_map_recursive(fp, NULL, e->pm);
+  fclose(fp);
+}
+#endif /* DUMP_HCG */
+
 #endif /* HC_PROF */
 
 /* Local Variables:      */

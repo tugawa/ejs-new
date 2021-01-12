@@ -680,6 +680,9 @@ int insn_load_sbc(Context *ctx, Instruction *insns, int ninsns,
 #ifdef INLINE_CACHE
   init_inline_cache(&insns[pc].inl_cache);
 #endif /* INLINE_CACHE */
+#ifdef LOAD_HCG
+  insns[pc].loaded_pm = NULL;
+#endif /* LOAD_HCG */
 
 #ifdef PROFILE
   {

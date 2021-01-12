@@ -10,6 +10,27 @@
 #ifndef HEADER_H_
 #define HEADER_H_
 
+#ifdef DUMP_HCG
+#ifndef ALLOC_SITE_CACHE
+#warning DUMP_HCG is enabled. ALLOC_SITE_CACHE is turned on
+#define ALLOC_SITE_CACHE
+#endif /* ALLOC_SITE_CACHE */
+#ifdef SKIP_INTERNAL
+#warning DUMP_HCG is enabled. SKIP_INTERNAL is turned off
+#undef SKIP_INTERNAL
+#endif /* SKIP_INTERNAL */
+#ifdef WEAK_SHAPE_LIST
+#warning DUMP_HCG is enabled. WEAK_SHAPE_LIST is turned off
+#undef WEAK_SHAPE_LIST
+#endif /* WEAK_SHAPE_LIST */
+#ifndef HC_PROF
+#warning DUMP_HCG is enabled. HC_PROF is turned on
+#define HC_PROF
+#endif /* HC_PROF */
+#endif /* DUMP_HCG */
+
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,6 +119,7 @@
 #include "freelist-space-inl.h"
 #endif /* BIBOP */
 #endif /* MARKSWEEP */
+
 
 #endif /* HEADER_H_ */
 

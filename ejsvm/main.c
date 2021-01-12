@@ -38,6 +38,10 @@ int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #ifdef GC_PROF
 int gcprof_flag;       /* print GC profile information */
 #endif /* GC_PROF */
+#ifdef DUMP_HCG
+char *dump_hcg_file_name;
+#endif /* DUMP_HCG */
+
 
 /*
 #define DEBUG_TESTTEST
@@ -102,6 +106,9 @@ struct commandline_option  options_table[] = {
 #endif /* GC_PROF */
   { "-m",         1, &heap_limit,     NULL          },
   { "-s",         1, &regstack_limit, NULL          },
+#ifdef DUMP_HCG
+  { "--dump-hcg", 1, NULL,            &dump_hcg_file_name },
+#endif /* DUMP_HCG */
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -457,6 +464,12 @@ int main(int argc, char *argv[]) {
   if (hcprint_flag == TRUE)
     hcprof_print_all_hidden_class();
 #endif /* HC_PROF */
+#ifdef DUMP_HCG
+  if (dump_hcg_file_name != NULL) {
+    extern void dump_hidden_classes(char *);
+    dump_hidden_classes(dump_hcg_file_name);
+  }
+#endif /* DUMP_HCG */
 #ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
