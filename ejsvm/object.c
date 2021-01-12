@@ -895,8 +895,14 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
-  if (os == NULL)
+  if (os == NULL) {
     os = gshapes.g_shape_Array;
+    if (as->pm == NULL) {
+      as->pm = os->pm;
+      as->shape = os;
+      as->polymorphic = 0;
+    }
+  }
   obj = new_array_object(ctx, name, os, size);
   object_set_alloc_site(obj, as);
   return obj;
