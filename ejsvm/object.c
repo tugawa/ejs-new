@@ -14,6 +14,8 @@
 static
 JSValue get_system_prop(JSValue obj, JSValue name) __attribute__((unused));
 
+static PropertyMap *
+clone_property_map(Context *ctx, PropertyMap *src) __attribute__((unused));
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
 static void property_map_add_transition(Context *ctx, PropertyMap *pm,
@@ -591,6 +593,43 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 }
 
 /**
+ * Create a new property map by duplicating an exispting property map.
+ * The new property map has the same `prev' PropertyMap. But the prev
+ * does not have a link to the new PropertyMap.
+ */
+static PropertyMap *clone_property_map(Context *ctx, PropertyMap *src)
+{
+  PropertyMap *m;
+
+  GC_PUSH(src);
+
+  /* 1. Create property map */
+  m = new_property_map(ctx, DEBUG_NAME("(clone)"),
+                       src->n_special_props, src->n_props,
+#ifdef DEBUG
+                       src->n_user_special_props,
+#else /* DEBUG */
+                       0,
+#endif /* DEBUG */
+                       src->__proto__, src->prev);
+  GC_PUSH(m);
+
+  /* 2. Copy existing entries */
+#ifdef DEBUG
+  {
+    int n = hash_copy(ctx, src->map, m->map);
+    assert(n == src->n_props - src->n_special_props +
+           src->n_user_special_props);
+  }
+#else /* DEBUG */
+  hash_copy(ctx, src->map, m->map);
+#endif /* DEBUG */
+  GC_POP2(m, src);
+
+  return m;
+}
+
+/**
  * Create a new property map by extending an exispting property map
  * with a new property name. The index for the new property is the
  * next number to the largest used one.
@@ -907,9 +946,15 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL) {
-    os = gshapes.g_shape_Array;
+    PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
+    os = new_object_shape(ctx, DEBUG_NAME("(array)"),
+                          pm, ARRAY_SPECIAL_PROPS + 1, 0);
+    pm->shapes = os;
+#ifdef DUMP_HCG
+    pm->is_entry = 1;
+#endif /* DUMP_HCG */
     if (as->pm == NULL) {
-      as->pm = os->pm;
+      as->pm = pm;
       as->shape = os;
       as->polymorphic = 0;
     }

@@ -243,7 +243,7 @@ class Node:
         self.n_entry += other.n_entry
         self.n_leave += other.n_leave
 
-def load_graph(lines):
+def load_graph(lines, args):
     nodes = []
 
     # create node
@@ -268,10 +268,12 @@ def load_graph(lines):
         if n.prev:
             n.prev.add_transition(n.prop_name, n.prop_type, n)
         
-    entrypoints = [n for n in nodes if n.is_entry]
+    if not args.include_builtin:
+        entrypoints = [n for n in nodes if n.is_entry]
 
-    # remove builtin
-    entrypoints = [n for n in entrypoints if n.loc != (0, 0)]
+#    # remove builtin
+#    if not args.include_builtin:
+#        entrypoints = [n for n in entrypoints if n.loc != (0, 0)]
 
     return entrypoints
 
@@ -332,7 +334,7 @@ def main():
 #        entrypoints = load_graph(f)
     args = process_argv()
     with open(args.input) as f:
-        entrypoints = load_graph(f)
+        entrypoints = load_graph(f, args)
 
     for n in entrypoints:
         n.collect_fields()
@@ -354,6 +356,7 @@ def process_argv():
     ap.add_argument("--dot", action = "store", type = str)
     ap.add_argument("--no-compile", action = "store_true")
     ap.add_argument("--chcg", action = "store", type = str)
+    ap.add_argument("--include-builtin", action = "store_true")
     args = ap.parse_args()
     return args
     
