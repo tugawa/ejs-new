@@ -85,6 +85,10 @@ class Node:
         self.preds = []
         self.fields = []
         self.used_bytes = []
+
+        # output compiled graph
+        self.chcg_id = None
+        self.visited = False
         
         Node.address_table[self.this_addr] = self
 
@@ -195,8 +199,6 @@ class Node:
 
     def upper_compatible(self, other):
         verbose = False
-        if self.node_id == 99 and other.node_id == 102:
-            verbose = True
         if self.n_props() != other.n_props():
             if verbose: print("different size")
             return False
@@ -295,10 +297,9 @@ def merge_compatible_nodes(entrypoint):
                 nb.merge(na)
 
 def indent_print_node(file, indent, node):
-    write(file, ("  " * indent) + node.short_string() + "\n")
+    file.write(("  " * indent) + node.short_string() + "\n")
     for f in node.fields:
-        print(file,
-              ("  " * indent) + "- (" + str(f.offset) + ")" + f.name + ":" + f.type + "\n")
+        file.write(("  " * indent) + "- (" + str(f.offset) + ")" + f.name + ":" + f.type + "\n")
     for e in node.transitions:
         n = e.dest
         indent_print_node(file, indent + 1, n)
@@ -329,6 +330,41 @@ def dot_output(fp, entrypoints):
         dot_output_node(fp, n)
     fp.write("}\n")
 
+def collect_nodes_recursive(node):
+    if node.visited:
+        return []
+    node.visited = True
+    nodes = [node]
+    for t in node.transitions:
+        nodes += collect_nodes_recursive(t.dest)
+    return nodes
+
+def print_compiled_graph(fp, entrypoints):
+    nodes = []
+    for n in entrypoints:
+        nodes += collect_nodes_recursive(n)
+    for (i, n) in enumerate(nodes):
+        n.chcg_id = i
+    for n in nodes:
+        prev_id = n.prev.chcg_id if n.prev else -1
+        if not prev_id:
+            prev_id = -1
+        fp.write("HC %d %d %d # ID = %d %s\n" %
+                 (n.n_props(), len(n.transitions), prev_id,
+                  n.chcg_id, n.name))
+        if n.is_entry:
+            fp.write("ENTRY %d %d\n" % n.loc)
+        for (index, field) in enumerate(n.fields):
+            fp.write("PROP %d %s\n" % (index, field.name))
+        for t in n.transitions:
+            fp.write("TRANSITION %d %s\n" % (t.dest.chcg_id, t.prop_name))
+
+def find_same_loc(entrypoints, node):
+    for n in entrypoints:
+        if n != node and n.loc == node.loc:
+            return node
+    return None
+
 def main():
 #    with open(sys.argv[1]) as f:
 #        entrypoints = load_graph(f)
@@ -342,9 +378,11 @@ def main():
             n.skip_internal()
 #            merge_compatible_nodes(n)
 
+    entrypoints = [n for n in entrypoints if not find_same_loc(entrypoints, n)]
+
     if args.chcg:
         with open(args.chcg, "w") as f:
-            print_graph(f, entrypoints)
+            print_compiled_graph(f, entrypoints)
 #    dot_output(sys.stdout, entrypoints)
     if args.dot:
         with open(args.dot, "w") as f:

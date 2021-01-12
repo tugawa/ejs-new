@@ -292,6 +292,8 @@ extern PropertyMap *new_property_map(Context *ctx, char *name,
 extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
                                             JSValue name, int data,
                                             Attribute attr);
+extern void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                        JSValue name, PropertyMap *dest);
 
 extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                                int num_embedded, int num_extension);

@@ -296,6 +296,118 @@ void init_global_objects(Context *ctx) {
   FILL_BUILTIN_PROPERTIES(ctx, gconsts.g_performance, Performance);
 }
 
+#ifdef LOAD_HCG
+/*
+ * load compiled hidden class
+ */
+void load_hcg(Context *ctx, char *filename)
+{
+  FILE *fp;
+  char buf[1000];
+  struct transition {
+    int from;
+    int to;
+    JSValue name;
+  } transitions[1000];
+  int ntotal_trans = 0;
+  int previds[1000];
+  int id;
+  int line;
+  PropertyMap *pms[1000];
+  int i;
+
+  if ((fp = fopen(filename, "r")) == NULL)
+    LOG_ERR("load_pre_hc");
+
+  line = 0;
+  fgets(buf, sizeof buf, fp);
+  line++;
+  for (id = 0; ; id++) {
+    int nprops, ntrans, previd;
+    int funno, insnno;
+    PropertyMap *pm;
+    int ret;
+#ifdef DEBUG
+    char *debug_name = (char*) malloc(10);
+#endif /* DEBUG */
+
+    ret = sscanf(buf, "HC %d %d %d", &nprops, &ntrans, &previd);
+    if (ret == 0)
+      break;
+
+#ifdef DEBUG
+    sprintf(debug_name, "(pre%d)", id);
+#endif /* DEBUG */
+    previds[id] = previd;
+    pm = new_property_map(ctx, DEBUG_NAME(debug_name),
+                          OBJECT_SPECIAL_PROPS, nprops,
+                          OBJECT_USPECIAL_PROPS, JS_EMPTY,
+                          gpms.g_property_map_root);
+    pms[id] = pm;
+
+    fgets(buf, sizeof buf, fp);
+    line++;
+
+    ret = sscanf(buf, "ENTRY %d %d", &funno, &insnno);
+    if (ret == 2) {
+      struct function_table *f = &ctx->function_table[funno];
+      f->insns[insnno].loaded_pm = pm;
+      fgets(buf, sizeof buf, fp);
+      line++;
+    }
+
+    for (i = 0; i < nprops + ntrans; i++) {
+      char name[100];
+      int index, destid;
+
+      ret = sscanf(buf, "PROP %d %s", &index, name);
+      if (ret == 2) {
+        JSValue name_jsv = cstr_to_string(ctx, name);
+        property_map_add_property_entry(ctx, pm, name_jsv, index, ATTR_NONE);
+        fgets(buf, sizeof buf, fp);
+        line++;
+        continue;
+      }
+      ret = sscanf(buf, "TRANSITION %d %s", &destid, name);
+      if (ret == 2) {
+        struct transition *t= &transitions[ntotal_trans++];
+        t->from = id;
+        t->to = destid;
+        t->name = cstr_to_string(ctx, name);
+        fgets(buf, sizeof buf, fp);
+        line++;
+        continue;
+      }
+      fprintf(stderr, "format error in line %d: %s\n", line, buf);
+      exit(1);
+    }
+  }
+
+  fclose(fp);
+
+  /* install prev pointer */
+  for (i = 0; i < id; i++) {
+    PropertyMap *pm, *prev;
+    pm = pms[i];
+    if (previds[i] == -1)
+      prev = gpms.g_property_map_root;
+    else
+      prev = pms[previds[i]];
+    pm->prev = prev;
+  }
+
+  /* install transitions */
+  for (i = 0; i < ntotal_trans; i++) {
+    struct transition *t = &transitions[i];
+    PropertyMap *pm = pms[t->from];
+    PropertyMap *dest = pms[t->to];
+    property_map_add_transition(ctx, pm, t->name, dest);
+  }
+
+  fflush(stdout);
+}
+#endif /* LOAD_HCG */
+
 /* Local Variables:      */
 /* mode: c               */
 /* c-basic-offset: 2     */

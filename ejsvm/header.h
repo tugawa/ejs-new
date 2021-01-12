@@ -29,8 +29,6 @@
 #endif /* HC_PROF */
 #endif /* DUMP_HCG */
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

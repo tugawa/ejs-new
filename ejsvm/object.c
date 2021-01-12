@@ -18,8 +18,6 @@ static PropertyMap *
 clone_property_map(Context *ctx, PropertyMap *src) __attribute__((unused));
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
-static void property_map_add_transition(Context *ctx, PropertyMap *pm,
-                                        JSValue name, PropertyMap *dest);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
 #ifdef HC_PROF
 static void hcprof_add_root_property_map(PropertyMap *pm);
@@ -681,6 +679,21 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
   return m;
 }
 
+#ifdef LOAD_HCG
+static void property_map_install___proto__(PropertyMap *pm, JSValue __proto__)
+{
+  if (pm->__proto__ != JS_EMPTY)
+    return;
+  pm->__proto__ = __proto__;
+  HashIterator iter = createHashIterator(pm->map);
+  HashCell *p;
+  while (nextHashCell(pm->map, &iter, &p) != FAIL) {
+    if (is_transition(p->entry.attr))
+      property_map_install___proto__(p->entry.data.u.pm, __proto__);
+  }
+}
+#endif /* LOAD_HCG */
+
 void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
                                      JSValue name, int index, Attribute attr)
 {
@@ -689,8 +702,8 @@ void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
   hash_put_with_attribute(ctx, pm->map, name, data, attr);
 }
 
-static void property_map_add_transition(Context *ctx, PropertyMap *pm,
-                                        JSValue name, PropertyMap *dest)
+void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                 JSValue name, PropertyMap *dest)
 {
   HashData data;
   data.u.pm = dest;
@@ -873,6 +886,35 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
     {
       JSValue retv;
       PropertyMap *pm;
+#ifdef LOAD_HCG
+      /* 0. If compiled hcg is available, use it */
+      if (ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm != NULL) {
+        pm = ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm;
+        ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm = NULL;  /* TODO duplicate */
+        property_map_install___proto__(pm, prototype);
+        GC_PUSH(pm);
+        {
+          int n_props;
+#ifdef DEBUG
+          char *debug_name = (char*) malloc(14);
+          snprintf(debug_name, 14, "(new@%03d:%03d)",
+                   (int) (ctx->spreg.cf - ctx->function_table),
+                   ctx->spreg.pc);
+#endif /* DEBUG */
+          n_props = pm->n_props;
+          if (n_props == pm->n_special_props)
+            n_props += 1;
+          pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
+                                        pm, n_props, 0);
+        }
+        /* 3. Create a link from the prototype object to the PM so that
+         *    this function can find it in the following calls. */
+        set_prop(ctx, prototype, gconsts.g_string___property_map__,
+                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
+        GC_POP(pm);
+      } else
+#endif /* LOAD_HCG */ 
+
 #ifdef ALLOC_SITE_CACHE
       /* 1. If alloc_site_cache does not match and `prototype' is valid, 
        *    find the property map */
@@ -914,6 +956,7 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
        *    because the PM is an entrypoint. */
       os = pm->shapes;
+
 #ifdef ALLOC_SITE_CACHE
       if (as != NULL && as->pm == NULL) {
         as->pm = pm;

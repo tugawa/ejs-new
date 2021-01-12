@@ -41,6 +41,9 @@ int gcprof_flag;       /* print GC profile information */
 #ifdef DUMP_HCG
 char *dump_hcg_file_name;
 #endif /* DUMP_HCG */
+#ifdef LOAD_HCG
+char *load_hcg_file_name;
+#endif /* LOAD_HCG */
 
 
 /*
@@ -109,6 +112,9 @@ struct commandline_option  options_table[] = {
 #ifdef DUMP_HCG
   { "--dump-hcg", 1, NULL,            &dump_hcg_file_name },
 #endif /* DUMP_HCG */
+#ifdef LOAD_HCG
+  { "--load-hcg", 1, NULL,            &load_hcg_file_name },
+#endif /* LOAD_HCG */
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -362,6 +368,13 @@ int main(int argc, char *argv[]) {
     } else
       /* stdin is closed possibly by pressing ctrl-D */
       break;
+
+#ifdef LOAD_HCG
+    if (load_hcg_file_name != NULL) {
+      extern void load_hcg(Context *, char *);
+      load_hcg(context, load_hcg_file_name);
+    }
+#endif /* LOAD_HCG */
 
     /* obtains the time before execution */
 #ifdef USE_PAPI
