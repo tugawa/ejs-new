@@ -11,6 +11,9 @@
 #define EXTERN
 #include "header.h"
 
+static
+JSValue get_system_prop(JSValue obj, JSValue name) __attribute__((unused));
+
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
 static void property_map_add_transition(Context *ctx, PropertyMap *pm,
@@ -819,35 +822,55 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
   if (os == NULL)
 #endif /* ALLOC_SITE_CACHE */
     {
-      JSValue retv;
       PropertyMap *pm;
+#ifdef ALLOC_SITE_CACHE
+      JSValue retv;
+      /* 1. If alloc_site_cache does not match and `prototype' is valid, 
+       *    find the property map */
+      if (as->pm != NULL &&
+          (retv = get_system_prop(prototype, gconsts.g_string___property_map__))
+          != JS_EMPTY) {
+        pm = jsv_to_property_map(retv);
+      }
+      else
+#else /* ALLOC_SITE_CACHE */
+      JSValue retv;
       /* 1. If `prototype' is valid, find the property map */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY)
         pm = jsv_to_property_map(retv);
-      else {
-        /* 2. If there is not, create it. */
-        int n_props = 0;
-        int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
-        pm = new_property_map(ctx, DEBUG_NAME("(new)"),
-                              OBJECT_SPECIAL_PROPS, n_props,
-                              OBJECT_USPECIAL_PROPS, prototype,
-                              gpms.g_property_map_root);
-        GC_PUSH(pm);
-        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                      pm, n_embedded, 0);
-        assert(Object_num_builtin_props +
-               Object_num_double_props + Object_num_gconsts_props == 0);
+      else
+#endif /* ALLOC_SITE_CACHE */
+        {
+          /* 2. If there is not, create it. */
+          int n_props = 0;
+          int n_embedded = OBJECT_SPECIAL_PROPS + 1;/* at least 1 normal slot */
+          pm = new_property_map(ctx, DEBUG_NAME("(new)"),
+                                OBJECT_SPECIAL_PROPS, n_props,
+                                OBJECT_USPECIAL_PROPS, prototype,
+                                gpms.g_property_map_root);
+          GC_PUSH(pm);
+          pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
+                                        pm, n_embedded, 0);
+          assert(Object_num_builtin_props +
+                 Object_num_double_props + Object_num_gconsts_props == 0);
 
-        /* 3. Create a link from the prototype object to the PM so that
-         *    this function can find it in the following calls. */
-        set_prop(ctx, prototype, gconsts.g_string___property_map__,
-                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
-        GC_POP(pm);
-      }
+          /* 3. Create a link from the prototype object to the PM so that
+           *    this function can find it in the following calls. */
+          set_prop(ctx, prototype, gconsts.g_string___property_map__,
+                   (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
+          GC_POP(pm);
+        }
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
        *    because the PM is an entrypoint. */
       os = pm->shapes;
+#ifdef ALLOC_SITE_CACHE
+      if (as != NULL && as->pm == NULL) {
+        as->pm = pm;
+        as->shape = os;
+        as->polymorphic = 0;
+      }
+#endif /* ALLOC_SITE_CACHE */
     }
 
 #ifdef ALLOC_SITE_CACHE
