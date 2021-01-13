@@ -39,9 +39,11 @@
   {
     InlineCache *ic = &insns->inl_cache;
     assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
-    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop) {
       dst = jsv_to_jsobject(obj)->eprop[ic->index];
-    else
+      if (dst == JS_EMPTY)
+        dst = get_object_prop(context, obj, prop, ic);
+    } else
       dst = get_object_prop(context, obj, prop, ic);
   }
 #else /* INLINE_CACHE */
