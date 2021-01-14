@@ -275,6 +275,9 @@ struct property_map {
   uint16_t n_user_special_props; /* [const] Number of special props that is
                                   * registered in the map. */
 #endif /* DEBUG */
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *alloc_site;
+#endif /* ALLOC_SITE_CACHE */
 #ifdef HC_PROF
   uint32_t n_enter;
   uint32_t n_leave;
@@ -325,9 +328,6 @@ struct shape {
 
 struct jsobject_cell {
   Shape *shape;
-#ifdef ALLOC_SITE_CACHE
-  AllocSite *alloc_site;
-#endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
@@ -365,10 +365,6 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   *(object_get_prop_address(obj, index)) = v
 
 #define object_get_shape(obj) (jsv_to_jsobject(obj)->shape)
-#ifdef ALLOC_SITE_CACHE
-#define object_set_alloc_site(obj, as)          \
-  (jsv_to_jsobject(obj)->alloc_site = (as))
-#endif /* ALLOC_SITE_CACHE */
 
 /** SPECIAL FIELDS OF JSObjects
  *  get/set_jsxxx_yyy:

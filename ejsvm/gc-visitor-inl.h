@@ -97,15 +97,8 @@ class NodeScanner {
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
-    if (p->alloc_site != NULL) {
+    if (os->pm->alloc_site != NULL)
       alloc_site_update_info(p);
-#ifdef DUMP_HCG
-      if (p->alloc_site->pm != NULL)
-	PROCESS_EDGE(p->alloc_site->pm);
-#else /* DUMP_HCG */
-	PROCESS_EDGE(p->alloc_site->pm);
-#endif /* DUMP_HCG */
-    }
 #endif /* ALLOC_SITE_CACHE */
   }
   
@@ -212,6 +205,10 @@ class NodeScanner {
         PROCESS_EDGE(p->shapes);/* Shape
 				 * (always keep the largest one) */
     PROCESS_EDGE(p->__proto__);
+#ifdef ALLCO_SITE_CACHE
+    if (p->alloc_site != NULL)
+      PROCESS_EDGE(p->alloc_site->pm);
+#endif /* ALLOC_SITE_CACHE */
   }
   ACCEPTOR static void scan_Shape(Shape *p) {
     PROCESS_EDGE(p->pm);

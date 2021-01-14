@@ -275,8 +275,8 @@ STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 
 void alloc_site_update_info(JSObject *p)
 {
-  AllocSite *as = p->alloc_site;
   PropertyMap *pm = p->shape->pm;
+  AllocSite *as = pm->alloc_site;
 
   assert(as != NULL);
 

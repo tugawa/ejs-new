@@ -338,9 +338,6 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
   GC_PUSH(os);
   p = (JSObject *) gc_malloc(ctx, size, htag.v);
   p->shape = os;
-#ifdef ALLOC_SITE_CACHE
-  p->alloc_site = NULL;
-#endif /* ALLOC_SITE_CACHE */
   for (i = 0; i < n_embedded; i++)
     p->eprop[i] = JS_EMPTY;
 
@@ -571,6 +568,9 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->is_entry = 0;
 #endif /* DUMP_HCG */
 #endif /* HC_PROF */
+#ifdef ALLOC_SITE_CACHE
+  m->alloc_site = NULL;
+#endif /* ALLOC_SITE_CACHE */
 
 #ifdef HC_SKIP_INTERNAL
   GC_PUSH(m);
@@ -624,6 +624,10 @@ static PropertyMap *clone_property_map(Context *ctx, PropertyMap *src)
 #endif /* DEBUG */
   GC_POP2(m, src);
 
+#ifdef ALLOC_SITE_CACHE
+  m->alloc_site = src->alloc_site;
+#endif /* ALLOC_SITE_CACHE */
+
   return m;
 }
 
@@ -675,6 +679,10 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
   property_map_add_transition(ctx, prev, prop_name, m);
 
   GC_POP3(m, prop_name, prev);
+
+#ifdef ALLOC_SITE_CACHE
+  m->alloc_site = prev->alloc_site;
+#endif /* ALLOC_SITE_CACHE */
 
   return m;
 }
@@ -941,6 +949,9 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #ifdef DUMP_HCG
         pm->is_entry = 1;
 #endif /* DUMP_HCG */
+#ifdef ALLOC_SITE_CACHE
+        pm->alloc_site = as;
+#endif /* ALLOC_SITE_CACHE */
         GC_PUSH(pm);
         pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
                                       pm, n_embedded, 0);
@@ -972,7 +983,6 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
   GC_PUSH(obj);
   if (os->pm->__proto__ == JS_EMPTY)
     set_prop(ctx, obj, gconsts.g_string___proto__, prototype, ATTR_NONE);
-  object_set_alloc_site(obj, as);
   GC_POP2(obj, os);
 #else /* ALLOC_SITE_CACHE */
   obj = new_simple_object(ctx, DEBUG_NAME("inst:new"), os);
@@ -996,6 +1006,9 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
 #ifdef DUMP_HCG
     pm->is_entry = 1;
 #endif /* DUMP_HCG */
+#ifdef ALLOC_SITE_CACHE
+    pm->alloc_site = as;
+#endif /* ALLOC_SITE_CACHE */
     if (as->pm == NULL) {
       as->pm = pm;
       as->shape = os;
@@ -1003,7 +1016,6 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
     }
   }
   obj = new_array_object(ctx, name, os, size);
-  object_set_alloc_site(obj, as);
   return obj;
 }
 #endif /* ALLOC_SITE_CACHE */
