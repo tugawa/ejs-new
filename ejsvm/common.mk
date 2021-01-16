@@ -280,8 +280,8 @@ endif
 ifeq ($(OPT_GC),threaded)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DTHREADED
     CXX_FILES+=threadedcompact-collector.cc
-    OFILES+=threadedcompact-collector.o threaded-freelist-space.o
-    HFILES+=threadedcompact-collector.h threaded-freelist-space.h threaded-freelist-space-inl.h mark-tracer.h
+    OFILES+=threadedcompact-collector.o threaded-space.o
+    HFILES+=threadedcompact-collector.h threaded-space.h threaded-space-inl.h mark-tracer.h
 endif
 ifeq ($(OPT_GC),compact)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION

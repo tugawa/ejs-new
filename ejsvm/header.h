@@ -78,7 +78,7 @@
 #include "copy-collector.h"
 #endif /* COPYGC */
 #ifdef THREADED
-#include "threaded-freelist-space.h"
+#include "threaded-space.h"
 #include "threadedcompact-collector.h"
 #endif /* THREADED */
 
@@ -103,7 +103,7 @@
 #include "bibop-space-inl.h"
 #endif /* BIBOP */
 #ifdef THREADED
-#include "threaded-freelist-space-inl.h"
+#include "threaded-space-inl.h"
 #endif /* THREADED */
 
 #endif /* HEADER_H_ */
