@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) flonum_to_string : Flonum -> String
+(makeInline, calledFromC) flonum_to_string : Flonum -> String
 flonum_to_string(v){
     top: match(v){
         case(Flonum v){

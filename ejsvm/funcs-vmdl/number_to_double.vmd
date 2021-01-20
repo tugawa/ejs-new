@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) number_to_double : Number-> cdouble
+(makeInline, calledFromC) number_to_double : Number-> cdouble
 number_to_double(v){
     top: match(v){
         case(Fixnum v){

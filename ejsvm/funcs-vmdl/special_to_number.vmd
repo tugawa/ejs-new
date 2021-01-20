@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) special_to_number : Special -> Number
+(makeInline, calledFromC) special_to_number : Special -> Number
 special_to_number(v){
     top: match(v){
         case(Special v){

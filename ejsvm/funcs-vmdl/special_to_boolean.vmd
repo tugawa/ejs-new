@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) special_to_boolean : Special -> Special
+(makeInline, calledFromC) special_to_boolean : Special -> Special
 special_to_boolean(v){
     top: match(v){
         case(Special v){

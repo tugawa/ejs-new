@@ -421,6 +421,7 @@ HeapObject
     public static class AstProductType extends AstType {
         AstType domain;
         AstType range;
+        AstType[] domainArray;
         public AstProductType(AstType _domain, AstType _range) {
             domain = _domain;
             range = _range;
@@ -444,6 +445,15 @@ HeapObject
             if(domain instanceof AstPairType)
                 return ((AstPairType)domain).getTypes().size();
             throw new Error("Domain type of AstProductType is illigal state: "+domain.toString());
+        }
+        public AstType[] getDomainAsArray(){
+            if(domainArray != null) return domainArray;
+            if(domain instanceof AstPairType){
+                domainArray = ((AstPairType)domain).getTypes().toArray(new AstType[0]);
+            }else if(domain instanceof AstBaseType){
+                domainArray = new AstType[]{ domain };
+            }
+            return domainArray;
         }
         @Override
         public int hashCode(){

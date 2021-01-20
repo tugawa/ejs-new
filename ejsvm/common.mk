@@ -76,6 +76,7 @@ VMDL_FUNCANYSPEC=$(VMDL_WORKSPACE)/any.spec
 VMDL_FUNCNEEDSPEC=$(VMDL_WORKSPACE)/funcs-need.spec
 VMDL_FUNCDEPENDENCY=$(VMDL_WORKSPACE)/dependency.ftd
 VMDL_EXTERN=$(VMDL_WORKSPACE)/vmdl-extern.inc
+VMDL_FUNCDPECCREQUIRE=$(VMDL_WORKSPACE)/funcscrequire.spec
 
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
@@ -380,6 +381,7 @@ define vmdl_funcs_preprocess
 		-d $(DATATYPES) -o $(VMDL_FUNCANYSPEC) \
 		-i $(EJSVM_DIR)/instructions.def -preprocess \
 		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} -write-extern $(VMDL_EXTERN)\
+		-write-opspec-creq $(VMDL_FUNCDPECCREQUIRE)\
 		$(1) \
 		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); rm $(VMDL_EXTERN); exit 1)
 
@@ -448,19 +450,20 @@ $(VMDL_FUNCANYSPEC):
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCBASESPEC) $(VMDL_FUNCDEPENDENCY)
 	mkdir -p $(VMDL_WORKSPACE)
 	$(FUNCGEN_VMDL) -gen-funcspec $(VMDL_FUNCDEPENDENCY) $(VMDL_FUNCBASESPEC) $@ || (rm $@; exit 1)
-$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN): $(VMDL_INLINE)
+$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN) $(VMDL_FUNCDPECCREQUIRE): $(VMDL_INLINE)
 $(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	mkdir -p $(VMDL_WORKSPACE)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
 	rm -f $(VMDL_EXTERN)
+	touch $(VMDL_FUNCDEPENDENCY)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
 $(VMDL_FUNCBASESPEC): $(VMDL) $(REQUIRED_FUNCSPECS)
 	$(SPECGEN_VMDL) -merge-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
 $(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp -n $(FUNCTIONSPEC) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
+	cp -n $(VMDL_FUNCDPECCREQUIRE) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
@@ -496,13 +499,14 @@ $(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
 	rm -f $(VMDL_INLINE)
 	rm -f $(VMDL_FUNCDEPENDENCY)
 	rm -f $(VMDL_EXTERN)
+	touch $(VMDL_FUNCDEPENDENCY)
 	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
 $(VMDL_FUNCBASESPEC): $(VMDL) $(REQUIRED_FUNCSPECS)
 	$(SPECGEN_VMDL) -merge-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
 $(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
 $(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE)
 	mkdir -p $(VMDL_WORKSPACE)
-	cp -n $(FUNCTIONSPEC) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
+	cp -n $(VMDL_FUNCDPECCREQUIRE) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \

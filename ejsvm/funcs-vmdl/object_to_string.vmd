@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) object_to_string : JSValue -> String
+(needContext, makeInline, calledFromC) object_to_string : JSValue -> String
 object_to_string(v){
     top: match(v){
         case(object v){

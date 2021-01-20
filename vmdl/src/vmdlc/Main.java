@@ -81,8 +81,13 @@ public class Main {
         }
         if(option.isSetFunctionExternFile()){
             FileWriter externWriter = new FileWriter(option.getFunctionExternFile(), true);
-            externWriter.write(new ExternDeclarationGenerator().generate(ast));
+            externWriter.write(ExternDeclarationGenerator.generate(ast));
             externWriter.close();
+        }
+        if(option.isSetOpSpecCRequireFile()){
+            FileWriter opSpecCRequireWriter = new FileWriter(option.getOpSpecCRequireFile(), true);
+            opSpecCRequireWriter.write(ExternDeclarationGenerator.genereteOperandSpecCRequire(ast));
+            opSpecCRequireWriter.close();
         }
         if(option.isSetFunctionTypeDependencyFile()){
             TypeDependencyProcessor.write(option.getFunctionTypeDependencyFile());
@@ -102,6 +107,9 @@ public class Main {
         ErrorPrinter.setSource(sourceFile);
         if(option.isEnableFunctionInlining()){
             option.setFunctionInlining(getGrammar());
+        }
+        if(option.isSetFunctionTypeDependencyFile()){
+            TypeDependencyProcessor.load(option.getFunctionTypeDependencyFile());
         }
         String functionName = new ExternProcessVisitor().start(ast);
         option.setCompileMode(functionName);

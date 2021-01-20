@@ -82,6 +82,8 @@ public class ExternProcessVisitor extends TreeVisitorMap<DefaultVisitor>{
                 FunctionTable.put(name, (AstProductType)type, annotations);
             }else if(!type.equals(FunctionTable.getType(name))){
                 ErrorPrinter.error("The function is already defined (Maybe externC): "+name, (SyntaxTree)nameNode);
+            }else if(!FunctionTable.equalsAnnotation(name, annotations)){
+                ErrorPrinter.error("Conflicting annotations with before definition (Maybe externC): "+name, (SyntaxTree)nameNode);
             }
         }
     }

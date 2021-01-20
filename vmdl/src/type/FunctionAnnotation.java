@@ -9,7 +9,8 @@ public enum FunctionAnnotation {
     tailCall(),
     noIncPC(),
     makeInline(),
-    builtinFunction();
+    builtinFunction(),
+    calledFromC();
 
     private FunctionAnnotation(){
     }

@@ -11,16 +11,24 @@ import type.FunctionAnnotation;
 import type.AstType.AstAliasType;
 import type.AstType.AstPairType;
 import type.AstType.AstProductType;
+import type.AstType.JSValueType;
 
 public class ExternDeclarationGenerator {
-    public String generate(SyntaxTree node){
+    private static SyntaxTree getFunctionMeta(SyntaxTree node){
         if(!node.is(Symbol.unique("FunctionMeta"))){
             Tree<SyntaxTree>[] subTree = node.getSubTree();
-            if(subTree == null) return "";
+            if(subTree == null) return null;
             for(Tree<SyntaxTree> tree : subTree){
-                String result = generate((SyntaxTree)tree);
-                if(!result.equals("")) return result;
+                SyntaxTree result = getFunctionMeta((SyntaxTree)tree);
+                if(result != null) return result;
             }
+            return null;
+        }
+        return node;
+    }
+    public static String generate(SyntaxTree node){
+        node = getFunctionMeta(node);
+        if(!node.is(Symbol.unique("FunctionMeta"))){
             return "";
         }
         StringBuilder builder = new StringBuilder();
@@ -83,6 +91,38 @@ public class ExternDeclarationGenerator {
         }
         builder.append(");");
         builder.append("\n");
+        return builder.toString();
+    }
+    public static String genereteOperandSpecCRequire(SyntaxTree node){
+        node = getFunctionMeta(node);
+        if(!node.is(Symbol.unique("FunctionMeta"))){
+            return "";
+        }
+        Tree<?> nameNode = node.get(Symbol.unique("name"));
+        Tree<?> typeNode = node.get(Symbol.unique("type"));
+        String name = nameNode.toText();
+        AstType type = AstType.nodeToType((SyntaxTree)typeNode);
+        if(!(type instanceof AstProductType)){
+            throw new Error("Function is not function type");
+        }
+        AstType[] funDomainTypes = ((AstProductType)type).getDomainAsArray();
+        int length = funDomainTypes.length;
+        StringBuilder builder = new StringBuilder();
+        builder.append(name);
+        builder.append(" (");
+        String[] specifyChars = new String[length];
+        for(int i=0; i<length; i++){
+            if(funDomainTypes[i] instanceof JSValueType)
+                specifyChars[i] = "_";
+            else
+                specifyChars[i] = "-";
+        }
+        builder.append(String.join(",", specifyChars));
+        builder.append(") ");
+        if(FunctionTable.hasAnnotations(name, FunctionAnnotation.calledFromC))
+            builder.append("accept\n");
+        else
+            builder.append("unspecified\n");
         return builder.toString();
     }
 }

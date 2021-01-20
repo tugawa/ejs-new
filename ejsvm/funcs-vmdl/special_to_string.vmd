@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) special_to_string : Special-> String
+(makeInline, calledFromC) special_to_string : Special-> String
 special_to_string(v){
     top: match(v){
         case(Special v){

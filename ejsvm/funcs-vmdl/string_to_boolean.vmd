@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(makeInline) string_to_boolean : String -> Special
+(makeInline, calledFromC) string_to_boolean : String -> Special
 string_to_boolean(v){
     top: match(v){
         case(String v){

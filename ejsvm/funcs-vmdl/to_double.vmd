@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) to_double : JSValue -> cdouble
+(needContext, triggerGC, makeInline, calledFromC) to_double : JSValue -> cdouble
 to_double(v){
     top: match(v){
         case(Fixnum v){

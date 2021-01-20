@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, triggerGC, makeInline) string_to_number : String -> Number
+(needContext, triggerGC, makeInline, calledFromC) string_to_number : String -> Number
 string_to_number(v){
     top: match(v){
         case(String v){

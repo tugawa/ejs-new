@@ -25,6 +25,7 @@ public class Option {
     private String inliningFile;
     private String functionExternFile;
     private String sourceFile;
+    private String opSpecCRequireFile;
     private boolean typeDefinitionSetFlag;
     private String requiringFunctionSpecFile;
     private boolean functionInliningFlag;
@@ -203,6 +204,11 @@ public class Option {
                 }
                 return args.size();
             }));
+        options.put("-write-opspec-creq", new OptionItem("-write-opspec-creq file", new String[] { "Write operand specification C requires", "(Use in preprocess mode)" },
+            (args, self) -> {
+                self.opSpecCRequireFile = args.get(1);
+                return 2;
+            }));
     }
 
     public void parseOption(String[] args) throws IOException {
@@ -317,6 +323,10 @@ public class Option {
         return functionExternFile != null;
     }
 
+    public boolean isSetOpSpecCRequireFile(){
+        return opSpecCRequireFile != null;
+    }
+
     public boolean isSetVMDLGrammarFile(){
         return vmdlGrammarFile != null;
     }
@@ -351,6 +361,10 @@ public class Option {
 
     public String getFunctionTypeDependencyFile(){
         return functionTypeDependencyFile;
+    }
+
+    public String getOpSpecCRequireFile(){
+        return opSpecCRequireFile;
     }
 
     public String getVMDLGrammarFile(){

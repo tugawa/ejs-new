@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) number_to_cint : Number-> cint
+(makeInline, calledFromC) number_to_cint : Number-> cint
 number_to_cint(v){
     top: match(v){
         case(Fixnum v){

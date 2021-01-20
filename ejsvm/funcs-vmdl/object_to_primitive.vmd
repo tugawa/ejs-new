@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, makeInline) object_to_primitive : (JSValue, cint) -> JSValue
+(needContext, makeInline, calledFromC) object_to_primitive : (JSValue, cint) -> JSValue
 object_to_primitive(v, hint){
     top: match(v){
         case(object v){

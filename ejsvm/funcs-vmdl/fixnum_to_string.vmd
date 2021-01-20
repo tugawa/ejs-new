@@ -1,7 +1,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(makeInline) fixnum_to_string : Fixnum-> String
+(makeInline, calledFromC) fixnum_to_string : Fixnum-> String
 fixnum_to_string(v){
     top: match(v){
         case(Fixnum v){

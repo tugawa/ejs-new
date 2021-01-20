@@ -3,7 +3,7 @@
 #include "../header-vmdl/externc.vmdh"
 
 
-(needContext, triggerGC, makeInline) to_number : JSValue -> Number
+(needContext, triggerGC, makeInline, calledFromC) to_number : JSValue -> Number
 to_number(v){
     top: match(v){
         case(number v){

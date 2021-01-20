@@ -1,6 +1,6 @@
 #include "../header-vmdl/externc.vmdh"
 
-(needContext, makeInline) fixnum_to_object : Fixnum -> JSValue
+(needContext, triggerGC, makeInline) fixnum_to_object : Fixnum -> JSValue
 fixnum_to_object(v){
     top: match(v){
         case(Fixnum v){

@@ -41,6 +41,12 @@ public class FunctionTable{
         return functionMap.get(name).annotations.contains(annotation);
     }
 
+    public static boolean equalsAnnotation(String name, Set<FunctionAnnotation> annotations){
+        if(!contains(name)) return false;
+        Set<FunctionAnnotation> targetsAnnotations = functionMap.get(name).annotations;
+        return targetsAnnotations.equals(annotations);
+    }
+
     private static class FunctionInfo{
         AstProductType type;
         Set<FunctionAnnotation> annotations;

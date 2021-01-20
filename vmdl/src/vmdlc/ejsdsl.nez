@@ -286,6 +286,7 @@ Annotation = { 'vmInstruction' } !W _
            / { 'noIncPC' } !W _
            / { 'makeInline' } !W _
            / { 'builtinFunction' } !W _
+           / { 'calledFromC' } !W _
 
 ObjectMemberAnnotation = { "embedded" } _
 
