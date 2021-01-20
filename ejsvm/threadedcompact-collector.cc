@@ -193,84 +193,12 @@ static void thread_reference(void **ref) {
 static void update_reference(void *ref_, void *addr) {
   header_t *hdrp = payload_to_header(ref_);
   cell_type_t type = get_threaded_header_type(hdrp);
-  uintjsv_t tag = 0;
-
-  switch(type) {
-    case CELLT_FREE:
-      LOG_EXIT("unreachable code.");
-      abort();
-      break;
-
-    /* User defined types */
-    case CELLT_STRING:
-      tag = GC_GET_PTAG_FOR_HTAG_STRING().v;
-      break;
-    case CELLT_FLONUM:
-      tag = GC_GET_PTAG_FOR_HTAG_FLONUM().v;
-      break;
-    case CELLT_SIMPLE_OBJECT:
-      tag = GC_GET_PTAG_FOR_HTAG_SIMPLE_OBJECT().v;
-      break;
-    case CELLT_ARRAY:
-      tag = GC_GET_PTAG_FOR_HTAG_ARRAY().v;
-      break;
-    case CELLT_FUNCTION:
-      tag = GC_GET_PTAG_FOR_HTAG_FUNCTION().v;
-      break;
-    case CELLT_BUILTIN:
-      tag = GC_GET_PTAG_FOR_HTAG_BUILTIN().v;
-      break;
-    case CELLT_ITERATOR:
-      tag = GC_GET_PTAG_FOR_HTAG_ITERATOR().v;
-      break;
-#ifdef use_regexp
-    case CELLT_REGEXP:
-      tag = GC_GET_PTAG_FOR_HTAG_REGEXP().v;
-      LOG_EXIT("Not Implemented");
-      break;
-#endif
-    case CELLT_BOXED_STRING:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_STRING().v;
-      break;
-    case CELLT_BOXED_NUMBER:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_NUMBER().v;
-      break;
-    case CELLT_BOXED_BOOLEAN:
-      tag = GC_GET_PTAG_FOR_HTAG_BOXED_BOOLEAN().v;
-      break;
-
-    /* VM inner defined types */
-    case CELLT_PROP:
-    case CELLT_ARRAY_DATA:
-    case CELLT_BYTE_ARRAY:
-    case CELLT_FUNCTION_FRAME:
-    case CELLT_STR_CONS:
-    // case CELLT_CONTEXT: /* no longer used */
-    // case CELLT_STACK: /* no longer used */
-    case CELLT_HASHTABLE:
-    case CELLT_HASH_BODY:
-    case CELLT_HASH_CELL:
-    case CELLT_PROPERTY_MAP:
-    case CELLT_SHAPE:
-    case CELLT_UNWIND:
-    case CELLT_PROPERTY_MAP_LIST:
-      tag = (uintjsv_t) -1;
-      break;
-
-    default:
-      LOG_EXIT("Unreachable code.");
-      abort();
-      break;
-  }
+  uintjsv_t tag = get_ptag_value_by_cell_type(type);
 
   void **ref = (void **) hdrp->threaded;
   while(is_reference(ref)) {
     void **next = (void **) *ref;
-    if (tag != (uintjsv_t) -1)
-      *ref = (void *) put_ptag((uintjsv_t) addr, ((PTag) {tag}));
-    else
-      *ref = addr;
-
+    *ref = (void *) put_ptag((uintjsv_t) addr, ((PTag) {tag}));
     ref = next;
   }
   hdrp->threaded = (uintptr_t) ref;

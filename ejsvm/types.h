@@ -197,6 +197,7 @@ typedef struct {
 
 static inline HTag get_htag(JSValue v);
 static inline int  is_htag(JSValue v, HTag t);
+static inline uintjsv_t get_ptag_value_by_cell_type(cell_type_t type);
 
 /* Type conversion from/to JSValue
  *   JSValue -> JSObject             jsv_to_jsobject -- check and clear tag

@@ -176,13 +176,18 @@ public class TypesGen {
 
     String defineVMRepTypeInfoForGC() {
         StringBuilder sb = new StringBuilder();
-        sb.append("/* VMRepTypeInfo for GC */\n");
+        sb.append("/* case label(s) for get_ptag_value_by_cell_type */\n");
+        sb.append("#define CASE_LABELS_FOR_get_ptag_value_by_cell_type ");
+
         for (VMRepType rt: VMRepType.all()) {
             if (!rt.hasHT())
                 continue;
+            if (rt.getPT().getValue() == 0)
+                continue;
 
-            sb.append(String.format("#define GC_GET_PTAG_FOR_%s() (%s) \n", rt.getHT(), rt.getPT()));
+            sb.append(String.format("\\\ncase %s: return %s;", rt.getHT().getCelltypeName(), rt.getPT().getValueName()));
         }
+
         sb.append("\n");
         return sb.toString();
     }

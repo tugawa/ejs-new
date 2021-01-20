@@ -43,6 +43,14 @@ static inline int is_htag(JSValue v, HTag t)
   return get_htag(v).v == t.v;
 }
 
+static inline uintjsv_t get_ptag_value_by_cell_type(cell_type_t type)
+{
+    switch(type) {
+        CASE_LABELS_FOR_get_ptag_value_by_cell_type
+        default: return 0;
+    }
+};
+
 /*
  * Type conversion from/to JSValue
  */
