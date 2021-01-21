@@ -40,7 +40,6 @@ import type.AstType.AstBaseType;
 import type.AstType.AstMappingType;
 import type.AstType.AstPairType;
 import type.AstType.AstProductType;
-import type.AstType.JSValueType;
 
 public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
     static final boolean OUTPUT_DEBUG_INFO = false;
