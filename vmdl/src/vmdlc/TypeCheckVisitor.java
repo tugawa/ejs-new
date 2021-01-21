@@ -325,6 +325,27 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             if(!params[2].toText().equals("args")) return false;
             return true;
         }
+        private final Set<VMDataType[]> filterParamTypes(Set<VMDataType[]> target, AstProductType funType){
+            if(target == null) return null;
+            if(target.isEmpty()) return target;
+            AstType[] vec = funType.getDomainAsArray();
+            List<JSValueType> jsList = new ArrayList<>();
+            for(AstType type : vec){
+                if(!(type instanceof JSValueType)) continue;
+                jsList.add((JSValueType)type);
+            }
+            JSValueType[] jsVec = jsList.toArray(new JSValueType[0]);
+            int length = jsVec.length;
+            Set<VMDataType[]> filtered = new HashSet<>(target.size());
+            NEXT_PARAMS: for(VMDataType[] paramTypes : target){
+                if(paramTypes.length != length)
+                    ErrorPrinter.error("JSValueType parameter size does not match");
+                for(int i=0; i<length; i++)
+                    if(!jsVec[i].isSuperOrEqual(AstType.get(paramTypes[i]))) continue NEXT_PARAMS;
+                filtered.add(paramTypes);
+            }
+            return filtered;
+        }
         @Override
         public TypeMapSet accept(SyntaxTree node, TypeMapSet dict) throws Exception {
             SyntaxTree typeNode = node.get(Symbol.unique("type"));
@@ -406,6 +427,8 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     if(tupleSet == null){
                         ErrorPrinter.error("Cannot find operand specification: "+name);
                     }
+                    if(!FunctionTable.hasAnnotations(name, FunctionAnnotation.calledFromC))
+                        tupleSet = filterParamTypes(tupleSet, funtype);
                     String[] variableStrings = vtvs.getVarNames();
                     int length = variableStrings.length;
                     Set<Map<String, AstType>> jsvMapSet = new HashSet<>();
