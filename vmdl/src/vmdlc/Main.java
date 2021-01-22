@@ -139,14 +139,19 @@ public class Main {
             option.getRequiringFunctionSpec().write(option.getRequiringFunctionSpecFile());
     }
     private final static void generateRequiringFunctionSpec() throws IOException{
-        TypeDependencyProcessor.load(option.getFunctionTypeDependencyFile());
-        OperandSpecifications argSpec = TypeDependencyProcessor.getExpandSpecifications(option.getArgumentSpec());
-        argSpec.write(option.getSourceFile());
+        OperandSpecifications merged = OperandSpecifications.merge(option.getMergeTargets());
+        if(option.isSetFunctionTypeDependencyFile()){
+            TypeDependencyProcessor.load(option.getFunctionTypeDependencyFile());
+            merged = TypeDependencyProcessor.getExpandSpecifications(merged);
+        }
+        merged.print(System.out);
     }
+    /*
     private final static void generateMergedFunctionSpec(){
         OperandSpecifications merged = OperandSpecifications.merge(option.getMergeTargets());
         merged.print(System.out);
     }
+    */
     private final static void compileMode() throws IOException{
         optionCheck();
         initialize();
@@ -167,9 +172,11 @@ public class Main {
     private final static void genFuncSpecMode() throws IOException{
         generateRequiringFunctionSpec();
     }
+    /*
     private final static void mergeFunctionSpecMode() throws IOException{
         generateMergedFunctionSpec();
     }
+    */
     public final static void main(String[] args) throws IOException {
         option.parseOption(args);
         switch(option.getProcessMode()){
@@ -182,9 +189,11 @@ public class Main {
             case Compile:
                 compileMode();
                 break;
+            /*
             case MergeFuncSpec:
                 mergeFunctionSpecMode();
                 break;
+            */
             default:
                 throw new Error("InternalError: Unknown mode: "+option.getProcessMode());
         }

@@ -143,6 +143,7 @@ public class Option {
             self.processMode = ProcessMode.Preprocess;
             return 1;
         }));
+        /*
         options.put("-gen-funcspec", new OptionItem("-gen-funcspec ftdfile file",
             "Use generating function specification mode", (args, self) -> {
                 if (self.processMode != ProcessMode.Compile) {
@@ -154,6 +155,7 @@ public class Option {
                 self.argumentSpec.load(argumentSpecFile);
                 return 3;
             }));
+        */
         options.put("-func-inline-opt", new OptionItem("-func-inline-opt file", "Enable function inlining",
             (args, self) -> {
                 self.functionInliningFlag = true;
@@ -189,12 +191,12 @@ public class Option {
                 self.caseSplittingSpec.load(caseSplittingSpecFile);
                 return 2;
             }));
-        options.put("-merge-funcspec", new OptionItem("-merge-funcspec file1 file2 ...", "Generate merged function specification files",
+        options.put("-gen-funcspec", new OptionItem("-gen-funcspec file1 file2 ...", "Generate merged function specification files",
             (args, self) -> {
                 if (self.processMode != ProcessMode.Compile) {
                     ErrorPrinter.error("Cannot specify modes at the same time");
                 }
-                self.processMode = ProcessMode.MergeFuncSpec;
+                self.processMode = ProcessMode.GenFuncSpec;
                 self.mergeTargets = new ArrayList<>(args.size()-1);
                 List<String> files = args.subList(1, args.size());
                 for(String file : files){
@@ -207,6 +209,11 @@ public class Option {
         options.put("-write-opspec-creq", new OptionItem("-write-opspec-creq file", new String[] { "Write operand specification C requires", "(Use in preprocess mode)" },
             (args, self) -> {
                 self.opSpecCRequireFile = args.get(1);
+                return 2;
+            }));
+        options.put("-ftd", new OptionItem("-ftd file", new String[] { "Specify function type dependency file", "(Use in GenFuncSpec mode)" },
+            (args, self) -> {
+                self.functionTypeDependencyFile = args.get(1);
                 return 2;
             }));
     }
@@ -222,6 +229,8 @@ public class Option {
                     if (consumed == -1)
                         break;
                 } else {
+                    if (key.startsWith("-"))
+                        ErrorPrinter.error("Unknown option: "+key);
                     sourceFile = key;
                     break;
                 }
@@ -238,7 +247,7 @@ public class Option {
     }
 
     private boolean isIncorrectCommandlineArgument(){
-        return (!typeDefinitionSetFlag || sourceFile == null) && (processMode != ProcessMode.GenFuncSpec && processMode != ProcessMode.MergeFuncSpec);
+        return (!typeDefinitionSetFlag || sourceFile == null) && processMode != ProcessMode.GenFuncSpec;
     }
 
     private void printDescription(){
