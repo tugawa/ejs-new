@@ -111,7 +111,7 @@ class BCBuilder {
         void assignAddress() {
             for (int i = 0; i < bcodes.size(); i++) {
                 BCode bcode = bcodes.get(i);
-                bcode.number = i;
+                bcode.address = i;
             }
         }
 
@@ -174,7 +174,7 @@ class BCBuilder {
             if (logging)
                 sb.append(" logging\n");
             for (BCode i: bcodes)
-                sb.append(i.number).append(": ").append(i).append("\n");
+                sb.append(i.address).append(": ").append(i).append("\n");
             return sb.toString();
         }
     }
@@ -316,7 +316,7 @@ class BCBuilder {
     }
 
     // optimisation method
-    void optimisation(String optPass, boolean verbose, Main.Info info) {
+    void optimisation(String optPass, boolean verbose, boolean timeOptimization, Main.Info info) {
         for (String opt: optPass.split(":")) {
             if (opt.equals(""))
                 continue;
@@ -333,9 +333,9 @@ class BCBuilder {
                     System.out.println(fb);
                 }
 
+                fb.assignAddress();
                 switch (opt) {
                 case "const": {
-                    fb.assignAddress();
                     ConstantPropagation cp = new ConstantPropagation(fb.bcodes, info);
                     fb.bcodes = cp.exec();
                     break;
@@ -346,13 +346,11 @@ class BCBuilder {
                     break;
                 }
                 case "copy": {
-                    fb.assignAddress();
                     CopyPropagation cp = new CopyPropagation(fb.bcodes);
                     cp.exec();
                     break;
                 }
                 case "rie": {
-                    fb.assignAddress();
                     RedundantInstructionElimination rie = new RedundantInstructionElimination(fb.bcodes, info);
                     fb.bcodes = rie.exec();
                     break;
@@ -377,6 +375,10 @@ class BCBuilder {
                     System.out.println("====== AFTER "+opt+" Optimization ("+(endTime - startTime)+" ms) ======");
                     System.out.println(fb);
                 }
+            }
+            if (timeOptimization) {
+                long endTime = System.currentTimeMillis();
+                System.out.println("====== "+opt+" took "+(endTime - startTime)+" ms");
             }
         }
     }

@@ -24,7 +24,7 @@ public class ReachingDefinition {
         rdlist.sort(new Comparator<BCode>() {
             @Override
             public int compare(BCode bc1, BCode bc2) {
-                return bc1.number - bc2.number;
+                return bc1.getAddress() - bc2.getAddress();
             }
         });
         return rdlist;
