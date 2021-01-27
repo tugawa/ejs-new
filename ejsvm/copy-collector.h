@@ -16,7 +16,7 @@ struct copy_space {
 
 extern struct copy_space space;
 
-#define GET_GC_THRESHOLD(heap_limit) (20 * 1024)
+#define DEFAULT_GC_THRESHOLD(heap_limit) (20 * 1024)
 
 extern void space_init(size_t bytes, size_t threshold_bytes);
 extern void *space_alloc(uintptr_t request_bytes, cell_type_t type);

@@ -240,8 +240,7 @@ class NodeScanner {
   }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   ACCEPTOR static void scan_PropertyMapList(PropertyMapList *p) {
-    if (p->pm != NULL)
-      PROCESS_WEAK_EDGE(p->pm);
+    PROCESS_WEAK_EDGE(p->pm);
     if (p->next != NULL)
       PROCESS_WEAK_EDGE(p->next);
   }

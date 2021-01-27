@@ -57,7 +57,7 @@ class MarkTracer {
 #define MARK_STACK_SIZE 1000 * 1000
   static uintptr_t mark_stack[MARK_STACK_SIZE];
   static int mark_stack_ptr;
-  
+
   static void mark_stack_push(uintptr_t ptr){
     assert(mark_stack_ptr < MARK_STACK_SIZE);
     mark_stack[mark_stack_ptr++] = ptr;
@@ -120,7 +120,7 @@ public:
 #define MARK_STACK_SIZE 1000 * 1000
   static uintptr_t mark_stack[MARK_STACK_SIZE];
   static int mark_stack_ptr;
-  
+
   static void mark_stack_push(uintptr_t ptr){
     assert(mark_stack_ptr < MARK_STACK_SIZE);
     mark_stack[mark_stack_ptr++] = ptr;
@@ -178,7 +178,7 @@ class RefMarkTracer {
   static bool is_marked_cell(void *p) {
     return ::is_marked_cell(p);
   }
-  
+
 #ifdef MARK_STACK
 #define MARK_STACK_SIZE 1000 * 1000
   static uintptr_t mark_stack[MARK_STACK_SIZE];

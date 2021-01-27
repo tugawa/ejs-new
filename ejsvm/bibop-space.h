@@ -18,7 +18,7 @@ extern "C" {
 #define PAGE_HEADER_SO_BMP_GRANULES_BITS \
   (LOG_GRANULES_IN_PAGE - LOG_BITS_IN_GRANULE + 1)
 
-#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) >> 3)
+#define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) >> 3)
 
 static const int sizeclasses[] = {
 #if LOG_BYTES_IN_GRANULE == 2

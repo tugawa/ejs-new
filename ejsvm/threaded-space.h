@@ -10,9 +10,9 @@ extern "C" {
 #endif /* FLONUM_SPACE */
 
 #ifdef EXCESSIVE_GC
-#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) - ((heap_limit) >> 4))
+#define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) - ((heap_limit) >> 4))
 #else  /* EXCESSIVE_GC */
-#define GET_GC_THRESHOLD(heap_limit) ((heap_limit) >> 1)
+#define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) >> 4)
 #endif /* EXCESSIVE_GC */
 
 /*

@@ -58,11 +58,10 @@ FILE *prof_stream;
 int regstack_limit = STACK_LIMIT; /* size of register stack in # of JSValues */
 #ifdef JS_SPACE_BYTES
 int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
-int gc_threshold = GET_GC_THRESHOLD(JS_SPACE_BYTES);
 #else /* JS_SPACE_BYTES */
 int heap_limit = 1 * 1024 * 1024;
-int gc_threshold = GET_GC_THRESHOLD(1 * 1024 * 1024);
 #endif /* JS_SPACE_BYTES */
+int gc_threshold = -1; /* set in process_options */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -126,9 +125,6 @@ int process_options(int ac, char *av[]) {
             p = av[k];
             if (o->flagvar != NULL) *(o->flagvar) = atoi(p);
             else if (o->strvar != NULL) *(o->strvar) = p;
-
-            if (o->flagvar == &heap_limit)
-              gc_threshold = GET_GC_THRESHOLD(heap_limit);
           }
           break;
         } else
@@ -139,8 +135,12 @@ int process_options(int ac, char *av[]) {
       k++;
       p = av[k];
     } else
-      return k;
+      break;
   }
+
+  /* If GC threshold is not given, use GC default */
+  if (gc_threshold == -1)
+    gc_threshold = DEFAULT_GC_THRESHOLD(heap_limit);
   return k;
 }
 

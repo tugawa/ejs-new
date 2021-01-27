@@ -304,10 +304,11 @@ ifeq ($(OPT_GC),boehmgc)
     CPPFLAGS+=-DUSE_BOEHMGC=1
     LIBS+=-lgc
 endif
+endif
+
 ifeq ($(OPT_REGEXP),oniguruma)
     CPPFLAGS+=-DUSE_REGEXP=1
     LIBS+=-lonig
-endif
 endif
 
 ifeq ($(DATATYPES),)
