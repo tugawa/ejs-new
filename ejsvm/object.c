@@ -911,21 +911,23 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
       } else
 #endif /* LOAD_HCG */ 
 
-#ifdef ALLOC_SITE_CACHE
-      /* 1. If alloc_site_cache does not match and `prototype' is valid, 
-       *    find the property map */
+    /* 1. If `prototype' is valid, find the property map */
+#if defined(ALLOC_SITE_CACHE) && defined(ALLOC_SITE_CACHE_PER_SITE_HCG)
+      /* When we construct per-site HCG, we use the property map
+       * in the constructor function only if this the cache at this site
+       * is used for other constructor.
+       */
       if (as->pm != NULL &&
           (retv = get_system_prop(prototype, gconsts.g_string___property_map__))
           != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
       }
-#else /* ALLOC_SITE_CACHE */
-      /* 1. If `prototype' is valid, find the property map */
+#else /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
       }
-#endif /* ALLOC_SITE_CACHE */
+#endif /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
       else {
         /* 2. If there is not, create it. */
         int n_props = 0;
