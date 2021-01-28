@@ -64,6 +64,7 @@ typedef struct instruction    Instruction;
  */
 #define LOG_MAX_NUM_CELL_TYPES 6
 typedef enum cell_type_t {
+  CELLT_FREE          = 0x00,
   CELLT_STRING        = HTAGV_STRING,
   CELLT_FLONUM        = HTAGV_FLONUM,
   CELLT_SIMPLE_OBJECT = HTAGV_SIMPLE_OBJECT,
@@ -196,6 +197,7 @@ typedef struct {
 
 static inline HTag get_htag(JSValue v);
 static inline int  is_htag(JSValue v, HTag t);
+static inline uintjsv_t get_ptag_value_by_cell_type(cell_type_t type);
 
 /* Type conversion from/to JSValue
  *   JSValue -> JSObject             jsv_to_jsobject -- check and clear tag

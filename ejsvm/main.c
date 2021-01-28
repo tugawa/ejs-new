@@ -68,6 +68,7 @@ int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
 #else /* JS_SPACE_BYTES */
 int heap_limit = 1 * 1024 * 1024;
 #endif /* JS_SPACE_BYTES */
+int gc_threshold = -1; /* set in process_options */
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -108,6 +109,7 @@ struct commandline_option  options_table[] = {
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
   { "-m",         1, &heap_limit,     NULL          },
+  { "--threshold",1, &gc_threshold,   NULL          },
   { "-s",         1, &regstack_limit, NULL          },
 #ifdef DUMP_HCG
   { "--dump-hcg", 1, NULL,            &dump_hcg_file_name },
@@ -146,8 +148,12 @@ int process_options(int ac, char *av[]) {
       k++;
       p = av[k];
     } else
-      return k;
+      break;
   }
+
+  /* If GC threshold is not given, use GC default */
+  if (gc_threshold == -1)
+    gc_threshold = DEFAULT_GC_THRESHOLD(heap_limit);
   return k;
 }
 
@@ -331,7 +337,7 @@ int main(int argc, char *argv[]) {
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory(heap_limit);
+  init_memory(heap_limit, gc_threshold);
 
   init_string_table(STRING_TABLE_SIZE);
   init_context(regstack_limit, &context);

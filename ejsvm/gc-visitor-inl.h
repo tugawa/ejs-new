@@ -83,22 +83,36 @@ extern void alloc_site_update_info(JSObject *p);
 
 class NodeScanner {
   ACCEPTOR static void scan_object_properties(JSObject *p) {
+#ifdef THREADED
+    Shape *os = p->shape;
+#endif /* THREADED */
+
     /* 1. shape */
     PROCESS_EDGE(p->shape);
-    /* 2. embedded propertyes */
+
+#ifndef THREADED
     Shape *os = p->shape;
+#endif /* THREADED */
+
+    /* 2. embedded propertyes */
     int n_extension = os->n_extension_slots;
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
     for (size_t i = os->pm->n_special_props; i < actual_embedded; i++)
       PROCESS_EDGE(p->eprop[i]);
+
     /* 3. extension */
     if (n_extension != 0)
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
-    if (os->pm->alloc_site != NULL)
-      alloc_site_update_info(p);
+#ifdef THREADED
+    if (gc_phase == PHASE_MARK)
+#endif /* THREADED */
+      if (os->pm->alloc_site != NULL) {
+        alloc_site_update_info(p);
+	PROCESS_EDGE(os->pm->alloc_site->pm);
+      }
 #endif /* ALLOC_SITE_CACHE */
   }
   
@@ -230,6 +244,7 @@ class NodeScanner {
   }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   ACCEPTOR static void scan_PropertyMapList(PropertyMapList *p) {
+    PROCESS_WEAK_EDGE(p->pm);
     if (p->next != NULL)
       PROCESS_WEAK_EDGE(p->next);
   }
@@ -341,6 +356,8 @@ ACCEPTOR STATIC void scan_Context(Context *context)
 
   /* process stack */
   scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
+
+  PROCESS_WEAK_EDGE(context->property_map_roots);
 }
 
 ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
@@ -388,6 +405,9 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 
 ACCEPTOR STATIC void scan_stack(JSValue* stack, int sp, int fp)
 {
+  if (sp == 0 && fp == 0)
+    return;
+
   while (1) {
     while (sp >= fp) {
       PROCESS_EDGE(stack[sp]);
@@ -485,9 +505,9 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
       } else {
-	PROCESS_EDGE(*p);
-	PROCESS_EDGE((*p)->str);
-	Tracer::process_mark_stack();
+        PROCESS_EDGE(*p);
+        PROCESS_EDGE((*p)->str);
+        Tracer::process_mark_stack();
         p = &(*p)->next;
       }
     }

@@ -249,6 +249,7 @@ JSValue get_prop(JSValue obj, JSValue name)
   index = prop_index(jsv_to_jsobject(obj), name, &attr, NULL);
   if (index == -1 || is_system_prop(attr))
     return JS_EMPTY;
+
 #ifdef INLINE_CACHE
   if (ic != NULL && ic->shape == NULL &&
       object_get_shape(obj)->n_extension_slots == 0) {
@@ -1211,8 +1212,12 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
     length_value = get_jsarray_length(array);
     assert(is_fixnum(length_value));
     length = fixnum_to_cint(length_value);
-    if (length <= index)
-      set_jsarray_length(array, cint_to_number(ctx, index + 1));
+    if (length <= index) {
+      GC_PUSH(array);
+      JSValue num = cint_to_number(ctx, index + 1);
+      GC_POP(array);
+      set_jsarray_length(array, num);
+    }
   }
 }
 
