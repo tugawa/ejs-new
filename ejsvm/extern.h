@@ -295,9 +295,10 @@ extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
 extern void property_map_add_transition(Context *ctx, PropertyMap *pm,
                                         JSValue name, PropertyMap *dest);
 
-extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
-                               int num_embedded, int num_extension);
 #ifdef ALLOC_SITE_CACHE
+extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                               int num_embedded, int num_extension,
+                               AllocSite *as);
 extern JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
                                                      AllocSite *as);
 extern JSValue create_simple_object_with_prototype(Context *ctx,
@@ -305,6 +306,8 @@ extern JSValue create_simple_object_with_prototype(Context *ctx,
                                                    AllocSite *as);
 extern JSValue create_array_object(Context *ctx, char *name, size_t size);
 #else /* ALLOC_SITE_CACHE */
+extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                               int num_embedded, int num_extension);
 extern JSValue create_simple_object_with_constructor(Context *ctx,
                                                      JSValue ctor);
 extern JSValue create_simple_object_with_prototype(Context *ctx,

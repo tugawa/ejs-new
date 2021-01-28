@@ -277,9 +277,6 @@ struct property_map {
   uint16_t n_user_special_props; /* [const] Number of special props that is
                                   * registered in the map. */
 #endif /* DEBUG */
-#ifdef ALLOC_SITE_CACHE
-  AllocSite *alloc_site;
-#endif /* ALLOC_SITE_CACHE */
 #ifdef HC_PROF
   uint32_t n_enter;
   uint32_t n_leave;
@@ -315,6 +312,9 @@ struct shape {
                                * in the object. This number includes 
                                * special props. */
   uint16_t n_extension_slots; /* [const] Size of extension array. */
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *alloc_site;
+#endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */

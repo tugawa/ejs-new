@@ -172,7 +172,11 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     next_os = next_pm->shapes;
     while (next_os != NULL) {
       if (next_os->n_embedded_slots == n_embedded &&
-          next_os->n_extension_slots == n_extension) {
+          next_os->n_extension_slots == n_extension
+#if ALLOC_SITE_CACHE
+          && next_os->alloc_site == current_os->alloc_site
+#endif /* ALLOC_SITE_CACHE */
+          ) {
         PRINT("    found: %p\n", next_os);
         break;
       } else
@@ -183,8 +187,15 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
 
     /* 3. If there is not compatible shape, create it. */
     if (next_os == NULL) {
+#ifdef ALLOC_SITE_CACHE
+      next_os = new_object_shape(ctx, DEBUG_NAME("(extend)"), next_pm,
+                                 n_embedded, n_extension,
+                                 current_os->alloc_site);
+#else /* ALLOC_SITE_CACHE */
       next_os = new_object_shape(ctx, DEBUG_NAME("(extend)"), next_pm,
                                  n_embedded, n_extension);
+                                 
+#endif /* ALLOC_SITE_CACHE */
       PRINT("  create new shape %p EM/EX %lu %lu\n",
             next_os, n_embedded, n_extension);
     }
@@ -556,9 +567,6 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->is_entry = 0;
 #endif /* DUMP_HCG */
 #endif /* HC_PROF */
-#ifdef ALLOC_SITE_CACHE
-  m->alloc_site = NULL;
-#endif /* ALLOC_SITE_CACHE */
 
 #ifdef HC_SKIP_INTERNAL
   GC_PUSH(m);
@@ -612,10 +620,6 @@ static PropertyMap *clone_property_map(Context *ctx, PropertyMap *src)
 #endif /* DEBUG */
   GC_POP2(m, src);
 
-#ifdef ALLOC_SITE_CACHE
-  m->alloc_site = src->alloc_site;
-#endif /* ALLOC_SITE_CACHE */
-
   return m;
 }
 
@@ -668,10 +672,6 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
 
   GC_POP3(m, prop_name, prev);
 
-#ifdef ALLOC_SITE_CACHE
-  m->alloc_site = prev->alloc_site;
-#endif /* ALLOC_SITE_CACHE */
-
   return m;
 }
 
@@ -719,8 +719,14 @@ void property_map_add_transition(Context *ctx, PropertyMap *pm,
 #endif /* HC_SKIP_INTERNAL */
 }
 
+#ifdef ALLOC_SITE_CACHE
+Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                        int num_embedded, int num_extension,
+                        AllocSite *as)
+#else /* ALLOC_SITE_CACHE */
 Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                         int num_embedded, int num_extension)
+#endif /* ALLOC_SITE_CACHE */
 {
   Shape *s;
   Shape **pp;
@@ -733,6 +739,7 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->pm = pm;
   s->n_embedded_slots  = num_embedded;
   s->n_extension_slots = num_extension;
+  s->alloc_site = as;
 
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
@@ -814,6 +821,11 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
       /* at least one normal embeded slot */
       if (pm->n_props == pm->n_special_props)
         n_embedded += 1;
+#ifdef ALLOC_SITE_CACHE
+      /* 2. create object shape for this allocation site */
+      as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
+                                   n_embedded, 0, as);
+#else /* ALLOC_SITE_CACHE */
       /* 2. if cached Shape is not available, find shape created for
        *    other alloction site. */
       if (pm->shapes != NULL && pm->shapes->n_embedded_slots == n_embedded)
@@ -822,6 +834,7 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
         /* 3. if there is not, create it */
         as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
                                      n_embedded, 0);
+#endif /* ALLOC_SITE_CACHE */
     }
     return as->shape;
   }
@@ -892,8 +905,14 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
           n_props = pm->n_props;
           if (n_props == pm->n_special_props)
             n_props += 1;
+#ifdef ALLOC_SITE_CACHE
+          pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
+                                        pm, n_props, 0, as);
+#else /* ALLOC_SITE_CACHE */
           pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
                                         pm, n_props, 0);
+#endif /* ALLOC_SITE_CACHE */
+                                        );
         }
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
@@ -929,12 +948,14 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #ifdef DUMP_HCG
         pm->is_entry = 1;
 #endif /* DUMP_HCG */
-#ifdef ALLOC_SITE_CACHE
-        pm->alloc_site = as;
-#endif /* ALLOC_SITE_CACHE */
         GC_PUSH(pm);
+#ifdef ALLOC_SITE_CACHE
+        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
+                                      pm, n_embedded, 0, as);
+#else /* ALLOC_SITE_CACHE */
         pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
                                       pm, n_embedded, 0);
+#endif /* ALLOC_SITE_CACHE */
         assert(Object_num_builtin_props +
                Object_num_double_props + Object_num_gconsts_props == 0);
 
@@ -980,15 +1001,17 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL) {
     PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
+#ifdef ALLOC_SITE_CACHE
+    os = new_object_shape(ctx, DEBUG_NAME("(array)"),
+                          pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
+#else /* ALLOC_SITE_CACHE */
     os = new_object_shape(ctx, DEBUG_NAME("(array)"),
                           pm, ARRAY_SPECIAL_PROPS + 1, 0);
+#endif /* ALLOC_SITE_CACHE */
     pm->shapes = os;
 #ifdef DUMP_HCG
     pm->is_entry = 1;
 #endif /* DUMP_HCG */
-#ifdef ALLOC_SITE_CACHE
-    pm->alloc_site = as;
-#endif /* ALLOC_SITE_CACHE */
     if (as->pm == NULL) {
       as->pm = pm;
       as->shape = os;

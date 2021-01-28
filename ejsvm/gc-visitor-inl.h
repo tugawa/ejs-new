@@ -109,9 +109,10 @@ class NodeScanner {
 #ifdef THREADED
     if (gc_phase == PHASE_MARK)
 #endif /* THREADED */
-      if (os->pm->alloc_site != NULL) {
+      if (os->alloc_site != NULL) {
         alloc_site_update_info(p);
-	PROCESS_EDGE(os->pm->alloc_site->pm);
+	if (os->alloc_site->pm != NULL)
+	  PROCESS_EDGE(os->alloc_site->pm);
       }
 #endif /* ALLOC_SITE_CACHE */
   }

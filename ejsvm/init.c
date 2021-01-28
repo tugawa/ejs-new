@@ -108,7 +108,11 @@ static Shape *create_map_and_shape(Context *ctx,
     property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),
                                     index++, p->attr);
   }
+#ifdef ALLOC_SITE_CACHE
+  s = new_object_shape(ctx, name, m, num_embedded, 0, NULL);
+#else /* ALLOC_SITE_CACHE */
   s = new_object_shape(ctx, name, m, num_embedded, 0);
+#endif /* ALLOC_SITE_CACHE */
   return s;
 }
 #define CREATE_MAP_AND_SHAPE(ctx, name, num_special, proto, KEY)  \
