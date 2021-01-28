@@ -3,11 +3,7 @@
 \when con:function \{
   JSValue obj;
   save_context();
-#ifdef ALLOC_SITE_CACHE
-  obj = create_simple_object_with_constructor(context, con, &insns->alloc_site);
-#else /* ALLOC_SITE_CACHE */
   obj = create_simple_object_with_constructor(context, con);
-#endif /* ALLOC_SITE_CACHE */
   dst = obj;
   update_context();
 \}

@@ -299,20 +299,15 @@ extern void property_map_add_transition(Context *ctx, PropertyMap *pm,
 extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                                int num_embedded, int num_extension,
                                AllocSite *as);
-extern JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
-                                                     AllocSite *as);
-extern JSValue create_simple_object_with_prototype(Context *ctx,
-                                                   JSValue prototype,
-                                                   AllocSite *as);
 extern JSValue create_array_object(Context *ctx, char *name, size_t size);
 #else /* ALLOC_SITE_CACHE */
 extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                                int num_embedded, int num_extension);
+#endif /* ALLOC_SITE_CACHE */
 extern JSValue create_simple_object_with_constructor(Context *ctx,
                                                      JSValue ctor);
 extern JSValue create_simple_object_with_prototype(Context *ctx,
                                                    JSValue prototype);
-#endif /* ALLOC_SITE_CACHE */
 
 #ifdef ALLOC_SITE_CACHE
 extern void init_alloc_site(AllocSite *alloc_site);

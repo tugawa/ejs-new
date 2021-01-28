@@ -45,24 +45,13 @@ BUILTIN_FUNCTION(object_constr)
       ret = new_string_object(context, DEBUG_NAME("object_constr"),
                               gshapes.g_shape_String, arg);
     else {
-#ifdef ALLOC_SITE_CACHE
-        AllocSite *as = &context->spreg.cf->insns[context->spreg.pc].alloc_site;
-        ret = create_simple_object_with_prototype(context,
-                                                  gconsts.g_prototype_Object,
-                                                  as);
-#else /* ALLOC_SITE_CACHE */
-        ret = create_simple_object_with_prototype(context, gconsts.g_prototype_Object);
-#endif /* ALLOC_SITE_CACHE */
+      ret = create_simple_object_with_prototype(context,
+                                                gconsts.g_prototype_Object);
     }
     GC_POP(arg);
   } else {
-#ifdef ALLOC_SITE_CACHE
-    AllocSite *as = &context->spreg.cf->insns[context->spreg.pc].alloc_site;
     ret = create_simple_object_with_prototype(context,
-                                              gconsts.g_prototype_Object, as);
-#else /* ALLOC_SITE_CACHE */
-        ret = create_simple_object_with_prototype(context, gconsts.g_prototype_Object);
-#endif /* ALLOC_SITE_CACHE */
+                                              gconsts.g_prototype_Object);
   }
   GC_PUSH(ret);
   set_a(context, ret);

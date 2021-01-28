@@ -846,12 +846,7 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
  * The most normal way to create an object.
  * Called from ``new'' instruction.
  */
-#ifdef ALLOC_SITE_CACHE
-JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
-                                              AllocSite *as)
-#else /* ALLOC_SITE_CACHE */
 JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
-#endif /* ALLOC_SITE_CACHE */
 {
   JSValue prototype;
   assert(is_function(ctor));
@@ -860,22 +855,16 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
   if (!is_jsobject(prototype))
     prototype = gconsts.g_prototype_Object;
 
-#ifdef ALLOC_SITE_CACHE
-  return create_simple_object_with_prototype(ctx, prototype, as);
-#else /* ALLOC_SITE_CACHE */
   return create_simple_object_with_prototype(ctx, prototype);
-#endif /* ALLOC_SITE_CACHE */
 }
 
-#ifdef ALLOC_SITE_CACHE
-JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype,
-                                            AllocSite *as)
-#else /* ALLOC_SITE_CACHE */
 JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
-#endif /* ALLOC_SITE_CACHE */
 {
   JSValue obj;
   Shape *os;
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
+#endif /* ALLOC_SITE_CACHE */
 
   assert(is_jsobject(prototype));
 
