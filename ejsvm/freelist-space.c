@@ -330,14 +330,9 @@ STATIC void check_invariant_nobw_space(struct space *space)
     case CELLT_PROPERTY_MAP:
       {
         PropertyMap *pm = (PropertyMap *) payload;
-#ifdef NO_SHAPE_CACHE
-        if (pm->shapes != NULL)
-          assert(payload_to_header(pm->shapes)->type == CELLT_SHAPE);
-#else /* NO_SHAPE_CACHE */
         Shape *os;
         for (os = pm->shapes; os != NULL; os = os->next)
           assert(payload_to_header(os)->type == CELLT_SHAPE);
-#endif /* NO_SHAPE_CACHE */
         goto DEFAULT;
       }
     default:

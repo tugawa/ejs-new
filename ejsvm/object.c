@@ -169,18 +169,6 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       n_extension = need_slots - (n_embedded - 1);
     PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
           next_pm, next_pm->n_props, n_embedded, n_extension);
-#ifdef NO_SHAPE_CACHE
-    if (next_pm->shapes != NULL &&
-        next_pm->shapes->n_embedded_slots == n_embedded &&
-        next_pm->shapes->n_extension_slots == n_extension) {
-      next_os = next_pm->shapes;
-      PRINT("    found: %p\n", next_os);
-    } else {
-      next_os = NULL;
-      PRINT("    not the one %p: EM/EX %d %d\n",
-            next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
-    }
-#else /* NO_SHAPE_CACHE */
     next_os = next_pm->shapes;
     while (next_os != NULL) {
       if (next_os->n_embedded_slots == n_embedded &&
@@ -192,7 +180,6 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
               next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
       next_os = next_os->next;
     }
-#endif /* NO_SHAPE_CACHE */
 
     /* 3. If there is not compatible shape, create it. */
     if (next_os == NULL) {
@@ -736,9 +723,7 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                         int num_embedded, int num_extension)
 {
   Shape *s;
-#ifndef NO_SHAPE_CACHE
   Shape **pp;
-#endif /* NO_SHAPE_CACHE */
 
   assert(num_embedded > 0);
 
@@ -749,11 +734,6 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->n_embedded_slots  = num_embedded;
   s->n_extension_slots = num_extension;
 
-#ifdef NO_SHAPE_CACHE
-  if (pm->shapes == NULL ||
-      pm->shapes->n_embedded_slots < num_embedded)
-    pm->shapes = s;
-#else /* NO_SHAPE_CACHE */
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
    */
@@ -765,7 +745,6 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
       break;
     }
   }
-#endif /* NO_SHAPE_CACHE */
 
 #ifdef DEBUG
   s->name = name;
@@ -1557,11 +1536,7 @@ static void print_shape_line(Shape *os)
 {
   printf("SHAPE: %p %p %d %d %s\n",
          os,
-#ifdef NO_SHAPE_CACHE
-         NULL,
-#else /* NO_SHAPE_CACHE */
          os->next,
-#endif /* NO_SHAPE_CACHE */
          os->n_embedded_slots,
          os->n_extension_slots,
 #ifdef DEBUG
@@ -1591,16 +1566,11 @@ static void print_property_map(char *key, PropertyMap *pm)
          ""
 #endif /* DEBUG */
          );
-#ifdef NO_SHAPE_CACHE
-  if (pm->shapes != NULL)
-    print_shape_line(pm->shapes);
-#else /* NO_SHAPE_CACHE */
   {
     Shape *os;
     for (os = pm->shapes; os != NULL; os = os->next)
       print_shape_line(os);
   }
-#endif /* NO_SHAPE_CACHE */
   print_hash_table(pm->map);
   printf("======== %s end ========\n", key);
 }

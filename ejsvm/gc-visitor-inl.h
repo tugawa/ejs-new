@@ -226,9 +226,6 @@ class NodeScanner {
   }
   ACCEPTOR static void scan_Shape(Shape *p) {
     PROCESS_EDGE(p->pm);
-#ifdef NO_SHAPE_CACHE
-    assert(p->next == NULL);
-#else /* NO_SHAPE_CACHE */
     if (p->next != NULL) {
 #ifdef WEAK_SHAPE_LIST
       PROCESS_WEAK_EDGE(p->next);
@@ -236,7 +233,6 @@ class NodeScanner {
       PROCESS_EDGE(p->next);
 #endif /* WEAK_SHAPE_LIST */
     }
-#endif /* NO_SHAPE_CACHE */
   }
   ACCEPTOR static void scan_Unwind(UnwindProtect *p) {
     PROCESS_EDGE(p->prev);
@@ -526,7 +522,6 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
 #define PRINT(x...)
 #endif /* VERBOSE_GC_SHAPE */
 
-#ifndef NO_SHAPE_CACHE
   {
     Shape **p;
     for (p = &pm->shapes; *p != NULL; ) {
@@ -545,7 +540,6 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
       }
     }
   }
-#endif /* NO_SHAPE_CACHE */
 
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)

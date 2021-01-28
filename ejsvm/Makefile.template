@@ -98,8 +98,6 @@ CPPFLAGS       += -DHC_SKIP_INTERNAL
 CPPFLAGS       += -DALLOC_SITE_CACHE
 ## GC collects unused shapes (effective if ALLOC_SITE_CACHE is specified)
 CPPFLAGS       += -DWEAK_SHAPE_LIST
-## Do not hold the list of shapes.  Instead, only the largest shape is held.
-#CPPFLAGS       += -DNO_SHAPE_CACHE
 ## use inlne cache
 CPPFLAGS       += -DINLINE_CACHE
 

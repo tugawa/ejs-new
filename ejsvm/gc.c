@@ -584,14 +584,12 @@ STATIC_INLINE void process_node(uintptr_t ptr)
     {
       Shape *p = (Shape *) ptr;
       process_edge((uintptr_t) p->pm);
-#ifndef NO_SHAPE_CACHE
 #ifdef WEAK_SHAPE_LIST
       /* p->next is weak */
 #else /* WEAK_SHAPE_LIST */
       if (p->next != NULL)
         process_edge((uintptr_t) p->next);
 #endif /* WEAK_SHAPE_LIST */
-#endif /* NO_SHAPE_CACHE */
       return;
     }
   case CELLT_UNWIND:
@@ -965,7 +963,6 @@ void weak_clear_shape_recursive(PropertyMap *pm)
 #define PRINT(x...)
 #endif /* VERBOSE_GC_SHAPE */
 
-#ifndef NO_SHAPE_CACHE
   {
     Shape **p;
     for (p = &pm->shapes; *p != NULL; ) {
@@ -983,7 +980,6 @@ void weak_clear_shape_recursive(PropertyMap *pm)
       }
     }
   }
-#endif /* NO_SHAPE_CACHE */
 
   iter = createHashIterator(pm->map);
   while (nextHashCell(pm->map, &iter, &cell) != FAIL)
