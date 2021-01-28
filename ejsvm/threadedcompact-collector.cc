@@ -286,6 +286,10 @@ static void update_forward_reference(Context *ctx) {
   uintptr_t scan = js_space.head;
   uintptr_t end = js_space.begin;
   uintptr_t free = scan;
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+  uintptr_t last_free_space = scan;
+  bool is_last_free = false;
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
@@ -300,8 +304,24 @@ static void update_forward_reference(Context *ctx) {
       update_reference(from, to);
       process_node<ThreadTracer>((uintptr_t) from);
 
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+      is_last_free = false;
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
+
       free += size << LOG_BYTES_IN_JSVALUE;
     }
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+    else {
+      if (!is_last_free)
+        last_free_space = scan;
+      else if (scan != last_free_space) {
+        header_t *last_free_hdrp = (header_t *) last_free_space;
+        last_free_hdrp->size += size;
+      }
+
+      is_last_free = true;
+    }
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
     scan += size << LOG_BYTES_IN_JSVALUE;
   }
@@ -313,6 +333,10 @@ static void update_forward_reference(Context *ctx) {
 #endif /* GC_THREADED_BOUNDARY_TAG */
   end = js_space.end;
   free = scan;
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+  last_free_space = scan;
+  is_last_free = false;
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
   while (scan > end) {
 #ifdef GC_THREADED_BOUNDARY_TAG
@@ -337,6 +361,27 @@ static void update_forward_reference(Context *ctx) {
       footer->markbit = 0;
 #endif /* GC_THREADED_BOUNDARY_TAG */
     }
+
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+    if (markbit)
+      is_last_free = false;
+    else {
+      if (!is_last_free)
+        last_free_space = scan;
+      else if (scan != last_free_space) {
+#ifdef GC_THREADED_BOUNDARY_TAG
+        footer_t *last_free_footer = (footer_t *) last_free_space;
+        last_free_footer->size_hi += size;
+        ((footer_t *) hdrp)->size_lo += size;
+#else /* GC_THREADED_BOUNDARY_TAG */
+        header_t *last_free_footer = end_to_footer(last_free_space);
+        last_free_footer->size += size + HEADER_GRANULES;
+        hdrp-> size += size + HEADER_GRANULES;
+#endif /* GC_THREADED_BOUNDARY_TAG */
+      }
+      is_last_free = true;
+    }
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
     if (markbit)
     {
