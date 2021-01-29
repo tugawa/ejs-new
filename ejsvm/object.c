@@ -975,11 +975,9 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #endif /* DUMP_HCG */
         GC_PUSH(pm);
 #ifdef ALLOC_SITE_CACHE
-        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                      pm, n_embedded, 0, as);
+        new_object_shape(ctx, DEBUG_NAME("(new)"), pm, n_embedded, 0, as);
 #else /* ALLOC_SITE_CACHE */
-        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                      pm, n_embedded, 0);
+        new_object_shape(ctx, DEBUG_NAME("(new)"), pm, n_embedded, 0);
 #endif /* ALLOC_SITE_CACHE */
         assert(Object_num_builtin_props +
                Object_num_double_props + Object_num_gconsts_props == 0);
@@ -1045,7 +1043,6 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
     PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
     os = new_object_shape(ctx, DEBUG_NAME("(array)"),
                           pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
-    pm->shapes = os;
 #ifdef DUMP_HCG
     pm->is_entry = 1;
 #endif /* DUMP_HCG */
