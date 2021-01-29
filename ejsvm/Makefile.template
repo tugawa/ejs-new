@@ -152,4 +152,17 @@ CPPFLAGS       += -DVERIFY_BIBOP
 ## fix rand seed
 CPPFLAGS    += -DNO_SRAND
 
+##
+## Alloc site cache related experimental
+##
+
+## Construct hidden class tree per allocation site.
+##  No need to find shape that has the same allocation site when transistion.
+CPPFLAGS += -DALLOC_SITE_CACHE_PER_SITE_HCG
+
+## Shape has a cache to transition destination
+##  Desigened for no-ALLOC_SITE_CACHE_PER_SITE_HCG
+CPPFLAGS += -DALLOC_SITE_CACHE_SHAPE_XCACHE
+
+
 include $(EJSVM_DIR)/common.mk

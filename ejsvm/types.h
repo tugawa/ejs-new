@@ -314,6 +314,10 @@ struct shape {
   uint16_t n_extension_slots; /* [const] Size of extension array. */
 #ifdef ALLOC_SITE_CACHE
   AllocSite *alloc_site;
+#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
+  JSValue xcache_key;         /* [weak] The shape after transitioning with */
+  Shape *xcache_shape;        /* [weak] this key.  Maybe cleared by GC.*/
+#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 #endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;

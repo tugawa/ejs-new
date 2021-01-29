@@ -149,7 +149,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
      *       conflict of attribute. */
     Shape *current_os = object_get_shape(obj);
     Shape *next_os;
-    size_t need_slots, n_embedded, n_extension;
+    size_t n_embedded, n_extension;
 
     GC_PUSH4(obj, name, v, current_os);
     /* 1. If there is not next property map, create it. */
@@ -161,35 +161,54 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     GC_PUSH(next_pm);
 
     /* 2. Find the shape that is compatible to the current shape. */
-    need_slots = next_pm->n_props;
     n_embedded = current_os->n_embedded_slots;
     n_extension = current_os->n_extension_slots;
-    /* compute new size of extension array */
-    if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
-      n_extension = need_slots - (n_embedded - 1);
-    PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
-          next_pm, next_pm->n_props, n_embedded, n_extension);
-    next_os = next_pm->shapes;
-    while (next_os != NULL) {
-      if (next_os->n_embedded_slots == n_embedded &&
-          next_os->n_extension_slots == n_extension
+#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
+    /* 2.1 check xcache in the current shape */
+    if (current_os->xcache_key == name) {
+      next_os = current_os->xcache_shape;
+      PRINT("  found: %p (cache hit, key = %s)\n",
+            next_os, string_to_cstr(name));
+      assert(current_os->n_embedded_slots == next_os->n_embedded_slots);
+    } else {
+      next_os = NULL;
+      PRINT("  finding shape (cache not hit %s)\n",
+            current_os->xcache_key == JS_UNDEFINED ?
+            "UNDEFINED" : string_to_cstr(current_os->xcache_key));
+    }
+#else /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
+    next_os = NULL;
+#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
+    if (next_os == NULL) {
+      /* 2.2  Find from the shape list of the next PM. */
+      size_t need_slots = next_pm->n_props;
+      /* compute new size of extension array */
+      if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
+        n_extension = need_slots - (n_embedded - 1);
+      PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
+            next_pm, next_pm->n_props, n_embedded, n_extension);
+      next_os = next_pm->shapes;
+      while (next_os != NULL) {
+        if (next_os->n_embedded_slots == n_embedded &&
+            next_os->n_extension_slots == n_extension
 #if ALLOC_SITE_CACHE
-          && next_os->alloc_site == current_os->alloc_site
+            && next_os->alloc_site == current_os->alloc_site
 #endif /* ALLOC_SITE_CACHE */
-          ) {
-        PRINT("    found: %p\n", next_os);
-        break;
-      } else {
+            ) {
+          PRINT("    found: %p\n", next_os);
+          break;
+        } else {
 #ifdef ALLOC_SITE_CACHE
-        PRINT("    not the one %p: EM/EX %d %d AS %p\n",
-              next_os, next_os->n_embedded_slots, next_os->n_extension_slots,
-              next_os->alloc_site);
+          PRINT("    not the one %p: EM/EX %d %d AS %p\n",
+                next_os, next_os->n_embedded_slots, next_os->n_extension_slots,
+                next_os->alloc_site);
 #else /* ALLOC_SITE_CACHE */
-        PRINT("    not the one %p: EM/EX %d %d\n",
-              next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
+          PRINT("    not the one %p: EM/EX %d %d\n",
+                next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
 #endif /* ALLOC_SITE_CACHE */
+        }
+        next_os = next_os->next;
       }
-      next_os = next_os->next;
     }
 
     /* 3. If there is not compatible shape, create it. */
@@ -206,6 +225,17 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       PRINT("  create new shape %p EM/EX %lu %lu\n",
             next_os, n_embedded, n_extension);
     }
+
+#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
+    /* 3.5 Cache the next shape in xcache in the shape */
+    if (current_os->xcache_key == JS_UNDEFINED) {
+      current_os->xcache_key = name;
+      current_os->xcache_shape = next_os;
+      PRINT("   xcache shape %p -> %p (key: %s)\n",
+            current_os, next_os, string_to_cstr(name));
+    }
+#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
+
     GC_PUSH(next_os);
     /* 4. Change the shape of object if necessary and installs the new shape.
      *    This may cause reallocation of the extension array. */
@@ -748,6 +778,10 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->n_extension_slots = num_extension;
 #ifdef ALLOC_SITE_CACHE
   s->alloc_site = as;
+#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
+  s->xcache_key = JS_UNDEFINED;
+  s->xcache_shape = NULL;
+#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 #endif /* ALLOC_SITE_CACHE */
 
   /* Insert `s' into the `shapes' list of the property map.
