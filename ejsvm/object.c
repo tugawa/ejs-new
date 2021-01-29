@@ -746,7 +746,9 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->pm = pm;
   s->n_embedded_slots  = num_embedded;
   s->n_extension_slots = num_extension;
+#ifdef ALLOC_SITE_CACHE
   s->alloc_site = as;
+#endif /* ALLOC_SITE_CACHE */
 
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
