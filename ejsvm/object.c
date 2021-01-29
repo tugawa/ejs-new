@@ -1043,13 +1043,8 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL) {
     PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
-#ifdef ALLOC_SITE_CACHE
     os = new_object_shape(ctx, DEBUG_NAME("(array)"),
                           pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
-#else /* ALLOC_SITE_CACHE */
-    os = new_object_shape(ctx, DEBUG_NAME("(array)"),
-                          pm, ARRAY_SPECIAL_PROPS + 1, 0);
-#endif /* ALLOC_SITE_CACHE */
     pm->shapes = os;
 #ifdef DUMP_HCG
     pm->is_entry = 1;
