@@ -179,9 +179,16 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
           ) {
         PRINT("    found: %p\n", next_os);
         break;
-      } else
+      } else {
+#ifdef ALLOC_SITE_CACHE
+        PRINT("    not the one %p: EM/EX %d %d AS %p\n",
+              next_os, next_os->n_embedded_slots, next_os->n_extension_slots,
+              next_os->alloc_site);
+#else /* ALLOC_SITE_CACHE */
         PRINT("    not the one %p: EM/EX %d %d\n",
               next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
+#endif /* ALLOC_SITE_CACHE */
+      }
       next_os = next_os->next;
     }
 
@@ -866,7 +873,14 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
   AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
 #endif /* ALLOC_SITE_CACHE */
 
+#ifdef VERBOSE_NEW_OBJECT
+#define PRINT(x...) printf(x)
+#else /* VERBOSE_NEW_OBJECT */
+#define PRINT(x...)
+#endif /* VERBOSE_NEW_OBJECT */
+
   assert(is_jsobject(prototype));
+
 
   GC_PUSH(prototype);
 #ifdef ALLOC_SITE_CACHE
@@ -876,9 +890,23 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
     {
       JSValue retv;
       PropertyMap *pm;
+
+#ifdef ALLOC_SITE_CACHE
+  PRINT("new_obj @ %03td:%03d cache miss proto %"PRIJSValue" AS %p\n",
+        ctx->spreg.cf - ctx->function_table, ctx->spreg.pc, prototype, as);
+#else /* ALLOC_SITE_CACHE */
+  PRINT("new_obj @ %03td:%03d cache miss proto %"PRIJSValue"\n",
+        ctx->spreg.cf - ctx->function_table, ctx->spreg.pc, prototype);
+#endif /* ALLOC_SITE_CACHE */
+#ifdef DEBUG
+  PRINT("  proto name = %s\n", jsv_to_jsobject(prototype)->name);
+#endif /* DEBUG */
+
 #ifdef LOAD_HCG
       /* 0. If compiled hcg is available, use it */
       if (ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm != NULL) {
+        PRINT("preload PM found PM %p\n",
+              ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm);
         pm = ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm;
         ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm = NULL;  /* TODO duplicate */
         property_map_install___proto__(pm, prototype);
@@ -911,7 +939,7 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
       } else
 #endif /* LOAD_HCG */ 
 
-    /* 1. If `prototype' is valid, find the property map */
+      /* 1. If `prototype' is valid, find the property map */
 #if defined(ALLOC_SITE_CACHE) && defined(ALLOC_SITE_CACHE_PER_SITE_HCG)
       /* When we construct per-site HCG, we use the property map
        * in the constructor function only if this the cache at this site
@@ -921,11 +949,15 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
           (retv = get_system_prop(prototype, gconsts.g_string___property_map__))
           != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
+        PRINT("PM found in proto %p OS[0] %p AS %p\n",
+              pm, pm->shapes, pm->shapes->alloc_site);
       }
 #else /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
+        PRINT("PM found in proto %p OS[0] %p AS %p\n",
+              pm, pm->shapes, pm->shapes->alloc_site);
       }
 #endif /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
       else {
@@ -949,6 +981,8 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #endif /* ALLOC_SITE_CACHE */
         assert(Object_num_builtin_props +
                Object_num_double_props + Object_num_gconsts_props == 0);
+        PRINT("create PM/OS PM %p OS %p AS %p\n",
+              pm, pm->shapes, pm->shapes->alloc_site);
 
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
@@ -956,9 +990,22 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
                  (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
         GC_POP(pm);
       }
+#if !defined(ALLOC_SITE_CACHE) || defined(ALLOC_SITE_CACHE_PER_SITE_HCG)
       /* 4. Obtain the shape of the PM. There should be a single shape, if any,
        *    because the PM is an entrypoint. */
       os = pm->shapes;
+#else /* !ALLOC_SITE_CACHE || ALLOC_SITE_CACHE_PER_SITE_HCG */
+      /* 4. serch for the shape whose allocation site is here */
+      for (os = pm->shapes; os != NULL; os = os->next) {
+        assert(os->n_embedded_slots == OBJECT_SPECIAL_PROPS + 1);
+        if (os->alloc_site == as)
+          break;
+      }
+      /* 5. If there is not such a shape, create it */
+      if (os == NULL)
+        os = new_object_shape(ctx, DEBUG_NAME("(as variant)"),
+                              pm, OBJECT_SPECIAL_PROPS + 1, 0, as);
+#endif /* !ALLOC_SITE_CACHE || ALLOC_SITE_CACHE_PER_SITE_HCG */
 
 #ifdef ALLOC_SITE_CACHE
       if (as != NULL && as->pm == NULL) {
@@ -981,6 +1028,8 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #endif /* ALLOC_SITE_CACHE */
   GC_POP(prototype);
   return obj;
+
+#undef PRINT
 }
 
 #ifdef ALLOC_SITE_CACHE
