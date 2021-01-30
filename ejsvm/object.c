@@ -170,6 +170,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       PRINT("  found: %p (cache hit, key = %s)\n",
             next_os, string_to_cstr(name));
       assert(current_os->n_embedded_slots == next_os->n_embedded_slots);
+      goto SHAPE_FOUND;
     } else {
       next_os = NULL;
       PRINT("  finding shape (cache not hit %s)\n",
@@ -234,6 +235,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       PRINT("   xcache shape %p -> %p (key: %s)\n",
             current_os, next_os, string_to_cstr(name));
     }
+  SHAPE_FOUND:
 #endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 
     GC_PUSH(next_os);
