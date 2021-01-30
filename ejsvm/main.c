@@ -38,6 +38,9 @@ int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #ifdef GC_PROF
 int gcprof_flag;       /* print GC profile information */
 #endif /* GC_PROF */
+#ifdef IC_PROF
+int icprof_flag;
+#endif /* IC_PROF */
 #ifdef SHAPE_PROF
 int shapeprof_flag;
 #endif /* SHAPE_PROF */
@@ -72,6 +75,7 @@ int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
 int heap_limit = 1 * 1024 * 1024;
 #endif /* JS_SPACE_BYTES */
 int gc_threshold = -1; /* set in process_options */
+
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -114,6 +118,9 @@ struct commandline_option  options_table[] = {
 #ifdef GC_PROF
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
+#ifdef IC_PROF
+  { "--ic-prof",  0, &icprof_flag,    NULL          },
+#endif /* IC_PROF */
   { "-m",         1, &heap_limit,     NULL          },
   { "--threshold",1, &gc_threshold,   NULL          },
   { "-s",         1, &regstack_limit, NULL          },
@@ -501,6 +508,12 @@ int main(int argc, char *argv[]) {
            ((float) shape_search_success) / shape_search_count);
   }
 #endif /* SHAPE_PROF */
+#ifdef IC_PROF
+  {
+    extern void print_ic_prof(Context *ctx);
+    print_ic_prof(context);
+  }
+#endif /* IC_PROF */
 #ifdef DUMP_HCG
   if (dump_hcg_file_name != NULL) {
     extern void dump_hidden_classes(char *);

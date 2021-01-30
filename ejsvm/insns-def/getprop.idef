@@ -38,11 +38,23 @@
 #ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
+#ifdef IC_PROF
+    ic->count++;
+    ic_prof_count++;
+    if (ic->shape == NULL)
+      ic->unavailable++;
+#endif /* IC_PROF */
     assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
     if (ic->shape == object_get_shape(obj) && ic->prop_name == prop) {
       dst = jsv_to_jsobject(obj)->eprop[ic->index];
       if (dst == JS_EMPTY)
         dst = get_object_prop(context, obj, prop, ic);
+#ifdef IC_PROF
+      else {
+        ic->hit++;
+        ic_prof_hit++;
+      }
+#endif /* IC_PROF */
     } else
       dst = get_object_prop(context, obj, prop, ic);
   }

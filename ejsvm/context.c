@@ -77,6 +77,7 @@ void init_context(size_t stack_limit, Context **context)
   Context *c;
 
   c = allocate_context(stack_limit);
+  c->nfuncs = 0;
   *context = c;
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   c->property_map_roots = NULL;

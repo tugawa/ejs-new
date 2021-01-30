@@ -1127,6 +1127,11 @@ void init_inline_cache(InlineCache *ic)
   ic->shape = NULL;
   ic->prop_name = JS_EMPTY;
   ic->index = 0;
+#ifdef IC_PROF
+  ic->count = 0;
+  ic->hit = 0;
+  ic->unavailable = 0;
+#endif /* IC_PROF */
 }
 #endif /* INLINE_CACHE */
 

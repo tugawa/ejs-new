@@ -269,6 +269,7 @@ int code_loader(Context *ctx, FunctionTable *ftable, int ftbase) {
    */
   next_buf();
   nfuncs = buf_to_int("funcLength");
+  ctx->nfuncs += nfuncs;
 
   /*
    * reads each function

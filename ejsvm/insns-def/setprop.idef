@@ -18,10 +18,20 @@
 #ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
+#ifdef IC_PROF
+    ic->count++;
+    ic_prof_count++;
+    if (ic->shape == NULL)
+      ic->unavailable++;
+#endif /* IC_PROF */
     assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
-    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
+    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop) {
       jsv_to_jsobject(obj)->eprop[ic->index] = val;
-    else
+#ifdef IC_PROF
+      ic->hit++;
+      ic_prof_hit++;
+#endif /* IC_PROF */
+    } else
       set_prop_with_ic(context, obj, prop, val, ATTR_NONE, ic);
   }
 #else /* INLINE_CACHE */
@@ -40,5 +50,10 @@
 
 \otherwise \{
   LOG_EXIT("setprop: first operand is not an object\n");
+/* Local Variables:      */
+/* mode: c               */
+/* c-basic-offset: 2     */
+/* indent-tabs-mode: nil */
+/* End:                  */
 \}
 

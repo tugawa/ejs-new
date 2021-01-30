@@ -222,6 +222,11 @@ struct inline_cache {
   Shape *shape;
   int index;
   JSValue prop_name;
+#ifdef IC_PROF
+  int unavailable;
+  int count;
+  int hit;
+#endif /* IC_PROF */
 };
 #endif /* INLINE_CACHE */
 

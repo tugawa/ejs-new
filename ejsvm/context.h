@@ -66,8 +66,8 @@ typedef struct special_registers {
 struct context {
   JSValue global;
   FunctionTable *function_table;
+  int nfuncs;
   SpecialRegisters spreg;
-  int tablesize;
   JSValue *stack;
   /* try-catch-finally */
   UnwindProtect *exhandler_stack_top;
