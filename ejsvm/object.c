@@ -1091,7 +1091,11 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL) {
+#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
     PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
+#else /* ALLOC_SITE_CACHE_PER_SITE_HCG */
+    PropertyMap *pm = gshapes.g_shape_Array->pm;
+#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
     os = new_object_shape(ctx, DEBUG_NAME("(array)"),
                           pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
 #ifdef DUMP_HCG
