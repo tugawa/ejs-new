@@ -44,6 +44,12 @@ static void hcprof_leave_shape(Shape *os)
 #define HC_PROF_LEAVE_SHAPE(os)
 #endif /* HC_PROF */
 
+#ifdef SHAPE_PROF
+int shape_search_trial = 0;
+int shape_search_count = 0;
+int shape_search_success = 0;
+#endif /* SHAPE_PROF */
+
 /* PROPERTY OPERATION **************************************************/
 
 /**
@@ -189,13 +195,22 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
             next_pm, next_pm->n_props, n_embedded, n_extension);
       next_os = next_pm->shapes;
+#ifdef SHAPE_PROF
+      shape_search_count++;
+#endif /* SHAPE_PROF */
       while (next_os != NULL) {
+#ifdef SHAPE_PROF
+        shape_search_trial++;
+#endif /* SHAPE_PROF */
         if (next_os->n_embedded_slots == n_embedded &&
             next_os->n_extension_slots == n_extension
 #if ALLOC_SITE_CACHE
             && next_os->alloc_site == current_os->alloc_site
 #endif /* ALLOC_SITE_CACHE */
             ) {
+#ifdef SHAPE_PROF
+          shape_search_success++;
+#endif /* SHAPE_PROF */
           PRINT("    found: %p\n", next_os);
           break;
         } else {

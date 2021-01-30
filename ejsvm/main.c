@@ -38,6 +38,9 @@ int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #ifdef GC_PROF
 int gcprof_flag;       /* print GC profile information */
 #endif /* GC_PROF */
+#ifdef SHAPE_PROF
+int shapeprof_flag;
+#endif /* SHAPE_PROF */
 #ifdef DUMP_HCG
 char *dump_hcg_file_name;
 #endif /* DUMP_HCG */
@@ -98,6 +101,9 @@ struct commandline_option  options_table[] = {
 #ifdef HC_PROF
   { "--hc-prof",  0, &hcprint_flag,   NULL          },
 #endif /* HC_PROF */
+#ifdef SHAPE_PROF
+  { "--shape-prof",  0, &shapeprof_flag,   NULL          },
+#endif /* SHAPE_PROF */
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
@@ -483,6 +489,18 @@ int main(int argc, char *argv[]) {
   if (hcprint_flag == TRUE)
     hcprof_print_all_hidden_class();
 #endif /* HC_PROF */
+#ifdef SHAPE_PROF
+  if (shapeprof_flag == TRUE) {
+    extern int shape_search_trial;
+    extern int shape_search_count;
+    extern int shape_search_success;
+    printf("shape cache search count %d, iteration %d (%f per search), success %d (%f hit)\n",
+           shape_search_count, shape_search_trial,
+           ((float) shape_search_trial) / shape_search_count,
+           shape_search_success,
+           ((float) shape_search_success) / shape_search_count);
+  }
+#endif /* SHAPE_PROF */
 #ifdef DUMP_HCG
   if (dump_hcg_file_name != NULL) {
     extern void dump_hidden_classes(char *);
