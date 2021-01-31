@@ -271,9 +271,9 @@ void print_ic_prof(Context *ctx)
       Instruction *insn = ft->insns + j;
       InlineCache *ic = &insn->inl_cache;
       if (ic->count > 0) {
-        printf("IC %03d:%03d %s count %7d hit %7d (radio %f) NULL %7d\n",
+        printf("IC %03d:%03d %s install %3d count %7d hit %7d (radio %f) NULL %7d\n",
                i, j, get_opcode(insn->code) == GETPROP ? "get" : "set",
-               ic->count, ic->hit, ((float) ic->hit) / ic->count,
+               ic->install, ic->count, ic->hit, ((float) ic->hit) / ic->count,
                ic->unavailable);
       }
     }

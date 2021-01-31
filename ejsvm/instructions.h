@@ -222,10 +222,15 @@ struct inline_cache {
   Shape *shape;
   int index;
   JSValue prop_name;
+#ifdef INLINE_CACHE_RESET
+#define INLINE_CACHE_RESET_THRESHOLD 10
+  int miss;
+#endif /* INLINE_CACHE_RESET */
 #ifdef IC_PROF
   int unavailable;
   int count;
   int hit;
+  int install;
 #endif /* IC_PROF */
 };
 #endif /* INLINE_CACHE */

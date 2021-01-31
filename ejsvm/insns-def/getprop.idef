@@ -55,8 +55,13 @@
         ic_prof_hit++;
       }
 #endif /* IC_PROF */
-    } else
+    } else {
+#ifdef INLINE_CACHE_RESET
+      if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD)
+        ic->shape = NULL;
+#endif /* INLINE_CACHE_RESET */
       dst = get_object_prop(context, obj, prop, ic);
+    }
   }
 #else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);

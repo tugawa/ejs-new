@@ -271,6 +271,12 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     ic->shape = object_get_shape(obj);
     ic->prop_name = name;
     ic->index = index;
+#ifdef INLINE_CACHE_RESET
+    ic->miss = 0;
+#endif /* INLINE_CACHE_RESET  */
+#ifdef IC_PROF
+    ic->install++;
+#endif /* IC_PROF */
   }
 #endif /* INLINE_CACHE */
   object_set_prop(obj, index, v);
@@ -308,6 +314,12 @@ JSValue get_prop(JSValue obj, JSValue name)
     ic->shape = object_get_shape(obj);
     ic->prop_name = name;
     ic->index = index;
+#ifdef INLINE_CACHE_RESET
+    ic->miss = 0;
+#endif /* INLINE_CACHE_RESET */
+#ifdef IC_PROF
+    ic->install++;
+#endif /* IC_PROF */
   }
 #endif /* INLINE_CACHE */
   return object_get_prop(obj, index);
@@ -1127,10 +1139,14 @@ void init_inline_cache(InlineCache *ic)
   ic->shape = NULL;
   ic->prop_name = JS_EMPTY;
   ic->index = 0;
+#ifdef INLINE_CACHE_RESET
+  ic->miss = 0;
+#endif /* INLINE_CACHE_RESET */
 #ifdef IC_PROF
   ic->count = 0;
   ic->hit = 0;
   ic->unavailable = 0;
+  ic->install = 0;
 #endif /* IC_PROF */
 }
 #endif /* INLINE_CACHE */

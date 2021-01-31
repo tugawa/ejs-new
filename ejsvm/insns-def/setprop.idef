@@ -31,8 +31,13 @@
       ic->hit++;
       ic_prof_hit++;
 #endif /* IC_PROF */
-    } else
+    } else {
+#ifdef INLINE_CACHE_RESET
+      if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD)
+        ic->shape = NULL;
+#endif /* INLINE_CACHE_RESET */
       set_prop_with_ic(context, obj, prop, val, ATTR_NONE, ic);
+    }
   }
 #else /* INLINE_CACHE */
   set_object_prop(context, obj, prop, val);
