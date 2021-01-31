@@ -266,9 +266,14 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
   }
 
 #ifdef INLINE_CACHE
+#ifdef INLINE_CACHE_SHAPE_BASE
   if (ic != NULL && ic->shape == NULL &&
       object_get_shape(obj)->n_extension_slots == 0) {
     ic->shape = object_get_shape(obj);
+#else /* INLINE_CACHE_SHAPE_BASE */
+  if (ic != NULL && ic->pm == NULL) {
+    ic->pm = object_get_shape(obj)->pm;
+#endif /* INLINE_CACHE_SHAPE_BASE */
     ic->prop_name = name;
     ic->index = index;
 #ifdef INLINE_CACHE_RESET
@@ -309,9 +314,14 @@ JSValue get_prop(JSValue obj, JSValue name)
     return JS_EMPTY;
 
 #ifdef INLINE_CACHE
+#ifdef INLINE_CACHE_SHAPE_BASE
   if (ic != NULL && ic->shape == NULL &&
       object_get_shape(obj)->n_extension_slots == 0) {
     ic->shape = object_get_shape(obj);
+#else /* INLINE_CACHE_SHAPE_BASE */
+  if (ic != NULL && ic->pm == NULL) {
+    ic->pm = object_get_shape(obj)->pm;
+#endif /* INLINE_CACHE_SHAPE_BASE */
     ic->prop_name = name;
     ic->index = index;
 #ifdef INLINE_CACHE_RESET
@@ -367,6 +377,10 @@ JSValue get_prop_prototype_chain(JSValue obj, JSValue name)
     JSValue ret = get_prop_with_ic(obj, name, ic);
     if (ret != JS_EMPTY)
       return ret;
+#ifdef IC_PROF
+    if (ic != NULL)
+      ic->proto++;
+#endif /* IC_PROF */
     obj = get_prop(obj, gconsts.g_string___proto__);
   }
 #endif /* INLINE_CACHE */
@@ -1136,7 +1150,11 @@ void init_alloc_site(AllocSite *alloc_site)
 #ifdef INLINE_CACHE
 void init_inline_cache(InlineCache *ic)
 {
+#ifdef INLINE_CACHE_SHAPE_BASE
   ic->shape = NULL;
+#else /* INLINE_CACHE_SHAPE_BASE */
+  ic->pm = NULL;
+#endif /* INLINE_CACHE_SHAPE_BASE */
   ic->prop_name = JS_EMPTY;
   ic->index = 0;
 #ifdef INLINE_CACHE_RESET
@@ -1147,6 +1165,7 @@ void init_inline_cache(InlineCache *ic)
   ic->hit = 0;
   ic->unavailable = 0;
   ic->install = 0;
+  ic->proto = 0;
 #endif /* IC_PROF */
 }
 #endif /* INLINE_CACHE */

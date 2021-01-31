@@ -391,8 +391,13 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
+#ifdef INLINE_CACHE_SHAPE_BASE
       if (ic->shape != NULL) {
         PROCESS_EDGE(ic->shape);
+#else /* INLINE_CACHE_SHAPE_BASE */
+      if (ic->pm != NULL) {
+        PROCESS_EDGE(ic->pm);
+#endif /* INLINE_CACHE_SHAPE_BASE */
         PROCESS_EDGE(ic->prop_name);
       }
     }

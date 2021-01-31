@@ -219,7 +219,11 @@ struct alloc_site {
 
 #ifdef INLINE_CACHE
 struct inline_cache {
+#ifdef INLINE_CACHE_SHAPE_BASE
   Shape *shape;
+#else /* INLINE_CACHE_SHAPE_BASE */
+  PropertyMap *pm;
+#endif /* INLINE_CACHE_SHAPE_BASE */
   int index;
   JSValue prop_name;
 #ifdef INLINE_CACHE_RESET
@@ -231,6 +235,7 @@ struct inline_cache {
   int count;
   int hit;
   int install;
+  int proto;
 #endif /* IC_PROF */
 };
 #endif /* INLINE_CACHE */
