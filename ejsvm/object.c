@@ -267,9 +267,16 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
 
 #ifdef INLINE_CACHE
 #ifdef INLINE_CACHE_SHAPE_BASE
+#ifdef INLINE_CACHE_SHAPE_BASE_IMMATURE
+  if (ic != NULL && ic->shape == NULL &&
+      (object_get_shape(obj)->n_extension_slots == 0 ||
+       index < object_get_shape(obj)->n_embedded_slots - 1)) {
+    ic->shape = object_get_shape(obj);
+#else /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
   if (ic != NULL && ic->shape == NULL &&
       object_get_shape(obj)->n_extension_slots == 0) {
     ic->shape = object_get_shape(obj);
+#endif /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
 #else /* INLINE_CACHE_SHAPE_BASE */
   if (ic != NULL && ic->pm == NULL) {
     ic->pm = object_get_shape(obj)->pm;
@@ -315,9 +322,16 @@ JSValue get_prop(JSValue obj, JSValue name)
 
 #ifdef INLINE_CACHE
 #ifdef INLINE_CACHE_SHAPE_BASE
+#ifdef INLINE_CACHE_SHAPE_BASE_IMMATURE
+  if (ic != NULL && ic->shape == NULL &&
+      (object_get_shape(obj)->n_extension_slots == 0 ||
+       index < object_get_shape(obj)->n_embedded_slots - 1)) {
+    ic->shape = object_get_shape(obj);
+#else /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
   if (ic != NULL && ic->shape == NULL &&
       object_get_shape(obj)->n_extension_slots == 0) {
     ic->shape = object_get_shape(obj);
+#endif /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
 #else /* INLINE_CACHE_SHAPE_BASE */
   if (ic != NULL && ic->pm == NULL) {
     ic->pm = object_get_shape(obj)->pm;

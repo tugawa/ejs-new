@@ -31,7 +31,9 @@
     ic->unavailable++;
 #endif /* IC_PROF */
 #ifdef INLINE_CACHE_SHAPE_BASE
+#ifndef INLINE_CACHE_SHAPE_BASE_IMMATURE
     assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
+#endif /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
     if (ic->shape == object_get_shape(obj) && ic->prop_name == prop) {
       jsv_to_jsobject(obj)->eprop[ic->index] = val;
 #else /* INLINE_CACHE_SHAPE_BASE */
