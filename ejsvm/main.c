@@ -509,7 +509,7 @@ int main(int argc, char *argv[]) {
   }
 #endif /* SHAPE_PROF */
 #ifdef IC_PROF
-  {
+  if (icprof_flag) {
     extern void print_ic_prof(Context *ctx);
     print_ic_prof(context);
   }
