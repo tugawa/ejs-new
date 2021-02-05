@@ -20,6 +20,8 @@ static inline header_t compose_header(size_t granules, cell_type_t type)
 #ifdef GC_THREADED_BOUNDARY_TAG
 static inline footer_t compose_footer(size_t granules, cell_type_t type)
 {
+  assert(granules <= BOUNDARY_TAG_MAX_SIZE);
+
   footer_t footer;
   footer.as_header.identifier = 1;
   footer.as_header.type = type;

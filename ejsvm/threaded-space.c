@@ -140,6 +140,10 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
     }
   } else {
 #ifdef GC_THREADED_BOUNDARY_TAG
+#ifndef GC_THREADED_BOUNDARY_TAG_SKIP_SIZE_CHECK
+    if (alloc_granules > BOUNDARY_TAG_MAX_SIZE)
+      goto js_space_alloc_out_of_memory;
+#endif /* GC_THREADED_BOUNDARY_TAG_NO_SIZE_CHECK */
     uintptr_t bytes = (alloc_granules << LOG_BYTES_IN_GRANULE);
     footer_t *footer = (footer_t *) space->end;
     header_t *hdrp = (header_t *) (((uintptr_t) footer) - bytes);
@@ -163,6 +167,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
     }
   }
 
+js_space_alloc_out_of_memory:
 #ifdef DEBUG
   LOG("js_space.head  = %zu\n", js_space.head);
   LOG("js_space.begin = %zu\n", js_space.begin);
