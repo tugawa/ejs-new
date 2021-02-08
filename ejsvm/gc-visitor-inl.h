@@ -354,7 +354,9 @@ ACCEPTOR STATIC void scan_Context(Context *context)
   /* process stack */
   scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
 
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   PROCESS_WEAK_EDGE(context->property_map_roots);
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 }
 
 ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
