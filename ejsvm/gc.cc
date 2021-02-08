@@ -258,7 +258,8 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
 }
 
 #ifdef ALLOC_SITE_CACHE
-#ifdef DUMP_HCG
+//#ifdef DUMP_HCG
+#if 0
 void alloc_site_update_info(JSObject *p) {
   /* do nothing: preserve all initial hidden class for each allocation site */
 }

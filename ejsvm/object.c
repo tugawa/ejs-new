@@ -161,6 +161,10 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     /* 1. If there is not next property map, create it. */
     if (next_pm == NULL) {
       next_pm = extend_property_map(ctx, current_os->pm, name, att);
+#ifdef DUMP_HCG
+      if (skip_setter)
+        next_pm->is_builtin = 1;
+#endif /* DUMP_HCG */
       PRINT("  new property (new PM %p is created)\n", next_pm);
     } else
       PRINT("  new property (cached PM %p is used)\n", next_pm);
@@ -659,10 +663,11 @@ PropertyMap *new_property_map(Context *ctx, char *name,
     m->insn_no = ctx->spreg.pc;
   }
   m->is_entry = 0;
+  m->is_builtin = 0;
 #endif /* DUMP_HCG */
 #endif /* HC_PROF */
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   GC_PUSH(m);
   /* avoid registration of the root map, whose prev is NULL.
    * Note gpms.g_property_map_root is NULL before the root map is created.
@@ -676,7 +681,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
     ctx->property_map_roots = p;
   }
   GC_POP(m);
-#endif /* HC_SKIP_INTERNAL */
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
   return m;
 }
 
@@ -1762,22 +1767,40 @@ void hcprof_print_all_hidden_class(void)
     print_property_map_recursive(NULL, e->pm);
 }
 
-
 #ifdef DUMP_HCG
-static void dump_property_map_recursive(FILE *fp, char *prop_name,
-                                        PropertyMap *pm)
+static void alloc_site_loc(Context *ctx,
+                           AllocSite *as, int *fun_no, int *insn_no)
+{
+  int i;
+  for (i = 0; i < ctx->nfuncs; i++) {
+    FunctionTable *p = ctx->function_table + i;
+    int j;
+    for (j = 0; j < p->n_insns; j++) {
+      if (as == &p->insns[j].alloc_site) {
+        *fun_no = i;
+        *insn_no = j;
+        return;
+      }
+    }
+  }
+}
+
+static void dump_property_map_recursive(FILE *fp, Context *ctx,
+                                        char *prop_name, PropertyMap *pm)
 {
   HashIterator iter;
   HashCell *p;
+  Shape *os;
 
   fprintf(fp, "HC");
   fprintf(fp, " %p", pm);
   fprintf(fp, " %p", pm->prev);
   /*  fprintf(fp, " %c", prop_name == NULL ? 'E' : 'N'); */
   fprintf(fp, " %c", pm->is_entry ? 'E' : 'N');
+  fprintf(fp, " %c", pm->is_builtin ? 'B' : 'N');
   fprintf(fp, " %d", pm->function_no);
   fprintf(fp, " %d", pm->insn_no);
-  fprintf(fp, " %s", prop_name == NULL ? "(entry)" : prop_name);
+  fprintf(fp, " %s", prop_name == NULL ? "(null)" : prop_name);
   fprintf(fp, " J");
   fprintf(fp, " %d", pm->n_enter);
   fprintf(fp, " %d", pm->n_leave);
@@ -1788,15 +1811,30 @@ static void dump_property_map_recursive(FILE *fp, char *prop_name,
 #endif /* DEBUG */
   fprintf(fp, " %d", pm->n_props);
   fprintf(fp, "\n");
+  iter = createHashIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL)
+    if (!is_transition(p->entry.attr))
+      fprintf(fp, "PROP %p %lld %s %d\n", pm, p->entry.data.u.index,
+              string_to_cstr(p->entry.key), p->entry.attr);
+  for (os = pm->shapes; os != NULL; os = os->next) {
+    int fun_no, insn_no;
+    if (os->alloc_site != NULL)
+      alloc_site_loc(ctx, os->alloc_site, &fun_no, &insn_no);
+    else {
+      fun_no = -1;
+      insn_no = -1;
+    }
+    fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
+  }
 
   iter = createHashIterator(pm->map);
   while(nextHashCell(pm->map, &iter, &p) != FAIL)
     if (is_transition(p->entry.attr))
-      dump_property_map_recursive(fp, string_to_cstr(p->entry.key),
+      dump_property_map_recursive(fp, ctx, string_to_cstr(p->entry.key),
                                   p->entry.data.u.pm);
 }
 
-void dump_hidden_classes(char *outfile)
+void dump_hidden_classes(char *outfile, Context *ctx)
 {
   struct root_property_map *e;
   FILE *fp;
@@ -1804,7 +1842,7 @@ void dump_hidden_classes(char *outfile)
   if (fp == NULL)
     LOG_EXIT("cannot open HC dump file");
   for (e = root_property_map; e != NULL; e = e->next)
-    dump_property_map_recursive(fp, NULL, e->pm);
+    dump_property_map_recursive(fp, ctx, NULL, e->pm);
   fclose(fp);
 }
 #endif /* DUMP_HCG */

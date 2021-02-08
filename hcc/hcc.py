@@ -1,6 +1,7 @@
 import sys
 import re
 import argparse
+from operator import attrgetter
 
 BYTES_IN_JSVALUE = 8
 
@@ -18,10 +19,11 @@ class Field:
         'J': 8,
     }
 
-    def __init__(self, field_name, field_type, offset):
+    def __init__(self, field_name, field_type, offset, attr):
         self.name = field_name
         self.type = field_type
         self.offset = offset
+        self.attr = attr
 
     def size(self):
         return Field.field_size[self.type]
@@ -61,22 +63,26 @@ class Node:
     def next_node_id():
         Node.last_node_id += 1
         return Node.last_node_id
+
+    def lookup_by_address(addr):
+        return Node.address_table[addr]
     
     def __init__(self, line):
         # HC
-        # 1              2              3 4  5 6         7 8     9     10    11
-        # 0x7f8fa12058b0 0x7f8fa1205a10 N 26 1 aircraftA J 10830 10830 (tgen) 1
+        # 1              2              3 4 5  6 7         8 9     10    11    12
+        # 0x7f8fa12058b0 0x7f8fa1205a10 E B 26 1 aircraftA J 10830 10830 (tgen) 1
         xs = line.split(' ')
         self.line = line.rstrip()
         self.this_addr = xs[1]
         self.prev_addr = xs[2]
         self.is_entry = xs[3] == "E"
-        self.loc = (int(xs[4]), int(xs[5]))
-        self.prop_name = xs[6]
-        self.prop_type = xs[7]
-        self.n_entry = int(xs[8])
-        self.n_leave = int(xs[9])
-        self.name = xs[10]
+        self.is_builtin = xs[4] == "B"
+        self.loc = (int(xs[5]), int(xs[6]))
+        self.prop_name = xs[7]
+        self.prop_type = xs[8]
+        self.n_entry = int(xs[9])
+        self.n_leave = int(xs[10])
+        self.name = xs[11]
 
         # derived attributes
         self.node_id = Node.next_node_id()
@@ -152,24 +158,24 @@ class Node:
             self.used_bytes_free(f.offset, f.size())
             self.fields.remove(f)
 
-    def add_field(self, prop_name, prop_type):
-        size = Field.field_size[prop_type]
-        offset = self.used_bytes_alloc(size)
-        f = Field(prop_name, prop_type, offset)
+    def add_field(self, prop_name, prop_type, index, attr):
+    # size = Field.field_size[prop_type]
+    # offset = self.used_bytes_alloc(size)
+        f = Field(prop_name, prop_type, index, attr)
         self.fields.append(f)
         
-    def collect_fields(self):
-        if not self.is_entry:
-            # inherit from previous
-            self.fields = self.prev.fields[:]
-            self.used_bytes = self.prev.used_bytes[:]
-            # remove old field of the same name (case of type change)
-            self.remove_field(self.prop_name)
-            # add field
-            self.add_field(self.prop_name, self.prop_type)
-            self.fields.sort(key=lambda f: f.offset)
-        for e in self.transitions:
-            e.dest.collect_fields()
+    # def collect_fields(self):
+    #     if not self.is_entry:
+    #         # inherit from previous
+    #         self.fields = self.prev.fields[:]
+    #         self.used_bytes = self.prev.used_bytes[:]
+    #         # remove old field of the same name (case of type change)
+    #         self.remove_field(self.prop_name)
+    #         # add field
+    #         self.add_field(self.prop_name, self.prop_type)
+    #         self.fields.sort(key=lambda f: f.offset)
+    #     for e in self.transitions:
+    #         e.dest.collect_fields()
 
     def overwrite_contents(self, n):
         self.transitions = n.transitions
@@ -250,8 +256,27 @@ def load_graph(lines, args):
 
     # create node
     for line in lines:
-        n = Node(line)
-        nodes.append(n)
+        if line.startswith('HC '):
+            n = Node(line)
+            nodes.append(n)
+        elif line.startswith('PROP '):
+            xs = line.split(' ')
+            addr = xs[1]
+            index = int(xs[2])
+            name = xs[3]
+            attr = int(xs[4])
+            n = Node.lookup_by_address(addr)
+            n.add_field(name, 'J', index, attr)
+        elif line.startswith('SHAPE '):
+            xs = line.split(' ')
+            addr = xs[1]
+            inobj = int(xs[2])
+            loc = (int(xs[3]), int(xs[4]))
+            n = Node.lookup_by_address(addr)
+            
+
+    if not args.include_builtin:
+        nodes = [n for n in nodes if not n.is_builtin]
 
     # convert addr to node object
     for n in nodes:
@@ -269,15 +294,8 @@ def load_graph(lines, args):
     for n in nodes:
         if n.prev:
             n.prev.add_transition(n.prop_name, n.prop_type, n)
-        
-    if not args.include_builtin:
-        entrypoints = [n for n in nodes if n.is_entry]
 
-#    # remove builtin
-#    if not args.include_builtin:
-#        entrypoints = [n for n in entrypoints if n.loc != (0, 0)]
-
-    return entrypoints
+    return [n for n in nodes if n.is_entry]
 
 # assume input is a tree
 def merge_compatible_nodes(entrypoint):
@@ -310,7 +328,7 @@ def print_graph(f, roots):
 
 def dot_output_node(fp, node):
     node_label = "[%d], die=%d\n" % (node.node_id, node.n_entry - node.n_leave)
-    for f in node.fields:
+    for f in sorted(node.fields, key=attrgetter('offset')):
         node_label += "%d %s:%s\l" % (f.offset, f.name, f.type)
 
     fp.write("%d [label=\"%s\"]\n" % (node.node_id, node_label))
@@ -372,13 +390,13 @@ def main():
     with open(args.input) as f:
         entrypoints = load_graph(f, args)
 
-    for n in entrypoints:
-        n.collect_fields()
-        if not args.no_compile:
-            n.skip_internal()
+#    for n in entrypoints:
+#        n.collect_fields()
+#        if not args.no_compile:
+#            n.skip_internal()
 #            merge_compatible_nodes(n)
 
-    entrypoints = [n for n in entrypoints if not find_same_loc(entrypoints, n)]
+#    entrypoints = [n for n in entrypoints if not find_same_loc(entrypoints, n)]
 
     if args.chcg:
         with open(args.chcg, "w") as f:

@@ -284,16 +284,17 @@ struct property_map {
   int function_no;
   int insn_no;
   int is_entry;
+  int is_builtin;
 #endif /* DUMP_HCG */
 #endif /* HC_PROF */
 };
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
 struct property_map_list {
   PropertyMap* pm;
   PropertyMapList *next;
 };
-#endif /* HC_SKIP_INTERNAL */
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 
 #ifdef HC_PROF
 struct root_property_map {

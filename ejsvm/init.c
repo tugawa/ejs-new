@@ -89,6 +89,9 @@ static Shape *create_map_and_shape(Context *ctx,
   m = new_property_map(ctx, name, num_special, num_props,
                        num_user_special_props, proto,
                        gpms.g_property_map_root);
+#ifdef DUMP_HCG
+  m->is_entry = 1;
+#endif /* DUMP_HCG */
   for (i = 0; i < num_builtin_props; i++) {
     ObjBuiltinProp *p = &builtin_props[i];
     property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),

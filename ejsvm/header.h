@@ -10,7 +10,7 @@
 #ifndef HEADER_H_
 #define HEADER_H_
 
-#ifdef DUMP_HCG
+#if 0
 #ifndef ALLOC_SITE_CACHE
 #warning DUMP_HCG is enabled. ALLOC_SITE_CACHE is turned on
 #define ALLOC_SITE_CACHE
@@ -23,6 +23,9 @@
 #warning DUMP_HCG is enabled. WEAK_SHAPE_LIST is turned off
 #undef WEAK_SHAPE_LIST
 #endif /* WEAK_SHAPE_LIST */
+#endif
+
+#ifdef DUMP_HCG
 #ifndef HC_PROF
 #warning DUMP_HCG is enabled. HC_PROF is turned on
 #define HC_PROF

@@ -516,8 +516,8 @@ int main(int argc, char *argv[]) {
 #endif /* IC_PROF */
 #ifdef DUMP_HCG
   if (dump_hcg_file_name != NULL) {
-    extern void dump_hidden_classes(char *);
-    dump_hidden_classes(dump_hcg_file_name);
+    extern void dump_hidden_classes(char *, Context*);
+    dump_hidden_classes(dump_hcg_file_name, context);
   }
 #endif /* DUMP_HCG */
 #ifdef PROFILE
