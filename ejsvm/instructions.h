@@ -218,7 +218,6 @@ struct alloc_site {
   int copy_words;
   int transition;
   int n_alloc;
-  int n_hit;
 #endif /* AS_PROF */
 };
 #endif /* ALLOC_SITE_CACHE */

@@ -324,11 +324,12 @@ struct shape {
   char *name;
 #endif /* DEBUG */
 #ifdef HC_PROF
-  uint32_t n_enter;
-  uint32_t n_leave;
-  uint32_t is_dead;
-  uint32_t is_printed;
+  int n_enter;
+  int n_leave;
 #endif /* HC_PROF */
+#ifdef AS_PROF
+  int n_alloc;
+#endif /* AS_PROF */
 };
 
 struct jsobject_cell {

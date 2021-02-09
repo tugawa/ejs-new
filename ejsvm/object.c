@@ -857,6 +857,13 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->xcache_shape = NULL;
 #endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 #endif /* ALLOC_SITE_CACHE */
+#ifdef HC_PROF
+  s->n_enter = 0;
+  s->n_leave = 0;
+#endif /* HC_PROF */
+#ifdef AS_PROF
+  s->n_alloc = 0;
+#endif /* AS_PROF */
 
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
@@ -961,7 +968,7 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
 #endif /* ALLOC_SITE_CACHE */
     }
 #ifdef AS_PROF
-    as->n_hit++;
+    as->shape->n_alloc++;
 #endif /* AS_PROF */
     return as->shape;
   }
@@ -1189,7 +1196,6 @@ void init_alloc_site(AllocSite *alloc_site)
   alloc_site->copy_words = 0;
   alloc_site->transition = 0;
   alloc_site->n_alloc = 0;
-  alloc_site->n_hit = 0;
 #endif /* AS_PROF */
 }
 #endif /* ALLOC_SITE_CACHE */
@@ -1899,7 +1905,7 @@ void print_as_prof(Context *ctx)
           nshare++;
         printf("AS %s %03d:%03d alloc %6d hit %6d trans %6d copy %6d size %d/%d share %d\n",
                as->polymorphic ? "poly" : "mono", i, j,
-               as->n_alloc, as->n_hit, as->transition, as->copy_words,
+               as->n_alloc, as->shape->n_alloc, as->transition, as->copy_words,
                as->shape->n_embedded_slots, as->shape->n_extension_slots,
                nshare);
       }
