@@ -29,12 +29,18 @@ static void hcprof_enter_shape(Shape *os)
 {
   PropertyMap *pm = os->pm;
   pm->n_enter++;
+  os->n_enter++;
+#ifdef AS_PROF
+  if (os->alloc_site != NULL)
+    os->alloc_site->transition++;
+#endif /* AS_PROF */
 }
 
 static void hcprof_leave_shape(Shape *os)
 {
   PropertyMap *pm = os->pm;
   pm->n_leave++;
+  os->n_leave++;
 }
 
 #define HC_PROF_ENTER_SHAPE(os) hcprof_enter_shape(os)
@@ -499,8 +505,14 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   assert(os->pm->n_special_props == FUNCTION_SPECIAL_PROPS);
 
   GC_PUSH(os);
+#ifdef ALLOC_SITE_CACHE_PROTOTYPE
+  prototype =
+    create_simple_object_with_prototype(ctx,
+                                        gconsts.g_prototype_Object);
+#else /* ALLOC_SITE_CACHE_PROTOTYPE */
   prototype = new_simple_object(ctx, DEBUG_NAME("(prototype)"),
                                 gshapes.g_shape_Object);
+#endif /* ALLOC_SITE_CACHE_PROTOTYPE */
 
   GC_PUSH(prototype);
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
@@ -902,6 +914,10 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
     for (; i < new_size; i++)
       extension[i] = JS_UNDEFINED;
     p->eprop[extension_index] = (JSValue) (uintjsv_t) (uintptr_t) extension;
+#ifdef AS_PROF
+    if (os->alloc_site != NULL)
+      os->alloc_site->copy_words += current_size;
+#endif /* AS_PROF */
   }
 
   /* 2. Assign new shape */
@@ -916,6 +932,9 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
 static Shape *get_cached_shape(Context *ctx, AllocSite *as,
                                JSValue __proto__, int n_special)
 {
+#ifdef AS_PROF
+  as->n_alloc++;
+#endif /* AS_PROF */
   /* 1. check if cache is available and compatible */
   if (as != NULL && as->pm &&
       (as->pm->__proto__ == __proto__ || as->pm->__proto__ == JS_EMPTY)) {
@@ -941,6 +960,9 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
                                      n_embedded, 0);
 #endif /* ALLOC_SITE_CACHE */
     }
+#ifdef AS_PROF
+    as->n_hit++;
+#endif /* AS_PROF */
     return as->shape;
   }
   return NULL;
@@ -1163,6 +1185,12 @@ void init_alloc_site(AllocSite *alloc_site)
   alloc_site->shape = NULL;
   alloc_site->pm = NULL;
   alloc_site->polymorphic = 0;
+#ifdef AS_PROF
+  alloc_site->copy_words = 0;
+  alloc_site->transition = 0;
+  alloc_site->n_alloc = 0;
+  alloc_site->n_hit = 0;
+#endif /* AS_PROF */
 }
 #endif /* ALLOC_SITE_CACHE */
 
@@ -1768,6 +1796,7 @@ void hcprof_print_all_hidden_class(void)
 }
 
 #ifdef DUMP_HCG
+#ifdef ALLOC_SITE_CACHE
 static void alloc_site_loc(Context *ctx,
                            AllocSite *as, int *fun_no, int *insn_no)
 {
@@ -1784,6 +1813,7 @@ static void alloc_site_loc(Context *ctx,
     }
   }
 }
+#endif /* ALLOC_SITE_CACHE */
 
 static void dump_property_map_recursive(FILE *fp, Context *ctx,
                                         char *prop_name, PropertyMap *pm)
@@ -1818,12 +1848,17 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
               string_to_cstr(p->entry.key), p->entry.attr);
   for (os = pm->shapes; os != NULL; os = os->next) {
     int fun_no, insn_no;
-    if (os->alloc_site != NULL)
+#ifdef ALLOC_SITE_CACHE
+    if (os->alloc_site != NULL) {
       alloc_site_loc(ctx, os->alloc_site, &fun_no, &insn_no);
-    else {
+    } else {
       fun_no = -1;
       insn_no = -1;
     }
+#else /* ALLOC_SITE_CACHE */
+    fun_no = -1;
+    insn_no = -1;
+#endif /* ALLOC_SITE_CACHE */
     fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
   }
 
@@ -1846,6 +1881,32 @@ void dump_hidden_classes(char *outfile, Context *ctx)
   fclose(fp);
 }
 #endif /* DUMP_HCG */
+
+#ifdef AS_PROF
+void print_as_prof(Context *ctx)
+{
+  int i;
+  for (i = 0; i < ctx->nfuncs; i++) {
+    FunctionTable *p = ctx->function_table + i;
+    int j;
+    for (j = 0; j < p->n_insns; j++) {
+      AllocSite *as = &p->insns[j].alloc_site;
+      if (as->shape != NULL) {
+        int nshare = 0;
+        PropertyMap *pm = as->shape->pm;
+        Shape *os;
+        for (os = pm->shapes; os != NULL; os = os->next)
+          nshare++;
+        printf("AS %s %03d:%03d alloc %6d hit %6d trans %6d copy %6d size %d/%d share %d\n",
+               as->polymorphic ? "poly" : "mono", i, j,
+               as->n_alloc, as->n_hit, as->transition, as->copy_words,
+               as->shape->n_embedded_slots, as->shape->n_extension_slots,
+               nshare);
+      }
+    }
+  }
+}
+#endif /* AS_PROF */
 
 #endif /* HC_PROF */
 

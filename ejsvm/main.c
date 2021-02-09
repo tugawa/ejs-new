@@ -41,6 +41,9 @@ int gcprof_flag;       /* print GC profile information */
 #ifdef IC_PROF
 int icprof_flag;
 #endif /* IC_PROF */
+#ifdef AS_PROF
+int asprof_flag;
+#endif /* AS_PROF */
 #ifdef SHAPE_PROF
 int shapeprof_flag;
 #endif /* SHAPE_PROF */
@@ -121,6 +124,9 @@ struct commandline_option  options_table[] = {
 #ifdef IC_PROF
   { "--ic-prof",  0, &icprof_flag,    NULL          },
 #endif /* IC_PROF */
+#ifdef AS_PROF
+  { "--as-prof",  0, &asprof_flag,    NULL          },
+#endif /* AS_PROF */
   { "-m",         1, &heap_limit,     NULL          },
   { "--threshold",1, &gc_threshold,   NULL          },
   { "-s",         1, &regstack_limit, NULL          },
@@ -514,6 +520,12 @@ int main(int argc, char *argv[]) {
     print_ic_prof(context);
   }
 #endif /* IC_PROF */
+#ifdef AS_PROF
+  if (asprof_flag) {
+    extern void print_as_prof(Context *ctx);
+    print_as_prof(context);
+  }
+#endif /* AS_PROF */
 #ifdef DUMP_HCG
   if (dump_hcg_file_name != NULL) {
     extern void dump_hidden_classes(char *, Context*);

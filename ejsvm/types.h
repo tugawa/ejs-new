@@ -325,7 +325,7 @@ struct shape {
 #endif /* DEBUG */
 #ifdef HC_PROF
   uint32_t n_enter;
-  uint32_t n_exit;
+  uint32_t n_leave;
   uint32_t is_dead;
   uint32_t is_printed;
 #endif /* HC_PROF */

@@ -5,6 +5,12 @@ from operator import attrgetter
 
 BYTES_IN_JSVALUE = 8
 
+class Shape:
+    def __init__(self, pm, slots, loc):
+        self.pm = pm
+        self.slots = slots
+        self.loc = loc
+
 class Field:
     field_size = {
         'UD': 1,
@@ -91,6 +97,7 @@ class Node:
         self.preds = []
         self.fields = []
         self.used_bytes = []
+        self.shapes = []
 
         # output compiled graph
         self.chcg_id = None
@@ -157,6 +164,9 @@ class Node:
         if f:
             self.used_bytes_free(f.offset, f.size())
             self.fields.remove(f)
+
+    def add_shape(self, os):
+        self.shapes.append(os)
 
     def add_field(self, prop_name, prop_type, index, attr):
     # size = Field.field_size[prop_type]
@@ -270,9 +280,11 @@ def load_graph(lines, args):
         elif line.startswith('SHAPE '):
             xs = line.split(' ')
             addr = xs[1]
-            inobj = int(xs[2])
+            slots = int(xs[2])
             loc = (int(xs[3]), int(xs[4]))
             n = Node.lookup_by_address(addr)
+            os = Shape(n, slots, loc)
+            n.add_shape(os)
             
 
     if not args.include_builtin:
@@ -329,7 +341,11 @@ def print_graph(f, roots):
 def dot_output_node(fp, node):
     node_label = "[%d], die=%d\n" % (node.node_id, node.n_entry - node.n_leave)
     for f in sorted(node.fields, key=attrgetter('offset')):
-        node_label += "%d %s:%s\l" % (f.offset, f.name, f.type)
+        node_label += "%s\l" % f.name
+#        node_label += "%d %s:%s\l" % (f.offset, f.name, f.type)
+
+    for os in node.shapes:
+        node_label += "SHAPE %d %d:%d\l" % (os.slots, os.loc[0], os.loc[1])
 
     fp.write("%d [label=\"%s\"]\n" % (node.node_id, node_label))
     for t in node.transitions:
