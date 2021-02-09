@@ -3,7 +3,7 @@
 
 static inline int space_check_gc_request()
 {
-  return space.num_free_pages < (space.num_pages >> 3);
+  return space.num_free_pages < space.num_threshold_pages;
 }
 
 static inline int in_js_space(void *addr_)

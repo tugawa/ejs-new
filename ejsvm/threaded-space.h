@@ -12,7 +12,7 @@ extern "C" {
 #ifdef EXCESSIVE_GC
 #define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) - ((heap_limit) >> 4))
 #else  /* EXCESSIVE_GC */
-#define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) >> 1)
+#define DEFAULT_GC_THRESHOLD(heap_limit) ((heap_limit) >> 4)
 #endif /* EXCESSIVE_GC */
 
 /*
@@ -34,52 +34,76 @@ extern "C" {
  */
 
 #ifdef BIT_ALIGN32
-#define HEADER_GRANULES       2
-#define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
-#define HEADER_MARKBIT_BITS   1
-#define HEADER_EXTRA_BITS     3
-#define HEADER_GEN_BITS       4
-#define HEADER_MAGIC_BITS     16
-#define HEADER_SIZE_BITS      32
-#define HEADER_MAGIC          0x18
+#define HEADER_GRANULES        2
+#define HEADER_IDENTIFIER_BITS 1
+#define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
+#define HEADER_MARKBIT_BITS    1
+#define HEADER_GEN_BITS        7
+#define HEADER_MAGIC_BITS      15
+#define HEADER_SIZE_BITS       32
+#define HEADER_SIZE_BITS_LO    16
+#define HEADER_SIZE_BITS_HI    16
+#define HEADER_MAGIC           0x18
 #else /* BIT_ALIGN32 */
-#define HEADER_GRANULES       1
-#define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
-#define HEADER_MARKBIT_BITS   1
-#define HEADER_EXTRA_BITS     3
-#define HEADER_GEN_BITS       4
-#define HEADER_MAGIC_BITS     16
-#define HEADER_SIZE_BITS      32
-#define HEADER_MAGIC          0x18
+#define HEADER_GRANULES        1
+#define HEADER_IDENTIFIER_BITS 1
+#define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
+#define HEADER_MARKBIT_BITS    1
+#define HEADER_GEN_BITS        7
+#define HEADER_MAGIC_BITS      15
+#define HEADER_SIZE_BITS       32
+#define HEADER_SIZE_BITS_LO    16
+#define HEADER_SIZE_BITS_HI    16
+#define HEADER_MAGIC           0x18
 #endif /* BIT_ALIGN32 */
 typedef struct header_t {
-  cell_type_t  type:    HEADER_TYPE_BITS;
-  unsigned int markbit: HEADER_MARKBIT_BITS;
-  unsigned int extra:   HEADER_EXTRA_BITS;
-  unsigned int magic:   HEADER_MAGIC_BITS;
-  unsigned int gen:     HEADER_GEN_BITS;
-  unsigned int size:    HEADER_SIZE_BITS;
+  union {
+    uintptr_t threaded;
+    struct {
+      unsigned int identifier: HEADER_IDENTIFIER_BITS;
+      cell_type_t  type:       HEADER_TYPE_BITS;
+      unsigned int markbit:    HEADER_MARKBIT_BITS;
+      unsigned int magic:      HEADER_MAGIC_BITS;
+      unsigned int gen:        HEADER_GEN_BITS;
+      unsigned int size:       HEADER_SIZE_BITS;
+    };
+  };
 } header_t;
+#ifdef GC_THREADED_BOUNDARY_TAG
+typedef struct footer_t {
+  union {
+    header_t as_header;
+    struct {
+      unsigned int d_identifier: HEADER_IDENTIFIER_BITS;
+      cell_type_t  d_type:       HEADER_TYPE_BITS;
+      unsigned int d_markbit:    HEADER_MARKBIT_BITS;
+      unsigned int d_magic:      HEADER_MAGIC_BITS;
+      unsigned int d_gen:        HEADER_GEN_BITS;
+      unsigned int size_lo:      HEADER_SIZE_BITS_LO;
+      unsigned int size_hi:      HEADER_SIZE_BITS_HI;
+    };
+  };
+} footer_t;
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
-static inline header_t compose_header(size_t granules, size_t extra,
-                                      cell_type_t type);
+static inline header_t compose_header(size_t granules, cell_type_t type);
+#ifdef GC_THREADED_BOUNDARY_TAG
+static inline footer_t compose_footer(size_t granules, cell_type_t type);
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
 /*
  *  Types
  */
 
-#define CELLT_FREE          (0xff)
-
-struct free_chunk {
-  header_t header;
-  struct free_chunk *next;
-};
-
+/* |----------->       <-------------|  */
+/* head      begin    end          tail */
 struct space {
-  uintptr_t addr;
+  uintptr_t head;
+  uintptr_t tail;
+  uintptr_t begin;
+  uintptr_t end;
   size_t bytes;
   size_t free_bytes;
-  struct free_chunk* freelist;
   size_t threshold_bytes;
   char *name;
 };

@@ -75,6 +75,7 @@ OPT_GC        = native
 #OPT_GC        = bibop
 #OPT_GC        = copy
 #OPT_GC        = none
+#OPT_GC        = threaded
 
 ## heap size in bytes
 HEAPSIZE      = -DJS_SPACE_BYTES=10485760
@@ -135,6 +136,13 @@ CPPFLAGS       += -DBIBOP_FREELIST
 #CPPFLAGS       += -DFLONUM_SPACE
 ## debug
 CPPFLAGS       += -DVERIFY_BIBOP
+
+##
+## Threaded compactor options
+##
+
+## use boundary tag in Hidden Class
+#CPPFALGS       += -DGC_THREADED_BOUNDARY_TAG
 
 ##
 ## debug/sanity check options

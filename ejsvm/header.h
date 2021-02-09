@@ -65,16 +65,22 @@
 #include "context.h"
 #include "gc.h"
 
-#ifdef COPYGC
-#include "copy-collector.h"
-#else /* MARKSWEEP */
+#ifdef MARKSWEEP
 #include "marksweep-collector.h"
+#endif /* MARKSWEEP */
+#ifdef FREELIST
+#include "freelist-space.h"
+#endif /* FREELIST */
 #ifdef BIBOP
 #include "bibop-space.h"
-#else /* BIBOP */
-#include "freelist-space.h"
-#endif /* BIBIOP */
-#endif /* MARKSWEEP */
+#endif /* BIBOP */
+#ifdef COPYGC
+#include "copy-collector.h"
+#endif /* COPYGC */
+#ifdef THREADED
+#include "threaded-space.h"
+#include "threadedcompact-collector.h"
+#endif /* THREADED */
 
 #include "hash.h"
 #include "log.h"
@@ -90,14 +96,15 @@
 #include "types-inl.h"
 #include "gc-inl.h"
 
-#ifdef COPYGC
-#else /* MARKSWEEP */
+#ifdef FREELIST
+#include "freelist-space-inl.h"
+#endif /* FREELIST */
 #ifdef BIBOP
 #include "bibop-space-inl.h"
-#else /* BIBOP */
-#include "freelist-space-inl.h"
 #endif /* BIBOP */
-#endif /* MARKSWEEP */
+#ifdef THREADED
+#include "threaded-space-inl.h"
+#endif /* THREADED */
 
 #endif /* HEADER_H_ */
 

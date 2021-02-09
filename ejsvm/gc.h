@@ -49,7 +49,7 @@ extern const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1];
  * GC interface
  */
 
-extern void init_memory(size_t);
+extern void init_memory(size_t, size_t);
 extern void *gc_malloc(Context *, uintptr_t, cell_type_t);
 #ifdef FLONUM_SPACE
 extern FlonumCell *gc_try_alloc_flonum(double x);

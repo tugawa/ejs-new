@@ -129,9 +129,9 @@ STATIC_INLINE int check_gc_request(Context *, int);
 extern void garbage_collection(Context *ctx);
 void start_garbage_collection(Context *ctx);
 
-void init_memory(size_t bytes)
+void init_memory(size_t bytes, size_t threshold_bytes)
 {
-  space_init(bytes);
+  space_init(bytes, threshold_bytes);
   gc_root_stack_ptr = 0;
   gc_disabled = 1;
   generation = 1;
@@ -210,6 +210,10 @@ void start_garbage_collection(Context *ctx)
     }
     gc_sec += sec;
     gc_usec += usec;
+    if (gc_usec >= 1000000) {
+      gc_usec -= 1000000;
+      ++gc_sec;
+    }
   }
 
   generation++;

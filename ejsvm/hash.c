@@ -110,6 +110,7 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
   }
   /* not found */
   GC_PUSH(table);
+  GC_PUSH(key);
   if (is_transition(attr))
     GC_PUSH(data);
   cell = alloc_hash_cell(ctx);
@@ -126,6 +127,7 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
   }
   if (is_transition(attr))
     GC_POP(data);
+  GC_POP(key);
   GC_POP(table);
   return HASH_PUT_SUCCESS;
 }
