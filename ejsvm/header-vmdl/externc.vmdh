@@ -38,6 +38,7 @@ externC is_fixnum_range_cint : cint -> cint
 externC is_null : JSValue -> cint
 externC is_nan : JSValue -> cint
 externC is_undefined : JSValue -> cint
+externC is_primitive : JSValue -> cint
 
 externC true_false : cint -> Special
 externC false_true : cint -> Special

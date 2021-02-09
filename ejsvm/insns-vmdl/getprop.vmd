@@ -9,7 +9,7 @@ getprop (obj, index) {
     case (Array obj && Fixnum index) {
       return get_array_element(obj, fixnum_to_cint(index));
     }
-      case (Array obj) {
+    case (Array obj) {
       return getArrayProp(obj, index);
     }
     case (object obj && String index) {

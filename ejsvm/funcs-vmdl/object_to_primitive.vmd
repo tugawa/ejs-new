@@ -14,18 +14,14 @@ object_to_primitive(v, hint){
                 toStringLevel: match(f1){
                     case(Function f1){
                         JSValue invoked = invoke_function0(v, f1, true);
-                        invokedFunction: match(invoked){
-                            case(primitive invoked){
-                                return invoked;
-                            }
+                        if(is_primitive(invoked)){
+                            return invoked;
                         }
                     }
                     case(Builtin f1){
                         JSValue invoked = invoke_builtin0(v, f1, true);
-                        invokedBuiltin: match(invoked){
-                            case(primitive invoked){
-                                return invoked;
-                            }
+                        if(is_primitive(invoked)){
+                            return invoked;
                         }
                     }
                 }
@@ -35,18 +31,14 @@ object_to_primitive(v, hint){
                 toStringLevel: match(f2){
                     case(Function f2){
                         JSValue invoked = invoke_function0(v, f2, true);
-                        invokedFunction: match(invoked){
-                            case(primitive invoked){
-                                return invoked;
-                            }
+                        if(is_primitive(invoked)){
+                            return invoked;
                         }
                     }
                     case(Builtin f2){
                         JSValue invoked = invoke_builtin0(v, f2, true);
-                        invokedBuiltin: match(invoked){
-                            case(primitive invoked){
-                                return invoked;
-                            }
+                        if(is_primitive(invoked)){
+                            return invoked;
                         }
                     }
                 }
