@@ -149,8 +149,8 @@ static inline struct Strtod_rettype Strtod(char *s){
 
 /*
  * Wrapped instructions
- * 
- * NOTE: 
+ *
+ * NOTE:
  *   The variable name "wrapped_return_value" is special.
  *   This name is used to recieve a return value of wrapped functions.
  *   eg. Getargument() in getarg instruction
@@ -301,7 +301,7 @@ do {                                                 \
 //   if (fp + newfl > regstack_limit){
 //     set_cf(context, curfn);
 //     set_pc(context, pc);
-//     set_fp(context, fp); 
+//     set_fp(context, fp);
 //     LOG_EXIT2(context, "register stack overflow\n");
 //   }
 //   set_sp(context, fp + newfl - 1);

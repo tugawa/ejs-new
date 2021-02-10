@@ -86,7 +86,7 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> name = node.get(Symbol.unique("name"));
 
             OperandKinds[] kinds = insnDef.getKinds(name.toText());
-            Tree<?> params = node.get(Symbol.unique("params")); 
+            Tree<?> params = node.get(Symbol.unique("params"));
             int order = isVoidFunction ? 0 : 1;
             for (Tree<?> param : params) {
                 if (VM_INSTRUCTION) {
@@ -263,7 +263,7 @@ class VarDict {
         }
         public String getName(String name, String prefix) {
             /*
-             * NOTE: 
+             * NOTE:
              *   The variable name "wrapped_return_value" is special.
              *   This name is used to recieve a return value of wrapped functions.
              *   e.g. Getargument() in getarg instruction

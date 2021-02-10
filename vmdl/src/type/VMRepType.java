@@ -116,7 +116,7 @@ public class VMRepType implements Comparable<VMRepType> {
         public String getValueName() {
             return "TV_"+name.substring(2);
         }
-        
+
         public int getValue() {
             return value;
         }

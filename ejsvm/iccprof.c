@@ -179,7 +179,7 @@ void print_instruction_record(FILE *fp, InstructionRecord *record){
         for(j=0; j<TYPE_SIZE; j++){
           for(i=0; i<TYPE_SIZE; i++){
             if(record->table[i+TYPE_SIZE*j+TYPE_SIZE*TYPE_SIZE*k] == 0) continue; /* Skips no called. */
-            fprintf(fp, "#OPRN %s,%s,%s %ld\n", icc_index2type_name(i), icc_index2type_name(j), icc_index2type_name(k), 
+            fprintf(fp, "#OPRN %s,%s,%s %ld\n", icc_index2type_name(i), icc_index2type_name(j), icc_index2type_name(k),
               record->table[i+TYPE_SIZE*j+TYPE_SIZE*TYPE_SIZE*k]);
           }
         }

@@ -177,7 +177,7 @@ public class NestGCTransformVisitor extends TreeVisitorMap<DefaultVisitor> {
             return false;
         }
     }
-    
+
     //*****************************
     // Statements
     //*****************************
@@ -200,7 +200,7 @@ public class NestGCTransformVisitor extends TreeVisitorMap<DefaultVisitor> {
             return ret;
         }
     }
-    
+
     public class AssignmentPair extends Statements{
         @Override
         public SyntaxTree accept(SyntaxTree node) throws Exception{
@@ -211,7 +211,7 @@ public class NestGCTransformVisitor extends TreeVisitorMap<DefaultVisitor> {
             return ret;
         }
     }
-    
+
     public class ExpressionStatement extends Statements{
         @Override
         public SyntaxTree accept(SyntaxTree node) throws Exception{
@@ -222,7 +222,7 @@ public class NestGCTransformVisitor extends TreeVisitorMap<DefaultVisitor> {
             return ret;
         }
     }
-    
+
     public class Declaration extends Statements{
         @Override
         public SyntaxTree accept(SyntaxTree node) throws Exception{

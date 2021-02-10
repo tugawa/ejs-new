@@ -10,7 +10,6 @@ setprop (obj, prop, val) {
       SetArrayProp(obj, prop, val);
     }
     case (object obj && String prop) {
-      
 #ifdef INLINE_CACHE
       SetObjectPropInl(obj, prop, val);
 #else /* INLINE_CACHE */

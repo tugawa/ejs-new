@@ -315,7 +315,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     FunctionDefiningInformation superFunction;
-    
+
     public class FunctionMeta extends DefaultVisitor {
         private final boolean isFormBuiltinFunctionParams(SyntaxTree paramNode){
             if(paramNode.size() != 3) return false;
@@ -549,7 +549,7 @@ public class TypeCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public boolean equals(Object obj){
             if(!(obj instanceof FunctionExpansionPair)) return false;
             FunctionExpansionPair that = (FunctionExpansionPair)obj;
-            return this.original == that.getOriginal() && 
+            return this.original == that.getOriginal() &&
                 this.expanded.equals(that.getExpanded());
         }
     }

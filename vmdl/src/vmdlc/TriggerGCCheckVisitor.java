@@ -101,7 +101,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return requests.keySet();
             }
         }
-        
+
         List<Entry> list = new ArrayList<>();
 
         public void put(SyntaxTree key, BlockExpansionRequsets value){
@@ -502,7 +502,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void updateLive(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{
         }
     }
-    
+
     public class FunctionCall extends DefaultVisitor{
         @Override
         public void accept(SyntaxTree node, Collection<String> live, TypeMapSet dict) throws Exception{

@@ -49,7 +49,7 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         expandedTree = null;
         cannotExpandFlag = false;
     }
-    
+
     public SyntaxTree(Symbol tag, Symbol[] labels, SyntaxTree[] subTree, Object value){
         super(tag, null, 0, 0, subTree, value);
         if(labels == null){
@@ -131,11 +131,11 @@ public class SyntaxTree extends Tree<SyntaxTree> {
             */
         }
     }
-    
+
     public void setExprTypeSet(ExprTypeSet _exprTypeSet) {
         exprTypeSet = _exprTypeSet;
     }
-    
+
     public ExprTypeSet getExprTypeSet() {
         return exprTypeSet;
     }
@@ -143,15 +143,15 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     public void setHeadDict(TypeMapSet dict) {
         this.headDict = dict;
     }
-    
+
     public TypeMapSet getHeadDict() {
         return headDict;
     }
-    
+
     public void setTailDict(TypeMapSet dict) {
         this.tailDict = dict;
     }
-    
+
     public TypeMapSet getTailDict() {
         return tailDict;
     }

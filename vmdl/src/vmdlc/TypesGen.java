@@ -173,7 +173,7 @@ public class TypesGen {
         sb.append("\n");
         return sb.toString();
     }
-    
+
     /* not used */
     String defineNeed() {
         StringBuilder sb = new StringBuilder();
@@ -226,7 +226,7 @@ public class TypesGen {
         sb.append("\n");
         return sb.toString();
     }
-    
+
     public static void main(String[] args) throws FileNotFoundException {
         if (args.length == 1)
             TypeDefinition.load(args[0]);

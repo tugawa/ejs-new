@@ -54,7 +54,7 @@ public abstract class TypeMapSet implements Iterable<TypeMap>{
 
     @Override
     public abstract TypeMapSet clone();
-    
+
     @Override
     public abstract boolean equals(Object obj);
 

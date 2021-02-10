@@ -190,7 +190,7 @@ public class VarInitCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{
         }
     }
-    
+
     public class FunctionCall extends DefaultVisitor{
         @Override
         public void accept(SyntaxTree node, Collection<String> initialized) throws Exception{

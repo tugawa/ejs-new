@@ -459,7 +459,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 
 ifeq ($(USE_VMDL), true)
-$(VMDL_FUNCANYSPEC): 
+$(VMDL_FUNCANYSPEC):
 	mkdir -p $(VMDL_WORKSPACE)
 	cp $(EJSVM_DIR)/function-spec/any.spec $@
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCDEPENDENCY) $(REQUIRED_FUNCSPECS)
@@ -501,7 +501,7 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(VMDL_FUNCANYSPEC): 
+$(VMDL_FUNCANYSPEC):
 	mkdir -p $(VMDL_WORKSPACE)
 	cp $(EJSVM_DIR)/function-spec/any.spec $@
 $(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCDEPENDENCY) $(REQUIRED_FUNCSPECS)

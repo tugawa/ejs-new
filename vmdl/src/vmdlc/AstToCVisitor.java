@@ -384,7 +384,7 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
                     continue;
 
                 acceptInput.addAll(vmtVecs);
-                
+
                 /* action */
                 outStack.push(new StringBuffer());
                 Tree<?> stmt = mp.getBodyAst(i);
@@ -1013,4 +1013,3 @@ public class AstToCVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
     }
 }
-

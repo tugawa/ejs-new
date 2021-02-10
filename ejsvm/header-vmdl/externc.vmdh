@@ -133,7 +133,7 @@ externC (needContext, triggerGC) uint32_to_number : int32_t -> Number
 externC cint_to_uint32 : cint -> int32_t
 externC cint_to_double : cint -> cdouble
 externC double_to_cint : cdouble -> cint
-externC fixnum_to_cint : Fixnum -> cint 
+externC fixnum_to_cint : Fixnum -> cint
 externC fixnum_to_double : Fixnum -> cdouble
 externC cint_to_string : cint -> String
 externC double_to_string : cdouble -> String

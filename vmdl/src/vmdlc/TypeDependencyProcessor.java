@@ -123,7 +123,7 @@ public class TypeDependencyProcessor {
             addDependency(from[0].trim(), stringToAstTypes(from[1]), to[0].trim(), stringToAstTypes(to[1]));
         }
     }
-    
+
     public static void load(String file) throws FileNotFoundException {
         Scanner sc = new Scanner(new FileInputStream(file));
         try {

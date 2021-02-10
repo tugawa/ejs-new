@@ -30,7 +30,6 @@ object_to_number(v){
                                 return special_to_number(invoked);
                             }
                         }
-                        
                     }
                 }
             }
@@ -58,7 +57,6 @@ object_to_number(v){
                                 return special_to_number(invoked);
                             }
                         }
-                        
                     }
                 }
             }
@@ -67,7 +65,7 @@ object_to_number(v){
             print_value_simple(f2);
             PutLnChar();
             type_error_exception("neither valueOf nor to_string returned a number in object_to_number");
-            return FIXNUM_ZERO; 
+            return FIXNUM_ZERO;
         }
         case(true){
             type_error("object expected in object_to_number");

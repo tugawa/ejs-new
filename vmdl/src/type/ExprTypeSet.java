@@ -44,7 +44,7 @@ public abstract class ExprTypeSet implements Iterable<AstType>{
 
     @Override
     public abstract ExprTypeSet clone();
-    
+
     public abstract void add(AstType type);
     public abstract ExprTypeSet combine(ExprTypeSet that);
 }

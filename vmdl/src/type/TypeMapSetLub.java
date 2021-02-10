@@ -240,7 +240,6 @@ public class TypeMapSetLub extends TypeMapSetFull {
             Set<TypeMap> tmTypeMapSet = tm.getTypeMapSet();
             return (typeMapSet != null && tmTypeMapSet !=null && typeMapSet.equals(tmTypeMapSet));
         } else {
-            
             return false;
         }
     }
