@@ -416,18 +416,6 @@ extern uint64_t pertype_live_count[];
 #endif /* GC_PROF */
 
 /*
- * vmdl-helper.c
- */
-extern JSValue instanceof_helper(JSValue v1, JSValue v2);
-extern JSValue getarguments_helper(Context* context, int link, Subscript index);
-extern JSValue getlocal_helper(Context* context, int link, Subscript index);
-extern InstructionDisplacement localret_helper(Context* context, int pc);
-extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
-extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl, FunctionTable *curfn, int pc);
-extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
-extern JSValue nextpropnameidx_helper(JSValue itr);
-
-/*
  * iccprof.c
  */
 #ifdef ICC_PROF

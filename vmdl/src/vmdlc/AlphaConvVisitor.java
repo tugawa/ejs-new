@@ -262,6 +262,13 @@ class VarDict {
             counter = 0;
         }
         public String getName(String name, String prefix) {
+            /*
+             * NOTE: 
+             *   The variable name "wrapped_return_value" is special.
+             *   This name is used to recieve a return value of wrapped functions.
+             *   e.g. Getargument() in getarg instruction
+             */
+            if(name.equals("wrapped_return_value")) return name;
             counter++;
             if (leaveName) {
                 return name + "_" + counter;

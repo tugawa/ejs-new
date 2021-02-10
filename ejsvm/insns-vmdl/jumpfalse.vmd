@@ -4,9 +4,8 @@
 jumpfalse : (JSValue, InstructionDisplacement) -> void
 
 jumpfalse (v0, d1) {
-    if (v0 == JS_FALSE || to_boolean(v0) == JS_FALSE) {
+    if (v0 == JS_FALSE || (v0 != JS_TRUE && to_boolean(v0) == JS_FALSE)) {
         Jump(d1);
         NEXT_INSN_NOINCPC();
-    } else {
     }
 }

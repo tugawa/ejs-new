@@ -4,5 +4,8 @@
 nextpropnameidx : JSValue -> JSValue
 
 nextpropnameidx (obj) {
-    return Nextpropnameidx(obj);
+    //NOTE! Wrap function
+    JSValue wrapped_return_value = JS_EMPTY;
+    Nextpropnameidx(obj);
+    return wrapped_return_value;
 }

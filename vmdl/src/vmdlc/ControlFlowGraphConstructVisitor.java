@@ -78,6 +78,8 @@ public class ControlFlowGraphConstructVisitor extends TreeVisitorMap<DefaultVisi
     }
 
     private final ControlFlowGraphNode visit(SyntaxTree node, ControlFlowGraphNode from) throws Exception{
+        SyntaxTree expandedNode = node.getExpandedTree();
+        if(expandedNode != null) return visit(expandedNode, from);
         return find(node.getTag().toString()).accept(node, from);
     }
 

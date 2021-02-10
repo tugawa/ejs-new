@@ -77,10 +77,21 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     @Override
     protected SyntaxTree dupImpl() {
         SyntaxTree t = new SyntaxTree(this.getTag(), this.getSource(), this.getSourcePosition(), this.getLength(), this.size(), getValue());
-        t.exprTypeSet = exprTypeSet;
-        t.rematchVarSet = rematchVarSet;
-        t.expandedTreeCandidate = expandedTreeCandidate;
-        t.expandedTree = expandedTree;
+        if(headDict != null)
+            t.headDict = headDict.clone();
+        if(tailDict != null)
+            t.tailDict = tailDict.clone();
+        if(exprTypeSet != null)
+            t.exprTypeSet = exprTypeSet.clone();
+        if(rematchVarSet != null)
+            t.rematchVarSet = new HashSet<>(rematchVarSet);
+        if(expandedTreeCandidate != null){
+            t.expandedTreeCandidate = new HashSet<>(expandedTreeCandidate.size());
+            for(SyntaxTree tree : expandedTreeCandidate)
+                t.expandedTreeCandidate.add(tree.dup());
+        }
+        if(expandedTree != null)
+            t.expandedTree = expandedTree.dup();
         t.cannotExpandFlag = cannotExpandFlag;
         return t;
     }
@@ -158,11 +169,18 @@ public class SyntaxTree extends Tree<SyntaxTree> {
         expandedTreeCandidate.clear();
     }
 
+    public void clearExpandedTreeCandidateRecursive(){
+        clearExpandedTreeCandidate();
+        expandedTree = null;
+        for(SyntaxTree chunk : this)
+            chunk.clearExpandedTreeCandidateRecursive();
+    }
+
     public void addExpandedTreeCandidate(SyntaxTree tree){
-        if(expandedTreeCandidate == null){
+        if(expandedTreeCandidate == null)
             expandedTreeCandidate = new HashSet<>();
+        if(expandedTreeCandidate.isEmpty())
             expandedTree = tree;
-        }
         expandedTreeCandidate.add(tree);
     }
 
@@ -180,6 +198,8 @@ public class SyntaxTree extends Tree<SyntaxTree> {
             return null;
         }
         if(expandedTreeCandidate.size() == 1){
+            if(expandedTree == null)
+                throw new Error("Illigal expandedTreeCandidate state.");
             return expandedTree;
         }
         return null;
@@ -198,6 +218,7 @@ public class SyntaxTree extends Tree<SyntaxTree> {
     public boolean equals(Object that){
         if(!(that instanceof SyntaxTree)) return false;
         SyntaxTree thatTree = (SyntaxTree) that;
+        if(hashCode() != thatTree.hashCode()) return false;
         if(subTree == null) return toText().equals(thatTree.toText());
         Iterator<SyntaxTree> subTreeIterator = this.iterator();
         Iterator<SyntaxTree> thatSubTreeIterator = thatTree.iterator();
@@ -206,6 +227,11 @@ public class SyntaxTree extends Tree<SyntaxTree> {
             SyntaxTree thatSubTree = thatSubTreeIterator.next();
             if(!subTree.equals(thatSubTree)) return false;
         }
-        return !(subTreeIterator.hasNext() || thatSubTreeIterator.hasNext());
+        if(subTreeIterator.hasNext() || thatSubTreeIterator.hasNext()) return false;
+        SyntaxTree expandedThis = getExpandedTree();
+        SyntaxTree expandedThat = thatTree.getExpandedTree();
+        if(expandedThis == null && expandedThat == null) return true;
+        if(expandedThis != null && expandedThat != null) return expandedThis.equals(expandedThat);
+        return false;
     }
 }

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import nez.ast.Symbol;
 import nez.ast.TreeVisitorMap;
@@ -24,6 +23,7 @@ import type.AstType.AstBaseType;
 import vmdlc.Option.CompileMode;
 import vmdlc.TriggerGCCheckVisitor.DefaultVisitor;
 import vmdlc.TriggerGCCheckVisitor.BlockExpansionMap.BlockExpansionRequsets;
+import vmdlc.TriggerGCCheckVisitor.BlockExpansionMap.Entry;
 
 public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     static class GCFunctionGenerator{
@@ -50,6 +50,21 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     }
 
     static class BlockExpansionMap{
+        static class Entry{
+            private SyntaxTree key;
+            private BlockExpansionRequsets value;
+
+            public Entry(SyntaxTree key, BlockExpansionRequsets value){
+                this.key = key;
+                this.value = value;
+            }
+            public SyntaxTree getKey(){
+                return key;
+            }
+            public BlockExpansionRequsets getValue(){
+                return value;
+            }
+        }
         static class BlockExpansionRequest{
             SyntaxTree target;
             SyntaxTree[] stmts;
@@ -87,19 +102,20 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
             }
         }
         
-        Map<SyntaxTree, BlockExpansionRequsets> map = new HashMap<>();
+        List<Entry> list = new ArrayList<>();
 
         public void put(SyntaxTree key, BlockExpansionRequsets value){
-            map.put(key, value);
+            list.add(new Entry(key, value));
         }
         public BlockExpansionRequsets get(SyntaxTree key){
-            return map.get(key);
+            for(Entry entry : list){
+                if(key == entry.getKey())
+                    return entry.getValue();
+            }
+            return null;
         }
-        public Set<Entry<SyntaxTree, BlockExpansionRequsets>> entrySet(){
-            return map.entrySet();
-        }
-        public Set<SyntaxTree> keySet(){
-            return map.keySet();
+        public Collection<Entry> entryCollection(){
+            return list;
         }
         public static SyntaxTree generateExpandedBlock(SyntaxTree original, BlockExpansionRequsets requests){
             if(original == null || original.size() == 0) return original;
@@ -155,8 +171,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 currentRequests = new BlockExpansionRequsets();
                 SyntaxTree belongingBlock = target.getBelongingBlock();
                 if(belongingBlock != null){
-                    if(blockExpansionMap.keySet().contains(belongingBlock))
-                        currentRequests = blockExpansionMap.get(belongingBlock);
+                    BlockExpansionRequsets recorded = blockExpansionMap.get(belongingBlock);
+                    if(recorded != null)
+                        currentRequests = recorded;
                     blockExpansionMap.put(target.getBelongingBlock(), currentRequests);
                 }
                 List<SyntaxTree> stmts = target.getStatementList();
@@ -175,7 +192,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                     queue.add(prev);
                 }
             }
-            for(Entry<SyntaxTree, BlockExpansionRequsets> entry : blockExpansionMap.entrySet()){
+            for(Entry entry : blockExpansionMap.entryCollection()){
                 SyntaxTree originalBlock = entry.getKey();
                 SyntaxTree expandedBlock = BlockExpansionMap.generateExpandedBlock(originalBlock, entry.getValue());
                 if(originalBlock == expandedBlock) continue;
@@ -239,6 +256,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
 
     public class Statements extends DefaultVisitor{
         public void pushPopGenerate(SyntaxTree node, Collection<String> live){
+            if(live == null || live.isEmpty()) return;
             List<String> liveList = new ArrayList<>(live);
             if(compileMode.isBuiltinFunctionMode()){
                 liveList.remove("args");
@@ -272,6 +290,7 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public void pushPopGenerate(SyntaxTree node, Collection<String> live){
+            if(live == null || live.isEmpty()) return;
             SyntaxTree[] declarationSeparated = new SyntaxTree[2];
             List<String> liveList = new ArrayList<>(live);
             int size = liveList.size();
@@ -280,8 +299,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 stmts[i]        = gcFunctionGenerator.getGCPushExprStmt(liveList.get(i));
                 stmts[size*2-i] = gcFunctionGenerator.getGCPopExprStmt(liveList.get(i));
             }
-            SyntaxTree nestSolved = ASTHelper.generateBlock(new NestGCTransformVisitor().start(clipAssign(node)));
-            stmts[size] = nestSolved;
+            SyntaxTree[] nestSolved = new NestGCTransformVisitor().start(clipAssign(node));
+            stmts[size] = (nestSolved.length == 1) ? nestSolved[0] : ASTHelper.generateBlock(nestSolved);
             declarationSeparated[0] = clipDeclaration(node);
             declarationSeparated[1] = ASTHelper.generateBlock(stmts);
             currentRequests.put(node, declarationSeparated);
@@ -300,8 +319,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
                 return;
             SyntaxTree expr = node.get(Symbol.unique("expr"));
             if(expr == SyntaxTree.PHANTOM_NODE) return;
-            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
+            visit(expr, live, node.getTailDict());
         }
         @Override
         public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
@@ -322,8 +341,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             updateCollection(node, live);
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
+            visit(expr, live, node.getTailDict());
         }
         @Override
         public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
@@ -345,8 +364,8 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         public void accept(SyntaxTree node, Collection<String> live) throws Exception{
             updateCollection(node, live);
             SyntaxTree expr = node.get(Symbol.unique("right"));
-            visit(expr, live, node.getTailDict());
             pushPopGenerate(node, live);
+            visit(expr, live, node.getTailDict());
         }
         @Override
         public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
@@ -359,10 +378,10 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
     public class ExpressionStatement extends Statements{
         @Override
         public void accept(SyntaxTree node, Collection<String> live) throws Exception{
+            pushPopGenerate(node, live);
             for(SyntaxTree chunk : node){
                 visit(chunk, live, node.getTailDict());
             }
-            pushPopGenerate(node, live);
         }
         @Override
         public void updateLive(SyntaxTree node, Collection<String> live) throws Exception{
@@ -492,6 +511,9 @@ public class TriggerGCCheckVisitor extends TreeVisitorMap<DefaultVisitor> {
         }
         @Override
         public boolean findTriggerGC(SyntaxTree node) throws Exception{
+            SyntaxTree expandedNode = node.getExpandedTree();
+            if(expandedNode != null)
+                return findTriggerGC(expandedNode);
             String functionName = node.get(Symbol.unique("recv")).toText();
             return FunctionTable.hasAnnotations(functionName, FunctionAnnotation.triggerGC);
         }

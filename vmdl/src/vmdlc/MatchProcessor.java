@@ -206,6 +206,7 @@ public class MatchProcessor {
 
     private SyntaxTree getReplacedCaseNode(int number, Set<TypeMap> typeMaps, String labelSuffix){
         SyntaxTree caseBody = caseBodyAsts.get(number).dup();
+        caseBody.clearExpandedTreeCandidateRecursive();
         addLabelSuffix(caseBody, labelSuffix, label);
         List<List<VMDataType>> vmtVecLists = new ArrayList<>();
         for(TypeMap typeMap : typeMaps){

@@ -9,18 +9,25 @@ call (fn, nargs) {
   cint op = Get_opcode();
   cint sendp = IsSend(op);
   cint newp = IsNewSend(op);
-  Set_fp();
-  Set_pc();
   top: match (fn) {
     case (Function fn) {
+      Set_fp();
+      Set_pc();
       Call_function(fn, nargs, sendp);
       update_context();
       NEXT_INSN_NOINCPC();
     }
     case (Builtin fn) {
+      Set_fp();
+      Set_pc();
       Call_builtin(fn, nargs, sendp, newp);
       update_context();
       NEXT_INSN_INCPC();
+    }
+    case (true){
+      Set_fp();
+      Set_pc();
+      LOG_EXIT("CALL\n");
     }
   }
 }

@@ -81,13 +81,15 @@ externC GetProp : (JSValue, JSValue) -> JSValue
 externC array_length : Array -> cint
 
 externC Lcall_stack_push : void -> void
-externC Localret : void -> InstructionDisplacement
+externC (needContext) Localret : void -> InstructionDisplacement
 externC save_context : void -> void
 externC update_context : void -> void
 
 externC LOG_EXIT : cstring -> void
 externC type_error : cstring -> void
 externC type_error_exception : cstring -> void
+externC Ret_minus_one : void -> void
+externC Error : void -> void
 
 externC Nop : void -> void
 externC Not : JSValue -> JSValue
@@ -98,11 +100,11 @@ externC (triggerGC) Pushhandler : InstructionDisplacement -> void
 externC Ret : void -> void
 externC Set_sp : cint -> void
 externC Seta : JSValue -> void
-externC Setarg : (cint, Subscript, JSValue) -> void
+externC (needContext) Setarg : (cint, Subscript, JSValue) -> void
 externC Setarray : (JSValue, Subscript, JSValue) -> void
-externC Setfl : cint -> void
-externC (triggerGC) Setglobal : (String, JSValue) -> void
-externC Setlocal : (cint, Subscript, JSValue) -> void
+externC (needContext) Setfl : cint -> void
+externC (needContext, triggerGC) Setglobal : (String, JSValue) -> void
+externC (needContext) Setlocal : (cint, Subscript, JSValue) -> void
 externC (needContext, triggerGC) exhandler_throw : void -> void
 externC NotImplemented : void -> void
 externC (triggerGC) Newframe : (cint, cint) -> void

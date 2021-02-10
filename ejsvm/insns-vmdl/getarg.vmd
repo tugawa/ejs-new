@@ -4,5 +4,8 @@
 getarg : (cint, Subscript) -> JSValue
 
 getarg (link, index) {
-    return Getarguments(link, index);
+    //NOTE! Wrap function
+    JSValue wrapped_return_value = JS_EMPTY;
+    Getarguments(link, index);
+    return wrapped_return_value;
 }

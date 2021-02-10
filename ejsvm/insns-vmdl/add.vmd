@@ -33,6 +33,11 @@ add (v1, v2) {
       // JSValue u2 = to_string(v2);
       // rematch top(u1, u2);
     }
+    case (object v1 && object v2) {
+      JSValue o1 = to_string(v1);
+      JSValue o2 = to_string(v2);
+      rematch top(o1, o2);
+    }
     case (true)
      {
       cdouble u1 = to_double(v1);
