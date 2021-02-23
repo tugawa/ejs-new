@@ -73,7 +73,7 @@ ACCEPTOR STATIC void weak_clear_shapes();
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm);
 ACCEPTOR STATIC void weak_clear_property_maps();
 #endif /* HC_SKIP_INTERNAL */
-ACCEPTOR STATIC void weak_clear(void);
+ACCEPTOR STATIC void weak_clear(Context *ctx);
 
 extern JSValue *gc_root_stack[];
 extern int gc_root_stack_ptr;
@@ -209,6 +209,26 @@ class NodeScanner {
   }    
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+    if (p->orphan) {
+      /* This PropertyMap has been unlinked from the hidden class graph
+       * as a transient node. However, this node may still be used.
+       * In such cases, we must ensure that the next node is not collected.
+       * We could replace the edge so that it points to a node on the tree.
+       * But instead, we just mark the next node.
+       */
+      HashIterator iter = createHashIterator(p->map);
+      HashCell *cell;
+      assert(p->n_transitions == 1);
+      while (nextHashCell(p->map, &iter, &cell) != FAIL) {
+	if (is_transition(cell->entry.attr)) {
+	  PROCESS_EDGE(cell->entry.data.u.pm);
+	  Tracer::process_mark_stack();
+	  break;
+	}
+      }
+    }
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
     if (p->prev != NULL) {
 #ifdef HC_SKIP_INTERNAL
       PROCESS_WEAK_EDGE(p->prev);
@@ -387,6 +407,7 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
+#ifndef INLINE_CACHE_WEAK
   /* scan Inline Cache */
   {
     int i;
@@ -404,6 +425,7 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
       }
     }
   }
+#endif /* INLINE_CACHE_WEAK */
 #endif /* INLINE_CACHE */
 }
 
@@ -547,7 +569,7 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
         Shape *skip = *p;
         *p = skip->next;
 #ifdef DEBUG
-        PRINT("skip %p emp: %d ext: %d\n",
+        PRINT("skip %p emb: %d ext: %d\n",
               skip, skip->n_embedded_slots, skip->n_extension_slots);
         skip->next = NULL;  /* avoid Black->While check failer */
 #endif /* DEBUG */
@@ -603,6 +625,23 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
   return NULL;
 }
 
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+ACCEPTOR STATIC void replace_transition(PropertyMap *pm, PropertyMap *next)
+{
+  assert(pm->n_transitions == 1);
+  assert(Tracer::is_marked_cell(next));
+  HashIterator iter = createHashIterator(pm->map);
+  HashCell *p;
+  while (nextHashCell(pm->map, &iter, &p) != FAIL) {
+    if (is_transition(p->entry.attr)) {
+      p->entry.data.u.pm = next;
+      return;
+    }
+  }
+  abort();
+}
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 {
   HashIterator iter;
@@ -624,10 +663,25 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
        *   2. outgoing edge is exactly 1,
        * then, the node is an internal node to be eliminated.
        */
-      while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
+      while (
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+	     ((next->n_enter - next->n_leave) << 3) < next->n_enter
+#else /* HC_SKIP_INTERNAL_COUNT_BASE */
+	     !Tracer::is_marked_cell(next)
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+	     && next->n_transitions == 1) {
 #ifdef VERBOSE_WEAK
         printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+	{
+	  char buf1[5000];
+	  char buf2[5000];
+	  sprint_property_map(buf1, next);
+	  sprint_property_map(buf2, pm);
+	  printf("skip PropertyMap %s from %s\n", buf1, buf2);
+	}
+#endif /* VERBOSE_HC */
 #ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
 	clear_xcache = 1;
 #endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
@@ -636,20 +690,48 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
         p->deleted = 1;             /* TODO: use hash_delete */
         p->entry.data.u.pm = NULL;  /* make invariant check success */
+#ifdef VERBOSE_WEAK
+	printf("delete branch PropertyMap %p(%d)\n",
+	       next, next->n_props);
+#endif /* VERBOSE_WEAK */
         continue;
       }
       n_transitions++;
 #ifdef VERBOSE_WEAK
       if (Tracer::is_marked_cell(next))
-        printf("preserve PropertyMap %p because it has been marked\n", next);
+        printf("preserve PropertyMap %p(%d) because it has been marked\n",
+	       next, next->n_props);
       else
         printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
                next, next->n_props, next->n_transitions);
 #endif /* VERBOSE_WEAK */
-      /* Resurrect if it is branching node or terminal node */
-      PROCESS_EDGE(next);
-      Tracer::process_mark_stack();
+#ifdef VERBOSE_HC
+      {
+	char buf1[5000];
+	char buf2[5000];
+	sprint_property_map(buf1, next);
+	sprint_property_map(buf2, pm);
+	printf("preserve PropertyMap %s from %s\n", buf1, buf2);
+      }
+#endif /* VERBOSE_HC */
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+      /* fix transitions on skipped property maps if they are preserved */
+      for (PropertyMap *p = next->prev; p != pm; p = p->prev)
+	if (Tracer::is_marked_cell(p)) {
+#ifdef WEAK_SHAPE_LIST
+	  weak_clear_shape_recursive<Tracer>(next);
+#endif /* WEAK_SHAPE_LIST */
+	  if (p != next->prev)
+	    replace_transition<Tracer>(p, next);
+	  p->orphan = 1;
+	  printf("skipped PM %p(%d) is marked\n", p, p->id);
+	} else
+	  printf("skipped PM %p(%d) is NOT marked\n", p, p->id);
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       p->entry.data.u.pm = next;
+      /* Resurrect if it is branching node or terminal node */
+      PROCESS_EDGE(p->entry.data.u.pm);
+      Tracer::process_mark_stack();
       next->prev = pm;
       weak_clear_property_map_recursive<Tracer>(next);
     }
@@ -687,7 +769,27 @@ ACCEPTOR STATIC void weak_clear_property_maps()
 }
 #endif /* HC_SKIP_INTERNAL */
 
-ACCEPTOR STATIC void weak_clear(void)
+#ifdef INLINE_CACHE_WEAK
+ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
+{
+  for (int i = 0; i < FUNCTION_TABLE_LIMIT; i++) {
+    FunctionTable *p = &ctx->function_table[i];
+    for (int j = 0; j < p->n_insns; j++) {
+      Instruction *insn = &p->insns[j];
+      InlineCache *ic = &insn->inl_cache;
+#ifdef INLINE_CACHE_SHAPE_BASE
+#error INLINE_CACHE_WEAK does not support INLINE_CACHE_SHAPE_BASE
+#endif /* INLINE_CACHE_SHAPE_BASE */
+      if (ic->pm != NULL && !Tracer::is_marked_cell(ic->pm)) {
+	ic->pm = NULL;
+	ic->prop_name = JS_UNDEFINED;
+      }
+    }
+  }
+}
+#endif /* INLINE_CACHE_WEAK */
+
+ACCEPTOR STATIC void weak_clear(Context *ctx)
 {
 #ifdef HC_SKIP_INTERNAL
   /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
@@ -697,6 +799,10 @@ ACCEPTOR STATIC void weak_clear(void)
   weak_clear_shapes<Tracer>();
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable<Tracer>(&string_table);
+
+#ifdef INLINE_CACHE_WEAK
+  weak_clear_inline_cache<Tracer>(ctx);
+#endif /* INLINE_CACHE_WEAK */
 
   /* clear cache in the context */
   the_context->exhandler_pool = NULL;

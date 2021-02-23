@@ -269,6 +269,9 @@ struct property_map {
                               * 2 bits (0, 1, more, and UNSURE) would
                               * suffice. */
 #define PM_N_TRANS_UNSURE   (1 << 7)
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+  uint8_t orphan;            /* True if it is unlinked from the graph */
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
 #endif /* HC_SKIP_INTERNAL */
   JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));
                              /* [const] __proto__ of the object. */
@@ -277,9 +280,12 @@ struct property_map {
   uint16_t n_user_special_props; /* [const] Number of special props that is
                                   * registered in the map. */
 #endif /* DEBUG */
-#ifdef HC_PROF
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
   uint32_t n_enter;
   uint32_t n_leave;
+#endif /* HC_PROF || HC_SKIP_INTERNAL_COUNT_BASE */
+#ifdef HC_PROF
+  int id;
 #ifdef DUMP_HCG
   int function_no;
   int insn_no;

@@ -321,6 +321,10 @@ extern void init_inline_cache(InlineCache *ic);
 extern void hcprof_print_all_hidden_class(void);
 #endif /* HC_PROF */
 
+#ifdef VERBOSE_HC
+extern int sprint_property_map(char*, PropertyMap*);
+#endif /* VERBOSE_HC */
+
 /*
  * object-compat.c
  */

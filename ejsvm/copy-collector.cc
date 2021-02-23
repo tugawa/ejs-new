@@ -190,7 +190,7 @@ void garbage_collection(Context *ctx)
 
   /* weak */
   gc_phase = PHASE_WEAK;
-  weak_clear<CopyWeakTracer>();
+  weak_clear<CopyWeakTracer>(ctx);
 
   /* flip */
   gc_phase = PHASE_FLIP;

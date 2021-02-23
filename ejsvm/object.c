@@ -11,11 +11,17 @@
 #define EXTERN
 #include "header.h"
 
+#ifdef VERBOSE_HC
+int sprint_property_map(char *start, PropertyMap *pm);
+#endif /* VERBOSE_HC */
+
 static
 JSValue get_system_prop(JSValue obj, JSValue name) __attribute__((unused));
 
+#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
 static PropertyMap *
-clone_property_map(Context *ctx, PropertyMap *src) __attribute__((unused));
+clone_property_map(Context *ctx, PropertyMap *src);
+#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
@@ -24,31 +30,38 @@ static void hcprof_add_root_property_map(PropertyMap *pm);
 #endif /* HC_PROF */
 
 /* Profiling */
-#ifdef HC_PROF
-static void hcprof_enter_shape(Shape *os)
+static inline void hcprof_enter_shape(Shape *os)
 {
-  PropertyMap *pm = os->pm;
-  pm->n_enter++;
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
+  {
+    PropertyMap *pm = os->pm;
+    pm->n_enter++;
+  }
+#endif /* HC_PROF || HC_SKIP_INTERNAL_COUNT_BASE */
+#ifdef HC_PROF
   os->n_enter++;
+#endif /* HC_PROF */
 #ifdef AS_PROF
   if (os->alloc_site != NULL)
     os->alloc_site->transition++;
 #endif /* AS_PROF */
 }
 
-static void hcprof_leave_shape(Shape *os)
+static inline void hcprof_leave_shape(Shape *os)
 {
-  PropertyMap *pm = os->pm;
-  pm->n_leave++;
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
+  {
+    PropertyMap *pm = os->pm;
+    pm->n_leave++;
+  }
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
+#ifdef HC_PROF
   os->n_leave++;
+#endif /* HC_PROF */
 }
 
 #define HC_PROF_ENTER_SHAPE(os) hcprof_enter_shape(os)
 #define HC_PROF_LEAVE_SHAPE(os) hcprof_leave_shape(os)
-#else /* HC_PROF */
-#define HC_PROF_ENTER_SHAPE(os)
-#define HC_PROF_LEAVE_SHAPE(os)
-#endif /* HC_PROF */
 
 #ifdef SHAPE_PROF
 int shape_search_trial = 0;
@@ -655,15 +668,20 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->n_special_props = n_special_props;
 #ifdef HC_SKIP_INTERNAL
   m->n_transitions = 0;
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+  m->orphan = 0;
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
 #endif /* HC_SKIP_INTERNAL */
 
 #ifdef DEBUG
   m->name = name;
   m->n_user_special_props = n_user_special_props;
 #endif /* DEBUG */
-#ifdef HC_PROF
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
   m->n_enter = 0;
   m->n_leave = 0;
+#endif /* HC_PROF || HC_SKIP_INTERNAL_COUNT_BASE */
+#ifdef HC_PROF
   if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
 #ifdef DUMP_HCG
@@ -677,6 +695,10 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->is_entry = 0;
   m->is_builtin = 0;
 #endif /* DUMP_HCG */
+  {
+    static int last_id;
+    m->id = ++last_id;
+  }
 #endif /* HC_PROF */
 
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
@@ -697,6 +719,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   return m;
 }
 
+#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
 /**
  * Create a new property map by duplicating an exispting property map.
  * The new property map has the same `prev' PropertyMap. But the prev
@@ -733,6 +756,7 @@ static PropertyMap *clone_property_map(Context *ctx, PropertyMap *src)
 
   return m;
 }
+#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
 
 /**
  * Create a new property map by extending an exispting property map
@@ -782,6 +806,14 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
   property_map_add_transition(ctx, prev, prop_name, m);
 
   GC_POP3(m, prop_name, prev);
+
+#ifdef VERBOSE_HC
+  {
+    char buf[1000];
+    sprint_property_map(buf, m);
+    printf("HC-create extend %s\n", buf);
+  }
+#endif /* VERBOSE_HC */
 
   return m;
 }
@@ -1915,6 +1947,40 @@ void print_as_prof(Context *ctx)
 #endif /* AS_PROF */
 
 #endif /* HC_PROF */
+
+#ifdef VERBOSE_HC
+#ifndef HC_PROF
+#error VERBOSE_HC require HC_PROF
+#endif /* HC_PROF */
+int sprint_property_map(char *start, PropertyMap *pm)
+{
+  char *buf = start;
+  int i;
+  if (pm->prev == NULL)
+    buf += sprintf(buf, "%p(%3d) prev %p(NIL) props %d trans %d [",
+                   pm, pm->id, pm->prev, pm->n_props, pm->n_transitions);
+  else
+    buf += sprintf(buf, "%p(%3d) prev %p(%3d) props %d trans %d [",
+                   pm, pm->id, pm->prev, pm->prev->id,
+                   pm->n_props, pm->n_transitions);
+  for (i = 0; i < pm->n_props; i++) {
+    HashIterator iter = createHashIterator(pm->map);
+    HashCell *p;
+    while (nextHashCell(pm->map, &iter, &p) != FAIL) {
+      if (is_transition(p->entry.attr))
+        continue;
+      if (p->entry.data.u.index == i) {
+        buf += sprintf(buf, "%s ", string_to_cstr(p->entry.key));
+        break;
+      }
+    }
+  }
+  buf += sprintf(buf, "]");
+
+  return buf - start;
+}
+#endif /* VERBOSE_HC */
+
 
 /* Local Variables:      */
 /* mode: c               */

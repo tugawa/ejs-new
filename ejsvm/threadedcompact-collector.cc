@@ -260,7 +260,7 @@ void garbage_collection(Context *ctx)
 
   /* weak */
   gc_phase = PHASE_WEAK;
-  weak_clear<DefaultTracer>();
+  weak_clear<DefaultTracer>(ctx);
 
   /* forwarding reference */
   gc_phase = PHASE_FWDREF;
