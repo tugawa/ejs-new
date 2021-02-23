@@ -2,6 +2,10 @@
 
 #define ACCEPTOR template<typename Tracer>
 
+#if defined(HC_SKIP_INTERNAL) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
+STATIC PropertyMap* get_transition_dest(PropertyMap *pm);
+#endif /* HC_SKIP_INTERNAL || ALLOC_SITE_CACHE_COUNT_BASE */
+
 template<typename T>
 static inline void *&
 cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
@@ -105,6 +109,7 @@ class NodeScanner {
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
+#ifndef ALLOC_SITE_CACHE_COUNT_BASE
     /* 4. allocation site cache */
 #ifdef THREADED
     if (gc_phase == PHASE_MARK)
@@ -114,6 +119,7 @@ class NodeScanner {
 	if (os->alloc_site->pm != NULL)
 	  PROCESS_EDGE(os->alloc_site->pm);
       }
+#endif /* ALLOC_SITE_CACHE_COUNT_BASE */
 #endif /* ALLOC_SITE_CACHE */
   }
   
@@ -391,6 +397,55 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
   }
 
 #ifdef ALLOC_SITE_CACHE
+#ifdef ALLOC_SITE_CACHE_COUNT_BASE
+  /* scan Allocation Sites and update */
+  {
+    int i;
+    for (i = 0; i < p->n_insns; i++) {
+      Instruction *insn = &p->insns[i];
+      AllocSite *as = &insn->alloc_site;
+      if (as->shape != NULL) {
+	Shape *os = as->shape;
+	while (((os->n_enter - os->n_leave) << 3) < os->n_enter) {
+	  /* This map is tentative for objects allocated in this site.
+	   * If destination for objects allocated in this site is a single,
+	   * we can skip this map.
+	   * Note: pm->n_transitions cannot be used.
+	   */
+	  PropertyMap *pm = os->pm;
+	  HashIterator iter = createHashIterator(pm->map);
+	  HashCell *cell;
+	  Shape *next_os = NULL;
+	  while (nextHashCell(pm->map, &iter, &cell) != FAIL) {
+	    if (is_transition(cell->entry.attr)) {
+	      PropertyMap *next_pm = cell->entry.data.u.pm;
+	      for (Shape *p = next_pm->shapes; p != NULL; p = p->next) {
+		if (p->alloc_site == as) {
+		  if (next_os == NULL)
+		    next_os = p;
+		  else
+		    /* multiple outgoing edges */
+		    goto BREAK_WHILE;
+		}
+	      }
+	    }
+	  }
+	  if (next_os == NULL)
+	    break;
+	  os = next_os;
+	}
+      BREAK_WHILE:
+	if (as->shape != os) {
+	  as->pm = os->pm;
+	  as->shape = NULL;
+	} else
+	  PROCESS_EDGE(as->shape);
+      }
+      if (as->pm != NULL)
+        PROCESS_EDGE(as->pm);
+    }
+  }
+#else /* ALLOC_SITE_CACHE_COUNT_BASE */
   /* scan Allocation Sites */
   {
     int i;
@@ -404,6 +459,7 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
         PROCESS_EDGE(alloc_site->pm);
     }
   }
+#endif /* ALLOC_SITE_CACHE_COUNT_BASE */
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
@@ -602,7 +658,7 @@ ACCEPTOR STATIC void weak_clear_shapes()
 }
 #endif /* WEAK_SHAPE_LIST */
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
 /*
  * Get the only transision from internal node.
  */
@@ -624,7 +680,9 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
   abort();
   return NULL;
 }
+#endif /* HC_SKIP_INTERNAL || ALLOC_SITE_CACHE_COUNT_BASE */
 
+#ifdef HC_SKIP_INTERNAL
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
 ACCEPTOR STATIC void replace_transition(PropertyMap *pm, PropertyMap *next)
 {

@@ -1942,8 +1942,7 @@ void print_as_prof(Context *ctx)
         sprint_property_map(buf + 1, pm);
 #endif /* VERBOSE_HC */
         printf("AS %s %03d:%03d ", as->polymorphic ? "poly" : "mono", i, j);
-        printf("alloc %6d hit %6d ",
-               as->shape == NULL ? 0 : as->n_alloc,
+        printf("alloc %6d hit %6d ", as->n_alloc,
                as->shape == NULL ? 0 : as->shape->n_alloc);
         printf("trans %6d copy %6d ", as->transition, as->copy_words);
         printf("size %d/%d ",
