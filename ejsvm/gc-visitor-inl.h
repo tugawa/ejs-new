@@ -687,6 +687,9 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
         next = get_transition_dest(next);
       }
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+      /* TODO: remove branch if it is no longer used */
+#else /* HC_SKIP_INTERNAL_COUNT_BASE */
       if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
         p->deleted = 1;             /* TODO: use hash_delete */
         p->entry.data.u.pm = NULL;  /* make invariant check success */
@@ -694,8 +697,16 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 	printf("delete branch PropertyMap %p(%d)\n",
 	       next, next->n_props);
 #endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+	{
+	  char buf[2000];
+	  sprint_property_map(buf, next);
+	  printf("delete branch %s\n", buf);
+	}
+#endif /* VERBOSE_HC */
         continue;
       }
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       n_transitions++;
 #ifdef VERBOSE_WEAK
       if (Tracer::is_marked_cell(next))

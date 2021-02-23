@@ -17,6 +17,10 @@
 static Context *the_context;
 #include "gc-visitor-inl.h"
 
+#ifdef AS_PROF
+extern "C" {extern void print_as_prof(Context *ctx);}
+#endif /* AS_PROF */
+
 /*
  * Constants
  */
@@ -59,6 +63,11 @@ void garbage_collection(Context *ctx)
 #ifdef CHECK_MATURED
   check_matured();
 #endif /* CHECK_MATURED */
+
+#ifdef AS_PROF
+  printf("==========AFTER MARK PHASE=========\n");
+  print_as_prof(ctx);
+#endif /* AS_PROF */
 
   /* weak */
   gc_phase = PHASE_WEAK;

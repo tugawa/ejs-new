@@ -121,6 +121,10 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 };
 #endif /* GC_PROF */
 
+#ifdef AS_PROF
+extern "C" {extern void print_as_prof(Context *ctx);}
+#endif /* AS_PROF */
+
 /*
  * prototype
  */
@@ -194,6 +198,12 @@ void start_garbage_collection(Context *ctx)
 
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
+
+
+#ifdef AS_PROF
+  printf("==========GC=========\n");
+  print_as_prof(ctx);
+#endif /* AS_PROF */
 
   garbage_collection(ctx);
 

@@ -1924,22 +1924,32 @@ void dump_hidden_classes(char *outfile, Context *ctx)
 void print_as_prof(Context *ctx)
 {
   int i;
+  char buf[2000] = {};
+
   for (i = 0; i < ctx->nfuncs; i++) {
     FunctionTable *p = ctx->function_table + i;
     int j;
     for (j = 0; j < p->n_insns; j++) {
       AllocSite *as = &p->insns[j].alloc_site;
-      if (as->shape != NULL) {
+      if (as->pm != NULL) {
         int nshare = 0;
-        PropertyMap *pm = as->shape->pm;
+        PropertyMap *pm = as->pm;
         Shape *os;
         for (os = pm->shapes; os != NULL; os = os->next)
           nshare++;
-        printf("AS %s %03d:%03d alloc %6d hit %6d trans %6d copy %6d size %d/%d share %d\n",
-               as->polymorphic ? "poly" : "mono", i, j,
-               as->n_alloc, as->shape->n_alloc, as->transition, as->copy_words,
-               as->shape->n_embedded_slots, as->shape->n_extension_slots,
-               nshare);
+#ifdef VERBOSE_HC
+        buf[0] = ' ';
+        sprint_property_map(buf + 1, pm);
+#endif /* VERBOSE_HC */
+        printf("AS %s %03d:%03d ", as->polymorphic ? "poly" : "mono", i, j);
+        printf("alloc %6d hit %6d ",
+               as->shape == NULL ? 0 : as->n_alloc,
+               as->shape == NULL ? 0 : as->shape->n_alloc);
+        printf("trans %6d copy %6d ", as->transition, as->copy_words);
+        printf("size %d/%d ",
+               as->shape == NULL ? pm->n_props : as->shape->n_embedded_slots,
+               as->shape == NULL ? 0 : as->shape->n_extension_slots);
+        printf("share %d%s\n", nshare, buf);
       }
     }
   }
@@ -1956,13 +1966,18 @@ int sprint_property_map(char *start, PropertyMap *pm)
 {
   char *buf = start;
   int i;
+
+  buf += sprintf(buf, "%p(%3d)", pm, pm->id);
   if (pm->prev == NULL)
-    buf += sprintf(buf, "%p(%3d) prev %p(NIL) props %d trans %d [",
-                   pm, pm->id, pm->prev, pm->n_props, pm->n_transitions);
+    buf += sprintf(buf, " prev (NIL)");
   else
-    buf += sprintf(buf, "%p(%3d) prev %p(%3d) props %d trans %d [",
-                   pm, pm->id, pm->prev, pm->prev->id,
-                   pm->n_props, pm->n_transitions);
+    buf += sprintf(buf, " prev (%3d)", pm->prev->id);
+  buf += sprintf(buf, " %7d/%7d props %d",
+                 pm->n_enter, pm->n_leave, pm->n_props);
+#ifdef HC_SKIP_INTERNAL
+  buf += sprintf(buf, "trans %d", pm->n_transitions);
+#endif /* HC_SKIP_INTERNAL */
+  buf += sprintf(buf, " [");
   for (i = 0; i < pm->n_props; i++) {
     HashIterator iter = createHashIterator(pm->map);
     HashCell *p;
