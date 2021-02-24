@@ -437,7 +437,20 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
       BREAK_WHILE:
 	if (as->shape != os) {
 	  as->pm = os->pm;
+#ifdef DUMP_HCG
+	  as->shape->is_cached = 0;
+#endif /* DUMP_HCG */
 	  as->shape = NULL;
+	  for (Shape *p = as->pm->shapes; p != NULL; p = p->next) {
+	    if (p->alloc_site == as &&
+		p->n_embedded_slots == as->pm->n_props) {
+	      as->shape = p;
+#ifdef DUMP_HCG
+	      as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
+	      break;
+	    }
+	  }
 	} else
 	  PROCESS_EDGE(as->shape);
       }
@@ -793,9 +806,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 	  if (p != next->prev)
 	    replace_transition<Tracer>(p, next);
 	  p->orphan = 1;
-	  printf("skipped PM %p(%d) is marked\n", p, p->id);
-	} else
-	  printf("skipped PM %p(%d) is NOT marked\n", p, p->id);
+	}
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       p->entry.data.u.pm = next;
       /* Resurrect if it is branching node or terminal node */

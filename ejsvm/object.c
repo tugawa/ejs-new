@@ -49,7 +49,7 @@ static inline void hcprof_enter_shape(Shape *os)
 
 static inline void hcprof_leave_shape(Shape *os)
 {
-#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
   {
     PropertyMap *pm = os->pm;
     pm->n_leave++;
@@ -896,6 +896,9 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
 #ifdef AS_PROF
   s->n_alloc = 0;
 #endif /* AS_PROF */
+#ifdef DUMP_HCG
+  s->is_cached = 0;
+#endif /* DUMP_HCG */
 
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
@@ -988,6 +991,9 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
       /* 2. create object shape for this allocation site */
       as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
                                    n_embedded, 0, as);
+#ifdef DUMP_HCG
+      as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
 #else /* ALLOC_SITE_CACHE */
       /* 2. if cached Shape is not available, find shape created for
        *    other alloction site. */
@@ -1168,6 +1174,9 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
       if (as != NULL && as->pm == NULL) {
         as->pm = pm;
         as->shape = os;
+#ifdef DUMP_HCG
+        as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
         as->polymorphic = 0;
       }
 #endif /* ALLOC_SITE_CACHE */
@@ -1897,7 +1906,8 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
     fun_no = -1;
     insn_no = -1;
 #endif /* ALLOC_SITE_CACHE */
-    fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
+    if (os->is_cached)
+      fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
   }
 
   iter = createHashIterator(pm->map);

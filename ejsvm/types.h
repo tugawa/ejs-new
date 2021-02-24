@@ -336,6 +336,9 @@ struct shape {
 #ifdef AS_PROF
   int n_alloc;
 #endif /* AS_PROF */
+#ifdef DUMP_HCG
+  int is_cached;
+#endif /* DUMP_HCG */
 };
 
 struct jsobject_cell {
