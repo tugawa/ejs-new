@@ -149,6 +149,8 @@ public:
   }
   static void process_weak_edge(JSValue &v) { process_edge(v); }
   static void process_weak_edge(void *&p) { process_edge(p); }
+
+  static void process_mark_stack(void) {}
 };
 
 
