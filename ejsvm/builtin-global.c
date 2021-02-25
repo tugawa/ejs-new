@@ -265,6 +265,15 @@ BUILTIN_FUNCTION(builtin_getgcrusage)
   set_a(context, JS_UNDEFINED);
 }
 
+BUILTIN_FUNCTION(builtin_getgccount)
+{
+  builtin_prologue();
+
+  JSValue gc_count = cint_to_number(context, generation);
+
+  set_a(context, gc_count);
+}
+
 BUILTIN_FUNCTION(builtin_to_string)
 {
   builtin_prologue();
@@ -305,6 +314,7 @@ ObjBuiltinProp Global_builtin_props[] = {
   { "hello",          builtin_hello,              0, ATTR_ALL  },
   { "getrusage",      builtin_getrusage,          1, ATTR_ALL  },
   { "getgcrusage",    builtin_getgcrusage,        1, ATTR_ALL  },
+  { "getgccount",     builtin_getgccount,         0, ATTR_ALL  },
   { "to_string",      builtin_to_string,          1, ATTR_ALL  },
   { "to_number",      builtin_to_number,          1, ATTR_ALL  },
 #ifdef USE_PAPI
