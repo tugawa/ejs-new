@@ -329,10 +329,10 @@ struct shape {
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
-#ifdef HC_PROF
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
   int n_enter;
   int n_leave;
-#endif /* HC_PROF */
+#endif /* HC_PROF || ALLOC_SITE_CACHE_COUNT_BASE */
 #ifdef AS_PROF
   int n_alloc;
 #endif /* AS_PROF */
