@@ -158,7 +158,6 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
  */
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
-STATIC void start_garbage_collection(Context *ctx);
 #if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
 STATIC int process_edge_mark(uintptr_t ptr);
 #endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */

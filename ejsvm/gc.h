@@ -58,6 +58,7 @@ extern FlonumCell *gc_try_alloc_flonum(double x);
 extern void enable_gc(Context *ctx);
 extern void disable_gc(void);
 extern void try_gc(Context *ctx);
+extern void start_garbage_collection(Context *ctx);
 
 static inline void gc_restore_root_stack(int sp);
 static inline int gc_save_root_stack();
