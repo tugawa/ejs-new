@@ -811,7 +811,11 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       for (PropertyMap *p = next->prev; p != pm; p = p->prev)
 	if (Tracer::is_marked_cell(p)) {
 #ifdef WEAK_SHAPE_LIST
-	  weak_clear_shape_recursive<Tracer>(p);
+	  for (Shape **pp = &p->shapes; *pp != NULL; ) {
+	    Shape *os = *pp;
+	    *pp = NULL;
+	    pp = &os->next;
+	  }
 #endif /* WEAK_SHAPE_LIST */
 	  replace_transition<Tracer>(p, next);
 	  p->orphan = 1;
