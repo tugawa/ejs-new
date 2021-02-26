@@ -709,7 +709,6 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
 ACCEPTOR STATIC void replace_transition(PropertyMap *pm, PropertyMap *next)
 {
   assert(pm->n_transitions == 1);
-  assert(Tracer::is_marked_cell(next));
   HashIterator iter = createHashIterator(pm->map);
   HashCell *p;
   while (nextHashCell(pm->map, &iter, &p) != FAIL) {
