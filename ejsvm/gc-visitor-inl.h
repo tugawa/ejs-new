@@ -763,7 +763,8 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       }
 #endif /* VERBOSE_HC */
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
-      if (((next->n_enter - next->n_leave) << 3) < next->n_enter)
+      if (next->n_transitions == 1 &&
+	  ((next->n_enter - next->n_leave) << 3) < next->n_enter)
 	next->transient = 1;
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       p->entry.data.u.pm = next;
