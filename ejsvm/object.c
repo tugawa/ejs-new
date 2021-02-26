@@ -186,6 +186,20 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
 #endif /* DUMP_HCG */
       PRINT("  new property (new PM %p is created)\n", next_pm);
     } else
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+      /* If the next property map is transient, take the next */
+      while (next_pm->transient) {
+        HashIterator iter = createHashIterator(next_pm->map);
+        HashCell *cell;
+        assert(next_pm->n_transitions == 1);
+        while (nextHashCell(next_pm->map, &iter, &cell) != FAIL) {
+          if (is_transition(cell->entry.attr)) {
+            next_pm = cell->entry.data.u.pm;
+            break;
+          }
+        }
+      }
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       PRINT("  new property (cached PM %p is used)\n", next_pm);
     GC_PUSH(next_pm);
 
