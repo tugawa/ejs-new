@@ -379,12 +379,11 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 #ifdef ALLOC_SITE_CACHE
 #ifdef ALLOC_SITE_CACHE_COUNT_BASE
   /* scan Allocation Sites and update */
-  {
-    int i;
-    for (i = 0; i < p->n_insns; i++) {
-      Instruction *insn = &p->insns[i];
-      AllocSite *as = &insn->alloc_site;
-      if (as->shape != NULL) {
+  for (int i = 0; i < p->n_insns; i++) {
+    Instruction *insn = &p->insns[i];
+    AllocSite *as = &insn->alloc_site;
+    if (as->shape != NULL) {
+      if (Tracer::is_hcg_mutator) {
 	Shape *os = as->shape;
 	while (((os->n_enter - os->n_leave) << 3) < os->n_enter) {
 	  /* This map is tentative for objects allocated in this site.
@@ -433,10 +432,11 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 	  }
 	} else
 	  PROCESS_EDGE(as->shape);
-      }
-      if (as->pm != NULL)
-        PROCESS_EDGE(as->pm);
+      } else
+	PROCESS_EDGE(as->shape);
     }
+    if (as->pm != NULL)
+      PROCESS_EDGE(as->pm);
   }
 #else /* ALLOC_SITE_CACHE_COUNT_BASE */
   /* scan Allocation Sites */

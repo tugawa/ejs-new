@@ -22,6 +22,7 @@
 class MarkTracer {
  public:
   static constexpr bool is_single_object_scanner = false;
+  static constexpr bool is_hcg_mutator = true;
   static void process_edge(JSValue v);
   static void process_edge(void *p);
   static void process_edge_function_frame(JSValue v) {
@@ -84,7 +85,7 @@ class MarkTracer {
 class RVTracer {
 public:
   static constexpr bool is_single_object_scanner = false;
-
+  static constexpr bool is_hcg_mutator = true;
   static JSValue process_edge(JSValue v);
   static void *process_edge(void *p);
   static JSValue process_edge_function_frame(JSValue v) {
@@ -148,7 +149,7 @@ public:
 class RefMarkTracer {
  public:
   static constexpr bool is_single_object_scanner = false;
-
+  static constexpr bool is_hcg_mutator = true;
   static void process_edge(JSValue &v);
   static void process_edge(void *&p);
   static void process_edge_function_frame(JSValue &v) {

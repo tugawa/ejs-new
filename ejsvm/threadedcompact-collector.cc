@@ -64,7 +64,7 @@ static unsigned int get_threaded_header_size(header_t *hdrp);
 class ThreadTracer {
 public:
   static constexpr bool is_single_object_scanner = true;
-
+  static constexpr bool is_hcg_mutator = false;
   static void process_edge(JSValue &v) {
     if (is_fixnum(v) || is_special(v))
       return;
