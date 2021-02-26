@@ -216,7 +216,7 @@ class NodeScanner {
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
-    if (p->orphan) {
+    if (!Tracer::is_single_object_scanner && p->orphan) {
       /* This PropertyMap has been unlinked from the hidden class graph
        * as a transient node. However, this node may still be used.
        * In such cases, we must ensure that the next node is not collected.
@@ -476,13 +476,22 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
-#ifndef INLINE_CACHE_WEAK
   /* scan Inline Cache */
   {
     int i;
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
+#ifdef INLINE_CACHE_WEAK
+#ifdef INLINE_CACHE_SHAPE_BASE
+      if (ic->shape != NULL) {
+        PROCESS_WEAK_EDGE(ic->shape);
+#else /* INLINE_CACHE_SHAPE_BASE */
+      if (ic->pm != NULL) {
+        PROCESS_WEAK_EDGE(ic->pm);
+#endif /* INLINE_CACHE_SHAPE_BASE */
+        PROCESS_WEAK_EDGE(ic->prop_name);
+#else /* INLINE_CACHE_WEAK */
 #ifdef INLINE_CACHE_SHAPE_BASE
       if (ic->shape != NULL) {
         PROCESS_EDGE(ic->shape);
@@ -491,10 +500,10 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
         PROCESS_EDGE(ic->pm);
 #endif /* INLINE_CACHE_SHAPE_BASE */
         PROCESS_EDGE(ic->prop_name);
+#endif /* INLINE_CACHE_WEAK */
       }
     }
   }
-#endif /* INLINE_CACHE_WEAK */
 #endif /* INLINE_CACHE */
 }
 
@@ -706,6 +715,8 @@ ACCEPTOR STATIC void replace_transition(PropertyMap *pm, PropertyMap *next)
   while (nextHashCell(pm->map, &iter, &p) != FAIL) {
     if (is_transition(p->entry.attr)) {
       p->entry.data.u.pm = next;
+      PROCESS_EDGE(p->entry.data.u.pm);
+      Tracer::process_mark_stack();
       return;
     }
   }
@@ -801,11 +812,14 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       for (PropertyMap *p = next->prev; p != pm; p = p->prev)
 	if (Tracer::is_marked_cell(p)) {
 #ifdef WEAK_SHAPE_LIST
-	  weak_clear_shape_recursive<Tracer>(next);
+	  weak_clear_shape_recursive<Tracer>(p);
 #endif /* WEAK_SHAPE_LIST */
-	  if (p != next->prev)
-	    replace_transition<Tracer>(p, next);
+	  replace_transition<Tracer>(p, next);
 	  p->orphan = 1;
+	  p->prev = pm;
+	  Tracer::process_mark_stack();
+	} else {
+	  assert(!Tracer::is_marked_cell(p->map));
 	}
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       p->entry.data.u.pm = next;

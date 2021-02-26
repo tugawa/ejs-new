@@ -21,6 +21,7 @@
 #ifdef CXX_TRACER_CBV
 class MarkTracer {
  public:
+  static constexpr bool is_single_object_scanner = false;
   static void process_edge(JSValue v);
   static void process_edge(void *p);
   static void process_edge_function_frame(JSValue v) {
@@ -82,6 +83,8 @@ class MarkTracer {
 #ifdef CXX_TRACER_RV
 class RVTracer {
 public:
+  static constexpr bool is_single_object_scanner = false;
+
   static JSValue process_edge(JSValue v);
   static void *process_edge(void *p);
   static JSValue process_edge_function_frame(JSValue v) {
@@ -144,6 +147,8 @@ public:
 #else /* CXX_TRACER_RV */
 class RefMarkTracer {
  public:
+  static constexpr bool is_single_object_scanner = false;
+
   static void process_edge(JSValue &v);
   static void process_edge(void *&p);
   static void process_edge_function_frame(JSValue &v) {

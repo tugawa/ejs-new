@@ -14,13 +14,16 @@
 #include "header.h"
 #include "log.h"
 
-
 #ifdef CXX_TRACER_CBV
 #error "Threaded compactor does not except macro; CXX_TRACER_CBV."
 #endif /* CXX_TRACER_CBV */
 #ifdef CXX_TRACER_RV
 #error "Threaded compactor does not except macro; CXX_TRACER_RV."
 #endif /* CXX_TRACER_RV */
+
+#ifdef GC_DEBUG
+static void fill_mem(void *p1, void *p2, JSValue v);
+#endif /* GC_DEBUG */
 
 /*
  * Constants
@@ -60,6 +63,8 @@ static unsigned int get_threaded_header_size(header_t *hdrp);
 
 class ThreadTracer {
 public:
+  static constexpr bool is_single_object_scanner = true;
+
   static void process_edge(JSValue &v) {
     if (is_fixnum(v) || is_special(v))
       return;
@@ -385,6 +390,8 @@ static void update_backward_reference() {
       {
         header_t *shadow = get_shadow(to_hdrp);
         *shadow = *to_hdrp;
+	if (hdrp->size > 1)
+	  ((uintptr_t *)shadow)[1] = (uintptr_t) from;
       }
 #endif
 
@@ -447,6 +454,8 @@ static void update_backward_reference() {
       {
         header_t *shadow = get_shadow(to_hdrp);
         *shadow = *to_hdrp;
+	if (hdrp->size > 1)
+	  ((uintptr_t *)shadow)[1] = (uintptr_t) from;
       }
 #endif
     }
