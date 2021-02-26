@@ -215,26 +215,6 @@ class NodeScanner {
   }    
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
-    if (!Tracer::is_single_object_scanner && p->orphan) {
-      /* This PropertyMap has been unlinked from the hidden class graph
-       * as a transient node. However, this node may still be used.
-       * In such cases, we must ensure that the next node is not collected.
-       * We could replace the edge so that it points to a node on the tree.
-       * But instead, we just mark the next node.
-       */
-      HashIterator iter = createHashIterator(p->map);
-      HashCell *cell;
-      assert(p->n_transitions == 1);
-      while (nextHashCell(p->map, &iter, &cell) != FAIL) {
-	if (is_transition(cell->entry.attr)) {
-	  PROCESS_EDGE(cell->entry.data.u.pm);
-	  Tracer::process_mark_stack();
-	  break;
-	}
-      }
-    }
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
     if (p->prev != NULL) {
 #ifdef HC_SKIP_INTERNAL
       PROCESS_WEAK_EDGE(p->prev);
@@ -705,24 +685,6 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
 #endif /* HC_SKIP_INTERNAL || ALLOC_SITE_CACHE_COUNT_BASE */
 
 #ifdef HC_SKIP_INTERNAL
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
-ACCEPTOR STATIC void replace_transition(PropertyMap *pm, PropertyMap *next)
-{
-  assert(pm->n_transitions == 1);
-  HashIterator iter = createHashIterator(pm->map);
-  HashCell *p;
-  while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (is_transition(p->entry.attr)) {
-      p->entry.data.u.pm = next;
-      PROCESS_EDGE(p->entry.data.u.pm);
-      Tracer::process_mark_stack();
-      return;
-    }
-  }
-  abort();
-}
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
-
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 {
   HashIterator iter;
@@ -744,13 +706,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
        *   2. outgoing edge is exactly 1,
        * then, the node is an internal node to be eliminated.
        */
-      while (
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
-	     ((next->n_enter - next->n_leave) << 3) < next->n_enter
-#else /* HC_SKIP_INTERNAL_COUNT_BASE */
-	     !Tracer::is_marked_cell(next)
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
-	     && next->n_transitions == 1) {
+      while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
 #ifdef VERBOSE_WEAK
         printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
@@ -807,23 +763,8 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       }
 #endif /* VERBOSE_HC */
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
-      /* fix transitions on skipped property maps if they are preserved */
-      for (PropertyMap *p = next->prev; p != pm; p = p->prev)
-	if (Tracer::is_marked_cell(p)) {
-#ifdef WEAK_SHAPE_LIST
-	  for (Shape **pp = &p->shapes; *pp != NULL; ) {
-	    Shape *os = *pp;
-	    *pp = NULL;
-	    pp = &os->next;
-	  }
-#endif /* WEAK_SHAPE_LIST */
-	  replace_transition<Tracer>(p, next);
-	  p->orphan = 1;
-	  p->prev = pm;
-	  Tracer::process_mark_stack();
-	} else {
-	  assert(!Tracer::is_marked_cell(p->map));
-	}
+      if (((next->n_enter - next->n_leave) << 3) < next->n_enter)
+	next->transient = 1;
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       p->entry.data.u.pm = next;
       /* Resurrect if it is branching node or terminal node */

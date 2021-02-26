@@ -270,7 +270,7 @@ struct property_map {
                               * suffice. */
 #define PM_N_TRANS_UNSURE   (1 << 7)
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
-  uint8_t orphan;            /* True if it is unlinked from the graph */
+  uint8_t transient;         /* True if it is to be unlinked from the graph */
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
 #endif /* HC_SKIP_INTERNAL */
   JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));

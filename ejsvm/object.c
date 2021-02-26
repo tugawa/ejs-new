@@ -669,7 +669,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
 #ifdef HC_SKIP_INTERNAL
   m->n_transitions = 0;
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
-  m->orphan = 0;
+  m->transient = 0;
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
 #endif /* HC_SKIP_INTERNAL */
 
