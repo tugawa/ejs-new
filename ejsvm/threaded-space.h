@@ -70,6 +70,7 @@ typedef struct header_t {
   };
 } header_t;
 #ifdef GC_THREADED_BOUNDARY_TAG
+#define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_SIZE_BITS_LO) - 1)
 typedef struct footer_t {
   union {
     header_t as_header;
