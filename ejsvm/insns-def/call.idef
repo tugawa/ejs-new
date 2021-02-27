@@ -28,6 +28,7 @@
 #ifdef DEBUG
   print_value_simple(context, fn);
   printf(" is called in CALL instruction\n");
+  abort();
 #endif /* DEBUG */
   LOG_EXIT("CALL\n");
 \}
