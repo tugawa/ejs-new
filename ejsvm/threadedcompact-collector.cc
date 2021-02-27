@@ -489,6 +489,15 @@ static void update_backward_reference() {
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
 
+#ifdef GC_PROF
+      {
+        cell_type_t type = to_hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_live_bytes[type]+= bytes;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
+
 #ifdef GC_DEBUG
       {
         header_t *shadow = get_shadow(to_hdrp);
@@ -562,6 +571,19 @@ static void update_backward_reference() {
       footer->markbit = 0;
       copy_object_reverse(hdrp, to_hdrp, size + HEADER_GRANULES);
 #endif /* GC_THREADED_BOUNDARY_TAG */
+
+#ifdef GC_PROF
+      {
+        cell_type_t type = to_hdrp->type;
+#ifdef GC_THREADED_BOUNDARY_TAG
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+#else /* GC_THREADED_BOUNDARY_TAG */
+        size_t bytes = (size + HEADER_GRANULES) << LOG_BYTES_IN_GRANULE;
+#endif /* GC_THREADED_BOUNDARY_TAG */
+        pertype_live_bytes[type]+= bytes;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
 
 #ifdef GC_DEBUG
       {
