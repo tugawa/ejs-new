@@ -427,6 +427,7 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 #ifdef DUMP_HCG
 	      as->shape->is_cached = 1;
 #endif /* DUMP_HCG */
+	      PROCESS_EDGE(as->shape);
 	      break;
 	    }
 	  }
