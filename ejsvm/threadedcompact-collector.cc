@@ -174,6 +174,8 @@ static void thread_reference(void **ref) {
   }
 #endif /* DEBUG */
 
+  assert(get_threaded_header_markbit(payload_to_header(*ref)));
+
   if (*ref != NULL) {
 #ifdef GC_DEBUG
     if (!is_reference((void **) *ref)) {
@@ -220,6 +222,12 @@ static cell_type_t get_threaded_header_type(header_t *hdrp) {
 static bool get_threaded_header_markbit(header_t *hdrp) {
   /* If header is threaded, it must be marked */
   if (is_reference((void **) hdrp->threaded)) {
+#ifdef GC_DEBUG
+  while(is_reference((void **) hdrp->threaded)) {
+    hdrp = (header_t *) hdrp->threaded;
+  }
+  assert(hdrp->markbit != 0);
+#endif /* GC_DEBUG */
     return true;
   }
 
@@ -256,6 +264,9 @@ void garbage_collection(Context *ctx)
   the_context = ctx;
 
   /* mark */
+#ifdef TU_DEBUG
+  printf("mark\n");
+#endif /* TU_DEBUG */
   gc_phase = PHASE_MARK;
   scan_roots<DefaultTracer>(ctx);
   DefaultTracer::process_mark_stack();
@@ -266,14 +277,23 @@ void garbage_collection(Context *ctx)
 #endif /* CHECK_MATURED */
 
   /* weak */
+#ifdef TU_DEBUG
+  printf("weak\n");
+#endif /* TU_DEBUG */
   gc_phase = PHASE_WEAK;
   weak_clear<DefaultTracer>(ctx);
 
   /* forwarding reference */
+#ifdef TU_DEBUG
+  printf("froward\n");
+#endif /* TU_DEBUG */
   gc_phase = PHASE_FWDREF;
   update_forward_reference(ctx);
 
   /* backwarding reference */
+#ifdef TU_DEBUG
+  printf("backward\n");
+#endif /* TU_DEBUG */
   gc_phase = PHASE_BWDREF;
   update_backward_reference();
 
@@ -303,6 +323,16 @@ static void update_forward_reference(Context *ctx) {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
+
+#ifdef GC_DEBUG
+#ifdef TU_DEBUG
+      printf("%p -> %p\n", hdrp, to_hdrp);
+#endif /* TU_DEBUG */
+      if (size > 1) {
+	header_t **shadow = (header_t **) get_shadow(hdrp);
+	shadow[1] = to_hdrp;
+      }
+#endif /* GC_DEBUG */
 
       update_reference(from, to);
       process_node<ThreadTracer>((uintptr_t) from);
@@ -351,6 +381,16 @@ static void update_forward_reference(Context *ctx) {
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
 
+#ifdef GC_DEBUG
+#ifdef TU_DEBUG
+      printf("%p -> %p\n", hdrp, to_hdrp);
+#endif /* TU_DEBUG */
+      if (size > 1) {
+	header_t **shadow = (header_t **) get_shadow(hdrp);
+	shadow[1] = to_hdrp;
+      }
+#endif /* GC_DEBUG */
+
       update_reference(from, to);
       process_node<ThreadTracer>((uintptr_t) from);
     }
@@ -381,6 +421,13 @@ static void update_backward_reference() {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
+
+#ifdef GC_DEBUG
+      if (size > 1) {
+	header_t **shadow = (header_t **) get_shadow(hdrp);
+	assert(shadow[1] == to_hdrp);
+      }
+#endif /* GC_DEBUG */
 
       update_reference(from, to);
       unmark_cell_header(hdrp);
@@ -440,6 +487,16 @@ static void update_backward_reference() {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
+
+#ifdef GC_DEBUG
+#ifdef TU_DEBUG
+      printf("%p -> %p\n", hdrp, to_hdrp);
+#endif /* TU_DEBUG */
+      if (size > 1) {
+	header_t **shadow = (header_t **) get_shadow(hdrp);
+	assert(shadow[1] == to_hdrp);
+      }
+#endif /* GC_DEBUG */
 
       update_reference(from, to);
       unmark_cell_header(hdrp);
