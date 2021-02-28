@@ -89,8 +89,8 @@ int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
 /*
  * registers a value to a hash table under a given key with an attribute
  */
-int hash_put_with_attribute(Context *ctx, HashTable* table,
-                            HashKey key, HashData data, Attribute attr)
+static int hash_put_with_attribute(Context *ctx, HashTable* table,
+                                   HashKey key, HashData data, Attribute attr)
 {
   HashCell* cell;
   uint32_t index;
@@ -130,6 +130,22 @@ int hash_put_with_attribute(Context *ctx, HashTable* table,
   GC_POP(key);
   GC_POP(table);
   return HASH_PUT_SUCCESS;
+}
+
+int hash_put_property(Context *ctx, HashTable *table,
+                      HashKey key, uint32_t index, Attribute attr)
+{
+  HashData data;
+  data.u.index = index;
+  return hash_put_with_attribute(ctx, table, key, data, attr);
+}
+
+void hash_put_transition(Context *ctx, HashTable *table,
+                         HashKey key, PropertyMap *pm)
+{
+  HashData data;
+  data.u.pm = pm;
+  hash_put_with_attribute(ctx, table, key, data, ATTR_TRANSITION);
 }
 
 /*

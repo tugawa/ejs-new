@@ -196,8 +196,11 @@ extern JSValue cint_to_string(cint);
  */
 extern HashTable *hash_create(Context *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
-extern int hash_put_with_attribute(Context *, HashTable *,
-                                   HashKey, HashData, Attribute);
+extern int hash_put_property(Context *ctx, HashTable *table,
+                             HashKey key, uint32_t index, Attribute attr);
+extern void hash_put_transition(Context *ctx, HashTable *table,
+                                HashKey key, PropertyMap *pm);
+
 extern int hash_copy(Context *, HashTable *, HashTable *);
 extern int hash_delete(HashTable *table, HashKey key);
 extern int init_hash_iterator(HashTable *, HashIterator *);
@@ -290,7 +293,7 @@ extern PropertyMap *new_property_map(Context *ctx, char *name,
                                      int n_user_special_props,
                                      JSValue __proto__, PropertyMap *prev);
 extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
-                                            JSValue name, int data,
+                                            JSValue name, uint32_t index,
                                             Attribute attr);
 extern void property_map_add_transition(Context *ctx, PropertyMap *pm,
                                         JSValue name, PropertyMap *dest);

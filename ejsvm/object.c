@@ -848,31 +848,26 @@ static void property_map_install___proto__(PropertyMap *pm, JSValue __proto__)
 #endif /* LOAD_HCG */
 
 void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
-                                     JSValue name, int index, Attribute attr)
+                                     JSValue name, uint32_t index,
+                                     Attribute attr)
 {
-  HashData data;
-  data.u.index = index;
-  hash_put_with_attribute(ctx, pm->map, name, data, attr);
+  hash_put_property(ctx, pm->map, name, index, attr);
 }
 
 void property_map_add_transition(Context *ctx, PropertyMap *pm,
                                  JSValue name, PropertyMap *dest)
 {
-  HashData data;
-  data.u.pm = dest;
 #ifdef HC_SKIP_INTERNAL
   {
     uint16_t current_n_trans = pm->n_transitions;
     pm->n_transitions = PM_N_TRANS_UNSURE;  /* protect from GC */
     GC_PUSH(pm);
-    hash_put_with_attribute(ctx, pm->map, name, data,
-                            ATTR_NONE | ATTR_TRANSITION);
+    hash_put_transition(ctx, pm->map, name, dest);
     GC_POP(pm);
     pm->n_transitions = current_n_trans + 1;
   }
 #else /* HC_SKIP_INTERNAL */
-  hash_put_with_attribute(ctx, pm->map, name, data,
-                          ATTR_NONE | ATTR_TRANSITION);
+  hash_put_transition(ctx, pm->map, name, dest);
 #endif /* HC_SKIP_INTERNAL */
 }
 
