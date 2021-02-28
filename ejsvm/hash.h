@@ -59,6 +59,7 @@ typedef struct hash_cell {
 typedef struct hash_iterator {
   int index;
   HashCell *p;
+  int is_property;
 } HashIterator;
 
 #ifdef PROPERTY_MAP_HASHTABLE

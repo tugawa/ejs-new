@@ -334,7 +334,13 @@ static int rehash(HashTable *table) {
   newhash = alloc_hash_body(NULL, newsize);
   GC_PUSH(newhash);
 
-  iter = createHashIterator(table);
+  iter = createHashPropertyIterator(table);
+  while (nextHashCell(table, &iter, &p) != FAIL) {
+    uint32_t index = string_hash(p->entry.key) % newsize;
+    p->next = newhash[index];
+    newhash[index] = p;
+  }
+  iter = createHashTransitionIterator(table);
   while (nextHashCell(table, &iter, &p) != FAIL) {
     uint32_t index = string_hash(p->entry.key) % newsize;
     p->next = newhash[index];
@@ -360,13 +366,17 @@ static void advance_iterator(HashTable *table, HashIterator *iter)
   int i;
   
   for (p = iter->p; p != NULL; p = p->next)
-    if (!p->deleted) {
+    if (!p->deleted &&
+        ((iter->is_property && !is_transition(p->entry.attr)) ||
+         (!iter->is_property && is_transition(p->entry.attr)))) {
       iter->p = p;
       return;
     }
   for (i = iter->index + 1; i < table->size; i++)
     for (p = table->body[i]; p != NULL; p = p->next)
-      if (!p->deleted) {
+      if (!p->deleted &&
+          ((iter->is_property && !is_transition(p->entry.attr)) ||
+           (!iter->is_property && is_transition(p->entry.attr)))) {
         iter->p = p;
         iter->index = i;
         return;
@@ -374,12 +384,24 @@ static void advance_iterator(HashTable *table, HashIterator *iter)
   iter->p = NULL;
 }
 
-HashIterator createHashIterator(HashTable *table)
+HashIterator createHashPropertyIterator(HashTable *table)
 {
   HashIterator iter;
 
   iter.p = NULL;
   iter.index = -1;
+  iter.is_property = 1;
+  advance_iterator(table, &iter);
+  return iter;
+}
+
+HashIterator createHashTransitionIterator(HashTable *table)
+{
+  HashIterator iter;
+
+  iter.p = NULL;
+  iter.index = -1;
+  iter.is_property = 0;
   advance_iterator(table, &iter);
   return iter;
 }

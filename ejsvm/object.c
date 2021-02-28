@@ -189,15 +189,12 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
       /* If the next property map is transient, take the next */
       while (next_pm->transient) {
-        HashIterator iter = createHashIterator(next_pm->map);
+        HashIterator iter = createHashTransitionIterator(next_pm->map);
         HashCell *cell;
         assert(next_pm->n_transitions == 1);
-        while (nextHashCell(next_pm->map, &iter, &cell) != FAIL) {
-          if (is_transition(cell->entry.attr)) {
-            next_pm = cell->entry.data.u.pm;
-            break;
-          }
-        }
+        assert(nextHashCell(next_pm->map, &iter, &cell) != FAIL);
+        assert(is_transition(cell->entry.attr));
+        next_pm = cell->entry.data.u.pm;
       }
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       PRINT("  new property (cached PM %p is used)\n", next_pm);
@@ -838,11 +835,11 @@ static void property_map_install___proto__(PropertyMap *pm, JSValue __proto__)
   if (pm->__proto__ != JS_EMPTY)
     return;
   pm->__proto__ = __proto__;
-  HashIterator iter = createHashIterator(pm->map);
+  HashIterator iter = createHashTransitionIterator(pm->map);
   HashCell *p;
   while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (is_transition(p->entry.attr))
-      property_map_install___proto__(p->entry.data.u.pm, __proto__);
+    assert(is_transition(p->entry.attr));
+    property_map_install___proto__(p->entry.data.u.pm, __proto__);
   }
 }
 #endif /* LOAD_HCG */
@@ -1462,31 +1459,30 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
 {
   Shape *os = object_get_shape(array);
   PropertyMap *pm = os->pm;
-  HashIterator iter = createHashIterator(pm->map);
+  HashIterator iter = createHashPropertyIterator(pm->map);
   HashCell *p;
   GC_PUSH2(pm, array);
   while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (!is_transition(p->entry.attr)) {
-      JSValue key = (JSValue) p->entry.key;
-      JSValue number_key;
-      double double_key;
-      int32_t int32_key;
-      assert(is_string(key));
-      GC_PUSH(p);
-      number_key = string_to_number(ctx, key);
-      double_key = number_to_double(number_key);
-      int32_key = (int32_t) double_key;
-      if (int32_key >= 0 && double_key == (double) int32_key) {
-        if (int32_key < length) {
-          int index = p->entry.data.u.index;
-          JSValue v = object_get_prop(array, index);
-          JSValue *storage = get_jsarray_body(array);
-          storage[index] = v;
-        }
-        set_prop(ctx, array, p->entry.key, JS_EMPTY, ATTR_NONE);
+    assert(!is_transition(p->entry.attr));
+    JSValue key = (JSValue) p->entry.key;
+    JSValue number_key;
+    double double_key;
+    int32_t int32_key;
+    assert(is_string(key));
+    GC_PUSH(p);
+    number_key = string_to_number(ctx, key);
+    double_key = number_to_double(number_key);
+    int32_key = (int32_t) double_key;
+    if (int32_key >= 0 && double_key == (double) int32_key) {
+      if (int32_key < length) {
+        int index = p->entry.data.u.index;
+        JSValue v = object_get_prop(array, index);
+        JSValue *storage = get_jsarray_body(array);
+        storage[index] = v;
       }
-      GC_POP(p);
+      set_prop(ctx, array, p->entry.key, JS_EMPTY, ATTR_NONE);
     }
+    GC_POP(p);
   }
   GC_POP2(array, pm);
 }
@@ -1496,22 +1492,21 @@ remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
 {
   Shape *os = object_get_shape(array);
   PropertyMap *pm = os->pm;
-  HashIterator iter = createHashIterator(pm->map);
+  HashIterator iter = createHashPropertyIterator(pm->map);
   HashCell *p;
   while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (!is_transition(p->entry.attr)) {
-      JSValue key = (JSValue) p->entry.key;
-      JSValue number_key;
-      double double_key;
-      int32_t int32_key;
-      assert(is_string(key));
-      number_key = string_to_number(ctx, key);
-      double_key = number_to_double(number_key);
-      int32_key = (int32_t) double_key;
-      if (int32_key >= 0 && double_key == (double) int32_key &&
-          int32_key >= length)
-        set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
-    }
+    assert (!is_transition(p->entry.attr));
+    JSValue key = (JSValue) p->entry.key;
+    JSValue number_key;
+    double double_key;
+    int32_t int32_key;
+    assert(is_string(key));
+    number_key = string_to_number(ctx, key);
+    double_key = number_to_double(number_key);
+    int32_key = (int32_t) double_key;
+    if (int32_key >= 0 && double_key == (double) int32_key &&
+        int32_key >= length)
+      set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
   }
 }
 #endif /* NEW_ASIZE_STRATEGY */
@@ -1743,11 +1738,12 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     JSValue *body;
 
     ht = object_get_shape(obj)->pm->map;
-    hi = createHashIterator(ht);
+    hi = createHashPropertyIterator(ht);
 
     body = get_jsnormal_iterator_body(iter);
     while (nextHashCell(ht, &hi, &p) == SUCCESS) {
-      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION))
+      assert(!is_transition(p->entry.attr));
+      if (p->entry.attr & ATTR_DE)
         continue;
       body[index++] = (JSValue)p->entry.key;
     }
@@ -1836,11 +1832,12 @@ static void print_property_map_recursive(char *key, PropertyMap *pm)
   HashCell *p;
 
   print_property_map(key, pm);
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr))
-      print_property_map_recursive(string_to_cstr(p->entry.key),
-                                   p->entry.data.u.pm);
+  iter = createHashTransitionIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL) {
+    assert(is_transition(p->entry.attr));
+    print_property_map_recursive(string_to_cstr(p->entry.key),
+                                 p->entry.data.u.pm);
+  }
 }
 
 void hcprof_print_all_hidden_class(void)
@@ -1897,11 +1894,12 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
 #endif /* DEBUG */
   fprintf(fp, " %d", pm->n_props);
   fprintf(fp, "\n");
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (!is_transition(p->entry.attr))
-      fprintf(fp, "PROP %p %lld %s %d\n", pm, p->entry.data.u.index,
-              string_to_cstr(p->entry.key), p->entry.attr);
+  iter = createHashPropertyIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL) {
+    assert(!is_transition(p->entry.attr));
+    fprintf(fp, "PROP %p %lld %s %d\n", pm, p->entry.data.u.index,
+            string_to_cstr(p->entry.key), p->entry.attr);
+  }
   for (os = pm->shapes; os != NULL; os = os->next) {
     int fun_no, insn_no;
 #ifdef ALLOC_SITE_CACHE
@@ -1919,11 +1917,12 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
       fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
   }
 
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr))
-      dump_property_map_recursive(fp, ctx, string_to_cstr(p->entry.key),
-                                  p->entry.data.u.pm);
+  iter = createHashTransitionIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL) {
+    assert(is_transition(p->entry.attr));
+    dump_property_map_recursive(fp, ctx, string_to_cstr(p->entry.key),
+                                p->entry.data.u.pm);
+  }
 }
 
 void dump_hidden_classes(char *outfile, Context *ctx)
@@ -1997,11 +1996,10 @@ int sprint_property_map(char *start, PropertyMap *pm)
 #endif /* HC_SKIP_INTERNAL */
   buf += sprintf(buf, " [");
   for (i = 0; i < pm->n_props; i++) {
-    HashIterator iter = createHashIterator(pm->map);
+    HashIterator iter = createHashPropertyIterator(pm->map);
     HashCell *p;
     while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-      if (is_transition(p->entry.attr))
-        continue;
+      assert(!is_transition(p->entry.attr));
       if (p->entry.data.u.index == i) {
         buf += sprintf(buf, "%s ", string_to_cstr(p->entry.key));
         break;
