@@ -968,7 +968,7 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
         extension[i] = current_extension[i];
     }
     for (; i < new_size; i++)
-      extension[i] = JS_UNDEFINED;
+      extension[i] = JS_EMPTY;
     p->eprop[extension_index] = (JSValue) (uintjsv_t) (uintptr_t) extension;
 #ifdef AS_PROF
     if (os->alloc_site != NULL)
