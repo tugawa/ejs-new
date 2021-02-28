@@ -392,20 +392,19 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 	   * Note: pm->n_transitions cannot be used.
 	   */
 	  PropertyMap *pm = os->pm;
-	  HashIterator iter = createHashIterator(pm->map);
+	  HashIterator iter = createHashTransitionIterator(pm->map);
 	  HashCell *cell;
 	  Shape *next_os = NULL;
 	  while (nextHashCell(pm->map, &iter, &cell) != FAIL) {
-	    if (is_transition(cell->entry.attr)) {
-	      PropertyMap *next_pm = cell->entry.data.u.pm;
-	      for (Shape *p = next_pm->shapes; p != NULL; p = p->next) {
-		if (p->alloc_site == as) {
-		  if (next_os == NULL)
-		    next_os = p;
-		  else
-		    /* multiple outgoing edges */
-		    goto BREAK_WHILE;
-		}
+	    assert(is_transition(cell->entry.attr));
+	    PropertyMap *next_pm = cell->entry.data.u.pm;
+	    for (Shape *p = next_pm->shapes; p != NULL; p = p->next) {
+	      if (p->alloc_site == as) {
+		if (next_os == NULL)
+		  next_os = p;
+		else
+		  /* multiple outgoing edges */
+		  goto BREAK_WHILE;
 	      }
 	    }
 	  }
@@ -636,10 +635,11 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
     }
   }
 
-  iter = createHashIterator(pm->map);
-  while (nextHashCell(pm->map, &iter, &cell) != FAIL)
-    if (is_transition(cell->entry.attr))
-      weak_clear_shape_recursive<Tracer>(cell->entry.data.u.pm);
+  iter = createHashTransitionIterator(pm->map);
+  while (nextHashCell(pm->map, &iter, &cell) != FAIL) {
+    assert(is_transition(cell->entry.attr));
+    weak_clear_shape_recursive<Tracer>(cell->entry.data.u.pm);
+  }
 
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
@@ -670,16 +670,12 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
   HashIterator iter;
   HashCell *p;
 
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr)) {
-      PropertyMap *ret = p->entry.data.u.pm;
-#ifdef GC_DEBUG
-      while(nextHashCell(pm->map, &iter, &p) != FAIL)
-        assert(!is_transition(p->entry.attr));
-#endif /* GC_DEBUG */
-      return ret;
-    }
+  iter = createHashTransitionIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL) {
+    assert(is_transition(p->entry.attr));
+    PropertyMap *ret = p->entry.data.u.pm;
+    return ret;
+  }
   abort();
   return NULL;
 }
@@ -697,62 +693,19 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 
   assert(Tracer::is_marked_cell(pm));
 
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr)) {
-      PropertyMap *next = p->entry.data.u.pm;
-      /*
-       * If the next node is both
-       *   1. not pointed to through strong pointers and
-       *   2. outgoing edge is exactly 1,
-       * then, the node is an internal node to be eliminated.
-       */
-      while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
+  iter = createHashTransitionIterator(pm->map);
+  while(nextHashCell(pm->map, &iter, &p) != FAIL) {
+    assert(is_transition(p->entry.attr));
+    PropertyMap *next = p->entry.data.u.pm;
+    /*
+     * If the next node is both
+     *   1. not pointed to through strong pointers and
+     *   2. outgoing edge is exactly 1,
+     * then, the node is an internal node to be eliminated.
+     */
+    while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
 #ifdef VERBOSE_WEAK
-        printf("skip PropertyMap %p\n", next);
-#endif /* VERBOSE_WEAK */
-#ifdef VERBOSE_HC
-	{
-	  char buf1[5000];
-	  char buf2[5000];
-	  sprint_property_map(buf1, next);
-	  sprint_property_map(buf2, pm);
-	  printf("skip PropertyMap %s from %s\n", buf1, buf2);
-	}
-#endif /* VERBOSE_HC */
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-	clear_xcache = 1;
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
-        next = get_transition_dest(next);
-      }
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
-      /* TODO: remove branch if it is no longer used */
-#else /* HC_SKIP_INTERNAL_COUNT_BASE */
-      if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
-        p->deleted = 1;             /* TODO: use hash_delete */
-        p->entry.data.u.pm = NULL;  /* make invariant check success */
-#ifdef VERBOSE_WEAK
-	printf("delete branch PropertyMap %p(%d)\n",
-	       next, next->n_props);
-#endif /* VERBOSE_WEAK */
-#ifdef VERBOSE_HC
-	{
-	  char buf[2000];
-	  sprint_property_map(buf, next);
-	  printf("delete branch %s\n", buf);
-	}
-#endif /* VERBOSE_HC */
-        continue;
-      }
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
-      n_transitions++;
-#ifdef VERBOSE_WEAK
-      if (Tracer::is_marked_cell(next))
-        printf("preserve PropertyMap %p(%d) because it has been marked\n",
-	       next, next->n_props);
-      else
-        printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
-               next, next->n_props, next->n_transitions);
+      printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
 #ifdef VERBOSE_HC
       {
@@ -760,21 +713,64 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 	char buf2[5000];
 	sprint_property_map(buf1, next);
 	sprint_property_map(buf2, pm);
-	printf("preserve PropertyMap %s from %s\n", buf1, buf2);
+	printf("skip PropertyMap %s from %s\n", buf1, buf2);
       }
 #endif /* VERBOSE_HC */
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
-      if (next->n_transitions == 1 &&
-	  ((next->n_enter - next->n_leave) << 3) < next->n_enter)
-	next->transient = 1;
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
-      p->entry.data.u.pm = next;
-      /* Resurrect if it is branching node or terminal node */
-      PROCESS_EDGE(p->entry.data.u.pm);
-      Tracer::process_mark_stack();
-      next->prev = pm;
-      weak_clear_property_map_recursive<Tracer>(next);
+#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
+      clear_xcache = 1;
+#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
+      next = get_transition_dest(next);
     }
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+    /* TODO: remove branch if it is no longer used */
+#else /* HC_SKIP_INTERNAL_COUNT_BASE */
+    if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
+      p->deleted = 1;             /* TODO: use hash_delete */
+      p->entry.data.u.pm = NULL;  /* make invariant check success */
+#ifdef VERBOSE_WEAK
+      printf("delete branch PropertyMap %p(%d)\n",
+	     next, next->n_props);
+#endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+      {
+	char buf[2000];
+	sprint_property_map(buf, next);
+	printf("delete branch %s\n", buf);
+      }
+#endif /* VERBOSE_HC */
+      continue;
+    }
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+    n_transitions++;
+#ifdef VERBOSE_WEAK
+    if (Tracer::is_marked_cell(next))
+      printf("preserve PropertyMap %p(%d) because it has been marked\n",
+	     next, next->n_props);
+    else
+      printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
+	     next, next->n_props, next->n_transitions);
+#endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+    {
+      char buf1[5000];
+      char buf2[5000];
+      sprint_property_map(buf1, next);
+      sprint_property_map(buf2, pm);
+      printf("preserve PropertyMap %s from %s\n", buf1, buf2);
+    }
+#endif /* VERBOSE_HC */
+#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+    if (next->n_transitions == 1 &&
+	((next->n_enter - next->n_leave) << 3) < next->n_enter)
+      next->transient = 1;
+#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+    p->entry.data.u.pm = next;
+    /* Resurrect if it is branching node or terminal node */
+    PROCESS_EDGE(p->entry.data.u.pm);
+    Tracer::process_mark_stack();
+    next->prev = pm;
+    weak_clear_property_map_recursive<Tracer>(next);
+  }
   pm->n_transitions = n_transitions;
 #ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
   if (clear_xcache) {

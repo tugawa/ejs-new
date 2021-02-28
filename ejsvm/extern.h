@@ -205,7 +205,8 @@ extern int hash_copy(Context *, HashTable *, HashTable *);
 extern int hash_delete(HashTable *table, HashKey key);
 extern void print_hash_table(HashTable *);
 
-extern HashIterator createHashIterator(HashTable *);
+extern HashIterator createHashPropertyIterator(HashTable *);
+extern HashIterator createHashTransitionIterator(HashTable *);
 extern int hash_next(HashTable *, HashIterator *, HashData *);
 extern int nextHashEntry(HashTable *table, HashIterator *Iter, HashEntry *ep);
 extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
