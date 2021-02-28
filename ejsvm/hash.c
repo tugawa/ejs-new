@@ -348,6 +348,7 @@ static int rehash(HashTable *table) {
 }
 #endif /* PROPERTY_MAP_HASHTABLE */
 
+#ifdef PROPERTY_MAP_HASHTABLE
 /*
  * Find the next cell.
  * param iter: Startig point of serach.  `iter->p == NULL' directs to
@@ -394,6 +395,9 @@ int nextHashCell(HashTable *table, HashIterator *iter, HashCell **pp)
   advance_iterator(table, iter);
   return SUCCESS;
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * prints a hash table (for debugging)
