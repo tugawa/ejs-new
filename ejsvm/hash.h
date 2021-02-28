@@ -48,25 +48,42 @@ typedef struct hash_entry {
   Attribute attr;    /* attribute */
 } HashEntry;
 
+#ifdef PROPERTY_MAP_HASHTABLE
 typedef struct hash_cell {
   bool deleted;
   HashEntry entry;
   struct hash_cell *next;
 } HashCell;
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 typedef struct hash_iterator {
   int index;
   HashCell *p;
 } HashIterator;
 
+#ifdef PROPERTY_MAP_HASHTABLE
 struct hash_table {
   HashCell **body;
   unsigned int size;
   unsigned int entry_count;
   unsigned int filled;
 };
+#else /* PROPERTY_MAP_HASHTABLE */
+struct transition {
+  JSValue key;
+  PropertyMap *pm;
+};
+typedef struct transition_table {
+  int n_transitions;
+  struct transition transition[];
+} TransitionTable;
 
-typedef HashTable Map;
+struct hash_table {
+  int n_props;
+  PropertyMapTransition *transitions;
+  HashEntry entry[];
+};
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * string table

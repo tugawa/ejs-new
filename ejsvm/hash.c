@@ -16,6 +16,8 @@
 /* #define REHASH_THRESHOLD (0.5) */
 #define REHASH_THRESHOLD (0.9)
 
+
+#ifdef PROPERTY_MAP_HASHTABLE
 static int rehash(HashTable *table);
 
 static HashCell** alloc_hash_body(Context *ctx, int size)
@@ -35,10 +37,12 @@ static HashCell* alloc_hash_cell(Context *ctx)
   cell->next = NULL;
   return cell;
 }
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * initializes a hash table with the specified size
  */
+#ifdef PROPERTY_MAP_HASHTABLE */
 HashTable *hash_create(Context *ctx, unsigned int size) {
   HashCell **body;
   HashTable *table;
@@ -63,10 +67,28 @@ HashTable *hash_create(Context *ctx, unsigned int size) {
   GC_POP(table);
   return table;
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+HashTable *hash_create(Context *ctx, unsigned int size)
+{
+  HashTable *table;
+  int i;
+  table = (HashTable *)
+    gc_malloc(ctx, sizeof(HashTable) + sizeof(HashEntry) * size,
+              CELLT_HASHTABLE);
+  table->n_props = size; /* TODO: eliminate duplication */
+  table->transitions = NULL;
+  for (i = 0; i < size; i++) {
+    table->entry[i].key = JS_UNDEFINED;
+    table->entry[i].data.u.index = i;
+    table->entry[i].attr = 0;
+  }
+}
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * obtains the value and attribute associated with a given key
  */
+#ifdef PROPERTY_MAP_HASHTABLE */
 int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
                             Attribute *attr) {
   uint32_t hval;
@@ -85,10 +107,39 @@ int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
   /* printf("hash_get_with_attr: fail\n"); */
   return HASH_GET_FAILED;
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
+                            Attribute *attr)
+{
+  int i;
+
+  assert(is_string(key));
+  
+  for (i = 0; i < table->n_props; i++)
+    if (table->entry[i].key == key) {
+      assert(!is_transition(table->entry[i].attr));
+      if (data != NULL) *data = table->entry[i].data;
+      if (attr != NULL) *attr = table->entry[i].attr;
+      return HASH_GET_SUCCESS;
+    }
+  if (table->transitions != NULL) {
+    TransitionTable *ttable = table->transitions;
+    for (i = 0; i < ttable->n_transitions; i++)
+      if (ttable->transition[i].key == key) {
+        if (data != NULL) data->u.pm = ttable->transition[i].pm;
+        if (attr != NULL) *attr = ATTR_TRANSITION;
+        return HASH_GET_SUCCESS;
+      }
+  }
+
+  return HASH_GET_FAILED;
+}
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * registers a value to a hash table under a given key with an attribute
  */
+#ifdef PROPERTY_MAP_HASHTABLE
 static int hash_put_with_attribute(Context *ctx, HashTable* table,
                                    HashKey key, HashData data, Attribute attr)
 {
@@ -131,7 +182,6 @@ static int hash_put_with_attribute(Context *ctx, HashTable* table,
   GC_POP(table);
   return HASH_PUT_SUCCESS;
 }
-
 int hash_put_property(Context *ctx, HashTable *table,
                       HashKey key, uint32_t index, Attribute attr)
 {
@@ -147,10 +197,48 @@ void hash_put_transition(Context *ctx, HashTable *table,
   data.u.pm = pm;
   hash_put_with_attribute(ctx, table, key, data, ATTR_TRANSITION);
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+int hash_put_property(Context *ctx, HashTable *table,
+                      HashKey key, uint32_t index, Attribute attr)
+{
+  assert(table->entry[index].key == JS_UNDEFINED ||
+         table->entry[index].key == key);
+  assert(!is_transition(attr));
+  
+  if (is_readonly(table->entry[index].attr))
+    return HASH_PUT_FAILED;
+  table->entry[index].key = key;
+  table->entry[index].attr = attr;
+  return HASH_PUT_SUCCESS;
+}
+
+void hash_put_transition(Context *ctx, HashTable *table,
+                         HashKey key, PropertyMap *pm)
+{
+  int i;
+  TransitionTable *ttable;
+  
+  GC_PUSH3(table, key, pm);
+  ttable = (TransitionTable *)
+    gc_malloc(ctx, sizeof(TransitionTable) +
+              sizeof(struct transition) * (ttable->n_transitions + 1),
+              CELLT_TRANSITIONS);
+  GC_POP3(pm, key, table);
+
+  for (i = 0; i < ttable->n_transitions; i++)
+    ttable[i] = table->transitions.transition[i];
+  ttable[i].key = key;
+  ttable[i].pm = pm;
+  table->transitions = ttable;
+  table->n_transitions = i;
+}
+#endif /* PROPERTY_MAP_HASHTABLE */
+
 
 /*
  * deletes the hash data
  */
+#ifdef PROPERTY_MAP_HASHTABLE
 int hash_delete(HashTable *table, HashKey key) {
   HashCell *cell, *prev;
   uint32_t index;
@@ -172,12 +260,20 @@ int hash_delete(HashTable *table, HashKey key) {
   }
   return HASH_GET_FAILED;
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+int hash_delete(HashTable *table, HashKey key) {
+  /* TO BE IMPLEMENTED */
+  abort();
+  return HASH_GET_FAILED;
+}
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * copies a hash table
  * This function is used only for copying a hash table in a hidden class.
  * This function returns the number of copied properties.
  */
+#ifdef PROPERTY_MAP_HASHTABLE */
 int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   int i, fromsize, tosize;
   HashCell *cell, *new;
@@ -212,7 +308,21 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
   GC_POP3(cell, to, from);
   return n;
 }
+#else /* PROPERTY_MAP_HASHTABLE */
+int hash_copy(Context *ctx, HashTable *from, HashTable *to)
+{
+  int i;
+  assert(from->n_props <= to_n_props);
+  
+  for (i = 0; i < from->n_props; i++)
+    to->entry[i] = from->entry[i];
+  to->transitions = from->transitions;
 
+  return from->n_props;
+}
+#endif /* PROPERTY_MAP_HASHTABLE */
+
+#ifdef PROPERTY_MAP_HASHTABLE
 static int rehash(HashTable *table) {
   int size = table->size;
   int newsize = size * 2;
@@ -236,6 +346,7 @@ static int rehash(HashTable *table) {
   GC_POP2(newhash, table);
   return 0;
 }
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 int init_hash_iterator(HashTable *t, HashIterator *h) {
   int i, size;
