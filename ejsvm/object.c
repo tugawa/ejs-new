@@ -1743,7 +1743,7 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
     JSValue *body;
 
     ht = object_get_shape(obj)->pm->map;
-    init_hash_iterator(ht, &hi);
+    hi = createHashIterator(ht);
 
     body = get_jsnormal_iterator_body(iter);
     while (nextHashCell(ht, &hi, &p) == SUCCESS) {

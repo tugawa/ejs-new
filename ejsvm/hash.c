@@ -237,21 +237,6 @@ static int rehash(HashTable *table) {
   return 0;
 }
 
-int init_hash_iterator(HashTable *t, HashIterator *h) {
-  int i, size;
-
-  size = t->size;
-  for (i = 0; i < size; i++) {
-    if (t->body[i] != NULL) {
-      h->p = t->body[i];
-      h->index = i;
-      return TRUE;
-    }
-  }
-  h->p = NULL;
-  return FALSE;
-}
-
 /*
  * Find the next cell.
  * param iter: Startig point of serach.  `iter->p == NULL' directs to

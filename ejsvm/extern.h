@@ -203,7 +203,6 @@ extern void hash_put_transition(Context *ctx, HashTable *table,
 
 extern int hash_copy(Context *, HashTable *, HashTable *);
 extern int hash_delete(HashTable *table, HashKey key);
-extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 
 extern HashIterator createHashIterator(HashTable *);
