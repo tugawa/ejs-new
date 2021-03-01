@@ -1463,8 +1463,7 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
   HashPropertyCell *p;
   GC_PUSH2(pm, array);
   while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-    assert(!is_transition(p->entry.attr));
-    JSValue key = (JSValue) p->entry.key;
+    JSValue key = hash_property_cell_key(p);
     JSValue number_key;
     double double_key;
     int32_t int32_key;
@@ -1475,12 +1474,12 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
     int32_key = (int32_t) double_key;
     if (int32_key >= 0 && double_key == (double) int32_key) {
       if (int32_key < length) {
-        int index = p->entry.data.u.index;
+        int index = hash_property_cell_index(p);
         JSValue v = object_get_prop(array, index);
         JSValue *storage = get_jsarray_body(array);
         storage[index] = v;
       }
-      set_prop(ctx, array, p->entry.key, JS_EMPTY, ATTR_NONE);
+      set_prop(ctx, array, hash_property_cell_key(p), JS_EMPTY, ATTR_NONE);
     }
     GC_POP(p);
   }
@@ -1495,8 +1494,7 @@ remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
   HashPropertyIterator iter = createHashPropertyIterator(pm->map);
   HashPropertyCell *p;
   while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-    assert (!is_transition(p->entry.attr));
-    JSValue key = (JSValue) p->entry.key;
+    JSValue key = hash_property_cell_key(p);
     JSValue number_key;
     double double_key;
     int32_t int32_key;
@@ -1742,10 +1740,9 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
 
     body = get_jsnormal_iterator_body(iter);
     while (nextHashPropertyCell(ht, &hi, &p) == SUCCESS) {
-      assert(!is_transition(p->entry.attr));
-      if (p->entry.attr & ATTR_DE)
+      if (hash_property_cell_attr(p) & ATTR_DE)
         continue;
-      body[index++] = (JSValue)p->entry.key;
+      body[index++] = hash_property_cell_key(p);
     }
     obj = get_prop(obj, gconsts.g_string___proto__);
   } while (obj != JS_NULL);
@@ -1894,9 +1891,10 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
     HashPropertyIterator iter = createHashPropertyIterator(pm->map);
     HashPropertyCell *p;
     while(nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-      assert(!is_transition(p->entry.attr));
-      fprintf(fp, "PROP %p %lld %s %d\n", pm, p->entry.data.u.index,
-              string_to_cstr(p->entry.key), p->entry.attr);
+      fprintf(fp, "PROP %p %lld %s %d\n", pm,
+              hash_property_cell_index(p),
+              string_to_cstr(hash_property_cell_key(p)),
+              hash_property_cell_attr(p));
     }
   }
   for (os = pm->shapes; os != NULL; os = os->next) {
@@ -2000,9 +1998,9 @@ int sprint_property_map(char *start, PropertyMap *pm)
     HashPropertyIterator iter = createHashPropertyIterator(pm->map);
     HashPropertyCell *p;
     while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-      assert(!is_transition(p->entry.attr));
-      if (p->entry.data.u.index == i) {
-        buf += sprintf(buf, "%s ", string_to_cstr(p->entry.key));
+      if (hash_property_cell_index(p) == i) {
+        buf += sprintf(buf, "%s ",
+                       string_to_cstr(hash_property_cell_key(p)));
         break;
       }
     }
