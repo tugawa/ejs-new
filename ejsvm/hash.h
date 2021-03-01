@@ -54,6 +54,9 @@ typedef struct hash_cell {
   struct hash_cell *next;
 } HashCell;
 
+typedef HashCell HashPropertyCell;
+typedef HashCell HashTransitionCell;
+
 typedef struct hash_iterator {
   int index;
   HashCell *p;

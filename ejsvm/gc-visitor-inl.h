@@ -393,7 +393,7 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 	   */
 	  PropertyMap *pm = os->pm;
 	  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
-	  HashCell *cell;
+	  HashTransitionCell *cell;
 	  Shape *next_os = NULL;
 	  while (nextHashTransitionCell(pm->map, &iter, &cell) != FAIL) {
 	    assert(is_transition(cell->entry.attr));
@@ -630,7 +630,7 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
   }
 
   HashTransitionIterator iter = createHashTransitionIterator(pm->map);
-  HashCell *cell;
+  HashTransitionCell *cell;
   while (nextHashTransitionCell(pm->map, &iter, &cell) != FAIL) {
     assert(is_transition(cell->entry.attr));
     weak_clear_shape_recursive<Tracer>(cell->entry.data.u.pm);
@@ -663,7 +663,7 @@ ACCEPTOR STATIC void weak_clear_shapes()
 STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
 {
   HashTransitionIterator iter = createHashTransitionIterator(pm->map);
-  HashCell *p;
+  HashTransitionCell *p;
 
   while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
     assert(is_transition(p->entry.attr));
@@ -686,7 +686,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
   assert(Tracer::is_marked_cell(pm));
 
   HashTransitionIterator iter = createHashTransitionIterator(pm->map);
-  HashCell *p;
+  HashTransitionCell *p;
   while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
     assert(is_transition(p->entry.attr));
     PropertyMap *next = p->entry.data.u.pm;
