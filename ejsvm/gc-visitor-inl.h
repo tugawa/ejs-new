@@ -194,6 +194,7 @@ class NodeScanner {
     if (p->next != NULL)
       PROCESS_EDGE(p->next);
   }
+#ifdef PROPERTY_MAP_HASHTABLE
   ACCEPTOR static void scan_Hashtable(HashTable *p) {
     if (p->body != NULL)
       PROCESS_EDGE_EX_PTR_ARRAY(p->body, p->size);
@@ -212,7 +213,26 @@ class NodeScanner {
     }      
     if (p->next != NULL)
         PROCESS_EDGE(p->next);
-  }    
+  }
+#else /* PROPERTY_MAP_HASHTABLE */
+  ACCEPTOR static void scan_Hashtable(HashTable *p) {
+    PROCESS_EDGE(p->transitions);
+    for (int i = 0; i < p->n_props; i++)
+      PROCESS_EDGE(p->entry[i].key);
+  }
+  ACCEPTOR static void scan_TransitionTable(TransitionTable *p) {
+    for (int i = 0; i < p->n_transitions; i++) {
+      if (p->transition[i].key != JS_UNDEFINED) {
+	PROCESS_EDGE(p->transition[i].key);
+#ifdef HC_SKIP_INTERNAL
+	PROCESS_WEAK_EDGE(p->transition[i].pm);
+#else /* HC_SKIP_INTERNAL */
+	PROCESS_EDGE(p->transition[i].pm);
+#endif /* HC_SKIP_INTERNAL */
+      }
+    }
+  }
+#endif /* PROPERTY_MAP_HASHTABLE */
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
     if (p->prev != NULL) {
@@ -311,6 +331,7 @@ ACCEPTOR STATIC_INLINE void process_node(cell_type_t type, uintptr_t ptr) {
   case CELLT_STR_CONS:
     NodeScanner::scan_StrCons<Tracer>((StrCons *) ptr);
     return;
+#ifdef PROPERTY_MAP_HASHTABLE
   case CELLT_HASHTABLE:
     NodeScanner::scan_Hashtable<Tracer>((HashTable *) ptr);
     return;
@@ -320,6 +341,14 @@ ACCEPTOR STATIC_INLINE void process_node(cell_type_t type, uintptr_t ptr) {
   case CELLT_HASH_CELL:
     NodeScanner::scan_HashCell<Tracer>((HashCell *) ptr);
     return;
+#else /* PROPERTY_MAP_HASHTABLE */
+  case CELLT_TRANSITIONS:
+    NodeScanner::scan_TransitionTable<Tracer>((TransitionTable *) ptr);
+    return;
+  case CELLT_HASHTABLE:
+    NodeScanner::scan_Hashtable<Tracer>((HashTable *) ptr);
+    return;
+#endif /* PROPERTY_MAP_HASHTABLE */
   case CELLT_PROPERTY_MAP:
     NodeScanner::scan_PropertyMap<Tracer>((PropertyMap *) ptr);
     return;

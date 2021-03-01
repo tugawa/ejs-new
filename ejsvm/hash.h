@@ -109,6 +109,10 @@ struct hash_table {
 typedef HashEntry HashPropertyCell;
 typedef struct transition HashTransitionCell;
 
+#define hash_property_cell_key(cell) ((cell)->key)
+#define hash_property_cell_attr(cell) ((cell)->attr)
+#define hash_property_cell_index(cell) ((cell)->data.u.index)
+
 static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
   cell->key = JS_UNDEFINED;
   cell->pm = NULL;
