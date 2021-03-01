@@ -19,6 +19,10 @@
 
 #ifdef PROPERTY_MAP_HASHTABLE
 static int rehash(HashTable *table);
+static int next_hash_cell(HashTable *table,
+                          HashIterator *iter, HashCell **pp,
+                          Attribute is_transition);
+
 
 static HashCell** alloc_hash_body(Context *ctx, int size)
 {
@@ -334,14 +338,14 @@ static int rehash(HashTable *table) {
   newhash = alloc_hash_body(NULL, newsize);
   GC_PUSH(newhash);
 
-  iter = createHashPropertyIterator(table);
-  while (nextHashCell(table, &iter, &p) != FAIL) {
+  iter = createHashPropertyIterator(table).i;
+  while (next_hash_cell(table, &iter, &p, ATTR_NONE) != FAIL) {
     uint32_t index = string_hash(p->entry.key) % newsize;
     p->next = newhash[index];
     newhash[index] = p;
   }
-  iter = createHashTransitionIterator(table);
-  while (nextHashCell(table, &iter, &p) != FAIL) {
+  iter = createHashTransitionIterator(table).i;
+  while (next_hash_cell(table, &iter, &p, ATTR_TRANSITION) != FAIL) {
     uint32_t index = string_hash(p->entry.key) % newsize;
     p->next = newhash[index];
     newhash[index] = p;
@@ -360,23 +364,22 @@ static int rehash(HashTable *table) {
  * param iter: Startig point of serach.  `iter->p == NULL' directs to
  * start searching from the begining of the list at `iter->index + 1'.
  */
-static void advance_iterator(HashTable *table, HashIterator *iter)
+static void advance_iterator(HashTable *table, HashIterator *iter,
+                             Attribute is_trans)
 {
   HashCell *p;
   int i;
   
   for (p = iter->p; p != NULL; p = p->next)
     if (!p->deleted &&
-        ((iter->is_property && !is_transition(p->entry.attr)) ||
-         (!iter->is_property && is_transition(p->entry.attr)))) {
+        ((is_trans ^ p->entry.attr) & ATTR_TRANSITION) == 0) {
       iter->p = p;
       return;
     }
   for (i = iter->index + 1; i < table->size; i++)
     for (p = table->body[i]; p != NULL; p = p->next)
       if (!p->deleted &&
-          ((iter->is_property && !is_transition(p->entry.attr)) ||
-           (!iter->is_property && is_transition(p->entry.attr)))) {
+          ((is_trans ^ p->entry.attr) & ATTR_TRANSITION) == 0) {
         iter->p = p;
         iter->index = i;
         return;
@@ -384,38 +387,52 @@ static void advance_iterator(HashTable *table, HashIterator *iter)
   iter->p = NULL;
 }
 
-HashIterator createHashPropertyIterator(HashTable *table)
+
+static int next_hash_cell(HashTable *table,
+                        HashIterator *iter, HashCell **pp,
+                        Attribute is_transition)
 {
-  HashIterator iter;
+  /* Care the case where the current cell is deleted
+   * after the last call of `next_hash_cell'. */
+  advance_iterator(table, iter, is_transition);
 
-  iter.p = NULL;
-  iter.index = -1;
-  iter.is_property = 1;
-  advance_iterator(table, &iter);
-  return iter;
-}
-
-HashIterator createHashTransitionIterator(HashTable *table)
-{
-  HashIterator iter;
-
-  iter.p = NULL;
-  iter.index = -1;
-  iter.is_property = 0;
-  advance_iterator(table, &iter);
-  return iter;
-}
-
-int nextHashCell(HashTable *table, HashIterator *iter, HashCell **pp)
-{
-  advance_iterator(table, iter);  /* Save the case the current cell is deleted
-                                   * after the last call of `nextHashCell'. */
   if (iter->p == NULL)
     return FAIL;
   *pp = iter->p;
   iter->p = iter->p->next;
-  advance_iterator(table, iter);
+  advance_iterator(table, iter, is_transition);
+
   return SUCCESS;
+}
+
+HashPropertyIterator createHashPropertyIterator(HashTable *table)
+{
+  HashPropertyIterator iter;
+  iter.i.p = NULL;
+  iter.i.index = -1;
+  advance_iterator(table, &iter.i, ATTR_NONE);
+  return iter;
+}
+
+HashTransitionIterator createHashTransitionIterator(HashTable *table)
+{
+  HashTransitionIterator iter;
+  iter.i.p = NULL;
+  iter.i.index = -1;
+  advance_iterator(table, &iter.i, ATTR_TRANSITION);
+  return iter;
+}
+
+int nextHashPropertyCell(HashTable *table,
+                         HashPropertyIterator *iter, HashCell **pp)
+{
+  return next_hash_cell(table, &iter->i, pp, ATTR_NONE);
+}
+
+int nextHashTransitionCell(HashTable *table,
+                           HashTransitionIterator *iter, HashCell **pp)
+{
+  return next_hash_cell(table, &iter->i, pp, ATTR_TRANSITION);
 }
 #else /* PROPERTY_MAP_HASHTABLE */
 

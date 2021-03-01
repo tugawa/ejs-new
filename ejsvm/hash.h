@@ -54,15 +54,20 @@ typedef struct hash_cell {
   HashEntry entry;
   struct hash_cell *next;
 } HashCell;
-#endif /* PROPERTY_MAP_HASHTABLE */
 
 typedef struct hash_iterator {
   int index;
   HashCell *p;
-  int is_property;
 } HashIterator;
 
-#ifdef PROPERTY_MAP_HASHTABLE
+typedef struct hash_property_iterator {
+  HashIterator i;
+} HashPropertyIterator;
+
+typedef struct hash_transition_iterator {
+  HashIterator i;
+} HashTransitionIterator;
+
 struct hash_table {
   HashCell **body;
   unsigned int size;
@@ -70,10 +75,12 @@ struct hash_table {
   unsigned int filled;
 };
 #else /* PROPERTY_MAP_HASHTABLE */
+
 struct transition {
   JSValue key;
   PropertyMap *pm;
 };
+
 typedef struct transition_table {
   int n_transitions;
   struct transition transition[];
