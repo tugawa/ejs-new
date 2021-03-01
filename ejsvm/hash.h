@@ -58,6 +58,9 @@ typedef struct hash_cell {
 typedef HashCell HashPropertyCell;
 typedef HashCell HashTransitionCell;
 
+#define hash_property_cell_key(cell) ((cell)->entry.key)
+#define hash_property_cell_attr(cell) ((cell)->entry.attr)
+#define hash_property_cell_index(cell) ((cell)->entry.data.u.index)
 
 static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
   cell->deleted = 1;
