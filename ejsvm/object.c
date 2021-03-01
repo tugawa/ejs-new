@@ -1463,8 +1463,7 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
   HashPropertyCell *p;
   GC_PUSH2(pm, array);
   while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-    assert(!is_transition(p->entry.attr));
-    JSValue key = (JSValue) p->entry.key;
+    JSValue key = hash_property_cell_key(p);
     JSValue number_key;
     double double_key;
     int32_t int32_key;

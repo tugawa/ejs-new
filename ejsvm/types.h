@@ -84,6 +84,7 @@ typedef enum cell_type_t {
   CELLT_STR_CONS      = 0x15, /* StrCons */
   /* CELLT_CONTEXT       = 0x16, * Context (no longer used)*/
   /* CELLT_STACK         = 0x17, * Array of JSValues (no longer used) */
+  CELLT_TRANSITIONS   = 0x18,
   CELLT_HASHTABLE     = 0x19,
   CELLT_HASH_BODY     = 0x1A,
   CELLT_HASH_CELL     = 0x1B,

@@ -99,9 +99,29 @@ typedef struct transition_table {
 
 struct hash_table {
   int n_props;
-  PropertyMapTransition *transitions;
+  TransitionTable *transitions;
   HashEntry entry[];
 };
+
+typedef HashEntry HashPropertyCell;
+typedef struct transition HashTransitionCell;
+
+static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
+  cell->key = JS_UNDEFINED;
+  cell->pm = NULL;
+}
+
+#define hash_transition_cell_key(cell) ((cell)->key)
+#define hash_transition_cell_pm(cell) ((cell)->pm)
+
+typedef struct hash_property_iterator {
+  int i;
+} HashPropertyIterator;
+
+typedef struct hash_transition_iterator {
+  int i;
+} HashTransitionIterator;
+
 #endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
