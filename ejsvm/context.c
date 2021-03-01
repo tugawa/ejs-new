@@ -46,7 +46,7 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->fp = 0;
   spreg->cf = NULL;
   spreg->lp = NULL;
-  spreg->sp = 0;
+  spreg->sp = -1;
   spreg->pc = 0;
   spreg->a = JS_UNDEFINED;
   spreg->err = JS_UNDEFINED;
