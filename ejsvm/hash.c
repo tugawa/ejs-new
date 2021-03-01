@@ -424,15 +424,16 @@ HashTransitionIterator createHashTransitionIterator(HashTable *table)
 }
 
 int nextHashPropertyCell(HashTable *table,
-                         HashPropertyIterator *iter, HashCell **pp)
+                         HashPropertyIterator *iter, HashPropertyCell **pp)
 {
-  return next_hash_cell(table, &iter->i, pp, ATTR_NONE);
+  return next_hash_cell(table, &iter->i, (HashCell**) pp, ATTR_NONE);
 }
 
 int nextHashTransitionCell(HashTable *table,
-                           HashTransitionIterator *iter, HashCell **pp)
+                           HashTransitionIterator *iter,
+                           HashTransitionCell **pp)
 {
-  return next_hash_cell(table, &iter->i, pp, ATTR_TRANSITION);
+  return next_hash_cell(table, &iter->i, (HashCell**) pp, ATTR_TRANSITION);
 }
 #else /* PROPERTY_MAP_HASHTABLE */
 

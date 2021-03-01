@@ -208,9 +208,11 @@ extern void print_hash_table(HashTable *);
 extern HashPropertyIterator createHashPropertyIterator(HashTable *);
 extern HashTransitionIterator createHashTransitionIterator(HashTable *);
 extern int nextHashTransitionCell(HashTable *table,
-                                  HashTransitionIterator *iter, HashCell** p);
+                                  HashTransitionIterator *iter,
+                                  HashTransitionCell** p);
 extern int nextHashPropertyCell(HashTable *table,
-                                HashPropertyIterator *iter, HashCell** p);
+                                HashPropertyIterator *iter,
+                                HashPropertyCell** p);
 
 /*
  * string.c
