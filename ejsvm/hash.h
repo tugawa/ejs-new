@@ -57,8 +57,15 @@ typedef struct hash_cell {
 typedef struct hash_iterator {
   int index;
   HashCell *p;
-  int is_property;
 } HashIterator;
+
+typedef struct hash_property_iterator {
+  HashIterator i;
+} HashPropertyIterator;
+
+typedef struct hash_transition_iterator {
+  HashIterator i;
+} HashTransitionIterator;
 
 struct hash_table {
   HashCell **body;
