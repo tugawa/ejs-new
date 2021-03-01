@@ -192,10 +192,11 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
         HashTransitionIterator iter =
           createHashTransitionIterator(next_pm->map);
         HashTransitionCell *cell;
+        int ret;
         assert(next_pm->n_transitions == 1);
-        assert(nextHashTransitionCell(next_pm->map, &iter, &cell) != FAIL);
-        assert(is_transition(cell->entry.attr));
-        next_pm = cell->entry.data.u.pm;
+        ret = nextHashTransitionCell(next_pm->map, &iter, &cell);
+        assert(ret != FAIL);
+        next_pm = hash_transition_cell_pm(cell);
       }
 #endif /* HC_SKIP_INTERNAL_COUNT_BASE */
       PRINT("  new property (cached PM %p is used)\n", next_pm);
@@ -838,10 +839,8 @@ static void property_map_install___proto__(PropertyMap *pm, JSValue __proto__)
   pm->__proto__ = __proto__;
   HashTransitionIterator iter = createHashTransitionIterator(pm->map);
   HashTransitionCell *p;
-  while (nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
-    assert(is_transition(p->entry.attr));
-    property_map_install___proto__(p->entry.data.u.pm, __proto__);
-  }
+  while (nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+    property_map_install___proto__(hash_transition_cell_pm(p), __proto__);
 }
 #endif /* LOAD_HCG */
 
@@ -1834,11 +1833,9 @@ static void print_property_map_recursive(char *key, PropertyMap *pm)
 
   print_property_map(key, pm);
   iter = createHashTransitionIterator(pm->map);
-  while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
-    assert(is_transition(p->entry.attr));
-    print_property_map_recursive(string_to_cstr(p->entry.key),
-                                 p->entry.data.u.pm);
-  }
+  while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+    print_property_map_recursive(string_to_cstr(hash_transition_cell_key(p)),
+                                 hash_transition_cell_pm(p));
 }
 
 void hcprof_print_all_hidden_class(void)
@@ -1922,11 +1919,10 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
   {
     HashTransitionIterator iter = createHashTransitionIterator(pm->map);
     HashTransitionCell *p;
-    while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
-      assert(is_transition(p->entry.attr));
-      dump_property_map_recursive(fp, ctx, string_to_cstr(p->entry.key),
-                                  p->entry.data.u.pm);
-    }
+    while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+      dump_property_map_recursive(fp, ctx,
+                                  string_to_cstr(hash_transition_cell_key(p)),
+                                  hash_transition_cell_pm(p));
   }
 }
 

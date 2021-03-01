@@ -57,6 +57,14 @@ typedef struct hash_cell {
 typedef HashCell HashPropertyCell;
 typedef HashCell HashTransitionCell;
 
+
+static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
+  cell->deleted = 1;
+  cell->entry.data.u.pm = NULL; /* make invariant check success */
+}
+#define hash_transition_cell_key(cell) ((cell)->entry.key)
+#define hash_transition_cell_pm(cell) ((cell)->entry.data.u.pm)
+
 typedef struct hash_iterator {
   int index;
   HashCell *p;
