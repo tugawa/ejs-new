@@ -83,7 +83,11 @@ HashTable *hash_create(Context *ctx, unsigned int size)
   table->transitions = NULL;
   for (i = 0; i < size; i++) {
     table->entry[i].key = JS_UNDEFINED;
+#if 0
     table->entry[i].data.u.index = i;
+#else
+    table->entry[i].data.u.index = 0;
+#endif
     table->entry[i].attr = 0;
   }
 
@@ -207,6 +211,7 @@ void hash_put_transition(Context *ctx, HashTable *table,
 int hash_put_property(Context *ctx, HashTable *table,
                       HashKey key, uint32_t index, Attribute attr)
 {
+#if 0
   assert(table->entry[index].key == JS_UNDEFINED ||
          table->entry[index].key == key);
   assert(!is_transition(attr));
@@ -216,6 +221,23 @@ int hash_put_property(Context *ctx, HashTable *table,
   table->entry[index].key = key;
   table->entry[index].attr = attr;
   return HASH_PUT_SUCCESS;
+#else
+  int i;
+  for (i = 0; i < table->n_props; i++) {
+    if (table->entry[i].key == key) {
+      if (is_readonly(table->entry[i].attr))
+        return HASH_PUT_FAILED;
+      break;
+    }
+    if (table->entry[i].key == JS_UNDEFINED)
+      break;
+  }
+  assert(i < table->n_props);
+  table->entry[i].key = key;
+  table->entry[i].data.u.index = index;
+  table->entry[i].attr = attr;
+  return HASH_PUT_SUCCESS;
+#endif
 }
 
 void hash_put_transition(Context *ctx, HashTable *table,
@@ -223,20 +245,24 @@ void hash_put_transition(Context *ctx, HashTable *table,
 {
   int i;
   TransitionTable *ttable;
+  int n_transitions;
+  if (table->transitions == NULL)
+    n_transitions = 1;
+  else
+    n_transitions = table->transitions->n_transitions + 1;
   
   GC_PUSH3(table, key, pm);
   ttable = (TransitionTable *)
     gc_malloc(ctx, sizeof(TransitionTable) +
-              sizeof(struct transition) *
-              (table->transitions->n_transitions + 1),
+              sizeof(struct transition) * n_transitions,
               CELLT_TRANSITIONS);
   GC_POP3(pm, key, table);
 
-  for (i = 0; i < ttable->n_transitions; i++)
+  for (i = 0; i < n_transitions - 1; i++)
     ttable->transition[i] = table->transitions->transition[i];
   ttable->transition[i].key = key;
   ttable->transition[i].pm = pm;
-  ttable->n_transitions = i;
+  ttable->n_transitions = n_transitions;
   table->transitions = ttable;
 }
 #endif /* PROPERTY_MAP_HASHTABLE */
@@ -323,7 +349,6 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to)
   
   for (i = 0; i < from->n_props; i++)
     to->entry[i] = from->entry[i];
-  to->transitions = from->transitions;
 
   return from->n_props;
 }
@@ -450,10 +475,13 @@ HashPropertyIterator createHashPropertyIterator(HashTable *table)
 int nextHashPropertyCell(HashTable *table,
                          HashPropertyIterator *iter, HashPropertyCell **pp)
 {
-  if (iter->i >= table->n_props) {
-    *pp = &table->entry[iter->i];
+  if (iter->i < table->n_props) {
+    if (table->entry[iter->i].key != JS_UNDEFINED) {
+      *pp = &table->entry[iter->i];
+      iter->i++;
+      return SUCCESS;
+    }
     iter->i++;
-    return SUCCESS;
   }
   return FAIL;
 }
@@ -474,12 +502,15 @@ int nextHashTransitionCell(HashTable *table,
                            HashTransitionIterator *iter,
                            HashTransitionCell **pp)
 {
+  if (table->transitions == NULL)
+    return FAIL;
   while (iter->i < table->transitions->n_transitions) {
     if (table->transitions->transition[iter->i].key != JS_UNDEFINED) {
       *pp = &table->transitions->transition[iter->i];
       iter->i++;
       return SUCCESS;
     }
+    iter->i++;
   }
   return FAIL;
 }

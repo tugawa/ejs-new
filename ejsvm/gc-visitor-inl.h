@@ -216,7 +216,8 @@ class NodeScanner {
   }
 #else /* PROPERTY_MAP_HASHTABLE */
   ACCEPTOR static void scan_Hashtable(HashTable *p) {
-    PROCESS_EDGE(p->transitions);
+    if (p->transitions != NULL)
+      PROCESS_EDGE(p->transitions);
     for (int i = 0; i < p->n_props; i++)
       PROCESS_EDGE(p->entry[i].key);
   }
@@ -243,8 +244,8 @@ class NodeScanner {
 #endif /* HC_SKIP_INTERNAL */
     }
     if (p->shapes != NULL)
-        PROCESS_EDGE(p->shapes);/* Shape
-				 * (always keep the largest one) */
+      PROCESS_EDGE(p->shapes);/* Shape
+			       * (always keep the largest one) */
     PROCESS_EDGE(p->__proto__);
 #ifdef ALLCO_SITE_CACHE
     if (p->alloc_site != NULL)
@@ -736,7 +737,9 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 #ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
       clear_xcache = 1;
 #endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
-      next = get_transition_dest(next);
+      PropertyMap *next_next = get_transition_dest(next);
+      assert(next_next->prev == next);
+      next = next_next;
     }
 #ifdef HC_SKIP_INTERNAL_COUNT_BASE
     /* TODO: remove branch if it is no longer used */

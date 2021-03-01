@@ -668,7 +668,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   assert(ctx != NULL);
 
   GC_PUSH2(__proto__, prev);
-  hash = hash_create(ctx, n_props - n_special_props);
+  hash = hash_create(ctx, n_props - n_special_props + n_user_special_props);
   GC_PUSH(hash);
   m = (PropertyMap *) gc_malloc(ctx, sizeof(PropertyMap), CELLT_PROPERTY_MAP);
   GC_POP3(hash, prev, __proto__);
