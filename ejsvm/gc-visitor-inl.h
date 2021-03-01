@@ -489,9 +489,6 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
 
 ACCEPTOR STATIC void scan_stack(JSValue* stack, int sp, int fp)
 {
-  if (sp == 0 && fp == 0)
-    return;
-
   while (1) {
     while (sp >= fp) {
       PROCESS_EDGE(stack[sp]);
