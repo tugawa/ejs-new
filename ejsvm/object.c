@@ -2003,7 +2003,7 @@ int sprint_property_map(char *start, PropertyMap *pm)
   for (i = 0; i < pm->n_props; i++) {
     HashIterator iter = createHashPropertyIterator(pm->map);
     HashCell *p;
-    while (nextHashCell(pm->map, &iter, &p) != FAIL) {
+    while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
       assert(!is_transition(p->entry.attr));
       if (p->entry.data.u.index == i) {
         buf += sprintf(buf, "%s ", string_to_cstr(p->entry.key));
