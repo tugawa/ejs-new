@@ -213,6 +213,15 @@ STATIC void sweep_space(struct space *space)
            !is_marked_cell_header((header_t *) scan)) {
       header_t *hdrp = (header_t *) scan;
       assert(hdrp->magic == HEADER_MAGIC);
+#ifdef GC_PROF
+      {
+        cell_type_t type = hdrp->type;
+        size_t bytes =
+          (hdrp->size - hdrp->extra) << LOG_BYTES_IN_GRANULE;
+        pertype_collect_bytes[type]+= bytes;
+        pertype_collect_count[type]++;
+      }
+#endif /* GC_PROF */
       scan += hdrp->size << LOG_BYTES_IN_GRANULE;
     }
     if (free_start < scan) {
