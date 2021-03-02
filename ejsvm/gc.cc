@@ -35,6 +35,7 @@
  *   CELLT_STR_CONS       no     no        no        fixed StrCons
  *   CELLT_CONTEXT        no     no        no        fixed Context
  *   CELLT_STACK          no     no        no        no    JSValue*
+ *   CELLT_TRANSITIONS    no     no        no        yes   TransitionTable
  *   CELLT_HASHTABLE      no     no        no        fixed HashTable
  *   CELLT_HASH_BODY      no     no        no        no    HashCell**
  *   CELLT_HASH_CELL      no     no        no        fixed HashCell
@@ -110,7 +111,7 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 15 */ "STR_CONS",
     /* 16 */ "CONTEXT",
     /* 17 */ "STACK",
-    /* 18 */ "" /* was HIDDEN_CLASS */,
+    /* 18 */ "TRANSITIONS",
     /* 19 */ "HASHTABLE",
     /* 1a */ "HASH_BODY",
     /* 1b */ "HASH_CELL",

@@ -77,13 +77,12 @@ HashTable *hash_create(Context *ctx, unsigned int size)
   HashTable *table;
   int i;
   table = (HashTable *)
-    gc_malloc(ctx, sizeof(HashTable) + sizeof(HashEntry) * size,
+    gc_malloc(ctx, sizeof(HashTable) + sizeof(struct property) * size,
               CELLT_HASHTABLE);
   table->n_props = size; /* TODO: eliminate duplication */
   table->transitions = NULL;
   for (i = 0; i < size; i++) {
     table->entry[i].key = JS_UNDEFINED;
-    table->entry[i].data.u.index = i;
     table->entry[i].attr = 0;
   }
 
@@ -124,7 +123,7 @@ int hash_get_with_attribute(HashTable *table, HashKey key, HashData *data,
   for (i = 0; i < table->n_props; i++)
     if (table->entry[i].key == key) {
       assert(!is_transition(table->entry[i].attr));
-      if (data != NULL) *data = table->entry[i].data;
+      if (data != NULL) data->u.index = i;
       if (attr != NULL) *attr = table->entry[i].attr;
       return HASH_GET_SUCCESS;
     }
@@ -480,11 +479,6 @@ int nextHashPropertyCell(HashTable *table,
     iter->i++;
   }
   return FAIL;
-}
-
-static int advance_transition_iterator(HashTable *table, int i)
-{
-  return i;
 }
 
 HashTransitionIterator createHashTransitionIterator(HashTable *table)

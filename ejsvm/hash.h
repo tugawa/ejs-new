@@ -95,10 +95,15 @@ typedef struct transition_table {
   struct transition transition[];
 } TransitionTable;
 
+struct property {
+  JSValue key;
+  Attribute attr;
+};
+
 struct hash_table {
   int n_props;
   TransitionTable *transitions;
-  HashEntry entry[];
+  struct property entry[];
 };
 
 typedef struct transition HashTransitionCell;
