@@ -85,6 +85,8 @@ uint64_t pertype_alloc_bytes[256];
 uint64_t pertype_alloc_count[256];
 uint64_t pertype_live_bytes[256];
 uint64_t pertype_live_count[256];
+uint64_t pertype_collect_bytes[256];
+uint64_t pertype_collect_count[256];
 
 const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 00 */ "free",

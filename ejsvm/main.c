@@ -188,16 +188,24 @@ void print_gc_prof()
   int i;
   uint64_t total_live_bytes = 0;
   uint64_t total_live_count = 0;
+  uint64_t total_collect_bytes = 0;
+  uint64_t total_collect_count = 0;
 
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     total_live_bytes += pertype_live_bytes[i];
     total_live_count += pertype_live_count[i];
+    total_collect_bytes += pertype_collect_bytes[i];
+    total_collect_count += pertype_collect_count[i];
   }
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
   printf("%"PRId64" %"PRId64" ",
          generation > 1 ? total_live_bytes / (generation - 1) : 0,
          generation > 1 ? total_live_count / (generation - 1) : 0);
+  printf(" %"PRId64" %"PRId64" ", total_collect_bytes, total_collect_count);
+  printf("%"PRId64" %"PRId64" ",
+         generation > 1 ? total_collect_bytes / (generation - 1) : 0,
+         generation > 1 ? total_collect_count / (generation - 1) : 0);
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);
@@ -205,11 +213,19 @@ void print_gc_prof()
            generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
     printf(" %"PRId64" ",
            generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ", pertype_collect_bytes[i]);
+    printf(" %"PRId64" ", pertype_collect_count[i]);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_collect_bytes[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_collect_count[i] / (generation - 1) : 0);
   }
   printf("\n");
 
   printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
   printf("total alloc count = %"PRId64"\n", total_alloc_count);
+  printf("total collect bytes = %"PRId64"\n", total_collect_bytes);
+  printf("total collect count = %"PRId64"\n", total_collect_count);
   for (i = 0; i < 255; i++)
     if (pertype_alloc_count[i] > 0) {
       printf("  type %02x ", i);
@@ -219,6 +235,12 @@ void print_gc_prof()
              generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
       printf("l.count = %4"PRId64" ",
              generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+      printf("ct.bytes = %7"PRId64" ", pertype_collect_bytes[i]);
+      printf("ct.count = %5"PRId64" ", pertype_collect_count[i]);
+      printf("ca.bytes = %7"PRId64" ",
+             generation > 1 ? pertype_collect_bytes[i] / (generation - 1) : 0);
+      printf("ca.count = %4"PRId64" ",
+             generation > 1 ? pertype_collect_count[i] / (generation - 1) : 0);
       printf("%s\n", CELLT_NAME(i));
     }
 }

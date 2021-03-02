@@ -322,7 +322,9 @@ static void update_forward_reference(Context *ctx) {
     header_t *hdrp = (header_t *) scan;
     unsigned int size = get_threaded_header_size(hdrp);
 
-    if (get_threaded_header_markbit(hdrp))
+    const bool markbit = get_threaded_header_markbit(hdrp);
+
+    if (markbit)
     {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
@@ -355,6 +357,15 @@ static void update_forward_reference(Context *ctx) {
         header_t *last_free_hdrp = (header_t *) last_free_space;
         last_free_hdrp->size += size;
       }
+
+#ifdef GC_PROF
+      if (!markbit) {
+        cell_type_t type = hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_collect_bytes[type]+= bytes;
+        pertype_collect_count[type]++;
+      }
+#endif /* GC_PROF */
 
       is_last_free = true;
     }
@@ -398,6 +409,15 @@ static void update_forward_reference(Context *ctx) {
       footer->markbit = 0;
 #endif /* GC_THREADED_BOUNDARY_TAG */
     }
+
+#ifdef GC_PROF
+      if (!markbit) {
+        cell_type_t type = hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_collect_bytes[type]+= bytes;
+        pertype_collect_count[type]++;
+      }
+#endif /* GC_PROF */
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
     if (markbit)
@@ -489,6 +509,15 @@ static void update_backward_reference() {
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
 
+#ifdef GC_PROF
+      {
+        cell_type_t type = to_hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_live_bytes[type]+= bytes;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
+
 #ifdef GC_DEBUG
       {
         header_t *shadow = get_shadow(to_hdrp);
@@ -562,6 +591,19 @@ static void update_backward_reference() {
       footer->markbit = 0;
       copy_object_reverse(hdrp, to_hdrp, size + HEADER_GRANULES);
 #endif /* GC_THREADED_BOUNDARY_TAG */
+
+#ifdef GC_PROF
+      {
+        cell_type_t type = to_hdrp->type;
+#ifdef GC_THREADED_BOUNDARY_TAG
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+#else /* GC_THREADED_BOUNDARY_TAG */
+        size_t bytes = (size + HEADER_GRANULES) << LOG_BYTES_IN_GRANULE;
+#endif /* GC_THREADED_BOUNDARY_TAG */
+        pertype_live_bytes[type]+= bytes;
+        pertype_live_count[type]++;
+      }
+#endif /* GC_PROF */
 
 #ifdef GC_DEBUG
       {

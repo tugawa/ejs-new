@@ -410,6 +410,8 @@ extern uint64_t pertype_alloc_bytes[];
 extern uint64_t pertype_alloc_count[];
 extern uint64_t pertype_live_bytes[];
 extern uint64_t pertype_live_count[];
+extern uint64_t pertype_collect_bytes[];
+extern uint64_t pertype_collect_count[];
 #endif /* GC_PROF */
 
 /*
