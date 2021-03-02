@@ -434,9 +434,18 @@ HashTransitionIterator createHashTransitionIterator(HashTable *table)
 }
 
 int nextHashPropertyCell(HashTable *table,
-                         HashPropertyIterator *iter, HashPropertyCell **pp)
+                         HashPropertyIterator *iter,
+                         JSValue *key,
+                         uint32_t *index,
+                         Attribute *attr)
 {
-  return next_hash_cell(table, &iter->i, (HashCell**) pp, ATTR_NONE);
+  HashCell *cell;
+  if (next_hash_cell(table, &iter->i, &cell, ATTR_NONE) == FAIL)
+    return FAIL;
+  *key = cell->entry.key;
+  *index = cell->entry.data.u.index;
+  *attr = cell->entry.attr;
+  return SUCCESS;
 }
 
 int nextHashTransitionCell(HashTable *table,
@@ -455,11 +464,16 @@ HashPropertyIterator createHashPropertyIterator(HashTable *table)
 }
 
 int nextHashPropertyCell(HashTable *table,
-                         HashPropertyIterator *iter, HashPropertyCell **pp)
+                         HashPropertyIterator *iter,
+                         JSValue *key,
+                         uint32_t *index,
+                         Attribute *attr)
 {
   if (iter->i < table->n_props) {
     if (table->entry[iter->i].key != JS_UNDEFINED) {
-      *pp = &table->entry[iter->i];
+      *key = table->entry[iter->i].key;
+      *index = iter->i;
+      *attr = table->entry[iter->i].attr;
       iter->i++;
       return SUCCESS;
     }

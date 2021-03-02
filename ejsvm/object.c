@@ -1464,28 +1464,28 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
   Shape *os = object_get_shape(array);
   PropertyMap *pm = os->pm;
   HashPropertyIterator iter = createHashPropertyIterator(pm->map);
-  HashPropertyCell *p;
+  JSValue key;
+  uint32_t index;
+  Attribute attr;
   GC_PUSH2(pm, array);
-  while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-    JSValue key = hash_property_cell_key(p);
+  while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
     JSValue number_key;
     double double_key;
     int32_t int32_key;
     assert(is_string(key));
-    GC_PUSH(p);
+    GC_PUSH(key);
     number_key = string_to_number(ctx, key);
     double_key = number_to_double(number_key);
     int32_key = (int32_t) double_key;
     if (int32_key >= 0 && double_key == (double) int32_key) {
       if (int32_key < length) {
-        int index = hash_property_cell_index(p);
         JSValue v = object_get_prop(array, index);
         JSValue *storage = get_jsarray_body(array);
         storage[index] = v;
       }
-      set_prop(ctx, array, hash_property_cell_key(p), JS_EMPTY, ATTR_NONE);
+      set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
     }
-    GC_POP(p);
+    GC_POP(key);
   }
   GC_POP2(array, pm);
 }
@@ -1496,9 +1496,10 @@ remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
   Shape *os = object_get_shape(array);
   PropertyMap *pm = os->pm;
   HashPropertyIterator iter = createHashPropertyIterator(pm->map);
-  HashPropertyCell *p;
-  while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-    JSValue key = hash_property_cell_key(p);
+  JSValue key;
+  uint32_t index;
+  Attribute attr;
+  while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
     JSValue number_key;
     double double_key;
     int32_t int32_key;
@@ -1736,17 +1737,19 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   do {
     HashTable *ht;
     HashPropertyIterator hi;
-    HashPropertyCell *p;
+    JSValue key;
+    uint32_t prop_index;
+    Attribute attr;
     JSValue *body;
 
     ht = object_get_shape(obj)->pm->map;
     hi = createHashPropertyIterator(ht);
 
     body = get_jsnormal_iterator_body(iter);
-    while (nextHashPropertyCell(ht, &hi, &p) == SUCCESS) {
-      if (hash_property_cell_attr(p) & ATTR_DE)
+    while (nextHashPropertyCell(ht, &hi, &key, &prop_index, &attr) == SUCCESS) {
+      if (attr & ATTR_DE)
         continue;
-      body[index++] = hash_property_cell_key(p);
+      body[index++] = key;
     }
     obj = get_prop(obj, gconsts.g_string___proto__);
   } while (obj != JS_NULL);
@@ -1893,13 +1896,11 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
   fprintf(fp, "\n");
   {
     HashPropertyIterator iter = createHashPropertyIterator(pm->map);
-    HashPropertyCell *p;
-    while(nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-      fprintf(fp, "PROP %p %lld %s %d\n", pm,
-              hash_property_cell_index(p),
-              string_to_cstr(hash_property_cell_key(p)),
-              hash_property_cell_attr(p));
-    }
+    JSValue key;
+    uint32_t index;
+    Attribute attr;
+    while(nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL)
+      fprintf(fp, "PROP %p %lld %s %d\n", pm, index, string_to_cstr(key), attr);
   }
   for (os = pm->shapes; os != NULL; os = os->next) {
     int fun_no, insn_no;
@@ -2000,11 +2001,12 @@ int sprint_property_map(char *start, PropertyMap *pm)
   buf += sprintf(buf, " [");
   for (i = 0; i < pm->n_props; i++) {
     HashPropertyIterator iter = createHashPropertyIterator(pm->map);
-    HashPropertyCell *p;
-    while (nextHashPropertyCell(pm->map, &iter, &p) != FAIL) {
-      if (hash_property_cell_index(p) == i) {
-        buf += sprintf(buf, "%s ",
-                       string_to_cstr(hash_property_cell_key(p)));
+    JSValue key;
+    uint32_t index;
+    Attribute attr;
+    while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
+      if (index == i) {
+        buf += sprintf(buf, "%s ", string_to_cstr(key));
         break;
       }
     }

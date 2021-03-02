@@ -212,7 +212,9 @@ extern int nextHashTransitionCell(HashTable *table,
                                   HashTransitionCell** p);
 extern int nextHashPropertyCell(HashTable *table,
                                 HashPropertyIterator *iter,
-                                HashPropertyCell** p);
+                                JSValue *key,
+                                uint32_t *index,
+                                Attribute *attr);
 
 /*
  * string.c

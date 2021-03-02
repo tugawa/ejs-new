@@ -55,12 +55,7 @@ typedef struct hash_cell {
   struct hash_cell *next;
 } HashCell;
 
-typedef HashCell HashPropertyCell;
 typedef HashCell HashTransitionCell;
-
-#define hash_property_cell_key(cell) ((cell)->entry.key)
-#define hash_property_cell_attr(cell) ((cell)->entry.attr)
-#define hash_property_cell_index(cell) ((cell)->entry.data.u.index)
 
 static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
   cell->deleted = 1;
@@ -106,12 +101,7 @@ struct hash_table {
   HashEntry entry[];
 };
 
-typedef HashEntry HashPropertyCell;
 typedef struct transition HashTransitionCell;
-
-#define hash_property_cell_key(cell) ((cell)->key)
-#define hash_property_cell_attr(cell) ((cell)->attr)
-#define hash_property_cell_index(cell) ((cell)->data.u.index)
 
 static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
   cell->key = JS_UNDEFINED;
