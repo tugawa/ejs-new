@@ -199,7 +199,6 @@ void start_garbage_collection(Context *ctx)
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
 
-  printf("GC\n");
 #ifdef AS_PROF
   printf("==========GC=========\n");
   print_as_prof(ctx);
