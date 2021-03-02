@@ -1900,7 +1900,7 @@ static void dump_property_map_recursive(FILE *fp, Context *ctx,
     uint32_t index;
     Attribute attr;
     while(nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL)
-      fprintf(fp, "PROP %p %lld %s %d\n", pm, index, string_to_cstr(key), attr);
+      fprintf(fp, "PROP %p %d %s %d\n", pm, index, string_to_cstr(key), attr);
   }
   for (os = pm->shapes; os != NULL; os = os->next) {
     int fun_no, insn_no;
