@@ -83,11 +83,7 @@ HashTable *hash_create(Context *ctx, unsigned int size)
   table->transitions = NULL;
   for (i = 0; i < size; i++) {
     table->entry[i].key = JS_UNDEFINED;
-#if 0
     table->entry[i].data.u.index = i;
-#else
-    table->entry[i].data.u.index = 0;
-#endif
     table->entry[i].attr = 0;
   }
 
@@ -211,7 +207,6 @@ void hash_put_transition(Context *ctx, HashTable *table,
 int hash_put_property(Context *ctx, HashTable *table,
                       HashKey key, uint32_t index, Attribute attr)
 {
-#if 0
   assert(table->entry[index].key == JS_UNDEFINED ||
          table->entry[index].key == key);
   assert(!is_transition(attr));
@@ -221,23 +216,6 @@ int hash_put_property(Context *ctx, HashTable *table,
   table->entry[index].key = key;
   table->entry[index].attr = attr;
   return HASH_PUT_SUCCESS;
-#else
-  int i;
-  for (i = 0; i < table->n_props; i++) {
-    if (table->entry[i].key == key) {
-      if (is_readonly(table->entry[i].attr))
-        return HASH_PUT_FAILED;
-      break;
-    }
-    if (table->entry[i].key == JS_UNDEFINED)
-      break;
-  }
-  assert(i < table->n_props);
-  table->entry[i].key = key;
-  table->entry[i].data.u.index = index;
-  table->entry[i].attr = attr;
-  return HASH_PUT_SUCCESS;
-#endif
 }
 
 void hash_put_transition(Context *ctx, HashTable *table,
@@ -344,13 +322,17 @@ int hash_copy(Context *ctx, HashTable *from, HashTable *to) {
 #else /* PROPERTY_MAP_HASHTABLE */
 int hash_copy(Context *ctx, HashTable *from, HashTable *to)
 {
-  int i;
+  int i, n = 0;
   assert(from->n_props <= to->n_props);
   
-  for (i = 0; i < from->n_props; i++)
-    to->entry[i] = from->entry[i];
+  for (i = 0; i < from->n_props; i++) {
+    if (from->entry[i].key != JS_UNDEFINED) {
+      n++;
+      to->entry[i].key = from->entry[i].key;
+    }
+  }
 
-  return from->n_props;
+  return n;
 }
 #endif /* PROPERTY_MAP_HASHTABLE */
 
