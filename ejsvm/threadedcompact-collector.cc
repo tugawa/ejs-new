@@ -322,7 +322,9 @@ static void update_forward_reference(Context *ctx) {
     header_t *hdrp = (header_t *) scan;
     unsigned int size = get_threaded_header_size(hdrp);
 
-    if (get_threaded_header_markbit(hdrp))
+    const bool markbit = get_threaded_header_markbit(hdrp);
+
+    if (markbit)
     {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
@@ -355,6 +357,15 @@ static void update_forward_reference(Context *ctx) {
         header_t *last_free_hdrp = (header_t *) last_free_space;
         last_free_hdrp->size += size;
       }
+
+#ifdef GC_PROF
+      if (!markbit) {
+        cell_type_t type = hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_collect_bytes[type]+= bytes;
+        pertype_collect_count[type]++;
+      }
+#endif /* GC_PROF */
 
       is_last_free = true;
     }
@@ -398,6 +409,15 @@ static void update_forward_reference(Context *ctx) {
       footer->markbit = 0;
 #endif /* GC_THREADED_BOUNDARY_TAG */
     }
+
+#ifdef GC_PROF
+      if (!markbit) {
+        cell_type_t type = hdrp->type;
+        size_t bytes = size << LOG_BYTES_IN_GRANULE;
+        pertype_collect_bytes[type]+= bytes;
+        pertype_collect_count[type]++;
+      }
+#endif /* GC_PROF */
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
     if (markbit)
