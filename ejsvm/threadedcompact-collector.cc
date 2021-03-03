@@ -330,11 +330,13 @@ merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
     return;
   size_t bytes = end - start;
   size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
+#ifdef GC_THREADED_BOUNDARY_TAG
   if (granules > BOUNDARY_TAG_MAX_SIZE) {
     /* TODO: split free space */
     assert(granules <= BOUNDARY_TAG_MAX_SIZE);
     return;
   }
+#endif /* BOUNDARY_TAG_MAX_SIZE */
   header_t *hdrp = (header_t *) start;
 #ifdef GC_THREADED_BOUNDARY_TAG
   hdrp->size_lo = granules;
@@ -484,6 +486,7 @@ static void update_forward_reference(Context *ctx) {
 #ifdef GC_THREADED_BOUNDARY_TAG
   assert(read_boundary_tag(scan) == 0);
 #endif /* GC_THREADED_BOUNDARY_TAG */
+  return;
 }
 
 static void update_backward_reference() {

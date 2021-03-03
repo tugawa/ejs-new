@@ -126,7 +126,8 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
     space->begin = next;
     *hdrp = compose_header(alloc_granules, type);
   } else {
-    uintptr_t alloc_end = space->end - BOUNDARY_TAG_GRANULES;
+    uintptr_t alloc_end =
+      space->end - (BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE);
     hdrp = (header_t *) (alloc_end - bytes);
     if (space->begin > (uintptr_t) hdrp)
       goto js_space_alloc_out_of_memory;
