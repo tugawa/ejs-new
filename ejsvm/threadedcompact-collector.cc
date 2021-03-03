@@ -56,7 +56,7 @@ static Context *the_context;
 static void count_dead_object(header_t hdr, size_t size)
 {
   cell_type_t type = hdr.type;
-  size_t bytes = size << LOG_BYTES_IN_GRANULE;
+  size_t bytes = (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
   pertype_collect_bytes[type]+= bytes;
   pertype_collect_count[type]++;
 }
