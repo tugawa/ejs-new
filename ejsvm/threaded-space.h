@@ -65,31 +65,32 @@ typedef struct header_t {
       unsigned int markbit:    HEADER_MARKBIT_BITS;
       unsigned int magic:      HEADER_MAGIC_BITS;
       unsigned int gen:        HEADER_GEN_BITS;
+#ifdef GC_THREADED_BOUNDARY_TAG
+      union {
+	unsigned int size:     HEADER_SIZE_BITS;
+	struct {
+#define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_SIZE_BITS_LO) - 1)
+	  unsigned int size_lo: HEADER_SIZE_BITS_LO;
+	  unsigned int size_hi: HEADER_SIZE_BITS_HI;
+	};
+      };
+#else /* GC_THREADED_BOUNDARY_TAG */
       unsigned int size:       HEADER_SIZE_BITS;
+#endif /* GC_THREADED_BOUNDARY_TAG */
     };
   };
 } header_t;
-#ifdef GC_THREADED_BOUNDARY_TAG
-#define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_SIZE_BITS_LO) - 1)
-typedef struct footer_t {
-  union {
-    header_t as_header;
-    struct {
-      unsigned int d_identifier: HEADER_IDENTIFIER_BITS;
-      cell_type_t  d_type:       HEADER_TYPE_BITS;
-      unsigned int d_markbit:    HEADER_MARKBIT_BITS;
-      unsigned int d_magic:      HEADER_MAGIC_BITS;
-      unsigned int d_gen:        HEADER_GEN_BITS;
-      unsigned int size_lo:      HEADER_SIZE_BITS_LO;
-      unsigned int size_hi:      HEADER_SIZE_BITS_HI;
-    };
-  };
-} footer_t;
-#endif /* GC_THREADED_BOUNDARY_TAG */
 
 static inline header_t compose_header(size_t granules, cell_type_t type);
 #ifdef GC_THREADED_BOUNDARY_TAG
-static inline footer_t compose_footer(size_t granules, cell_type_t type);
+static inline header_t
+compose_hidden_class_header(size_t granules, cell_type_t type);
+#endif /* GC_THREADED_BOUNDARY_TAG */
+
+#ifdef GC_THREADED_BOUNDARY_TAG
+#define BOUNDARY_TAG_GRANULES 0
+#else /*  GC_THREADED_BOUNDARY_TAG */
+#define BOUNDARY_TAG_GRANULES 1
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
 /*

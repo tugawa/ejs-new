@@ -56,24 +56,18 @@ STATIC void create_space(struct space *space, size_t bytes, size_t threshold_byt
   uintptr_t addr;
   addr = (uintptr_t) malloc(bytes);
   space->head = (uintptr_t) addr;
-  space->begin = (uintptr_t) addr;
+  space->begin = space->head;
   space->tail = (uintptr_t) addr + bytes;
+  space->end = space->tail;
 #ifdef GC_THREADED_BOUNDARY_TAG
-  space->end = (uintptr_t) end_to_footer(space->tail);
+  space->end -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
+  *((header_t *) space->end) = compose_hidden_class_header(0, CELLT_FREE);
+  write_boundary_tag(space->end, 0);
+#endif /* GC_THREADED_BOUNDARY_TAG */
   space->bytes = bytes;
   space->free_bytes = space->end - space->begin;
-#else /* GC_THREADED_BOUNDARY_TAG */
-  space->end = (uintptr_t) addr + bytes;
-  space->bytes = bytes;
-  space->free_bytes = bytes;
-#endif /* GC_THREADED_BOUNDARY_TAG */
   space->threshold_bytes = threshold_bytes;
   space->name = name;
-
-#ifdef GC_THREADED_BOUNDARY_TAG
-  footer_t *footer = (footer_t *)space->end;
-  *footer = compose_footer(0, CELLT_FREE);
-#endif /* GC_THREADED_BOUNDARY_TAG */
 }
 
 #ifdef GC_DEBUG
@@ -110,62 +104,39 @@ STATIC_INLINE bool is_hidden_class(cell_type_t type)
 
 /*
  * Returns a pointer to the first address of the memory area
- * available to the VM.  The header precedes the area.
- * The header has the size of the chunk including the header,
- * the area available to the VM, and extra bytes if any.
- * Other header bits are zero
+ * available to the VM. The header precedes the area.
  */
 STATIC_INLINE void* js_space_alloc(struct space *space,
                                    size_t request_bytes, cell_type_t type)
 {
-  size_t  alloc_granules;
-
-  alloc_granules = BYTE_TO_GRANULE_ROUNDUP(request_bytes);
-  alloc_granules += HEADER_GRANULES;
-
 #if LOG_BYTES_IN_GRANULE != LOG_BYTES_IN_JSVALUE
 #error "LOG_BYTES_IN_JSVALUE != LOG_BYTES_IN_GRANULE"
 #endif
 
+  size_t alloc_granules =
+    BYTE_TO_GRANULE_ROUNDUP(request_bytes) + HEADER_GRANULES;
+  size_t bytes = (alloc_granules << LOG_BYTES_IN_GRANULE);
+  header_t *hdrp;
+
   if (!is_hidden_class(type)) {
-    uintptr_t bytes = (alloc_granules << LOG_BYTES_IN_GRANULE);
-    header_t *hdrp = (header_t *) space->begin;
     uintptr_t next = space->begin + bytes;
-
-    if (next < space->end) {
-      space->begin = next;
-      space->free_bytes -= bytes;
-      *hdrp = compose_header(alloc_granules, type);
-      return header_to_payload(hdrp);
-    }
-  } else {
-#ifdef GC_THREADED_BOUNDARY_TAG
-#ifndef GC_THREADED_BOUNDARY_TAG_SKIP_SIZE_CHECK
-    if (alloc_granules > BOUNDARY_TAG_MAX_SIZE)
+    if (next >= space->end)
       goto js_space_alloc_out_of_memory;
-#endif /* GC_THREADED_BOUNDARY_TAG_NO_SIZE_CHECK */
-    uintptr_t bytes = (alloc_granules << LOG_BYTES_IN_GRANULE);
-    footer_t *footer = (footer_t *) space->end;
-    header_t *hdrp = (header_t *) (((uintptr_t) footer) - bytes);
-#else /* GC_THREADED_BOUNDARY_TAG */
-    uintptr_t bytes = ((alloc_granules + HEADER_GRANULES) << LOG_BYTES_IN_GRANULE);
-    header_t *hdrp = (header_t *) (space->end - bytes);
-    header_t *footer = end_to_footer(space->end);
-#endif /* GC_THREADED_BOUNDARY_TAG */
-
-    if (space->begin < (uintptr_t) hdrp) {
-      space->end = (uintptr_t) hdrp;
-      space->free_bytes -= bytes;
-#ifdef GC_THREADED_BOUNDARY_TAG
-      *((footer_t *) hdrp) = compose_footer(alloc_granules, type);
-      footer->size_hi = alloc_granules;
-#else /* GC_THREADED_BOUNDARY_TAG */
-      *hdrp = compose_header(alloc_granules, type);
-      *footer = *hdrp;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-      return header_to_payload(hdrp);
-    }
+    hdrp = (header_t *) space->begin;
+    space->begin = next;
+    *hdrp = compose_header(alloc_granules, type);
+  } else {
+    uintptr_t alloc_end = space->end - BOUNDARY_TAG_GRANULES;
+    hdrp = (header_t *) (alloc_end - bytes);
+    if (space->begin > (uintptr_t) hdrp)
+      goto js_space_alloc_out_of_memory;
+    space->end = (uintptr_t) hdrp;
+    *hdrp = compose_hidden_class_header(alloc_granules, type);
+    write_boundary_tag(alloc_end, alloc_granules);
   }
+
+  space->free_bytes -= bytes;
+  return header_to_payload(hdrp);
 
 js_space_alloc_out_of_memory:
 #ifdef DEBUG

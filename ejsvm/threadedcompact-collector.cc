@@ -52,6 +52,29 @@ static Context *the_context;
  */
 #include "mark-tracer.h"
 
+#ifdef GC_PROF
+static void count_dead_object(header_t hdr, size_t size)
+{
+  cell_type_t type = hdr.type;
+  size_t bytes = size << LOG_BYTES_IN_GRANULE;
+  pertype_collect_bytes[type]+= bytes;
+  pertype_collect_count[type]++;
+}
+
+static void count_live_object(header_t hdr, size_t size)
+{
+  cell_type_t type = hdr.type;
+  size_t bytes = (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
+  pertype_live_bytes[type]+= bytes;
+  pertype_live_count[type]++;
+}
+
+#define COUNT_DEAD_OBJECT(hdrp, size) count_dead_object(hdrp, size)
+#define COUNT_LIVE_OBJECT(hdrp, size) count_live_object(hdrp, size)
+#else /* GC_PROF */
+#define COUNT_DEAD_OBJECT(hdrp, size)
+#define COUNT_LIVE_OBJECT(hdrp, size)
+#endif /* GC_PROF */
 
 static bool is_reference(void **pptr);
 static void thread_reference(void **ref);
@@ -141,7 +164,7 @@ public:
 
     header_t *hdrp = payload_to_header(p);
 #ifdef GC_THREADED_BOUNDARY_TAG
-    size_t payload_granules = ((footer_t *) hdrp)->size_lo - HEADER_GRANULES;
+    size_t payload_granules = hdrp->size_lo - HEADER_GRANULES;
 #else /* GC_THREADED_BOUNDARY_TAG */
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
 #endif /* GC_THREADED_BOUNDARY_TAG */
@@ -177,12 +200,12 @@ static void thread_reference(void **ref) {
   if (*ref != NULL) {
 #ifdef GC_DEBUG
     if (!is_reference((void **) *ref)) {
-      printf("*ref value : 0x%016" PRIx64 " (at %p) is not reference\n", (uintptr_t) *ref, ref);
+      printf("*ref value : 0x%016" PRIxPTR " (at %p) is not reference\n", (uintptr_t) *ref, ref);
       fflush(stdout);
       abort();
     }
     if (!in_js_space(*ref)) {
-      printf("*ref value : 0x%016" PRIx64 " (at %p) is not in js_space\n", (uintptr_t) *ref, ref);
+      printf("*ref value : 0x%016" PRIxPTR " (at %p) is not in js_space\n", (uintptr_t) *ref, ref);
       fflush(stdout);
       abort();
     }
@@ -228,7 +251,9 @@ static void update_reference(header_t hdr, void *ref_, void *addr) {
 static void update_forward_reference(Context *ctx);
 static void update_backward_reference();
 static void copy_object(void *from, void *to, unsigned int size);
-static void copy_object_reverse(void *from_, void *to_, unsigned int size);
+static void copy_object_reverse(uintptr_t from,
+				uintptr_t from_end, uintptr_t to_end);
+
 #if GC_DEBUG
 static void fill_mem(void *p1, void *p2, JSValue v);
 #endif /* GC_DEBUG */
@@ -282,6 +307,48 @@ void garbage_collection(Context *ctx)
 
   gc_phase = PHASE_INACTIVE;
 }
+
+#ifdef GC_THREADED_MERGE_FREE_SPACE
+static inline void
+merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
+				      uintptr_t first_free)
+{
+  /*
+   *  do merge
+   *  start                  first   end
+   *   | free  | free  | free | free |
+   *
+   *  do not merge (1): single free cell
+   *  first == start          end
+   *   |         free          |
+   *
+   *  do not merge (2): no free cell
+   *  first                   end == start
+   *   |         live          |
+   */
+  if (first_free <= start)
+    return;
+  size_t bytes = end - start;
+  size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
+  if (granules > BOUNDARY_TAG_MAX_SIZE) {
+    /* TODO: split free space */
+    assert(granules <= BOUNDARY_TAG_MAX_SIZE);
+    return;
+  }
+  header_t *hdrp = (header_t *) start;
+#ifdef GC_THREADED_BOUNDARY_TAG
+  hdrp->size_lo = granules;
+#else /* GC_THREADED_BOUNDARY_TAG */
+  hdrp->size = granules;
+#endif /* GC_THREADED_BOUNDARY_TAG */
+  write_boundary_tag(end, granules);
+}
+#else /* GC_THREADED_MERGE_FREE_SPACE */
+static inline void
+merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
+				      uintprt_t first_free) {
+}
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
 static void update_forward_reference(Context *ctx) {
   scan_roots<ThreadTracer>(ctx);
@@ -347,116 +414,75 @@ static void update_forward_reference(Context *ctx) {
     }
 #endif /* GC_THREADED_MERGE_FREE_SPACE */
 
-    scan += size << LOG_BYTES_IN_JSVALUE;
+    scan += size << LOG_BYTES_IN_GRANULE;
   }
 
-#ifdef GC_THREADED_BOUNDARY_TAG
-  scan = (uintptr_t) end_to_footer(js_space.tail);
-#else /* GC_THREADED_BOUNDARY_TAG */
+
+  /* hidden class area */
   scan = js_space.tail;
+#ifdef GC_THREADED_BOUNDARY_TAG
+  /* There is an object header at the end of the heap, holding the
+   * size of the last object */
+  scan -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
 #endif /* GC_THREADED_BOUNDARY_TAG */
   end = js_space.end;
   free = scan;
-#ifdef GC_THREADED_MERGE_FREE_SPACE
-  last_free_space = scan;
-  is_last_free = false;
-#endif /* GC_THREADED_MERGE_FREE_SPACE */
-
   while (scan > end) {
-#ifdef GC_THREADED_BOUNDARY_TAG
-    footer_t *footer = (footer_t *) scan;
-    header_t *hdrp = footer_to_header(footer);
-    unsigned int size = footer->size_hi;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    header_t *footer = end_to_footer(scan);
-    header_t *hdrp = footer_to_header(footer);
-    unsigned int size = footer->size;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+    /*
+     * In this loop, scan, size, and hdrp are updated nimultaneously
+     * so that they hold:
+     *   hdrp             scan
+     *    V                V
+     *   |hd|   payload   |bt|
+     *    <---  size  --->
+     */
+
+    scan -= BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE;
+    size_t size = read_boundary_tag(scan);
+    header_t *hdrp = (header_t *) (scan - (size << LOG_BYTES_IN_GRANULE));
+
+    /* skip free/garbage */
+    uintptr_t free_end = scan;
+    uintptr_t first_free = (uintptr_t) hdrp;
+    uintptr_t last_free = scan;
+    while (!is_reference(*(void ***) hdrp) && !is_marked_cell_header(hdrp)) {
+      COUNT_DEAD_OBJECT(*hdrp, size);
+      scan = (uintptr_t) hdrp;
+      last_free = scan;
+      assert(scan >= js_space.end);
+      if (scan == js_space.end) {
+	merge_free_space_in_hidden_class_area(last_free, free_end, first_free);
+	goto HIDDEN_CLASS_AREA_DONE;
+      }
+      scan -= BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE;
+      size = read_boundary_tag(scan);
+      hdrp = (header_t *) (scan - (size << LOG_BYTES_IN_GRANULE));
+    }
+    merge_free_space_in_hidden_class_area(last_free, free_end, first_free);
+
+    /* process live objects */
+    assert(((uintptr_t) hdrp) >= js_space.end);
     header_t hdr = get_threaded_header(hdrp);
-    const bool markbit = hdr.markbit;
-
-    if (markbit) {
-#ifdef GC_THREADED_BOUNDARY_TAG
-      free -= size << LOG_BYTES_IN_JSVALUE;
-#else /* GC_THREADED_BOUNDARY_TAG */
-      free -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
-      footer->markbit = 1;
-    }
-    else {
-      footer->markbit = 0;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-    }
-
-#ifdef GC_PROF
-      if (!markbit) {
-        cell_type_t type = hdrp->type;
-        size_t bytes = size << LOG_BYTES_IN_GRANULE;
-        pertype_collect_bytes[type]+= bytes;
-        pertype_collect_count[type]++;
-      }
-#endif /* GC_PROF */
-
-#ifdef GC_THREADED_MERGE_FREE_SPACE
-    if (markbit)
-      is_last_free = false;
-    else {
-      if (!is_last_free)
-        last_free_space = scan;
-      else if (scan != last_free_space) {
-#ifdef GC_THREADED_BOUNDARY_TAG
-        footer_t *last_free_footer = (footer_t *) last_free_space;
-        unsigned int nextsize = last_free_footer->size_hi + size;
-#ifndef GC_THREADED_BOUNDARY_TAG_SKIP_SIZE_CHECK
-        if (nextsize > BOUNDARY_TAG_MAX_SIZE)
-          last_free_space = scan;
-        else
-#endif /* GC_THREADED_BOUNDARY_TAG_NO_SIZE_CHECK */
-        {
-          last_free_footer->size_hi = nextsize;
-          header_t *free_header = hdrp;
-          while (is_reference((void **) free_header->threaded))
-            free_header = (header_t *) free_header->threaded;
-          ((footer_t *) free_header)->size_lo = nextsize;
-        }
-#else /* GC_THREADED_BOUNDARY_TAG */
-        header_t *last_free_footer = end_to_footer(last_free_space);
-        last_free_footer->size += size + HEADER_GRANULES;
-        hdrp->size = last_free_footer->size;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-      }
-      is_last_free = true;
-    }
-#endif /* GC_THREADED_MERGE_FREE_SPACE */
-
-    if (markbit)
-    {
-      void *from = header_to_payload(hdrp);
-      header_t *to_hdrp = (header_t *) free;
-      void *to = header_to_payload(to_hdrp);
-
+    assert(is_marked_cell_header(&hdr));
+    COUNT_LIVE_OBJECT(hdr, size);
+    free -= (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
+    void *from = header_to_payload(hdrp);
+    header_t *to_hdrp = (header_t *) free;
+    void *to = header_to_payload(to_hdrp);
 #ifdef GC_DEBUG
-#ifdef TU_DEBUG
-      printf("%p -> %p\n", hdrp, to_hdrp);
-#endif /* TU_DEBUG */
-      if (size > 1) {
-	header_t **shadow = (header_t **) get_shadow(hdrp);
-	shadow[1] = to_hdrp;
-      }
-#endif /* GC_DEBUG */
-
-      update_reference(hdr, from, to);
-      process_node<ThreadTracer>((uintptr_t) from);
+    if (size > 1) {
+      header_t **shadow = (header_t **) get_shadow(hdrp);
+      shadow[1] = to_hdrp;
     }
-
-#ifdef GC_THREADED_BOUNDARY_TAG
-    scan -= size << LOG_BYTES_IN_JSVALUE;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    scan -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_DEBUG */
+    update_reference(hdr, from, to);
+    process_node<ThreadTracer>((uintptr_t) from);
+    scan = (uintptr_t) hdrp;
   }
+ HIDDEN_CLASS_AREA_DONE:
 
 #ifdef GC_THREADED_BOUNDARY_TAG
-  assert(((footer_t *) scan)->size_hi == 0);
+  assert(read_boundary_tag(scan) == 0);
 #endif /* GC_THREADED_BOUNDARY_TAG */
 }
 
@@ -513,77 +539,38 @@ static void update_backward_reference() {
 
   js_space.begin = free;
 
-#ifdef GC_THREADED_BOUNDARY_TAG
-  scan = (uintptr_t) end_to_footer(js_space.tail);
-#else /* GC_THREADED_BOUNDARY_TAG */
   scan = js_space.tail;
+#ifdef GC_THREADED_BOUNDARY_TAG
+  /* There is an object header at the end of the heap, holding the
+   * size of the last object */
+  scan -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
 #endif /* GC_THREADED_BOUNDARY_TAG */
   end = js_space.end;
   free = scan;
-
   while (scan > end) {
-#ifdef GC_THREADED_BOUNDARY_TAG
-    footer_t *footer = (footer_t *) scan;
-    header_t *hdrp = footer_to_header(footer);
-    unsigned int size = footer->size_hi;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    header_t *footer = end_to_footer(scan);
-    header_t *hdrp = footer_to_header(footer);
-    unsigned int size = footer->size;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+    /* skip boundary tag */
+    scan -= BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE;
+    /* scan points to the next address of the last byte of the object */
+    size_t size = read_boundary_tag(scan);
+    header_t *hdrp = (header_t *) (scan - (size << LOG_BYTES_IN_GRANULE));
     header_t hdr = get_threaded_header(hdrp);
 
-#ifdef GC_THREADED_BOUNDARY_TAG
-    const bool markbit = hdr.markbit;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    const bool markbit = footer->markbit == 1;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-
-    if (markbit)
-#ifdef GC_THREADED_BOUNDARY_TAG
-      free -= size << LOG_BYTES_IN_JSVALUE;
-#else /* GC_THREADED_BOUNDARY_TAG */
-      free -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-
-    if (markbit)
-    {
+    if (is_marked_cell_header(&hdr)) {
+      free -= BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE;
+      header_t *to_hdrp = (header_t *) (free - (size << LOG_BYTES_IN_GRANULE));
       void *from = header_to_payload(hdrp);
-      header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
-
 #ifdef GC_DEBUG
-#ifdef TU_DEBUG
-      printf("%p -> %p\n", hdrp, to_hdrp);
-#endif /* TU_DEBUG */
       if (size > 1) {
 	header_t **shadow = (header_t **) get_shadow(hdrp);
 	assert(shadow[1] == to_hdrp);
       }
 #endif /* GC_DEBUG */
-
       update_reference(hdr, from, to);
-      unmark_cell_header(hdrp);
-#ifdef GC_THREADED_BOUNDARY_TAG
-      copy_object_reverse(hdrp, to_hdrp, size);
-#else /* GC_THREADED_BOUNDARY_TAG */
-      footer->markbit = 0;
-      copy_object_reverse(hdrp, to_hdrp, size + HEADER_GRANULES);
-#endif /* GC_THREADED_BOUNDARY_TAG */
-
-#ifdef GC_PROF
-      {
-        cell_type_t type = to_hdrp->type;
-#ifdef GC_THREADED_BOUNDARY_TAG
-        size_t bytes = size << LOG_BYTES_IN_GRANULE;
-#else /* GC_THREADED_BOUNDARY_TAG */
-        size_t bytes = (size + HEADER_GRANULES) << LOG_BYTES_IN_GRANULE;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-        pertype_live_bytes[type]+= bytes;
-        pertype_live_count[type]++;
-      }
-#endif /* GC_PROF */
-
+      unmark_cell_header(&hdr);
+      copy_object_reverse((uintptr_t) from, scan, free);
+      *to_hdrp = hdr;
+      write_boundary_tag(free, size);
 #ifdef GC_DEBUG
       {
         header_t *shadow = get_shadow(to_hdrp);
@@ -592,19 +579,14 @@ static void update_backward_reference() {
 	  ((uintptr_t *)shadow)[1] = (uintptr_t) from;
       }
 #endif
+      free = (uintptr_t) to_hdrp;
     }
-
-#ifdef GC_THREADED_BOUNDARY_TAG
-    scan -= size << LOG_BYTES_IN_JSVALUE;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    scan -= (size + HEADER_GRANULES) << LOG_BYTES_IN_JSVALUE;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+    scan = (uintptr_t) hdrp;
   }
 
 #ifdef GC_THREADED_BOUNDARY_TAG
-  assert(((footer_t *) scan)->size_hi == 0);
-
-  ((footer_t *) free)->size_hi = 0;
+  assert(read_boundary_tag(scan) == 0);
+  write_boundary_tag(free, 0);
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
   js_space.end = free;
@@ -626,32 +608,16 @@ static void copy_object(void *from_, void *to_, unsigned int size)
     ++to;
   }
 }
-static void copy_object_reverse(void *from_, void *to_, unsigned int size)
+static void copy_object_reverse(uintptr_t from,
+				uintptr_t from_end, uintptr_t to_end)
 {
-  if (from_ == to_)
+  if (from_end == to_end)
     return;
-
-#ifdef GC_THREADED_BOUNDARY_TAG
-  JSValue *from = (JSValue *) from_ + size;
-  JSValue *to = (JSValue *) to_ + size;
-#else /* GC_THREADED_BOUNDARY_TAG */
-  JSValue *from = (JSValue *) from_ + (size - 1);
-  JSValue *to = (JSValue *) to_ + (size - 1);
-#endif /* GC_THREADED_BOUNDARY_TAG */
-  JSValue *end = (JSValue *) from_;
-
-#ifdef GC_THREADED_BOUNDARY_TAG
-  ((footer_t *) to)->size_hi = ((footer_t *) from)->size_hi;
-
-  --from;
-  --to;
-#endif /* GC_THREADED_BOUNDARY_TAG */
-
-  while(from >= end) {
-    *to = *from;
-    --from;
-    --to;
-  }
+  granule_t *p = (granule_t *) from_end;
+  granule_t *q = (granule_t *) to_end;
+  granule_t *end = (granule_t *) from;
+  while(end < p)
+    *--q = *--p;
 }
 
 #ifdef GC_DEBUG
