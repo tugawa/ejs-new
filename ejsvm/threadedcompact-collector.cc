@@ -55,11 +55,9 @@ static Context *the_context;
 
 static bool is_reference(void **pptr);
 static void thread_reference(void **ref);
-static void update_reference(void *ref, void *addr);
+static void update_reference(header_t hdr, void *ref, void *addr);
 
-static cell_type_t get_threaded_header_type(header_t *hdrp);
-static bool get_threaded_header_markbit(header_t *hdrp);
-static unsigned int get_threaded_header_size(header_t *hdrp);
+static header_t get_threaded_header(header_t *hdrp);
 
 class ThreadTracer {
 public:
@@ -174,7 +172,7 @@ static void thread_reference(void **ref) {
   }
 #endif /* DEBUG */
 
-  assert(get_threaded_header_markbit(payload_to_header(*ref)));
+  assert(get_threaded_header(payload_to_header(*ref)).markbit);
 
   if (*ref != NULL) {
 #ifdef GC_DEBUG
@@ -199,50 +197,28 @@ static void thread_reference(void **ref) {
     *ref = (void *) val;
   }
 }
-static void update_reference(void *ref_, void *addr) {
+
+static header_t get_threaded_header(header_t *hdrp)
+{
+  while(is_reference((void **) hdrp->threaded)) {
+    hdrp = (header_t *) hdrp->threaded;
+  }
+  return *hdrp;
+}
+
+static void update_reference(header_t hdr, void *ref_, void *addr) {
   header_t *hdrp = payload_to_header(ref_);
-  cell_type_t type = get_threaded_header_type(hdrp);
+  cell_type_t type = hdr.type;
   uintjsv_t tag = get_ptag_value_by_cell_type(type);
+  uintjsv_t value = put_ptag((uintjsv_t) addr, ((PTag) {tag}));
 
   void **ref = (void **) hdrp->threaded;
   while(is_reference(ref)) {
     void **next = (void **) *ref;
-    *ref = (void *) put_ptag((uintjsv_t) addr, ((PTag) {tag}));
+    *ref = (void *) value;
     ref = next;
   }
   hdrp->threaded = (uintptr_t) ref;
-}
-static cell_type_t get_threaded_header_type(header_t *hdrp) {
-  while(is_reference((void **) hdrp->threaded)) {
-    hdrp = (header_t *) hdrp->threaded;
-  }
-
-  return hdrp->type;
-}
-static bool get_threaded_header_markbit(header_t *hdrp) {
-  /* If header is threaded, it must be marked */
-  if (is_reference((void **) hdrp->threaded)) {
-#ifdef GC_DEBUG
-  while(is_reference((void **) hdrp->threaded)) {
-    hdrp = (header_t *) hdrp->threaded;
-  }
-  assert(hdrp->markbit != 0);
-#endif /* GC_DEBUG */
-    return true;
-  }
-
-  return hdrp->markbit != 0;
-}
-static unsigned int get_threaded_header_size(header_t *hdrp) {
-#if (HEADER_GRANULES == 1)
-  assert(sizeof(void *) == sizeof(header_t));
-
-  while(is_reference((void **) hdrp->threaded)) {
-    hdrp = (header_t *) hdrp->threaded;
-  }
-#endif /* (HEADER_GRANULES == 1) */
-
-  return hdrp->size;
 }
 
 /*
@@ -320,9 +296,9 @@ static void update_forward_reference(Context *ctx) {
 
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
-    unsigned int size = get_threaded_header_size(hdrp);
-
-    const bool markbit = get_threaded_header_markbit(hdrp);
+    header_t hdr = get_threaded_header(hdrp);
+    unsigned int size = hdr.size;
+    const bool markbit = hdr.markbit;
 
     if (markbit)
     {
@@ -340,7 +316,7 @@ static void update_forward_reference(Context *ctx) {
       }
 #endif /* GC_DEBUG */
 
-      update_reference(from, to);
+      update_reference(hdr, from, to);
       process_node<ThreadTracer>((uintptr_t) from);
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
@@ -396,8 +372,9 @@ static void update_forward_reference(Context *ctx) {
     header_t *hdrp = footer_to_header(footer);
     unsigned int size = footer->size;
 #endif /* GC_THREADED_BOUNDARY_TAG */
+    header_t hdr = get_threaded_header(hdrp);
+    const bool markbit = hdr.markbit;
 
-    const bool markbit = get_threaded_header_markbit(hdrp);
     if (markbit) {
 #ifdef GC_THREADED_BOUNDARY_TAG
       free -= size << LOG_BYTES_IN_JSVALUE;
@@ -467,7 +444,7 @@ static void update_forward_reference(Context *ctx) {
       }
 #endif /* GC_DEBUG */
 
-      update_reference(from, to);
+      update_reference(hdr, from, to);
       process_node<ThreadTracer>((uintptr_t) from);
     }
 
@@ -490,9 +467,10 @@ static void update_backward_reference() {
 
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
-    unsigned int size = get_threaded_header_size(hdrp);
+    header_t hdr = get_threaded_header(hdrp);
+    unsigned int size = hdr.size;
 
-    if (get_threaded_header_markbit(hdrp))
+    if (hdr.markbit)
     {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
@@ -505,7 +483,7 @@ static void update_backward_reference() {
       }
 #endif /* GC_DEBUG */
 
-      update_reference(from, to);
+      update_reference(hdr, from, to);
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
 
@@ -553,9 +531,10 @@ static void update_backward_reference() {
     header_t *hdrp = footer_to_header(footer);
     unsigned int size = footer->size;
 #endif /* GC_THREADED_BOUNDARY_TAG */
+    header_t hdr = get_threaded_header(hdrp);
 
 #ifdef GC_THREADED_BOUNDARY_TAG
-    const bool markbit = get_threaded_header_markbit(hdrp);
+    const bool markbit = hdr.markbit;
 #else /* GC_THREADED_BOUNDARY_TAG */
     const bool markbit = footer->markbit == 1;
 #endif /* GC_THREADED_BOUNDARY_TAG */
@@ -583,7 +562,7 @@ static void update_backward_reference() {
       }
 #endif /* GC_DEBUG */
 
-      update_reference(from, to);
+      update_reference(hdr, from, to);
       unmark_cell_header(hdrp);
 #ifdef GC_THREADED_BOUNDARY_TAG
       copy_object_reverse(hdrp, to_hdrp, size);
