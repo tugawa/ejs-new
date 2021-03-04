@@ -92,9 +92,9 @@ STATIC_INLINE bool is_hidden_class(cell_type_t type)
   case CELLT_HASHTABLE:
   case CELLT_HASH_BODY:
   case CELLT_HASH_CELL:
+  case CELLT_TRANSITIONS:
   case CELLT_PROPERTY_MAP:
   case CELLT_SHAPE:
-  case CELLT_UNWIND: // ???
   case CELLT_PROPERTY_MAP_LIST: // ???
     return true;
   default:
