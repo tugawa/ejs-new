@@ -501,18 +501,16 @@ static void update_forward_reference(Context *ctx)
 #endif /* GC_THREADED_BOUNDARY_TAG */
 }
 
-static void update_backward_reference() {
+static void update_backward_reference()
+{
   uintptr_t scan = js_space.head;
   uintptr_t end = js_space.begin;
   uintptr_t free = scan;
-
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
-    const bool markbit = get_threaded_header_markbit(hdrp);
     size_t size;
 
-    if (markbit)
-    {
+    if (get_threaded_header_markbit(hdrp)) {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
@@ -523,23 +521,12 @@ static void update_backward_reference() {
 	assert(shadow[1] == to_hdrp);
       }
 #endif /* GC_DEBUG */
-
       header_t hdr = get_threaded_header(hdrp);
       size = hdr.size;
       uintjsv_t tag = get_ptag_value_by_cell_type(hdr.type);
       update_reference(tag, from, to);
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
-
-#ifdef GC_PROF
-      {
-        cell_type_t type = to_hdrp->type;
-        size_t bytes = size << LOG_BYTES_IN_GRANULE;
-        pertype_live_bytes[type]+= bytes;
-        pertype_live_count[type]++;
-      }
-#endif /* GC_PROF */
-
 #ifdef GC_DEBUG
       {
         header_t *shadow = get_shadow(to_hdrp);
@@ -548,14 +535,12 @@ static void update_backward_reference() {
 	  ((uintptr_t *)shadow)[1] = (uintptr_t) from;
       }
 #endif
-
       free += size << LOG_BYTES_IN_JSVALUE;
     } else
       size = hdrp->size;
 
     scan += size << LOG_BYTES_IN_JSVALUE;
   }
-
   js_space.begin = free;
 
   scan = js_space.tail;
@@ -572,9 +557,8 @@ static void update_backward_reference() {
     /* scan points to the next address of the last byte of the object */
     size_t size = read_boundary_tag(scan);
     header_t *hdrp = (header_t *) (scan - (size << LOG_BYTES_IN_GRANULE));
-    header_t hdr = get_threaded_header(hdrp);
 
-    if (is_marked_cell_header(&hdr)) {
+    if (get_threaded_header_markbit(hdrp)) {
       free -= BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE;
       header_t *to_hdrp = (header_t *) (free - (size << LOG_BYTES_IN_GRANULE));
       void *from = header_to_payload(hdrp);
@@ -586,9 +570,8 @@ static void update_backward_reference() {
       }
 #endif /* GC_DEBUG */
       update_reference(0, from, to);
-      unmark_cell_header(&hdr);
-      copy_object_reverse((uintptr_t) from, scan, free);
-      *to_hdrp = hdr;
+      copy_object_reverse((uintptr_t) hdrp, scan, free);
+      unmark_cell_header(to_hdrp);
       write_boundary_tag(free, size);
 #ifdef GC_DEBUG
       {
