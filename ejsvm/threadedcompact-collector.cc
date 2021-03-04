@@ -356,10 +356,9 @@ merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
   write_boundary_tag(end, granules);
 }
 static inline void
-merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end,
-				  size_t count)
+merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end)
 {
-  if (count < 2)
+  if (start == end)
     return;
   size_t bytes = end - start;
   size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
@@ -392,20 +391,18 @@ static void update_forward_reference(Context *ctx)
 
     /* skip free/garbage */
     uintptr_t first_free = scan;
-    size_t free_count = 0;
     while (!get_threaded_header_markbit(hdrp)) {
       size_t size = hdrp->size;
       scan += size << LOG_BYTES_IN_GRANULE;
       assert(scan <= end);
       COUNT_DEAD_OBJECT(*hdrp, hdrp->size);
-      free_count++;
       if (scan == end) {
-	merge_free_space_in_ordinary_area(first_free, scan, free_count);
+	merge_free_space_in_ordinary_area(first_free, scan);
 	goto ORDINARY_AREA_DONE;
       }
       hdrp = (header_t *) scan;
     }
-    merge_free_space_in_ordinary_area(first_free, scan, free_count);
+    merge_free_space_in_ordinary_area(first_free, scan);
 
     /* process live object */
     assert((uintptr_t) hdrp < end);
