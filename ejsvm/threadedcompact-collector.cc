@@ -229,6 +229,20 @@ static header_t get_threaded_header(header_t *hdrp)
   return *hdrp;
 }
 
+static bool get_threaded_header_markbit(header_t *hdrp) {
+  /* If header is threaded, it must be marked */
+  if (is_reference((void **) hdrp->threaded)) {
+#ifdef GC_DEBUG
+    while(is_reference((void **) hdrp->threaded)) {
+      hdrp = (header_t *) hdrp->threaded;
+    }
+    assert(hdrp->markbit != 0);
+#endif /* GC_DEBUG */
+    return true;
+  }
+  return hdrp->markbit != 0;
+}
+
 static void update_reference(header_t hdr, void *ref_, void *addr) {
   header_t *hdrp = payload_to_header(ref_);
   cell_type_t type = hdr.type;
@@ -363,9 +377,8 @@ static void update_forward_reference(Context *ctx) {
 
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
-    header_t hdr = get_threaded_header(hdrp);
-    unsigned int size = hdr.size;
-    const bool markbit = hdr.markbit;
+    size_t size;
+    const bool markbit = get_threaded_header_markbit(hdrp);
 
     if (markbit)
     {
@@ -377,12 +390,14 @@ static void update_forward_reference(Context *ctx) {
 #ifdef TU_DEBUG
       printf("%p -> %p\n", hdrp, to_hdrp);
 #endif /* TU_DEBUG */
-      if (size > 1) {
+      if (get_threaded_header(hdrp).size > 1) {
 	header_t **shadow = (header_t **) get_shadow(hdrp);
 	shadow[1] = to_hdrp;
       }
 #endif /* GC_DEBUG */
 
+      header_t hdr = get_threaded_header(hdrp);
+      size = hdr.size;
       update_reference(hdr, from, to);
       process_node<ThreadTracer>((uintptr_t) from);
 
@@ -392,14 +407,17 @@ static void update_forward_reference(Context *ctx) {
 
       free += size << LOG_BYTES_IN_JSVALUE;
     }
-#ifdef GC_THREADED_MERGE_FREE_SPACE
     else {
+      size = hdrp->size;
+#ifdef GC_THREADED_MERGE_FREE_SPACE
       if (!is_last_free)
         last_free_space = scan;
       else if (scan != last_free_space) {
         header_t *last_free_hdrp = (header_t *) last_free_space;
         last_free_hdrp->size += size;
       }
+      is_last_free = true;
+#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
 #ifdef GC_PROF
       if (!markbit) {
@@ -410,9 +428,8 @@ static void update_forward_reference(Context *ctx) {
       }
 #endif /* GC_PROF */
 
-      is_last_free = true;
+
     }
-#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
     scan += size << LOG_BYTES_IN_GRANULE;
   }
@@ -493,22 +510,24 @@ static void update_backward_reference() {
 
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
-    header_t hdr = get_threaded_header(hdrp);
-    unsigned int size = hdr.size;
+    const bool markbit = get_threaded_header_markbit(hdrp);
+    size_t size;
 
-    if (hdr.markbit)
+    if (markbit)
     {
       void *from = header_to_payload(hdrp);
       header_t *to_hdrp = (header_t *) free;
       void *to = header_to_payload(to_hdrp);
 
 #ifdef GC_DEBUG
-      if (size > 1) {
+      if (get_threaded_header(hdrp).size > 1) {
 	header_t **shadow = (header_t **) get_shadow(hdrp);
 	assert(shadow[1] == to_hdrp);
       }
 #endif /* GC_DEBUG */
 
+      header_t hdr = get_threaded_header(hdrp);
+      size = hdr.size;
       update_reference(hdr, from, to);
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
@@ -532,7 +551,8 @@ static void update_backward_reference() {
 #endif
 
       free += size << LOG_BYTES_IN_JSVALUE;
-    }
+    } else
+      size = hdrp->size;
 
     scan += size << LOG_BYTES_IN_JSVALUE;
   }
