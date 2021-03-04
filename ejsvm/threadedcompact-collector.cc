@@ -78,7 +78,6 @@ static void count_live_object(header_t hdr, size_t size)
 
 static bool is_reference(void **pptr);
 static void thread_reference(void **ref);
-static void update_reference(header_t hdr, void *ref, void *addr);
 
 static header_t get_threaded_header(header_t *hdrp);
 
@@ -474,7 +473,6 @@ static void update_forward_reference(Context *ctx)
 
     /* process live object */
     assert(((uintptr_t) hdrp) >= end);
-    header_t hdr = get_threaded_header(hdrp);
     assert(is_marked_cell_header(&hdr));
     COUNT_LIVE_OBJECT(hdr, size);
     free -= (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
