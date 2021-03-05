@@ -87,7 +87,9 @@ static inline header_t
 compose_hidden_class_header(size_t granules, cell_type_t type);
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
-#ifdef GC_THREADED_BOUNDARY_TAG
+#ifdef GC_THREADED_NO_HCGC
+#define BOUNDARY_TAG_GRANULES 0
+#elif defined(GC_THREADED_BOUNDARY_TAG)
 #define BOUNDARY_TAG_GRANULES 0
 #else /*  GC_THREADED_BOUNDARY_TAG */
 #define BOUNDARY_TAG_GRANULES 1
@@ -98,11 +100,11 @@ compose_hidden_class_header(size_t granules, cell_type_t type);
  */
 
 /*
- * without GC_THREADED_SPEARATE_HC_AREA
- |----------->       <-------------|
+ * A) without GC_THREADED_SPEARATE_HC_AREA
+ * |----------->       <-------------|
  * head      begin    end          tail
  *
- * with GC_THREADED_SPEARATE_HC_AREA
+ * B) with GC_THREADED_SPEARATE_HC_AREA
  * |----------->    :    |   <-------------|
  * head      begin  :    |  end          tail
  *                  :  ordinary_limit
@@ -110,6 +112,7 @@ compose_hidden_class_header(size_t granules, cell_type_t type);
  *                  :   GC_THREADED_HC_AREA_BYTES
  *             threshold
  */
+
 struct space {
   uintptr_t head;
   uintptr_t tail;

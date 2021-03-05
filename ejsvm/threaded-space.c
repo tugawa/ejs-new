@@ -65,11 +65,11 @@ STATIC void create_space(struct space *space, size_t bytes, size_t threshold_byt
 #ifdef GC_THREADED_SEPARATE_HC_AREA
   space->ordinary_limit = space->end - GC_THREADED_HC_AREA_BYTES;
 #endif /* GC_THREADED_SEPARATE_HC_AREA */
-#ifdef GC_THREADED_BOUNDARY_TAG
+#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
   space->end -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
   *((header_t *) space->end) = compose_hidden_class_header(0, CELLT_FREE);
   write_boundary_tag(space->end, 0);
-#endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
   space->bytes = bytes;
   space->free_bytes = space->end - space->begin;
 #ifdef GC_THREADED_SEPARATE_HC_AREA
@@ -146,7 +146,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
       space->end - (BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE);
     hdrp = (header_t *) (alloc_end - bytes);
 #ifdef GC_THREADED_SEPARATE_HC_AREA
-    assert(space->ordinary_limit <= next);
+    assert(space->ordinary_limit <= (uintptr_t) hdrp);
 #endif /* GC_THREADED_SEPARATE_HC_AREA */
     if (space->begin > (uintptr_t) hdrp)
       goto js_space_alloc_out_of_memory;

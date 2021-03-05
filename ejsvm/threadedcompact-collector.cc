@@ -90,8 +90,13 @@ public:
       return;
 
     uintjsv_t ptr = clear_ptag(v);
+#ifdef GC_THREADED_NO_HCGC
+    if (!in_obj_space((void *) ptr))
+      return;
+#else /* GC_THREADED_NO_HCGC */
     if ((void *) ptr == NULL)
       return;
+#endif /* GC_THREADED_NO_HCGC */
 
     v = (JSValue) ptr;
 
@@ -100,8 +105,13 @@ public:
     thread_reference((void **) &v);
   }
   static void process_edge(void *&p) {
+#ifdef GC_THREADED_NO_HCGC
+    if (!in_obj_space(p))
+      return;
+#else /* GC_THREADED_NO_HCGC */
     if (p == NULL)
       return;
+#endif /* GC_THREADED_NO_HCGC */
 
     assert(in_js_space((void *) p));
 
@@ -121,8 +131,13 @@ public:
   }
   template <typename T>
   static void process_edge_ex_JSValue_array(T &p, size_t n) {
+#ifdef GC_THREADED_NO_HCGC
+    if (!in_obj_space((void *) p))
+      return;
+#else /* GC_THREADED_NO_HCGC */
     if ((void *) p == NULL)
       return;
+#endif /* GC_THREADED_NO_HCGC */
 
     assert(in_obj_space((void *) p));
 
@@ -130,9 +145,13 @@ public:
   }
   template <typename T>
   static void process_edge_ex_ptr_array(T &p, size_t n) {
+#ifdef GC_THREADED_NO_HCGC
+    if (!in_obj_space(p))
+      return;
+#else /* GC_THREADED_NO_HCGC */
     if ((void *) p == NULL)
       return;
-
+#endif /* GC_THREADED_NO_HCGC */
     assert(in_js_space((void *) p));
 
     thread_reference((void **) &p);
@@ -168,9 +187,15 @@ public:
     size_t payload_granules = hdrp->size - HEADER_GRANULES;
 #endif /* GC_THREADED_BOUNDARY_TAG */
     size_t slots = payload_granules * (BYTES_IN_GRANULE / sizeof(void *));
-    for (size_t i = 0; i < slots; i++)
+    for (size_t i = 0; i < slots; i++) {
+#ifdef GC_THREADED_NO_HCGC
+      if (in_obj_space(p[i]))
+        thread_reference(&p[i]);
+#else /* GC_THREADED_NO_HCGC */
       if (p[i] != NULL)
         thread_reference(&p[i]);
+#endif /* GC_THREADED_NO_HCGC */
+    }
   }
   static void process_weak_edge(JSValue &v) { process_edge(v); }
   static void process_weak_edge(void *&p) { process_edge(p); }
@@ -262,8 +287,10 @@ static void update_reference(uintjsv_t tag, void *ref_, void *addr) {
 static void update_forward_reference(Context *ctx);
 static void update_backward_reference();
 static void copy_object(void *from, void *to, unsigned int size);
+#ifndef GC_THREADED_NO_HCGC
 static void copy_object_reverse(uintptr_t from,
 				uintptr_t from_end, uintptr_t to_end);
+#endif /* GC_THREADED_NO_HCGC */
 
 #if GC_DEBUG
 static void fill_mem(void *p1, void *p2, JSValue v);
@@ -274,14 +301,6 @@ void garbage_collection(Context *ctx)
   /* initialise */
   gc_phase = PHASE_INITIALISE;
   the_context = ctx;
-
-  printf("before gc\n");
-  printf("js_space.head  = %zx\n", js_space.head);
-  printf("js_space.begin = %zx\n", js_space.begin);
-  printf("js_space.end   = %zx\n", js_space.end);
-  printf("js_space.tail  = %zx\n", js_space.tail);
-  printf("js_space.bytes = %zu\n", js_space.bytes);
-  printf("js_space.free_bytes = %zu\n", js_space.free_bytes);
 
   /* mark */
 #ifdef TU_DEBUG
@@ -325,14 +344,6 @@ void garbage_collection(Context *ctx)
 #endif
 
   gc_phase = PHASE_INACTIVE;
-
-  printf("after gc\n");
-  printf("js_space.head  = %zx\n", js_space.head);
-  printf("js_space.begin = %zx\n", js_space.begin);
-  printf("js_space.end   = %zx\n", js_space.end);
-  printf("js_space.tail  = %zx\n", js_space.tail);
-  printf("js_space.bytes = %zu\n", js_space.bytes);
-  printf("js_space.free_bytes = %zu\n", js_space.free_bytes);
 }
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
@@ -399,10 +410,36 @@ static void update_forward_reference(Context *ctx)
 {
   scan_roots<ThreadTracer>(ctx);
 
-  uintptr_t scan = js_space.head;
-  uintptr_t end = js_space.begin;
-  uintptr_t free = scan;
+  uintptr_t scan, end, free;
 
+#ifdef GC_THREADED_NO_HCGC
+  scan = js_space.end;
+  end = js_space.tail;
+  while (scan < end) {
+    header_t *hdrp = (header_t *) scan;
+
+    /* skip free/garbage */
+    while (!is_marked_cell_header(hdrp)) {
+      size_t size = hdrp->size;
+      scan += size << LOG_BYTES_IN_GRANULE;
+      assert(scan <= end);
+      if (scan == end)
+	goto HIDDEN_CLASS_AREA_DONE;
+      hdrp = (header_t *) scan;
+    }
+
+    /* process live object */
+    void *p = header_to_payload(hdrp);
+    process_node<ThreadTracer>((uintptr_t) p);
+    unmark_cell_header(hdrp);
+    scan += hdrp->size << LOG_BYTES_IN_GRANULE;
+  }
+ HIDDEN_CLASS_AREA_DONE:
+#endif /* GC_THREADED_NO_HCGC */
+
+  scan = js_space.head;
+  end = js_space.begin;
+  free = scan;
   while (scan < end) {
     header_t *hdrp = (header_t *) scan;
 
@@ -442,11 +479,12 @@ static void update_forward_reference(Context *ctx)
     COUNT_LIVE_OBJECT(hdr, size);
     process_node<ThreadTracer>((uintptr_t) from);
 
-    free += size << LOG_BYTES_IN_JSVALUE;
-    scan += size << LOG_BYTES_IN_JSVALUE;
+    free += size << LOG_BYTES_IN_GRANULE;
+    scan += size << LOG_BYTES_IN_GRANULE;
   }
  ORDINARY_AREA_DONE:
 
+#ifndef GC_THREADED_NO_HCGC
   /* hidden class area */
   scan = js_space.tail;
 #ifdef GC_THREADED_BOUNDARY_TAG
@@ -508,10 +546,10 @@ static void update_forward_reference(Context *ctx)
     scan = (uintptr_t) hdrp;
   }
  HIDDEN_CLASS_AREA_DONE:
-
 #ifdef GC_THREADED_BOUNDARY_TAG
   assert(read_boundary_tag(scan) == 0);
 #endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_THREADED_NO_HCGC*/
   return;
 }
 
@@ -549,14 +587,15 @@ static void update_backward_reference()
 	  ((uintptr_t *)shadow)[1] = (uintptr_t) from;
       }
 #endif
-      free += size << LOG_BYTES_IN_JSVALUE;
+      free += size << LOG_BYTES_IN_GRANULE;
     } else
       size = hdrp->size;
 
-    scan += size << LOG_BYTES_IN_JSVALUE;
+    scan += size << LOG_BYTES_IN_GRANULE;
   }
   js_space.begin = free;
 
+#ifndef GC_THREADED_NO_HCGC
   scan = js_space.tail;
 #ifdef GC_THREADED_BOUNDARY_TAG
   /* There is an object header at the end of the heap, holding the
@@ -604,8 +643,9 @@ static void update_backward_reference()
   assert(read_boundary_tag(scan) == 0);
   write_boundary_tag(free, 0);
 #endif /* GC_THREADED_BOUNDARY_TAG */
-
   js_space.end = free;
+#endif /* GC_THREADED_NO_HCGC */
+
   js_space.free_bytes = js_space.end - js_space.begin;
 }
 
@@ -624,6 +664,8 @@ static void copy_object(void *from_, void *to_, unsigned int size)
     ++to;
   }
 }
+
+#ifndef GC_THREADED_NO_HCGC
 static void copy_object_reverse(uintptr_t from,
 				uintptr_t from_end, uintptr_t to_end)
 {
@@ -635,6 +677,7 @@ static void copy_object_reverse(uintptr_t from,
   while(end < p)
     *--q = *--p;
 }
+#endif /* GC_THREADED_NO_HCGC */
 
 #ifdef GC_DEBUG
 static void fill_mem(void *p1, void *p2, JSValue v)
