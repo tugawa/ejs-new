@@ -317,6 +317,21 @@ void garbage_collection(Context *ctx)
 }
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
+static inline uintptr_t make_free_cell(uintptr_t end, size_t granules)
+{
+  uintptr_t p = end - (granules << LOG_BYTES_IN_GRANULE);
+  header_t *hdrp = (header_t *) p;
+  *hdrp = compose_hidden_class_header(granules, CELLT_FREE);
+#ifdef GC_DEBUG
+  {
+    header_t *shadow = get_shadow(hdrp);
+    *shadow = *hdrp;
+  }
+#endif /* GC_DEBUG */
+  write_boundary_tag(end, granules);
+  return p;
+}
+
 static inline void
 merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
 				      uintptr_t first_free)
@@ -340,9 +355,13 @@ merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
   size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
 #ifdef GC_THREADED_BOUNDARY_TAG
   if (granules > BOUNDARY_TAG_MAX_SIZE) {
-    /* TODO: split free space */
-    assert(granules <= BOUNDARY_TAG_MAX_SIZE);
-    return;
+    while (end - start >
+	   ((BOUNDARY_TAG_MAX_SIZE + HEADER_GRANULES) <<
+	    LOG_BYTES_IN_GRANULE))
+      end = make_free_cell(end, BOUNDARY_TAG_MAX_SIZE);
+    if (end - start > BOUNDARY_TAG_MAX_SIZE)
+      end = make_free_cell(end, HEADER_GRANULES);
+    granules = (end - start) >> LOG_BYTES_IN_GRANULE;
   }
 #endif /* BOUNDARY_TAG_MAX_SIZE */
   header_t *hdrp = (header_t *) start;

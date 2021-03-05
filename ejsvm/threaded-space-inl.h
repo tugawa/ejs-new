@@ -55,7 +55,8 @@ compose_hidden_class_header(size_t granules, cell_type_t type)
 static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)
 {
   header_t *hdrp = (header_t *) alloc_end;
-  assert(granules < BOUNDARY_TAG_MAX_SIZE);
+  assert(granules <= BOUNDARY_TAG_MAX_SIZE);
+  assert(hdrp->identifier == 1);
   hdrp->hc.size_hi = granules;
 }
 static inline size_t read_boundary_tag(uintptr_t alloc_end)
