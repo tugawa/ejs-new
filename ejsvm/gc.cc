@@ -134,7 +134,6 @@ extern "C" {extern void print_as_prof(Context *ctx);}
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
 extern void garbage_collection(Context *ctx);
-void start_garbage_collection(Context *ctx);
 
 void init_memory(size_t bytes, size_t threshold_bytes)
 {

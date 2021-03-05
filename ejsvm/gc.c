@@ -161,7 +161,6 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
  */
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
-STATIC void garbage_collection(Context *ctx);
 #if defined(GENERIC_PROCESS_NODE) || defined(PROCESS_EDGE_FP)
 STATIC int process_edge_mark(uintptr_t ptr);
 #endif /* GENERIC_PROCESS_NODE || PROCESS_EDGE_FP */
@@ -203,7 +202,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 #endif /* DEBUG */
   
   if (check_gc_request(ctx, 0))
-    garbage_collection(ctx);
+    start_garbage_collection(ctx);
   addr = space_alloc(request_bytes, type);
   GCLOG_ALLOC("gc_malloc: req %x bytes type %d => %p\n",
               request_bytes, type, addr);
@@ -212,7 +211,7 @@ void* gc_malloc(Context *ctx, uintptr_t request_bytes, uint32_t type)
 #ifdef GC_DEBUG
       printf("emergency GC\n");
 #endif /* GC_DEBUG */
-      garbage_collection(ctx);
+      start_garbage_collection(ctx);
       addr = space_alloc(request_bytes, type);
     }
     if (addr == NULL) {
@@ -252,14 +251,14 @@ void enable_gc(Context *ctx)
 {
   if (--gc_disabled == 0) {
     if (check_gc_request(ctx, 0))
-      garbage_collection(ctx);
+      start_garbage_collection(ctx);
   }
 }
 
 void try_gc(Context *ctx)
 {
   if (check_gc_request(ctx, 0))
-    garbage_collection(ctx);
+    start_garbage_collection(ctx);
 }
 
 
@@ -319,7 +318,7 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
   return 0;
 }
 
-STATIC void garbage_collection(Context *ctx)
+STATIC void start_garbage_collection(Context *ctx)
 {
   struct rusage ru0, ru1;
 
