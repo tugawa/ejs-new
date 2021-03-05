@@ -54,19 +54,30 @@ STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 STATIC void create_space(struct space *space, size_t bytes, size_t threshold_bytes, char *name)
 {
   uintptr_t addr;
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+  bytes += GC_THREADED_HC_AREA_BYTES;
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
   addr = (uintptr_t) malloc(bytes);
   space->head = (uintptr_t) addr;
   space->begin = space->head;
   space->tail = (uintptr_t) addr + bytes;
   space->end = space->tail;
-#ifdef GC_THREADED_BOUNDARY_TAG
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+  space->ordinary_limit = space->end - GC_THREADED_HC_AREA_BYTES;
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
+#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
   space->end -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
   *((header_t *) space->end) = compose_hidden_class_header(0, CELLT_FREE);
   write_boundary_tag(space->end, 0);
-#endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
   space->bytes = bytes;
   space->free_bytes = space->end - space->begin;
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+  space->threshold =
+    space->head + bytes - GC_THREADED_HC_AREA_BYTES - threshold_bytes;
+#else /* GC_THREADED_SEPARATE_HC_AREA */
   space->threshold_bytes = threshold_bytes;
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
   space->name = name;
 }
 
@@ -120,8 +131,13 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
 
   if (!is_hidden_class(type)) {
     uintptr_t next = space->begin + bytes;
-    if (next >= space->end)
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+    if (next > space->ordinary_limit)
       goto js_space_alloc_out_of_memory;
+#else /* GC_THREADED_SEPARATE_HC_AREA */
+    if (next > space->end)
+      goto js_space_alloc_out_of_memory;
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
     hdrp = (header_t *) space->begin;
     space->begin = next;
     *hdrp = compose_header(alloc_granules, type);
@@ -129,6 +145,9 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
     uintptr_t alloc_end =
       space->end - (BOUNDARY_TAG_GRANULES << LOG_BYTES_IN_GRANULE);
     hdrp = (header_t *) (alloc_end - bytes);
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+    assert(space->ordinary_limit <= (uintptr_t) hdrp);
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
     if (space->begin > (uintptr_t) hdrp)
       goto js_space_alloc_out_of_memory;
     space->end = (uintptr_t) hdrp;

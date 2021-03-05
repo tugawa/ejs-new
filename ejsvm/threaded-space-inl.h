@@ -51,6 +51,16 @@ compose_hidden_class_header(size_t granules, cell_type_t type)
 }
 #endif /*GC_THREADED_BOUNDARY_TAG */
 
+#ifdef GC_THREADED_NO_HCGC
+static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)
+{
+}
+static inline size_t read_boundary_tag(uintptr_t alloc_end)
+{
+  abort();
+  return 0;
+}
+#else /* GC_THREADED_NO_HCGC */
 #ifdef GC_THREADED_BOUNDARY_TAG
 static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)
 {
@@ -76,6 +86,7 @@ static inline size_t read_boundary_tag(uintptr_t alloc_end)
   return *tagp;
 }
 #endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_THREADED_NO_HCGC */
 
 static inline void *header_to_payload(header_t *hdrp)
 {
@@ -112,7 +123,11 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr)
 
 static inline int space_check_gc_request()
 {
+#ifdef GC_THREADED_SEPARATE_HC_AREA
+  return (js_space.begin >= js_space.threshold);
+#else /* GC_THREADED_SEPARATE_HC_AREA */
   return (js_space.free_bytes < js_space.threshold_bytes);
+#endif /* GC_THREADED_SEPARATE_HC_AREA */
 }
 
 static inline void mark_cell(void *p)
