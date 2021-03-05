@@ -192,7 +192,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
         HashTransitionIterator iter =
           createHashTransitionIterator(next_pm->map);
         HashTransitionCell *cell;
-        int ret;
+        int ret __attribute__((unused));
         assert(next_pm->n_transitions == 1);
         ret = nextHashTransitionCell(next_pm->map, &iter, &cell);
         assert(ret != FAIL);
