@@ -475,7 +475,7 @@ static void update_forward_reference(Context *ctx)
 
     /* process live object */
     assert(((uintptr_t) hdrp) >= end);
-    assert(is_marked_cell_header(&hdr));
+    assert(is_marked_cell_header(hdrp));
     COUNT_LIVE_OBJECT(hdr, size);
     free -= (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
     void *from = header_to_payload(hdrp);
