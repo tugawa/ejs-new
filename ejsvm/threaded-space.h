@@ -34,6 +34,16 @@ extern "C" {
  */
 
 #ifdef BIT_ALIGN32
+#ifdef GC_THREADED_HEADER32
+#define HEADER_GRANULES        1
+#define HEADER_IDENTIFIER_BITS 1
+#define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
+#define HEADER_MARKBIT_BITS    1
+#define HEADER_GEN_BITS        0
+#define HEADER_MAGIC_BITS      4
+#define HEADER_SIZE_BITS       20
+#define HEADER_MAGIC           14
+#else /* GC_THREADED_HEADER32 */
 #define HEADER_GRANULES        2
 #define HEADER_IDENTIFIER_BITS 1
 #define HEADER_TYPE_BITS       LOG_MAX_NUM_CELL_TYPES
@@ -41,9 +51,8 @@ extern "C" {
 #define HEADER_GEN_BITS        7
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
-#define HEADER_SIZE_BITS_LO    16
-#define HEADER_SIZE_BITS_HI    16
 #define HEADER_MAGIC           0x18
+#endif /* GC_THREADED_HEADER32 */
 #else /* BIT_ALIGN32 */
 #define HEADER_GRANULES        1
 #define HEADER_IDENTIFIER_BITS 1
@@ -52,10 +61,11 @@ extern "C" {
 #define HEADER_GEN_BITS        7
 #define HEADER_MAGIC_BITS      15
 #define HEADER_SIZE_BITS       32
-#define HEADER_SIZE_BITS_LO    16
-#define HEADER_SIZE_BITS_HI    16
 #define HEADER_MAGIC           0x18
 #endif /* BIT_ALIGN32 */
+
+#define HEADER_HALF_SIZE_BITS (HEADER_SIZE_BITS >> 1)
+
 typedef struct header_t {
   union {
     uintptr_t threaded;
@@ -63,21 +73,32 @@ typedef struct header_t {
       unsigned int identifier: HEADER_IDENTIFIER_BITS;
       cell_type_t  type:       HEADER_TYPE_BITS;
       unsigned int markbit:    HEADER_MARKBIT_BITS;
+#if HEADER_MAGIC_BITS > 0
       unsigned int magic:      HEADER_MAGIC_BITS;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
       unsigned int gen:        HEADER_GEN_BITS;
-#ifdef GC_THREADED_BOUNDARY_TAG
-      union {
-	unsigned int size:     HEADER_SIZE_BITS;
-	struct {
-#define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_SIZE_BITS_LO) - 1)
-	  unsigned int size_lo: HEADER_SIZE_BITS_LO;
-	  unsigned int size_hi: HEADER_SIZE_BITS_HI;
-	};
-      };
-#else /* GC_THREADED_BOUNDARY_TAG */
+#endif /* HEADER_GEN_BITS */
       unsigned int size:       HEADER_SIZE_BITS;
-#endif /* GC_THREADED_BOUNDARY_TAG */
     };
+    struct {
+      unsigned int identifier: HEADER_IDENTIFIER_BITS;
+      cell_type_t  type:       HEADER_TYPE_BITS;
+      unsigned int markbit:    HEADER_MARKBIT_BITS;
+#if HEADER_MAGIC_BITS > 0
+      unsigned int magic:      HEADER_MAGIC_BITS;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
+      unsigned int gen:        HEADER_GEN_BITS;
+#endif /* HEADER_GEN_BITS */
+#ifdef GC_THREADED_BOUNDARY_TAG
+#define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_HALF_SIZE_BITS) - 1)
+      unsigned int size_hi:     HEADER_HALF_SIZE_BITS;
+      unsigned int size_lo:     HEADER_HALF_SIZE_BITS;
+#else /* GC_THREADED_BOUNDARY_TAG */
+      unsigned int size_lo:     HEADER_SIZE_BITS;
+#endif /* GC_THREADED_BOUNDARY_TAG */
+    } hc;
   };
 } header_t;
 

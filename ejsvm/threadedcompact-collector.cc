@@ -162,11 +162,7 @@ public:
     assert(in_hc_space((void *) p));
 
     header_t *hdrp = payload_to_header(p);
-#ifdef GC_THREADED_BOUNDARY_TAG
-    size_t payload_granules = hdrp->size_lo - HEADER_GRANULES;
-#else /* GC_THREADED_BOUNDARY_TAG */
-    size_t payload_granules = hdrp->size - HEADER_GRANULES;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+    size_t payload_granules = hdrp->hc.size_lo - HEADER_GRANULES;
     size_t slots = payload_granules * (BYTES_IN_GRANULE / sizeof(void *));
     for (size_t i = 0; i < slots; i++)
       if (p[i] != NULL)
@@ -350,11 +346,7 @@ merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
   }
 #endif /* BOUNDARY_TAG_MAX_SIZE */
   header_t *hdrp = (header_t *) start;
-#ifdef GC_THREADED_BOUNDARY_TAG
-  hdrp->size_lo = granules;
-#else /* GC_THREADED_BOUNDARY_TAG */
-  hdrp->size = granules;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+  hdrp->hc.size_lo = granules;
   write_boundary_tag(end, granules);
 }
 static inline void

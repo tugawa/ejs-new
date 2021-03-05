@@ -7,12 +7,16 @@ static inline header_t compose_header(size_t granules, cell_type_t type)
   hdr.identifier = 1;
   hdr.type = type;
   hdr.markbit = 0;
+#if HEADER_MAGIC_BITS > 0
   hdr.magic = HEADER_MAGIC;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
 #ifdef GC_DEBUG
   hdr.gen = generation;
 #else /* GC_DEBUG */
   hdr.gen = 0;
 #endif /* GC_DEBUG */
+#endif /* HEADER_GEN_BITS */
   hdr.size  = granules;
   return hdr;
 }
@@ -25,14 +29,18 @@ compose_hidden_class_header(size_t granules, cell_type_t type)
   hdr.identifier = 1;
   hdr.type = type;
   hdr.markbit = 0;
+#if HEADER_MAGIC_BITS > 0
   hdr.magic = HEADER_MAGIC;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
 #ifdef GC_DEBUG
   hdr.gen = generation;
 #else /* GC_DEBUG */
   hdr.gen = 0;
 #endif /* GC_DEBUG */
-  hdr.size_hi = 0;
-  hdr.size_lo = granules;
+#endif /* HEADER_GEN_BITS */
+  hdr.hc.size_hi = 0;
+  hdr.hc.size_lo = granules;
   return hdr;
 }
 #else /* GC_THREADED_BOUNDARY_TAG */
@@ -48,12 +56,12 @@ static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)
 {
   header_t *hdrp = (header_t *) alloc_end;
   assert(granules < BOUNDARY_TAG_MAX_SIZE);
-  hdrp->size_hi = granules;
+  hdrp->hc.size_hi = granules;
 }
 static inline size_t read_boundary_tag(uintptr_t alloc_end)
 {
   header_t *hdrp = (header_t *) alloc_end;
-  return hdrp->size_hi;
+  return hdrp->hc.size_hi;
 }
 #else /* GC_THREADED_BOUNDARY_TAG */
 static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)
@@ -158,17 +166,21 @@ static inline void check_header(header_t *hdrp)
   {
     header_t *shadow = get_shadow(hdrp);
     assert(hdrp->identifier == 1);
+#if HEADER_MAGIC_BITS > 0
     assert(hdrp->magic == HEADER_MAGIC);
+#endif /* HEADER_MAGIC_BITS */
     assert(hdrp->type == shadow->type);
 #ifdef GC_THREADED_BOUNDARY_TAG
     if (in_hc_space(hdrp))
-      assert(hdrp->size_lo == shadow->size_lo);
+      assert(hdrp->hc.size_lo == shadow->hc.size_lo);
     else
       assert(hdrp->size == shadow->size);
 #else /* GC_THREADED_BOUNDARY_TAG */
     assert(hdrp->size == shadow->size);
 #endif /* GC_THREADED_BOUNDARY_TAG */
+#if HEADER_GEN_BITS > 0
     assert(hdrp->gen == shadow->gen);
+#endif /* HEADER_GEN_BITS */
   }
 #endif /* GC_DEBUG */
 }
