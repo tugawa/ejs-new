@@ -275,6 +275,14 @@ void garbage_collection(Context *ctx)
   gc_phase = PHASE_INITIALISE;
   the_context = ctx;
 
+  printf("before gc\n");
+  printf("js_space.head  = %zx\n", js_space.head);
+  printf("js_space.begin = %zx\n", js_space.begin);
+  printf("js_space.end   = %zx\n", js_space.end);
+  printf("js_space.tail  = %zx\n", js_space.tail);
+  printf("js_space.bytes = %zu\n", js_space.bytes);
+  printf("js_space.free_bytes = %zu\n", js_space.free_bytes);
+
   /* mark */
 #ifdef TU_DEBUG
   printf("mark\n");
@@ -317,6 +325,14 @@ void garbage_collection(Context *ctx)
 #endif
 
   gc_phase = PHASE_INACTIVE;
+
+  printf("after gc\n");
+  printf("js_space.head  = %zx\n", js_space.head);
+  printf("js_space.begin = %zx\n", js_space.begin);
+  printf("js_space.end   = %zx\n", js_space.end);
+  printf("js_space.tail  = %zx\n", js_space.tail);
+  printf("js_space.bytes = %zu\n", js_space.bytes);
+  printf("js_space.free_bytes = %zu\n", js_space.free_bytes);
 }
 
 #ifdef GC_THREADED_MERGE_FREE_SPACE
