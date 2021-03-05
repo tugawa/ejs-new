@@ -222,10 +222,11 @@ static void thread_reference(void **ref) {
 
 static header_t get_threaded_header(header_t *hdrp)
 {
-  while(is_reference((void **) hdrp->threaded)) {
-    hdrp = (header_t *) hdrp->threaded;
-  }
-  return *hdrp;
+  header_t hdr = *hdrp;
+  while(!hdr.identifier)
+    hdr.threaded = *(uintptr_t *) hdr.threaded;
+
+  return hdr;
 }
 
 static bool get_threaded_header_markbit(header_t *hdrp) {
@@ -421,8 +422,8 @@ static void update_forward_reference(Context *ctx)
 
     header_t hdr = get_threaded_header(hdrp);
     uintjsv_t tag = get_ptag_value_by_cell_type(hdr.type);
-    size_t size = hdr.size;
     update_reference(tag, from, to);
+    size_t size = hdrp->size;
     COUNT_LIVE_OBJECT(hdr, size);
     process_node<ThreadTracer>((uintptr_t) from);
 
@@ -475,8 +476,8 @@ static void update_forward_reference(Context *ctx)
 
     /* process live object */
     assert(((uintptr_t) hdrp) >= end);
-    assert(is_marked_cell_header(hdrp));
-    COUNT_LIVE_OBJECT(hdr, size);
+    assert(get_threaded_header_markbit(hdrp));
+    COUNT_LIVE_OBJECT(get_threaded_header(hdrp), size);
     free -= (size + BOUNDARY_TAG_GRANULES) << LOG_BYTES_IN_GRANULE;
     void *from = header_to_payload(hdrp);
     header_t *to_hdrp = (header_t *) free;
@@ -520,9 +521,9 @@ static void update_backward_reference()
       }
 #endif /* GC_DEBUG */
       header_t hdr = get_threaded_header(hdrp);
-      size = hdr.size;
       uintjsv_t tag = get_ptag_value_by_cell_type(hdr.type);
       update_reference(tag, from, to);
+      size = hdrp->size;
       unmark_cell_header(hdrp);
       copy_object(hdrp, to_hdrp, size);
 #ifdef GC_DEBUG
