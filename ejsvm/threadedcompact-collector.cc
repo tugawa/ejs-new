@@ -359,6 +359,7 @@ static inline uintptr_t make_free_cell(uintptr_t end, size_t granules)
   return p;
 }
 
+#ifndef GC_THREADED_NO_HCGC
 static inline void
 merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
 				      uintptr_t first_free)
@@ -395,6 +396,8 @@ merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
   hdrp->hc.size_lo = granules;
   write_boundary_tag(end, granules);
 }
+#endif /* GC_THREADED_NO_HCGC */
+
 static inline void
 merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end)
 {

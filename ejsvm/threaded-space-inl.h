@@ -21,7 +21,6 @@ static inline header_t compose_header(size_t granules, cell_type_t type)
   return hdr;
 }
 
-#ifdef GC_THREADED_BOUNDARY_TAG
 static inline header_t
 compose_hidden_class_header(size_t granules, cell_type_t type)
 {
@@ -39,17 +38,12 @@ compose_hidden_class_header(size_t granules, cell_type_t type)
   hdr.gen = 0;
 #endif /* GC_DEBUG */
 #endif /* HEADER_GEN_BITS */
+#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
   hdr.hc.size_hi = 0;
+#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
   hdr.hc.size_lo = granules;
   return hdr;
 }
-#else /* GC_THREADED_BOUNDARY_TAG */
-static inline header_t
-compose_hidden_class_header(size_t granules, cell_type_t type)
-{
-  return compose_header(granules, type);
-}
-#endif /*GC_THREADED_BOUNDARY_TAG */
 
 #ifdef GC_THREADED_NO_HCGC
 static inline void write_boundary_tag(uintptr_t alloc_end, size_t granules)

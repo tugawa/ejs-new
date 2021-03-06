@@ -91,13 +91,13 @@ typedef struct header_t {
 #if HEADER_GEN_BITS > 0
       unsigned int gen:        HEADER_GEN_BITS;
 #endif /* HEADER_GEN_BITS */
-#ifdef GC_THREADED_BOUNDARY_TAG
+#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
 #define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_HALF_SIZE_BITS) - 1)
       unsigned int size_hi:     HEADER_HALF_SIZE_BITS;
       unsigned int size_lo:     HEADER_HALF_SIZE_BITS;
-#else /* GC_THREADED_BOUNDARY_TAG */
+#else /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
       unsigned int size_lo:     HEADER_SIZE_BITS;
-#endif /* GC_THREADED_BOUNDARY_TAG */
+#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
     } hc;
   };
 } header_t;
