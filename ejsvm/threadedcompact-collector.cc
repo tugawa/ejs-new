@@ -406,7 +406,11 @@ merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end)
   size_t bytes = end - start;
   size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
   header_t *hdrp = (header_t *) start;
-  hdrp->size = granules;
+  if (granules > ((1 << HEADER_SIZE_BITS) - 1)) {
+    hdrp->size = 0;
+    *(granule_t *) (start + (HEADER_GRANULES << BYTES_IN_GRANULE)) = granules;
+  } else
+    hdrp->size = granules;
 }
 #else /* GC_THREADED_MERGE_FREE_SPACE */
 static inline void
@@ -603,8 +607,11 @@ static void update_backward_reference()
       }
 #endif
       free += size << LOG_BYTES_IN_GRANULE;
-    } else
+    } else {
       size = hdrp->size;
+      if (size == 0)
+	size = *(granule_t *)(scan + (HEADER_GRANULES << BYTES_IN_GRANULE));
+    }
 
     scan += size << LOG_BYTES_IN_GRANULE;
   }
