@@ -34,6 +34,16 @@ extern "C" {
  */
 
 #ifdef BIT_ALIGN32
+#ifdef GC_MS_HEADER32
+#define HEADER_GRANULES       1
+#define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
+#define HEADER_MARKBIT_BITS   1
+#define HEADER_EXTRA_BITS     3
+#define HEADER_GEN_BITS       0
+#define HEADER_MAGIC_BITS     2
+#define HEADER_SIZE_BITS      20
+#define HEADER_MAGIC          3
+#else /* GC_MS_HEADER32 */
 #define HEADER_GRANULES       2
 #define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
 #define HEADER_MARKBIT_BITS   1
@@ -42,6 +52,7 @@ extern "C" {
 #define HEADER_MAGIC_BITS     16
 #define HEADER_SIZE_BITS      32
 #define HEADER_MAGIC          0x18
+#endif /* GC_MS_HEADER32 */
 #else /* BIT_ALIGN32 */
 #define HEADER_GRANULES       1
 #define HEADER_TYPE_BITS      LOG_MAX_NUM_CELL_TYPES
@@ -49,15 +60,22 @@ extern "C" {
 #define HEADER_EXTRA_BITS     3
 #define HEADER_GEN_BITS       4
 #define HEADER_MAGIC_BITS     16
-#define HEADER_SIZE_BITS      32
+#define HEADER_SIZE_BITS      18
 #define HEADER_MAGIC          0x18
 #endif /* BIT_ALIGN32 */
+
+#define MAX_CHUNK_GRANULES ((1LL << HEADER_SIZE_BITS) - 1)
+
 typedef struct header_t {
   cell_type_t  type:    HEADER_TYPE_BITS;
   unsigned int markbit: HEADER_MARKBIT_BITS;
   unsigned int extra:   HEADER_EXTRA_BITS;
+#if HEADER_MAGIC_BITS > 0
   unsigned int magic:   HEADER_MAGIC_BITS;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
   unsigned int gen:     HEADER_GEN_BITS;
+#endif /* HEADER_GEN_BITS */
   unsigned int size:    HEADER_SIZE_BITS;
 } header_t;
 
@@ -67,8 +85,6 @@ static inline header_t compose_header(size_t granules, size_t extra,
 /*
  *  Types
  */
-
-#define CELLT_FREE          (0xff)
 
 struct free_chunk {
   header_t header;

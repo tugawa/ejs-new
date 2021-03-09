@@ -60,21 +60,73 @@ STATIC_INLINE size_t get_payload_granules(header_t *hdrp)
 }
 
 /*
+ * utility
+ */
+STATIC_INLINE struct free_chunk **
+freelist_append_free_chunk(struct free_chunk **p, uintptr_t free_start,
+                           size_t chunk_granules)
+{
+  while (chunk_granules > MAX_CHUNK_GRANULES + MINIMUM_FREE_CHUNK_GRANULES) {
+    struct free_chunk *chunk = (struct free_chunk *) free_start;
+    chunk->header = compose_header(MAX_CHUNK_GRANULES, 0, CELLT_FREE);
+    *p = chunk;
+    p = &chunk->next;
+    free_start += MAX_CHUNK_GRANULES << LOG_BYTES_IN_GRANULE;
+    chunk_granules -= MAX_CHUNK_GRANULES;
+#ifdef GC_DEBUG
+    {
+      char *p;
+      for (p = (char *) (chunk + 1); p < (char *) free_start; p++)
+        *p = 0xcc;
+    }
+#endif /* GC_DEBUG */
+  }
+  if (chunk_granules > MAX_CHUNK_GRANULES) {
+    struct free_chunk *chunk = (struct free_chunk *) free_start;
+    chunk->header = compose_header(MINIMUM_FREE_CHUNK_GRANULES, 0, CELLT_FREE);
+    *p = chunk;
+    p = &chunk->next;
+    free_start += MINIMUM_FREE_CHUNK_GRANULES << LOG_BYTES_IN_GRANULE;
+    chunk_granules -= MINIMUM_FREE_CHUNK_GRANULES;
+#ifdef GC_DEBUG
+    {
+      char *p;
+      for (p = (char *) (chunk + 1); p < (char *) free_start; p++)
+        *p = 0xcc;
+    }
+#endif /* GC_DEBUG */
+  }
+  assert(chunk_granules >= MINIMUM_FREE_CHUNK_GRANULES); {
+    struct free_chunk *chunk = (struct free_chunk *) free_start;
+    chunk->header = compose_header(chunk_granules, 0, CELLT_FREE);
+    *p = chunk;
+    p = &chunk->next;
+#ifdef GC_DEBUG
+    {
+      char *p;
+      free_start += chunk_granules << LOG_BYTES_IN_GRANULE;
+      for (p = (char *) (chunk + 1); p < (char *) free_start; p++)
+        *p = 0xcc;
+    }
+#endif /* GC_DEBUG */
+  }
+  return p;
+}
+
+/*
  *  Space
  */
 STATIC void create_space(struct space *space, size_t bytes, size_t threshold_bytes, char *name)
 {
   uintptr_t addr;
-  struct free_chunk *p;
+  struct free_chunk **p;
   addr = (uintptr_t) malloc(bytes + BYTES_IN_GRANULE - 1);
-  p = (struct free_chunk *)
-    ((addr + BYTES_IN_GRANULE - 1) & ~(BYTES_IN_GRANULE - 1));
-  p->header = compose_header(bytes >> LOG_BYTES_IN_GRANULE, 0, CELLT_FREE);
-  p->next = NULL;
-  space->addr = (uintptr_t) p;
+  space->addr = (addr + BYTES_IN_GRANULE - 1) & ~(BYTES_IN_GRANULE - 1);
   space->bytes = bytes;
   space->free_bytes = bytes;
-  space->freelist = p;
+  p = freelist_append_free_chunk(&space->freelist, space->addr,
+                                 bytes >> LOG_BYTES_IN_GRANULE);
+  *p = NULL;
   space->threshold_bytes = threshold_bytes;
   space->name = name;
 }
@@ -194,7 +246,9 @@ STATIC void sweep_space(struct space *space)
     while (scan < space->addr + space->bytes &&
            is_marked_cell_header((header_t *) scan)) {
       header_t *hdrp = (header_t *) scan;
+#if HEADER_MAGIC_BITS > 0
       assert(hdrp->magic == HEADER_MAGIC);
+#endif /* HEADER_MAGIC_BITS */
 #ifdef GC_PROF
       {
         cell_type_t type = hdrp->type;
@@ -212,7 +266,9 @@ STATIC void sweep_space(struct space *space)
     while (scan < space->addr + space->bytes &&
            !is_marked_cell_header((header_t *) scan)) {
       header_t *hdrp = (header_t *) scan;
+#if HEADER_MAGIC_BITS > 0
       assert(hdrp->magic == HEADER_MAGIC);
+#endif /* HEADER_MAGIC_BITS */
 #ifdef GC_PROF
       {
         cell_type_t type = hdrp->type;
@@ -236,18 +292,8 @@ STATIC void sweep_space(struct space *space)
       }
       chunk_granules = (scan - free_start) >> LOG_BYTES_IN_GRANULE;
       if (chunk_granules >= MINIMUM_FREE_CHUNK_GRANULES) {
-        struct free_chunk *chunk = (struct free_chunk *) free_start;
-        chunk->header = compose_header(chunk_granules, 0, CELLT_FREE);
-        *p = chunk;
-        p = &chunk->next;
+        p = freelist_append_free_chunk(p, free_start, chunk_granules);
         free_bytes += scan - free_start;
-#ifdef GC_DEBUG
-        {
-          char *p;
-          for (p = (char *) (chunk + 1); p < (char *) scan; p++)
-            *p = 0xcc;
-        }
-#endif /* GC_DEBUG */
       } else  {
         /* Too small to make a chunk.
          * Append it at the end of previous chunk, if any */
