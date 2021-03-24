@@ -18,10 +18,6 @@ int sprint_property_map(char *start, PropertyMap *pm);
 static
 JSValue get_system_prop(JSValue obj, JSValue name) __attribute__((unused));
 
-#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
-static PropertyMap *
-clone_property_map(Context *ctx, PropertyMap *src);
-#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
@@ -736,45 +732,6 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   return m;
 }
 
-#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
-/**
- * Create a new property map by duplicating an exispting property map.
- * The new property map has the same `prev' PropertyMap. But the prev
- * does not have a link to the new PropertyMap.
- */
-static PropertyMap *clone_property_map(Context *ctx, PropertyMap *src)
-{
-  PropertyMap *m;
-
-  GC_PUSH(src);
-
-  /* 1. Create property map */
-  m = new_property_map(ctx, DEBUG_NAME("(clone)"),
-                       src->n_special_props, src->n_props,
-#ifdef DEBUG
-                       src->n_user_special_props,
-#else /* DEBUG */
-                       0,
-#endif /* DEBUG */
-                       src->__proto__, src->prev);
-  GC_PUSH(m);
-
-  /* 2. Copy existing entries */
-#ifdef DEBUG
-  {
-    int n = hash_copy(ctx, src->map, m->map);
-    assert(n == src->n_props - src->n_special_props +
-           src->n_user_special_props);
-  }
-#else /* DEBUG */
-  hash_copy(ctx, src->map, m->map);
-#endif /* DEBUG */
-  GC_POP2(m, src);
-
-  return m;
-}
-#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
-
 /**
  * Create a new property map by extending an exispting property map
  * with a new property name. The index for the new property is the
@@ -1115,27 +1072,12 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
 #endif /* LOAD_HCG */ 
 
       /* 1. If `prototype' is valid, find the property map */
-#if defined(ALLOC_SITE_CACHE) && defined(ALLOC_SITE_CACHE_PER_SITE_HCG)
-      /* When we construct per-site HCG, we use the property map
-       * in the constructor function only if this the cache at this site
-       * is used for other constructor.
-       */
-      if (as->pm != NULL &&
-          (retv = get_system_prop(prototype, gconsts.g_string___property_map__))
-          != JS_EMPTY) {
-        pm = jsv_to_property_map(retv);
-        PRINT("PM found in proto %p OS[0] %p AS %p\n",
-              pm, pm->shapes, pm->shapes->alloc_site);
-      }
-#else /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
       if (retv != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
         PRINT("PM found in proto %p OS[0] %p AS %p\n",
               pm, pm->shapes, pm->shapes->alloc_site);
-      }
-#endif /* ALLOC_SITE_CACHE && ALLOC_SITE_CACHE_PER_SITE_HCG */
-      else {
+      } else {
         /* 2. If there is not, create it. */
         int n_props = 0;
         int n_embedded = OBJECT_SPECIAL_PROPS + 1;/* at least 1 normal slot */
@@ -1163,11 +1105,7 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
                  (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
         GC_POP(pm);
       }
-#if !defined(ALLOC_SITE_CACHE) || defined(ALLOC_SITE_CACHE_PER_SITE_HCG)
-      /* 4. Obtain the shape of the PM. There should be a single shape, if any,
-       *    because the PM is an entrypoint. */
-      os = pm->shapes;
-#else /* !ALLOC_SITE_CACHE || ALLOC_SITE_CACHE_PER_SITE_HCG */
+#ifdef ALLOC_SITE_CACHE
       /* 4. serch for the shape whose allocation site is here */
       for (os = pm->shapes; os != NULL; os = os->next) {
         assert(os->n_embedded_slots == OBJECT_SPECIAL_PROPS + 1);
@@ -1178,7 +1116,11 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
       if (os == NULL)
         os = new_object_shape(ctx, DEBUG_NAME("(as variant)"),
                               pm, OBJECT_SPECIAL_PROPS + 1, 0, as);
-#endif /* !ALLOC_SITE_CACHE || ALLOC_SITE_CACHE_PER_SITE_HCG */
+#else /* ALLOC_SITE_CACHE */
+      /* 4. Obtain the shape of the PM. There should be a single shape,
+       * if any, because the PM is an entrypoint. */
+      os = pm->shapes;
+#endif /* !ALLOC_SITE_CACHE */
 
 #ifdef ALLOC_SITE_CACHE
       if (as != NULL && as->pm == NULL) {
@@ -1216,11 +1158,7 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
   if (os == NULL) {
-#ifdef ALLOC_SITE_CACHE_PER_SITE_HCG
-    PropertyMap *pm = clone_property_map(ctx, gshapes.g_shape_Array->pm);
-#else /* ALLOC_SITE_CACHE_PER_SITE_HCG */
     PropertyMap *pm = gshapes.g_shape_Array->pm;
-#endif /* ALLOC_SITE_CACHE_PER_SITE_HCG */
     os = new_object_shape(ctx, DEBUG_NAME("(array)"),
                           pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
 #ifdef DUMP_HCG
