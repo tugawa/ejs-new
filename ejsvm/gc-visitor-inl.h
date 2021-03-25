@@ -718,9 +718,9 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       assert(next_next->prev == next);
       next = next_next;
     }
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+#ifdef HC_SKIP_INTERNAL
     /* TODO: remove branch if it is no longer used */
-#else /* HC_SKIP_INTERNAL_COUNT_BASE */
+#else /* HC_SKIP_INTERNAL */
     if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
       hash_transition_cell_delete(p);
 #ifdef VERBOSE_WEAK
@@ -736,7 +736,7 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 #endif /* VERBOSE_HC */
       continue;
     }
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+#endif /* HC_SKIP_INTERNAL */
     n_transitions++;
 #ifdef VERBOSE_WEAK
     if (Tracer::is_marked_cell(next))
@@ -755,11 +755,11 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
       printf("preserve PropertyMap %s from %s\n", buf1, buf2);
     }
 #endif /* VERBOSE_HC */
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+#ifdef HC_SKIP_INTERNAL
     if (next->n_transitions == 1 &&
 	((next->n_enter - next->n_leave) << 3) < next->n_enter)
       next->transient = 1;
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+#endif /* HC_SKIP_INTERNAL */
     hash_transition_cell_pm(p) = next;
     /* Resurrect if it is branching node or terminal node */
     PROCESS_EDGE(hash_transition_cell_pm(p));

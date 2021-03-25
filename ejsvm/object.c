@@ -28,12 +28,12 @@ static void hcprof_add_root_property_map(PropertyMap *pm);
 /* Profiling */
 static inline void hcprof_enter_shape(Shape *os)
 {
-#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
   {
     PropertyMap *pm = os->pm;
     pm->n_enter++;
   }
-#endif /* HC_PROF || HC_SKIP_INTERNAL_COUNT_BASE */
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
 #if defined (HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
   os->n_enter++;
 #endif /* HC_PROF || ALLOC_SITE_CACHE_COUNT_BASE */
@@ -45,7 +45,7 @@ static inline void hcprof_enter_shape(Shape *os)
 
 static inline void hcprof_leave_shape(Shape *os)
 {
-#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
   {
     PropertyMap *pm = os->pm;
     pm->n_leave++;
@@ -182,7 +182,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
 #endif /* DUMP_HCG */
       PRINT("  new property (new PM %p is created)\n", next_pm);
     } else
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
+#ifdef HC_SKIP_INTERNAL
       /* If the next property map is transient, take the next */
       while (next_pm->transient) {
         HashTransitionIterator iter =
@@ -194,7 +194,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
         assert(ret != FAIL);
         next_pm = hash_transition_cell_pm(cell);
       }
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
+#endif /* HC_SKIP_INTERNAL */
       PRINT("  new property (cached PM %p is used)\n", next_pm);
     GC_PUSH(next_pm);
 
@@ -650,19 +650,17 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->n_special_props = n_special_props;
 #ifdef HC_SKIP_INTERNAL
   m->n_transitions = 0;
-#ifdef HC_SKIP_INTERNAL_COUNT_BASE
   m->transient = 0;
-#endif /* HC_SKIP_INTERNAL_COUNT_BASE */
 #endif /* HC_SKIP_INTERNAL */
 
 #ifdef DEBUG
   m->name = name;
   m->n_user_special_props = n_user_special_props;
 #endif /* DEBUG */
-#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL_COUNT_BASE)
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
   m->n_enter = 0;
   m->n_leave = 0;
-#endif /* HC_PROF || HC_SKIP_INTERNAL_COUNT_BASE */
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
 #ifdef HC_PROF
   if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
