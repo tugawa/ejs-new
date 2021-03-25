@@ -348,6 +348,7 @@ public class CodeGenerator extends IASTBaseVisitor {
         Label sendEntry = new Label();
         bcBuilder.setEntry(callEntry, sendEntry);
         bcBuilder.push(callEntry);
+        bcBuilder.pushMsetfl();
         bcBuilder.push(new IGetglobalobj(env.getRegister(THIS_OBJECT_REGISTER)));
         bcBuilder.push(sendEntry);
         if (node.frameSize() > 0)
