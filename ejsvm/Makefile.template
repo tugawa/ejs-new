@@ -29,11 +29,6 @@ CXXFLAGS =
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 
 ##
-## C++
-##
-GC_CXX = true
-
-##
 ## VMDL
 ##
 USE_VMDL = false

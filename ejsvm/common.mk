@@ -256,7 +256,6 @@ INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
 
 ######################################################
 
-ifeq ($(GC_CXX),true)
 CXX_FILES = gc.cc
 HFILES    += gc-visitor-inl.h
 ifeq ($(OPT_GC),native)
@@ -287,23 +286,6 @@ ifeq ($(OPT_GC),compact)
     CPPFLAGS+=-DUSE_NATIVEGC=1 -DCOMPACTION
     OFILES+=markcompact-collector.o
     HFILES+=markcompact-collector.h markcompact-collector-inl.h mark-tracer
-endif
-else
-CXX_FILES =
-ifeq ($(OPT_GC),native)
-    CPPFLAGS+=-DUSE_NATIVEGC=1 -DFREELIST
-    OFILES+=freelist-space.o
-    HFILES+=freelist-space.h freelist-space-inl.h
-endif
-ifeq ($(OPT_GC),bibop)
-    CPPFLAGS+=-DUSE_NATIVEGC=1 -DBIBOP
-    OFILES+=bibop-space.o
-    HFILES+=bibop-space.h bibop-space-inl.h
-endif
-ifeq ($(OPT_GC),boehmgc)
-    CPPFLAGS+=-DUSE_BOEHMGC=1
-    LIBS+=-lgc
-endif
 endif
 
 ifeq ($(OPT_REGEXP),oniguruma)
@@ -501,7 +483,6 @@ $(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
 vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) $(CPPFLAGS_VMDL) -o $@ $<
 
-#gc.o:%.o:%.cc $(HFILES)
 $(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
