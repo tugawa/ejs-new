@@ -491,7 +491,6 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
-#ifdef INLINE_CACHE_WEAK
 #ifdef INLINE_CACHE_SHAPE_BASE
       if (ic->shape != NULL) {
         PROCESS_WEAK_EDGE(ic->shape);
@@ -500,16 +499,6 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
         PROCESS_WEAK_EDGE(ic->pm);
 #endif /* INLINE_CACHE_SHAPE_BASE */
         PROCESS_WEAK_EDGE(ic->prop_name);
-#else /* INLINE_CACHE_WEAK */
-#ifdef INLINE_CACHE_SHAPE_BASE
-      if (ic->shape != NULL) {
-        PROCESS_EDGE(ic->shape);
-#else /* INLINE_CACHE_SHAPE_BASE */
-      if (ic->pm != NULL) {
-        PROCESS_EDGE(ic->pm);
-#endif /* INLINE_CACHE_SHAPE_BASE */
-        PROCESS_EDGE(ic->prop_name);
-#endif /* INLINE_CACHE_WEAK */
       }
     }
   }
@@ -824,7 +813,6 @@ ACCEPTOR STATIC void weak_clear_property_maps()
 }
 #endif /* HC_SKIP_INTERNAL */
 
-#ifdef INLINE_CACHE_WEAK
 ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
 {
   for (int i = 0; i < FUNCTION_TABLE_LIMIT; i++) {
@@ -842,7 +830,6 @@ ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
     }
   }
 }
-#endif /* INLINE_CACHE_WEAK */
 
 ACCEPTOR STATIC void weak_clear(Context *ctx)
 {
@@ -854,10 +841,9 @@ ACCEPTOR STATIC void weak_clear(Context *ctx)
   weak_clear_shapes<Tracer>();
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable<Tracer>(&string_table);
-
-#ifdef INLINE_CACHE_WEAK
+#ifdef INLINE_CACHE
   weak_clear_inline_cache<Tracer>(ctx);
-#endif /* INLINE_CACHE_WEAK */
+#endif /* INLINE_CACHE */
 
   /* clear cache in the context */
   the_context->exhandler_pool = NULL;
