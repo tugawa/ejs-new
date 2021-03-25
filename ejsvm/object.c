@@ -34,9 +34,9 @@ static inline void hcprof_enter_shape(Shape *os)
     pm->n_enter++;
   }
 #endif /* HC_PROF || HC_SKIP_INTERNAL */
-#if defined (HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
+#if defined (HC_PROF) || defined(ALLOC_SITE_CACHE)
   os->n_enter++;
-#endif /* HC_PROF || ALLOC_SITE_CACHE_COUNT_BASE */
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
 #ifdef AS_PROF
   if (os->alloc_site != NULL)
     os->alloc_site->transition++;
@@ -51,9 +51,9 @@ static inline void hcprof_leave_shape(Shape *os)
     pm->n_leave++;
   }
 #endif /* HC_PROF || HC_SKIP_INTERNAL */
-#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE)
   os->n_leave++;
-#endif /* HC_PROF || ALLOC_SITE_CACHE_COUNT_BASE */
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
 }
 
 #define HC_PROF_ENTER_SHAPE(os) hcprof_enter_shape(os)
@@ -819,10 +819,10 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
 #ifdef ALLOC_SITE_CACHE
   s->alloc_site = as;
 #endif /* ALLOC_SITE_CACHE */
-#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE)
   s->n_enter = 0;
   s->n_leave = 0;
-#endif /* HC_PROF || ALLOC_SITE_CACHE_COUNT_BASE */
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
 #ifdef AS_PROF
   s->n_alloc = 0;
 #endif /* AS_PROF */
