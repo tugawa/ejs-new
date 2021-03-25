@@ -156,13 +156,4 @@ CPPFLAGS       += -DVERIFY_BIBOP
 ## fix rand seed
 CPPFLAGS    += -DNO_SRAND
 
-##
-## Alloc site cache related experimental
-##
-
-## Shape has a cache to transition destination
-##  Desigened for no-ALLOC_SITE_CACHE_PER_SITE_HCG
-CPPFLAGS += -DALLOC_SITE_CACHE_SHAPE_XCACHE
-
-
 include $(EJSVM_DIR)/common.mk

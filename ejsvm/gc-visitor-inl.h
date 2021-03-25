@@ -627,12 +627,6 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
     for (p = &pm->shapes; *p != NULL; ) {
       if (Tracer::is_marked_cell(*p)) {
 	PROCESS_EDGE(*p);
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-	if ((*p)->xcache_key != JS_UNDEFINED) {
-	  PROCESS_EDGE((*p)->xcache_key);
-	  PROCESS_EDGE((*p)->xcache_shape);
-	}
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 	Tracer::process_mark_stack();
         p = &(*p)->next;
       } else {
@@ -694,9 +688,6 @@ STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 {
   int n_transitions = 0;
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-  int clear_xcache = 0;
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 
   assert(Tracer::is_marked_cell(pm));
 
@@ -723,9 +714,6 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 	printf("skip PropertyMap %s from %s\n", buf1, buf2);
       }
 #endif /* VERBOSE_HC */
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-      clear_xcache = 1;
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
       PropertyMap *next_next = get_transition_dest(next);
       assert(next_next->prev == next);
       next = next_next;
@@ -780,15 +768,6 @@ ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
     weak_clear_property_map_recursive<Tracer>(next);
   }
   pm->n_transitions = n_transitions;
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-  if (clear_xcache) {
-    Shape *os;
-    for (os = pm->shapes; os != NULL; os = os->next) {
-      os->xcache_key = JS_UNDEFINED;
-      os->xcache_shape = NULL;
-    }
-  }
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 }
 
 ACCEPTOR STATIC void weak_clear_property_maps()

@@ -201,23 +201,7 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
     /* 2. Find the shape that is compatible to the current shape. */
     n_embedded = current_os->n_embedded_slots;
     n_extension = current_os->n_extension_slots;
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-    /* 2.1 check xcache in the current shape */
-    if (current_os->xcache_key == name) {
-      next_os = current_os->xcache_shape;
-      PRINT("  found: %p (cache hit, key = %s)\n",
-            next_os, string_to_cstr(name));
-      assert(current_os->n_embedded_slots == next_os->n_embedded_slots);
-      goto SHAPE_FOUND;
-    } else {
-      next_os = NULL;
-      PRINT("  finding shape (cache not hit %s)\n",
-            current_os->xcache_key == JS_UNDEFINED ?
-            "UNDEFINED" : string_to_cstr(current_os->xcache_key));
-    }
-#else /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
     next_os = NULL;
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
     if (next_os == NULL) {
       /* 2.2  Find from the shape list of the next PM. */
       size_t need_slots = next_pm->n_props;
@@ -273,17 +257,6 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
       PRINT("  create new shape %p EM/EX %lu %lu\n",
             next_os, n_embedded, n_extension);
     }
-
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-    /* 3.5 Cache the next shape in xcache in the shape */
-    if (current_os->xcache_key == JS_UNDEFINED) {
-      current_os->xcache_key = name;
-      current_os->xcache_shape = next_os;
-      PRINT("   xcache shape %p -> %p (key: %s)\n",
-            current_os, next_os, string_to_cstr(name));
-    }
-  SHAPE_FOUND:
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 
     GC_PUSH(next_os);
     /* 4. Change the shape of object if necessary and installs the new shape.
@@ -847,10 +820,6 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->n_extension_slots = num_extension;
 #ifdef ALLOC_SITE_CACHE
   s->alloc_site = as;
-#ifdef ALLOC_SITE_CACHE_SHAPE_XCACHE
-  s->xcache_key = JS_UNDEFINED;
-  s->xcache_shape = NULL;
-#endif /* ALLOC_SITE_CACHE_SHAPE_XCACHE */
 #endif /* ALLOC_SITE_CACHE */
 #if defined(HC_PROF) || defined(ALLOC_SITE_CACHE_COUNT_BASE)
   s->n_enter = 0;
