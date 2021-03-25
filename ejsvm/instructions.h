@@ -231,10 +231,8 @@ struct inline_cache {
 #endif /* INLINE_CACHE_SHAPE_BASE */
   int index;
   JSValue prop_name;
-#ifdef INLINE_CACHE_RESET
 #define INLINE_CACHE_RESET_THRESHOLD 10
   int miss;
-#endif /* INLINE_CACHE_RESET */
 #ifdef IC_PROF
   int unavailable;
   int count;

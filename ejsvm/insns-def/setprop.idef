@@ -49,7 +49,6 @@
       ic_prof_hit++;
 #endif /* IC_PROF */
     } else {
-#ifdef INLINE_CACHE_RESET
       if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD) {
 #ifdef INLINE_CACHE_SHAPE_BASE
         ic->shape = NULL;
@@ -57,7 +56,6 @@
         ic->pm = NULL;
 #endif /* INLINE_CACHE_SHAPE_BASE */
       }
-#endif /* INLINE_CACHE_RESET */
       set_prop_with_ic(context, obj, prop, val, ATTR_NONE, ic);
     }
   }
