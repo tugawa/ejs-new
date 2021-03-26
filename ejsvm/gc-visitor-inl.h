@@ -192,27 +192,6 @@ class NodeScanner {
     if (p->next != NULL)
       PROCESS_EDGE(p->next);
   }
-#ifdef PROPERTY_MAP_HASHTABLE
-  ACCEPTOR static void scan_Hashtable(HashTable *p) {
-    if (p->body != NULL)
-      PROCESS_EDGE_EX_PTR_ARRAY(p->body, p->size);
-  }
-  ACCEPTOR static void scan_HashBody(HashCell **p) {
-    Tracer::process_node_ptr_array(reinterpret_cast<void **&>(p));
-  }
-  ACCEPTOR static void scan_HashCell(HashCell *p) {
-    PROCESS_EDGE(p->entry.key);
-    if (is_transition(p->entry.attr)) {
-#ifdef HC_SKIP_INTERNAL      
-      PROCESS_WEAK_EDGE(p->entry.data.u.pm);
-#else /* HC_SKIP_INTERNAL */
-      PROCESS_EDGE(p->entry.data.u.pm);
-#endif /* HC_SKIP_INTERNAL */
-    }      
-    if (p->next != NULL)
-        PROCESS_EDGE(p->next);
-  }
-#else /* PROPERTY_MAP_HASHTABLE */
   ACCEPTOR static void scan_Hashtable(HashTable *p) {
     if (p->transitions != NULL)
       PROCESS_EDGE(p->transitions);
@@ -231,7 +210,6 @@ class NodeScanner {
       }
     }
   }
-#endif /* PROPERTY_MAP_HASHTABLE */
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
     if (p->prev != NULL) {
@@ -330,24 +308,12 @@ ACCEPTOR STATIC_INLINE void process_node(cell_type_t type, uintptr_t ptr) {
   case CELLT_STR_CONS:
     NodeScanner::scan_StrCons<Tracer>((StrCons *) ptr);
     return;
-#ifdef PROPERTY_MAP_HASHTABLE
-  case CELLT_HASHTABLE:
-    NodeScanner::scan_Hashtable<Tracer>((HashTable *) ptr);
-    return;
-  case CELLT_HASH_BODY:
-    NodeScanner::scan_HashBody<Tracer>((HashCell **) ptr);
-    return;
-  case CELLT_HASH_CELL:
-    NodeScanner::scan_HashCell<Tracer>((HashCell *) ptr);
-    return;
-#else /* PROPERTY_MAP_HASHTABLE */
   case CELLT_TRANSITIONS:
     NodeScanner::scan_TransitionTable<Tracer>((TransitionTable *) ptr);
     return;
   case CELLT_HASHTABLE:
     NodeScanner::scan_Hashtable<Tracer>((HashTable *) ptr);
     return;
-#endif /* PROPERTY_MAP_HASHTABLE */
   case CELLT_PROPERTY_MAP:
     NodeScanner::scan_PropertyMap<Tracer>((PropertyMap *) ptr);
     return;

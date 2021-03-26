@@ -33,18 +33,14 @@
  *   CELLT_BYTE_ARRAY     no     no        no        no    non pointer
  *   CELLT_FUNCTION_FRAME no     no        no        yes   FunctionFrame
  *   CELLT_STR_CONS       no     no        no        fixed StrCons
- *   CELLT_CONTEXT        no     no        no        fixed Context
- *   CELLT_STACK          no     no        no        no    JSValue*
  *   CELLT_TRANSITIONS    no     no        no        yes   TransitionTable
  *   CELLT_HASHTABLE      no     no        no        fixed HashTable
- *   CELLT_HASH_BODY      no     no        no        no    HashCell**
- *   CELLT_HASH_CELL      no     no        no        fixed HashCell
  *   CELLT_PROPERTY_MAP   no     yes       no        fixed PropertyMap
  *   CELLT_SHAPE          no     no        no        fixed Shape
  *   CELLT_UNWIND         no     no        no        fixed UnwindProtect
  *   CELLT_PROPERTY_MAP_LIST no  no        no        fixed PropertyMapList
  *
- * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
+ * Objects that do not know their size (PROP, ARRAY_DATA)
  * are stored in a dedicated slot and scand together with their owners.
  *
  * CELLT_PROP is stored in the last embedded slot.
@@ -111,12 +107,12 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 13 */ "BYTE_ARRAY",
     /* 14 */ "FUNCTION_FRAME",
     /* 15 */ "STR_CONS",
-    /* 16 */ "CONTEXT",
-    /* 17 */ "STACK",
+    /* 16 */ "",
+    /* 17 */ "",
     /* 18 */ "TRANSITIONS",
     /* 19 */ "HASHTABLE",
-    /* 1a */ "HASH_BODY",
-    /* 1b */ "HASH_CELL",
+    /* 1a */ "",
+    /* 1b */ "",
     /* 1c */ "PROPERTY_MAP",
     /* 1d */ "SHAPE",
     /* 1e */ "UNWIND",
