@@ -128,7 +128,7 @@ CPPFLAGS       += -DVERIFY_BIBOP
 ##
 
 ## use boundary tag in Hidden Class
-#CPPFALGS       += -DGC_THREADED_BOUNDARY_TAG
+CPPFALGS       += -DGC_THREADED_BOUNDARY_TAG
 
 ##
 ## debug/sanity check options

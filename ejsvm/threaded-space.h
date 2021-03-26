@@ -91,13 +91,13 @@ typedef struct header_t {
 #if HEADER_GEN_BITS > 0
       unsigned int gen:        HEADER_GEN_BITS;
 #endif /* HEADER_GEN_BITS */
-#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
+#ifdef GC_THREADED_BOUNDARY_TAG
 #define BOUNDARY_TAG_MAX_SIZE ((1 << HEADER_HALF_SIZE_BITS) - 1)
       unsigned int size_hi:     HEADER_HALF_SIZE_BITS;
       unsigned int size_lo:     HEADER_HALF_SIZE_BITS;
-#else /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
+#else /* GC_THREADED_BOUNDARY_TAG */
       unsigned int size_lo:     HEADER_SIZE_BITS;
-#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
+#endif /* GC_THREADED_BOUNDARY_TAG */
     } hc;
   };
 } header_t;
@@ -108,9 +108,7 @@ static inline header_t
 compose_hidden_class_header(size_t granules, cell_type_t type);
 #endif /* GC_THREADED_BOUNDARY_TAG */
 
-#ifdef GC_THREADED_NO_HCGC
-#define BOUNDARY_TAG_GRANULES 0
-#elif defined(GC_THREADED_BOUNDARY_TAG)
+#ifdef GC_THREADED_BOUNDARY_TAG
 #define BOUNDARY_TAG_GRANULES 0
 #else /*  GC_THREADED_BOUNDARY_TAG */
 #define BOUNDARY_TAG_GRANULES 1

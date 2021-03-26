@@ -62,11 +62,11 @@ STATIC void create_space(struct space *space, size_t bytes, size_t threshold_byt
 #ifdef GC_THREADED_SEPARATE_HC_AREA
   space->ordinary_limit = space->end - GC_THREADED_HC_AREA_BYTES;
 #endif /* GC_THREADED_SEPARATE_HC_AREA */
-#if defined(GC_THREADED_BOUNDARY_TAG) && !defined(GC_THREADED_NO_HCGC)
+#ifdef GC_THREADED_BOUNDARY_TAG
   space->end -= HEADER_GRANULES << LOG_BYTES_IN_GRANULE;
   *((header_t *) space->end) = compose_hidden_class_header(0, CELLT_FREE);
   write_boundary_tag(space->end, 0);
-#endif /* GC_THREADED_BOUNDARY_TAG && !GC_THREADED_NO_HCGC */
+#endif /* GC_THREADED_BOUNDARY_TAG */
   space->bytes = bytes;
   space->free_bytes = space->end - space->begin;
 #ifdef GC_THREADED_SEPARATE_HC_AREA
