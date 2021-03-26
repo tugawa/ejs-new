@@ -100,9 +100,24 @@ CPPFLAGS       += -DINLINE_CACHE
 CPPFLAGS       += -DGC_PROF
 ## show hidden class related profiling information (make --hc-prof available)
 CPPFLAGS       += -DHC_PROF
-## print flonum usage
-CPPFLAGS       += -DFLONUM_SPACE
+## show inline cache statistics
+CPPFLAGS       += -DIC_PROF
+## show allocation site cache statistics
+CPPFLAGS       += -DAS_PROF
+## show shape statisics
+CPPFLAGS       += -DSHAPE_PROF
 
+
+## dump hidden class graph
+CPPFLAGS       += -DDUMP_HCG
+## load hidden class graph from file (unstable)
+CPPFLAGS       += -DLOAD_HCG
+
+## print flonum usage
+#CPPFLAGS       += -DFLONUM_PROF
+
+## use flonum space
+#CPPFLAGS       += -DFLONUM_SPACE
 ## use explicit mark stack rather than recursive call
 #CPPFLAGS      += -DMARK_STACK
 
