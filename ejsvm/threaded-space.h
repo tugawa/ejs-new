@@ -118,36 +118,14 @@ compose_hidden_class_header(size_t granules, cell_type_t type);
  *  Types
  */
 
-/*
- * A) without GC_THREADED_SPEARATE_HC_AREA
- * |----------->       <-------------|
- * head      begin    end          tail
- *
- * B) with GC_THREADED_SPEARATE_HC_AREA
- * |----------->    :    |   <-------------|
- * head      begin  :    |  end          tail
- *                  :  ordinary_limit
- *                  :      <--------------->
- *                  :   GC_THREADED_HC_AREA_BYTES
- *             threshold
- */
-
-struct space {
+  struct space {
   uintptr_t head;
   uintptr_t tail;
   uintptr_t begin;
   uintptr_t end;
-#ifdef GC_THREADED_SEPARATE_HC_AREA
-#define GC_THREADED_HC_AREA_BYTES (1024*1024)
-  uintptr_t ordinary_limit;
-#endif /* GC_THREADED_SEPARATE_HC_AREA */
   size_t bytes;
   size_t free_bytes;
-#ifdef GC_THREADED_SEPARATE_HC_AREA
-  size_t threshold;
-#else /* GC_THREADED_SEPARATE_HC_AREA */
   size_t threshold_bytes;
-#endif /* GC_THREADED_SEPARATE_HC_AREA */
   char *name;
 };
 

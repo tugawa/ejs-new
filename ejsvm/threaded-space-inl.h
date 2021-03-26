@@ -106,11 +106,7 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr)
 
 static inline int space_check_gc_request()
 {
-#ifdef GC_THREADED_SEPARATE_HC_AREA
-  return (js_space.begin >= js_space.threshold);
-#else /* GC_THREADED_SEPARATE_HC_AREA */
   return (js_space.free_bytes < js_space.threshold_bytes);
-#endif /* GC_THREADED_SEPARATE_HC_AREA */
 }
 
 static inline void mark_cell(void *p)
