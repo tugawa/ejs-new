@@ -1264,7 +1264,6 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
 {
   assert(is_array(array));
 
-#ifdef NEW_ASIZE_STRATEGY
   /* 1. If array.size <= index < array.size * ASIZE_FACTOR + 1,
    *    expand the storage */
   {
@@ -1275,14 +1274,6 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
       GC_POP2(v, array);
     }
   }
-#else /* NEW_ASIZE_STRATEGY */
-  /* 1. If array.size <= index < ASIZE_LIMIT, expand the storage */
-  if (get_jsarray_size(array) <= index && index < ASIZE_LIMIT) {
-    GC_PUSH2(array, v);
-    reallocate_array_data(ctx, array, index + 1);
-    GC_POP2(v, array);
-  }
-#endif /* NEW_ASIZE_STRATEGY */
 
   /* 2. If 0 <= index < array.size, store the value to the storage */
   if (0 <= index && index < get_jsarray_size(array)) {
@@ -1314,7 +1305,6 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
   }
 }
 
-#ifdef NEW_ASIZE_STRATEGY
 static void
 remove_and_convert_numerical_properties(Context *ctx, JSValue array,
                                         int32_t length)
@@ -1347,30 +1337,6 @@ remove_and_convert_numerical_properties(Context *ctx, JSValue array,
   }
   GC_POP2(array, pm);
 }
-#else /* NEW_ASIZE_STRATEGY */
-static void
-remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
-{
-  Shape *os = object_get_shape(array);
-  PropertyMap *pm = os->pm;
-  HashPropertyIterator iter = createHashPropertyIterator(pm->map);
-  JSValue key;
-  uint32_t index;
-  Attribute attr;
-  while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
-    JSValue number_key;
-    double double_key;
-    int32_t int32_key;
-    assert(is_string(key));
-    number_key = string_to_number(ctx, key);
-    double_key = number_to_double(number_key);
-    int32_key = (int32_t) double_key;
-    if (int32_key >= 0 && double_key == (double) int32_key &&
-        int32_key >= length)
-      set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
-  }
-}
-#endif /* NEW_ASIZE_STRATEGY */
 
 int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
 {
@@ -1409,7 +1375,6 @@ int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
     length = (int32_t) double_length;
     if (double_length != (double) length || length < 0)
       LOG_EXIT("invalid array length");
-#ifdef NEW_ASIZE_STRATEGY
     {
       int32_t old_size = get_jsarray_size(array);
       JSValue old_len_jsv = get_jsarray_length(array);
@@ -1424,22 +1389,6 @@ int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
         remove_and_convert_numerical_properties(ctx, array, length);
       }
     }
-#else /* NEW_ASIZE_STRATEGY */
-    /* 4.1. If length is less than ASIZE_LIMIT, adjust container size. */
-    if (length <= ASIZE_LIMIT) {
-      uint32_t size = get_jsarray_size(array);
-      if (size != length)
-	reallocate_array_data(ctx, array, length);
-    }
-    /* 4.2. If new length is smaller, delete numerical properties. */
-    {
-      JSValue oldlength_jsv = get_jsarray_length(array);
-      uint32_t oldlength = (int32_t) number_to_double(oldlength_jsv);
-      if (oldlength >= ASIZE_LIMIT && length < oldlength) {
-        remove_numerical_properties(ctx, array, length);
-      }
-    }
-#endif /* NEW_ASIZE_STRATEGY */
     /* 4.3 Set length property. */
     set_jsarray_length(array, v);
     GC_POP2(array,v);

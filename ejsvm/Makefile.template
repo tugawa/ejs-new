@@ -106,9 +106,6 @@ CPPFLAGS       += -DFLONUM_SPACE
 ## use explicit mark stack rather than recursive call
 #CPPFLAGS      += -DMARK_STACK
 
-## array size strategy
-CPPFLAGS       += -DNEW_ASIZE_STRATEGY
-
 ##
 ## BiBoP options
 ##
