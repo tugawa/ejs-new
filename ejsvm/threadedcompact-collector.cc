@@ -338,7 +338,6 @@ void garbage_collection(Context *ctx)
   gc_phase = PHASE_INACTIVE;
 }
 
-#ifdef GC_THREADED_MERGE_FREE_SPACE
 static inline uintptr_t make_free_cell(uintptr_t end, size_t granules)
 {
   uintptr_t p = end - (granules << LOG_BYTES_IN_GRANULE);
@@ -407,18 +406,6 @@ merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end)
   } else
     hdrp->size = granules;
 }
-#else /* GC_THREADED_MERGE_FREE_SPACE */
-static inline void
-merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,
-				      uintprt_t first_free)
-{
-}
-static inline void
-merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end,
-				  size_t count)
-{
-}
-#endif /* GC_THREADED_MERGE_FREE_SPACE */
 
 static void update_forward_reference(Context *ctx)
 {
