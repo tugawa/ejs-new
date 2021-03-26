@@ -307,11 +307,6 @@ void garbage_collection(Context *ctx)
   scan_roots<DefaultTracer>(ctx);
   DefaultTracer::process_mark_stack();
 
-  /* profile */
-#ifdef CHECK_MATURED
-  check_matured();
-#endif /* CHECK_MATURED */
-
   /* weak */
 #ifdef TU_DEBUG
   printf("weak\n");

@@ -141,10 +141,6 @@ CPPFLAGS       += -DVERIFY_BIBOP
 ## show values of properties in GETPROP/SETPROP instructions
 #CPPFLAGS   += -DDEBUG_GETPROP_VALUE
 
-## GC reports unmatured (not reached the end of HC
-## transisiton graph) dead objects
-#CPPFLAGS   += -DCHECK_MATURED
-
 ## fix rand seed
 CPPFLAGS    += -DNO_SRAND
 

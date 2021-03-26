@@ -28,9 +28,6 @@ STATIC void create_space(struct space *space, size_t bytes, size_t threshold_byt
 STATIC header_t *get_shadow(void *ptr);
 #endif /* GC_DEBUG */
 /* GC */
-#ifdef CHECK_MATURED
-STATIC void check_matured(void);
-#endif /* CHECK_MATURED */
 #ifdef GC_DEBUG
 STATIC void check_invariant(void);
 STATIC void print_memory_status(void);

@@ -59,16 +59,6 @@ void garbage_collection(Context *ctx)
   scan_roots<DefaultTracer>(ctx);
   DefaultTracer::process_mark_stack();
 
-  /* profile */
-#ifdef CHECK_MATURED
-  check_matured();
-#endif /* CHECK_MATURED */
-
-#ifdef AS_PROF
-  printf("==========AFTER MARK PHASE=========\n");
-  print_as_prof(ctx);
-#endif /* AS_PROF */
-
   /* weak */
   gc_phase = PHASE_WEAK;
   weak_clear<DefaultTracer>(ctx);
