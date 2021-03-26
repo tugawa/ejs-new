@@ -496,15 +496,8 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   assert(os->pm->n_special_props == FUNCTION_SPECIAL_PROPS);
 
   GC_PUSH(os);
-#ifdef ALLOC_SITE_CACHE_PROTOTYPE
-  prototype =
-    create_simple_object_with_prototype(ctx,
-                                        gconsts.g_prototype_Object);
-#else /* ALLOC_SITE_CACHE_PROTOTYPE */
   prototype = new_simple_object(ctx, DEBUG_NAME("(prototype)"),
                                 gshapes.g_shape_Object);
-#endif /* ALLOC_SITE_CACHE_PROTOTYPE */
-
   GC_PUSH(prototype);
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
   GC_POP2(prototype, os);
