@@ -41,29 +41,15 @@
 #ifdef IC_PROF
     ic->count++;
     ic_prof_count++;
-    if (
-#ifdef INLINE_CACHE_SHAPE_BASE
-        ic->shape == NULL
-#else /* INLINE_CACHE_SHAPE_BASE */
-        ic->pm == NULL
-#endif /* INLINE_CACHE_SHAPE_BASE */
-        )
+    if (ic->pm == NULL)
       ic->unavailable++;
 #endif /* IC_PROF */
-#ifdef INLINE_CACHE_SHAPE_BASE
-#ifndef INLINE_CACHE_SHAPE_BASE_IMMATURE
-    assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
-#endif /* INLINE_CACHE_SHAPE_BASE_IMMATURE */
-    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop) {
-      dst = jsv_to_jsobject(obj)->eprop[ic->index];
-#else /* INLINE_CACHE_SHAPE_BASE */
     if (ic->pm == object_get_shape(obj)->pm && ic->prop_name == prop) {
       assert(ic->index <
              object_get_shape(obj)->n_embedded_slots +
              object_get_shape(obj)->n_extension_slots -
              (object_get_shape(obj)->n_extension_slots > 0 ? 1 : 0));
       dst = object_get_prop(obj, ic->index);
-#endif /* INLINE_CACHE_SHAPE_BASE */
       if (dst == JS_EMPTY)
         dst = get_object_prop(context, obj, prop, ic);
 #ifdef IC_PROF
@@ -73,13 +59,8 @@
       }
 #endif /* IC_PROF */
     } else {
-      if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD) {
-#ifdef INLINE_CACHE_SHAPE_BASE
-        ic->shape = NULL;
-#else /* INLINE_CACHE_SHAPE_BASE */
+      if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD)
         ic->pm = NULL;
-#endif /* INLINE_CACHE_SHAPE_BASE */
-      }
       dst = get_object_prop(context, obj, prop, ic);
     }
   }

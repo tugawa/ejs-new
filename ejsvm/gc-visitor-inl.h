@@ -473,13 +473,8 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
-#ifdef INLINE_CACHE_SHAPE_BASE
-      if (ic->shape != NULL) {
-        PROCESS_WEAK_EDGE(ic->shape);
-#else /* INLINE_CACHE_SHAPE_BASE */
       if (ic->pm != NULL) {
         PROCESS_WEAK_EDGE(ic->pm);
-#endif /* INLINE_CACHE_SHAPE_BASE */
         PROCESS_WEAK_EDGE(ic->prop_name);
       }
     }
@@ -781,9 +776,6 @@ ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
     for (int j = 0; j < p->n_insns; j++) {
       Instruction *insn = &p->insns[j];
       InlineCache *ic = &insn->inl_cache;
-#ifdef INLINE_CACHE_SHAPE_BASE
-#error INLINE_CACHE_WEAK does not support INLINE_CACHE_SHAPE_BASE
-#endif /* INLINE_CACHE_SHAPE_BASE */
       if (ic->pm != NULL && !Tracer::is_marked_cell(ic->pm)) {
 	ic->pm = NULL;
 	ic->prop_name = JS_UNDEFINED;

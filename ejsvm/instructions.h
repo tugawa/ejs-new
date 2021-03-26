@@ -224,11 +224,7 @@ struct alloc_site {
 
 #ifdef INLINE_CACHE
 struct inline_cache {
-#ifdef INLINE_CACHE_SHAPE_BASE
-  Shape *shape;
-#else /* INLINE_CACHE_SHAPE_BASE */
   PropertyMap *pm;
-#endif /* INLINE_CACHE_SHAPE_BASE */
   int index;
   JSValue prop_name;
 #define INLINE_CACHE_RESET_THRESHOLD 10
