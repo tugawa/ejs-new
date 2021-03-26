@@ -269,7 +269,6 @@ STATIC_INLINE int check_gc_request(Context *ctx, int force)
 }
 
 #ifdef ALLOC_SITE_CACHE
-#ifndef X_DISABLE_ALLOC_SITE_CACHE
 STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 {
   while(!GC_PM_EQ(a, b) && a->prev != NULL) {
@@ -283,11 +282,9 @@ STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
   }
   return a;
 }
-#endif /* X_DISABLE_ALLOC_SITE_CACHE */
 
 void alloc_site_update_info(JSObject *p)
 {
-#ifndef X_DISABLE_ALLOC_SITE_CACHE
   Shape *os = p->shape;
   PropertyMap *pm = os->pm;
   AllocSite *as = os->alloc_site;
@@ -326,7 +323,6 @@ void alloc_site_update_info(JSObject *p)
       as->shape = NULL;
     }
   }
-#endif /* X_DISABLE_ALLOC_SITE */
 }
 #endif /* ALLOC_SITE_CACHE */
 
