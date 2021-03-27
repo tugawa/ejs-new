@@ -987,7 +987,6 @@ JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
           pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
                                         pm, n_props, 0);
 #endif /* ALLOC_SITE_CACHE */
-                                        );
         }
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
