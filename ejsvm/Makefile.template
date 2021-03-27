@@ -122,6 +122,13 @@ CPPFLAGS       += -DLOAD_HCG
 #CPPFLAGS      += -DMARK_STACK
 
 ##
+## MS options
+##
+
+## use 32bit object header (for BIT_JSVALUE32 env)
+#CPPFALGS       += -DGC_MS_HEADER32
+
+##
 ## BiBoP options
 ##
 
@@ -144,6 +151,9 @@ CPPFLAGS       += -DVERIFY_BIBOP
 
 ## use boundary tag in Hidden Class
 CPPFALGS       += -DGC_THREADED_BOUNDARY_TAG
+## use 32bit object header (for BIT_JSVALUE32 env)
+#CPPFALGS       += -DGC_THREADED_HEADER32
+
 
 ##
 ## debug/sanity check options
