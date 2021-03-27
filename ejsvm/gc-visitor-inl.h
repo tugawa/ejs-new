@@ -223,10 +223,6 @@ class NodeScanner {
       PROCESS_EDGE(p->shapes);/* Shape
 			       * (always keep the largest one) */
     PROCESS_EDGE(p->__proto__);
-#ifdef ALLCO_SITE_CACHE
-    if (p->alloc_site != NULL)
-      PROCESS_EDGE(p->alloc_site->pm);
-#endif /* ALLOC_SITE_CACHE */
   }
   ACCEPTOR static void scan_Shape(Shape *p) {
     PROCESS_EDGE(p->pm);
