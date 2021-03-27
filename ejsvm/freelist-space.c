@@ -332,7 +332,7 @@ STATIC void check_invariant_nobw_space(struct space *space)
     case CELLT_FLONUM:
     case CELLT_ARRAY_DATA:
     case CELLT_HASHTABLE:
-    case CELLT_HASH_CELL:
+    /* case CELLT_HASH_CELL: */ // No longer used
       break;
     case CELLT_PROPERTY_MAP:
       {
