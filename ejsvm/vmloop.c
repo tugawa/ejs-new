@@ -89,6 +89,7 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     if (trace_flag == TRUE) {                           \
       printf("pc = %d, fp = %d: ", pc, fp);             \
       print_bytecode(insns, 0);                         \
+      fflush(stdout);                                   \
     }                                                   \
   } while (0)
 #else /* DEBUG */

@@ -3,7 +3,7 @@
 \when obj:array && prop:fixnum \{
 #ifdef DEBUG_GETPROP_VALUE
   if (trace_flag)
-    printf("getprop: array (prop = fixnum(%lld))\n", fixnum_to_cint(prop));
+    printf("getprop: array (prop = fixnum(%" PRIcint "))\n", fixnum_to_cint(prop));
 #endif /* DEBUG_GETPROP_VALUE */
   dst = get_array_element(context, obj, fixnum_to_cint(prop));
 #ifdef DEBUG_GETPROP_VALUE

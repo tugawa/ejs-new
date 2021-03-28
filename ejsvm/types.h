@@ -163,6 +163,7 @@ typedef int32_t intjsv_t;
 typedef int32_t cint;
 typedef uint32_t cuint;
 #define PRIJSValue "08" PRIx32
+#define PRIcint PRId32
 #else /* BIT_JSVALUE32 */
 #define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
@@ -171,6 +172,7 @@ typedef int64_t intjsv_t;
 typedef int64_t cint;
 typedef uint64_t cuint;
 #define PRIJSValue "016" PRIx64
+#define PRIcint PRId64
 #endif /* BIT_JSVALUE32 */
 
 #define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)

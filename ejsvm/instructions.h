@@ -174,7 +174,7 @@ typedef uint32_t Counter;
 #define minval_tag() (0)
 #define maxval_tag() (UINT8_MAX)
 
-#define PRIByteCode "08"PRIx32
+#define PRIByteCode "08" PRIx32
 #else /* BIT_INSN32 */
 typedef uint64_t Bytecode;
 typedef int32_t  SmallPrimitive;
