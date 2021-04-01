@@ -7,8 +7,9 @@
  * Electro-communications.
  */
 package vmdlc;
+
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,135 +24,13 @@ import nez.parser.io.StringSource;
 import nez.ast.Source;
 import nez.ast.SourceError;
 
-
-import type.*;
-import vmdlc.AlphaConvVisitor;
-import vmdlc.AstToCVisitor;
-import vmdlc.DesugarVisitor;
-import vmdlc.SyntaxTree;
-import vmdlc.TypeCheckVisitor;
-
+import vmdlc.Option.CompileMode;
 
 public class Main {
     static final String VMDL_GRAMMAR = "ejsdsl.nez";
-    static String sourceFile;
-    static String dataTypeDefFile;
-    static String vmdlGrammarFile;
-    static String operandSpecFile;
-    static String insnDefFile;
 
+    static SyntaxTree ast;
     static Option option = new Option();
-
-    static void parseOption(String[] args) {
-        for (int i = 0; i < args.length; ) {
-            String opt = args[i++];
-            if (opt.equals("-d")) {
-                dataTypeDefFile = args[i++];
-            } else if (opt.equals("-g")) {
-                vmdlGrammarFile = args[i++];
-            } else if (opt.equals("-o")) {
-                operandSpecFile = args[i++];
-            } else if (opt.equals("-no-match-opt")) {
-                option.mDisableMatchOptimisation = true;
-            } else if (opt.equals("-i")) {
-                insnDefFile = args[i++];
-            } else if (opt.startsWith("-X")) {
-                i = option.addOption(opt, args, i);
-                if (i == -1) {
-                    break;
-                }
-            } else {
-                sourceFile = opt;
-                break;
-            }
-        }
-
-        if (dataTypeDefFile == null || sourceFile == null) {
-            System.out.println("vmdlc [option] source");
-            System.out.println("   -d file   [mandatory] datatype specification file");
-            System.out.println("   -o file   operand specification file");
-            System.out.println("   -g file   Nez grammar file (default: ejsdl.nez in jar file)");
-            System.out.println("   -no-match-opt  disable optimisation for match statement");
-            System.out.println("   -i file   instruction defs");
-            System.out.println("   -Xcmp:verify_diagram [true|false]");
-            System.out.println("   -Xcmp:opt_pass [MR:S]");
-            System.out.println("   -Xcmp:rand_seed n    set random seed of dispatch processor");
-            System.out.println("   -Xcmp:tree_layer p0:p1:h0:h1");
-            System.out.println("   -Xgen:use_goto [true|false]");
-            System.out.println("   -Xgen:pad_cases [true|false]");
-            System.out.println("   -Xgen:use_default [true|false]");
-            System.out.println("   -Xgen:magic_comment [true|false]");
-            System.out.println("   -Xgen:debug_comment [true|false]");
-            System.out.println("   -Xgen:label_prefix xxx   set xxx as goto label");
-            System.out.println("   -Xgen:type_label [true|false]");
-            System.exit(1);
-        }
-    }
-
-    static SyntaxTree parse(String sourceFile) throws IOException {
-        ParserGenerator pg = new ParserGenerator();
-        Grammar grammar = null;
-
-        if (vmdlGrammarFile != null)
-            grammar = pg.loadGrammar(vmdlGrammarFile);
-        else {
-            StringSource grammarText = readDefaultGrammar();
-            grammar = pg.newGrammar(grammarText, "nez");
-        }
-
-        //grammar.dump();
-        Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
-
-        //Source source = new StringSource("externC constant cint aaa = \"-1\";");
-        Source source = new FileSource(sourceFile);
-        SyntaxTree ast = (SyntaxTree) parser.parse(source, new SyntaxTree());
-
-        if (parser.hasErrors()) {
-            for (SourceError e: parser.getErrors()) {
-                System.out.println(e);
-            }
-            throw new Error("parse error");
-        }
-
-        return ast;
-    }
-
-    public final static void main(String[] args) throws IOException {
-        parseOption(args);
-
-        if (dataTypeDefFile == null)
-            throw new Error("no datatype definition file is specified (-d option)");
-        TypeDefinition.load(dataTypeDefFile);
-
-        OperandSpecifications opSpec = new OperandSpecifications();
-        if (operandSpecFile != null)
-            opSpec.load(operandSpecFile);
-
-        InstructionDefinitions insnDef = new InstructionDefinitions();
-        if (insnDefFile != null)
-            insnDef.load(insnDefFile);
-
-        if (sourceFile == null)
-            throw new Error("no source file is specified");
-
-        Integer seed = option.getOption(Option.AvailableOptions.CMP_RAND_SEED, 0);
-        DispatchProcessor.srand(seed);
-
-        SyntaxTree ast = parse(sourceFile);
-
-        new DesugarVisitor().start(ast);
-        new AlphaConvVisitor().start(ast, true, insnDef);
-        new TypeCheckVisitor().start(ast, opSpec);
-
-        String program = new AstToCVisitor().start(ast, opSpec);
-
-        System.out.println(program);
-    }
-
-    public static BufferedReader openFileInJar(String path){
-        InputStream is = Main.class.getClassLoader().getResourceAsStream(path);
-        return new BufferedReader(new InputStreamReader(is));
-    }
 
     static StringSource readDefaultGrammar() throws IOException {
         InputStream is = ClassLoader.getSystemResourceAsStream(VMDL_GRAMMAR);
@@ -165,5 +44,158 @@ public class Main {
         }
         String peg = sb.toString();
         return new StringSource(peg);
+    }
+    static Grammar getGrammar() throws IOException {
+        ParserGenerator pg = new ParserGenerator();
+        Grammar grammar;
+        if (option.isSetVMDLGrammarFile())
+            grammar = pg.loadGrammar(option.getVMDLGrammarFile());
+        else {
+            StringSource grammarText = readDefaultGrammar();
+            grammar = pg.newGrammar(grammarText, "nez");
+        }
+        return grammar;
+    }
+    public static BufferedReader openFileInJar(String path){
+        InputStream is = Main.class.getClassLoader().getResourceAsStream(path);
+        return new BufferedReader(new InputStreamReader(is));
+    }
+    static SyntaxTree parse(String sourceFile) throws IOException {
+        Grammar grammar = getGrammar();
+        Parser parser = grammar.newParser(ParserStrategy.newSafeStrategy());
+        Source source = new FileSource(sourceFile);
+        SyntaxTree ast = (SyntaxTree) parser.parse(source, new SyntaxTree());
+        if (parser.hasErrors()) {
+            for (SourceError e: parser.getErrors()) {
+                System.err.println(e);
+            }
+            System.exit(-1);
+        }
+        return ast;
+    }
+    private final static void writeProfiledData(SyntaxTree ast) throws IOException{
+        if(option.isSetInliningFile()){
+            FileWriter fiWriter = new FileWriter(option.getInliningFile(), true);
+            fiWriter.write(new InlineInfoVisitor().start(ast));
+            fiWriter.close();
+        }
+        if(option.isSetFunctionExternFile()){
+            FileWriter externWriter = new FileWriter(option.getFunctionExternFile(), true);
+            externWriter.write(ExternDeclarationGenerator.generate(ast));
+            externWriter.close();
+        }
+        if(option.isSetOpSpecCRequireFile()){
+            FileWriter opSpecCRequireWriter = new FileWriter(option.getOpSpecCRequireFile(), true);
+            opSpecCRequireWriter.write(ExternDeclarationGenerator.genereteOperandSpecCRequire(ast));
+            opSpecCRequireWriter.close();
+        }
+        if(option.isSetFunctionTypeDependencyFile()){
+            TypeDependencyProcessor.write(option.getFunctionTypeDependencyFile());
+        }
+    }
+    private final static void optionCheck(){
+        if (!option.isSetTypeDefinition())
+            ErrorPrinter.error("no datatype definition file is specified (-d option)");
+        if (!option.isSetSourceFile())
+            ErrorPrinter.error("no source file is specified");
+    }
+    private final static void initialize() throws IOException{
+        Integer seed = option.getXOption().getOption(XOption.AvailableOptions.CMP_RAND_SEED, 0);
+        DispatchProcessor.srand(seed);
+        String sourceFile = option.getSourceFile();
+        ast = parse(sourceFile);
+        ErrorPrinter.setSource(sourceFile);
+        if(option.isEnableFunctionInlining()){
+            option.setFunctionInlining(getGrammar());
+        }
+        if(option.isSetFunctionTypeDependencyFile()){
+            TypeDependencyProcessor.load(option.getFunctionTypeDependencyFile());
+        }
+        String functionName = new ExternProcessVisitor().start(ast);
+        option.setCompileMode(functionName);
+    }
+    private final static void preprocess(){
+        new DesugarVisitor().start(ast);
+        if(option.getCompileMode() == CompileMode.Instruction){
+            new AlphaConvVisitor().start(ast, true, option.getInstructionDefinitions());
+        }
+        new DispatchVarCheckVisitor().start(ast);
+    }
+    private final static void typeCheck(){
+        new TypeCheckVisitor().start(ast, option.getTypeCheckOption());
+    }
+    private final static void dataFlowAnalysis(){
+        ControlFlowGraphNode enter = new ControlFlowGraphConstructVisitor().start(ast);
+        new VarInitCheckVisitor().start(enter);
+        new TriggerGCCheckVisitor().start(ControlFlowGraphNode.exit, option.getCompileMode());
+        /* For Test */
+        //ControlFlowGraphPrinter.print(enter);
+    }
+    private final static String generateCode(){
+        return new AstToCVisitor().start(ast, option.getArgumentSpec(), option.getCompileMode());
+    }
+    private final static void updateRequiringFunctionSpec() throws IOException{
+        if(option.isRequiredUpdatingFunctionSpec())
+            option.getRequiringFunctionSpec().write(option.getRequiringFunctionSpecFile());
+    }
+    private final static void generateRequiringFunctionSpec() throws IOException{
+        OperandSpecifications merged = OperandSpecifications.merge(option.getMergeTargets());
+        if(option.isSetFunctionTypeDependencyFile()){
+            TypeDependencyProcessor.load(option.getFunctionTypeDependencyFile());
+            merged = TypeDependencyProcessor.getExpandSpecifications(merged);
+        }
+        merged.print(System.out);
+    }
+    /*
+    private final static void generateMergedFunctionSpec(){
+        OperandSpecifications merged = OperandSpecifications.merge(option.getMergeTargets());
+        merged.print(System.out);
+    }
+    */
+    private final static void compileMode() throws IOException{
+        optionCheck();
+        initialize();
+        preprocess();
+        typeCheck();
+        updateRequiringFunctionSpec();
+        dataFlowAnalysis();
+        String program = generateCode();
+        System.out.println(program);
+    }
+    private final static void preprocessMode() throws IOException{
+        optionCheck();
+        initialize();
+        preprocess();
+        typeCheck();
+        writeProfiledData(ast);
+    }
+    private final static void genFuncSpecMode() throws IOException{
+        generateRequiringFunctionSpec();
+    }
+    /*
+    private final static void mergeFunctionSpecMode() throws IOException{
+        generateMergedFunctionSpec();
+    }
+    */
+    public final static void main(String[] args) throws IOException {
+        option.parseOption(args);
+        switch(option.getProcessMode()){
+            case GenFuncSpec:
+                genFuncSpecMode();
+                break;
+            case Preprocess:
+                preprocessMode();
+                break;
+            case Compile:
+                compileMode();
+                break;
+            /*
+            case MergeFuncSpec:
+                mergeFunctionSpecMode();
+                break;
+            */
+            default:
+                throw new Error("InternalError: Unknown mode: "+option.getProcessMode());
+        }
     }
 }

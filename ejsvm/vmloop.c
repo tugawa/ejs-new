@@ -27,6 +27,7 @@ int ic_prof_hit;
 #define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
            insn_nemonic(get_opcode(insn)))
+#define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
 #ifdef PROFILE
 static char *typename(JSValue v) {

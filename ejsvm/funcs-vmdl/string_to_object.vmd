@@ -1,0 +1,14 @@
+#include "../header-vmdl/externc.vmdh"
+
+(needContext, triggerGC, makeInline) string_to_object : String -> JSValue
+string_to_object(v){
+    top: match(v){
+        case(String v){
+            return NewStringObject("string_to_object", gshapes.g_shape_String , v);
+        }
+        case(true){
+            type_error("string expected in string_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

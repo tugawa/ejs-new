@@ -1,0 +1,14 @@
+#include "../header-vmdl/externc.vmdh"
+
+(needContext, triggerGC, makeInline) fixnum_to_object : Fixnum -> JSValue
+fixnum_to_object(v){
+    top: match(v){
+        case(Fixnum v){
+            return NewNumberObject("fixnum_to_object", gshapes.g_shape_Number, v);
+        }
+        case(true){
+            type_error("fixnum expected in fixnum_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

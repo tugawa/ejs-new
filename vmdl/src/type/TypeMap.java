@@ -9,46 +9,88 @@
 package type;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
-
-import type.AstType.JSValueType;
-
+import java.util.Map.Entry;
 import java.lang.Error;
 
-public class TypeMap {
-    HashMap<String, AstType> dict;
-    AstType exprType;
+public class TypeMap{
+    public static Map<String, AstType> global = new HashMap<>();
+    private Map<String, AstType> dict;
 
     public TypeMap() {
         dict = new HashMap<String, AstType>();
     }
-    public TypeMap(HashMap<String, AstType> _dict) {
+
+    private TypeMap(Map<String, AstType> _dict) {
         dict = _dict;
-    }
-    public TypeMap(AstType _exprType) {
-        exprType = _exprType;
     }
 
     public AstType get(String key) {
-        return dict.get(key);
+        AstType type = dict.get(key);
+        if(type == null){
+            type = global.get(key);
+        }
+        return type;
     }
+
+    public List<AstType> get(List<String> nameList){
+        List<AstType> result = new ArrayList<>(nameList.size());
+        for(String name : nameList){
+            result.add(get(name));
+        }
+        return result;
+    }
+
     public void add(String key, AstType value) {
+        if(global.get(key) != null){
+            throw new Error("InternalError: the element is already exist in global: "+key);
+        }
+        if(dict.get(key) != null){
+            throw new Error("InternalError: the element is already exist: "+key);
+        }
         dict.put(key, value);
     }
-    public void add(VMDataTypeVecSet vtvs) {
-        for (String vn: vtvs.getVarNames()) {
-            AstType t = vtvs.getMostSpecificType(vn);
-            add(vn, t);
+
+    public void assign(String key, AstType value) {
+        if(global.get(key) != null){
+            throw new Error("InternalError: the element is defined in global: "+key);
         }
+        if(dict.get(key) == null){
+            throw new Error("InternalError: the element is not exist: "+key);
+        }
+        dict.replace(key, value);
     }
-    public Boolean containsKey(String key) {
-        return dict.containsKey(key);
+
+    public TypeMap lub(TypeMap that){
+        if(that == null) return clone();
+        if(that.dict.isEmpty()) return clone();
+        if(!dict.keySet().equals(that.keySet())){
+            System.err.println(dict.toString());
+            System.err.println(that.dict.toString());
+        }
+        Map<String, AstType> newMap = new HashMap<>();
+        for(Entry<String, AstType> entry : dict.entrySet()){
+            String name = entry.getKey();
+            AstType type = that.get(name).lub(entry.getValue());
+            newMap.put(name, type);
+        }
+        return new TypeMap(newMap);
     }
-    public Set<String> getKeys() {
+
+    public boolean containsKey(String key) {
+        boolean contain = dict.containsKey(key);
+        if(contain) return true;
+        return global.containsKey(key);
+    }
+
+    public Set<String> keySet() {
         return dict.keySet();
     }
+
     public TypeMap select(Collection<String> domain) {
         HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
 
@@ -57,122 +99,18 @@ public class TypeMap {
         }
         return new TypeMap(newGamma);
     }
-    @SuppressWarnings("unchecked")
-    public TypeMap clone() {
-        HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        newGamma = (HashMap<String, AstType>)this.dict.clone();
-        return new TypeMap(newGamma);
-    }
+
     public void update(String key, AstType value) {
         dict.replace(key, value);
     }
-    public AstType getExprType() {
-        return exprType;
-    }
-    public void setExprType(AstType _exprType) {
-        exprType = _exprType;
-    }
-
-    public TypeMap lub(TypeMap that) {
-        HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        HashMap<String, AstType> thatDict = that.dict;
-        for (String v : dict.keySet()) {
-            AstType t1 = dict.get(v);
-            AstType t2 = thatDict.get(v);
-            if (t2 == null) {
-                throw new Error("inconsistent type environment: v = "+v);
-            } else {
-                if (t1 == t2) {
-                    newGamma.put(v, t1);
-                } else if (t1 == AstType.BOT) {
-                    newGamma.put(v, t2);
-                } else if (t2 == AstType.BOT) {
-                    newGamma.put(v, t1);
-                } else if (!(t1 instanceof JSValueType && t2 instanceof JSValueType))
-                    throw new Error("type error");
-                else {
-                    JSValueType jsvt1 = (JSValueType) t1;
-                    JSValueType jsvt2 = (JSValueType) t2;
-                    newGamma.put(v, jsvt1.lub(jsvt2));
-                }
-            }
-        }
-        return new TypeMap(newGamma);
-    }
-    private int indexOf(String[] varNames, String v) {
-        for (int i = 0; i < varNames.length; i++) {
-            if (varNames[i].equals(v)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public TypeMap enterCase(String[] varNames, VMDataTypeVecSet caseCondition) {
-        HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-
-        /* parameters */
-        AstType[] paramTypes = new AstType[varNames.length];
-        for (int i = 0; i < varNames.length; i++)
-            paramTypes[i] = dict.get(varNames[i]);
-        VMDataTypeVecSet.ByCommonTypes vtvs = new VMDataTypeVecSet.ByCommonTypes(varNames, paramTypes);
-        vtvs = vtvs.intersection(caseCondition);
-        for (int i = 0; i < varNames.length; i++) {
-            AstType t = vtvs.getMostSpecificType(varNames[i]);
-            newGamma.put(varNames[i], t);
-        }
-
-        /* add other variables */
-        for (String v : dict.keySet()) {
-            AstType t = dict.get(v);
-            int index = indexOf(varNames, v);
-            if (index == -1)
-                newGamma.put(v, t);
-        }
-
-        return new TypeMap(newGamma);
-    }
-
-    public TypeMap rematch(String[] params, String[] args, Set<String> domain) {
-        HashMap<String, AstType> newGamma = new HashMap<String, AstType>();
-        for (String v : domain) {
-            int index = indexOf(params, v);
-            if (index == -1) {
-                newGamma.put(v, dict.get(v));
-            } else {
-                newGamma.put(v, dict.get(args[index]));
-            }
-        }
-        return new TypeMap(newGamma);
-    }
 
     public TypeMap getBottomDict() {
-        Set<String> domain = getKeys();
+        Set<String> domain = dict.keySet();
         TypeMap result = new TypeMap();
         for (String v : domain) {
             result.add(v, AstType.BOT);
         }
         return result;
-    }
-
-    public Set<VMDataType[]> filterTypeVecs(String[] formalParams, Set<VMDataType[]> vmtVecs) {
-        Set<VMDataType[]> filtered = new HashSet<VMDataType[]>();
-        NEXT_DTS: for (VMDataType[] dts: vmtVecs) {
-            for (int i = 0; i < formalParams.length; i++) {
-                VMDataType dt = dts[i];
-                AstType xt = dict.get(formalParams[i]);
-                if (xt instanceof JSValueType) {
-                    JSValueType t = (JSValueType) xt;
-                    if (!t.isSuperOrEqual(dt))
-                        continue NEXT_DTS;
-                } else if (xt == AstType.BOT)
-                    continue NEXT_DTS;
-                else
-                    throw new Error("internal error");
-            }
-            filtered.add(dts);
-        }
-        return filtered;
     }
 
     public boolean hasBottom() {
@@ -182,20 +120,58 @@ public class TypeMap {
         return false;
     }
 
+    public boolean isBottomMap(){
+        boolean hasBOT = false;
+        for (AstType t: dict.values()){
+            if (t != AstType.BOT){
+                if(hasBOT){
+                    System.err.println("internalWarning: TypeMap has a mixture of Bot and non-BOT types.");
+                }
+                return false;
+            }
+            hasBOT = true;
+        }
+        return true;
+    }
+
+    public static boolean addGlobal(String key, AstType value) {
+        if(global.get(key) != null){
+            return false;
+        }
+        global.put(key, value);
+        return true;
+    }
+
+    @Override
+    public TypeMap clone() {
+        Map<String, AstType> newGamma = new HashMap<String, AstType>();
+        for(String key : dict.keySet()){
+            newGamma.put(key, dict.get(key));
+        }
+        return new TypeMap(newGamma);
+    }
+
     @Override
     public String toString() {
         return dict.toString();
     }
 
     @Override
+    public int hashCode(){
+        return dict.hashCode();
+    }
+
+    @Override
     public boolean equals(Object obj) {
-        if (this == obj ||
-                obj != null && obj instanceof TypeMap) {
+        if (this == obj || obj != null && obj instanceof TypeMap) {
             TypeMap tm = (TypeMap)obj;
-            return (dict != null && tm.dict !=null && dict.equals(tm.dict)) ||
-                    (exprType != null && tm.exprType != null && exprType.equals(tm.exprType));
+            return (dict != null && tm.dict !=null && dict.equals(tm.dict));
         } else {
             return false;
         }
+    }
+
+    public Set<Entry<String, AstType>> entrySet(){
+        return dict.entrySet();
     }
 }

@@ -1,0 +1,14 @@
+#include "../header-vmdl/externc.vmdh"
+
+(needContext, triggerGC, makeInline) flonum_to_object : Flonum -> JSValue
+flonum_to_object(v){
+    top: match(v){
+        case(Flonum v){
+            return NewNumberObject("flonum_to_object", gshapes.g_shape_Number, v);
+        }
+        case(true){
+            type_error("flonum expected in flonum_to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

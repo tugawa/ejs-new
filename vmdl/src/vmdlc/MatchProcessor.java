@@ -9,13 +9,17 @@
 package vmdlc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import dispatch.RuleSetBuilder;
 import nez.ast.Symbol;
 import nez.ast.Tree;
 import type.AstType;
+import type.TypeMap;
 import type.AstType.JSValueVMType;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
@@ -27,9 +31,15 @@ public class MatchProcessor {
     String label;
     // following two lists share index
     List<Set<VMDataType[]>> vmtVecCondList;
+    Set<VMDataType[]> nonMatchCond;
     List<SyntaxTree> caseBodyAsts;
+    List<SyntaxTree> originalCases;
+    Map<Integer, Set<Set<TypeMap>>> caseExpansionConds = new HashMap<>();
+    SyntaxTree matchNode;
+    List<String> formalParamsList = null;
 
     MatchProcessor(SyntaxTree node) {
+        matchNode = node;
         caseBodyAsts = new ArrayList<SyntaxTree>();
 
         /* retrieve formal parameters */
@@ -37,6 +47,7 @@ public class MatchProcessor {
         formalParams = new String[params.size()];
         for (int i = 0; i < params.size(); i++)
             formalParams[i] = params.get(i).toText();
+        formalParamsList = Arrays.asList(formalParams);
 
         /* retrieve label */
         Tree<?> labelNode = node.get(Symbol.unique("label"), null);
@@ -45,6 +56,7 @@ public class MatchProcessor {
 
         /* compute conditions */
         SyntaxTree cases = node.get(Symbol.unique("cases"));
+        originalCases = new ArrayList<>(cases.countSubNodes());
         RuleSetBuilder rsb = new RuleSetBuilder(formalParams);
         List<RuleSetBuilder.Node> condAstList = new ArrayList<RuleSetBuilder.Node>();
         for (SyntaxTree k : cases) {
@@ -58,6 +70,7 @@ public class MatchProcessor {
             }
             SyntaxTree bodyNode = k.get(Symbol.unique("body"));
             caseBodyAsts.add(bodyNode);
+            originalCases.add(k);
         }
         if (DEBUG) {
             System.out.println("======== Condition Begin ========");
@@ -66,7 +79,10 @@ public class MatchProcessor {
             }
             System.out.println("======== Condition End ========");
         }
-        vmtVecCondList = rsb.computeVmtVecCondList(condAstList);
+        List<Set<VMDataType[]>> fullCondList = rsb.computeVmtVecCondList(condAstList);
+        vmtVecCondList = fullCondList.subList(0, fullCondList.size()-1);
+        nonMatchCond = fullCondList.get(fullCondList.size()-1);
+
         if (DEBUG) {
             System.out.println("======== Computed Condition Begin ========");
             {
@@ -101,8 +117,10 @@ public class MatchProcessor {
             String opName = n.get(Symbol.unique("var")).toText();
             String typeName = n.get(Symbol.unique("type")).toText();
             AstType t = AstType.get(typeName);
-            if (!(t instanceof JSValueVMType))
+            if (!(t instanceof JSValueVMType)){
+                ErrorPrinter.error(typeName +" is not a JSValueVMType", (SyntaxTree)n.get(Symbol.unique("type")));
                 throw new Error(typeName +" is not a JSValueVMType");
+            }
             VMDataType dt = ((JSValueVMType) AstType.get(typeName)).getVMDataType();
             return rsb.new AtomicNode(opName, dt);
         }
@@ -127,11 +145,130 @@ public class MatchProcessor {
         return new VMDataTypeVecSet.BySet(formalParams, vmtVecCondList.get(index));
     }
 
+    VMDataTypeVecSet getNonMatchCondVecSet(){
+        return new VMDataTypeVecSet.BySet(formalParams, nonMatchCond);
+    }
+
     SyntaxTree getBodyAst(int index) {
         return caseBodyAsts.get(index);
     }
 
     int size() {
         return vmtVecCondList.size();
+    }
+
+    void setCaseExpansion(int pos, Set<Set<TypeMap>> cond){
+        Set<Set<TypeMap>> oldCond = caseExpansionConds.get(pos);
+        if(oldCond == null){
+            caseExpansionConds.put(pos, cond);
+        }else{
+            System.err.println("Warning: caseExpansionCond is already exist.");
+            oldCond.addAll(cond);
+        }
+    }
+
+    private SyntaxTree getTypePatternSub(List<VMDataType> vmtVec, List<String> paramList){
+        int dimension = vmtVec.size();
+        if(dimension == 1){
+            return ASTHelper.generateTypePattern(AstType.get(vmtVec.get(0)).toString(), paramList.get(0));
+        }
+        SyntaxTree recvLeft = getTypePatternSub(vmtVec.subList(0, dimension-1), paramList);
+        SyntaxTree right = ASTHelper.generateTypePattern(AstType.get(vmtVec.get(dimension-1)).toString(), paramList.get(dimension-1));
+        return ASTHelper.generateAndPattern(recvLeft, right);
+    }
+
+
+    private SyntaxTree getTypePattern(List<List<VMDataType>> vmtVecList, List<String> paramList){
+        int dimension = vmtVecList.size();
+        if(dimension == 1){
+            return getTypePatternSub(vmtVecList.get(0), paramList);
+        }
+        SyntaxTree recvLeft = getTypePattern(vmtVecList.subList(0, dimension-1), paramList);
+        SyntaxTree right = getTypePatternSub(vmtVecList.get(dimension-1), paramList);
+        return ASTHelper.generateOrPattern(recvLeft, right);
+    }
+
+    private void addLabelSuffix(SyntaxTree target, String suffix, String exceptLabel){
+        if(target.is(Symbol.unique("Match")) || target.is(Symbol.unique("Rematch"))){
+            SyntaxTree labelNode = target.get(Symbol.unique("label"), null);
+            if(labelNode != null && !labelNode.toText().equals(exceptLabel)){
+                SyntaxTree addedSuffix = labelNode.dup();
+                addedSuffix.setValue(labelNode.toText()+"_"+suffix);
+                target.set(Symbol.unique("label"), addedSuffix);
+            }
+        }
+        Tree<SyntaxTree>[] subTree = target.getSubTree();
+        if(subTree == null) return;
+        for(Tree<SyntaxTree> child : target.getSubTree()){
+            addLabelSuffix((SyntaxTree)child, suffix, exceptLabel);
+        }
+    }
+
+    private SyntaxTree getReplacedCaseNode(int number, Set<TypeMap> typeMaps, String labelSuffix){
+        SyntaxTree caseBody = caseBodyAsts.get(number).dup();
+        caseBody.clearExpandedTreeCandidateRecursive();
+        addLabelSuffix(caseBody, labelSuffix, label);
+        List<List<VMDataType>> vmtVecLists = new ArrayList<>();
+        for(TypeMap typeMap : typeMaps){
+            List<VMDataType> vmtVecList = new ArrayList<>();
+            TypeMap selectedMap = typeMap.select(formalParamsList);
+            for(String var : formalParamsList){
+                Set<VMDataType> types = selectedMap.get(var).getVMDataTypes();
+                if(types.size() != 1){
+                    ErrorPrinter.error("Case condition has non-VMDataType");
+                }
+                vmtVecList.add(types.iterator().next());
+            }
+            vmtVecLists.add(vmtVecList);
+        }
+        SyntaxTree caseCond = getTypePattern(vmtVecLists, formalParamsList);
+        return ASTHelper.generateCase(caseCond, caseBody);
+    }
+
+    private static int additionalLabelSuffixNumber = 0;
+
+    private SyntaxTree getCaseExpandedCasesNode(){
+        int originalCaseSize = caseBodyAsts.size();
+        List<SyntaxTree> newCases = new ArrayList<>(matchNode.get(Symbol.unique("cases")).countSubNodes()*2);
+        for(int i=0; i<originalCaseSize; i++){
+            Set<Set<TypeMap>> expansionCond = caseExpansionConds.get(i);
+            if(expansionCond != null){
+                for(Set<TypeMap> typeMap : expansionCond){
+                    SyntaxTree replacedNode = getReplacedCaseNode(i, typeMap, Integer.toString((additionalLabelSuffixNumber++)));
+                    if(replacedNode != null){
+                        newCases.add(replacedNode);
+                    }
+                }
+            }
+            newCases.add(originalCases.get(i).dup());
+        }
+        return ASTHelper.generateCases(newCases.toArray(new SyntaxTree[0]));
+    }
+
+    public SyntaxTree getCaseExpandedTree(){
+        SyntaxTree expandedCasesNode = getCaseExpandedCasesNode();
+        SyntaxTree expandedNode = matchNode.dup();
+        expandedNode.set(Symbol.unique("cases"), expandedCasesNode);
+        return expandedNode;
+    }
+
+    public boolean hasExpand(){
+        return !caseExpansionConds.isEmpty();
+    }
+
+    public void printCaseCond(){
+        System.err.println("--------");
+        System.err.println("CASE SIZE:"+vmtVecCondList.size());
+        System.err.println("--------");
+        int size = vmtVecCondList.size();
+        for(int i=0; i<size; i++){
+            Set<VMDataType[]> set = vmtVecCondList.get(i);
+            for(VMDataType[] vec : set){
+                System.err.println(Arrays.toString(vec));
+            }
+            System.err.println("---");
+            System.err.println(caseBodyAsts.get(i).toString());
+            System.err.println("--------");
+        }
     }
 }

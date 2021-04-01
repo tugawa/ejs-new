@@ -25,7 +25,7 @@ import dispatch.LLRuleSet.LLRule;
 import dispatch.RuleSet.OperandDataTypes;
 import type.VMDataType;
 import type.VMRepType;
-import vmdlc.Option;
+import vmdlc.XOption;
 
 public class DispatchProcessor {
     static public void srand(int seed) {
@@ -37,12 +37,12 @@ public class DispatchProcessor {
     class TagMacro extends CodeGenerateVisitor.Macro {        
         @Override
         String getPTCode(String var) {
-            return (UNSIGNED ? "(unsigned int) " : "")+"get_tag("+var+")";
+            return (UNSIGNED ? "(unsigned int) " : "")+"get_ptag("+var+").v";
         }
 
         @Override
         String getHTCode(String var) {
-            return (UNSIGNED ? "(unsigned int) " : "")+"gc_obj_header_type((void*) clear_tag("+var+"))";
+            return (UNSIGNED ? "(unsigned int) " : "")+"get_htag("+var+").v";
         }
 
         @Override
@@ -72,7 +72,7 @@ public class DispatchProcessor {
     //
     // Translate half-normalised rule set into datatype dispatching code
     //
-    public String translate(RuleSet hlrs, DispatchPlan dispatchPlan, Option option, String currentFunctionName) {
+    public String translate(RuleSet hlrs, DispatchPlan dispatchPlan, XOption option, String currentFunctionName, String currentMatchLabelName) {
         //
         // Step 1-3. Decompose VMDatatype to VMreptype in rules
         //
@@ -89,7 +89,7 @@ public class DispatchProcessor {
         //
         // Step 3. Optimisation
         //
-        String passes = option.getOption(Option.AvailableOptions.CMP_OPT_PASS, "MR:S");
+        String passes = option.getOption(XOption.AvailableOptions.CMP_OPT_PASS, "MR:S");
         for (String pass: passes.split(":")) {
             switch(pass) {
 
@@ -105,7 +105,7 @@ public class DispatchProcessor {
         //
         // Step 4. Verify diagram
         //
-        if (option.getOption(Option.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
+        if (option.getOption(XOption.AvailableOptions.CMP_VERIFY_DIAGRAM, true)) {
             verifyODDInvariants(dd, hlrs, llrs, dispatchPlan);
         }
 
@@ -114,7 +114,7 @@ public class DispatchProcessor {
         // Step 5.
         //
         Map<Node, Set<String>> typeLabels;
-        if (option.getOption(Option.AvailableOptions.GEN_ADD_TYPELABEL, false))
+        if (option.getOption(XOption.AvailableOptions.GEN_ADD_TYPELABEL, false))
             typeLabels = addTypeLabels(dd, hlrs);
         else
             typeLabels = null;
@@ -122,7 +122,7 @@ public class DispatchProcessor {
         //
         // Step 6. Code Generation
         //
-        String labelPrefix = option.getOption(Option.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName);
+        String labelPrefix = option.getOption(XOption.AvailableOptions.GEN_LABEL_PREFIX, currentFunctionName) + currentMatchLabelName;
         return dd.generateCode(hlrs.getDispatchVars(), new TagMacro(), option, typeLabels, labelPrefix);
     }
 

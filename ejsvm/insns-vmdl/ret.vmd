@@ -1,4 +1,4 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 ret : void -> void
@@ -6,5 +6,5 @@ ret : void -> void
 ret () {
     Ret();
     Set_sp(5);
-    Update_context();
+    update_context();
 }

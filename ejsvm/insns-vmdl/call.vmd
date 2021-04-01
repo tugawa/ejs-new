@@ -1,6 +1,6 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
 call : (JSValue, cint) -> void
@@ -9,19 +9,25 @@ call (fn, nargs) {
   cint op = Get_opcode();
   cint sendp = IsSend(op);
   cint newp = IsNewSend(op);
-  Set_fp();
-  Set_pc();
-  Try_gc();
   top: match (fn) {
     case (Function fn) {
+      Set_fp();
+      Set_pc();
       Call_function(fn, nargs, sendp);
-      Update_context();
-      Next_insn_noincpc();
+      update_context();
+      NEXT_INSN_NOINCPC();
     }
     case (Builtin fn) {
+      Set_fp();
+      Set_pc();
       Call_builtin(fn, nargs, sendp, newp);
-      Update_context();
-      Next_insn_incpc();
+      update_context();
+      NEXT_INSN_INCPC();
+    }
+    case (true){
+      Set_fp();
+      Set_pc();
+      LOG_EXIT("CALL\n");
     }
   }
 }

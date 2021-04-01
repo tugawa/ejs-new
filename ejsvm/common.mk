@@ -68,6 +68,13 @@ VMGEN=$(VMGEN_DIR)/vmgen.jar
 
 VMDL_DIR=$(EJSVM_DIR)/../vmdl
 VMDL=$(VMDL_DIR)/vmdlc.jar
+VMDL_WORKSPACE=vmdl_workspace
+VMDL_INLINE=$(VMDL_WORKSPACE)/inlines.inline
+VMDL_FUNCANYSPEC=$(VMDL_WORKSPACE)/any.spec
+VMDL_FUNCNEEDSPEC=$(VMDL_WORKSPACE)/funcs-need.spec
+VMDL_FUNCDEPENDENCY=$(VMDL_WORKSPACE)/dependency.ftd
+VMDL_EXTERN=$(VMDL_WORKSPACE)/vmdl-extern.inc
+VMDL_FUNCDPECCREQUIRE=$(VMDL_WORKSPACE)/funcscrequire.spec
 
 EJSI_DIR=$(EJSVM_DIR)/../ejsi
 EJSI=$(EJSI_DIR)/ejsi
@@ -75,6 +82,8 @@ EJSI=$(EJSI_DIR)/ejsi
 INSNGEN_VMGEN=java -Xss2M -cp $(VMGEN) vmgen.InsnGen
 TYPESGEN_VMGEN=java -cp $(VMGEN) vmgen.TypesGen
 INSNGEN_VMDL=java -jar $(VMDL)
+FUNCGEN_VMDL=$(INSNGEN_VMDL)
+SPECGEN_VMDL=$(INSNGEN_VMDL)
 TYPESGEN_VMDL=java -cp $(VMDL) vmdlc.TypesGen
 
 ifeq ($(USE_VMDL),true)
@@ -94,8 +103,11 @@ CPPFLAGS +=
 LIBS   += -lm
 
 ifeq ($(USE_VMDL),true)
-PPCFLAGS += -DUSE_VMDL
+CPPFLAGS += -DUSE_VMDL
 CPPFLAGS_VMDL += -Wno-parentheses-equality -Wno-tautological-constant-out-of-range-compare
+ifeq ($(ICC_PROF),true)
+CPPFLAGS += -DICC_PROF
+endif
 endif
 
 ######################################################
@@ -127,6 +139,20 @@ else ifeq ($(SUPERINSNTYPE),5) # S2 in Table 1 in JIP Vol.12 No.4 p.5
     SUPERINSN_PSEUDO_IDEF=false
     SUPERINSN_REORDER_DISPATCH=false
 endif
+
+ifeq ($(USE_VMDL_INLINE_EXPANSION),true)
+	VMDL_OPTION_INLINE=-func-inline-opt $(VMDL_INLINE)
+else
+	VMDL_OPTION_INLINE=
+endif
+
+ifeq ($(USE_VMDL_CASE_SPLIT),true)
+	VMDL_OPTION_CASE_SPLIT=-case-split $(ICCSPEC)
+else
+	VMDL_OPTION_CASE_SPLIT=
+endif
+
+VMDL_OPTION_FLAGS = $(VMDL_OPTION_INLINE) $(VMDL_OPTION_CASE_SPLIT)
 
 GENERATED_HFILES = \
     instructions-opcode.h \
@@ -182,77 +208,119 @@ OFILES = \
     main.o
 ifeq ($(USE_VMDL),true)
 OFILES += vmdl-helper.o
+ifeq ($(ICC_PROF),true)
+OFILES += iccprof.o
+endif
 endif
 
 ifeq ($(SUPERINSN_MAKEINSN),true)
     INSN_SUPERINSNS = $(patsubst %,insns/%.inc,$(SUPERINSNS))
 endif
 
-INSN_GENERATED = \
-    insns/add.inc \
-    insns/bitand.inc \
-    insns/bitor.inc \
-    insns/call.inc \
-    insns/div.inc \
-    insns/eq.inc \
-    insns/equal.inc \
-    insns/getprop.inc \
-    insns/leftshift.inc \
-    insns/lessthan.inc \
-    insns/lessthanequal.inc \
-    insns/mod.inc \
-    insns/mul.inc \
-    insns/new.inc \
-    insns/rightshift.inc \
-    insns/setprop.inc \
-    insns/sub.inc \
-    insns/tailcall.inc \
-    insns/unsignedrightshift.inc \
-    insns/error.inc \
-    insns/fixnum.inc \
-    insns/geta.inc \
-    insns/getarg.inc \
-    insns/geterr.inc \
-    insns/getglobal.inc \
-    insns/getglobalobj.inc \
-    insns/getlocal.inc \
-    insns/instanceof.inc \
-    insns/isobject.inc \
-    insns/isundef.inc \
-    insns/jump.inc \
-    insns/jumpfalse.inc \
-    insns/jumptrue.inc \
-    insns/localcall.inc \
-    insns/makeclosure.inc \
-    insns/makeiterator.inc \
-    insns/move.inc \
-    insns/newframe.inc \
-    insns/exitframe.inc \
-    insns/nextpropnameidx.inc \
-    insns/not.inc \
-    insns/number.inc \
-    insns/pushhandler.inc \
-    insns/seta.inc \
-    insns/setarg.inc \
-    insns/setfl.inc \
-    insns/setglobal.inc \
-    insns/setlocal.inc \
-    insns/specconst.inc \
-    insns/typeof.inc \
-    insns/end.inc \
-    insns/localret.inc \
-    insns/nop.inc \
-    insns/pophandler.inc \
-    insns/poplocal.inc \
-    insns/ret.inc \
-    insns/throw.inc \
-    insns/unknown.inc
-
 INSN_HANDCRAFT =
 
-CFILES := $(patsubst %.o,%.c,$(OFILES))
+FUNCS = \
+	string_to_boolean \
+	string_to_number \
+	string_to_object \
+	special_to_boolean \
+	special_to_number \
+	special_to_object \
+	special_to_string \
+	fixnum_to_string \
+	fixnum_to_boolean \
+	fixnum_to_object \
+	flonum_to_string \
+	flonum_to_boolean \
+	flonum_to_object \
+	number_to_string \
+	object_to_string \
+	object_to_boolean \
+	object_to_number \
+	object_to_primitive \
+	to_string \
+	to_boolean \
+	to_number \
+	to_object \
+	to_double \
+	special_to_double \
+	number_to_cint \
+	number_to_double \
+	to_cint
+
+INSNS = \
+    add \
+    bitand \
+    bitor \
+    call \
+    div \
+    eq \
+    equal \
+    getprop \
+    leftshift \
+    lessthan \
+    lessthanequal \
+    mod \
+    mul \
+    new \
+    rightshift \
+    setprop \
+    sub \
+    tailcall \
+    unsignedrightshift \
+    error \
+    fixnum \
+    geta \
+    getarg \
+    geterr \
+    getglobal \
+    getglobalobj \
+    getlocal \
+    instanceof \
+    isobject \
+    isundef \
+    jump \
+    jumpfalse \
+    jumptrue \
+    localcall \
+    makeclosure \
+    makeiterator \
+    move \
+    newframe \
+    nextpropnameidx \
+    not \
+    number \
+    pushhandler \
+    seta \
+    setarg \
+    setfl \
+    setglobal \
+    setlocal \
+    specconst \
+    typeof \
+    end \
+    localret \
+    nop \
+    pophandler \
+    poplocal \
+    ret \
+    throw \
+    unknown \
+	exitframe
+
+INSN_GENERATED = $(patsubst %,insns/%.inc,$(INSNS))
+FUNC_GENERATED = $(patsubst %,funcs/%.inc,$(FUNCS))
+INSNS_VMD = $(patsubst %,insns-vmdl/%.vmd,$(INSNS))
+FUNCS_VMD = $(patsubst %,funcs-vmdl/%.vmd,$(FUNCS))
+REQUIRED_FUNCSPECS = $(patsubst %,$(VMDL_WORKSPACE)/%_require.spec,$(INSNS))
+
+CFILES = $(patsubst %.o,%.c,$(OFILES))
 CHECKFILES = $(patsubst %.c,$(CHECKFILES_DIR)/%.c,$(CFILES))
 INSN_FILES = $(INSN_SUPERINSNS) $(INSN_GENERATED) $(INSN_HANDCRAFT)
+FUNCS_FILES =
+ifeq ($(USE_VMDL),true)
+FUNCS_FILES += $(FUNC_GENERATED)
+endif
 
 ######################################################
 
@@ -305,6 +373,19 @@ GCCHECK_PATTERN = $(EJSVM_DIR)/gccheck.cocci
 
 ######################################################
 
+define vmdl_funcs_preprocess
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) -Xgen:type_label true \
+		-d $(DATATYPES) -o $(VMDL_FUNCANYSPEC) \
+		-i $(EJSVM_DIR)/instructions.def -preprocess \
+		-write-fi ${VMDL_INLINE} -write-ftd ${VMDL_FUNCDEPENDENCY} -write-extern $(VMDL_EXTERN)\
+		-write-opspec-creq $(VMDL_FUNCDPECCREQUIRE)\
+		$(1) \
+		|| (rm $(VMDL_INLINE); rm $(VMDL_FUNCDEPENDENCY); rm $(VMDL_EXTERN); exit 1)
+
+endef
+
+
+######################################################
 all: ejsvm ejsc.jar ejsi
 
 ejsc.jar: $(EJSC)
@@ -345,8 +426,12 @@ $(INSN_HANDCRAFT):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 	mkdir -p insns
 	cp $< $@
 
-insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/insns-vmdl/externc.vmdh
+insns-vmdl/%.vmd: $(EJSVM_DIR)/insns-vmdl/%.vmd $(EJSVM_DIR)/header-vmdl/externc.vmdh
 	mkdir -p insns-vmdl
+	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
+
+funcs-vmdl/%.vmd: $(EJSVM_DIR)/funcs-vmdl/%.vmd
+	mkdir -p funcs-vmdl
 	$(CPP_VMDL) $< > $@ || (rm $@; exit 1)
 
 ifeq ($(DATATYPES),)
@@ -356,13 +441,37 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-handcraft/%.inc
 else ifeq ($(SUPERINSN_REORDER_DISPATCH),true)
 
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
+$(VMDL_FUNCANYSPEC):
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/any.spec $@
+$(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCDEPENDENCY) $(REQUIRED_FUNCSPECS)
+	mkdir -p $(VMDL_WORKSPACE)
+	$(FUNCGEN_VMDL) -ftd $(VMDL_FUNCDEPENDENCY) -gen-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
+$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN) $(VMDL_FUNCDPECCREQUIRE): $(VMDL_INLINE)
+$(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+	mkdir -p $(VMDL_WORKSPACE)
+	rm -f $(VMDL_INLINE)
+	rm -f $(VMDL_FUNCDEPENDENCY)
+	rm -f $(VMDL_EXTERN)
+	rm -f $(VMDL_FUNCDPECCREQUIRE)
+	touch $(VMDL_FUNCDEPENDENCY)
+	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
+$(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE) $(VMDL_FUNCDPECCREQUIRE)
+	mkdir -p $(VMDL_WORKSPACE)
+	cp -n $(VMDL_FUNCDPECCREQUIRE) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer \
 		`$(GOTTA) --print-dispatch-order $(patsubst insns/%.inc,%,$@)` \
-	-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
+		-update-funcspec $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
+	mkdir -p funcs
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+	-d $(DATATYPES) -o $(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -374,12 +483,37 @@ $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL)
+$(VMDL_FUNCANYSPEC):
+	mkdir -p $(VMDL_WORKSPACE)
+	cp $(EJSVM_DIR)/function-spec/any.spec $@
+$(VMDL_FUNCNEEDSPEC): $(VMDL) $(VMDL_FUNCDEPENDENCY) $(REQUIRED_FUNCSPECS)
+	mkdir -p $(VMDL_WORKSPACE)
+	$(FUNCGEN_VMDL) -ftd $(VMDL_FUNCDEPENDENCY) -gen-funcspec $(REQUIRED_FUNCSPECS) > $@ || (rm $@; exit 1)
+$(VMDL_FUNCDEPENDENCY) $(VMDL_EXTERN) $(VMDL_FUNCDPECCREQUIRE): $(VMDL_INLINE)
+$(VMDL_INLINE): $(VMDL) $(FUNCS_VMD) $(VMDL_FUNCANYSPEC)
+	mkdir -p $(VMDL_WORKSPACE)
+	rm -f $(VMDL_INLINE)
+	rm -f $(VMDL_FUNCDEPENDENCY)
+	rm -f $(VMDL_EXTERN)
+	rm -f $(VMDL_FUNCDPECCREQUIRE)
+	touch $(VMDL_FUNCDEPENDENCY)
+	$(foreach FILE_VMD, $(FUNCS_VMD), $(call vmdl_funcs_preprocess,$(FILE_VMD)))
+$(REQUIRED_FUNCSPECS):$(VMDL_WORKSPACE)/%_require.spec: insns/%.inc
+$(INSN_GENERATED):insns/%.inc: insns-vmdl/%.vmd $(VMDL) $(VMDL_INLINE) $(VMDL_FUNCDPECCREQUIRE)
+	mkdir -p $(VMDL_WORKSPACE)
+	cp -n $(VMDL_FUNCDPECCREQUIRE) $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@)
 	mkdir -p insns
-	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
+	$(INSNGEN_VMDL) $(VMDLC_FLAGS) $(VMDL_OPTION_FLAGS)\
 		-Xgen:type_label true \
 		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
-		-d $(DATATYPES) -o $(OPERANDSPEC) -i  $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
+		-d $(DATATYPES) -o $(OPERANDSPEC) -i $(EJSVM_DIR)/instructions.def \
+		-update-funcspec $(patsubst insns/%.inc,$(VMDL_WORKSPACE)/%_require.spec,$@) $< > $@ || (rm $@; exit 1)
+$(FUNC_GENERATED):funcs/%.inc: funcs-vmdl/%.vmd $(VMDL) $(VMDL_FUNCNEEDSPEC)
+	mkdir -p funcs
+	$(FUNCGEN_VMDL) $(VMDLC_FLAGS) \
+		-Xgen:type_label true \
+		-Xcmp:tree_layer p0:p1:p2:h0:h1:h2 \
+	-d $(DATATYPES) -o $(VMDL_FUNCNEEDSPEC) -i $(EJSVM_DIR)/instructions.def $< > $@ || (rm $@; exit 1)
 else
 $(INSN_GENERATED):insns/%.inc: $(EJSVM_DIR)/insns-def/%.idef $(VMGEN)
 	mkdir -p insns
@@ -446,9 +580,7 @@ $(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-def/* $(SUPERINSNSPEC) $(SI_O
 endif
 else
 ifeq ($(USE_VMDL), true)
-$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMDL)
-	mkdir -p insns-vmdl
-	$(CPP_VMDL) $(EJSVM_DIR)/insns-vmdl/$(call orig_insn,$@).vmd > insns-vmdl/$(call orig_insn,$@).vmd || (rm $@; exit 1)
+$(INSN_SUPERINSNS):insns/%.inc: $(EJSVM_DIR)/insns-vmdl/* $(SUPERINSNSPEC) $(SI_OTSPEC_DIR)/%.ot $(VMDL) insns-vmdl/*.vmd
 	mkdir -p insns
 	$(INSNGEN_VMDL) $(VMDLC_FLAGS) \
 		-Xgen:label_prefix $(patsubst insns/%.inc,%,$@) \
@@ -474,7 +606,7 @@ instructions.h: instructions-opcode.h instructions-table.h
 $(CXX_FILES):%.cc: $(EJSVM_DIR)/%.cc
 	cp $< $@
 
-%.c:: $(EJSVM_DIR)/%.c
+%.c:: $(EJSVM_DIR)/%.c $(FUNCS_FILES)
 	cp $< $@
 
 %.h:: $(EJSVM_DIR)/%.h
@@ -486,8 +618,15 @@ vmloop.o: vmloop.c vmloop-cases.inc $(INSN_FILES) $(HFILES)
 $(patsubst %.cc,%.o,$(CXX_FILES)):%.o:%.cc $(HFILES)
 	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
 
+conversion.o: conversion.c $(FUNCS_FILES) $(HFILES)
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
+
 %.o: %.c $(HFILES)
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
+
+ifeq ($(USE_VMDL),true)
+extern.h: $(VMDL_EXTERN)
+endif
 
 #### vmgen
 $(VMGEN):
@@ -540,19 +679,25 @@ check: $(CHECKRESULTS)
 clean:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
+	rm -rf funcs
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
+	rm -rf funcs-vmdl
+	rm -rf vmdl_workspace
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 
 cleanest:
 	rm -f *.o $(GENERATED_HFILES) vmloop-cases.inc *.c *.cc *.h
 	rm -rf insns
+	rm -rf funcs
 	rm -f *.checkresult
 	rm -rf $(CHECKFILES_DIR)
 	rm -rf si
 	rm -rf insns-vmdl
+	rm -rf funcs-vmdl
+	rm -rf vmdl_workspace
 	rm -f ejsvm ejsvm.spec ejsi ejsc.jar
 	(cd $(VMGEN_DIR); ant clean)
 	rm -f $(VMGEN)

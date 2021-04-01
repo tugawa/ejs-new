@@ -1,0 +1,15 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) flonum_to_boolean : Flonum -> Special
+flonum_to_boolean(v){
+    top: match(v){
+        case(Flonum v){
+            return false_true(isnan(flonum_to_double(v)));
+        }
+        case(true){
+            type_error("flonum expected in flonum_to_boolean");
+            return JS_FALSE;
+        }
+    }
+}

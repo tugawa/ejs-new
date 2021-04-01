@@ -1,0 +1,29 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, triggerGC, makeInline) to_object : JSValue -> JSValue
+to_object(v){
+    top: match(v){
+        case(String v){
+            return string_to_object(v);
+        }
+        case(Fixnum v){
+            return fixnum_to_object(v);
+        }
+        case(Flonum v){
+            return flonum_to_object(v);
+        }
+        case(Special v){
+            return special_to_object(v);
+        }
+        case(object v){
+            return v;
+        }
+        case(true){
+            LOG_ERR("This cannot happen in to_object");
+            return JS_UNDEFINED;
+        }
+    }
+}

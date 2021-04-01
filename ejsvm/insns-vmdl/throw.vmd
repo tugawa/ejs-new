@@ -1,8 +1,10 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
-(vmInstruction, tailCall)
-throw : void -> void
+(vmInstruction, needContext, tailCall)
+throw : JSValue -> void
 
-throw () {
-    Throw();
+throw (v1) {
+    save_context();
+    Seta(v1);
+    exhandler_throw();
 }

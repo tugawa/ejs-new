@@ -1,22 +1,21 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext)
-eq : (JSValue, JSValue) -> Fixnum
+eq : (JSValue, JSValue) -> Special
 eq (v1, v2) {
-  if (v1 == v2) {
-    return true;
-  } else {
-    top: match (v1, v2) {
-      case (number v1 && number v2) {
-        cdouble x1 = toCdouble(v1);
-        cdouble x2 = toCdouble(v2);
-        return x1 == x2 ? true : false;
+  top: match (v1, v2) {
+      case (Flonum v1 && Flonum v2) {
+        cdouble x1 = to_double(v1);
+        cdouble x2 = to_double(v2);
+        return true_false(x1 == x2);
       }
       case (true) {
-        return false;
+        if (v1 == v2){
+          return false_true(is_nan(v1));
+        }
+        return JS_FALSE;
       }
     }
-  }
 }

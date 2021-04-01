@@ -1,8 +1,8 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 geta : void -> JSValue
 
 geta () {
-    return Get_a();
+    return get_a();
 }

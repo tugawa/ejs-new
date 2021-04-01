@@ -1,53 +1,43 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
-unsignedrightshift : (JSValue, JSValue) -> Fixnum
+unsignedrightshift : (JSValue, JSValue) -> Number
 unsignedrightshift (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
-      cint x2 = FixnumToCint(v2);
-      return CintToFixnum(LogicalRightShift(x1, x2));
+      uint32_t x1 = cint_to_uint32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return uint32_to_number(x1 >> x2);
     }
     case (Fixnum v1 && Flonum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
-      cint x2 = FlonumToCint(v2);
-      return CintToFixnum(LogicalRightShift(x1, x2));
+      int32_t x1 = cint_to_uint32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return uint32_to_number(x1 >> x2);
     }
     case (Flonum v1 && Fixnum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
-      cint x2 = FixnumToCint(v2);
-      return CintToFixnum(LogicalRightShift(x1, x2));
+      int32_t x1 = cint_to_uint32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return uint32_to_number(x1 >> x2);
     }
     case (Flonum v1 && Flonum v2) {
-      cint x1 = ((FixnumToCint(v1) << 32) >> 32);
-      cint x2 = FlonumToCint(v2);
-      return CintToFixnum(LogicalRightShift(x1, x2));
+      int32_t x1 = cint_to_uint32(to_cint(v1));
+      cint x2 = to_cint(v2) & 31;
+      return uint32_to_number(x1 >> x2);
     }
     case (number v1) {
-      Number u2 = toNumber(v2);
+      Number u2 = to_number(v2);
       rematch top(v1, u2);
     }
     case (number v2) {
-      Number u1 = toNumber(v1);
-      if (IsFlonumInfinity(u1) || IsFlonumNegInfinity(u1) || IsFlonumNan(u1)) {
-        Fixnum w1 = Fixnum_Zero();
-        rematch top(w1, v2);
-      } else {
-        rematch top(u1, v2);
-      }
+      Number u1 = to_number(v1);
+      rematch top(u1, v2);
     }
     case (true) {
-      Number u1 = toNumber(v1);
-      Number u2 = toNumber(v2);
-      if (IsFlonumInfinity(u1) || IsFlonumNegInfinity(u1) || IsFlonumNan(u1)) {
-        Fixnum w1 = Fixnum_Zero();
-        rematch top(w1, u2);
-      } else {
-        rematch top(u1, u2);
-      }
+      Number u1 = to_number(v1);
+      Number u2 = to_number(v2);
+      rematch top(u1, u2);
     }
   }
 }

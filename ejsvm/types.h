@@ -50,7 +50,6 @@ typedef struct inline_cache InlineCache;
 /* instruction.h */
 typedef struct instruction    Instruction;
 
-
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
@@ -690,7 +689,9 @@ static inline JSValue cint_to_number(Context *ctx, cint n);
 #define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #endif /* FIXNUM SIZE */
 
+#ifndef USE_VMDL
 static inline double number_to_double(JSValue v);
+#endif /* USE_VMDL */
 static inline JSValue double_to_number(Context *ctx, double n);
 
 /*

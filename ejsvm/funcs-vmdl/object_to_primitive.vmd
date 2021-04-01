@@ -1,0 +1,54 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, makeInline, calledFromC) object_to_primitive : (JSValue, cint) -> JSValue
+object_to_primitive(v, hint){
+    top: match(v){
+        case(object v){
+            JSValue fst = (hint == HINT_STRING) ? gconsts.g_string_tostring : gconsts.g_string_valueof;
+            JSValue snd = (hint == HINT_STRING) ? gconsts.g_string_valueof : gconsts.g_string_tostring;
+            JSValue f1 = get_prop_prototype_chain(v, fst);
+            if(f1 != JS_UNDEFINED){
+                toStringLevel: match(f1){
+                    case(Function f1){
+                        JSValue invoked = invoke_function0(v, f1, true);
+                        if(is_primitive(invoked)){
+                            return invoked;
+                        }
+                    }
+                    case(Builtin f1){
+                        JSValue invoked = invoke_builtin0(v, f1, true);
+                        if(is_primitive(invoked)){
+                            return invoked;
+                        }
+                    }
+                }
+            }
+            JSValue f2 = get_prop_prototype_chain(v, snd);
+            if(f2 != JS_UNDEFINED){
+                toStringLevel: match(f2){
+                    case(Function f2){
+                        JSValue invoked = invoke_function0(v, f2, true);
+                        if(is_primitive(invoked)){
+                            return invoked;
+                        }
+                    }
+                    case(Builtin f2){
+                        JSValue invoked = invoke_builtin0(v, f2, true);
+                        if(is_primitive(invoked)){
+                            return invoked;
+                        }
+                    }
+                }
+            }
+            type_error_exception("neither to_string nor valueOf returned a string in object_to_primitive");
+            return JS_UNDEFINED;
+        }
+        case(true){
+            type_error("object expected in object_to_primitive");
+            return JS_UNDEFINED;
+        }
+    }
+}

@@ -1,0 +1,20 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline, calledFromC) special_to_boolean : Special -> Special
+special_to_boolean(v){
+    top: match(v){
+        case(Special v){
+            if(v == JS_UNDEFINED || v == JS_NULL){
+                return JS_FALSE;
+            }
+            if(v == JS_TRUE || v == JS_FALSE){
+                return v;
+            }
+        }
+        case(true){
+            type_error("special expected in special_to_boolean");
+            return JS_FALSE;
+        }
+    }
+}

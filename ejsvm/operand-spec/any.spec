@@ -43,7 +43,6 @@ number (-,-) accept
 pushhandler (-) accept
 seta (_) accept
 setarg (-,-,_) accept
-setarray (_,-,_) accept
 setfl (-) accept
 setglobal (_,_) accept
 setlocal (-,-,_) accept

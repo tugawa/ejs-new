@@ -1,0 +1,17 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) special_to_double : Special  -> cdouble
+special_to_double(v){
+    top: match(v){
+        case(Special v){
+            if(v == JS_TRUE) return 1.0;
+            if(v == JS_FALSE) return 0.0;
+            if(v == JS_NULL) return 0.0;
+            if(v == JS_UNDEFINED) return NAN;
+        }
+        case(true){
+            return NAN;
+        }
+    }
+}

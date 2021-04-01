@@ -1,0 +1,22 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline, calledFromC) flonum_to_string : Flonum -> String
+flonum_to_string(v){
+    top: match(v){
+        case(Flonum v){
+            cdouble d = flonum_to_double(v);
+            if(d == 0.0) return CstrToString("0");
+            if(isnan(d)) return CstrToString("NaN");
+            if(isinf(d)){
+                if(d > 0.0) return CstrToString("Infinity");
+                CstrToString("-Infinity");
+            }
+            return double_to_string(d);
+        }
+        case(true){
+            type_error("flonum expected in flonum_to_string");
+            return gconsts.g_string_undefined;
+        }
+    }
+}

@@ -7,6 +7,9 @@
  * Electro-communications.
  */
 
+#ifndef EXTERN_H_
+#define EXTERN_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -161,6 +164,21 @@ extern void print_backtrace(Context *);
 /*
  * conversion.c
  */
+
+#ifdef USE_VMDL
+
+extern double primitive_to_double(JSValue);
+extern JSValue primitive_to_string(JSValue);
+extern JSValue array_to_string(Context *, JSValue, JSValue);
+extern cint toInteger(Context *context, JSValue a);
+extern char *type_name(JSValue);
+extern JSValue cint_to_string(cint);
+extern JSValue double_to_string(double);
+
+#include "vmdl_workspace/vmdl-extern.inc"
+
+#else /* USE_VMDL */
+
 extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
@@ -190,6 +208,8 @@ extern JSValue number_to_cint(JSValue n);
 extern cint toInteger(Context *context, JSValue a);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
+
+#endif /* USE_VMDL */
 
 /*
  * hash.c
@@ -415,16 +435,14 @@ extern uint64_t pertype_collect_count[];
 #endif /* GC_PROF */
 
 /*
- * vmdl-helper.c
+ * iccprof.c
  */
-extern JSValue instanceof_helper(JSValue v1, JSValue v2);
-extern JSValue getarguments_helper(Context* context, int link, Subscript index);
-extern JSValue getlocal_helper(Context* context, int link, Subscript index);
-extern InstructionDisplacement localret_helper(Context* context, int pc);
-extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
-extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
-extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
-extern JSValue nextpropnameidx_helper(JSValue itr);
+#ifdef ICC_PROF
+extern void icc_inc_record1(char *name, JSValue v1);
+extern void icc_inc_record2(char *name, JSValue v1, JSValue v2);
+extern void icc_inc_record3(char *name, JSValue v1, JSValue v2, JSValue v3);
+extern void write_icc_profile(FILE *fp);
+#endif /* ICC_PROF */
 
 #ifdef __cplusplus
 }
@@ -435,3 +453,5 @@ extern JSValue nextpropnameidx_helper(JSValue itr);
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* EXTERN_H_ */

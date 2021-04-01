@@ -1,0 +1,19 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) to_cint : JSValue -> cint
+to_cint(v){
+    top: match(v){
+        case(Fixnum v){
+            return fixnum_to_cint(v);
+        }
+        case(Flonum v){
+            return flonum_to_cint(v);
+        }
+        case(true){
+            return 0;
+        }
+    }
+}
