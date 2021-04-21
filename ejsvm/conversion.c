@@ -8,7 +8,7 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
 
 #define type_error_exception(s)  LOG_EXIT("Type error exception: " s "\n")

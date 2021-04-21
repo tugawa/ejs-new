@@ -307,6 +307,7 @@ void garbage_collection(Context *ctx)
   gc_phase = PHASE_INACTIVE;
 }
 
+#ifdef GC_THREADED_BOUNDARY_TAG
 static inline uintptr_t make_free_cell(uintptr_t end, size_t granules)
 {
   uintptr_t p = end - (granules << LOG_BYTES_IN_GRANULE);
@@ -321,6 +322,7 @@ static inline uintptr_t make_free_cell(uintptr_t end, size_t granules)
   write_boundary_tag(end, granules);
   return p;
 }
+#endif /* GC_THREADED_BOUNDARY_TAG */
 
 static inline void
 merge_free_space_in_hidden_class_area(uintptr_t start, uintptr_t end,

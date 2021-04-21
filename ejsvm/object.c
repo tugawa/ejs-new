@@ -8,7 +8,7 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
 
 #ifdef VERBOSE_HC

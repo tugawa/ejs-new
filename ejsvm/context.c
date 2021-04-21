@@ -8,7 +8,7 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
 
 static Context *allocate_context(size_t);

@@ -731,6 +731,7 @@ ACCEPTOR STATIC void weak_clear_property_maps()
 }
 #endif /* HC_SKIP_INTERNAL */
 
+#ifdef INLINE_CACHE
 ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
 {
   for (int i = 0; i < FUNCTION_TABLE_LIMIT; i++) {
@@ -745,6 +746,7 @@ ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
     }
   }
 }
+#endif /* INLINE_CACHE */
 
 ACCEPTOR STATIC void weak_clear(Context *ctx)
 {
