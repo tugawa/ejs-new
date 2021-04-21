@@ -1,0 +1,14 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline, calledFromC) number_to_cint : Number-> cint
+number_to_cint(v){
+    top: match(v){
+        case(Fixnum v){
+            return fixnum_to_cint(v);
+        }
+        case(Flonum v){
+            return double_to_cint(flonum_to_double(v));
+        }
+    }
+}

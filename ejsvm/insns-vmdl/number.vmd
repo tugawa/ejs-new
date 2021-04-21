@@ -1,7 +1,7 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
-number : cint -> JSValue
+number : ConstantDisplacement -> JSValue
 
 number (d1) {
     return Get_literal(d1);

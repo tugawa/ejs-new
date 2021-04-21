@@ -1,0 +1,17 @@
+#include "../header-vmdl/patterns.vmdh"
+
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline) object_to_boolean : JSValue -> Special
+object_to_boolean(v){
+    top: match(v){
+        case(object v){
+            return JS_TRUE;
+        }
+        case(true){
+            type_error("object expected in object_to_boolean");
+            return JS_FALSE;
+        }
+    }
+}

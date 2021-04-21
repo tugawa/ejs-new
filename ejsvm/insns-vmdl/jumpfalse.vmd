@@ -1,12 +1,11 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
-jumpfalse : (JSValue, Displacement) -> void
+jumpfalse : (JSValue, InstructionDisplacement) -> void
 
 jumpfalse (v0, d1) {
-    if (v0 == false || toBoolean(v0) == false) {
+    if (v0 == JS_FALSE || (v0 != JS_TRUE && to_boolean(v0) == JS_FALSE)) {
         Jump(d1);
-        Next_insn_noincpc();
-    } else {
+        NEXT_INSN_NOINCPC();
     }
 }

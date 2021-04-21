@@ -1,7 +1,7 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
-localcall : Displacement -> void
+localcall : InstructionDisplacement -> void
 
 localcall (d0) {
     Lcall_stack_push();

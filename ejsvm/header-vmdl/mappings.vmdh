@@ -1,0 +1,63 @@
+externC mapping {
+  embedded JSValue g_identity;
+  embedded SimpleObject g_object;
+  embedded SimpleObject g_object_proto;
+  embedded Array g_array;
+  embedded SimpleObject g_array_proto;
+  embedded NumberObject g_number;
+  embedded SimpleObject g_number_proto;
+  embedded StringObject g_string;
+  embedded SimpleObject g_string_proto;
+  embedded Function g_function;
+  embedded SimpleObject g_function_proto;
+  embedded Builtin g_builtin;
+  embedded SimpleObject g_builtin_proto;
+  embedded BooleanObject g_boolean;
+  embedded SimpleObject g_boolean_proto;
+  embedded SimpleObject g_date;
+  embedded SimpleObject g_date_proto;
+  embedded Regexp g_regexp;
+  embedded SimpleObject g_regexp_proto;
+  embedded JSValue g_fixnum_to_string;
+  embedded JSValue g_flonum_to_string;
+
+  embedded String g_string_prototype;
+  embedded String g_string___proto__;
+  embedded String g_string_tostring;
+  embedded String g_string_valueof;
+  embedded String g_string_boolean;
+  embedded String g_string_number;
+  embedded String g_string_object;
+  embedded String g_string_string;
+  embedded String g_string_true;
+  embedded String g_string_false;
+  embedded String g_string_null;
+  embedded String g_string_undefined;
+  embedded String g_string_length;
+  embedded String g_string_objtostr;
+  embedded String g_string_empty;
+  embedded String g_string_comma;
+  embedded String g_string_blank;
+
+  embedded Flonum g_flonum_infinity;
+  embedded Flonum g_flonum_negative_infinity;
+  embedded Flonum g_flonum_nan;
+
+  embedded SimpleObject g_global;
+  embedded SimpleObject g_math;
+} : global_constant_objects
+
+externC type ShapePtr = "Shape*" : cint
+
+externC mapping  {
+  embedded ShapePtr g_shape_Object;
+  embedded ShapePtr g_shape_Function;
+  embedded ShapePtr g_shape_Builtin;
+  embedded ShapePtr g_shape_Array;
+  embedded ShapePtr g_shape_Number;
+  embedded ShapePtr g_shape_String;
+  embedded ShapePtr g_shape_Boolean;
+} : global_object_shapes
+
+externC constant gconsts = "gconsts" : global_constant_objects
+externC constant gshapes = "gshapes" : global_object_shapes

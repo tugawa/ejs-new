@@ -1,6 +1,6 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext)
 setprop : (JSValue, JSValue, JSValue) -> void
@@ -9,11 +9,18 @@ setprop (obj, prop, val) {
     case (Array obj) {
       SetArrayProp(obj, prop, val);
     }
+    case (object obj && String prop) {
+#ifdef INLINE_CACHE
+      SetObjectPropInl(obj, prop, val);
+#else /* INLINE_CACHE */
+      SetObjectProp(obj, prop, val);
+#endif /* INLINE_CACHE */
+    }
     case (object obj) {
       SetObjectProp(obj, prop, val);
     }
     case (true) {
-      // error
+      LOG_EXIT("setprop: first operand is not an object\n");
     }
   }
 }

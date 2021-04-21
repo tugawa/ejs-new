@@ -1,8 +1,11 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
 getlocal : (cint, Subscript) -> JSValue
 
 getlocal (link, index) {
-    return Getlocal(link, index);
+    //NOTE! Wrap function
+    JSValue wrapped_return_value = JS_EMPTY;
+    Getlocal(link, index);
+    return wrapped_return_value;
 }

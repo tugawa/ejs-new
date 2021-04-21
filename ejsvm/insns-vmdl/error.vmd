@@ -1,6 +1,10 @@
+#include "../header-vmdl/externc.vmdh"
+
 (vmInstruction, tailCall)
-error : Displacement -> cint
+error : ConstantDisplacement -> cint
 
 error (d1) {
-    return -1;
+    Error();
+    Ret_minus_one();
+    return 0;
 }

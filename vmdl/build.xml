@@ -19,6 +19,7 @@
           includeantruntime="false" debug="true">
       <compilerarg value="-Xlint:unchecked" />
     </javac>
+    <copy file="${src}/vmdlc/ejsdsl.nez" todir="${bin}"/>
   </target>
 
   <target name="vmdlc.jar" depends="compile">

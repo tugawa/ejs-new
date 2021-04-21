@@ -85,6 +85,127 @@
  * JSValue to JSValue conversion functions
  */
 
+#ifdef USE_VMDL
+
+/*
+ * converts a special value to a string
+ */
+#include "funcs/special_to_string.inc"
+
+/*
+ * convers a special value to a number
+ */
+#include "funcs/special_to_number.inc"
+
+/*
+ * convers a special value to a boolean
+ */
+#include "funcs/special_to_boolean.inc"
+
+/*
+ * converts a special value to an object
+ */
+#include "funcs/special_to_object.inc"
+
+/*
+ * convers a string to a number
+ */
+#include "funcs/string_to_number.inc"
+
+/*
+ * converts a string to a boolean
+ */
+#include "funcs/string_to_boolean.inc"
+
+/*
+ * converts a string to an Object
+ */
+#include "funcs/string_to_object.inc"
+
+#define BUFSIZE 1000
+static char buf[BUFSIZE];
+
+/*
+ * converts a fixnum to a string
+ */
+#include "funcs/fixnum_to_string.inc"
+
+/*
+ * convers a flonum to a string
+ */
+#include "funcs/flonum_to_string.inc"
+
+JSValue double_to_string(double d) {
+  snprintf(buf, BUFSIZE, "%.15g", d);
+  return cstr_to_string(NULL, buf);
+}
+
+/*
+ * converts a number to a string
+ */
+#include "funcs/number_to_string.inc"
+
+/*
+ * converts a fixnum to a boolean
+ */
+#include "funcs/fixnum_to_boolean.inc"
+
+/*
+ * converts a flonum to a boolean
+ */
+#include "funcs/flonum_to_boolean.inc"
+
+/*
+ * converts a fixnum to an object
+ */
+#include "funcs/fixnum_to_object.inc"
+
+/*
+ * converts a flonum to an object
+ */
+#include "funcs/flonum_to_object.inc"
+
+/*
+ * converts an object to a string
+ */
+#include "funcs/object_to_string.inc"
+
+/*
+ * converts an object to a number
+ */
+#include "funcs/object_to_number.inc"
+
+  /* not completed yet */
+  /*
+   * if (is_array(v)) {
+   *   if (array_size(v) == 0)    // empty array
+   *     return FIXNUM_ZERO;
+   *   if (array_size(v) == 1) {
+   *     v = array_body_index(v, 0);
+   *     if (is_number(v)) return v;
+   *   }
+   * }
+   * return gconsts.g_flonum_nan;
+   */
+
+/*
+ * converts an object to a primitive
+ *
+ * The third argument specifies the order of applying toString and valueOf.
+ * The difference between this function and convert_to_string /
+ * convert_to_number is that when toString / valueOf returned a
+ * primitive value, this function returns it without converting
+ * them into a string / number.
+ */
+#include "funcs/object_to_primitive.inc"
+
+/*
+ * converts an object to a boolean
+ */
+#include "funcs/object_to_boolean.inc"
+
+#else /* USE_VMDL */
+
 /*
  * converts a special value to a string
  */
@@ -169,7 +290,7 @@ JSValue string_to_number(Context *ctx, JSValue v) {
   double d;
 
   if (! is_string(v)) {
-    type_error("string expected in strint_to_number");
+    type_error("string expected in string_to_number");
     return gconsts.g_flonum_nan;
   }
   p = string_value(v);
@@ -470,6 +591,8 @@ JSValue object_to_boolean(JSValue v) {
   return JS_TRUE;
 }
 
+#endif /* USE_VMDL */
+
 /*
  * converts an array to a string
  */
@@ -521,6 +644,44 @@ JSValue array_to_string(Context *context, JSValue array, JSValue separator)
 /*
  * general functions
  */
+
+#ifdef USE_VMDL
+/*
+ * converts to a string
+ */
+#include "funcs/to_string.inc"
+
+/*
+ * converts to a boolean
+ */
+#include "funcs/to_boolean.inc"
+
+/*
+ * converts to a number
+ */
+#include "funcs/to_number.inc"
+
+/*
+ * converts to an object
+ */
+#include "funcs/to_object.inc"
+/*
+ * conversion functions to C's data
+ */
+#include "funcs/special_to_double.inc"
+
+/*
+ * converts to a C's double
+ */
+#include "funcs/to_double.inc"
+
+#include "funcs/number_to_cint.inc"
+
+#include "funcs/number_to_double.inc"
+
+#include "funcs/to_cint.inc"
+
+#else /* USE_VMDL */
 
 /*
  * converts to a string
@@ -630,6 +791,8 @@ JSValue number_to_cint(JSValue n)
   else
     return (int) flonum_to_double(n);
 }
+
+#endif /* USE_VMDL */
 
 /* used in builtin methods */
 cint toInteger(Context *context, JSValue a) {

@@ -10,14 +10,12 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.HashMap;
 import java.lang.Exception;
 
 import vmdlc.DesugarVisitor.DefaultVisitor;
-import vmdlc.ReplaceNameVisitor;
 
 public class DesugarVisitor extends TreeVisitorMap<DefaultVisitor> {
     public DesugarVisitor() {
@@ -40,9 +38,12 @@ public class DesugarVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).accept(node, dict);
     }
 
+    //Never used
+    /*
     private void print(Object o) {
         ConsoleUtils.println(o);
     }
+    */
 
     public class DefaultVisitor {
         public void accept(Tree<?> node, PatternDict dict) throws Exception {
@@ -96,11 +97,11 @@ class PatternDict {
     }
 
     private class Pattern {
-        String name;
+        //String name;
         String varName;
         Tree<?> pattern;
         public Pattern(String _name, String _varName, Tree<?> _pattern) {
-            name = _name;
+            //name = _name;
             varName = _varName;
             pattern = _pattern;
         }

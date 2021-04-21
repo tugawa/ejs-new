@@ -1,8 +1,15 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
-setglobal : (JSValue, JSValue) -> void
+setglobal : (String, JSValue) -> void
 
 setglobal (str, src) {
-    Setglobal(str, src);
+    match(str) {
+        case (String str){
+            Setglobal(str, src);
+        }
+        case (true){
+            LOG_EXIT("SETGLOBAL with non-string variable name\n");
+        }
+    }
 }

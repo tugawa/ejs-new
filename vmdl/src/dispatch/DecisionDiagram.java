@@ -20,7 +20,7 @@ import type.VMRepType;
 import type.VMRepType.HT;
 import type.VMRepType.PT;
 
-import vmdlc.Option;
+import vmdlc.XOption;
 
 public class DecisionDiagram {
     public static int MERGE_LEVEL = 2; // 0-2: 0 is execution spped oriendted, 2 is size oriented
@@ -354,7 +354,7 @@ public class DecisionDiagram {
         return root == null;
     }
 
-    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
+    public String generateCode(String[] varNames, CodeGenerateVisitor.Macro tagMacro, XOption option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
         return generateCodeForNode(root, varNames, tagMacro, option, typeLabels, labelPrefix);
     }
 
@@ -370,7 +370,7 @@ public class DecisionDiagram {
     // static method
     ////
 
-    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro, Option option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
+    static String generateCodeForNode(Node node, String[] varNames, CodeGenerateVisitor.Macro tagMacro, XOption option, Map<Node, Set<String>> typeLabels, String labelPrefix) {
         CodeGenerateVisitor gen = new CodeGenerateVisitor(varNames, tagMacro, option, typeLabels, labelPrefix);
         node.accept(gen);
         return gen.toString();

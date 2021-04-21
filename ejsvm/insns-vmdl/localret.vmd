@@ -1,9 +1,8 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 localret : void -> void
 
 localret () {
-    Displacement disp = Localret();
-    Jump(disp);
+    Localret();
 }

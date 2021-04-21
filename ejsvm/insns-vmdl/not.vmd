@@ -1,8 +1,24 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
 not : JSValue -> JSValue
 
 not (obj) {
-    return Not(obj);
+    match(obj){
+        case (Special obj){
+            return (v1 == JS_TRUE ? JS_FALSE : JS_TRUE);
+        }
+        case (String obj){
+            return true_false(v1 == gconsts.g_string_empty);
+        }
+        case (Fixnum obj){
+            return true_false(v1 == FIXNUM_ZERO);
+        }
+        case (Flonum obj){
+            return true_false(v1 == gconsts.g_flonum_nan);
+        }
+        case(true){
+            return JS_FALSE;
+        }
+    }
 }

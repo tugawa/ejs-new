@@ -1,8 +1,18 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
-getglobal : JSValue -> JSValue
+getglobal : String -> JSValue
 
 getglobal (v1) {
-    return Get_global(v1);
+    match(v1) {
+        case (String v1){
+            //NOTE! Wrap function
+            JSValue wrapped_return_value = JS_EMPTY;
+            Get_global(v1);
+            return wrapped_return_value;
+        }
+        case (true){
+            LOG_EXIT("GETGLOBAL with non-stirng variable name\n");
+        }
+    }
 }

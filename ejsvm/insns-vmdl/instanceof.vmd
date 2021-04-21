@@ -1,17 +1,20 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
 instanceof : (JSValue, JSValue) -> JSValue
 
 instanceof (v1, v2) {
     top: match (v1, v2) {
-      case (object v1 && object v2) {
-          return Instanceof(v1, v2);
+      case (object v1 && callable v2) {
+            //NOTE! Wrap function
+            JSValue wrapped_return_value = JS_EMPTY;
+            Instanceof(v1, v2);
+            return wrapped_return_value;
       }
       case (true) {
-          return false;
+          return JS_FALSE;
       }
     }
 }

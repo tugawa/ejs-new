@@ -47,7 +47,7 @@ public abstract class VMDataTypeVecSet {
         }
 
         @Override
-        protected Set<VMDataType[]> getTuples() {
+        public Set<VMDataType[]> getTuples() {
             return dtsSet;
         }
     }
@@ -88,8 +88,19 @@ public abstract class VMDataTypeVecSet {
         }
 
         @Override
-        protected Set<VMDataType[]> getTuples() {
-            throw new Error("to be implemented");
+        public Set<VMDataType[]> getTuples() {
+            int length = types.length;
+            VMDataType[] vec = new VMDataType[length];
+            for(int i=0; i<length; i++){
+                if(types[i] instanceof JSValueVMType){
+                    vec[i] = ((JSValueVMType)types[i]).getVMDataType();
+                }else{
+                    throw new Error("ByCommonTypes has not JSValueVMType element");
+                }
+            }
+            HashSet<VMDataType[]> set = new HashSet<>();
+            set.add(vec);
+            return set;
         }
     }
 
@@ -116,7 +127,7 @@ public abstract class VMDataTypeVecSet {
         return t;
     }
 
-    protected abstract Set<VMDataType[]> getTuples();
+    public abstract Set<VMDataType[]> getTuples();
 
     public abstract AstType getMostSpecificType(String vn);
 }

@@ -1,12 +1,12 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 makeiterator : JSValue -> JSValue
 
 makeiterator (obj) {
     if (Isobject(obj)) {
-        return New_iterator(obj);
+        return new_iterator(obj);
     } else {
-        Logexit("makeiterator: not an object\n");
+        LOG_EXIT("makeiterator: not an object\n");
     }
 }

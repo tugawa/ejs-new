@@ -1,4 +1,4 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
 tailcall : (JSValue, cint) -> void
@@ -12,13 +12,13 @@ tailcall (fn, nargs) {
   top: match (fn) {
     case (Function fn) {
       Tailcall_function(fn, nargs, sendp);
-      Update_context();
-      Next_insn_noincpc();
+      update_context();
+      NEXT_INSN_NOINCPC();
     }
     case (Builtin fn) {
       Tailcall_builtin(fn, nargs, sendp);
-      Update_context();
-      Next_insn_incpc();
+      update_context();
+      NEXT_INSN_INCPC();
     }
     case (true) {
     }

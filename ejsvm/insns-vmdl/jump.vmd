@@ -1,7 +1,7 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, tailCall)
-jump : cint -> void
+jump : InstructionDisplacement -> void
 
 jump (d0) {
     Jump(d0);
