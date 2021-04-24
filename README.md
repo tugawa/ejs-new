@@ -5,7 +5,7 @@ for applications.
 
 Most of the contents are created by eJS project.
 
-* Tomoharu Ugawa (Kochi University of Technology)
+* Tomoharu Ugawa (The Univeristy of Tokyo)
 * Hideya Iwasaki (The University of Electro-communications)
 * Yasunao Takano (Kitasato University)
 
