@@ -369,10 +369,12 @@ merge_free_space_in_ordinary_area(uintptr_t start, uintptr_t end)
   size_t bytes = end - start;
   size_t granules = bytes >> LOG_BYTES_IN_GRANULE;
   header_t *hdrp = (header_t *) start;
+#if HEADER_SIZE_BITS < 32
   if (granules > ((static_cast<uintjsv_t>(1) << HEADER_SIZE_BITS) - 1)) {
     hdrp->size = 0;
     *(granule_t *) (start + (HEADER_GRANULES << BYTES_IN_GRANULE)) = granules;
   } else
+#endif /* HEADER_SIZE_BITS < 32 */
     hdrp->size = granules;
 }
 
