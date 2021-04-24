@@ -194,6 +194,95 @@ BUILTIN_FUNCTION(builtin_hello)
   set_a(context, JS_UNDEFINED);
 }
 
+BUILTIN_FUNCTION(builtin_getrusage)
+{
+  struct rusage ru;
+  JSValue arr;
+
+  builtin_prologue();
+  arr = args[1];
+
+  assert(is_htag(arr, HTAG_ARRAY));
+
+  getrusage(RUSAGE_SELF, &ru);
+
+  cint usec = ru.ru_utime.tv_usec % 1000;
+  cint msec = ru.ru_utime.tv_usec / 1000;
+  cint sec  = ru.ru_utime.tv_sec;
+
+  GC_PUSH(arr);
+  {
+    JSValue index_sec  = small_cint_to_fixnum(0);
+    JSValue value_sec  = small_cint_to_fixnum(sec);
+    set_array_prop(context, arr, index_sec, value_sec);
+  }
+  {
+    JSValue index_msec = small_cint_to_fixnum(1);
+    JSValue value_msec = small_cint_to_fixnum(msec);
+    set_array_prop(context, arr, index_msec, value_msec);
+  }
+  {
+    JSValue index_usec = small_cint_to_fixnum(2);
+    JSValue value_usec = small_cint_to_fixnum(usec);
+    set_array_prop(context, arr, index_usec, value_usec);
+  }
+  GC_POP(arr);
+
+  set_a(context, JS_UNDEFINED);
+}
+
+BUILTIN_FUNCTION(builtin_getgcrusage)
+{
+  JSValue arr;
+
+  builtin_prologue();
+  arr = args[1];
+
+  assert(is_htag(arr, HTAG_ARRAY));
+
+  cint usec = gc_usec % 1000;
+  cint msec = gc_usec / 1000;
+  cint sec  = gc_sec;
+
+  GC_PUSH(arr);
+  {
+    JSValue index_sec  = small_cint_to_fixnum(0);
+    JSValue value_sec  = small_cint_to_fixnum(sec);
+    set_array_prop(context, arr, index_sec, value_sec);
+  }
+  {
+    JSValue index_msec = small_cint_to_fixnum(1);
+    JSValue value_msec = small_cint_to_fixnum(msec);
+    set_array_prop(context, arr, index_msec, value_msec);
+  }
+  {
+    JSValue index_usec = small_cint_to_fixnum(2);
+    JSValue value_usec = small_cint_to_fixnum(usec);
+    set_array_prop(context, arr, index_usec, value_usec);
+  }
+  GC_POP(arr);
+
+  set_a(context, JS_UNDEFINED);
+}
+
+BUILTIN_FUNCTION(builtin_getgccount)
+{
+  builtin_prologue();
+
+  JSValue gc_count = cint_to_number(context, generation);
+
+  set_a(context, gc_count);
+}
+
+BUILTIN_FUNCTION(builtin_start_gc)
+{
+  builtin_prologue();
+
+  start_garbage_collection(context);
+
+  set_a(context, JS_UNDEFINED);
+}
+
 BUILTIN_FUNCTION(builtin_to_string)
 {
   builtin_prologue();
@@ -232,6 +321,10 @@ ObjBuiltinProp Global_builtin_props[] = {
   { "printStatus",    builtin_printStatus,        0, ATTR_ALL  },
   { "address",        builtin_address,            0, ATTR_ALL  },
   { "hello",          builtin_hello,              0, ATTR_ALL  },
+  { "getrusage",      builtin_getrusage,          1, ATTR_ALL  },
+  { "getgcrusage",    builtin_getgcrusage,        1, ATTR_ALL  },
+  { "getgccount",     builtin_getgccount,         0, ATTR_ALL  },
+  { "start_gc",       builtin_start_gc,           0, ATTR_ALL  },
   { "to_string",      builtin_to_string,          1, ATTR_ALL  },
   { "to_number",      builtin_to_number,          1, ATTR_ALL  },
 #ifdef USE_PAPI

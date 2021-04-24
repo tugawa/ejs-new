@@ -1,6 +1,6 @@
-#include "patterns.vmdh"
+#include "../header-vmdl/patterns.vmdh"
 
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, triggerGC, tailCall)
 add : (JSValue, JSValue) -> JSValue
@@ -8,36 +8,41 @@ add : (JSValue, JSValue) -> JSValue
 add (v1, v2) {
   top: match (v1, v2) {
     case (Fixnum v1 && Fixnum v2) {
-      cint s = FixnumToCint(v1) + FixnumToCint(v2);
-      return CintToNumber(s);
+      cint s = to_cint(v1) + to_cint(v2);
+      return cint_to_number(s);
     }
     case (String v1 && ffs v2) {
-      String s = toString(v2);
+      String s = to_string(v2);
       rematch top(v1, s);  // v1:string, s:string
     }
     case (ffs v1 && String v2) {
-      String s = toString(v1);
+      String s = to_string(v1);
       rematch top(s, v2);  // s:string, v2:string
     }
     case (String v1 && String v2) {
       return concat(v1, v2);
     }
     case (object v1 && ffss v2) {
-      JSValue u1 = toString(v1);
+      JSValue u1 = to_string(v1);
       rematch top(u1, v2);  // u1:string, v2:LUB(ffss \cap type(v2)@top)
     }
     case (ffss v1 && object v2) {
-      JSValue u2 = toString(v2);
+      JSValue u2 = to_string(v2);
       rematch top(v1, u2);  // v1:LUB(ffss \cap type(v1)@top), u2:string
       // JSValue u1 = v1;
-      // JSValue u2 = toString(v2);
+      // JSValue u2 = to_string(v2);
       // rematch top(u1, u2);
+    }
+    case (object v1 && object v2) {
+      JSValue o1 = to_string(v1);
+      JSValue o2 = to_string(v2);
+      rematch top(o1, o2);
     }
     case (true)
      {
-      cdouble u1 = toCdouble(v1);
-      cdouble u2 = toCdouble(v2);
-      return CdoubleToNumber(u1 + u2);
+      cdouble u1 = to_double(v1);
+      cdouble u2 = to_double(v2);
+      return double_to_number(u1 + u2);
     }
   }
 }

@@ -10,15 +10,14 @@ package vmdlc;
 
 import nez.ast.Tree;
 import nez.ast.TreeVisitorMap;
-import nez.util.ConsoleUtils;
 import nez.ast.Symbol;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.HashMap;
 import java.lang.Exception;
 
 import vmdlc.AlphaConvVisitor.DefaultVisitor;
-import vmdlc.InstructionDefinitions;
 import vmdlc.InstructionDefinitions.OperandKinds;
 
 public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
@@ -46,9 +45,12 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
         find(node.getTag().toString()).accept(node, dict);
     }
 
+    //Never used
+    /*
     private void print(Object o) {
         ConsoleUtils.println(o);
     }
+    */
 
     public class DefaultVisitor {
         public void accept(Tree<?> node, VarDict dict) throws Exception {
@@ -127,9 +129,12 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
             Tree<?> name = node.get(Symbol.unique("var"));
             dict.internV(name);
 
-            Tree<?> expr = node.get(Symbol.unique("expr"));
-
-            visit(expr, dict);
+            if(node.has(Symbol.unique("expr"))){
+                Tree<?> expr = node.get(Symbol.unique("expr"));
+                if(expr != SyntaxTree.PHANTOM_NODE){
+                    visit(expr, dict);
+                }
+            }
         }
     }
 
@@ -159,6 +164,13 @@ public class AlphaConvVisitor extends TreeVisitorMap<DefaultVisitor> {
 
             Tree<?> expr = node.get(Symbol.unique("expr"));
             visit(expr, dict);
+        }
+    }
+
+    public class FieldAccess extends DefaultVisitor {
+        public void accept(Tree<?> node, VarDict dict) throws Exception {
+            SyntaxTree recv = (SyntaxTree) node.get(Symbol.unique("recv"));
+            visit(recv, dict);
         }
     }
 
@@ -235,7 +247,7 @@ class VarDict {
     }
 
     public String search(String s) {
-        for (HashMap h : frames) {
+        for (Map<String,String> h : frames) {
             String v = (String)h.get(s);
             if (v != null) {
                 return v;
@@ -250,6 +262,13 @@ class VarDict {
             counter = 0;
         }
         public String getName(String name, String prefix) {
+            /*
+             * NOTE:
+             *   The variable name "wrapped_return_value" is special.
+             *   This name is used to recieve a return value of wrapped functions.
+             *   e.g. Getargument() in getarg instruction
+             */
+            if(name.equals("wrapped_return_value")) return name;
             counter++;
             if (leaveName) {
                 return name + "_" + counter;

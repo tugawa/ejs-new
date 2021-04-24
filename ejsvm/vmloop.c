@@ -8,7 +8,7 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
 
 static void exhandler_throw(Context *context);
@@ -19,9 +19,15 @@ static int lcall_stack_pop(Context* context, int *pc);
 extern void print_bytecode(Instruction *, int);
 #endif /* DEBUG */
 
+#ifdef IC_PROF
+int ic_prof_count;
+int ic_prof_hit;
+#endif /* IC_PROF */
+
 #define NOT_IMPLEMENTED()                                               \
   LOG_EXIT("Sorry, instruction %s has not been implemented yet\n",      \
            insn_nemonic(get_opcode(insn)))
+#define type_error(s)  LOG_EXIT("Type error: " s "\n")
 
 #ifdef PROFILE
 static char *typename(JSValue v) {
@@ -84,6 +90,7 @@ inline void make_ilabel(FunctionTable *curfn, void *const *jt) {
     if (trace_flag == TRUE) {                           \
       printf("pc = %d, fp = %d: ", pc, fp);             \
       print_bytecode(insns, 0);                         \
+      fflush(stdout);                                   \
     }                                                   \
   } while (0)
 #else /* DEBUG */
@@ -254,6 +261,29 @@ static int lcall_stack_pop(Context* context, int *pc)
   *pc = number_to_cint(v);
   return 0;
 }
+
+#ifdef IC_PROF
+void print_ic_prof(Context *ctx)
+{
+  int i;
+  for (i = 0; i < ctx->nfuncs; i++) {
+    FunctionTable *ft = ctx->function_table + i;
+    int j;
+    for (j = 0; j < ft->n_insns; j++) {
+      Instruction *insn = ft->insns + j;
+      InlineCache *ic = &insn->inl_cache;
+      if (ic->count >= 10) {
+        printf("IC %03d:%03d %s install %3d count %7d hit %7d (radio %f) NULL %7d proto %7d\n",
+               i, j, get_opcode(insn->code) == GETPROP ? "get" : "set",
+               ic->install, ic->count, ic->hit, ((float) ic->hit) / ic->count,
+               ic->unavailable, ic->proto);
+      }
+    }
+  }
+  printf("total count %8d hit %8d (ratio %f)\n",
+         ic_prof_count, ic_prof_hit, ((float) ic_prof_hit) / ic_prof_count);
+}
+#endif /* IC_PROF */
 
 /* Local Variables:      */
 /* mode: c               */

@@ -8,7 +8,7 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
 
 static Context *allocate_context(size_t);
@@ -46,7 +46,7 @@ void init_special_registers(SpecialRegisters *spreg){
   spreg->fp = 0;
   spreg->cf = NULL;
   spreg->lp = NULL;
-  spreg->sp = 0;
+  spreg->sp = -1;
   spreg->pc = 0;
   spreg->a = JS_UNDEFINED;
   spreg->err = JS_UNDEFINED;
@@ -77,6 +77,7 @@ void init_context(size_t stack_limit, Context **context)
   Context *c;
 
   c = allocate_context(stack_limit);
+  c->nfuncs = 0;
   *context = c;
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   c->property_map_roots = NULL;

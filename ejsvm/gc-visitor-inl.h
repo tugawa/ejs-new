@@ -2,6 +2,10 @@
 
 #define ACCEPTOR template<typename Tracer>
 
+#if defined(HC_SKIP_INTERNAL) || defined(ALLOC_SITE_CACHE)
+STATIC PropertyMap* get_transition_dest(PropertyMap *pm);
+#endif /* HC_SKIP_INTERNAL || ALLOC_SITE_CACHE */
+
 template<typename T>
 static inline void *&
 cast_process_edge_arg(T *&x) { return reinterpret_cast<void *&>(x); }
@@ -73,7 +77,7 @@ ACCEPTOR STATIC void weak_clear_shapes();
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm);
 ACCEPTOR STATIC void weak_clear_property_maps();
 #endif /* HC_SKIP_INTERNAL */
-ACCEPTOR STATIC void weak_clear(void);
+ACCEPTOR STATIC void weak_clear(Context *ctx);
 
 extern JSValue *gc_root_stack[];
 extern int gc_root_stack_ptr;
@@ -83,24 +87,37 @@ extern void alloc_site_update_info(JSObject *p);
 
 class NodeScanner {
   ACCEPTOR static void scan_object_properties(JSObject *p) {
+#ifdef THREADED
+    Shape *os = p->shape;
+#endif /* THREADED */
+
     /* 1. shape */
     PROCESS_EDGE(p->shape);
-    /* 2. embedded propertyes */
+
+#ifndef THREADED
     Shape *os = p->shape;
+#endif /* THREADED */
+
+    /* 2. embedded propertyes */
     int n_extension = os->n_extension_slots;
     size_t actual_embedded = os->n_embedded_slots - (n_extension == 0 ? 0 : 1);
     for (size_t i = os->pm->n_special_props; i < actual_embedded; i++)
       PROCESS_EDGE(p->eprop[i]);
+
     /* 3. extension */
     if (n_extension != 0)
       PROCESS_EDGE_EX_JSVALUE_ARRAY(p->eprop[actual_embedded],
 				    os->pm->n_props - actual_embedded);
 #ifdef ALLOC_SITE_CACHE
     /* 4. allocation site cache */
-    if (p->alloc_site != NULL) {
-      alloc_site_update_info(p);
-      PROCESS_EDGE(p->alloc_site->pm);
-    }
+#ifdef THREADED
+    if (gc_phase == PHASE_MARK)
+#endif /* THREADED */
+      if (os->alloc_site != NULL) {
+        alloc_site_update_info(p);
+	if (os->alloc_site->pm != NULL)
+	  PROCESS_EDGE(os->alloc_site->pm);
+      }
 #endif /* ALLOC_SITE_CACHE */
   }
   
@@ -176,24 +193,23 @@ class NodeScanner {
       PROCESS_EDGE(p->next);
   }
   ACCEPTOR static void scan_Hashtable(HashTable *p) {
-    if (p->body != NULL)
-      PROCESS_EDGE_EX_PTR_ARRAY(p->body, p->size);
+    if (p->transitions != NULL)
+      PROCESS_EDGE(p->transitions);
+    for (int i = 0; i < p->n_props; i++)
+      PROCESS_EDGE(p->entry[i].key);
   }
-  ACCEPTOR static void scan_HashBody(HashCell **p) {
-    Tracer::process_node_ptr_array(reinterpret_cast<void **&>(p));
-  }
-  ACCEPTOR static void scan_HashCell(HashCell *p) {
-    PROCESS_EDGE(p->entry.key);
-    if (is_transition(p->entry.attr)) {
-#ifdef HC_SKIP_INTERNAL      
-      PROCESS_WEAK_EDGE(p->entry.data.u.pm);
+  ACCEPTOR static void scan_TransitionTable(TransitionTable *p) {
+    for (int i = 0; i < p->n_transitions; i++) {
+      if (p->transition[i].key != JS_UNDEFINED) {
+	PROCESS_EDGE(p->transition[i].key);
+#ifdef HC_SKIP_INTERNAL
+	PROCESS_WEAK_EDGE(p->transition[i].pm);
 #else /* HC_SKIP_INTERNAL */
-      PROCESS_EDGE(p->entry.data.u.pm);
+	PROCESS_EDGE(p->transition[i].pm);
 #endif /* HC_SKIP_INTERNAL */
-    }      
-    if (p->next != NULL)
-        PROCESS_EDGE(p->next);
-  }    
+      }
+    }
+  }
   ACCEPTOR static void scan_PropertyMap(PropertyMap *p) {
     PROCESS_EDGE(p->map);
     if (p->prev != NULL) {
@@ -204,15 +220,12 @@ class NodeScanner {
 #endif /* HC_SKIP_INTERNAL */
     }
     if (p->shapes != NULL)
-        PROCESS_EDGE(p->shapes);/* Shape
-				 * (always keep the largest one) */
+      PROCESS_EDGE(p->shapes);/* Shape
+			       * (always keep the largest one) */
     PROCESS_EDGE(p->__proto__);
   }
   ACCEPTOR static void scan_Shape(Shape *p) {
     PROCESS_EDGE(p->pm);
-#ifdef NO_SHAPE_CACHE
-    assert(p->next == NULL);
-#else /* NO_SHAPE_CACHE */
     if (p->next != NULL) {
 #ifdef WEAK_SHAPE_LIST
       PROCESS_WEAK_EDGE(p->next);
@@ -220,7 +233,6 @@ class NodeScanner {
       PROCESS_EDGE(p->next);
 #endif /* WEAK_SHAPE_LIST */
     }
-#endif /* NO_SHAPE_CACHE */
   }
   ACCEPTOR static void scan_Unwind(UnwindProtect *p) {
     PROCESS_EDGE(p->prev);
@@ -228,6 +240,7 @@ class NodeScanner {
   }
 #if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   ACCEPTOR static void scan_PropertyMapList(PropertyMapList *p) {
+    PROCESS_WEAK_EDGE(p->pm);
     if (p->next != NULL)
       PROCESS_WEAK_EDGE(p->next);
   }
@@ -291,14 +304,11 @@ ACCEPTOR STATIC_INLINE void process_node(cell_type_t type, uintptr_t ptr) {
   case CELLT_STR_CONS:
     NodeScanner::scan_StrCons<Tracer>((StrCons *) ptr);
     return;
+  case CELLT_TRANSITIONS:
+    NodeScanner::scan_TransitionTable<Tracer>((TransitionTable *) ptr);
+    return;
   case CELLT_HASHTABLE:
     NodeScanner::scan_Hashtable<Tracer>((HashTable *) ptr);
-    return;
-  case CELLT_HASH_BODY:
-    NodeScanner::scan_HashBody<Tracer>((HashCell **) ptr);
-    return;
-  case CELLT_HASH_CELL:
-    NodeScanner::scan_HashCell<Tracer>((HashCell *) ptr);
     return;
   case CELLT_PROPERTY_MAP:
     NodeScanner::scan_PropertyMap<Tracer>((PropertyMap *) ptr);
@@ -339,6 +349,10 @@ ACCEPTOR STATIC void scan_Context(Context *context)
 
   /* process stack */
   scan_stack<Tracer>(context->stack, context->spreg.sp, context->spreg.fp);
+
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
+  PROCESS_WEAK_EDGE(context->property_map_roots);
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 }
 
 ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
@@ -353,18 +367,64 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
   }
 
 #ifdef ALLOC_SITE_CACHE
-  /* scan Allocation Sites */
-  {
-    int i;
-    for (i = 0; i < p->n_insns; i++) {
-      Instruction *insn = &p->insns[i];
-      AllocSite *alloc_site = &insn->alloc_site;
-      if (alloc_site->shape != NULL)
-        PROCESS_EDGE(alloc_site->shape);
-      /* TODO: too eary PM sacnning. scan after updating alloc site info */
-      if (alloc_site->pm != NULL)
-        PROCESS_EDGE(alloc_site->pm);
+  /* scan Allocation Sites and update */
+  for (int i = 0; i < p->n_insns; i++) {
+    Instruction *insn = &p->insns[i];
+    AllocSite *as = &insn->alloc_site;
+    if (as->shape != NULL) {
+      if (Tracer::is_hcg_mutator) {
+	Shape *os = as->shape;
+	while (((os->n_enter - os->n_leave) << 3) < os->n_enter) {
+	  /* This map is tentative for objects allocated in this site.
+	   * If destination for objects allocated in this site is a single,
+	   * we can skip this map.
+	   * Note: pm->n_transitions cannot be used.
+	   */
+	  PropertyMap *pm = os->pm;
+	  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+	  HashTransitionCell *cell;
+	  Shape *next_os = NULL;
+	  while (nextHashTransitionCell(pm->map, &iter, &cell) != FAIL) {
+	    PropertyMap *next_pm = hash_transition_cell_pm(cell);
+	    for (Shape *p = next_pm->shapes; p != NULL; p = p->next) {
+	      if (p->alloc_site == as) {
+		if (next_os == NULL)
+		  next_os = p;
+		else
+		  /* multiple outgoing edges */
+		  goto BREAK_WHILE;
+	      }
+	    }
+	  }
+	  if (next_os == NULL)
+	    break;
+	  os = next_os;
+	}
+      BREAK_WHILE:
+	if (as->shape != os) {
+	  as->pm = os->pm;
+#ifdef DUMP_HCG
+	  as->shape->is_cached = 0;
+#endif /* DUMP_HCG */
+	  as->shape = NULL;
+	  for (Shape *p = as->pm->shapes; p != NULL; p = p->next) {
+	    if (p->alloc_site == as &&
+		p->n_embedded_slots == as->pm->n_props) {
+	      as->shape = p;
+#ifdef DUMP_HCG
+	      as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
+	      PROCESS_EDGE(as->shape);
+	      break;
+	    }
+	  }
+	} else
+	  PROCESS_EDGE(as->shape);
+      } else
+	PROCESS_EDGE(as->shape);
     }
+    if (as->pm != NULL)
+      PROCESS_EDGE(as->pm);
   }
 #endif /* ALLOC_SITE_CACHE */
 
@@ -375,9 +435,9 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
-      if (ic->shape != NULL) {
-        PROCESS_EDGE(ic->shape);
-        PROCESS_EDGE(ic->prop_name);
+      if (ic->pm != NULL) {
+        PROCESS_WEAK_EDGE(ic->pm);
+        PROCESS_WEAK_EDGE(ic->prop_name);
       }
     }
   }
@@ -483,9 +543,9 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
         (*p)->str = JS_UNDEFINED;
         *p = (*p)->next;
       } else {
-	PROCESS_EDGE(*p);
-	PROCESS_EDGE((*p)->str);
-	Tracer::process_mark_stack();
+        PROCESS_EDGE(*p);
+        PROCESS_EDGE((*p)->str);
+        Tracer::process_mark_stack();
         p = &(*p)->next;
       }
     }
@@ -495,16 +555,12 @@ ACCEPTOR STATIC void weak_clear_StrTable(StrTable *table)
 #ifdef WEAK_SHAPE_LIST
 ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
 {
-  HashIterator iter;
-  HashCell *cell;
-
 #ifdef VERBOSE_GC_SHAPE
 #defien PRINT(x...) printf(x)
 #else /* VERBOSE_GC_SHAPE */
 #define PRINT(x...)
 #endif /* VERBOSE_GC_SHAPE */
 
-#ifndef NO_SHAPE_CACHE
   {
     Shape **p;
     for (p = &pm->shapes; *p != NULL; ) {
@@ -516,19 +572,18 @@ ACCEPTOR STATIC void weak_clear_shape_recursive(PropertyMap *pm)
         Shape *skip = *p;
         *p = skip->next;
 #ifdef DEBUG
-        PRINT("skip %p emp: %d ext: %d\n",
+        PRINT("skip %p emb: %d ext: %d\n",
               skip, skip->n_embedded_slots, skip->n_extension_slots);
         skip->next = NULL;  /* avoid Black->While check failer */
 #endif /* DEBUG */
       }
     }
   }
-#endif /* NO_SHAPE_CACHE */
 
-  iter = createHashIterator(pm->map);
-  while (nextHashCell(pm->map, &iter, &cell) != FAIL)
-    if (is_transition(cell->entry.attr))
-      weak_clear_shape_recursive<Tracer>(cell->entry.data.u.pm);
+  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+  HashTransitionCell *cell;
+  while (nextHashTransitionCell(pm->map, &iter, &cell) != FAIL)
+    weak_clear_shape_recursive<Tracer>(hash_transition_cell_pm(cell));
 
 #undef PRINT /* VERBOSE_GC_SHAPE */
 }
@@ -550,73 +605,107 @@ ACCEPTOR STATIC void weak_clear_shapes()
 }
 #endif /* WEAK_SHAPE_LIST */
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(ALLOC_SITE_CACHE)
 /*
  * Get the only transision from internal node.
  */
 STATIC PropertyMap* get_transition_dest(PropertyMap *pm)
 {
-  HashIterator iter;
-  HashCell *p;
+  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+  HashTransitionCell *p;
 
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr)) {
-      PropertyMap *ret = p->entry.data.u.pm;
-#ifdef GC_DEBUG
-      while(nextHashCell(pm->map, &iter, &p) != FAIL)
-        assert(!is_transition(p->entry.attr));
-#endif /* GC_DEBUG */
-      return ret;
-    }
+  while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
+    PropertyMap *ret = hash_transition_cell_pm(p);
+    return ret;
+  }
   abort();
   return NULL;
 }
+#endif /* HC_SKIP_INTERNAL || ALLOC_SITE_CACHE */
 
+#ifdef HC_SKIP_INTERNAL
 ACCEPTOR STATIC void weak_clear_property_map_recursive(PropertyMap *pm)
 {
-  HashIterator iter;
-  HashCell *p;
   int n_transitions = 0;
 
   assert(Tracer::is_marked_cell(pm));
 
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr)) {
-      PropertyMap *next = p->entry.data.u.pm;
-      /*
-       * If the next node is both
-       *   1. not pointed to through strong pointers and
-       *   2. outgoing edge is exactly 1,
-       * then, the node is an internal node to be eliminated.
-       */
-      while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
+  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+  HashTransitionCell *p;
+  while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL) {
+    PropertyMap *next = hash_transition_cell_pm(p);
+    /*
+     * If the next node is both
+     *   1. not pointed to through strong pointers and
+     *   2. outgoing edge is exactly 1,
+     * then, the node is an internal node to be eliminated.
+     */
+    while (!Tracer::is_marked_cell(next) && next->n_transitions == 1) {
 #ifdef VERBOSE_WEAK
-        printf("skip PropertyMap %p\n", next);
+      printf("skip PropertyMap %p\n", next);
 #endif /* VERBOSE_WEAK */
-        next = get_transition_dest(next);
+#ifdef VERBOSE_HC
+      {
+	char buf1[5000];
+	char buf2[5000];
+	sprint_property_map(buf1, next);
+	sprint_property_map(buf2, pm);
+	printf("skip PropertyMap %s from %s\n", buf1, buf2);
       }
-      if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
-        p->deleted = 1;             /* TODO: use hash_delete */
-        p->entry.data.u.pm = NULL;  /* make invariant check success */
-        continue;
-      }
-      n_transitions++;
-#ifdef VERBOSE_WEAK
-      if (Tracer::is_marked_cell(next))
-        printf("preserve PropertyMap %p because it has been marked\n", next);
-      else
-        printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
-               next, next->n_props, next->n_transitions);
-#endif /* VERBOSE_WEAK */
-      /* Resurrect if it is branching node or terminal node */
-      PROCESS_EDGE(next);
-      Tracer::process_mark_stack();
-      p->entry.data.u.pm = next;
-      next->prev = pm;
-      weak_clear_property_map_recursive<Tracer>(next);
+#endif /* VERBOSE_HC */
+      PropertyMap *next_next = get_transition_dest(next);
+      assert(next_next->prev == next);
+      next = next_next;
     }
+#ifdef HC_SKIP_INTERNAL
+    /* TODO: remove branch if it is no longer used */
+#else /* HC_SKIP_INTERNAL */
+    if (!Tracer::is_marked_cell(next) && next->n_transitions == 0) {
+      hash_transition_cell_delete(p);
+#ifdef VERBOSE_WEAK
+      printf("delete branch PropertyMap %p(%d)\n",
+	     next, next->n_props);
+#endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+      {
+	char buf[2000];
+	sprint_property_map(buf, next);
+	printf("delete branch %s\n", buf);
+      }
+#endif /* VERBOSE_HC */
+      continue;
+    }
+#endif /* HC_SKIP_INTERNAL */
+    n_transitions++;
+#ifdef VERBOSE_WEAK
+    if (Tracer::is_marked_cell(next))
+      printf("preserve PropertyMap %p(%d) because it has been marked\n",
+	     next, next->n_props);
+    else
+      printf("preserve PropertyMap %p because it is a branch (P=%d T=%d)\n",
+	     next, next->n_props, next->n_transitions);
+#endif /* VERBOSE_WEAK */
+#ifdef VERBOSE_HC
+    {
+      char buf1[5000];
+      char buf2[5000];
+      sprint_property_map(buf1, next);
+      sprint_property_map(buf2, pm);
+      printf("preserve PropertyMap %s from %s\n", buf1, buf2);
+    }
+#endif /* VERBOSE_HC */
+#ifdef HC_SKIP_INTERNAL
+    if (next->n_transitions == 1 &&
+	((next->n_enter - next->n_leave) << 3) < next->n_enter)
+      next->transient = 1;
+#endif /* HC_SKIP_INTERNAL */
+    hash_transition_cell_pm(p) = next;
+    /* Resurrect if it is branching node or terminal node */
+    PROCESS_EDGE(hash_transition_cell_pm(p));
+    Tracer::process_mark_stack();
+    next->prev = pm;
+    weak_clear_property_map_recursive<Tracer>(next);
+  }
   pm->n_transitions = n_transitions;
 }
 
@@ -642,7 +731,24 @@ ACCEPTOR STATIC void weak_clear_property_maps()
 }
 #endif /* HC_SKIP_INTERNAL */
 
-ACCEPTOR STATIC void weak_clear(void)
+#ifdef INLINE_CACHE
+ACCEPTOR STATIC void weak_clear_inline_cache(Context *ctx)
+{
+  for (int i = 0; i < FUNCTION_TABLE_LIMIT; i++) {
+    FunctionTable *p = &ctx->function_table[i];
+    for (int j = 0; j < p->n_insns; j++) {
+      Instruction *insn = &p->insns[j];
+      InlineCache *ic = &insn->inl_cache;
+      if (ic->pm != NULL && !Tracer::is_marked_cell(ic->pm)) {
+	ic->pm = NULL;
+	ic->prop_name = JS_UNDEFINED;
+      }
+    }
+  }
+}
+#endif /* INLINE_CACHE */
+
+ACCEPTOR STATIC void weak_clear(Context *ctx)
 {
 #ifdef HC_SKIP_INTERNAL
   /* !!! Do weak_clear_property_map first. This may resurrect some objects. */
@@ -652,6 +758,9 @@ ACCEPTOR STATIC void weak_clear(void)
   weak_clear_shapes<Tracer>();
 #endif /* WEAK_SHAPE_LIST */
   weak_clear_StrTable<Tracer>(&string_table);
+#ifdef INLINE_CACHE
+  weak_clear_inline_cache<Tracer>(ctx);
+#endif /* INLINE_CACHE */
 
   /* clear cache in the context */
   the_context->exhandler_pool = NULL;

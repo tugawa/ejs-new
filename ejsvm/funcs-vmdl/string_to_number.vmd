@@ -1,0 +1,34 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(needContext, triggerGC, makeInline, calledFromC) string_to_number : String -> Number
+string_to_number(v){
+    top: match(v){
+        case(String v){
+            cstring p = string_value(v);
+            if(IsEmptyCstring(p)){
+                return FIXNUM_ZERO;
+            }
+            cstring q;
+            cint n;
+            (n, q) <- Strtol(p, 10);
+            if(p != q){
+                if(IsEmptyCstring(q)){
+                    return cint_to_number(n);
+                }
+            }
+            cdouble d;
+            (d, q) <- Strtod(p);
+            if(p != q){
+                if(IsEmptyCstring(q)){
+                    return double_to_flonum(d);
+                }
+            }
+            return gconsts.g_flonum_nan;
+        }
+        case(true){
+            type_error("string expected in string_to_number");
+            return gconsts.g_flonum_nan;
+        }
+    }
+}

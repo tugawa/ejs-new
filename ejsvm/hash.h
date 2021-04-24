@@ -48,16 +48,34 @@ typedef struct hash_entry {
   Attribute attr;    /* attribute */
 } HashEntry;
 
+#ifdef PROPERTY_MAP_HASHTABLE
 typedef struct hash_cell {
   bool deleted;
   HashEntry entry;
   struct hash_cell *next;
 } HashCell;
 
+typedef HashCell HashTransitionCell;
+
+static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
+  cell->deleted = 1;
+  cell->entry.data.u.pm = NULL; /* make invariant check success */
+}
+#define hash_transition_cell_key(cell) ((cell)->entry.key)
+#define hash_transition_cell_pm(cell) ((cell)->entry.data.u.pm)
+
 typedef struct hash_iterator {
   int index;
   HashCell *p;
 } HashIterator;
+
+typedef struct hash_property_iterator {
+  HashIterator i;
+} HashPropertyIterator;
+
+typedef struct hash_transition_iterator {
+  HashIterator i;
+} HashTransitionIterator;
 
 struct hash_table {
   HashCell **body;
@@ -65,8 +83,48 @@ struct hash_table {
   unsigned int entry_count;
   unsigned int filled;
 };
+#else /* PROPERTY_MAP_HASHTABLE */
 
-typedef HashTable Map;
+struct transition {
+  JSValue key;
+  PropertyMap *pm;
+};
+
+typedef struct transition_table {
+  int n_transitions;
+  struct transition transition[];
+} TransitionTable;
+
+struct property {
+  JSValue key;
+  Attribute attr;
+};
+
+struct hash_table {
+  int n_props;
+  TransitionTable *transitions;
+  struct property entry[];
+};
+
+typedef struct transition HashTransitionCell;
+
+static inline void hash_transition_cell_delete(HashTransitionCell *cell) {
+  cell->key = JS_UNDEFINED;
+  cell->pm = NULL;
+}
+
+#define hash_transition_cell_key(cell) ((cell)->key)
+#define hash_transition_cell_pm(cell) ((cell)->pm)
+
+typedef struct hash_property_iterator {
+  int i;
+} HashPropertyIterator;
+
+typedef struct hash_transition_iterator {
+  int i;
+} HashTransitionIterator;
+
+#endif /* PROPERTY_MAP_HASHTABLE */
 
 /*
  * string table

@@ -117,10 +117,6 @@ void reallocate_array_data(Context *ctx, JSValue a, int newsize)
   int32_t size, length;
   int i;
 
-#ifndef NEW_ASIZE_STRATEGY
-  assert(newsize <= ASIZE_LIMIT);
-#endif /* NEW_ASIZE_STRATEGY */
-
   length = (int32_t) number_to_double(length_value);
   size = get_jsarray_size(a);
   if (size < length)

@@ -8,12 +8,16 @@ static inline header_t compose_header(size_t granules, size_t extra,
   hdr.type = type;
   hdr.markbit = 0;
   hdr.extra = extra;
+#if HEADER_MAGIC_BITS > 0
   hdr.magic = HEADER_MAGIC;
+#endif /* HEADER_MAGIC_BITS */
+#if HEADER_GEN_BITS > 0
 #ifdef GC_DEBUG
   hdr.gen = generation;
 #else /* GC_DEBUG */
   hdr.gen = 0;
 #endif /* GC_DEBUG */
+#endif /* HEADER_GEN_BITS */
   hdr.size  = granules;
   return hdr;
 }
@@ -41,10 +45,7 @@ static inline cell_type_t space_get_cell_type(uintptr_t ptr)
 
 static inline int space_check_gc_request()
 {
-  if (js_space.free_bytes <
-      js_space.bytes - (js_space.bytes >> GC_THREASHOLD_SHIFT))
-    return 1;
-  return 0;
+  return (js_space.free_bytes < js_space.threshold_bytes);
 }
 
 static inline void mark_cell(void *p)
@@ -82,11 +83,15 @@ static inline void mark_cell_header(header_t *hdrp)
 #ifdef GC_DEBUG
   {
     header_t *shadow = get_shadow(hdrp);
+#if HEADER_MAGIC_BITS > 0
     assert(hdrp->magic == HEADER_MAGIC);
+#endif /* HEADER_MAGIC_BITS */
     assert(hdrp->type == shadow->type);
     assert(hdrp->size - hdrp->extra ==
            shadow->size - shadow->extra);
+#if HEADER_GEN_BITS > 0
     assert(hdrp->gen == shadow->gen);
+#endif /* HEADER_GEN_BITS */
   }
 #endif /* GC_DEBUG */
   hdrp->markbit = 1;

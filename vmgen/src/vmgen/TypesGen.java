@@ -173,7 +173,25 @@ public class TypesGen {
         sb.append("\n");
         return sb.toString();
     }
-    
+
+    String defineVMRepTypeInfoForGC() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("/* case label(s) for get_ptag_value_by_cell_type */\n");
+        sb.append("#define CASE_LABELS_FOR_get_ptag_value_by_cell_type ");
+
+        for (VMRepType rt: VMRepType.all()) {
+            if (!rt.hasHT())
+                continue;
+            if (rt.getPT().getValue() == 0)
+                continue;
+
+            sb.append(String.format("\\\ncase %s: return %s;", rt.getHT().getCelltypeName(), rt.getPT().getValueName()));
+        }
+
+        sb.append("\n");
+        return sb.toString();
+    }
+
     /* not used */
     String defineNeed() {
         StringBuilder sb = new StringBuilder();
@@ -221,6 +239,7 @@ public class TypesGen {
         System.out.println(tg.defineDTFamilyPredicates());
  //       System.out.println(tg.defineTagOperations());
  //       System.out.println(tg.defineNeed());
+        System.out.println(tg.defineVMRepTypeInfoForGC());
         System.out.println(tg.defineVMRepType_LIST());
         System.out.println(TypeDefinition.getQuoted());
     }

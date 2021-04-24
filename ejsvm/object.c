@@ -8,38 +8,62 @@
  */
 
 #include "prefix.h"
-#define EXTERN
+#define EXTERN extern
 #include "header.h"
+
+#ifdef VERBOSE_HC
+int sprint_property_map(char *start, PropertyMap *pm);
+#endif /* VERBOSE_HC */
+
+static
+JSValue get_system_prop(JSValue obj, JSValue name) __attribute__((unused));
 
 static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
                                         JSValue prop_name,  Attribute attr);
-static void property_map_add_transition(Context *ctx, PropertyMap *pm,
-                                        JSValue name, PropertyMap *dest);
 static void object_grow_shape(Context *ctx, JSValue obj, Shape *os);
 #ifdef HC_PROF
 static void hcprof_add_root_property_map(PropertyMap *pm);
 #endif /* HC_PROF */
 
 /* Profiling */
-#ifdef HC_PROF
-static void hcprof_enter_shape(Shape *os)
+static inline void hcprof_enter_shape(Shape *os)
 {
-  PropertyMap *pm = os->pm;
-  pm->n_enter++;
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
+  {
+    PropertyMap *pm = os->pm;
+    pm->n_enter++;
+  }
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
+#if defined (HC_PROF) || defined(ALLOC_SITE_CACHE)
+  os->n_enter++;
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
+#ifdef AS_PROF
+  if (os->alloc_site != NULL)
+    os->alloc_site->transition++;
+#endif /* AS_PROF */
 }
 
-static void hcprof_leave_shape(Shape *os)
+static inline void hcprof_leave_shape(Shape *os)
 {
-  PropertyMap *pm = os->pm;
-  pm->n_leave++;
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
+  {
+    PropertyMap *pm = os->pm;
+    pm->n_leave++;
+  }
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE)
+  os->n_leave++;
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
 }
 
 #define HC_PROF_ENTER_SHAPE(os) hcprof_enter_shape(os)
 #define HC_PROF_LEAVE_SHAPE(os) hcprof_leave_shape(os)
-#else /* HC_PROF */
-#define HC_PROF_ENTER_SHAPE(os)
-#define HC_PROF_LEAVE_SHAPE(os)
-#endif /* HC_PROF */
+
+#ifdef SHAPE_PROF
+int shape_search_trial = 0;
+int shape_search_count = 0;
+int shape_search_success = 0;
+#endif /* SHAPE_PROF */
 
 /* PROPERTY OPERATION **************************************************/
 
@@ -146,58 +170,94 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
      *       conflict of attribute. */
     Shape *current_os = object_get_shape(obj);
     Shape *next_os;
-    size_t need_slots, n_embedded, n_extension;
+    size_t n_embedded, n_extension;
 
     GC_PUSH4(obj, name, v, current_os);
     /* 1. If there is not next property map, create it. */
     if (next_pm == NULL) {
       next_pm = extend_property_map(ctx, current_os->pm, name, att);
+#ifdef DUMP_HCG
+      if (skip_setter)
+        next_pm->is_builtin = 1;
+#endif /* DUMP_HCG */
       PRINT("  new property (new PM %p is created)\n", next_pm);
     } else
+#ifdef HC_SKIP_INTERNAL
+      /* If the next property map is transient, take the next */
+      while (next_pm->transient) {
+        HashTransitionIterator iter =
+          createHashTransitionIterator(next_pm->map);
+        HashTransitionCell *cell;
+        int ret __attribute__((unused));
+        assert(next_pm->n_transitions == 1);
+        ret = nextHashTransitionCell(next_pm->map, &iter, &cell);
+        assert(ret != FAIL);
+        next_pm = hash_transition_cell_pm(cell);
+      }
+#endif /* HC_SKIP_INTERNAL */
       PRINT("  new property (cached PM %p is used)\n", next_pm);
     GC_PUSH(next_pm);
 
     /* 2. Find the shape that is compatible to the current shape. */
-    need_slots = next_pm->n_props;
     n_embedded = current_os->n_embedded_slots;
     n_extension = current_os->n_extension_slots;
-    /* compute new size of extension array */
-    if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
-      n_extension = need_slots - (n_embedded - 1);
-    PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
-          next_pm, next_pm->n_props, n_embedded, n_extension);
-#ifdef NO_SHAPE_CACHE
-    if (next_pm->shapes != NULL &&
-        next_pm->shapes->n_embedded_slots == n_embedded &&
-        next_pm->shapes->n_extension_slots == n_extension) {
+    next_os = NULL;
+    if (next_os == NULL) {
+      /* 2.2  Find from the shape list of the next PM. */
+      size_t need_slots = next_pm->n_props;
+      /* compute new size of extension array */
+      if (n_embedded + n_extension - (n_extension == 0 ? 0 : 1) < need_slots)
+        n_extension = need_slots - (n_embedded - 1);
+      PRINT("  finding shape for PM %p (n_props = %d) EM/EX %lu %lu\n",
+            next_pm, next_pm->n_props, n_embedded, n_extension);
       next_os = next_pm->shapes;
-      PRINT("    found: %p\n", next_os);
-    } else {
-      next_os = NULL;
-      PRINT("    not the one %p: EM/EX %d %d\n",
-            next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
+#ifdef SHAPE_PROF
+      shape_search_count++;
+#endif /* SHAPE_PROF */
+      while (next_os != NULL) {
+#ifdef SHAPE_PROF
+        shape_search_trial++;
+#endif /* SHAPE_PROF */
+        if (next_os->n_embedded_slots == n_embedded &&
+            next_os->n_extension_slots == n_extension
+#if ALLOC_SITE_CACHE
+            && next_os->alloc_site == current_os->alloc_site
+#endif /* ALLOC_SITE_CACHE */
+            ) {
+#ifdef SHAPE_PROF
+          shape_search_success++;
+#endif /* SHAPE_PROF */
+          PRINT("    found: %p\n", next_os);
+          break;
+        } else {
+#ifdef ALLOC_SITE_CACHE
+          PRINT("    not the one %p: EM/EX %d %d AS %p\n",
+                next_os, next_os->n_embedded_slots, next_os->n_extension_slots,
+                next_os->alloc_site);
+#else /* ALLOC_SITE_CACHE */
+          PRINT("    not the one %p: EM/EX %d %d\n",
+                next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
+#endif /* ALLOC_SITE_CACHE */
+        }
+        next_os = next_os->next;
+      }
     }
-#else /* NO_SHAPE_CACHE */
-    next_os = next_pm->shapes;
-    while (next_os != NULL) {
-      if (next_os->n_embedded_slots == n_embedded &&
-          next_os->n_extension_slots == n_extension) {
-        PRINT("    found: %p\n", next_os);
-        break;
-      } else
-        PRINT("    not the one %p: EM/EX %d %d\n",
-              next_os, next_os->n_embedded_slots, next_os->n_extension_slots);
-      next_os = next_os->next;
-    }
-#endif /* NO_SHAPE_CACHE */
 
     /* 3. If there is not compatible shape, create it. */
     if (next_os == NULL) {
+#ifdef ALLOC_SITE_CACHE
+      next_os = new_object_shape(ctx, DEBUG_NAME("(extend)"), next_pm,
+                                 n_embedded, n_extension,
+                                 current_os->alloc_site);
+#else /* ALLOC_SITE_CACHE */
       next_os = new_object_shape(ctx, DEBUG_NAME("(extend)"), next_pm,
                                  n_embedded, n_extension);
+                                 
+#endif /* ALLOC_SITE_CACHE */
       PRINT("  create new shape %p EM/EX %lu %lu\n",
             next_os, n_embedded, n_extension);
     }
+
     GC_PUSH(next_os);
     /* 4. Change the shape of object if necessary and installs the new shape.
      *    This may cause reallocation of the extension array. */
@@ -211,11 +271,14 @@ void set_prop_(Context *ctx, JSValue obj, JSValue name, JSValue v,
   }
 
 #ifdef INLINE_CACHE
-  if (ic != NULL && ic->shape == NULL &&
-      object_get_shape(obj)->n_extension_slots == 0) {
-    ic->shape = object_get_shape(obj);
+  if (ic != NULL && ic->pm == NULL) {
+    ic->pm = object_get_shape(obj)->pm;
     ic->prop_name = name;
     ic->index = index;
+    ic->miss = 0;
+#ifdef IC_PROF
+    ic->install++;
+#endif /* IC_PROF */
   }
 #endif /* INLINE_CACHE */
   object_set_prop(obj, index, v);
@@ -246,12 +309,16 @@ JSValue get_prop(JSValue obj, JSValue name)
   index = prop_index(jsv_to_jsobject(obj), name, &attr, NULL);
   if (index == -1 || is_system_prop(attr))
     return JS_EMPTY;
+
 #ifdef INLINE_CACHE
-  if (ic != NULL && ic->shape == NULL &&
-      object_get_shape(obj)->n_extension_slots == 0) {
-    ic->shape = object_get_shape(obj);
+  if (ic != NULL && ic->pm == NULL) {
+    ic->pm = object_get_shape(obj)->pm;
     ic->prop_name = name;
     ic->index = index;
+    ic->miss = 0;
+#ifdef IC_PROF
+    ic->install++;
+#endif /* IC_PROF */
   }
 #endif /* INLINE_CACHE */
   return object_get_prop(obj, index);
@@ -299,6 +366,10 @@ JSValue get_prop_prototype_chain(JSValue obj, JSValue name)
     JSValue ret = get_prop_with_ic(obj, name, ic);
     if (ret != JS_EMPTY)
       return ret;
+#ifdef IC_PROF
+    if (ic != NULL)
+      ic->proto++;
+#endif /* IC_PROF */
     obj = get_prop(obj, gconsts.g_string___proto__);
   }
 #endif /* INLINE_CACHE */
@@ -335,9 +406,6 @@ static JSObject *allocate_jsobject(Context *ctx, char *name, Shape *os,
   GC_PUSH(os);
   p = (JSObject *) gc_malloc(ctx, size, htag.v);
   p->shape = os;
-#ifdef ALLOC_SITE_CACHE
-  p->alloc_site = NULL;
-#endif /* ALLOC_SITE_CACHE */
   for (i = 0; i < n_embedded; i++)
     p->eprop[i] = JS_EMPTY;
 
@@ -404,7 +472,6 @@ JSValue new_function_object(Context *ctx, char *name, Shape *os, int ft_index)
   GC_PUSH(os);
   prototype = new_simple_object(ctx, DEBUG_NAME("(prototype)"),
                                 gshapes.g_shape_Object);
-
   GC_PUSH(prototype);
   p = allocate_jsobject(ctx, name, os, HTAG_FUNCTION);
   GC_POP2(prototype, os);
@@ -533,7 +600,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   assert(ctx != NULL);
 
   GC_PUSH2(__proto__, prev);
-  hash = hash_create(ctx, n_props - n_special_props);
+  hash = hash_create(ctx, n_props);
   GC_PUSH(hash);
   m = (PropertyMap *) gc_malloc(ctx, sizeof(PropertyMap), CELLT_PROPERTY_MAP);
   GC_POP3(hash, prev, __proto__);
@@ -546,20 +613,38 @@ PropertyMap *new_property_map(Context *ctx, char *name,
   m->n_special_props = n_special_props;
 #ifdef HC_SKIP_INTERNAL
   m->n_transitions = 0;
+  m->transient = 0;
 #endif /* HC_SKIP_INTERNAL */
 
 #ifdef DEBUG
   m->name = name;
   m->n_user_special_props = n_user_special_props;
 #endif /* DEBUG */
-#ifdef HC_PROF
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
   m->n_enter = 0;
   m->n_leave = 0;
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
+#ifdef HC_PROF
   if (prev == gpms.g_property_map_root)
     hcprof_add_root_property_map(m);
+#ifdef DUMP_HCG
+  if (ctx == NULL) {
+    m->function_no = -1;
+    m->insn_no = -1;
+  } else {
+    m->function_no = (int) (ctx->spreg.cf - ctx->function_table);
+    m->insn_no = ctx->spreg.pc;
+  }
+  m->is_entry = 0;
+  m->is_builtin = 0;
+#endif /* DUMP_HCG */
+  {
+    static int last_id;
+    m->id = ++last_id;
+  }
 #endif /* HC_PROF */
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
   GC_PUSH(m);
   /* avoid registration of the root map, whose prev is NULL.
    * Note gpms.g_property_map_root is NULL before the root map is created.
@@ -573,7 +658,7 @@ PropertyMap *new_property_map(Context *ctx, char *name,
     ctx->property_map_roots = p;
   }
   GC_POP(m);
-#endif /* HC_SKIP_INTERNAL */
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
   return m;
 }
 
@@ -626,45 +711,65 @@ static PropertyMap *extend_property_map(Context *ctx, PropertyMap *prev,
 
   GC_POP3(m, prop_name, prev);
 
+#ifdef VERBOSE_HC
+  {
+    char buf[1000];
+    sprint_property_map(buf, m);
+    printf("HC-create extend %s\n", buf);
+  }
+#endif /* VERBOSE_HC */
+
   return m;
 }
 
-void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
-                                     JSValue name, int index, Attribute attr)
+#ifdef LOAD_HCG
+static void property_map_install___proto__(PropertyMap *pm, JSValue __proto__)
 {
-  HashData data;
-  data.u.index = index;
-  hash_put_with_attribute(ctx, pm->map, name, data, attr);
+  if (pm->__proto__ != JS_EMPTY)
+    return;
+  pm->__proto__ = __proto__;
+  HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+  HashTransitionCell *p;
+  while (nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+    property_map_install___proto__(hash_transition_cell_pm(p), __proto__);
+}
+#endif /* LOAD_HCG */
+
+void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
+                                     JSValue name, uint32_t index,
+                                     Attribute attr)
+{
+  hash_put_property(ctx, pm->map, name, index, attr);
 }
 
-static void property_map_add_transition(Context *ctx, PropertyMap *pm,
-                                        JSValue name, PropertyMap *dest)
+void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                 JSValue name, PropertyMap *dest)
 {
-  HashData data;
-  data.u.pm = dest;
 #ifdef HC_SKIP_INTERNAL
   {
     uint16_t current_n_trans = pm->n_transitions;
     pm->n_transitions = PM_N_TRANS_UNSURE;  /* protect from GC */
     GC_PUSH(pm);
-    hash_put_with_attribute(ctx, pm->map, name, data,
-                            ATTR_NONE | ATTR_TRANSITION);
+    hash_put_transition(ctx, pm->map, name, dest);
     GC_POP(pm);
     pm->n_transitions = current_n_trans + 1;
   }
 #else /* HC_SKIP_INTERNAL */
-  hash_put_with_attribute(ctx, pm->map, name, data,
-                          ATTR_NONE | ATTR_TRANSITION);
+  hash_put_transition(ctx, pm->map, name, dest);
 #endif /* HC_SKIP_INTERNAL */
 }
 
+#ifdef ALLOC_SITE_CACHE
+Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                        int num_embedded, int num_extension,
+                        AllocSite *as)
+#else /* ALLOC_SITE_CACHE */
 Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
                         int num_embedded, int num_extension)
+#endif /* ALLOC_SITE_CACHE */
 {
   Shape *s;
-#ifndef NO_SHAPE_CACHE
   Shape **pp;
-#endif /* NO_SHAPE_CACHE */
 
   assert(num_embedded > 0);
 
@@ -674,12 +779,20 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
   s->pm = pm;
   s->n_embedded_slots  = num_embedded;
   s->n_extension_slots = num_extension;
+#ifdef ALLOC_SITE_CACHE
+  s->alloc_site = as;
+#endif /* ALLOC_SITE_CACHE */
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE)
+  s->n_enter = 0;
+  s->n_leave = 0;
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
+#ifdef AS_PROF
+  s->n_alloc = 0;
+#endif /* AS_PROF */
+#ifdef DUMP_HCG
+  s->is_cached = 0;
+#endif /* DUMP_HCG */
 
-#ifdef NO_SHAPE_CACHE
-  if (pm->shapes == NULL ||
-      pm->shapes->n_embedded_slots < num_embedded)
-    pm->shapes = s;
-#else /* NO_SHAPE_CACHE */
   /* Insert `s' into the `shapes' list of the property map.
    * The list is sorted from more `n_embedded_slots' to less.
    */
@@ -691,7 +804,6 @@ Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
       break;
     }
   }
-#endif /* NO_SHAPE_CACHE */
 
 #ifdef DEBUG
   s->name = name;
@@ -735,8 +847,12 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
         extension[i] = current_extension[i];
     }
     for (; i < new_size; i++)
-      extension[i] = JS_UNDEFINED;
+      extension[i] = JS_EMPTY;
     p->eprop[extension_index] = (JSValue) (uintjsv_t) (uintptr_t) extension;
+#ifdef AS_PROF
+    if (os->alloc_site != NULL)
+      os->alloc_site->copy_words += current_size;
+#endif /* AS_PROF */
   }
 
   /* 2. Assign new shape */
@@ -751,6 +867,9 @@ static void object_grow_shape(Context *ctx, JSValue obj, Shape *os)
 static Shape *get_cached_shape(Context *ctx, AllocSite *as,
                                JSValue __proto__, int n_special)
 {
+#ifdef AS_PROF
+  as->n_alloc++;
+#endif /* AS_PROF */
   /* 1. check if cache is available and compatible */
   if (as != NULL && as->pm &&
       (as->pm->__proto__ == __proto__ || as->pm->__proto__ == JS_EMPTY)) {
@@ -761,6 +880,14 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
       /* at least one normal embeded slot */
       if (pm->n_props == pm->n_special_props)
         n_embedded += 1;
+#ifdef ALLOC_SITE_CACHE
+      /* 2. create object shape for this allocation site */
+      as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
+                                   n_embedded, 0, as);
+#ifdef DUMP_HCG
+      as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
+#else /* ALLOC_SITE_CACHE */
       /* 2. if cached Shape is not available, find shape created for
        *    other alloction site. */
       if (pm->shapes != NULL && pm->shapes->n_embedded_slots == n_embedded)
@@ -769,7 +896,11 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
         /* 3. if there is not, create it */
         as->shape = new_object_shape(ctx, DEBUG_NAME("(prealloc)"), as->pm,
                                      n_embedded, 0);
+#endif /* ALLOC_SITE_CACHE */
     }
+#ifdef AS_PROF
+    as->shape->n_alloc++;
+#endif /* AS_PROF */
     return as->shape;
   }
   return NULL;
@@ -780,23 +911,36 @@ static Shape *get_cached_shape(Context *ctx, AllocSite *as,
  * The most normal way to create an object.
  * Called from ``new'' instruction.
  */
-#ifdef ALLOC_SITE_CACHE
-JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
-                                              AllocSite *as)
-#else /* ALLOC_SITE_CACHE */
 JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
-#endif /* ALLOC_SITE_CACHE */
 {
-  JSValue prototype, obj;
-  Shape *os;
-
+  JSValue prototype;
   assert(is_function(ctor));
 
   prototype = get_prop(ctor, gconsts.g_string_prototype);
-  GC_PUSH(prototype);
   if (!is_jsobject(prototype))
     prototype = gconsts.g_prototype_Object;
 
+  return create_simple_object_with_prototype(ctx, prototype);
+}
+
+JSValue create_simple_object_with_prototype(Context *ctx, JSValue prototype)
+{
+  JSValue obj;
+  Shape *os;
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
+#endif /* ALLOC_SITE_CACHE */
+
+#ifdef VERBOSE_NEW_OBJECT
+#define PRINT(x...) printf(x)
+#else /* VERBOSE_NEW_OBJECT */
+#define PRINT(x...)
+#endif /* VERBOSE_NEW_OBJECT */
+
+  assert(is_jsobject(prototype));
+
+
+  GC_PUSH(prototype);
 #ifdef ALLOC_SITE_CACHE
   os = get_cached_shape(ctx, as, prototype, OBJECT_SPECIAL_PROPS);
   if (os == NULL)
@@ -804,23 +948,81 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
     {
       JSValue retv;
       PropertyMap *pm;
+
+#ifdef ALLOC_SITE_CACHE
+  PRINT("new_obj @ %03td:%03d cache miss proto %"PRIJSValue" AS %p\n",
+        ctx->spreg.cf - ctx->function_table, ctx->spreg.pc, prototype, as);
+#else /* ALLOC_SITE_CACHE */
+  PRINT("new_obj @ %03td:%03d cache miss proto %"PRIJSValue"\n",
+        ctx->spreg.cf - ctx->function_table, ctx->spreg.pc, prototype);
+#endif /* ALLOC_SITE_CACHE */
+#ifdef DEBUG
+  PRINT("  proto name = %s\n", jsv_to_jsobject(prototype)->name);
+#endif /* DEBUG */
+
+#ifdef LOAD_HCG
+      /* 0. If compiled hcg is available, use it */
+      if (ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm != NULL) {
+        PRINT("preload PM found PM %p\n",
+              ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm);
+        pm = ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm;
+        ctx->spreg.cf->insns[ctx->spreg.pc].loaded_pm = NULL;  /* TODO duplicate */
+        property_map_install___proto__(pm, prototype);
+        GC_PUSH(pm);
+        {
+          int n_props;
+#ifdef DEBUG
+          char *debug_name = (char*) malloc(14);
+          snprintf(debug_name, 14, "(new@%03d:%03d)",
+                   (int) (ctx->spreg.cf - ctx->function_table),
+                   ctx->spreg.pc);
+#endif /* DEBUG */
+          n_props = pm->n_props;
+          if (n_props == pm->n_special_props)
+            n_props += 1;
+#ifdef ALLOC_SITE_CACHE
+          pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
+                                        pm, n_props, 0, as);
+#else /* ALLOC_SITE_CACHE */
+          pm->shapes = new_object_shape(ctx, DEBUG_NAME(debug_name),
+                                        pm, n_props, 0);
+#endif /* ALLOC_SITE_CACHE */
+        }
+        /* 3. Create a link from the prototype object to the PM so that
+         *    this function can find it in the following calls. */
+        set_prop(ctx, prototype, gconsts.g_string___property_map__,
+                 (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
+        GC_POP(pm);
+      } else
+#endif /* LOAD_HCG */ 
+
       /* 1. If `prototype' is valid, find the property map */
       retv = get_system_prop(prototype, gconsts.g_string___property_map__);
-      if (retv != JS_EMPTY)
+      if (retv != JS_EMPTY) {
         pm = jsv_to_property_map(retv);
-      else {
+        PRINT("PM found in proto %p OS[0] %p AS %p\n",
+              pm, pm->shapes, pm->shapes->alloc_site);
+      } else {
         /* 2. If there is not, create it. */
         int n_props = 0;
-        int n_embedded = OBJECT_SPECIAL_PROPS + 1; /* at least 1 normal slot */
+        int n_embedded = OBJECT_SPECIAL_PROPS + 1;/* at least 1 normal slot */
         pm = new_property_map(ctx, DEBUG_NAME("(new)"),
                               OBJECT_SPECIAL_PROPS, n_props,
                               OBJECT_USPECIAL_PROPS, prototype,
                               gpms.g_property_map_root);
+#ifdef DUMP_HCG
+        pm->is_entry = 1;
+#endif /* DUMP_HCG */
         GC_PUSH(pm);
-        pm->shapes = new_object_shape(ctx, DEBUG_NAME("(new)"),
-                                      pm, n_embedded, 0);
+#ifdef ALLOC_SITE_CACHE
+        new_object_shape(ctx, DEBUG_NAME("(new)"), pm, n_embedded, 0, as);
+#else /* ALLOC_SITE_CACHE */
+        new_object_shape(ctx, DEBUG_NAME("(new)"), pm, n_embedded, 0);
+#endif /* ALLOC_SITE_CACHE */
         assert(Object_num_builtin_props +
                Object_num_double_props + Object_num_gconsts_props == 0);
+        PRINT("create PM/OS PM %p OS %p AS %p\n",
+              pm, pm->shapes, pm->shapes->alloc_site);
 
         /* 3. Create a link from the prototype object to the PM so that
          *    this function can find it in the following calls. */
@@ -828,9 +1030,33 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
                  (JSValue) (uintjsv_t) (uintptr_t) pm, ATTR_SYSTEM);
         GC_POP(pm);
       }
-      /* 4. Obtain the shape of the PM. There should be a single shape, if any,
-       *    because the PM is an entrypoint. */
+#ifdef ALLOC_SITE_CACHE
+      /* 4. serch for the shape whose allocation site is here */
+      for (os = pm->shapes; os != NULL; os = os->next) {
+        assert(os->n_embedded_slots == OBJECT_SPECIAL_PROPS + 1);
+        if (os->alloc_site == as)
+          break;
+      }
+      /* 5. If there is not such a shape, create it */
+      if (os == NULL)
+        os = new_object_shape(ctx, DEBUG_NAME("(as variant)"),
+                              pm, OBJECT_SPECIAL_PROPS + 1, 0, as);
+#else /* ALLOC_SITE_CACHE */
+      /* 4. Obtain the shape of the PM. There should be a single shape,
+       * if any, because the PM is an entrypoint. */
       os = pm->shapes;
+#endif /* !ALLOC_SITE_CACHE */
+
+#ifdef ALLOC_SITE_CACHE
+      if (as != NULL && as->pm == NULL) {
+        as->pm = pm;
+        as->shape = os;
+#ifdef DUMP_HCG
+        as->shape->is_cached = 1;
+#endif /* DUMP_HCG */
+        as->polymorphic = 0;
+      }
+#endif /* ALLOC_SITE_CACHE */
     }
 
 #ifdef ALLOC_SITE_CACHE
@@ -839,13 +1065,14 @@ JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor)
   GC_PUSH(obj);
   if (os->pm->__proto__ == JS_EMPTY)
     set_prop(ctx, obj, gconsts.g_string___proto__, prototype, ATTR_NONE);
-  object_set_alloc_site(obj, as);
   GC_POP2(obj, os);
 #else /* ALLOC_SITE_CACHE */
   obj = new_simple_object(ctx, DEBUG_NAME("inst:new"), os);
 #endif /* ALLOC_SITE_CACHE */
   GC_POP(prototype);
   return obj;
+
+#undef PRINT
 }
 
 #ifdef ALLOC_SITE_CACHE
@@ -855,10 +1082,20 @@ JSValue create_array_object(Context *ctx, char *name, size_t size)
   AllocSite *as = &ctx->spreg.cf->insns[ctx->spreg.pc].alloc_site;
   Shape *os = get_cached_shape(ctx, as, gconsts.g_prototype_Array,
                                ARRAY_SPECIAL_PROPS);
-  if (os == NULL)
-    os = gshapes.g_shape_Array;
+  if (os == NULL) {
+    PropertyMap *pm = gshapes.g_shape_Array->pm;
+    os = new_object_shape(ctx, DEBUG_NAME("(array)"),
+                          pm, ARRAY_SPECIAL_PROPS + 1, 0, as);
+#ifdef DUMP_HCG
+    pm->is_entry = 1;
+#endif /* DUMP_HCG */
+    if (as->pm == NULL) {
+      as->pm = pm;
+      as->shape = os;
+      as->polymorphic = 0;
+    }
+  }
   obj = new_array_object(ctx, name, os, size);
-  object_set_alloc_site(obj, as);
   return obj;
 }
 #endif /* ALLOC_SITE_CACHE */
@@ -869,15 +1106,28 @@ void init_alloc_site(AllocSite *alloc_site)
   alloc_site->shape = NULL;
   alloc_site->pm = NULL;
   alloc_site->polymorphic = 0;
+#ifdef AS_PROF
+  alloc_site->copy_words = 0;
+  alloc_site->transition = 0;
+  alloc_site->n_alloc = 0;
+#endif /* AS_PROF */
 }
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
 void init_inline_cache(InlineCache *ic)
 {
-  ic->shape = NULL;
+  ic->pm = NULL;
   ic->prop_name = JS_EMPTY;
   ic->index = 0;
+  ic->miss = 0;
+#ifdef IC_PROF
+  ic->count = 0;
+  ic->hit = 0;
+  ic->unavailable = 0;
+  ic->install = 0;
+  ic->proto = 0;
+#endif /* IC_PROF */
 }
 #endif /* INLINE_CACHE */
 
@@ -1013,7 +1263,6 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
 {
   assert(is_array(array));
 
-#ifdef NEW_ASIZE_STRATEGY
   /* 1. If array.size <= index < array.size * ASIZE_FACTOR + 1,
    *    expand the storage */
   {
@@ -1024,14 +1273,6 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
       GC_POP2(v, array);
     }
   }
-#else /* NEW_ASIZE_STRATEGY */
-  /* 1. If array.size <= index < ASIZE_LIMIT, expand the storage */
-  if (get_jsarray_size(array) <= index && index < ASIZE_LIMIT) {
-    GC_PUSH2(array, v);
-    reallocate_array_data(ctx, array, index + 1);
-    GC_POP2(v, array);
-  }
-#endif /* NEW_ASIZE_STRATEGY */
 
   /* 2. If 0 <= index < array.size, store the value to the storage */
   if (0 <= index && index < get_jsarray_size(array)) {
@@ -1054,71 +1295,47 @@ void set_array_element(Context *ctx, JSValue array, cint index, JSValue v)
     length_value = get_jsarray_length(array);
     assert(is_fixnum(length_value));
     length = fixnum_to_cint(length_value);
-    if (length <= index)
-      set_jsarray_length(array, cint_to_number(ctx, index + 1));
+    if (length <= index) {
+      GC_PUSH(array);
+      JSValue num = cint_to_number(ctx, index + 1);
+      GC_POP(array);
+      set_jsarray_length(array, num);
+    }
   }
 }
 
-#ifdef NEW_ASIZE_STRATEGY
 static void
 remove_and_convert_numerical_properties(Context *ctx, JSValue array,
                                         int32_t length)
 {
   Shape *os = object_get_shape(array);
   PropertyMap *pm = os->pm;
-  HashIterator iter = createHashIterator(pm->map);
-  HashCell *p;
+  HashPropertyIterator iter = createHashPropertyIterator(pm->map);
+  JSValue key;
+  uint32_t index;
+  Attribute attr;
   GC_PUSH2(pm, array);
-  while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (!is_transition(p->entry.attr)) {
-      JSValue key = (JSValue) p->entry.key;
-      JSValue number_key;
-      double double_key;
-      int32_t int32_key;
-      assert(is_string(key));
-      GC_PUSH(p);
-      number_key = string_to_number(ctx, key);
-      double_key = number_to_double(number_key);
-      int32_key = (int32_t) double_key;
-      if (int32_key >= 0 && double_key == (double) int32_key) {
-        if (int32_key < length) {
-          int index = p->entry.data.u.index;
-          JSValue v = object_get_prop(array, index);
-          JSValue *storage = get_jsarray_body(array);
-          storage[index] = v;
-        }
-        set_prop(ctx, array, p->entry.key, JS_EMPTY, ATTR_NONE);
+  while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
+    JSValue number_key;
+    double double_key;
+    int32_t int32_key;
+    assert(is_string(key));
+    GC_PUSH(key);
+    number_key = string_to_number(ctx, key);
+    double_key = number_to_double(number_key);
+    int32_key = (int32_t) double_key;
+    if (int32_key >= 0 && double_key == (double) int32_key) {
+      if (int32_key < length) {
+        JSValue v = object_get_prop(array, index);
+        JSValue *storage = get_jsarray_body(array);
+        storage[index] = v;
       }
-      GC_POP(p);
+      set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
     }
+    GC_POP(key);
   }
   GC_POP2(array, pm);
 }
-#else /* NEW_ASIZE_STRATEGY */
-static void
-remove_numerical_properties(Context *ctx, JSValue array, int32_t length)
-{
-  Shape *os = object_get_shape(array);
-  PropertyMap *pm = os->pm;
-  HashIterator iter = createHashIterator(pm->map);
-  HashCell *p;
-  while (nextHashCell(pm->map, &iter, &p) != FAIL) {
-    if (!is_transition(p->entry.attr)) {
-      JSValue key = (JSValue) p->entry.key;
-      JSValue number_key;
-      double double_key;
-      int32_t int32_key;
-      assert(is_string(key));
-      number_key = string_to_number(ctx, key);
-      double_key = number_to_double(number_key);
-      int32_key = (int32_t) double_key;
-      if (int32_key >= 0 && double_key == (double) int32_key &&
-          int32_key >= length)
-        set_prop(ctx, array, key, JS_EMPTY, ATTR_NONE);
-    }
-  }
-}
-#endif /* NEW_ASIZE_STRATEGY */
 
 int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
 {
@@ -1157,7 +1374,6 @@ int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
     length = (int32_t) double_length;
     if (double_length != (double) length || length < 0)
       LOG_EXIT("invalid array length");
-#ifdef NEW_ASIZE_STRATEGY
     {
       int32_t old_size = get_jsarray_size(array);
       JSValue old_len_jsv = get_jsarray_length(array);
@@ -1172,22 +1388,6 @@ int set_array_prop(Context *ctx, JSValue array, JSValue prop, JSValue v)
         remove_and_convert_numerical_properties(ctx, array, length);
       }
     }
-#else /* NEW_ASIZE_STRATEGY */
-    /* 4.1. If length is less than ASIZE_LIMIT, adjust container size. */
-    if (length <= ASIZE_LIMIT) {
-      uint32_t size = get_jsarray_size(array);
-      if (size != length)
-	reallocate_array_data(ctx, array, length);
-    }
-    /* 4.2. If new length is smaller, delete numerical properties. */
-    {
-      JSValue oldlength_jsv = get_jsarray_length(array);
-      uint32_t oldlength = (int32_t) number_to_double(oldlength_jsv);
-      if (oldlength >= ASIZE_LIMIT && length < oldlength) {
-        remove_numerical_properties(ctx, array, length);
-      }
-    }
-#endif /* NEW_ASIZE_STRATEGY */
     /* 4.3 Set length property. */
     set_jsarray_length(array, v);
     GC_POP2(array,v);
@@ -1342,18 +1542,20 @@ JSValue new_iterator(Context *ctx, JSValue obj) {
   /* fill the iterator with object properties */
   do {
     HashTable *ht;
-    HashIterator hi;
-    HashCell *p;
+    HashPropertyIterator hi;
+    JSValue key;
+    uint32_t prop_index;
+    Attribute attr;
     JSValue *body;
 
     ht = object_get_shape(obj)->pm->map;
-    init_hash_iterator(ht, &hi);
+    hi = createHashPropertyIterator(ht);
 
     body = get_jsnormal_iterator_body(iter);
-    while (nextHashCell(ht, &hi, &p) == SUCCESS) {
-      if ((JSValue)p->entry.attr & (ATTR_DE | ATTR_TRANSITION))
+    while (nextHashPropertyCell(ht, &hi, &key, &prop_index, &attr) == SUCCESS) {
+      if (attr & ATTR_DE)
         continue;
-      body[index++] = (JSValue)p->entry.key;
+      body[index++] = key;
     }
     obj = get_prop(obj, gconsts.g_string___proto__);
   } while (obj != JS_NULL);
@@ -1395,11 +1597,7 @@ static void print_shape_line(Shape *os)
 {
   printf("SHAPE: %p %p %d %d %s\n",
          os,
-#ifdef NO_SHAPE_CACHE
-         NULL,
-#else /* NO_SHAPE_CACHE */
          os->next,
-#endif /* NO_SHAPE_CACHE */
          os->n_embedded_slots,
          os->n_extension_slots,
 #ifdef DEBUG
@@ -1429,31 +1627,25 @@ static void print_property_map(char *key, PropertyMap *pm)
          ""
 #endif /* DEBUG */
          );
-#ifdef NO_SHAPE_CACHE
-  if (pm->shapes != NULL)
-    print_shape_line(pm->shapes);
-#else /* NO_SHAPE_CACHE */
   {
     Shape *os;
     for (os = pm->shapes; os != NULL; os = os->next)
       print_shape_line(os);
   }
-#endif /* NO_SHAPE_CACHE */
   print_hash_table(pm->map);
   printf("======== %s end ========\n", key);
 }
 
 static void print_property_map_recursive(char *key, PropertyMap *pm)
 {
-  HashIterator iter;
-  HashCell *p;
+  HashTransitionIterator iter;
+  HashTransitionCell *p;
 
   print_property_map(key, pm);
-  iter = createHashIterator(pm->map);
-  while(nextHashCell(pm->map, &iter, &p) != FAIL)
-    if (is_transition(p->entry.attr))
-      print_property_map_recursive(string_to_cstr(p->entry.key),
-                                   p->entry.data.u.pm);
+  iter = createHashTransitionIterator(pm->map);
+  while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+    print_property_map_recursive(string_to_cstr(hash_transition_cell_key(p)),
+                                 hash_transition_cell_pm(p));
 }
 
 void hcprof_print_all_hidden_class(void)
@@ -1463,7 +1655,174 @@ void hcprof_print_all_hidden_class(void)
   for (e = root_property_map; e != NULL; e = e->next)
     print_property_map_recursive(NULL, e->pm);
 }
+
+#ifdef DUMP_HCG
+#ifdef ALLOC_SITE_CACHE
+static void alloc_site_loc(Context *ctx,
+                           AllocSite *as, int *fun_no, int *insn_no)
+{
+  int i;
+  for (i = 0; i < ctx->nfuncs; i++) {
+    FunctionTable *p = ctx->function_table + i;
+    int j;
+    for (j = 0; j < p->n_insns; j++) {
+      if (as == &p->insns[j].alloc_site) {
+        *fun_no = i;
+        *insn_no = j;
+        return;
+      }
+    }
+  }
+}
+#endif /* ALLOC_SITE_CACHE */
+
+static void dump_property_map_recursive(FILE *fp, Context *ctx,
+                                        char *prop_name, PropertyMap *pm)
+{
+  Shape *os;
+
+  fprintf(fp, "HC");
+  fprintf(fp, " %p", pm);
+  fprintf(fp, " %p", pm->prev);
+  /*  fprintf(fp, " %c", prop_name == NULL ? 'E' : 'N'); */
+  fprintf(fp, " %c", pm->is_entry ? 'E' : 'N');
+  fprintf(fp, " %c", pm->is_builtin ? 'B' : 'N');
+  fprintf(fp, " %d", pm->function_no);
+  fprintf(fp, " %d", pm->insn_no);
+  fprintf(fp, " %s", prop_name == NULL ? "(null)" : prop_name);
+  fprintf(fp, " J");
+  fprintf(fp, " %d", pm->n_enter);
+  fprintf(fp, " %d", pm->n_leave);
+#ifdef DEBUG
+  fprintf(fp, " %s", pm->name);
+#else /* DEBUG */
+  fprintf(fp, " noname");
+#endif /* DEBUG */
+  fprintf(fp, " %d", pm->n_props);
+  fprintf(fp, "\n");
+  {
+    HashPropertyIterator iter = createHashPropertyIterator(pm->map);
+    JSValue key;
+    uint32_t index;
+    Attribute attr;
+    while(nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL)
+      fprintf(fp, "PROP %p %d %s %d\n", pm, index, string_to_cstr(key), attr);
+  }
+  for (os = pm->shapes; os != NULL; os = os->next) {
+    int fun_no, insn_no;
+#ifdef ALLOC_SITE_CACHE
+    if (os->alloc_site != NULL) {
+      alloc_site_loc(ctx, os->alloc_site, &fun_no, &insn_no);
+    } else {
+      fun_no = -1;
+      insn_no = -1;
+    }
+#else /* ALLOC_SITE_CACHE */
+    fun_no = -1;
+    insn_no = -1;
+#endif /* ALLOC_SITE_CACHE */
+    if (os->is_cached)
+      fprintf(fp, "SHAPE %p %d %d %d\n", pm, os->n_embedded_slots, fun_no, insn_no);
+  }
+
+  {
+    HashTransitionIterator iter = createHashTransitionIterator(pm->map);
+    HashTransitionCell *p;
+    while(nextHashTransitionCell(pm->map, &iter, &p) != FAIL)
+      dump_property_map_recursive(fp, ctx,
+                                  string_to_cstr(hash_transition_cell_key(p)),
+                                  hash_transition_cell_pm(p));
+  }
+}
+
+void dump_hidden_classes(char *outfile, Context *ctx)
+{
+  struct root_property_map *e;
+  FILE *fp;
+  fp = fopen(outfile, "w");
+  if (fp == NULL)
+    LOG_EXIT("cannot open HC dump file");
+  for (e = root_property_map; e != NULL; e = e->next)
+    dump_property_map_recursive(fp, ctx, NULL, e->pm);
+  fclose(fp);
+}
+#endif /* DUMP_HCG */
+
+#ifdef AS_PROF
+void print_as_prof(Context *ctx)
+{
+  int i;
+  char buf[2000] = {};
+
+  for (i = 0; i < ctx->nfuncs; i++) {
+    FunctionTable *p = ctx->function_table + i;
+    int j;
+    for (j = 0; j < p->n_insns; j++) {
+      AllocSite *as = &p->insns[j].alloc_site;
+      if (as->pm != NULL) {
+        int nshare = 0;
+        PropertyMap *pm = as->pm;
+        Shape *os;
+        for (os = pm->shapes; os != NULL; os = os->next)
+          nshare++;
+#ifdef VERBOSE_HC
+        buf[0] = ' ';
+        sprint_property_map(buf + 1, pm);
+#endif /* VERBOSE_HC */
+        printf("AS %s %03d:%03d ", as->polymorphic ? "poly" : "mono", i, j);
+        printf("alloc %6d hit %6d ", as->n_alloc,
+               as->shape == NULL ? 0 : as->shape->n_alloc);
+        printf("trans %6d copy %6d ", as->transition, as->copy_words);
+        printf("size %d/%d ",
+               as->shape == NULL ? pm->n_props : as->shape->n_embedded_slots,
+               as->shape == NULL ? 0 : as->shape->n_extension_slots);
+        printf("share %d%s\n", nshare, buf);
+      }
+    }
+  }
+}
+#endif /* AS_PROF */
+
 #endif /* HC_PROF */
+
+#ifdef VERBOSE_HC
+#ifndef HC_PROF
+#error VERBOSE_HC require HC_PROF
+#endif /* HC_PROF */
+int sprint_property_map(char *start, PropertyMap *pm)
+{
+  char *buf = start;
+  int i;
+
+  buf += sprintf(buf, "%p(%3d)", pm, pm->id);
+  if (pm->prev == NULL)
+    buf += sprintf(buf, " prev (NIL)");
+  else
+    buf += sprintf(buf, " prev (%3d)", pm->prev->id);
+  buf += sprintf(buf, " %7d/%7d props %d",
+                 pm->n_enter, pm->n_leave, pm->n_props);
+#ifdef HC_SKIP_INTERNAL
+  buf += sprintf(buf, "trans %d", pm->n_transitions);
+#endif /* HC_SKIP_INTERNAL */
+  buf += sprintf(buf, " [");
+  for (i = 0; i < pm->n_props; i++) {
+    HashPropertyIterator iter = createHashPropertyIterator(pm->map);
+    JSValue key;
+    uint32_t index;
+    Attribute attr;
+    while (nextHashPropertyCell(pm->map, &iter, &key, &index, &attr) != FAIL) {
+      if (index == i) {
+        buf += sprintf(buf, "%s ", string_to_cstr(key));
+        break;
+      }
+    }
+  }
+  buf += sprintf(buf, "]");
+
+  return buf - start;
+}
+#endif /* VERBOSE_HC */
+
 
 /* Local Variables:      */
 /* mode: c               */

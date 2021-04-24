@@ -8,16 +8,21 @@
  */
 package vmdlc;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,6 +30,7 @@ import java.util.regex.Pattern;
 import type.AstType;
 import type.VMDataType;
 import type.VMDataTypeVecSet;
+import vmdlc.OperandSpecifications.OperandSpecificationRecord.Behaviour;
 
 
 public class OperandSpecifications {
@@ -43,12 +49,54 @@ public class OperandSpecifications {
             this.operandTypes = operandTypes;
             this.behaviour = behaviour;
         }
+
+        @Override
+        public String toString(){
+            StringBuilder builder = new StringBuilder();
+            builder.append(insnName);
+            builder.append(" (");
+            builder.append(String.join(",", operandTypes));
+            builder.append(") ");
+            builder.append(behaviour.toString().toLowerCase());
+            return builder.toString();
+        }
+
+        @Override
+        public OperandSpecificationRecord clone(){
+            return new OperandSpecificationRecord(insnName, operandTypes.clone(), behaviour);
+        }
+
+        public Behaviour getBehavior(){
+            return behaviour;
+        }
+
+        @Override
+        public int hashCode(){
+            return insnName.hashCode() + operandTypes.hashCode() + behaviour.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj){
+            if(!(obj instanceof OperandSpecificationRecord)) return false;
+            OperandSpecificationRecord that = (OperandSpecificationRecord) obj;
+            return this.insnName.equals(that.insnName) &&
+                Arrays.equals(this.operandTypes, that.operandTypes) &&
+                this.behaviour == that.behaviour;
+        }
     }
     List<OperandSpecificationRecord> spec;
     Map<String, Integer> arities;
 
+    public OperandSpecifications(){
+    }
+
+    public OperandSpecifications(List<OperandSpecificationRecord> spec, Map<String, Integer> arities){
+        this.spec = spec;
+        this.arities = arities;
+    }
+
     void load(Scanner sc) {
-        final String P_SYMBOL = "[a-zA-Z_]+";
+        final String P_SYMBOL = "[a-zA-Z_][a-zA-Z0-9_]*";
         final String P_OPERANDS = "\\(\\s*([^)]*)\\s*\\)";
         final String P_BEHAVIOUR = "accept|error|unspecified";
         final Pattern splitter = Pattern.compile("("+P_SYMBOL+")\\s*"+P_OPERANDS+"\\s*("+P_BEHAVIOUR+")\\s*$");
@@ -57,6 +105,7 @@ public class OperandSpecifications {
         arities = new HashMap<String, Integer>();
         while (sc.hasNextLine()) {
             String line = sc.nextLine();
+            if(line.isBlank()) continue;
             if (line.startsWith("#"))
                 continue;
             Matcher matcher = splitter.matcher(line);
@@ -214,7 +263,7 @@ public class OperandSpecifications {
         }
 
         @Override
-        protected Set<VMDataType[]> getTuples() {
+        public Set<VMDataType[]> getTuples() {
             return opSpec.getAcceptOperands(insnName);
         }
     }
@@ -223,6 +272,111 @@ public class OperandSpecifications {
         return new OperandVMDataTypeVecSet(paramNames, this, insnName);
     }
 
+    public void insertRecord(String insnName, String[] operandTypes, OperandSpecificationRecord.Behaviour behaviour){
+        spec.add(0, new OperandSpecificationRecord(insnName, operandTypes, behaviour));
+    }
+
+    public void insertRecord(String insnName, VMDataType[] operandTypes, OperandSpecificationRecord.Behaviour behaviour){
+        String[] typeNames = new String[operandTypes.length];
+        for(int i=0; i<operandTypes.length; i++){
+            typeNames[i] = operandTypes[i].toString();
+        }
+        insertRecord(insnName, typeNames, behaviour);
+    }
+
+    public void insertRecord(OperandSpecificationRecord record){
+        spec.add(0, record);
+    }
+
+    public void write(FileWriter writer) throws IOException{
+        StringBuilder builder = new StringBuilder();
+        for(OperandSpecificationRecord record : spec){
+            builder.append(record.toString());
+            builder.append('\n');
+        }
+        writer.write(builder.toString());
+    }
+
+    public void write(String fileName) throws IOException{
+        try{
+            FileWriter writer = new FileWriter(new File(fileName));
+            write(writer);
+            writer.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public void print(PrintStream stream){
+        StringBuilder builder = new StringBuilder();
+        for(OperandSpecificationRecord record : spec){
+            builder.append(record.toString());
+            builder.append('\n');
+        }
+        stream.print(builder.toString());
+    }
+
+    public boolean hasName(String name){
+        return (arities.get(name) != null);
+    }
+
+    public Map<String, Set<VMDataType[]>> getAllAccpetSpecifications(){
+        Map<String, Set<VMDataType[]>> result = new HashMap<>();
+        for(OperandSpecificationRecord record : spec){
+            String name = record.insnName;
+            Set<VMDataType[]> acceptTypess = getAcceptOperands(name);
+            result.put(name, acceptTypess);
+        }
+        return result;
+    }
+
+    public List<OperandSpecificationRecord> getOperandSpecificationRecord(){
+        return spec;
+    }
+
+    @Override
+    public OperandSpecifications clone(){
+        List<OperandSpecificationRecord> cloneRecord = new ArrayList<>(spec.size());
+        for(OperandSpecificationRecord rec : spec){
+            cloneRecord.add(rec.clone());
+        }
+        Map<String, Integer> cloneArities = new HashMap<>(arities.size());
+        for(Entry<String, Integer> entry : arities.entrySet()){
+            cloneArities.put(entry.getKey(), entry.getValue());
+        }
+        return new OperandSpecifications(cloneRecord, cloneArities);
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+        for(OperandSpecificationRecord r : spec){
+            builder.append(r.toString());
+            builder.append(",");
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    public static OperandSpecifications merge(List<OperandSpecifications> opSpecs){
+        if(opSpecs.isEmpty()) return new OperandSpecifications();
+        OperandSpecifications merged = opSpecs.get(0).clone();
+        List<OperandSpecifications> cdr = opSpecs.subList(1, opSpecs.size());
+        for(OperandSpecifications target : cdr){
+            List<OperandSpecificationRecord> mergedRecords = merged.getOperandSpecificationRecord();
+            List<OperandSpecificationRecord> targetRecords = target.getOperandSpecificationRecord();
+            for(OperandSpecificationRecord record : targetRecords){
+                boolean isAccept = record.getBehavior() == Behaviour.ACCEPT;
+                boolean isRecordMerged = mergedRecords.contains(record);
+                if(!isAccept|| isRecordMerged) continue;
+                merged.insertRecord(record);
+            }
+        }
+        return merged;
+    }
+    //Never used
+    /*
     private Set<String[]> getErrorOperandsString(String insnName) {
         Set<String[]> result = new HashSet<String[]>();
         for (OperandSpecificationRecord rec : spec) {
@@ -233,86 +387,5 @@ public class OperandSpecifications {
         }
         return result;
     }
-
-    public Set<String> expandError(String insnName) {
-        Set<String> typeLabels = new HashSet<String>();
-        List<VMDataType> types = VMDataType.all();
-        LinkedList<String[]> queue = new LinkedList<String[]>();
-        for (String[] dts : getErrorOperandsString(insnName)) {
-            queue.add(dts);
-        }
-        while (queue.size() != 0) {
-            String[] dts = queue.remove();
-            StringBuffer sb = new StringBuffer("");
-            for (int i = 0; i < dts.length; i++) {
-                sb.append("_");
-                if (dts[i].equals("_")) {
-                    sb.append("any");
-                    for (VMDataType ty : types) {
-                        String[] next = dts.clone();
-                        next[i] = ty.getName();
-                        queue.add(next);
-                    }
-                } else if (dts[i].equals("-")) {
-                } else if (dts[i].startsWith("!")) {
-                    String notType = dts[i].substring(1);
-                    for (VMDataType ty : types) {
-                        if (!ty.getName().equals(notType)) {
-                            String[] next = dts.clone();
-                            next[i] = ty.getName();
-                            queue.add(next);
-                        }
-                    }
-                } else {
-                    sb.append(dts[i]);
-                }
-            }
-            typeLabels.add(sb.toString());
-        }
-        return typeLabels;
-    }
-
-    public Set<String> genTypeLabel(VMDataType[] vmtVec) {
-        Set<String> result = new HashSet<String>();
-        LinkedList<String[]> queue = new LinkedList<String[]>();
-        List<VMDataType> types = VMDataType.all();
-        String[] tmp = new String[vmtVec.length];
-        int i = 0;
-        for (VMDataType vmt : vmtVec) {
-            if (vmt.getName().equals("_")) {
-                tmp[i++] = "any";
-            } else if (vmt.getName().equals("-")) {
-            } else {
-                tmp[i++] = vmt.getName();
-            }
-        }
-        queue.add(tmp);
-        while (queue.size() != 0) {
-            String[] dts = queue.remove();
-            StringBuffer sb = new StringBuffer("");
-            for (int j = 0; j < dts.length; j++) {
-                sb.append("_");
-                if (dts[j].equals("any")) {
-                    sb.append(dts[j]);
-                } else if (dts[j].equals("-")) {
-                } else if (dts[j].startsWith("!")) {
-                    String notType = dts[j].substring(1);
-                    for (VMDataType ty : types) {
-                        if (!ty.getName().equals(notType)) {
-                            String[] next = dts.clone();
-                            next[i] = ty.getName();
-                            queue.add(next);
-                        }
-                    }
-                } else {
-                    sb.append(dts[j]);
-                    String[] next = dts.clone();
-                    next[j] = "any";
-                    queue.add(next);
-                }
-            }
-            result.add(sb.toString());
-        }
-        return result;
-    }
+    */
 }

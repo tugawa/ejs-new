@@ -3,7 +3,7 @@
 \when obj:array && prop:fixnum \{
 #ifdef DEBUG_GETPROP_VALUE
   if (trace_flag)
-    printf("getprop: array (prop = fixnum(%lld))\n", fixnum_to_cint(prop));
+    printf("getprop: array (prop = fixnum(%" PRIcint "))\n", fixnum_to_cint(prop));
 #endif /* DEBUG_GETPROP_VALUE */
   dst = get_array_element(context, obj, fixnum_to_cint(prop));
 #ifdef DEBUG_GETPROP_VALUE
@@ -38,11 +38,31 @@
 #ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
-    assert(ic->shape == NULL || ic->shape->n_extension_slots == 0);
-    if (ic->shape == object_get_shape(obj) && ic->prop_name == prop)
-      dst = jsv_to_jsobject(obj)->eprop[ic->index];
-    else
+#ifdef IC_PROF
+    ic->count++;
+    ic_prof_count++;
+    if (ic->pm == NULL)
+      ic->unavailable++;
+#endif /* IC_PROF */
+    if (ic->pm == object_get_shape(obj)->pm && ic->prop_name == prop) {
+      assert(ic->index <
+             object_get_shape(obj)->n_embedded_slots +
+             object_get_shape(obj)->n_extension_slots -
+             (object_get_shape(obj)->n_extension_slots > 0 ? 1 : 0));
+      dst = object_get_prop(obj, ic->index);
+      if (dst == JS_EMPTY)
+        dst = get_object_prop(context, obj, prop, ic);
+#ifdef IC_PROF
+      else {
+        ic->hit++;
+        ic_prof_hit++;
+      }
+#endif /* IC_PROF */
+    } else {
+      if (++ic->miss > INLINE_CACHE_RESET_THRESHOLD)
+        ic->pm = NULL;
       dst = get_object_prop(context, obj, prop, ic);
+    }
   }
 #else /* INLINE_CACHE */
   dst = get_object_prop(context, obj, prop);

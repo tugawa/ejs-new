@@ -57,6 +57,7 @@ public class TypeDefinition {
                         struct = sc.next();
                     rt.initialise(pTagName, pTagValue, pTagLength, hTypeName, hTypeValue, struct);
                 } else {
+                    sc.close();
                     throw new Exception();
                 }
             }
@@ -65,6 +66,7 @@ public class TypeDefinition {
             System.out.println("next = "+ sc.next());
             System.exit(1);
         }
+        sc.close();
     }
 
     public static void load(String filename) throws FileNotFoundException {
@@ -85,6 +87,7 @@ public class TypeDefinition {
             sb.append('\n');
         }
         quoted = sb.toString();
+        sc.close();
     }
 
     public static String getQuoted() {

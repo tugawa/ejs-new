@@ -33,17 +33,14 @@
  *   CELLT_BYTE_ARRAY     no     no        no        no    non pointer
  *   CELLT_FUNCTION_FRAME no     no        no        yes   FunctionFrame
  *   CELLT_STR_CONS       no     no        no        fixed StrCons
- *   CELLT_CONTEXT        no     no        no        fixed Context
- *   CELLT_STACK          no     no        no        no    JSValue*
+ *   CELLT_TRANSITIONS    no     no        no        yes   TransitionTable
  *   CELLT_HASHTABLE      no     no        no        fixed HashTable
- *   CELLT_HASH_BODY      no     no        no        no    HashCell**
- *   CELLT_HASH_CELL      no     no        no        fixed HashCell
  *   CELLT_PROPERTY_MAP   no     yes       no        fixed PropertyMap
  *   CELLT_SHAPE          no     no        no        fixed Shape
  *   CELLT_UNWIND         no     no        no        fixed UnwindProtect
  *   CELLT_PROPERTY_MAP_LIST no  no        no        fixed PropertyMapList
  *
- * Objects that do not know their size (PROP, ARRAY_DATA, STACK, HASH_BODY)
+ * Objects that do not know their size (PROP, ARRAY_DATA)
  * are stored in a dedicated slot and scand together with their owners.
  *
  * CELLT_PROP is stored in the last embedded slot.
@@ -84,6 +81,8 @@ uint64_t pertype_alloc_bytes[256];
 uint64_t pertype_alloc_count[256];
 uint64_t pertype_live_bytes[256];
 uint64_t pertype_live_count[256];
+uint64_t pertype_collect_bytes[256];
+uint64_t pertype_collect_count[256];
 
 const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 00 */ "free",
@@ -108,12 +107,12 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
     /* 13 */ "BYTE_ARRAY",
     /* 14 */ "FUNCTION_FRAME",
     /* 15 */ "STR_CONS",
-    /* 16 */ "CONTEXT",
-    /* 17 */ "STACK",
-    /* 18 */ "" /* was HIDDEN_CLASS */,
+    /* 16 */ "",
+    /* 17 */ "",
+    /* 18 */ "TRANSITIONS",
     /* 19 */ "HASHTABLE",
-    /* 1a */ "HASH_BODY",
-    /* 1b */ "HASH_CELL",
+    /* 1a */ "",
+    /* 1b */ "",
     /* 1c */ "PROPERTY_MAP",
     /* 1d */ "SHAPE",
     /* 1e */ "UNWIND",
@@ -121,17 +120,20 @@ const char *cell_type_name[NUM_DEFINED_CELL_TYPES + 1] = {
 };
 #endif /* GC_PROF */
 
+#ifdef AS_PROF
+extern "C" {extern void print_as_prof(Context *ctx);}
+#endif /* AS_PROF */
+
 /*
  * prototype
  */
 /* GC */
 STATIC_INLINE int check_gc_request(Context *, int);
 extern void garbage_collection(Context *ctx);
-void start_garbage_collection(Context *ctx);
 
-void init_memory(size_t bytes)
+void init_memory(size_t bytes, size_t threshold_bytes)
 {
-  space_init(bytes);
+  space_init(bytes, threshold_bytes);
   gc_root_stack_ptr = 0;
   gc_disabled = 1;
   generation = 1;
@@ -195,6 +197,11 @@ void start_garbage_collection(Context *ctx)
   if (cputime_flag == TRUE)
     getrusage(RUSAGE_SELF, &ru0);
 
+#ifdef AS_PROF
+  printf("==========GC=========\n");
+  print_as_prof(ctx);
+#endif /* AS_PROF */
+
   garbage_collection(ctx);
 
   if (cputime_flag == TRUE) {
@@ -210,6 +217,10 @@ void start_garbage_collection(Context *ctx)
     }
     gc_sec += sec;
     gc_usec += usec;
+    if (gc_usec >= 1000000) {
+      gc_usec -= 1000000;
+      ++gc_sec;
+    }
   }
 
   generation++;
@@ -270,8 +281,9 @@ STATIC PropertyMap *find_lub(PropertyMap *a, PropertyMap *b)
 
 void alloc_site_update_info(JSObject *p)
 {
-  AllocSite *as = p->alloc_site;
-  PropertyMap *pm = p->shape->pm;
+  Shape *os = p->shape;
+  PropertyMap *pm = os->pm;
+  AllocSite *as = os->alloc_site;
 
   assert(as != NULL);
 

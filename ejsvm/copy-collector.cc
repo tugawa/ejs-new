@@ -190,7 +190,7 @@ void garbage_collection(Context *ctx)
 
   /* weak */
   gc_phase = PHASE_WEAK;
-  weak_clear<CopyWeakTracer>();
+  weak_clear<CopyWeakTracer>(ctx);
 
   /* flip */
   gc_phase = PHASE_FLIP;
@@ -208,7 +208,7 @@ void garbage_collection(Context *ctx)
  */
 struct copy_space space;
 
-void space_init(size_t bytes)
+void space_init(size_t bytes, size_t threshold_bytes)
 {
   uintptr_t addr = (uintptr_t) malloc(bytes);
   size_t ss_bytes = (bytes >> 1) & ~(BYTES_IN_GRANULE - 1);
@@ -222,6 +222,8 @@ void space_init(size_t bytes)
   space.end = space.ss0 + ss_bytes;
   space.to = space.ss1;
   space.free = space.from;
+
+  space.threshold_bytes = threshold_bytes;
 }
 
 void *space_alloc(size_t request_bytes, cell_type_t type)

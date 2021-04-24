@@ -1,8 +1,8 @@
-#include "externc.vmdh"
+#include "../header-vmdl/externc.vmdh"
 
 (vmInstruction, needContext, tailCall)
 geterr : void -> JSValue
 
 geterr () {
-    return Get_err();
+    return get_err();
 }

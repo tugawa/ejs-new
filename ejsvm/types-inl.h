@@ -34,7 +34,7 @@ static inline HTag get_htag(JSValue v)
 {
   void *p;
   assert(has_htag(v));
-  p = (void *) (uintptr_t) (uintjsv_t) v;
+  p = (void *) (uintptr_t) clear_ptag(v);
   return (HTag) {gc_obj_header_type(p)};
 }
 
@@ -42,6 +42,14 @@ static inline int is_htag(JSValue v, HTag t)
 {
   return get_htag(v).v == t.v;
 }
+
+static inline uintjsv_t get_ptag_value_by_cell_type(cell_type_t type)
+{
+    switch(type) {
+        CASE_LABELS_FOR_get_ptag_value_by_cell_type
+        default: return 0;
+    }
+};
 
 /*
  * Type conversion from/to JSValue
@@ -141,6 +149,8 @@ static inline JSValue cint_to_number(Context *ctx, cint n)
     return cint_to_flonum(ctx, n);
 }
 
+#ifndef USE_VMDL
+
 static inline double number_to_double(JSValue v)
 {
   if (is_fixnum(v))
@@ -148,6 +158,8 @@ static inline double number_to_double(JSValue v)
   else
     return flonum_to_double(v);
 }
+
+#endif /* USE_VMDL */
 
 static inline JSValue double_to_number(Context *ctx, double n)
 {

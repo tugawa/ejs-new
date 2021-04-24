@@ -288,6 +288,11 @@ public class RuleSetBuilder {
             rules.add(new Rule(tables, null));  /* TODO: do not use Rule */
         }
 
+        /* Add the case that does not match any case */
+        Set<int[]> trueTable = new HashSet<int[]>(opNames.length);
+        newTable(trueTable);
+        rules.add(new Rule(trueTable, null));
+
         fillRules(0, new VMDataType[opNames.length], rules);
 
         List<Set<VMDataType[]>> possibleTypeCombList = new ArrayList<Set<VMDataType[]>>();

@@ -570,7 +570,7 @@ STATIC_INLINE void compute_sizeclass_map()
   }
 }
 
-void space_init(size_t bytes)
+void space_init(size_t bytes, size_t threshold_bytes)
 {
   uintptr_t addr;
   struct free_page_header *p;
@@ -579,6 +579,7 @@ void space_init(size_t bytes)
   addr = (uintptr_t) malloc(bytes + BYTES_IN_PAGE - 1);
   space.num_pages = bytes / BYTES_IN_PAGE;
   space.num_free_pages = space.num_pages;
+  space.num_threshold_pages = threshold_bytes / BYTES_IN_PAGE;
   p = (struct free_page_header *)
     ((addr + BYTES_IN_PAGE - 1) & ~(BYTES_IN_PAGE - 1));
   space.addr = (uintptr_t) p;

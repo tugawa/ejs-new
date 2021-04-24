@@ -11,7 +11,6 @@ OPERANDSPEC = $(EJSVM_DIR)/operand-spec/any.spec
 # OPERANDSPEC = $(EJSVM_DIR)/operand-spec/fixnum-unspec.spec
 SUPERINSNSPEC = $(EJSVM_DIR)/superinsn-spec/all.si
 SUPERINSNTYPE = 4
-#VMDLC_FLAGS=-no-match-opt
 
 ##
 ## compile flags
@@ -29,14 +28,14 @@ CXXFLAGS =
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
 
 ##
-## C++
-##
-GC_CXX = true
-
-##
 ## VMDL
 ##
-USE_VMDL = false
+VMDLC_FLAGS=-T3
+USE_VMDL=false
+USE_VMDL_INLINE_EXPANSION=false
+USE_VMDL_CASE_SPLIT=false
+# ICCSPEC=
+ICC_PROF=false
 
 ##
 ## commands
@@ -71,6 +70,7 @@ OPT_GC        = native
 #OPT_GC        = bibop
 #OPT_GC        = copy
 #OPT_GC        = none
+#OPT_GC        = threaded
 
 ## heap size in bytes
 HEAPSIZE      = -DJS_SPACE_BYTES=10485760
@@ -97,8 +97,6 @@ CPPFLAGS       += -DHC_SKIP_INTERNAL
 CPPFLAGS       += -DALLOC_SITE_CACHE
 ## GC collects unused shapes (effective if ALLOC_SITE_CACHE is specified)
 CPPFLAGS       += -DWEAK_SHAPE_LIST
-## Do not hold the list of shapes.  Instead, only the largest shape is held.
-#CPPFLAGS       += -DNO_SHAPE_CACHE
 ## use inlne cache
 CPPFLAGS       += -DINLINE_CACHE
 
@@ -106,21 +104,40 @@ CPPFLAGS       += -DINLINE_CACHE
 CPPFLAGS       += -DGC_PROF
 ## show hidden class related profiling information (make --hc-prof available)
 CPPFLAGS       += -DHC_PROF
-## print flonum usage
-CPPFLAGS       += -DFLONUM_SPACE
+## show inline cache statistics
+CPPFLAGS       += -DIC_PROF
+## show allocation site cache statistics
+CPPFLAGS       += -DAS_PROF
+## show shape statisics
+CPPFLAGS       += -DSHAPE_PROF
 
+
+## dump hidden class graph
+CPPFLAGS       += -DDUMP_HCG
+## load hidden class graph from file (unstable)
+CPPFLAGS       += -DLOAD_HCG
+
+## print flonum usage
+#CPPFLAGS       += -DFLONUM_PROF
+
+## use flonum space
+#CPPFLAGS       += -DFLONUM_SPACE
 ## use explicit mark stack rather than recursive call
 #CPPFLAGS      += -DMARK_STACK
 
-## array size strategy
-CPPFLAGS       += -DNEW_ASIZE_STRATEGY
+##
+## MS options
+##
+
+## use 32bit object header (for BIT_JSVALUE32 env)
+#CPPFLAGS       += -DGC_MS_HEADER32
 
 ##
 ## BiBoP options
 ##
 
 ## page caches the size of bitmaps
-CFALGS       += -DBIBOP_CACHE_BMP_GRANULES
+CFLAGS       += -DBIBOP_CACHE_BMP_GRANULES
 ## free pages of size one is linked in a separate list
 CPPFLAGS       += -DBIBOP_SEGREGATE_1PAGE
 ## allocate pages of size one from the bottom of the heap
@@ -133,15 +150,21 @@ CPPFLAGS       += -DBIBOP_FREELIST
 CPPFLAGS       += -DVERIFY_BIBOP
 
 ##
+## Threaded compactor options
+##
+
+## use boundary tag in Hidden Class
+CPPFLAGS       += -DGC_THREADED_BOUNDARY_TAG
+## use 32bit object header (for BIT_JSVALUE32 env)
+#CPPFLAGS       += -DGC_THREADED_HEADER32
+
+
+##
 ## debug/sanity check options
 ##
 
 ## show values of properties in GETPROP/SETPROP instructions
 #CPPFLAGS   += -DDEBUG_GETPROP_VALUE
-
-## GC reports unmatured (not reached the end of HC
-## transisiton graph) dead objects
-#CPPFLAGS   += -DCHECK_MATURED
 
 ## fix rand seed
 CPPFLAGS    += -DNO_SRAND

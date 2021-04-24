@@ -35,9 +35,28 @@ int coverage_flag;     /* print the coverage */
 int icount_flag;       /* print instruction count */
 int forcelog_flag;     /* treat every instruction as ``_log'' one */
 #endif
+#ifdef ICC_PROF
+char *iccprof_name;    /* name of instruction-call-count profile file */
+#endif /* ICC_PROF */
 #ifdef GC_PROF
 int gcprof_flag;       /* print GC profile information */
 #endif /* GC_PROF */
+#ifdef IC_PROF
+int icprof_flag;
+#endif /* IC_PROF */
+#ifdef AS_PROF
+int asprof_flag;
+#endif /* AS_PROF */
+#ifdef SHAPE_PROF
+int shapeprof_flag;
+#endif /* SHAPE_PROF */
+#ifdef DUMP_HCG
+char *dump_hcg_file_name;
+#endif /* DUMP_HCG */
+#ifdef LOAD_HCG
+char *load_hcg_file_name;
+#endif /* LOAD_HCG */
+
 
 /*
 #define DEBUG_TESTTEST
@@ -51,6 +70,9 @@ FILE *log_stream;
 #ifdef PROFILE
 FILE *prof_stream;
 #endif
+#ifdef ICC_PROF
+FILE *iccprof_fp;
+#endif /* ICC_PROF */
 
 /*
  * parameter
@@ -61,6 +83,8 @@ int heap_limit = JS_SPACE_BYTES; /* heap size in bytes */
 #else /* JS_SPACE_BYTES */
 int heap_limit = 1 * 1024 * 1024;
 #endif /* JS_SPACE_BYTES */
+int gc_threshold = -1; /* set in process_options */
+
 
 #ifdef CALC_CALL
 static uint64_t callcount = 0;
@@ -90,6 +114,9 @@ struct commandline_option  options_table[] = {
 #ifdef HC_PROF
   { "--hc-prof",  0, &hcprint_flag,   NULL          },
 #endif /* HC_PROF */
+#ifdef SHAPE_PROF
+  { "--shape-prof",  0, &shapeprof_flag,   NULL          },
+#endif /* SHAPE_PROF */
 #ifdef PROFILE
   { "--profile",  0, &profile_flag,   NULL          },
   { "--poutput",  1, NULL,            &poutput_name },
@@ -97,11 +124,27 @@ struct commandline_option  options_table[] = {
   { "--icount",   0, &icount_flag,    NULL          },
   { "--forcelog", 0, &forcelog_flag,  NULL          },
 #endif /* PROFILE */
+#ifdef ICC_PROF
+  { "--iccprof",  1, NULL,            &iccprof_name },
+#endif /* ICC_PROF */
 #ifdef GC_PROF
   { "--gc-prof",  0, &gcprof_flag,    NULL          },
 #endif /* GC_PROF */
+#ifdef IC_PROF
+  { "--ic-prof",  0, &icprof_flag,    NULL          },
+#endif /* IC_PROF */
+#ifdef AS_PROF
+  { "--as-prof",  0, &asprof_flag,    NULL          },
+#endif /* AS_PROF */
   { "-m",         1, &heap_limit,     NULL          },
+  { "--threshold",1, &gc_threshold,   NULL          },
   { "-s",         1, &regstack_limit, NULL          },
+#ifdef DUMP_HCG
+  { "--dump-hcg", 1, NULL,            &dump_hcg_file_name },
+#endif /* DUMP_HCG */
+#ifdef LOAD_HCG
+  { "--load-hcg", 1, NULL,            &load_hcg_file_name },
+#endif /* LOAD_HCG */
   { (char *)NULL, 0, NULL,            NULL          }
 };
 
@@ -133,8 +176,12 @@ int process_options(int ac, char *av[]) {
       k++;
       p = av[k];
     } else
-      return k;
+      break;
   }
+
+  /* If GC threshold is not given, use GC default */
+  if (gc_threshold == -1)
+    gc_threshold = DEFAULT_GC_THRESHOLD(heap_limit);
   return k;
 }
 
@@ -150,16 +197,24 @@ void print_gc_prof()
   int i;
   uint64_t total_live_bytes = 0;
   uint64_t total_live_count = 0;
+  uint64_t total_collect_bytes = 0;
+  uint64_t total_collect_count = 0;
 
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     total_live_bytes += pertype_live_bytes[i];
     total_live_count += pertype_live_count[i];
+    total_collect_bytes += pertype_collect_bytes[i];
+    total_collect_count += pertype_collect_count[i];
   }
 
   printf("GC: %"PRId64" %"PRId64" ", total_alloc_bytes, total_alloc_count);
   printf("%"PRId64" %"PRId64" ",
          generation > 1 ? total_live_bytes / (generation - 1) : 0,
          generation > 1 ? total_live_count / (generation - 1) : 0);
+  printf(" %"PRId64" %"PRId64" ", total_collect_bytes, total_collect_count);
+  printf("%"PRId64" %"PRId64" ",
+         generation > 1 ? total_collect_bytes / (generation - 1) : 0,
+         generation > 1 ? total_collect_count / (generation - 1) : 0);
   for (i = 0; i <= NUM_DEFINED_CELL_TYPES; i++) {
     printf(" %"PRId64" ", pertype_alloc_bytes[i]);
     printf(" %"PRId64" ", pertype_alloc_count[i]);
@@ -167,11 +222,19 @@ void print_gc_prof()
            generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
     printf(" %"PRId64" ",
            generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ", pertype_collect_bytes[i]);
+    printf(" %"PRId64" ", pertype_collect_count[i]);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_collect_bytes[i] / (generation - 1) : 0);
+    printf(" %"PRId64" ",
+           generation > 1 ? pertype_collect_count[i] / (generation - 1) : 0);
   }
   printf("\n");
 
   printf("total alloc bytes = %"PRId64"\n", total_alloc_bytes);
   printf("total alloc count = %"PRId64"\n", total_alloc_count);
+  printf("total collect bytes = %"PRId64"\n", total_collect_bytes);
+  printf("total collect count = %"PRId64"\n", total_collect_count);
   for (i = 0; i < 255; i++)
     if (pertype_alloc_count[i] > 0) {
       printf("  type %02x ", i);
@@ -181,6 +244,12 @@ void print_gc_prof()
              generation > 1 ? pertype_live_bytes[i] / (generation - 1) : 0);
       printf("l.count = %4"PRId64" ",
              generation > 1 ? pertype_live_count[i] / (generation - 1) : 0);
+      printf("ct.bytes = %7"PRId64" ", pertype_collect_bytes[i]);
+      printf("ct.count = %5"PRId64" ", pertype_collect_count[i]);
+      printf("ca.bytes = %7"PRId64" ",
+             generation > 1 ? pertype_collect_bytes[i] / (generation - 1) : 0);
+      printf("ca.count = %4"PRId64" ",
+             generation > 1 ? pertype_collect_count[i] / (generation - 1) : 0);
       printf("%s\n", CELLT_NAME(i));
     }
 }
@@ -312,13 +381,19 @@ int main(int argc, char *argv[]) {
     prof_stream = stdout;
   }
 #endif
+#ifdef ICC_PROF
+  if(iccprof_name != NULL){
+    if ((iccprof_fp = fopen(iccprof_name, "w")) == NULL)
+      fprintf(stderr, "Opening prof file %s failed.\n", iccprof_name);
+  }
+#endif /* ICC_PROF */
 
   run_phase = PHASE_INIT;
 
 #ifdef USE_BOEHMGC
   GC_INIT();
 #endif
-  init_memory(heap_limit);
+  init_memory(heap_limit, gc_threshold);
 
   init_string_table(STRING_TABLE_SIZE);
   init_context(regstack_limit, &context);
@@ -330,6 +405,7 @@ int main(int argc, char *argv[]) {
 #ifndef NO_SRAND
   srand((unsigned)time(NULL));
 #endif /* NO_SRAND */
+
 
   for (; k < iter; k++) {
 #if defined(USE_OBC) && defined(USE_SBC)
@@ -355,6 +431,13 @@ int main(int argc, char *argv[]) {
     } else
       /* stdin is closed possibly by pressing ctrl-D */
       break;
+
+#ifdef LOAD_HCG
+    if (load_hcg_file_name != NULL) {
+      extern void load_hcg(Context *, char *);
+      load_hcg(context, load_hcg_file_name);
+    }
+#endif /* LOAD_HCG */
 
     /* obtains the time before execution */
 #ifdef USE_PAPI
@@ -457,6 +540,36 @@ int main(int argc, char *argv[]) {
   if (hcprint_flag == TRUE)
     hcprof_print_all_hidden_class();
 #endif /* HC_PROF */
+#ifdef SHAPE_PROF
+  if (shapeprof_flag == TRUE) {
+    extern int shape_search_trial;
+    extern int shape_search_count;
+    extern int shape_search_success;
+    printf("shape cache search count %d, iteration %d (%f per search), success %d (%f hit)\n",
+           shape_search_count, shape_search_trial,
+           ((float) shape_search_trial) / shape_search_count,
+           shape_search_success,
+           ((float) shape_search_success) / shape_search_count);
+  }
+#endif /* SHAPE_PROF */
+#ifdef IC_PROF
+  if (icprof_flag) {
+    extern void print_ic_prof(Context *ctx);
+    print_ic_prof(context);
+  }
+#endif /* IC_PROF */
+#ifdef AS_PROF
+  if (asprof_flag) {
+    extern void print_as_prof(Context *ctx);
+    print_as_prof(context);
+  }
+#endif /* AS_PROF */
+#ifdef DUMP_HCG
+  if (dump_hcg_file_name != NULL) {
+    extern void dump_hidden_classes(char *, Context*);
+    dump_hidden_classes(dump_hcg_file_name, context);
+  }
+#endif /* DUMP_HCG */
 #ifdef PROFILE
   if (coverage_flag == TRUE)
     print_coverage(function_table, n);
@@ -465,6 +578,12 @@ int main(int argc, char *argv[]) {
   if (prof_stream != NULL)
     fclose(prof_stream);
 #endif /* PROFILE */
+#ifdef ICC_PROF
+  if(iccprof_fp != NULL){
+    write_icc_profile(iccprof_fp);
+    fclose(iccprof_fp);
+  }
+#endif /* ICC_PROF */
 
   return 0;
 }

@@ -174,7 +174,7 @@ typedef uint32_t Counter;
 #define minval_tag() (0)
 #define maxval_tag() (UINT8_MAX)
 
-#define PRIByteCode "08"PRIx32
+#define PRIByteCode "08" PRIx32
 #else /* BIT_INSN32 */
 typedef uint64_t Bytecode;
 typedef int32_t  SmallPrimitive;
@@ -214,14 +214,28 @@ struct alloc_site {
   Shape *shape;
   PropertyMap *pm;
   int polymorphic;
+#ifdef AS_PROF
+  int copy_words;
+  int transition;
+  int n_alloc;
+#endif /* AS_PROF */
 };
 #endif /* ALLOC_SITE_CACHE */
 
 #ifdef INLINE_CACHE
 struct inline_cache {
-  Shape *shape;
+  PropertyMap *pm;
   int index;
   JSValue prop_name;
+#define INLINE_CACHE_RESET_THRESHOLD 10
+  int miss;
+#ifdef IC_PROF
+  int unavailable;
+  int count;
+  int hit;
+  int install;
+  int proto;
+#endif /* IC_PROF */
 };
 #endif /* INLINE_CACHE */
 
@@ -237,6 +251,9 @@ struct instruction {
 #ifdef INLINE_CACHE
   InlineCache inl_cache;
 #endif /* INLINE_CACHE */
+#ifdef LOAD_HCG
+  PropertyMap *loaded_pm;
+#endif /* LOAD_HCG */
 #ifdef PROFILE
   Counter count;  /* counter */
   int logflag;    /* whether this instrution writes log info or not */

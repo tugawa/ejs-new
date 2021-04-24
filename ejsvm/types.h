@@ -50,7 +50,6 @@ typedef struct inline_cache InlineCache;
 /* instruction.h */
 typedef struct instruction    Instruction;
 
-
 #ifdef USE_TYPES_GENERATED
 #include "types-generated.h"
 #else /* USE_TYPES_GENERATED */
@@ -64,6 +63,7 @@ typedef struct instruction    Instruction;
  */
 #define LOG_MAX_NUM_CELL_TYPES 6
 typedef enum cell_type_t {
+  CELLT_FREE          = 0x00,
   CELLT_STRING        = HTAGV_STRING,
   CELLT_FLONUM        = HTAGV_FLONUM,
   CELLT_SIMPLE_OBJECT = HTAGV_SIMPLE_OBJECT,
@@ -83,9 +83,10 @@ typedef enum cell_type_t {
   CELLT_STR_CONS      = 0x15, /* StrCons */
   /* CELLT_CONTEXT       = 0x16, * Context (no longer used)*/
   /* CELLT_STACK         = 0x17, * Array of JSValues (no longer used) */
+  CELLT_TRANSITIONS   = 0x18,
   CELLT_HASHTABLE     = 0x19,
-  CELLT_HASH_BODY     = 0x1A,
-  CELLT_HASH_CELL     = 0x1B,
+  /* CELLT_HASH_BODY     = 0x1A, no longer used */
+  /* CELLT_HASH_CELL     = 0x1B, no longer used */
   CELLT_PROPERTY_MAP  = 0x1C,
   CELLT_SHAPE         = 0x1D,
   CELLT_UNWIND        = 0x1E,
@@ -161,6 +162,7 @@ typedef int32_t intjsv_t;
 typedef int32_t cint;
 typedef uint32_t cuint;
 #define PRIJSValue "08" PRIx32
+#define PRIcint PRId32
 #else /* BIT_JSVALUE32 */
 #define LOG_BYTES_IN_JSVALUE 3
 typedef uint64_t JSValue;
@@ -169,6 +171,7 @@ typedef int64_t intjsv_t;
 typedef int64_t cint;
 typedef uint64_t cuint;
 #define PRIJSValue "016" PRIx64
+#define PRIcint PRId64
 #endif /* BIT_JSVALUE32 */
 
 #define LOG_BITS_IN_JSVALUE  (LOG_BYTES_IN_JSVALUE + 3)
@@ -196,6 +199,7 @@ typedef struct {
 
 static inline HTag get_htag(JSValue v);
 static inline int  is_htag(JSValue v, HTag t);
+static inline uintjsv_t get_ptag_value_by_cell_type(cell_type_t type);
 
 /* Type conversion from/to JSValue
  *   JSValue -> JSObject             jsv_to_jsobject -- check and clear tag
@@ -267,6 +271,7 @@ struct property_map {
                               * 2 bits (0, 1, more, and UNSURE) would
                               * suffice. */
 #define PM_N_TRANS_UNSURE   (1 << 7)
+  uint8_t transient;         /* True if it is to be unlinked from the graph */
 #endif /* HC_SKIP_INTERNAL */
   JSValue   __proto__  __attribute__((aligned(BYTES_IN_JSVALUE)));
                              /* [const] __proto__ of the object. */
@@ -275,18 +280,27 @@ struct property_map {
   uint16_t n_user_special_props; /* [const] Number of special props that is
                                   * registered in the map. */
 #endif /* DEBUG */
-#ifdef HC_PROF
+#if defined(HC_PROF) || defined(HC_SKIP_INTERNAL)
   uint32_t n_enter;
   uint32_t n_leave;
+#endif /* HC_PROF || HC_SKIP_INTERNAL */
+#ifdef HC_PROF
+  int id;
+#ifdef DUMP_HCG
+  int function_no;
+  int insn_no;
+  int is_entry;
+  int is_builtin;
+#endif /* DUMP_HCG */
 #endif /* HC_PROF */
 };
 
-#ifdef HC_SKIP_INTERNAL
+#if defined(HC_SKIP_INTERNAL) || defined(WEAK_SHAPE_LIST)
 struct property_map_list {
   PropertyMap* pm;
   PropertyMapList *next;
 };
-#endif /* HC_SKIP_INTERNAL */
+#endif /* HC_SKIP_INTERNAL || WEAK_SHAPE_LIST */
 
 #ifdef HC_PROF
 struct root_property_map {
@@ -299,30 +313,32 @@ extern struct root_property_map *root_property_map;
 
 struct shape {
   PropertyMap *pm;            /* [const] Pointer to the map. */
-#ifndef NO_SHAPE_CACHE
   Shape *next;                /* [weak] Weak list of exisnting shapes
                                * shareing the same map. */
-#endif /* NO_SHAPE_CACHE */
   uint16_t n_embedded_slots;  /* [const] Number of slots for properties
                                * in the object. This number includes 
                                * special props. */
   uint16_t n_extension_slots; /* [const] Size of extension array. */
+#ifdef ALLOC_SITE_CACHE
+  AllocSite *alloc_site;
+#endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
-#ifdef HC_PROF
-  uint32_t n_enter;
-  uint32_t n_exit;
-  uint32_t is_dead;
-  uint32_t is_printed;
-#endif /* HC_PROF */
+#if defined(HC_PROF) || defined(ALLOC_SITE_CACHE)
+  int n_enter;
+  int n_leave;
+#endif /* HC_PROF || ALLOC_SITE_CACHE */
+#ifdef AS_PROF
+  int n_alloc;
+#endif /* AS_PROF */
+#ifdef DUMP_HCG
+  int is_cached;
+#endif /* DUMP_HCG */
 };
 
 struct jsobject_cell {
   Shape *shape;
-#ifdef ALLOC_SITE_CACHE
-  AllocSite *alloc_site;
-#endif /* ALLOC_SITE_CACHE */
 #ifdef DEBUG
   char *name;
 #endif /* DEBUG */
@@ -360,10 +376,6 @@ static inline JSValue *object_get_prop_address(JSValue obj, int index)
   *(object_get_prop_address(obj, index)) = v
 
 #define object_get_shape(obj) (jsv_to_jsobject(obj)->shape)
-#ifdef ALLOC_SITE_CACHE
-#define object_set_alloc_site(obj, as)          \
-  (jsv_to_jsobject(obj)->alloc_site = (as))
-#endif /* ALLOC_SITE_CACHE */
 
 /** SPECIAL FIELDS OF JSObjects
  *  get/set_jsxxx_yyy:
@@ -446,12 +458,7 @@ DEFINE_ACCESSORS_I(array, 0, uintjsv_t, size)
 DEFINE_ACCESSORS_R(array, 1, JSValue *, body, array_data)
 DEFINE_ACCESSORS_J(array, 2, length)  /* TODO: ensure consistency */
 
-#ifdef NEW_ASIZE_STRATEGY
 #define LOG_ASIZE_EXPAND_FACTOR 4
-#else /* NEW_ASIZE_STRATEGY */
-#define ASIZE_INIT   10       /* default initial size of the C array */
-#define ASIZE_LIMIT  100      /* limit size of the C array */
-#endif /* NEW_ASIZE_STRATEGY */
 #define MAX_ARRAY_LENGTH  ((uintjsv_t)(0xffffffff))
 #define increase_asize(n)     (((n) >= ASIZE_LIMIT)? (n): ((n) + ASIZE_DELTA))
 #define MINIMUM_ARRAY_SIZE  100
@@ -682,7 +689,9 @@ static inline JSValue cint_to_number(Context *ctx, cint n);
 #define uint32_to_number(ctx, n) (cint_to_number((ctx), (cint) (n)))
 #endif /* FIXNUM SIZE */
 
+#ifndef USE_VMDL
 static inline double number_to_double(JSValue v);
+#endif /* USE_VMDL */
 static inline JSValue double_to_number(Context *ctx, double n);
 
 /*

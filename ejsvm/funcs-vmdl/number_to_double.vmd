@@ -1,0 +1,14 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline, calledFromC) number_to_double : Number-> cdouble
+number_to_double(v){
+    top: match(v){
+        case(Fixnum v){
+            return fixnum_to_double(v);
+        }
+        case(Flonum v){
+            return flonum_to_double(v);
+        }
+    }
+}

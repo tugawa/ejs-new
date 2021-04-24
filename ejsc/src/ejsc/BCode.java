@@ -69,7 +69,7 @@ interface CodeBuffer {
 
 public abstract class BCode {
     String name;
-    int number;
+    protected int address;
     protected Register dst;
     ArrayList<Label> labels = new ArrayList<Label>();
     boolean logging = false;
@@ -107,6 +107,10 @@ public abstract class BCode {
 
     public Register getDestRegister() {
         return dst;
+    }
+
+    public int getAddress() {
+        return address;
     }
 
     public HashSet<Register> getSrcRegisters() {
@@ -217,10 +221,10 @@ class Label {
         this.bcode = bcode;
     }
     public int dist(int number) {
-        return bcode.number - number;
+        return bcode.address - number;
     }
     public int dist(int number, int argoffset) {
-        return bcode.number - number - (argoffset + 1);
+        return bcode.address - number - (argoffset + 1);
     }
     public BCode getDestBCode() {
         return bcode;
@@ -1173,10 +1177,10 @@ class IJump extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, logging, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(address));
     }
     public String toString() {
-        return super.toString(name, label.dist(number));
+        return super.toString(name, label.dist(address));
     }
 }
 /* CONDJUMP */
@@ -1194,10 +1198,10 @@ class IJumptrue extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addCondJump(name, logging, test, label.dist(number));
+        buf.addCondJump(name, logging, test, label.dist(address));
     }
     public String toString() {
-        return super.toString(name, test, label.dist(number));
+        return super.toString(name, test, label.dist(address));
     }
 }
 /* CONDJUMP */
@@ -1215,10 +1219,10 @@ class IJumpfalse extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addCondJump(name, logging, test, label.dist(number));
+        buf.addCondJump(name, logging, test, label.dist(address));
     }
     public String toString() {
-        return super.toString(name, test, label.dist(number));
+        return super.toString(name, test, label.dist(address));
     }
 }
 /* ONEOP */
@@ -1252,10 +1256,10 @@ class IPushhandler extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, logging, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(address));
     }
     public String toString() {
-        return super.toString(name, label.dist(number));
+        return super.toString(name, label.dist(address));
     }
 }
 /* ZEROOP */
@@ -1280,10 +1284,10 @@ class ILocalcall extends BCode {
     }
     @Override
     public void emit(CodeBuffer buf) {
-        buf.addUncondJump(name, logging, label.dist(number));
+        buf.addUncondJump(name, logging, label.dist(address));
     }
     public String toString() {
-        return super.toString("localcall", label.dist(number));
+        return super.toString("localcall", label.dist(address));
     }
 }
 /* ZEROOP */

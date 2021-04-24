@@ -7,6 +7,9 @@
  * Electro-communications.
  */
 
+#ifndef EXTERN_H_
+#define EXTERN_H_
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -161,6 +164,21 @@ extern void print_backtrace(Context *);
 /*
  * conversion.c
  */
+
+#ifdef USE_VMDL
+
+extern double primitive_to_double(JSValue);
+extern JSValue primitive_to_string(JSValue);
+extern JSValue array_to_string(Context *, JSValue, JSValue);
+extern cint toInteger(Context *context, JSValue a);
+extern char *type_name(JSValue);
+extern JSValue cint_to_string(cint);
+extern JSValue double_to_string(double);
+
+#include "vmdl_workspace/vmdl-extern.inc"
+
+#else /* USE_VMDL */
+
 extern JSValue special_to_string(JSValue);
 extern JSValue special_to_number(JSValue);
 extern JSValue special_to_boolean(JSValue);
@@ -191,22 +209,32 @@ extern cint toInteger(Context *context, JSValue a);
 extern char *type_name(JSValue);
 extern JSValue cint_to_string(cint);
 
+#endif /* USE_VMDL */
+
 /*
  * hash.c
  */
 extern HashTable *hash_create(Context *, unsigned int);
 extern int hash_get_with_attribute(HashTable *, HashKey, HashData *, Attribute *attr);
-extern int hash_put_with_attribute(Context *, HashTable *,
-                                   HashKey, HashData, Attribute);
+extern int hash_put_property(Context *ctx, HashTable *table,
+                             HashKey key, uint32_t index, Attribute attr);
+extern void hash_put_transition(Context *ctx, HashTable *table,
+                                HashKey key, PropertyMap *pm);
+
 extern int hash_copy(Context *, HashTable *, HashTable *);
 extern int hash_delete(HashTable *table, HashKey key);
-extern int init_hash_iterator(HashTable *, HashIterator *);
 extern void print_hash_table(HashTable *);
 
-extern HashIterator createHashIterator(HashTable *);
-extern int hash_next(HashTable *, HashIterator *, HashData *);
-extern int nextHashEntry(HashTable *table, HashIterator *Iter, HashEntry *ep);
-extern int nextHashCell(HashTable *table, HashIterator *iter, HashCell** p);
+extern HashPropertyIterator createHashPropertyIterator(HashTable *);
+extern HashTransitionIterator createHashTransitionIterator(HashTable *);
+extern int nextHashTransitionCell(HashTable *table,
+                                  HashTransitionIterator *iter,
+                                  HashTransitionCell** p);
+extern int nextHashPropertyCell(HashTable *table,
+                                HashPropertyIterator *iter,
+                                JSValue *key,
+                                uint32_t *index,
+                                Attribute *attr);
 
 /*
  * string.c
@@ -290,19 +318,24 @@ extern PropertyMap *new_property_map(Context *ctx, char *name,
                                      int n_user_special_props,
                                      JSValue __proto__, PropertyMap *prev);
 extern void property_map_add_property_entry(Context *ctx, PropertyMap *pm,
-                                            JSValue name, int data,
+                                            JSValue name, uint32_t index,
                                             Attribute attr);
+extern void property_map_add_transition(Context *ctx, PropertyMap *pm,
+                                        JSValue name, PropertyMap *dest);
 
-extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
-                               int num_embedded, int num_extension);
 #ifdef ALLOC_SITE_CACHE
-extern JSValue create_simple_object_with_constructor(Context *ctx, JSValue ctor,
-                                                     AllocSite *as);
+extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                               int num_embedded, int num_extension,
+                               AllocSite *as);
 extern JSValue create_array_object(Context *ctx, char *name, size_t size);
 #else /* ALLOC_SITE_CACHE */
+extern Shape *new_object_shape(Context *ctx, char *name, PropertyMap *pm,
+                               int num_embedded, int num_extension);
+#endif /* ALLOC_SITE_CACHE */
 extern JSValue create_simple_object_with_constructor(Context *ctx,
                                                      JSValue ctor);
-#endif /* ALLOC_SITE_CACHE */
+extern JSValue create_simple_object_with_prototype(Context *ctx,
+                                                   JSValue prototype);
 
 #ifdef ALLOC_SITE_CACHE
 extern void init_alloc_site(AllocSite *alloc_site);
@@ -315,6 +348,10 @@ extern void init_inline_cache(InlineCache *ic);
 #ifdef HC_PROF
 extern void hcprof_print_all_hidden_class(void);
 #endif /* HC_PROF */
+
+#ifdef VERBOSE_HC
+extern int sprint_property_map(char*, PropertyMap*);
+#endif /* VERBOSE_HC */
 
 /*
  * object-compat.c
@@ -393,19 +430,19 @@ extern uint64_t pertype_alloc_bytes[];
 extern uint64_t pertype_alloc_count[];
 extern uint64_t pertype_live_bytes[];
 extern uint64_t pertype_live_count[];
+extern uint64_t pertype_collect_bytes[];
+extern uint64_t pertype_collect_count[];
 #endif /* GC_PROF */
 
 /*
- * vmdl-helper.c
+ * iccprof.c
  */
-extern JSValue instanceof_helper(JSValue v1, JSValue v2);
-extern JSValue getarguments_helper(Context* context, int link, Subscript index);
-extern JSValue getlocal_helper(Context* context, int link, Subscript index);
-extern InstructionDisplacement localret_helper(Context* context, int pc);
-extern void setarg_helper(Context* context, int link, Subscript index, JSValue v);
-extern void setfl_helper(Context* context, JSValue *regbase, int fp, int newfl);
-extern void setlocal_helper(Context* context, int link, Subscript index, JSValue v2);
-extern JSValue nextpropnameidx_helper(JSValue itr);
+#ifdef ICC_PROF
+extern void icc_inc_record1(char *name, JSValue v1);
+extern void icc_inc_record2(char *name, JSValue v1, JSValue v2);
+extern void icc_inc_record3(char *name, JSValue v1, JSValue v2, JSValue v3);
+extern void write_icc_profile(FILE *fp);
+#endif /* ICC_PROF */
 
 #ifdef __cplusplus
 }
@@ -416,3 +453,5 @@ extern JSValue nextpropnameidx_helper(JSValue itr);
 /* c-basic-offset: 2     */
 /* indent-tabs-mode: nil */
 /* End:                  */
+
+#endif /* EXTERN_H_ */

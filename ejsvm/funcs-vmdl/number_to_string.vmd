@@ -1,0 +1,18 @@
+#include "../header-vmdl/externc.vmdh"
+
+
+(makeInline, calledFromC) number_to_string : Number -> String
+number_to_string(v){
+    top: match(v){
+        case(Fixnum v){
+            return fixnum_to_string(v);
+        }
+        case(Flonum v){
+            return flonum_to_string(v);
+        }
+        case(true){
+            type_error("number expected in number_to_string");
+            return gconsts.g_string_empty;
+        }
+    }
+}
