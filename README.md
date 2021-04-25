@@ -50,7 +50,7 @@ contained in the repository.
 1. Create build directory
 ```
 $ mkdir build.debug
-$ copy build.debug
+$ cd build.debug
 ```
 
 2. Create `Makefile` from template `ejsvm/Makefile.template`
