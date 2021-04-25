@@ -107,6 +107,12 @@ $ ./ejsvm a.sbc
   * `CFLAGS+=-DBIT_JSVALUE32`: Use 32 bit layout of JSValue.  Pointer size should also be 32bit (`-m32` compiler and linker options are required).
   * `CFLAGS+=-DBIT_ALIGN32`: Alignment heap objects in 32 bit boundary rather than 64 bit. Handcrafted code does not support this option.
 
+* GC options
+  * `OPT_GC=native`: mark-sweep GC with single free-list allocator
+  * `OPT_GC=bibop`: mark-sweep GC with BiBoP
+  * `OPT_GC=copy`: semispace copy GC
+  * `OPT_GC=threaded`: Fusuma (based on Jonkers's threaded compaction)
+
 ### Usage
 
 ```
