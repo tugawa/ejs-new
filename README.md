@@ -82,7 +82,7 @@ $ make
 
 ### execute
 
-#### Interpreter mode
+#### Interpreter mode (not recommended)
 Simply execute `ejsi` in the build directory.
 ```
 $ ejsi
