@@ -64,6 +64,16 @@ $ cp ../ejsvm/Makefile.template Makefile
 ```
 $ make -j
 ```
+If failed, try to build ejsc and vmgen manually, and then make ejsvm again.
+```
+$ make cleanest
+$ cd ../ejsc
+$ ant
+$ cd ../vmgen
+$ ant
+$ cd ../build
+$ make
+```
 
 5. Followings are generated.
   * `ejsvm` -- VM
