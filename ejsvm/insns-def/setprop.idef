@@ -22,7 +22,7 @@
     ic->count++;
     ic_prof_count++;
     if (ic->pm == NULL)
-    ic->unavailable++;
+      ic->unavailable++;
 #endif /* IC_PROF */
     if (ic->pm == object_get_shape(obj)->pm && ic->prop_name == prop) {
       assert(ic->index <

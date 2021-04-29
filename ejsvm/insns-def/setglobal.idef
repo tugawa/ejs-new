@@ -1,13 +1,42 @@
-\inst setglobal (Value s, Value src)
+\inst setglobal (Value prop, Value src)
 
-\when s:string \{
+\when prop:string \{
 /*
    setglobal s src
      s : register that has a pointer to a string object
      src : property value to be set
    property value for the string in the global object = $src
  */
-  set_prop(context, context->global, s, src, ATTR_NONE);
+#ifdef GV_INLINE_CACHE
+  {
+    InlineCache *ic = &insns->inl_cache;
+    JSValue obj = context->global;
+#ifdef IC_PROF
+    ic->count++;
+    ic_prof_count++;
+    if (ic->prop_name == JS_EMPTY)
+      ic->unavailable++;
+#endif /* IC_PROF */
+    if (ic->prop_name == prop) {
+      assert(ic->index <
+             object_get_shape(obj)->n_embedded_slots +
+             object_get_shape(obj)->n_extension_slots -
+             (object_get_shape(obj)->n_extension_slots > 0 ? 1 : 0));
+      object_set_prop(obj, ic->index, src);
+#ifdef IC_PROF
+      ic->hit++;
+      ic_prof_hit++;
+#endif /* IC_PROF */
+    } else {
+      assert(ic->prop_name == JS_EMPTY);
+      ic->miss++;
+      set_prop_with_ic(context, obj, prop, src, ATTR_NONE, ic);
+      ic->pm = NULL;
+    }
+  }
+#else /* GV_INLINE_CACHE */
+  set_prop(context, context->global, prop, src, ATTR_NONE);
+#endif /* GV_INLINE_CACHE */
 \}
 
 \otherwise \{

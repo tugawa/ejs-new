@@ -274,7 +274,11 @@ void print_ic_prof(Context *ctx)
       InlineCache *ic = &insn->inl_cache;
       if (ic->count >= 10) {
         printf("IC %03d:%03d %s install %3d count %7d hit %7d (radio %f) NULL %7d proto %7d\n",
-               i, j, get_opcode(insn->code) == GETPROP ? "get" : "set",
+               i, j,
+               get_opcode(insn->code) == GETPROP ? "get " :
+               get_opcode(insn->code) == SETPROP ? "set " :
+               get_opcode(insn->code) == GETGLOBAL ? "gget" :
+               get_opcode(insn->code) == SETGLOBAL ? "gset" : "????",
                ic->install, ic->count, ic->hit, ((float) ic->hit) / ic->count,
                ic->unavailable, ic->proto);
       }
