@@ -203,14 +203,14 @@ ObjBuiltinProp Math_builtin_props[] = {
   { "random", math_random, 0, ATTR_DE },
 };
 ObjDoubleProp  Math_double_props[] = {
-  { "E",         2.7182818284590452354, ATTR_ALL },
-  { "LN10",      2.302585092994046,     ATTR_ALL },
-  { "LN2",       0.6931471805599453,    ATTR_ALL },
-  { "LOG2E",     1.4426950408889634,    ATTR_ALL },
-  { "LOG10E",    0.4342944819032518,    ATTR_ALL },
-  { "PI",        3.1415926535897932,    ATTR_ALL },
-  { "SQRT1_2",   0.7071067811865476,    ATTR_ALL },
-  { "SQRT2",     1.4142135623730951,    ATTR_ALL },
+  { "E",         2.7182818284590452354, ATTR_ALL, -1 },
+  { "LN10",      2.302585092994046,     ATTR_ALL, -1 },
+  { "LN2",       0.6931471805599453,    ATTR_ALL, -1 },
+  { "LOG2E",     1.4426950408889634,    ATTR_ALL, -1 },
+  { "LOG10E",    0.4342944819032518,    ATTR_ALL, -1 },
+  { "PI",        3.1415926535897932,    ATTR_ALL, -1 },
+  { "SQRT1_2",   0.7071067811865476,    ATTR_ALL, -1 },
+  { "SQRT2",     1.4142135623730951,    ATTR_ALL, -1 },
 };
 ObjGconstsProp Math_gconsts_props[] = {};
 DEFINE_PROPERTY_TABLE_SIZES_I(Math);
