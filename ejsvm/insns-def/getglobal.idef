@@ -12,7 +12,7 @@
   if (trace_flag)
     printf("getglobal: %s\n", str->value);
 #endif /* DEBUG_GETPROP_VALUE */
-#ifdef GV_INLINE_CACHE
+#ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
     JSValue obj = context->global;
@@ -40,13 +40,13 @@
       ic->pm = NULL;
     }
   }
-#else /* GV_INLINE_CACHE */
+#else /* INLINE_CACHE */
   {
     dst = get_prop(context->global, prop);
     if (dst == JS_EMPTY)
       LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(prop));
   }
-#endif /* GV_INLINE_CACHE */
+#endif /* INLINE_CACHE */
 \}
 
 \otherwise \{

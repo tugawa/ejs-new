@@ -7,7 +7,7 @@
      src : property value to be set
    property value for the string in the global object = $src
  */
-#ifdef GV_INLINE_CACHE
+#ifdef INLINE_CACHE
   {
     InlineCache *ic = &insns->inl_cache;
     JSValue obj = context->global;
@@ -34,9 +34,9 @@
       ic->pm = NULL;
     }
   }
-#else /* GV_INLINE_CACHE */
+#else /* INLINE_CACHE */
   set_prop(context, context->global, prop, src, ATTR_NONE);
-#endif /* GV_INLINE_CACHE */
+#endif /* INLINE_CACHE */
 \}
 
 \otherwise \{
