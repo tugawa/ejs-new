@@ -435,10 +435,10 @@ ACCEPTOR STATIC void scan_function_table_entry(FunctionTable *p)
     for (i = 0; i < p->n_insns; i++) {
       Instruction *insn = &p->insns[i];
       InlineCache *ic = &insn->inl_cache;
-      if (ic->pm != NULL) {
+      if (ic->pm != NULL)
         PROCESS_WEAK_EDGE(ic->pm);
+      if (ic->prop_name != JS_EMPTY)
         PROCESS_WEAK_EDGE(ic->prop_name);
-      }
     }
   }
 #endif /* INLINE_CACHE */
