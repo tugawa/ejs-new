@@ -62,13 +62,15 @@ static Shape *create_map_and_shape(Context *ctx,
                                    ObjDoubleProp double_props[],
                                    uint32_t num_double_props,
                                    ObjGconstsProp gconsts_props[],
-                                   uint32_t num_gconsts_props)
+                                   uint32_t num_gconsts_props,
+                                   char *user_props[],
+                                   uint32_t num_user_props)
 {
   PropertyMap *m;
   Shape *s;
   int i;
   uint32_t num_normal_props =
-    num_builtin_props + num_double_props + num_gconsts_props;
+    num_builtin_props + num_double_props + num_gconsts_props + num_user_props;
   uint32_t num_user_special_props;
   uint32_t num_props;
   uint32_t num_embedded;
@@ -111,6 +113,11 @@ static Shape *create_map_and_shape(Context *ctx,
     property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p->name),
                                     index++, p->attr);
   }
+  for (i = 0; i < num_user_props; i++) {
+    char *p = user_props[i];
+    property_map_add_property_entry(ctx, m, cstr_to_string(ctx, p),
+                                    index++, ATTR_NONE);
+  }
 #ifdef ALLOC_SITE_CACHE
   s = new_object_shape(ctx, name, m, num_embedded, 0, NULL);
 #else /* ALLOC_SITE_CACHE */
@@ -118,6 +125,7 @@ static Shape *create_map_and_shape(Context *ctx,
 #endif /* ALLOC_SITE_CACHE */
   return s;
 }
+
 #define CREATE_MAP_AND_SHAPE(ctx, name, num_special, proto, KEY)  \
   create_map_and_shape(ctx, name, num_special, proto,             \
                        KEY ## _builtin_props,                     \
@@ -125,7 +133,9 @@ static Shape *create_map_and_shape(Context *ctx,
                        KEY ## _double_props,                      \
                        KEY ## _num_double_props,                  \
                        KEY ## _gconsts_props,                     \
-                       KEY ## _num_gconsts_props)
+                       KEY ## _num_gconsts_props,                 \
+                       NULL,                                      \
+                       0)
 
 static void fill_builtin_properties(Context *ctx,
                                     JSValue object,
@@ -281,19 +291,34 @@ void init_meta_objects(Context *ctx)
 #undef STEP3
 }
 
+#define CREATE_GLOBAL_OBJECT(ctx, name, KEY, key, uprops, num_uprops)   \
+do {                                                                    \
+  JSValue proto = new_simple_object(ctx, DEBUG_NAME(name ".__proto__"), \
+                                    gshapes.g_shape_Object);            \
+  Shape *os = create_map_and_shape(ctx, DEBUG_NAME(name), 0, proto,     \
+                                   KEY ## _builtin_props,               \
+                                   KEY ## _num_builtin_props,           \
+                                   KEY ## _double_props,                \
+                                   KEY ## _num_double_props,            \
+                                   KEY ## _gconsts_props,               \
+                                   KEY ## _num_gconsts_props,           \
+                                   uprops, num_uprops);                 \
+  JSValue obj = new_simple_object(ctx, DEBUG_NAME(name), os);           \
+  gconsts.key = obj;                                                    \
+} while(0)
+
 /*
  * initializes global objects
  */
-void init_global_objects(Context *ctx) {
+void init_global_objects(Context *ctx)
+{
   /* Step 1
-   *   - fill gconsts
+   *   - create shape
+   *   - create object with empty slots
    */
-  gconsts.g_global = new_simple_object(ctx, DEBUG_NAME("global"),
-                                       gshapes.g_shape_Object);
-  gconsts.g_math = new_simple_object(ctx, DEBUG_NAME("math"),
-                                     gshapes.g_shape_Object);
-  gconsts.g_performance = new_simple_object(ctx, DEBUG_NAME("perforamnce"),
-                                            gshapes.g_shape_Object);
+  CREATE_GLOBAL_OBJECT(ctx, "global", Global, g_global, NULL, 0);
+  CREATE_GLOBAL_OBJECT(ctx, "math", Math, g_math, NULL, 0);
+  CREATE_GLOBAL_OBJECT(ctx, "performance", Performance, g_performance, NULL, 0);
 
   /* Step 2
    *   - fill propertyes

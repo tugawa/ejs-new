@@ -1,22 +1,52 @@
-\inst getglobal (Register dst, Value s)
+\inst getglobal (Register dst, Value prop)
 
-\when s:string \{
+\when prop:string \{
 /*
    getglobal dst reg
      dst : destination register
      reg : register that has a pointer to a string object
    $dst = property value for the string in the global object
  */
-  JSValue ret;
 #ifdef DEBUG_GETPROP_VALUE
-  StringCell *str = jsv_to_normal_string(s);
+  StringCell *str = jsv_to_normal_string(prop);
   if (trace_flag)
     printf("getglobal: %s\n", str->value);
 #endif /* DEBUG_GETPROP_VALUE */
-  ret = get_prop(context->global, s);
-  if (ret == JS_EMPTY)
-    LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(s));
-  dst = ret;
+#ifdef INLINE_CACHE
+  {
+    InlineCache *ic = &insns->inl_cache;
+    JSValue obj = context->global;
+#ifdef IC_PROF
+    ic->count++;
+    ic_prof_count++;
+    if (ic->prop_name == JS_EMPTY)
+      ic->unavailable++;
+#endif /* IC_PROF */
+    if (ic->prop_name == prop) {
+      assert(ic->index <
+             object_get_shape(obj)->n_embedded_slots +
+             object_get_shape(obj)->n_extension_slots -
+             (object_get_shape(obj)->n_extension_slots > 0 ? 1 : 0));
+      dst = object_get_prop(obj, ic->index);
+      assert(dst != JS_EMPTY);  /* global variable removed? */
+#ifdef IC_PROF
+      ic->hit++;
+      ic_prof_hit++;
+#endif /* IC_PROF */
+    } else {
+      assert(ic->prop_name == JS_EMPTY);
+      ic->miss++;
+      dst = get_object_prop(context, obj, prop, ic);
+      ic->pm = NULL;
+    }
+  }
+#else /* INLINE_CACHE */
+  {
+    dst = get_prop(context->global, prop);
+    if (dst == JS_EMPTY)
+      LOG_EXIT("GETGLOBAL: %s not found\n", string_to_cstr(prop));
+  }
+#endif /* INLINE_CACHE */
 \}
 
 \otherwise \{

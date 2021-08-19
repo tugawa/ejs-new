@@ -148,8 +148,8 @@ ObjGconstsProp NumberPrototype_gconsts_props[] = {};
 /* constructor */
 ObjBuiltinProp NumberConstructor_builtin_props[] = {};
 ObjDoubleProp  NumberConstructor_double_props[] = {
-  { "MAX_VALUE", DBL_MAX,               ATTR_ALL },
-  { "MIN_VALUE", DBL_MIN,               ATTR_ALL },
+  { "MAX_VALUE", DBL_MAX,               ATTR_ALL, -1 },
+  { "MIN_VALUE", DBL_MIN,               ATTR_ALL, -1 },
 };
 ObjGconstsProp NumberConstructor_gconsts_props[] = {
   { "prototype", &gconsts.g_prototype_Number,  ATTR_ALL },
