@@ -1,0 +1,8 @@
+insns
+*.o
+*.sbc
+ejsc.jar
+ejsi
+ejsvm
+*.spec
+*.inc
