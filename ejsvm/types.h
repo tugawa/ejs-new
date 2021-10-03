@@ -316,7 +316,7 @@ struct shape {
   Shape *next;                /* [weak] Weak list of exisnting shapes
                                * shareing the same map. */
   uint16_t n_embedded_slots;  /* [const] Number of slots for properties
-                               * in the object. This number includes 
+                               * in the object. This number includes
                                * special props. */
   uint16_t n_extension_slots; /* [const] Size of extension array. */
 #ifdef ALLOC_SITE_CACHE
@@ -554,7 +554,7 @@ DEFINE_ACCESSORS(normal_iterator, Iterator, uint16_t, size)
 DEFINE_ACCESSORS(normal_iterator, Iterator, uint16_t, index)
 DEFINE_ACCESSORS(normal_iterator, Iterator, JSValue*, body)
 
-/* 
+/*
  * Flonum VMDataType interface
  */
 
@@ -656,7 +656,7 @@ static inline cint fixnum_to_cint(JSValue v)
 
 /* Convert a cint value to Fixnum.  The value sould be guaranteed
  * that it is small enough to fit fixnum.
- * 
+ *
  * In general, cint may contain an intenger that is out of range of
  * fixnum. cint_to_fixnum_nocheck should be used in limited caess
  * where the value is guaranteed to be small.

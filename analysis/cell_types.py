@@ -1,0 +1,31 @@
+WHITE = (255, 255, 255)
+CellTypeDict = {
+  0: ("CELLT_FREE", WHITE),
+  4: ("CELLT_STRING", (0, 255, 255)),
+  5: ("CELLT_FLONUM", WHITE),
+  6: ("CELLT_SIMPLE_OBJECT", (255, 255, 0)),
+  7: ("CELLT_ARRAY", WHITE),
+  8: ("CELLT_FUNCTION", (0, 255, 0)),
+  9: ("CELLT_BUILTIN", (255, 0, 255)),
+  10: ("CELLT_ITERATOR", WHITE),
+  11: ("CELLT_REGEXP", WHITE),
+  12: ("CELLT_BOXED_STRING", WHITE),
+  13: ("CELLT_BOXED_NUMBER", WHITE),
+  14: ("CELLT_BOXED_BOOLEAN", WHITE),
+
+  17: ("CELLT_PROP", (0, 0, 255)), # Array of JSValues
+  18: ("CELLT_ARRAY_DATA", WHITE), # Array of JSValues
+  19: ("CELLT_BYTE_ARRAY", WHITE), # Array of primitives
+  20: ("CELLT_FUNCTION_FRAME", WHITE),
+  21: ("CELLT_STR_CONS", (255, 0, 0)),
+  # 22: "CELLT_CONTEXT", no longer used
+  # 23: "CELLT_STACK", no longer used
+  24: ("CELLT_TRANSITIONS", (128, 128, 0)),
+  25: ("CELLT_HASHTABLE", (192, 192, 192)),
+  # 26: "CELLT_HASH_BODY",  no longer used
+  # 27: "CELLT_HASH_CELL", no longer used
+  28: ("CELLT_PROPERTY_MAP", (128, 128, 128)),
+  29: ("CELLT_SHAPE", (0, 128, 0)),
+  30: ("CELLT_UNWIND", WHITE),
+  31: ("CELLT_PROPERTY_MAP_LIST", (128, 0, 128)),
+}

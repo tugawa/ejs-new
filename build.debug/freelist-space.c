@@ -152,7 +152,7 @@ STATIC_INLINE void* js_space_alloc(struct space *space,
 {
   size_t  alloc_granules;
   struct free_chunk **p;
-  
+
   alloc_granules = BYTE_TO_GRANULE_ROUNDUP(request_bytes);
   alloc_granules += HEADER_GRANULES;
 
@@ -253,6 +253,7 @@ STATIC void sweep_space(struct space *space)
           (hdrp->size - hdrp->extra) << LOG_BYTES_IN_GRANULE;
         pertype_live_bytes[type]+= bytes;
         pertype_live_count[type]++;
+        printf("bytes: %ld, type: %d\n", bytes, type);
       }
 #endif /* GC_PROF */
       unmark_cell_header((header_t *) scan);

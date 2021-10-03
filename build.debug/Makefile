@@ -20,9 +20,9 @@ SUPERINSNTYPE = 4
 # CXXFLAGS for C++ compiler
 # CPPFLAGS for C and  C++ compilers and preprocessor
 
-CPPFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
+# CPPFLAGS = -O2 -DNDEBUG -UDEBUG $(HEAPSIZE)
 # CPPFLAGS = -Os -DNDEBUG -UDEBUG $(HEAPSIZE)
-# CPPFLAGS = -O0 -g $(HEAPSIZE)
+CPPFLAGS = -O0 -g $(HEAPSIZE)
 CFLAGS =
 CXXFLAGS =
 INSNGEN_FLAGS = -Xgen:pad_cases true -Xcmp:opt_pass MR:S -Xcmp:rand_seed 0
