@@ -228,11 +228,8 @@ void* space_alloc(uintptr_t request_bytes, uint32_t type)
  * GC
  */
 
-int counter = 0;
-
 STATIC void sweep_space(struct space *space)
 {
-  counter++;
   struct free_chunk **p;
   uintptr_t scan = space->addr;
   uintptr_t free_bytes = 0;
@@ -256,9 +253,7 @@ STATIC void sweep_space(struct space *space)
           (hdrp->size - hdrp->extra) << LOG_BYTES_IN_GRANULE;
         pertype_live_bytes[type]+= bytes;
         pertype_live_count[type]++;
-        if (counter < 10) {
-          printf("bytes: %ld, type: %d\n", bytes, type);
-        }
+        printf("%ld %d %ld\n", bytes, type, sizeof(*hdrp));
       }
 #endif /* GC_PROF */
       unmark_cell_header((header_t *) scan);
