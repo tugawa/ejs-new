@@ -253,7 +253,7 @@ STATIC void sweep_space(struct space *space)
           (hdrp->size - hdrp->extra) << LOG_BYTES_IN_GRANULE;
         pertype_live_bytes[type]+= bytes;
         pertype_live_count[type]++;
-        printf("%ld %d %ld\n", bytes, type, scan + sizeof(*hdrp));
+        printf("D %ld %d %ld\n", bytes, type, scan+sizeof(*hdrp));
       }
 #endif /* GC_PROF */
       unmark_cell_header((header_t *) scan);
