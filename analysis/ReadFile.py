@@ -19,7 +19,7 @@ def readGC(file_path):
         continue
 
       if len(line) > 0 and line[0] == 'D':
-        byte, type, address = map(lambda x: int(x),re.findall(r"\d+", line))
-        ret[gc_cnt].append((byte, type, address))
+        byte, type, address, hidden_class = map(lambda x: int(x),re.findall(r"\d+", line))
+        ret[gc_cnt].append((byte, type, address, hidden_class))
 
   return ret
